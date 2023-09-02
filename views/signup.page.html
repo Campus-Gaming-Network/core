@@ -1,0 +1,34 @@
+{{ template "base"}} {{define "content"}}
+<form action="/signup" method="post">
+  <div>
+    <label for="full-name">Full Name</label><br />
+    <input
+      type="text"
+      id="full-name"
+      name="fullName"
+      spellcheck="false"
+      autocomplete="name"
+    /><br />
+  </div>
+  <div>
+    <label for="email">Email</label><br />
+    <div id="email-hint">
+      We use this for your login and to send you notifications.
+    </div>
+    <input
+      type="email"
+      id="email"
+      name="email"
+      aria-describedby="email-hint"
+      spellcheck="false"
+      autocomplete="email"
+    /><br />
+  </div>
+  <div>
+    <label for="password">Password</label><br />
+    <input type="password" id="password" name="password" />
+  </div>
+  <br />
+  <input type="submit" value="Submit" />
+</form>
+{{ end }}

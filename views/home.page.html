@@ -6,15 +6,30 @@ CGN | {{.Title}}
 
 {{template "navbar" }}
 
-<p>My name is {{.Person.Name}}, I am {{.Person.Age}} years old.</p>
+<p>My name is {{.User.Name}}, I am {{.User.Age}} years old.</p>
 
+{{if .Auth.Authenticated}}
+<pre>Authenticated!</pre>
+{{end}}
 
 <ul>
-{{ range $val := .Person.Emails }}
+{{ range $val := .User.Emails }}
     <li>Email: {{$val}}</li>
 {{ end }}
 </ul>
 
 <a href="/schools">Go to schools page</a>
+
+<br />
+
 <a href="/teams">Go to teams page</a>
+
+<br />
+
+{{if .Auth.Authenticated}}
+<a href="/logout">Logout</a>
+{{else}}
+<a href="/login">Login</a>
+{{end}}
+
 {{end}}

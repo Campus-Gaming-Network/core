@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"cgn/controllers/auth"
 	"cgn/controllers/events"
 	"cgn/controllers/schools"
 	"cgn/controllers/teams"
@@ -10,6 +11,7 @@ import (
 )
 
 func InitControllers(e *echo.Echo) {
+	auth.Init(e)
 	events.Init(e)
 	schools.Init(e)
 	users.Init(e)
