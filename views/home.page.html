@@ -1,0 +1,20 @@
+{{define "title"}}
+CGN | {{.Title}}
+{{end}}
+
+{{define "content"}}
+
+{{template "navbar" }}
+
+<p>My name is {{.Person.Name}}, I am {{.Person.Age}} years old.</p>
+
+
+<ul>
+{{ range $val := .Person.Emails }}
+    <li>Email: {{$val}}</li>
+{{ end }}
+</ul>
+
+<a href="/schools">Go to schools page</a>
+<a href="/teams">Go to teams page</a>
+{{end}}

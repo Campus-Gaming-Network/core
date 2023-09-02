@@ -1,0 +1,15 @@
+{{define "title"}}
+CGN | Teams
+{{end}}
+
+{{define "content"}}
+
+<ul>
+    {{ range $val := .Teams }}
+        <li>
+            <a href="/teams/{{ $val.Id }}">{{ $val.Name }}</a>
+        </li>
+    {{ end }}
+</ul>
+
+{{end}}
