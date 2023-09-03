@@ -3,6 +3,7 @@ package events
 import (
 	"net/http"
 
+	"github.com/labstack/echo-contrib/session"
 	"github.com/labstack/echo/v4"
 )
 
@@ -27,6 +28,13 @@ func Index(c echo.Context) error {
 
 // Create Event Form
 func CreateEvent(c echo.Context) error {
+	// this authentication block should be in a middleware
+	sess, _ := session.Get("session", c)
+	if auth, ok := sess.Values["authenticated"].(bool); !ok || !auth {
+		http.Redirect(c.Response(), c.Request(), "/", http.StatusUnauthorized)
+		return nil
+	}
+
 	type TemplateData struct{}
 	data := TemplateData{}
 	return c.Render(http.StatusOK, "create-event.page.html", data)
@@ -34,7 +42,17 @@ func CreateEvent(c echo.Context) error {
 
 // Handles Create Event
 func SaveEvent(c echo.Context) error {
-	return c.String(http.StatusOK, "SaveEvent")
+	// this authentication block should be in a middleware
+	sess, _ := session.Get("session", c)
+	if auth, ok := sess.Values["authenticated"].(bool); !ok || !auth {
+		http.Redirect(c.Response(), c.Request(), "/", http.StatusUnauthorized)
+		return nil
+	}
+
+	name := c.FormValue("name")
+	description := c.FormValue("description")
+	json_response := map[string]string{"name": name, "description": description}
+	return c.JSON(http.StatusOK, json_response)
 }
 
 // View Event Details

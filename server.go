@@ -11,7 +11,6 @@ import (
 
 	"github.com/gorilla/sessions"
 	"github.com/joho/godotenv"
-
 	"github.com/labstack/echo-contrib/session"
 	"github.com/labstack/echo/v4"
 )
