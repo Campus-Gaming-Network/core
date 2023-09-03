@@ -3,9 +3,8 @@ package teams
 import (
 	"cgn/models"
 	"cgn/repository"
-	"net/http"
-
 	"github.com/labstack/echo/v4"
+	"net/http"
 )
 
 var uri = "/teams"
@@ -38,7 +37,6 @@ func Index(c echo.Context) error {
 	type TemplateData struct {
 		Teams []models.Team
 	}
-
 	data := TemplateData{Teams: repository.GetAllTeams()}
 
 	return c.Render(http.StatusOK, "list-teams.page.html", data)
