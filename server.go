@@ -2,7 +2,7 @@ package main
 
 import (
 	"cgn/controllers"
-	"cgn/db"
+	"cgn/driver"
 	"cgn/render"
 	"cgn/repository"
 	"fmt"
@@ -17,10 +17,6 @@ import (
 )
 
 const port = 1323
-
-// wassup, lets build CGN! :D
-// o hell ya
-// no, just going to do it all from scratch
 
 // NotFound returns 404 not found page for invalid endpoints
 func NotFound(c echo.Context) error {
@@ -60,7 +56,7 @@ func main() {
 	e.RouteNotFound("/*", NotFound)
 	e.HTTPErrorHandler = customHTTPErrorHandler
 
-	dbConn, err := db.NewConnection()
+	dbConn, err := driver.NewConnection()
 	if err != nil {
 		log.Fatal(err)
 	}
