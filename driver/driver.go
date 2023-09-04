@@ -1,6 +1,7 @@
 package driver
 
 import (
+	"cgn/migrations"
 	"database/sql"
 	"fmt"
 	_ "github.com/lib/pq"
@@ -27,6 +28,9 @@ func NewConnection() (*sql.DB, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	//run migrations to update database
+	migrations.RunMigrations(db)
 
 	return db, nil
 }
