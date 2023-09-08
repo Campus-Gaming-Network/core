@@ -13,12 +13,13 @@ func RequireAuth() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			sess, _ := session.Get("session", c)
-			a := sess.Values["authenticated"].(bool)
+			if auth, ok := sess.Values["authenticated"].(bool); ok && auth {
+				return next(c)
+			}
+
 			htmx := helpers.IsHTMXRequest(c.Request())
 
-			if a {
-				return next(c)
-			} else if htmx {
+			if htmx {
 				c.Response().Header().Add("HX-Redirect", "/")
 				return c.NoContent(http.StatusSeeOther)
 			} else {

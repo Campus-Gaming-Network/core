@@ -83,7 +83,7 @@ func SaveEventForm(c echo.Context) error {
 	if err != nil {
 		fmt.Println(err)
 	}
-	logger.Log(fields)
+
 	userId, err := strconv.Atoi(fields.Get("user_id"))
 	title := fields.Get("title")
 	description := fields.Get("description")
