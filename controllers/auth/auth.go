@@ -101,9 +101,9 @@ func SignUpPOST(c echo.Context) error {
 
 	if err != nil {
 		logger.Error(err)
-		return c.String(http.StatusInternalServerError, "Error creating user")
+		return c.String(http.StatusOK, "Error creating user")
 	}
-	return c.String(http.StatusOK, "Now Sign In")
+	return c.String(http.StatusCreated, "Now Sign In")
 }
 
 // LogoutGET de-authenticates the session

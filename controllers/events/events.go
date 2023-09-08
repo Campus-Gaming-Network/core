@@ -116,7 +116,7 @@ func SaveEventForm(c echo.Context) error {
 		return c.String(http.StatusNotAcceptable, "Error creating event")
 	}
 
-	html := fmt.Sprintf("<li><a href='/teams/%d'>%d</a></li>", newID, newID)
+	html := fmt.Sprintf("<li><a href=\"/events/%d\">%s</a></li>", newID, title)
 	return c.HTML(http.StatusCreated, html)
 }
 
