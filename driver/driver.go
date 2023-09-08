@@ -1,6 +1,7 @@
 package driver
 
 import (
+	"cgn/logger"
 	"cgn/migrations"
 	"database/sql"
 	"fmt"
@@ -21,11 +22,13 @@ func NewConnection() (*sql.DB, error) {
 
 	db, err := sql.Open("postgres", psqlInfo)
 	if err != nil {
+		logger.Error(err)
 		return nil, err
 	}
 
 	err = TestConnection(db)
 	if err != nil {
+		logger.Error(err)
 		return nil, err
 	}
 
@@ -39,6 +42,7 @@ func NewConnection() (*sql.DB, error) {
 func TestConnection(db *sql.DB) error {
 	err := db.Ping()
 	if err != nil {
+		logger.Error(err)
 		return err
 	}
 	return nil

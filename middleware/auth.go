@@ -20,6 +20,7 @@ func RequireAuth() echo.MiddlewareFunc {
 			htmx := helpers.IsHTMXRequest(c.Request())
 
 			if htmx {
+				//helpers.HTMXRedirect(c, "/")
 				c.Response().Header().Add("HX-Redirect", "/")
 				return c.NoContent(http.StatusSeeOther)
 			} else {

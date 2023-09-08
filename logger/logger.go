@@ -11,7 +11,7 @@ type Logger struct {
 	ErrorLog *log.Logger
 }
 
-// logger is accessible within the app to log information
+// logger holds the Logger after InitLogger is executed
 var logger *Logger
 
 // InitLogger creates the info and error logs

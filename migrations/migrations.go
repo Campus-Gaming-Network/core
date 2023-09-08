@@ -1,6 +1,7 @@
 package migrations
 
 import (
+	"cgn/logger"
 	"database/sql"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
@@ -19,6 +20,6 @@ func RunMigrations(db *sql.DB) {
 		"postgres", driver)
 	err = m.Up()
 	if err != nil {
-		log.Println("db migrations: ", err)
+		logger.Log(err)
 	}
 }

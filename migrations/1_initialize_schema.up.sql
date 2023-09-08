@@ -1,7 +1,7 @@
 CREATE TABLE users (
                        id SERIAL PRIMARY KEY,
                        full_name VARCHAR(255) NOT NULL,
-                       email VARCHAR(255) NOT NULL,
+                       email VARCHAR(255) NOT NULL UNIQUE,
                        gravatar VARCHAR(255) NOT NULL,
                        password_hash TEXT NOT NULL,
                        created_at TIMESTAMPTZ DEFAULT NOW(),
