@@ -3,6 +3,7 @@ package main
 import (
 	"cgn/controllers"
 	"cgn/driver"
+	"cgn/logger"
 	"cgn/render"
 	"cgn/repository"
 	"fmt"
@@ -20,9 +21,7 @@ const port = 1323
 
 // NotFound returns 404 not found page for invalid endpoints
 func NotFound(c echo.Context) error {
-	return c.Render(http.StatusOK, "404.page.html", map[string]interface{}{
-		"Title": "Not Found",
-	})
+	return c.Render(http.StatusOK, "404.page.html", nil)
 }
 
 func customHTTPErrorHandler(err error, c echo.Context) {
@@ -41,10 +40,13 @@ func customHTTPErrorHandler(err error, c echo.Context) {
 }
 
 func main() {
+	logger.InitLogger()
+
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
+
 	t := render.CreateTemplates()
 	e := echo.New()
 
@@ -63,7 +65,6 @@ func main() {
 	defer dbConn.Close()
 
 	repository.NewRepository(dbConn)
-
 	controllers.InitControllers(e)
 
 	e.GET("/", func(c echo.Context) error {

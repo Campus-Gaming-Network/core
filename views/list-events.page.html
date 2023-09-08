@@ -1,0 +1,61 @@
+{{define "title"}}
+CGN | Events
+{{end}}
+
+{{define "content"}}
+
+
+<form id="eventForm" hx-boost="false" hx-post="/events/create-form" hx-trigger="submit" hx-swap="beforeend" hx-target="#eventList">
+    <!-- User ID -->
+    <div>
+        <label for="userId">User ID:</label>
+        <input type="number" id="userId" name="user_id" required>
+    </div>
+
+    <!-- Title -->
+    <div>
+        <label for="title">Title:</label>
+        <input type="text" id="title" name="title" required>
+    </div>
+
+    <!-- Description -->
+    <div>
+        <label for="description">Description:</label>
+        <textarea id="description" name="description"></textarea>
+    </div>
+
+    <!-- Start Date and Time -->
+    <div>
+        <label for="startDateTime">Start Date and Time:</label>
+        <input type="datetime-local" id="startDateTime" name="start_date_time" >
+    </div>
+
+    <!-- End Date and Time -->
+    <div>
+        <label for="endDateTime">End Date and Time:</label>
+        <input type="datetime-local" id="endDateTime" name="end_date_time" >
+    </div>
+
+    <!-- Is Online -->
+    <div>
+        <label for="isOnline">Is Online:</label>
+        <input type="number" id="isOnline" name="is_online" >
+    </div>
+
+    <!-- Submit Button -->
+    <div>
+        <button type="submit" >Create Event</button>
+    </div>
+</form>
+
+
+<ul id="eventList">
+    <label for="eventList">Here are some events</label>
+    {{ range $val := .Events }}
+        <li>
+            <a href="/events/{{ $val.Id }}">{{ $val.Title }}</a>
+        </li>
+    {{ end }}
+</ul>
+
+{{end}}
