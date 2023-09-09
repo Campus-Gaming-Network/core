@@ -4,11 +4,15 @@ import (
 	"cgn/logger"
 	"cgn/models"
 	"cgn/repository"
+	"crypto/md5"
+	"encoding/hex"
+	"fmt"
 	"github.com/gorilla/sessions"
 	"github.com/labstack/echo-contrib/session"
 	"github.com/labstack/echo/v4"
 	"golang.org/x/crypto/bcrypt"
 	"net/http"
+	"strings"
 )
 
 // Init initializes routes with handlers for auth routes
@@ -79,6 +83,22 @@ func SignUpGET(c echo.Context) error {
 	return c.Render(http.StatusOK, "signup.page.html", data)
 }
 
+// generateGravatarURL uses md5 hash to generate a Gravatar URL from an email string
+func generateGravatarURL(email string) string {
+	//generate md5 hash
+	hasher := md5.New()
+	hasher.Write([]byte(email))
+	hash := hasher.Sum(nil)
+	hashString := hex.EncodeToString(hash)
+
+	//construct URL
+	email = strings.TrimSpace(strings.ToLower(email))
+	baseURL := "https://www.gravatar.com/avatar/"
+	gravatarURL := fmt.Sprintf("%s%s", baseURL, hashString)
+
+	return gravatarURL
+}
+
 // SignUpPOST creates a new user
 func SignUpPOST(c echo.Context) error {
 	fullName := c.FormValue("fullName")
@@ -93,7 +113,7 @@ func SignUpPOST(c echo.Context) error {
 	user := models.User{
 		FullName:     fullName,
 		Email:        email,
-		Gravatar:     "",
+		Gravatar:     generateGravatarURL(email),
 		PasswordHash: string(passwordHash),
 	}
 
