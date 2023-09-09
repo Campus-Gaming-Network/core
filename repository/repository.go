@@ -74,18 +74,30 @@ func ReadEvent(id int) (models.Event, error) {
 
 	stmt := `SELECT * FROM events WHERE id=$1`
 
-	res, err := repo.db.Query(stmt, id)
+	row := repo.db.QueryRow(stmt, id)
+
+	err := row.Scan(
+		&e.Id,
+		&e.UserId,
+		&e.Title,
+		&e.Description,
+		&e.StartDateTime,
+		&e.EndDateTime,
+		&e.IsOnline,
+		&e.CreatedAt,
+		&e.UpdatedAt,
+		&e.DeletedAt,
+	)
+
 	if err != nil {
 		return models.Event{}, err
 	}
-
-	err = scan.Row(&e, res)
 	event := models.Event{
 		Id:            e.Id,
 		Title:         e.Title,
 		Description:   e.Description,
-		StartDateTime: models.MyTime(e.StartDateTime),
-		EndDateTime:   models.MyTime(e.EndDateTime),
+		StartDateTime: e.StartDateTime,
+		EndDateTime:   e.EndDateTime,
 		IsOnline:      e.IsOnline,
 	}
 

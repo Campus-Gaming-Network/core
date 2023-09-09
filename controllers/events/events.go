@@ -57,13 +57,12 @@ func SaveEvent(c echo.Context) error {
 
 	sess, _ := session.Get("session", c)
 	userId := sess.Values["userId"].(int)
-
 	event := models.EventDTO{
 		UserId:        userId,
 		Title:         e.Title,
 		Description:   e.Description,
-		StartDateTime: time.Time(e.StartDateTime),
-		EndDateTime:   time.Time(e.EndDateTime),
+		StartDateTime: e.StartDateTime,
+		EndDateTime:   e.EndDateTime,
 		IsOnline:      e.IsOnline,
 		CreatedAt:     time.Now(),
 		UpdatedAt:     time.Now(),
@@ -104,10 +103,13 @@ func SaveEventForm(c echo.Context) error {
 		UserId:        userId,
 		Title:         e.Title,
 		Description:   e.Description,
-		StartDateTime: time.Time(e.StartDateTime),
-		EndDateTime:   time.Time(e.EndDateTime),
+		StartDateTime: e.StartDateTime,
+		EndDateTime:   e.EndDateTime,
 		IsOnline:      e.IsOnline,
+		CreatedAt:     time.Now(),
+		UpdatedAt:     time.Now(),
 	}
+
 	newID, err := repository.CreateEvent(event)
 	if err != nil {
 		logger.Error(err)
@@ -171,8 +173,8 @@ func UpdateEvent(c echo.Context) error {
 		UserId:        userId,
 		Title:         e.Title,
 		Description:   e.Description,
-		StartDateTime: time.Time(e.StartDateTime),
-		EndDateTime:   time.Time(e.EndDateTime),
+		StartDateTime: e.StartDateTime,
+		EndDateTime:   e.EndDateTime,
 		IsOnline:      e.IsOnline,
 	}
 	type TemplateData struct {

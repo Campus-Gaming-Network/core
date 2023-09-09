@@ -22,13 +22,15 @@ CGN | Events
     <!-- Start Date and Time -->
     <div>
         <label for="startDateTime">Start Date and Time:</label>
-        <input type="datetime-local" placeholder="{{ .Event.StartDateTime }}" id="startDateTime" name="start_date_time" >
+        <input type="datetime-local" placeholder="{{ .Event.StartDateTime }}" id="startDateTime"  onchange="setStartRFC()" >
+        <input type="text" name="start_date_time" id="startDateTimeRFC" hidden>
     </div>
 
     <!-- End Date and Time -->
     <div>
         <label for="endDateTime">End Date and Time:</label>
-        <input type="datetime-local" placeholder="{{ .Event.EndDateTime }}" id="endDateTime" name="end_date_time" >
+        <input type="datetime-local" placeholder="{{ .Event.EndDateTime }}" id="endDateTime" onchange="setEndRFC()">
+        <input type="text" name="end_date_time" id="endDateTimeRFC" hidden>
     </div>
 
     <!-- Is Online -->
