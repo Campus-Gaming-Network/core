@@ -69,7 +69,7 @@ func CreateEvent(e models.EventDTO) (int, error) {
 }
 
 // ReadEvent gets an event by id
-func ReadEvent(id int) (models.Event, error) {
+func ReadEvent(id int) (models.Event, int, error) {
 	var e models.EventDTO
 
 	stmt := `SELECT * FROM events WHERE id=$1`
@@ -90,7 +90,7 @@ func ReadEvent(id int) (models.Event, error) {
 	)
 
 	if err != nil {
-		return models.Event{}, err
+		return models.Event{}, 0, err
 	}
 	event := models.Event{
 		Id:            e.Id,
@@ -101,7 +101,7 @@ func ReadEvent(id int) (models.Event, error) {
 		IsOnline:      e.IsOnline,
 	}
 
-	return event, nil
+	return event, e.UserId, nil
 }
 
 // GetAllEvents gets all events
@@ -237,4 +237,18 @@ func CreateUser(u models.User) (int, error) {
 	}
 
 	return newID, nil
+}
+
+// ReadEventUserId retrieves the user_id column from the events table with matching id
+func ReadEventUserId(id int) (int, error) {
+	stmt := `SELECT user_id FROM events WHERE id=$1`
+
+	var userId int
+	err := repo.db.QueryRow(stmt, id).Scan(&userId)
+
+	if err != nil {
+		return 0, err
+	}
+
+	return userId, nil
 }

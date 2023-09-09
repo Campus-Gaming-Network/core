@@ -23,8 +23,8 @@ func Init(e *echo.Echo) {
 	e.POST(uri+"/create", SaveEvent, middleware.RequireAuth())
 	e.GET(uri+"/:id", GetEvent)
 	e.GET(uri+"/:id/edit", EditEvent, middleware.RequireAuth())
-	e.PUT(uri+"/:id/edit", UpdateEvent, middleware.RequireAuth())
-	e.DELETE(uri+"/:id", DeleteEvent, middleware.RequireAuth())
+	e.PUT(uri+"/:id/edit", UpdateEvent, middleware.RequireAuth(), middleware.AuthorizeEventAccess())
+	e.DELETE(uri+"/:id", DeleteEvent, middleware.RequireAuth(), middleware.AuthorizeEventAccess())
 
 	e.POST(uri+"/create-form", SaveEventForm, middleware.RequireAuth())
 }
@@ -126,7 +126,8 @@ func GetEvent(c echo.Context) error {
 	type TemplateData struct {
 		Event models.Event
 	}
-	event, err := repository.ReadEvent(eventId)
+	event, _, err := repository.ReadEvent(eventId)
+
 	if err != nil {
 		logger.Error(err)
 		return c.Render(http.StatusNotFound, "404.page.html", nil)
@@ -142,12 +143,14 @@ func EditEvent(c echo.Context) error {
 		logger.Error(err)
 		c.String(http.StatusBadRequest, "invalid or missing event id")
 	}
+
 	type TemplateData struct {
 		Event models.Event
 	}
-	event, err := repository.ReadEvent(id)
+	event, _, err := repository.ReadEvent(id)
+
 	if err != nil {
-		c.String(http.StatusBadRequest, "invalid id")
+		return c.String(http.StatusBadRequest, "invalid id")
 	}
 	data := TemplateData{
 		Event: event,
