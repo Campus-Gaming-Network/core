@@ -40,7 +40,7 @@ func GetAllTeams() []models.Team {
 }
 
 // CreateEvent creates a new event, allowing three seconds for query to execute
-func CreateEvent(e models.Event) (int, error) {
+func CreateEvent(e models.EventDTO) (int, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
@@ -57,8 +57,8 @@ func CreateEvent(e models.Event) (int, error) {
 		e.StartDateTime,
 		e.EndDateTime,
 		e.IsOnline,
-		time.Now(),
-		time.Now(),
+		e.CreatedAt,
+		e.UpdatedAt,
 	).Scan(&newID)
 
 	if err != nil {
@@ -70,7 +70,7 @@ func CreateEvent(e models.Event) (int, error) {
 
 // ReadEvent gets an event by id
 func ReadEvent(id int) (models.Event, error) {
-	var event models.Event
+	var e models.EventDTO
 
 	stmt := `SELECT * FROM events WHERE id=$1`
 
@@ -79,7 +79,15 @@ func ReadEvent(id int) (models.Event, error) {
 		return models.Event{}, err
 	}
 
-	err = scan.Row(&event, res)
+	err = scan.Row(&e, res)
+	event := models.Event{
+		Id:            e.Id,
+		Title:         e.Title,
+		Description:   e.Description,
+		StartDateTime: models.MyTime(e.StartDateTime),
+		EndDateTime:   models.MyTime(e.EndDateTime),
+		IsOnline:      e.IsOnline,
+	}
 
 	return event, nil
 }
@@ -102,7 +110,7 @@ func GetAllEvents() []models.Event {
 }
 
 // UpdateEvent updates an event
-func UpdateEvent(e models.Event) (models.Event, error) {
+func UpdateEvent(e models.EventDTO) (models.Event, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	var updatedEvent models.Event

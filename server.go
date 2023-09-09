@@ -7,6 +7,7 @@ import (
 	"cgn/render"
 	"cgn/repository"
 	"fmt"
+	"github.com/labstack/echo/v4/middleware"
 	"log"
 	"net/http"
 
@@ -52,6 +53,7 @@ func main() {
 
 	// Session
 	e.Use(session.Middleware(sessions.NewCookieStore([]byte("SECRET_SESSION_KEY"))))
+	e.Use(middleware.CORS())
 
 	e.Renderer = t
 

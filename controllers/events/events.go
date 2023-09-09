@@ -6,11 +6,9 @@ import (
 	"cgn/middleware"
 	"cgn/models"
 	"cgn/repository"
-	"encoding/json"
 	"fmt"
 	"github.com/labstack/echo-contrib/session"
 	"github.com/labstack/echo/v4"
-	"io"
 	"net/http"
 	"strconv"
 	"time"
@@ -51,16 +49,27 @@ func CreateEvent(c echo.Context) error {
 
 // SaveEvent saves a new event using the request body
 func SaveEvent(c echo.Context) error {
-	var bodyBytes []byte
-	if c.Request().Body != nil {
-		bodyBytes, _ = io.ReadAll(c.Request().Body)
+
+	var e models.Event
+	if err := c.Bind(e); err != nil {
+		return c.String(http.StatusBadRequest, "bad request")
 	}
-	var newEvent models.Event
-	err := json.Unmarshal(bodyBytes, &newEvent)
-	if err != nil {
-		fmt.Println(err)
+
+	sess, _ := session.Get("session", c)
+	userId := sess.Values["userId"].(int)
+
+	event := models.EventDTO{
+		UserId:        userId,
+		Title:         e.Title,
+		Description:   e.Description,
+		StartDateTime: time.Time(e.StartDateTime),
+		EndDateTime:   time.Time(e.EndDateTime),
+		IsOnline:      e.IsOnline,
+		CreatedAt:     time.Now(),
+		UpdatedAt:     time.Now(),
 	}
-	newId, err := repository.CreateEvent(newEvent)
+
+	newId, err := repository.CreateEvent(event)
 
 	isHTMX := helpers.IsHTMXRequest(c.Request())
 	if !isHTMX {
@@ -79,44 +88,33 @@ func SaveEvent(c echo.Context) error {
 
 // SaveEventForm creates a new event using form values in the uri
 func SaveEventForm(c echo.Context) error {
-	fields, err := c.FormParams()
-	if err != nil {
-		fmt.Println(err)
+
+	var e models.Event
+
+	if err := c.Bind(&e); err != nil {
+		logger.Log(e)
+		logger.Error(err.Error())
+		return c.String(http.StatusBadRequest, "bad request")
 	}
 
-	userId, err := strconv.Atoi(fields.Get("user_id"))
-	title := fields.Get("title")
-	description := fields.Get("description")
-	sd := fields.Get("start_date_time")
-	ed := fields.Get("end_date_time")
+	sess, _ := session.Get("session", c)
+	userId := sess.Values["userId"].(int)
 
-	layout := "2006-01-02T15:04"
-	startDateTime, err := time.Parse(layout, sd)
-	if err != nil {
-		fmt.Println(err)
-	}
-	endDateTime, err := time.Parse(layout, ed)
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	isOnline, err := strconv.Atoi(fields.Get("is_online"))
-
-	event := models.Event{
+	event := models.EventDTO{
 		UserId:        userId,
-		Title:         title,
-		Description:   description,
-		StartDateTime: startDateTime,
-		EndDateTime:   endDateTime,
-		IsOnline:      isOnline,
+		Title:         e.Title,
+		Description:   e.Description,
+		StartDateTime: time.Time(e.StartDateTime),
+		EndDateTime:   time.Time(e.EndDateTime),
+		IsOnline:      e.IsOnline,
 	}
 	newID, err := repository.CreateEvent(event)
 	if err != nil {
-		fmt.Println(err)
+		logger.Error(err)
 		return c.String(http.StatusNotAcceptable, "Error creating event")
 	}
 
-	html := fmt.Sprintf("<li><a href=\"/events/%d\">%s</a></li>", newID, title)
+	html := fmt.Sprintf("<li><a href=\"/events/%d\">%s</a></li>", newID, e.Title)
 	return c.HTML(http.StatusCreated, html)
 }
 
@@ -128,6 +126,7 @@ func GetEvent(c echo.Context) error {
 	}
 	event, err := repository.ReadEvent(eventId)
 	if err != nil {
+		logger.Error(err)
 		return c.Render(http.StatusNotFound, "404.page.html", nil)
 	}
 	data := TemplateData{Event: event}
@@ -138,6 +137,7 @@ func GetEvent(c echo.Context) error {
 func EditEvent(c echo.Context) error {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
+		logger.Error(err)
 		c.String(http.StatusBadRequest, "invalid or missing event id")
 	}
 	type TemplateData struct {
@@ -155,49 +155,34 @@ func EditEvent(c echo.Context) error {
 
 // UpdateEvent handles update event put request.
 func UpdateEvent(c echo.Context) error {
-	fields, err := c.FormParams()
-	if err != nil {
-		fmt.Println(err)
+
+	var e models.Event
+	if err := c.Bind(&e); err != nil {
+		logger.Error(err)
+		return c.String(http.StatusBadRequest, "bad request")
 	}
-	//userId, err := strconv.Atoi(fields.Get("user_id"))
+
 	sess, _ := session.Get("session", c)
 	userId := sess.Values["userId"].(int)
+	eventId, _ := strconv.Atoi(c.Param("id"))
 
-	title := fields.Get("title")
-	description := fields.Get("description")
-	sd := fields.Get("start_date_time")
-	ed := fields.Get("end_date_time")
-
-	layout := "2006-01-02T15:04"
-	startDateTime, err := time.Parse(layout, sd)
-	if err != nil {
-		logger.Error(err)
-	}
-	endDateTime, err := time.Parse(layout, ed)
-	if err != nil {
-		logger.Error(err)
-	}
-
-	isOnline, err := strconv.Atoi(fields.Get("is_online"))
-	id, err := strconv.Atoi(c.Param("id"))
-
-	event := models.Event{
-		Id:            id,
+	event := models.EventDTO{
+		Id:            eventId,
 		UserId:        userId,
-		Title:         title,
-		Description:   description,
-		StartDateTime: startDateTime,
-		EndDateTime:   endDateTime,
-		IsOnline:      isOnline,
+		Title:         e.Title,
+		Description:   e.Description,
+		StartDateTime: time.Time(e.StartDateTime),
+		EndDateTime:   time.Time(e.EndDateTime),
+		IsOnline:      e.IsOnline,
 	}
 	type TemplateData struct {
 		Event models.Event
 	}
-
-	_, err = repository.UpdateEvent(event)
+	_, err := repository.UpdateEvent(event)
 	if err != nil {
 		return c.String(http.StatusBadRequest, err.Error())
 	}
+
 	//data := TemplateData{
 	//	Event: updatedEvent,
 	//}
