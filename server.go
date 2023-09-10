@@ -4,6 +4,7 @@ import (
 	"cgn/controllers"
 	"cgn/driver"
 	"cgn/logger"
+	"cgn/migrations"
 	"cgn/render"
 	"cgn/repository"
 	"fmt"
@@ -65,6 +66,8 @@ func main() {
 		log.Fatal(err)
 	}
 	defer dbConn.Close()
+
+	migrations.RunMigrations(dbConn)
 
 	repository.NewRepository(dbConn)
 	controllers.InitControllers(e)
