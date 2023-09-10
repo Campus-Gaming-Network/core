@@ -53,5 +53,10 @@ func (tr *TemplateRegistry) Render(w io.Writer, name string, data interface{}, c
 		log.Fatalf("Could not find template %s\n", name)
 	}
 
-	return t.ExecuteTemplate(w, "base", data)
+	err := t.ExecuteTemplate(w, "base", data)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return nil
 }

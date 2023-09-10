@@ -42,6 +42,13 @@ func Index(c echo.Context) error {
 
 // CreateEvent navigates to the create-event page
 func CreateEvent(c echo.Context) error {
+	// this authentication block should be in a middleware
+	sess, _ := session.Get("session", c)
+	if auth, ok := sess.Values["authenticated"].(bool); !ok || !auth {
+		http.Redirect(c.Response(), c.Request(), "/", http.StatusUnauthorized)
+		return nil
+	}
+
 	type TemplateData struct{}
 	data := TemplateData{}
 	return c.Render(http.StatusOK, "create-event.page.html", data)
@@ -49,7 +56,6 @@ func CreateEvent(c echo.Context) error {
 
 // SaveEvent saves a new event using the request body
 func SaveEvent(c echo.Context) error {
-
 	var e models.Event
 	if err := c.Bind(e); err != nil {
 		return c.String(http.StatusBadRequest, "bad request")
