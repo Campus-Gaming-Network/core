@@ -5,9 +5,31 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>{{template "title" .}}</title>
+	<script src="https://unpkg.com/htmx.org@1.9.5"></script>
 </head>
 <body>
 	{{block "content" .}}
+	{{end}}
+
+	<script>
+	function setStartRFC(){
+	const dateInput = document.getElementById("startDateTime")
+	const dateTimeString = dateInput.value;
+	const parsedDate = new Date(dateTimeString);
+
+	document.getElementById("startDateTimeRFC").value = parsedDate.toISOString();
+	}
+
+	function setEndRFC(){
+	const dateInput = document.getElementById("endDateTime")
+	const dateTimeString = dateInput.value;
+	const parsedDate = new Date(dateTimeString);
+
+	document.getElementById("endDateTimeRFC").value = parsedDate.toISOString();
+	}
+	</script>
+
+	{{block "js" .}}
 	{{end}}
 </body>
 </html>

@@ -1,6 +1,7 @@
 package render
 
 import (
+	"cgn/logger"
 	"html/template"
 	"io"
 	"log"
@@ -23,20 +24,19 @@ func CreateTemplates() *TemplateRegistry {
 
 	for _, page := range pages {
 		name := filepath.Base(page)
-
 		ts, err := template.New(name).ParseFiles(page)
 		if err != nil {
-			return nil
+			logger.FatalError(err.Error())
 		}
 
 		ts, err = ts.ParseGlob("views/*.comp.html")
 		if err != nil {
-			return nil
+			logger.FatalError(err.Error())
 		}
 
 		ts, err = ts.ParseGlob("views/*.layout.html")
 		if err != nil {
-			return nil
+			logger.FatalError(err.Error())
 		}
 
 		tmpls[name] = ts

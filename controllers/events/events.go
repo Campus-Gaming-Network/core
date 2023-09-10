@@ -1,32 +1,46 @@
 package events
 
 import (
-	"net/http"
-
+	"cgn/helpers"
+	"cgn/logger"
+	"cgn/middleware"
+	"cgn/models"
+	"cgn/repository"
+	"fmt"
 	"github.com/labstack/echo-contrib/session"
 	"github.com/labstack/echo/v4"
+	"net/http"
+	"strconv"
+	"time"
 )
 
 var uri = "/events"
 
+// Init initializes route handlers for routes related to events
 func Init(e *echo.Echo) {
 	e.GET(uri, Index)
-	e.GET(uri+"/create", CreateEvent)
-	e.POST(uri+"/create", SaveEvent)
+	e.GET(uri+"/create", CreateEvent, middleware.RequireAuth())
+	e.POST(uri+"/create", SaveEvent, middleware.RequireAuth())
 	e.GET(uri+"/:id", GetEvent)
-	e.GET(uri+"/:id/edit", EditEvent)
-	e.PUT(uri+"/:id/edit", UpdateEvent)
-	e.DELETE(uri+"/:id", DeleteEvent)
+	e.GET(uri+"/:id/edit", EditEvent, middleware.RequireAuth())
+	e.PUT(uri+"/:id/edit", UpdateEvent, middleware.RequireAuth(), middleware.AuthorizeEventAccess())
+	e.DELETE(uri+"/:id", DeleteEvent, middleware.RequireAuth(), middleware.AuthorizeEventAccess())
+
+	e.POST(uri+"/create-form", SaveEventForm, middleware.RequireAuth())
 }
 
-// List Events
+// Index lists all events
 func Index(c echo.Context) error {
-	type TemplateData struct{}
-	data := TemplateData{}
+	type TemplateData struct {
+		Events []models.Event
+	}
+	data := TemplateData{
+		Events: repository.GetAllEvents(),
+	}
 	return c.Render(http.StatusOK, "list-events.page.html", data)
 }
 
-// Create Event Form
+// CreateEvent navigates to the create-event page
 func CreateEvent(c echo.Context) error {
 	// this authentication block should be in a middleware
 	sess, _ := session.Get("session", c)
@@ -40,41 +54,164 @@ func CreateEvent(c echo.Context) error {
 	return c.Render(http.StatusOK, "create-event.page.html", data)
 }
 
-// Handles Create Event
+// SaveEvent saves a new event using the request body
 func SaveEvent(c echo.Context) error {
-	// this authentication block should be in a middleware
-	sess, _ := session.Get("session", c)
-	if auth, ok := sess.Values["authenticated"].(bool); !ok || !auth {
-		http.Redirect(c.Response(), c.Request(), "/", http.StatusUnauthorized)
-		return nil
+	var e models.Event
+	if err := c.Bind(e); err != nil {
+		return c.String(http.StatusBadRequest, "bad request")
 	}
 
-	name := c.FormValue("name")
-	description := c.FormValue("description")
-	json_response := map[string]string{"name": name, "description": description}
-	return c.JSON(http.StatusOK, json_response)
+	sess, _ := session.Get("session", c)
+	userId := sess.Values["userId"].(int)
+	event := models.EventDTO{
+		UserId:        userId,
+		Title:         e.Title,
+		Description:   e.Description,
+		StartDateTime: e.StartDateTime,
+		EndDateTime:   e.EndDateTime,
+		IsOnline:      e.IsOnline,
+		CreatedAt:     time.Now(),
+		UpdatedAt:     time.Now(),
+	}
+
+	newId, err := repository.CreateEvent(event)
+
+	isHTMX := helpers.IsHTMXRequest(c.Request())
+	if !isHTMX {
+		type TemplateData struct{}
+		data := TemplateData{}
+		return c.Render(http.StatusOK, "save-event.page.html", data)
+	}
+
+	//htmx response
+	if err != nil {
+		return c.HTML(http.StatusBadRequest, "bad request")
+	} else {
+		return c.HTML(http.StatusCreated, string(rune(newId)))
+	}
 }
 
-// View Event Details
+// SaveEventForm creates a new event using form values in the uri
+func SaveEventForm(c echo.Context) error {
+
+	var e models.Event
+
+	if err := c.Bind(&e); err != nil {
+		logger.Log(e)
+		logger.Error(err.Error())
+		return c.String(http.StatusBadRequest, "bad request")
+	}
+
+	sess, _ := session.Get("session", c)
+	userId := sess.Values["userId"].(int)
+
+	event := models.EventDTO{
+		UserId:        userId,
+		Title:         e.Title,
+		Description:   e.Description,
+		StartDateTime: e.StartDateTime,
+		EndDateTime:   e.EndDateTime,
+		IsOnline:      e.IsOnline,
+		CreatedAt:     time.Now(),
+		UpdatedAt:     time.Now(),
+	}
+
+	newID, err := repository.CreateEvent(event)
+	if err != nil {
+		logger.Error(err)
+		return c.String(http.StatusNotAcceptable, "Error creating event")
+	}
+
+	html := fmt.Sprintf("<li><a href=\"/events/%d\">%s</a></li>", newID, e.Title)
+	return c.HTML(http.StatusCreated, html)
+}
+
+// GetEvent retrieves an event based on its id
 func GetEvent(c echo.Context) error {
-	type TemplateData struct{}
-	data := TemplateData{}
+	eventId, _ := strconv.Atoi(c.Param("id"))
+	type TemplateData struct {
+		Event models.Event
+	}
+	event, _, err := repository.ReadEvent(eventId)
+
+	if err != nil {
+		logger.Error(err)
+		return c.Render(http.StatusNotFound, "404.page.html", nil)
+	}
+	data := TemplateData{Event: event}
 	return c.Render(http.StatusOK, "event-details.page.html", data)
 }
 
-// Edit Event Form
+// EditEvent handles edit event get request to view edit-event.page.html
 func EditEvent(c echo.Context) error {
-	type TemplateData struct{}
-	data := TemplateData{}
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		logger.Error(err)
+		c.String(http.StatusBadRequest, "invalid or missing event id")
+	}
+
+	type TemplateData struct {
+		Event models.Event
+	}
+	event, _, err := repository.ReadEvent(id)
+
+	if err != nil {
+		return c.String(http.StatusBadRequest, "invalid id")
+	}
+	data := TemplateData{
+		Event: event,
+	}
 	return c.Render(http.StatusOK, "edit-event.page.html", data)
 }
 
-// Handles Update Event
+// UpdateEvent handles update event put request.
 func UpdateEvent(c echo.Context) error {
-	return c.String(http.StatusOK, "UpdateEvent")
+
+	var e models.Event
+	if err := c.Bind(&e); err != nil {
+		logger.Error(err)
+		return c.String(http.StatusBadRequest, "bad request")
+	}
+
+	sess, _ := session.Get("session", c)
+	userId := sess.Values["userId"].(int)
+	eventId, _ := strconv.Atoi(c.Param("id"))
+
+	event := models.EventDTO{
+		Id:            eventId,
+		UserId:        userId,
+		Title:         e.Title,
+		Description:   e.Description,
+		StartDateTime: e.StartDateTime,
+		EndDateTime:   e.EndDateTime,
+		IsOnline:      e.IsOnline,
+	}
+	type TemplateData struct {
+		Event models.Event
+	}
+	_, err := repository.UpdateEvent(event)
+	if err != nil {
+		return c.String(http.StatusBadRequest, err.Error())
+	}
+
+	//data := TemplateData{
+	//	Event: updatedEvent,
+	//}
+	helpers.HTMXRedirect(c, "/events")
+	return c.NoContent(http.StatusOK)
 }
 
-// Handle Delete Event
+// DeleteEvent handles delete event delete request.
 func DeleteEvent(c echo.Context) error {
-	return c.String(http.StatusOK, "DeleteEvent")
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		return c.String(http.StatusBadRequest, "missing or invalid id")
+	}
+
+	_, err = repository.DeleteEvent(id)
+	if err != nil {
+		return c.String(http.StatusNotFound, fmt.Sprintf("event with id %d not found: %v", id, err))
+	}
+	helpers.HTMXRedirect(c, "/events")
+	return c.NoContent(http.StatusOK)
 }

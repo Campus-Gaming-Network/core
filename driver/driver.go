@@ -1,6 +1,7 @@
 package driver
 
 import (
+	"cgn/logger"
 	"database/sql"
 	"fmt"
 	_ "github.com/lib/pq"
@@ -14,17 +15,19 @@ func NewConnection() (*sql.DB, error) {
 	port := os.Getenv("DB_PORT")
 	user := os.Getenv("DB_USER")
 	password := os.Getenv("DB_PASSWORD")
-	fmt.Println(dbName, host, port, user, password)
+
 	psqlInfo := fmt.Sprintf("host=%s port=%s user=%s password=%s "+
 		"dbname=%s sslmode=disable", host, port, user, password, dbName)
-	fmt.Println(psqlInfo)
+
 	db, err := sql.Open("postgres", psqlInfo)
 	if err != nil {
+		logger.Error(err)
 		return nil, err
 	}
 
 	err = TestConnection(db)
 	if err != nil {
+		logger.Error(err)
 		return nil, err
 	}
 
@@ -35,6 +38,7 @@ func NewConnection() (*sql.DB, error) {
 func TestConnection(db *sql.DB) error {
 	err := db.Ping()
 	if err != nil {
+		logger.Error(err)
 		return err
 	}
 	return nil

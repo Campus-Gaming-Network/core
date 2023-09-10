@@ -6,7 +6,6 @@ import (
 	"cgn/controllers/schools"
 	"cgn/controllers/teams"
 	"cgn/controllers/users"
-
 	"github.com/labstack/echo/v4"
 )
 
