@@ -67,9 +67,13 @@ func main() {
 		log.Fatal(err)
 	}
 	defer dbConn.Close()
-	migrations.RunMigrations(dbConn)
-
 	repository.NewRepository(dbConn)
+	migrations.RunMigrations(dbConn)
+	err = repository.InsertSchoolData()
+	if err != nil {
+		logger.Error("failed to insert school data:", err)
+	}
+
 	controllers.InitControllers(e)
 
 	e.GET("/", func(c echo.Context) error {

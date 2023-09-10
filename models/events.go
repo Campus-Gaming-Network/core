@@ -5,10 +5,7 @@ import (
 	"time"
 )
 
-// Event is used to bind event fields from requests. StartDateTime and EndDateTime must use
-// the models.MyTime time type in order for Echo's binding to function with the Unmarshal function
-// written for models.MyTime that accepts the HTML Form 'datetime-local' time format. When translating to/from
-// EventDTO type conversions must be used on these fields.
+// Event is used to bind event fields from requests.
 type Event struct {
 	Id            int       `json:"id" form:"id"`
 	Title         string    `json:"title" form:"title"`
@@ -18,9 +15,7 @@ type Event struct {
 	IsOnline      int       `json:"is_online" form:"is_online"`
 }
 
-// EventDTO is used to transfer event data into the database. StartDateTime and EndDateTime must use
-// default time.Time type in order to insert/read from Postgres. When translating to/from Event
-// type conversions must be used.
+// EventDTO is used to transfer event data into the database.
 type EventDTO struct {
 	Id            int
 	UserId        int `db:"user_id"`
