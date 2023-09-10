@@ -49,24 +49,25 @@ func main() {
 		log.Fatal("Error loading .env file")
 	}
 
-	t := render.CreateTemplates()
 	e := echo.New()
 
 	// Session
 	e.Use(session.Middleware(sessions.NewCookieStore([]byte("SECRET_SESSION_KEY"))))
 	e.Use(middleware.CORS())
 
+	// Renderer
+	t := render.CreateTemplates()
 	e.Renderer = t
 
 	e.RouteNotFound("/*", NotFound)
 	e.HTTPErrorHandler = customHTTPErrorHandler
 
+	// Database
 	dbConn, err := driver.NewConnection()
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer dbConn.Close()
-
 	migrations.RunMigrations(dbConn)
 
 	repository.NewRepository(dbConn)
