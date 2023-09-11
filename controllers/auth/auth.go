@@ -230,7 +230,9 @@ func SignUpPOST(c echo.Context) error {
 		logger.Error(err)
 		return c.String(http.StatusOK, "Error creating user")
 	}
-	return c.String(http.StatusCreated, "Now Sign In")
+	logger.Log("Redirecting to home page")
+	http.Redirect(c.Response(), c.Request(), "/", http.StatusFound)
+	return c.NoContent(http.StatusOK)
 }
 
 // LogoutGET de-authenticates the session

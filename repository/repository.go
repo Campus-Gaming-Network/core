@@ -189,56 +189,6 @@ func DeleteEvent(id int) (int, error) {
 	return numDeleted, nil
 }
 
-func ReadUser(email string) (models.User, error) {
-	stmt := `SELECT * FROM users WHERE email = $1`
-
-	row := repo.db.QueryRow(stmt, email)
-
-	var user models.User
-	err := row.Scan(
-		&user.Id,
-		&user.FullName,
-		&user.Email,
-		&user.Gravatar,
-		&user.PasswordHash,
-		&user.CreatedAt,
-		&user.UpdatedAt,
-		&user.DeletedAt,
-	)
-	if err != nil {
-		return models.User{}, err
-	}
-
-	return user, nil
-}
-
-// CreateUser creates a new user and returns the user id
-func CreateUser(u models.User) (int, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
-
-	var newID int
-	stmt := `INSERT INTO users (email,full_name, gravatar,  password_hash, created_at,
-                    updated_at) VALUES ($1,$2,$3,$4,$5, $6) returning id`
-
-	err := repo.db.QueryRowContext(
-		ctx,
-		stmt,
-		u.Email,
-		u.FullName,
-		u.Gravatar,
-		u.PasswordHash,
-		time.Now(),
-		time.Now(),
-	).Scan(&newID)
-
-	if err != nil {
-		return 0, err
-	}
-
-	return newID, nil
-}
-
 // ReadEventUserId retrieves the user_id column from the events table with matching id
 func ReadEventUserId(id int) (int, error) {
 	stmt := `SELECT user_id FROM events WHERE id=$1`

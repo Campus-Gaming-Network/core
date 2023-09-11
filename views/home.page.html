@@ -1,78 +1,29 @@
-{{define "title"}}Home{{end}}
+{{define "title"}}
+{{if .Auth.Authenticated}}
+    Welcome {{.User.FullName}}
+{{else}}
+    Welcome
+{{end}}
+{{end}}
 
 {{define "content"}}
 
-{{template "navbar" }}
-
-<p>My name is {{.User.Name}}, I am {{.User.Age}} years old.</p>
-
 {{if .Auth.Authenticated}}
-<pre>Authenticated!</pre>
-{{end}}
-
-<ul>
-{{ range $val := .User.Emails }}
-    <li>Email: {{$val}}</li>
-{{ end }}
-</ul>
-
-<a href="/schools">Go to schools page</a>
-
-<br />
-
-<a href="/teams">Go to teams page</a>
-
-<br />
-
-<a href="/events">Go to events page</a>
-
-<br />
-
-{{if .Auth.Authenticated}}
-<a href="/events/create">Create an event</a>
-
-<br />
-
-<a href="/logout">Logout</a>
+    <a href="/users/{{ .User.Id }}">Profile</a>
+    <br />
+    <a href="/users/{{ .User.Id }}/schools">Schools</a>
+    <br />
+    <a href="/users/{{ .User.Id }}/events">Events</a>
+    <br />
+    <a href="/logout">Logout</a>
 {{else}}
-<a href="/login">Login</a>
+    <a href="/login">Login</a>
+<br/>
+<a href="/signup">Sign Up</a>
+<br/>
+<a href="/schools">Schools</a>
+<br/>
+<a href="/events">Events</a>
+
 {{end}}
-
-<!--<form id="loginForm" hx-post="/login" hx-trigger="submit" hx-target="#loginResult">-->
-<form id="loginForm" action="/login" method="post">
-    <div>
-        <label for="email">Email:</label>
-        <input type="email" id="email" name="email" required>
-    </div>
-    <div>
-        <label for="password">Password:</label>
-        <input type="password" id="password" name="password" required>
-    </div>
-    <div>
-        <button type="submit">Log In</button>
-    </div>
-</form>
-<br>
-<h3>Sign up</h3>
-<form id="signupForm" hx-post="/signup" hx-trigger="submit" hx-target="#loginResult">
-    <div>
-        <label for="email">Full Name:</label>
-        <input type="text" id="signupFullName" name="fullName" required>
-    </div>
-    <div>
-        <label for="email">Email:</label>
-        <input type="email" id="signupEmail" name="email" required>
-    </div>
-    <div>
-        <label for="password">Password:</label>
-        <input type="password" id="signupPassword" name="password" required>
-    </div>
-    <div>
-        <button type="submit">Sign Up</button>
-    </div>
-</form>
-
-<!-- Display login result -->
-<div id="loginResult" hx-swap="outerHTML"></div>
-
 {{end}}
