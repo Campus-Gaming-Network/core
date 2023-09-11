@@ -1,19 +1,56 @@
-{{ template "base"}} {{define "content"}}
+{{ template "base"}}
+
+{{define "title"}}
+  {{ .Title }}
+{{ end }}
+
+{{define "content"}}
+
+{{ if .ErrorMessages }}
+<div role="alert">
+  <h4>{{ .ErrorTitle }}</h4>
+  <ul>
+    {{ range $val := .ErrorMessages }}
+    <li>
+      <a href="#{{ $val.Field }}" id="{{ $val.Id }}">
+        {{ $val.Message }}
+      </a>
+    </li>
+    {{ end}}
+  </ul>
+</div>
+{{ end }}
+
 <form action="/login" method="post">
   <div>
-    <label for="email">Email</label><br />
+    <label for="email">Email (required)</label><br />
     <input
       type="email"
       id="email"
       name="email"
-      required
+      aria-required="true"
       spellcheck="false"
       autocomplete="email"
+      aria-describedby="email_error"
+      {{ if .Form }}
+      value="{{ .Form.Email }}"
+      {{ end }}
+      {{ if .Errors.Email }}aria-invalid="true"{{ end }}
     /><br />
   </div>
   <div>
-    <label for="password">Password</label><br />
-    <input type="password" id="password" name="password" required />
+    <label for="password">Password (required)</label><br />
+    <input
+      type="password"
+      id="password"
+      name="password"
+      {{ if .Form }}
+      value="{{ .Form.Password }}"
+      {{ end }}
+      aria-required="true"
+      aria-describedby="password_error"
+      {{ if .Errors.Password }}aria-invalid="true"{{ end }}
+    />
   </div>
   <br />
   <input type="submit" value="Submit" />
