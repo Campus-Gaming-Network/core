@@ -6,7 +6,7 @@ import (
 	"os"
 )
 
-// InsertSchoolData
+// InsertSchoolData inserts school data from schools.json
 func InsertSchoolData() error {
 	file, err := os.Open("schools.json")
 	if err != nil {
