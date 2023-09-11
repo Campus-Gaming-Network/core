@@ -20,18 +20,25 @@ import (
 var validate *validator.Validate
 
 type (
-	ErrorField struct {
+	FormErrorField struct {
 		Id      string
 		Field   string
 		Message string
 	}
-	ErrorResponse struct {
-		Errors     []ErrorField
-		ErrorCount int
-	}
 	LoginForm struct {
 		Email    string `validate:"required,email"`
 		Password string `validate:"required"`
+	}
+	LoginFormErrors struct {
+		Email    []FormErrorField
+		Password []FormErrorField
+	}
+	LoginFormResponse struct {
+		Title         string
+		Form          interface{}
+		ErrorTitle    string
+		ErrorMessages []FormErrorField
+		Errors        LoginFormErrors
 	}
 )
 
@@ -57,7 +64,9 @@ func LoginGET(c echo.Context) error {
 		return nil
 	}
 
-	return c.Render(http.StatusOK, "login.page.html", nil)
+	return c.Render(http.StatusOK, "login.page.html", LoginFormResponse{
+		Title: "Login",
+	})
 }
 
 func LoginPOST(c echo.Context) error {
@@ -73,28 +82,35 @@ func LoginPOST(c echo.Context) error {
 
 	err := validate.Struct(form)
 
+	errorMessages := []FormErrorField{}
+	errors := LoginFormErrors{
+		Email:    []FormErrorField{},
+		Password: []FormErrorField{},
+	}
+
 	if err != nil {
-		errors := []ErrorField{}
+		errorCount := len(err.(validator.ValidationErrors))
+
 		for _, err := range err.(validator.ValidationErrors) {
 			if err.Field() == "Email" {
 				switch err.Tag() {
 				case "required":
-					errors = append(errors, ErrorField{
+					errors.Email = append(errors.Email, FormErrorField{
 						Id:      "email_error",
 						Field:   "email",
 						Message: "The email address field is empty, it is a required field and must be filled in.",
 					})
 					continue
 				case "email":
-					errors = append(errors, ErrorField{
+					errors.Email = append(errors.Email, FormErrorField{
 						Id:      "email_error",
 						Field:   "email",
-						Message: "The email address field is in the wrong format",
+						Message: "The email address field is formatted incorrectly",
 					})
 					continue
 				}
 			} else if err.Field() == "Password" {
-				errors = append(errors, ErrorField{
+				errors.Password = append(errors.Password, FormErrorField{
 					Id:      "password_error",
 					Field:   "password",
 					Message: "The password field is empty, it is a required field and must be filled in.",
@@ -103,24 +119,34 @@ func LoginPOST(c echo.Context) error {
 			}
 		}
 
-		return c.Render(http.StatusOK, "login.page.html", ErrorResponse{
-			Errors:     errors,
-			ErrorCount: len(err.(validator.ValidationErrors)),
+		errorMessages = append(errorMessages, errors.Email...)
+		errorMessages = append(errorMessages, errors.Password...)
+
+		return c.Render(http.StatusOK, "login.page.html", LoginFormResponse{
+			Title:         fmt.Sprintf("%d Errors - Login", errorCount),
+			Form:          form,
+			ErrorTitle:    fmt.Sprintf("There were %d errors found in the information you submitted.", errorCount),
+			ErrorMessages: errorMessages,
+			Errors:        errors,
 		})
 	}
 
 	user, err := repository.ReadUser(email)
 
 	if err != nil {
-		return c.Render(http.StatusOK, "login.page.html", ErrorResponse{
-			Errors: []ErrorField{
-				{
-					Id:      "email_error",
-					Field:   "email",
-					Message: "Invalid email address or password.",
-				},
-			},
-			ErrorCount: 1,
+		errors.Email = append(errors.Email, FormErrorField{
+			Id:      "email_error",
+			Field:   "email",
+			Message: "Invalid email address or password.",
+		})
+		errorMessages = append(errorMessages, errors.Email...)
+
+		return c.Render(http.StatusOK, "login.page.html", LoginFormResponse{
+			Title:         "1 Error - Login",
+			Form:          form,
+			ErrorTitle:    "There was 1 error found in the information you submitted.",
+			ErrorMessages: errorMessages,
+			Errors:        errors,
 		})
 	}
 
@@ -128,15 +154,19 @@ func LoginPOST(c echo.Context) error {
 	err = bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
 
 	if err != nil {
-		return c.Render(http.StatusOK, "login.page.html", ErrorResponse{
-			Errors: []ErrorField{
-				{
-					Id:      "email_error",
-					Field:   "email",
-					Message: "Invalid email address or password.",
-				},
-			},
-			ErrorCount: 1,
+		errors.Email = append(errors.Email, FormErrorField{
+			Id:      "email_error",
+			Field:   "email",
+			Message: "Invalid email address or password.",
+		})
+		errorMessages = append(errorMessages, errors.Email...)
+
+		return c.Render(http.StatusOK, "login.page.html", LoginFormResponse{
+			Title:         "1 Error - Login",
+			Form:          form,
+			ErrorTitle:    "There was 1 error found in the information you submitted.",
+			ErrorMessages: errorMessages,
+			Errors:        errors,
 		})
 	}
 
