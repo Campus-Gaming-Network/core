@@ -11,8 +11,21 @@ var uri = "/users"
 func Init(e *echo.Echo) {
 	e.GET(uri+"/:id", GetUser)
 	e.GET(uri+"/:id/edit", EditUser)
+	e.GET(uri+"/:id/schools", GetUserSchools)
+	e.GET(uri+"/:id/events", GetUserEvents)
+
 	e.PUT(uri+"/:id/edit", UpdateUser)
 	e.DELETE(uri+"/:id", DeleteUser)
+}
+
+// GetUserEvents displays user's schools
+func GetUserEvents(c echo.Context) error {
+	return c.Render(http.StatusOK, "user-events.page.html", nil)
+}
+
+// GetUserSchools displays user's schools
+func GetUserSchools(c echo.Context) error {
+	return c.Render(http.StatusOK, "user-schools.page.html", nil)
 }
 
 // View User Details

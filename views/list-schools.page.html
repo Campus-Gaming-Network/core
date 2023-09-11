@@ -3,7 +3,10 @@ Schools
 {{end}}
 
 {{define "content"}}
-<a href="/">Home</a>
+
+{{template "navbar"}}
+
+Schools
 <ul>
     {{ range $val := .Schools }}
         <li>
