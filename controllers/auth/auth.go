@@ -7,12 +7,32 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
+	"net/http"
+	"strings"
+
+	"github.com/go-playground/validator/v10"
 	"github.com/gorilla/sessions"
 	"github.com/labstack/echo-contrib/session"
 	"github.com/labstack/echo/v4"
 	"golang.org/x/crypto/bcrypt"
-	"net/http"
-	"strings"
+)
+
+var validate *validator.Validate
+
+type (
+	ErrorField struct {
+		Id      string
+		Field   string
+		Message string
+	}
+	ErrorResponse struct {
+		Errors     []ErrorField
+		ErrorCount int
+	}
+	LoginForm struct {
+		Email    string `validate:"required,email"`
+		Password string `validate:"required"`
+	}
 )
 
 // Init initializes routes with handlers for auth routes
@@ -29,38 +49,95 @@ func Init(e *echo.Echo) {
 
 // LoginGET authenticates the current session
 func LoginGET(c echo.Context) error {
-	sess, _ := session.Get("session", c)
-	sess.Options = &sessions.Options{
-		Path:     "/",
-		MaxAge:   86400 * 7,
-		HttpOnly: true,
+	session, _ := session.Get("session", c)
+	auth, ok := session.Values["authenticated"].(bool)
+
+	if auth || !ok {
+		http.Redirect(c.Response(), c.Request(), "/", http.StatusFound)
+		return nil
 	}
-	sess.Values["authenticated"] = true
-	sess.Values["userId"] = 1 // requires valid row in user with column id = 1
-	sess.Save(c.Request(), c.Response())
-	http.Redirect(c.Response(), c.Request(), "/", http.StatusFound)
-	return c.NoContent(http.StatusOK)
-	// type TemplateData struct{}
-	// data := TemplateData{}
-	// return c.Render(http.StatusOK, "login.page.html", data)
+
+	return c.Render(http.StatusOK, "login.page.html", nil)
 }
 
-// LoginPOST authenticates the session using a user's email and password
 func LoginPOST(c echo.Context) error {
 	email := c.FormValue("email")
 	password := c.FormValue("password")
 
-	user, err := repository.ReadUser(email)
+	form := &LoginForm{
+		Email:    email,
+		Password: password,
+	}
+
+	validate := validator.New(validator.WithRequiredStructEnabled())
+
+	err := validate.Struct(form)
+
 	if err != nil {
-		http.Redirect(c.Response(), c.Request(), "/", http.StatusFound)
-		return c.NoContent(http.StatusBadRequest)
+		errors := []ErrorField{}
+		for _, err := range err.(validator.ValidationErrors) {
+			if err.Field() == "Email" {
+				switch err.Tag() {
+				case "required":
+					errors = append(errors, ErrorField{
+						Id:      "email_error",
+						Field:   "email",
+						Message: "The email address field is empty, it is a required field and must be filled in.",
+					})
+					continue
+				case "email":
+					errors = append(errors, ErrorField{
+						Id:      "email_error",
+						Field:   "email",
+						Message: "The email address field is in the wrong format",
+					})
+					continue
+				}
+			} else if err.Field() == "Password" {
+				errors = append(errors, ErrorField{
+					Id:      "password_error",
+					Field:   "password",
+					Message: "The password field is empty, it is a required field and must be filled in.",
+				})
+				continue
+			}
+		}
+
+		return c.Render(http.StatusOK, "login.page.html", ErrorResponse{
+			Errors:     errors,
+			ErrorCount: len(err.(validator.ValidationErrors)),
+		})
+	}
+
+	user, err := repository.ReadUser(email)
+
+	if err != nil {
+		return c.Render(http.StatusOK, "login.page.html", ErrorResponse{
+			Errors: []ErrorField{
+				{
+					Id:      "email_error",
+					Field:   "email",
+					Message: "Invalid email address or password.",
+				},
+			},
+			ErrorCount: 1,
+		})
 	}
 
 	hashedPassword := user.PasswordHash
 	err = bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
+
 	if err != nil {
-		http.Redirect(c.Response(), c.Request(), "/", http.StatusFound)
-		return c.NoContent(http.StatusBadRequest)
+		return c.Render(http.StatusOK, "login.page.html", ErrorResponse{
+			Errors: []ErrorField{
+				{
+					Id:      "email_error",
+					Field:   "email",
+					Message: "Invalid email address or password.",
+				},
+			},
+			ErrorCount: 1,
+		})
 	}
 
 	sess, _ := session.Get("session", c)
@@ -73,7 +150,7 @@ func LoginPOST(c echo.Context) error {
 	sess.Values["userId"] = user.Id
 	sess.Save(c.Request(), c.Response())
 	http.Redirect(c.Response(), c.Request(), "/", http.StatusFound)
-	return c.NoContent(http.StatusOK)
+	return nil
 }
 
 // SignUpGET

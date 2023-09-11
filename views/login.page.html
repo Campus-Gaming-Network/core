@@ -1,19 +1,54 @@
-{{ template "base"}} {{define "content"}}
+{{ template "base"}}
+
+{{define "title"}}
+  {{ if .Errors }}
+    {{ if eq .ErrorCount 1 }}
+      1 Error - Login
+    {{ else}}
+      {{ .ErrorCount }} Errors - Login
+    {{ end }}
+  {{ else }}
+    Login
+  {{ end }}
+{{ end }}
+
+{{define "content"}}
+
+{{ if .Errors }}
+<div role="alert">
+  {{ if eq .ErrorCount 1 }}
+    <h4>There was 1 error found in the information you submitted.</h4>
+    {{ else }}
+    <h4>There were {{ .ErrorCount }} errors found in the information you submitted.</h4>
+  {{ end }}
+  <ul>
+    {{ range $val := .Errors }}
+    <li>
+      <a href="#{{ $val.Field }}" id="{{ $val.Id }}">
+        {{ $val.Message }}
+      </a>
+    </li>
+    {{ end}}
+  </ul>
+</div>
+{{ end }}
+
 <form action="/login" method="post">
   <div>
-    <label for="email">Email</label><br />
+    <label for="email">Email (required)</label><br />
     <input
       type="email"
       id="email"
       name="email"
-      required
+      aria-required="true"
       spellcheck="false"
       autocomplete="email"
+      aria-describedby="email_error"
     /><br />
   </div>
   <div>
-    <label for="password">Password</label><br />
-    <input type="password" id="password" name="password" required />
+    <label for="password">Password (required)</label><br />
+    <input type="password" id="password" name="password" aria-required="true" aria-describedby="password_error"/>
   </div>
   <br />
   <input type="submit" value="Submit" />

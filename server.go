@@ -8,9 +8,10 @@ import (
 	"cgn/render"
 	"cgn/repository"
 	"fmt"
-	"github.com/labstack/echo/v4/middleware"
 	"log"
 	"net/http"
+
+	"github.com/labstack/echo/v4/middleware"
 
 	"github.com/gorilla/sessions"
 	"github.com/joho/godotenv"
@@ -53,6 +54,10 @@ func main() {
 	// Session
 	e.Use(session.Middleware(sessions.NewCookieStore([]byte("SECRET_SESSION_KEY"))))
 	e.Use(middleware.CORS())
+	// Limit to 20 requests/sec using the default in-memory store
+	e.Use(middleware.RateLimiter(middleware.NewRateLimiterMemoryStore(20)))
+	// Redirects all requests to non-www URL
+	e.Pre(middleware.NonWWWRedirect())
 
 	// Renderer
 	t := render.CreateTemplates()
