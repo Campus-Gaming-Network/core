@@ -84,7 +84,7 @@ func main() {
 		}
 
 		type TemplateData struct {
-			User models.User
+			User models.UserVM
 			Auth Auth
 		}
 
@@ -100,8 +100,10 @@ func main() {
 			user, _ = repository.ReadUser(userId)
 		}
 
+		userVM := user.ToViewModel()
+
 		data := TemplateData{
-			User: user,
+			User: userVM,
 			Auth: Auth{
 				Authenticated: auth,
 			},
