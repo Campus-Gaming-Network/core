@@ -45,7 +45,7 @@ func customHTTPErrorHandler(err error, c echo.Context) {
 func main() {
 	logger.InitLogger()
 
-	err := godotenv.Load(".env", ".schools-loaded.env")
+	err := godotenv.Load(".env")
 	if err != nil {
 		logger.Error("Error loading .env file.", err)
 	}
@@ -82,10 +82,8 @@ func main() {
 		if err != nil {
 			logger.Error("failed to insert school data:", err)
 		}
-
-		// save new flag to prevent re-insertion of school data
-		env, _ := godotenv.Unmarshal("SCHOOLS_LOADED_FLAG=true")
-		godotenv.Write(env, ".schools-loaded.env")
+		f, _ := os.OpenFile(".env", os.O_APPEND|os.O_WRONLY, 0644)
+		f.WriteString("\nSCHOOLS_LOADED_FLAG=true\n")
 	}
 
 	controllers.InitControllers(e)

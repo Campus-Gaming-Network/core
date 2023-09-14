@@ -21,6 +21,5 @@ go.work
 # configuration
 database.yml
 .env
-.schools-loaded.env
 
 tmp/
