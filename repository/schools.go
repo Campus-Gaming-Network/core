@@ -22,7 +22,7 @@ func InsertSchoolData() error {
 		logger.FatalError(err)
 	}
 
-	// Prepare a statement for bulk insert
+	// Prepare a statement for bulk insert, ignoring conflicts on handle to not re-insert schools everytime program runs
 	stmt, err := repo.db.Prepare("INSERT INTO schools (name, handle) VALUES ($1, $2) ON CONFLICT (handle) DO NOTHING")
 	if err != nil {
 		return err

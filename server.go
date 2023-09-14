@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/labstack/echo/v4/middleware"
 
@@ -44,9 +45,9 @@ func customHTTPErrorHandler(err error, c echo.Context) {
 func main() {
 	logger.InitLogger()
 
-	err := godotenv.Load()
+	err := godotenv.Load(".env", ".schools-loaded.env")
 	if err != nil {
-		log.Fatal("Error loading .env file")
+		logger.Error("Error loading .env file.", err)
 	}
 
 	e := echo.New()
@@ -74,9 +75,17 @@ func main() {
 	defer dbConn.Close()
 	repository.NewRepository(dbConn)
 	migrations.RunMigrations(dbConn)
-	err = repository.InsertSchoolData()
-	if err != nil {
-		logger.Error("failed to insert school data:", err)
+
+	// insert school data on first time execution only
+	if os.Getenv("SCHOOLS_LOADED_FLAG") == "" {
+		err = repository.InsertSchoolData()
+		if err != nil {
+			logger.Error("failed to insert school data:", err)
+		}
+
+		// save new flag to prevent re-insertion of school data
+		env, _ := godotenv.Unmarshal("SCHOOLS_LOADED_FLAG=true")
+		godotenv.Write(env, ".schools-loaded.env")
 	}
 
 	controllers.InitControllers(e)
