@@ -1,10 +1,8 @@
 {{define "title"}}
-CGN | Events
+Events
 {{end}}
 
 {{define "content"}}
-
-
 <form id="eventForm" hx-put="/events/{{ .Event.Id }}/edit" hx-trigger="submit" hx-swap="none" hx-boost="none">
 
     <!-- Title -->

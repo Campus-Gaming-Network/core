@@ -1,9 +1,12 @@
 {{define "title"}}
-CGN | Schools
+Schools
 {{end}}
 
 {{define "content"}}
 
+{{template "navbar"}}
+
+Schools
 <ul>
     {{ range $val := .Schools }}
         <li>

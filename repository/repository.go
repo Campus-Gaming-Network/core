@@ -3,7 +3,6 @@ package repository
 import (
 	"cgn/logger"
 	"cgn/models"
-	"context"
 	"database/sql"
 	"github.com/blockloop/scan/v2"
 	"log"
@@ -41,15 +40,12 @@ func GetAllTeams() []models.Team {
 
 // CreateEvent creates a new event, allowing three seconds for query to execute
 func CreateEvent(e models.EventDTO) (int, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
 
 	var newID int
 	stmt := `INSERT INTO events (user_id, title, description,start_date_time, end_date_time, is_online, created_at,
                     updated_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) returning id`
 
-	err := repo.db.QueryRowContext(
-		ctx,
+	err := repo.db.QueryRow(
 		stmt,
 		e.UserId,
 		e.Title,
@@ -123,8 +119,6 @@ func GetAllEvents() []models.Event {
 
 // UpdateEvent updates an event
 func UpdateEvent(e models.EventDTO) (models.Event, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
 	var updatedEvent models.Event
 	stmt := `UPDATE events 
 			SET user_id = $1,
@@ -137,8 +131,7 @@ func UpdateEvent(e models.EventDTO) (models.Event, error) {
 		  	WHERE id = $8
 		  	RETURNING *`
 
-	row, err := repo.db.QueryContext(
-		ctx,
+	row, err := repo.db.Query(
 		stmt,
 		e.UserId,
 		e.Title,
@@ -165,15 +158,12 @@ func UpdateEvent(e models.EventDTO) (models.Event, error) {
 }
 
 func DeleteEvent(id int) (int, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
 
 	var numDeleted int
 
 	stmt := `DELETE FROM events WHERE id =$1 RETURNING id`
 
-	row, err := repo.db.QueryContext(
-		ctx,
+	row, err := repo.db.Query(
 		stmt,
 		id,
 	)
@@ -187,56 +177,6 @@ func DeleteEvent(id int) (int, error) {
 	}
 
 	return numDeleted, nil
-}
-
-func ReadUser(email string) (models.User, error) {
-	stmt := `SELECT * FROM users WHERE email = $1`
-
-	row := repo.db.QueryRow(stmt, email)
-
-	var user models.User
-	err := row.Scan(
-		&user.Id,
-		&user.FullName,
-		&user.Email,
-		&user.Gravatar,
-		&user.PasswordHash,
-		&user.CreatedAt,
-		&user.UpdatedAt,
-		&user.DeletedAt,
-	)
-	if err != nil {
-		return models.User{}, err
-	}
-
-	return user, nil
-}
-
-// CreateUser creates a new user and returns the user id
-func CreateUser(u models.User) (int, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
-
-	var newID int
-	stmt := `INSERT INTO users (email,full_name, gravatar,  password_hash, created_at,
-                    updated_at) VALUES ($1,$2,$3,$4,$5, $6) returning id`
-
-	err := repo.db.QueryRowContext(
-		ctx,
-		stmt,
-		u.Email,
-		u.FullName,
-		u.Gravatar,
-		u.PasswordHash,
-		time.Now(),
-		time.Now(),
-	).Scan(&newID)
-
-	if err != nil {
-		return 0, err
-	}
-
-	return newID, nil
 }
 
 // ReadEventUserId retrieves the user_id column from the events table with matching id

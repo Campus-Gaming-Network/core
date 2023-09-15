@@ -5,6 +5,7 @@ import (
 	"cgn/driver"
 	"cgn/logger"
 	"cgn/migrations"
+	"cgn/models"
 	"cgn/render"
 	"cgn/repository"
 	"fmt"
@@ -82,14 +83,8 @@ func main() {
 			Authenticated bool
 		}
 
-		type User struct {
-			Name   string
-			Age    string
-			Emails []string
-		}
-
 		type TemplateData struct {
-			User User
+			User models.UserVM
 			Auth Auth
 		}
 
@@ -99,13 +94,16 @@ func main() {
 		if !auth || !ok {
 			auth = false
 		}
+		var user models.User
+		if auth {
+			userId := session.Values["userId"].(int)
+			user, _ = repository.ReadUser(userId)
+		}
+
+		userVM := user.ToViewModel()
 
 		data := TemplateData{
-			User: User{
-				Name:   "Jack",
-				Age:    "20",
-				Emails: []string{"abc@gmail.com", "123@mail.com"},
-			},
+			User: userVM,
 			Auth: Auth{
 				Authenticated: auth,
 			},

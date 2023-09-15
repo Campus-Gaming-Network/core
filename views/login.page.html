@@ -1,10 +1,10 @@
-{{ template "base"}}
-
 {{define "title"}}
   {{ .Title }}
 {{ end }}
 
 {{define "content"}}
+
+{{template "navbar"}}
 
 {{ if .ErrorMessages }}
 <div role="alert">
