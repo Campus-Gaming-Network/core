@@ -2,7 +2,6 @@ package repository
 
 import (
 	"cgn/models"
-	"context"
 	"errors"
 	"fmt"
 	"time"
@@ -43,15 +42,11 @@ func ReadUser(identifier any) (models.User, error) {
 
 // CreateUser creates a new user and returns the user id
 func CreateUser(u models.User) (int, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
-
 	var newID int
 	stmt := `INSERT INTO users (email,full_name, gravatar,  password_hash, created_at,
                     updated_at) VALUES ($1,$2,$3,$4,$5, $6) returning id`
 
-	err := repo.db.QueryRowContext(
-		ctx,
+	err := repo.db.QueryRow(
 		stmt,
 		u.Email,
 		u.FullName,
