@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/labstack/echo/v4/middleware"
 
@@ -75,16 +74,6 @@ func main() {
 	defer dbConn.Close()
 	repository.NewRepository(dbConn)
 	migrations.RunMigrations(dbConn)
-
-	// insert school data on first time execution only
-	if os.Getenv("SCHOOLS_LOADED_FLAG") == "" {
-		err = repository.InsertSchoolData()
-		if err != nil {
-			logger.Error("failed to insert school data:", err)
-		}
-		f, _ := os.OpenFile(".env", os.O_APPEND|os.O_WRONLY, 0644)
-		f.WriteString("\nSCHOOLS_LOADED_FLAG=true\n")
-	}
 
 	controllers.InitControllers(e)
 
