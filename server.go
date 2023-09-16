@@ -45,9 +45,9 @@ func customHTTPErrorHandler(err error, c echo.Context) {
 func main() {
 	logger.InitLogger()
 
-	err := godotenv.Load()
+	err := godotenv.Load(".env")
 	if err != nil {
-		log.Fatal("Error loading .env file")
+		logger.Error("Error loading .env file.", err)
 	}
 
 	e := echo.New()
@@ -73,9 +73,9 @@ func main() {
 		log.Fatal(err)
 	}
 	defer dbConn.Close()
+	repository.NewRepository(dbConn)
 	migrations.RunMigrations(dbConn)
 
-	repository.NewRepository(dbConn)
 	controllers.InitControllers(e)
 
 	e.GET("/", func(c echo.Context) error {
