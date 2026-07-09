@@ -49,3 +49,4 @@ These docs are the source of truth for product intent, domain rules, architectur
 - **Search** — Postgres full-text / trigram first; no Elasticsearch until proven necessary.
 - **Soft deletes** — use `deleted_at`; never hard-delete user-facing content without an explicit policy.
 - **Audit vs system logs** — audit = entity change history; system = operational/app logs.
+- **Testing** — every frontend and backend code change includes or updates regression coverage; run the relevant unit/integration tests plus typecheck and lint before handoff.

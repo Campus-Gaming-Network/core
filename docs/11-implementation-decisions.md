@@ -34,6 +34,24 @@ data           Tracked slim seed data only
 scripts        Local/dev utilities
 ```
 
+## Testing and coverage expectation
+
+Every frontend or backend code change must include new tests or update existing
+tests for the behavior it changes. A change is not complete when it only
+compiles or renders on the happy path.
+
+| Area | Minimum expectation |
+|------|---------------------|
+| Go backend | Unit tests for validation and domain logic; repository/API tests for SQL, authentication, authorization, error cases, and important state transitions. Run `go test ./...` and `go vet ./...`. |
+| Next.js frontend | Tests for changed components, route handlers, server actions, and user-visible loading/error/empty/success states. Keep accessibility behavior covered where the UI changes. Run typecheck and lint in addition to the test suite. |
+| Migrations and seed/import code | Test migration parsing/idempotency and import validation; run the affected migration/import against a disposable or local Postgres database when practical. |
+| CI | Pull requests must run backend tests and frontend type/lint/test checks. Do not lower existing coverage or remove regression tests to make a change pass. |
+
+Prefer focused regression tests for bugs and meaningful behavior coverage over
+tests that only assert implementation details. When a test runner or coverage
+threshold is introduced for a layer, add it to CI and keep the threshold
+ratcheting upward rather than treating coverage as a one-time report.
+
 ## Deferred until Phase 1+
 
 - Real auth/session implementation

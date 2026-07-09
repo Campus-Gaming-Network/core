@@ -50,6 +50,10 @@ npm run typecheck:web
 npm run test:api
 ```
 
+Every frontend and backend change should include or update regression tests.
+Run the relevant test suite, typecheck, and lint checks before considering the
+change complete; see the testing expectation in docs/11-implementation-decisions.md.
+
 The web commands require installing dependencies first:
 
 ```bash
