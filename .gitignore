@@ -23,3 +23,8 @@ database.yml
 .env
 
 tmp/
+.DS_Store
+
+# Large third-party data dumps (keep slim seeds tracked)
+data/Schools_*.csv
+!data/schools_seed.csv
