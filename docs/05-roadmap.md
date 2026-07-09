@@ -30,6 +30,8 @@ Phased delivery for a single developer. Each phase should be shippable. Do not p
 
 **Goal:** Users can register and browse schools.
 
+**Detailed plan:** [12 — Phase 1 plan](./12-phase-1-plan.md)
+
 - Signup / login / logout
 - Signup sends verification email; link click verifies inbox
 - Signup requires **18+** confirmation checkbox

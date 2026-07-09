@@ -21,6 +21,7 @@ These docs are the source of truth for product intent, domain rules, architectur
 | [09 — School data](./09-school-data.md) | One-time College Scorecard seed → post-MVP admin/CRM owns catalog after |
 | [10 — MVP todo](./10-mvp-todo.md) | Prioritized remaining MVP work (P0 / P1 / P2 / Later) |
 | [11 — Implementation decisions](./11-implementation-decisions.md) | Concrete engineering choices for Phase 0 and early MVP work |
+| [12 — Phase 1 plan](./12-phase-1-plan.md) | Reviewable Phase 1A–1D breakdown for auth, profiles, schools, and games |
 
 ## How to use with AI / LLMs
 
