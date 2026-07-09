@@ -20,6 +20,7 @@ These docs are the source of truth for product intent, domain rules, architectur
 | [08 — Open questions](./08-open-questions.md) | Unresolved product/tech decisions |
 | [09 — School data](./09-school-data.md) | One-time College Scorecard seed → post-MVP admin/CRM owns catalog after |
 | [10 — MVP todo](./10-mvp-todo.md) | Prioritized remaining MVP work (P0 / P1 / P2 / Later) |
+| [11 — Implementation decisions](./11-implementation-decisions.md) | Concrete engineering choices for Phase 0 and early MVP work |
 
 ## How to use with AI / LLMs
 

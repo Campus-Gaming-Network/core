@@ -28,3 +28,18 @@ tmp/
 # Large third-party data dumps (keep slim seeds tracked)
 data/Schools_*.csv
 !data/schools_seed.csv
+
+# Node / Next.js
+node_modules/
+.next/
+.pnpm-store/
+out/
+npm-debug.log*
+*.tsbuildinfo
+
+# Go build artifacts
+bin/
+
+# Local environment overrides
+.env.local
+.env.*.local

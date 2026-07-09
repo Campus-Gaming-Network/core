@@ -1,0 +1,19 @@
+{
+  "name": "campus-gaming-network-core",
+  "private": true,
+  "engines": {
+    "node": "24.x"
+  },
+  "workspaces": [
+    "apps/web"
+  ],
+  "scripts": {
+    "compose:up": "docker compose up --build",
+    "dev:web": "npm --prefix apps/web run dev",
+    "build:web": "npm --prefix apps/web run build",
+    "lint:web": "npm --prefix apps/web run lint",
+    "typecheck:web": "npm --prefix apps/web run typecheck",
+    "fmt:api": "gofmt -w apps/api/cmd apps/api/internal",
+    "test:api": "cd apps/api && go test ./..."
+  }
+}
