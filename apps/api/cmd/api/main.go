@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/config"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/db"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/httpapi"
 )
 
@@ -21,7 +22,14 @@ func main() {
 		os.Exit(1)
 	}
 
-	handler := httpapi.NewRouter(cfg)
+	database, err := db.Open(context.Background(), cfg.DatabaseURL)
+	if err != nil {
+		slog.Error("open database", "error", err)
+		os.Exit(1)
+	}
+	defer database.Close()
+
+	handler := httpapi.NewRouter(cfg, database)
 	server := &http.Server{
 		Addr:              cfg.HTTPAddr,
 		Handler:           handler,

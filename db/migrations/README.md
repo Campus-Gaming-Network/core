@@ -2,6 +2,30 @@
 
 Versioned SQL migrations live here.
 
-Phase 0 intentionally creates only foundation-level database setup. Do not add clubs, tournaments, feature flags, site announcements, on-site payment tables, IGDB sync tables, or CRM/admin-only workflow tables until those phases are active.
+Phase 0 intentionally creates only foundation-level database setup. Phase 1A
+adds the identity and read-catalog foundation in `000002_phase1_identity_catalog.up.sql`.
+Do not add clubs, tournaments, feature flags, site announcements, on-site
+payment tables, IGDB sync tables, or CRM/admin-only workflow tables until those
+phases are active.
 
-Docker Compose mounts `000001_foundation.up.sql` into the Postgres init directory for fresh local databases. A real migration runner can be added before Phase 1 schema work begins.
+The Go migration runner is `apps/api/cmd/migrate`. It creates
+`schema_migrations`, applies pending files in numeric order, and records each
+successful migration transactionally. Run it locally with:
+
+```bash
+cd apps/api
+go run ./cmd/migrate -dir ../../db/migrations
+```
+
+Docker Compose runs the same command in a one-shot `migrate` service before the
+`seed` service and API start. The seed service imports
+`data/schools_seed.csv` only when the catalog is empty. Migrations are not
+mounted into Postgres's init directory, so the same workflow works with
+existing database volumes as well as fresh ones.
+
+To run the one-time school bootstrap directly:
+
+```bash
+cd apps/api
+go run ./cmd/seed -csv ../../data/schools_seed.csv
+```

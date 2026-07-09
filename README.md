@@ -2,19 +2,26 @@
 
 Central hub for collegiate gamers: discover schools, events, teams, and campus gaming activity.
 
-The product/domain docs live in [`docs/`](./docs/README.md). This root README covers the local Phase 0 scaffold.
+The product/domain docs live in [`docs/`](./docs/README.md). This root README
+covers the local scaffold and current Phase 1 progress.
 
-## Phase 0 status
+## Current status
 
-This repo currently contains a minimal foundation:
+The Phase 0 foundation and the first Phase 1 backend slices are implemented:
 
 - `apps/web` — Next.js main-site shell
-- `apps/api` — Go API with `/health` and `/ready`
-- `db/migrations` — first foundation SQL, kept MVP-only
+- `apps/api` — Go API with health, school/game reads, and session middleware
+- `db/migrations` — versioned MVP-only SQL migrations
 - `docker-compose.yml` — web + API + Postgres
 - `.github/workflows/ci.yml` — initial CI checks
 
-No auth, school import, event, team, or CRM flows are implemented yet.
+Phase 1A and the backend portions of Phase 1B/1C are complete: migrations cover
+identity/profile, schools, follows, and games; the six launch games are seeded;
+all 6,243 school rows are bootstrapped; public school/game reads and
+authenticated follow/unfollow routes are wired; and auth/profile APIs cover
+signup, 18+ and home-school enforcement, verification, login/logout, reset,
+social links, and public profiles. The main-site auth and profile UI/BFF wiring
+is the next Phase 1 slice.
 
 ## Quick start
 
@@ -28,7 +35,9 @@ Then open:
 - API health: http://localhost:8080/health
 - API readiness: http://localhost:8080/ready
 
-The first run downloads Node and Go dependencies in Docker. Postgres initializes with `db/migrations/000001_foundation.up.sql` only when the database volume is first created.
+The first run downloads Node and Go dependencies in Docker. The `migrate`
+service applies pending files from `db/migrations` before the API starts, even
+when the Postgres volume already exists.
 
 ## Local commands
 
@@ -48,12 +57,19 @@ nvm use
 npm install --prefix apps/web
 ```
 
-The API currently uses only the Go standard library:
+The API uses Go plus the PostgreSQL driver:
 
 ```bash
 cd apps/api
 go test ./...
 go run ./cmd/api
+```
+
+To apply migrations directly against a local Postgres instance:
+
+```bash
+cd apps/api
+go run ./cmd/migrate -dir ../../db/migrations
 ```
 
 ## Environment

@@ -9,12 +9,35 @@ services:
       - "5432:5432"
     volumes:
       - cgn-postgres-data:/var/lib/postgresql/data
-      - ./db/migrations/000001_foundation.up.sql:/docker-entrypoint-initdb.d/001_foundation.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
       timeout: 3s
       retries: 10
+
+  migrate:
+    build:
+      context: ./apps/api
+    command: ["cgn-migrate", "-dir", "/migrations"]
+    environment:
+      API_DATABASE_URL: ${API_DATABASE_URL:-postgres://cgn:cgn@postgres:5432/cgn?sslmode=disable}
+    volumes:
+      - ./db/migrations:/migrations:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  seed:
+    build:
+      context: ./apps/api
+    command: ["cgn-seed", "-csv", "/data/schools_seed.csv"]
+    environment:
+      API_DATABASE_URL: ${API_DATABASE_URL:-postgres://cgn:cgn@postgres:5432/cgn?sslmode=disable}
+    volumes:
+      - ./data/schools_seed.csv:/data/schools_seed.csv:ro
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
 
   api:
     build:
@@ -24,12 +47,23 @@ services:
       API_DB_HOST: ${API_DB_HOST:-postgres}
       API_DB_PORT: ${API_DB_PORT:-5432}
       API_DB_CONNECT_TIMEOUT: ${API_DB_CONNECT_TIMEOUT:-2s}
+      API_DATABASE_URL: ${API_DATABASE_URL:-postgres://cgn:cgn@postgres:5432/cgn?sslmode=disable}
+      API_SESSION_COOKIE: ${API_SESSION_COOKIE:-cgn_session}
+      API_SESSION_TTL: ${API_SESSION_TTL:-720h}
+      API_COOKIE_SECURE: ${API_COOKIE_SECURE:-false}
+      API_VERIFICATION_TTL: ${API_VERIFICATION_TTL:-24h}
+      API_RESET_TTL: ${API_RESET_TTL:-1h}
+      API_SITE_URL: ${API_SITE_URL:-http://localhost:3000}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      API_ACCOUNT_EMAIL_FROM: ${API_ACCOUNT_EMAIL_FROM:-account@campusgamingnetwork.com}
+      API_AUTH_RATE_LIMIT: ${API_AUTH_RATE_LIMIT:-5}
+      API_AUTH_RATE_WINDOW: ${API_AUTH_RATE_WINDOW:-15m}
       SENTRY_DSN: ${SENTRY_DSN:-}
     ports:
       - "8080:8080"
     depends_on:
-      postgres:
-        condition: service_healthy
+      seed:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
       interval: 5s

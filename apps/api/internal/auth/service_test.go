@@ -1,0 +1,181 @@
+package auth
+
+import (
+	"context"
+	"testing"
+	"time"
+
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/schools"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/users"
+)
+
+type fakeUsers struct {
+	profile      users.Profile
+	credentials  users.Credentials
+	created      users.CreateParams
+	passwordHash string
+}
+
+func (f *fakeUsers) Create(_ context.Context, params users.CreateParams) (users.Profile, error) {
+	f.created = params
+	f.profile = users.Profile{
+		ID:                "user-id",
+		Email:             params.Email,
+		VerificationLevel: "basic",
+		Name:              params.Name,
+		Timezone:          params.Timezone,
+		HomeSchoolID:      params.HomeSchoolID,
+	}
+	f.credentials = users.Credentials{Profile: f.profile, PasswordHash: params.PasswordHash}
+	return f.profile, nil
+}
+
+func (f *fakeUsers) FindByID(_ context.Context, _ string) (users.Profile, error) {
+	return f.profile, nil
+}
+
+func (f *fakeUsers) FindByEmail(_ context.Context, _ string) (users.Profile, error) {
+	return f.profile, nil
+}
+
+func (f *fakeUsers) UpdateProfile(_ context.Context, _ string, update users.ProfileUpdate) (users.Profile, error) {
+	f.profile.Name = update.Name
+	f.profile.Bio = update.Bio
+	f.profile.Timezone = update.Timezone
+	return f.profile, nil
+}
+
+func (f *fakeUsers) FindCredentialsByEmail(_ context.Context, _ string) (users.Credentials, error) {
+	return f.credentials, nil
+}
+
+func (f *fakeUsers) MarkEmailVerified(_ context.Context, _ string) error {
+	now := time.Now()
+	f.profile.EmailVerifiedAt = &now
+	f.credentials.Profile.EmailVerifiedAt = &now
+	return nil
+}
+
+func (f *fakeUsers) UpdatePassword(_ context.Context, _ string, passwordHash string) error {
+	f.passwordHash = passwordHash
+	return nil
+}
+
+func (f *fakeUsers) ReplaceSocialLinks(_ context.Context, _ string, links []users.SocialLink) error {
+	f.profile.SocialLinks = links
+	return nil
+}
+
+type fakeSchools struct{}
+
+func (fakeSchools) List(context.Context, schools.ListParams) ([]schools.School, error) {
+	return nil, nil
+}
+func (fakeSchools) GetByID(context.Context, string) (schools.School, error) {
+	return schools.School{}, nil
+}
+func (fakeSchools) GetBySlug(context.Context, string) (schools.School, error) {
+	return schools.School{}, nil
+}
+func (fakeSchools) ExistsActive(context.Context, string) (bool, error) { return true, nil }
+
+type fakeSessions struct {
+	userID    string
+	tokenHash []byte
+	expiresAt time.Time
+}
+
+func (f *fakeSessions) CreateSession(_ context.Context, userID string, tokenHash []byte, expiresAt time.Time) error {
+	f.userID = userID
+	f.tokenHash = tokenHash
+	f.expiresAt = expiresAt
+	return nil
+}
+func (f *fakeSessions) RevokeSession(context.Context, []byte) error { return nil }
+
+type fakeTokens struct {
+	verificationUserID string
+	resetPasswordHash  string
+}
+
+func (f *fakeTokens) CreateEmailVerificationToken(context.Context, string, []byte, time.Time) error {
+	return nil
+}
+func (f *fakeTokens) ConsumeEmailVerificationToken(context.Context, []byte, time.Time) (string, error) {
+	return f.verificationUserID, nil
+}
+func (f *fakeTokens) CreatePasswordResetToken(context.Context, string, []byte, time.Time) error {
+	return nil
+}
+func (f *fakeTokens) UsePasswordResetToken(_ context.Context, _ []byte, _ time.Time, passwordHash string) error {
+	f.resetPasswordHash = passwordHash
+	return nil
+}
+
+type fakeMailer struct {
+	verificationToken string
+	resetToken        string
+}
+
+func (f *fakeMailer) SendVerification(_ context.Context, _ string, token string) error {
+	f.verificationToken = token
+	return nil
+}
+func (f *fakeMailer) SendPasswordReset(_ context.Context, _ string, token string) error {
+	f.resetToken = token
+	return nil
+}
+
+func TestAccountServiceSignupAndLogin(t *testing.T) {
+	userStore := &fakeUsers{}
+	sessions := &fakeSessions{}
+	mailer := &fakeMailer{}
+	service := NewAccountService(userStore, fakeSchools{}, sessions, &fakeTokens{}, mailer, time.Hour, time.Hour, time.Hour)
+
+	profile, err := service.Signup(context.Background(), users.SignupInput{
+		Email:        "Player@Example.com",
+		Password:     "a-long-enough-password",
+		Name:         "Player",
+		HomeSchoolID: "school-id",
+		AgeConfirmed: true,
+		Timezone:     "UTC",
+	})
+	if err != nil {
+		t.Fatalf("Signup() error = %v", err)
+	}
+	if profile.Email != "player@example.com" {
+		t.Fatalf("profile email = %q, want normalized email", profile.Email)
+	}
+	if userStore.created.PasswordHash == "a-long-enough-password" || !ComparePassword(userStore.created.PasswordHash, "a-long-enough-password") {
+		t.Fatal("signup did not store a verifiable password hash")
+	}
+	if mailer.verificationToken == "" {
+		t.Fatal("signup did not send a verification token")
+	}
+
+	if _, err := service.Login(context.Background(), profile.Email, "a-long-enough-password"); err != ErrEmailUnverified {
+		t.Fatalf("Login() error = %v, want ErrEmailUnverified", err)
+	}
+	now := time.Now()
+	userStore.credentials.Profile.EmailVerifiedAt = &now
+	result, err := service.Login(context.Background(), profile.Email, "a-long-enough-password")
+	if err != nil {
+		t.Fatalf("verified Login() error = %v", err)
+	}
+	if result.Token == "" || sessions.userID != "user-id" || !sessions.expiresAt.After(time.Now()) {
+		t.Fatal("verified login did not create a live session")
+	}
+}
+
+func TestAccountServiceResetPasswordStoresHash(t *testing.T) {
+	userStore := &fakeUsers{}
+	tokens := &fakeTokens{}
+	service := NewAccountService(userStore, fakeSchools{}, &fakeSessions{}, tokens, &fakeMailer{}, time.Hour, time.Hour, time.Hour)
+
+	if err := service.ResetPassword(context.Background(), "reset-token", "another-long-password"); err != nil {
+		t.Fatalf("ResetPassword() error = %v", err)
+	}
+	if tokens.resetPasswordHash == "another-long-password" || !ComparePassword(tokens.resetPasswordHash, "another-long-password") {
+		t.Fatal("reset did not pass a password hash to the token store")
+	}
+}
