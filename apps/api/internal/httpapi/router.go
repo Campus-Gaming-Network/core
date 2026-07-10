@@ -79,6 +79,7 @@ func NewRouter(cfg config.Config, pools ...*pgxpool.Pool) http.Handler {
 	router.mux.HandleFunc("/auth/resend-verification", router.handleResendVerification)
 	router.mux.HandleFunc("/auth/forgot-password", router.handleForgotPassword)
 	router.mux.HandleFunc("/auth/reset-password", router.handleResetPassword)
+	router.mux.HandleFunc("/me/schools", router.handleMySchools)
 	router.mux.HandleFunc("/me", router.handleMe)
 	router.mux.HandleFunc("/users/", router.handleUserPath)
 
@@ -274,6 +275,37 @@ func (r *Router) handleSchoolPath(w http.ResponseWriter, req *http.Request) {
 	}
 
 	http.NotFound(w, req)
+}
+
+func (r *Router) handleMySchools(w http.ResponseWriter, req *http.Request) {
+	if req.URL.Path != "/me/schools" {
+		http.NotFound(w, req)
+		return
+	}
+	if req.Method != http.MethodGet {
+		methodNotAllowed(w, http.MethodGet)
+		return
+	}
+	if r.follows == nil {
+		writeError(w, http.StatusServiceUnavailable, "database_unavailable")
+		return
+	}
+	userID, err := auth.RequireUser(req.Context())
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, "authentication_required")
+		return
+	}
+	if !looksLikeUUID(userID) {
+		writeError(w, http.StatusBadRequest, "invalid_id")
+		return
+	}
+
+	result, err := r.follows.ListFollowed(req.Context(), userID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "followed_schools_unavailable")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"schools": result})
 }
 
 func (r *Router) handleGames(w http.ResponseWriter, req *http.Request) {

@@ -20,6 +20,10 @@ export type SchoolsResponse = {
   offset: number;
 };
 
+export type FollowedSchoolsResponse = {
+  schools: School[];
+};
+
 export type Game = {
   id: string;
   name: string;
@@ -278,6 +282,10 @@ export function formString(formData: FormData, key: string) {
 
 export function formCheckbox(formData: FormData, key: string) {
   return formData.get(key) === "on";
+}
+
+export function isSchoolFollowed(schools: School[], schoolID: string) {
+  return schools.some((school) => school.id === schoolID);
 }
 
 export function userMessageForApiError(error: unknown) {

@@ -4,6 +4,7 @@ import {
   ApiError,
   apiRequest,
   buildApiUrl,
+  isSchoolFollowed,
   parseSetCookie,
   userMessageForApiError,
   type Fetcher
@@ -102,4 +103,23 @@ test("userMessageForApiError maps known backend errors", () => {
     userMessageForApiError(new ApiError(429, "rate_limited")),
     "Too many attempts. Give it a minute, then try again."
   );
+});
+
+test("isSchoolFollowed matches by school ID", () => {
+  assert.equal(
+    isSchoolFollowed(
+      [
+        {
+          id: "school-1",
+          name: "Example University",
+          slug: "example-university",
+          is_main_campus: true,
+          num_branches: 0
+        }
+      ],
+      "school-1"
+    ),
+    true
+  );
+  assert.equal(isSchoolFollowed([], "school-1"), false);
 });

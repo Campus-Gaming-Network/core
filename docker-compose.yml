@@ -33,6 +33,12 @@ services:
     command: ["cgn-seed", "-csv", "/data/schools_seed.csv"]
     environment:
       API_DATABASE_URL: ${API_DATABASE_URL:-postgres://cgn:cgn@postgres:5432/cgn?sslmode=disable}
+      API_DEV_SEED_USER_EMAIL: ${API_DEV_SEED_USER_EMAIL:-dev@campusgamingnetwork.test}
+      API_DEV_SEED_USER_PASSWORD: ${API_DEV_SEED_USER_PASSWORD:-Password12345!}
+      API_DEV_SEED_USER_NAME: ${API_DEV_SEED_USER_NAME:-Dev Player}
+      API_DEV_SEED_USER_SCHOOL_SLUG: ${API_DEV_SEED_USER_SCHOOL_SLUG:-university-of-california-irvine}
+      API_DEV_SEED_USER_TIMEZONE: ${API_DEV_SEED_USER_TIMEZONE:-America/Los_Angeles}
+      API_DEV_SEED_USER_FOLLOWED_SCHOOL_SLUGS: ${API_DEV_SEED_USER_FOLLOWED_SCHOOL_SLUGS:-california-state-university-long-beach,arizona-state-university-campus-immersion}
     volumes:
       - ./data/schools_seed.csv:/data/schools_seed.csv:ro
     depends_on:

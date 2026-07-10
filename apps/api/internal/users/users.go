@@ -15,6 +15,8 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+const MinPasswordLength = 8
+
 type Profile struct {
 	ID                string       `json:"id"`
 	Email             string       `json:"email"`
@@ -106,8 +108,8 @@ func ValidateSignup(input SignupInput) error {
 	if _, err := mail.ParseAddress(email); err != nil {
 		return errors.New("email must be valid")
 	}
-	if len(input.Password) < 12 {
-		return errors.New("password must be at least 12 characters")
+	if len(input.Password) < MinPasswordLength {
+		return errors.New("password must be at least 8 characters")
 	}
 	if name := strings.TrimSpace(input.Name); name == "" || len(name) > 120 {
 		return errors.New("name is required and must be 120 characters or fewer")

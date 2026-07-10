@@ -39,7 +39,7 @@ export function SignupForm({ schools, selectedSchoolId }: SignupFormProps) {
           name="password"
           type="password"
           autoComplete="new-password"
-          minLength={12}
+          minLength={8}
           required
         />
       </label>
@@ -150,7 +150,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
           name="password"
           type="password"
           autoComplete="new-password"
-          minLength={12}
+          minLength={8}
           required
         />
       </label>

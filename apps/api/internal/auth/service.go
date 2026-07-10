@@ -218,8 +218,8 @@ func (s *AccountService) sendVerification(ctx context.Context, profile users.Pro
 }
 
 func validatePassword(password string) error {
-	if len(password) < 12 {
-		return errors.New("password must be at least 12 characters")
+	if len(password) < users.MinPasswordLength {
+		return errors.New("password must be at least 8 characters")
 	}
 	return nil
 }

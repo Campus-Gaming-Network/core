@@ -1,5 +1,6 @@
 import { headers } from "next/headers";
 import {
+  type FollowedSchoolsResponse,
   type GamesResponse,
   type Profile,
   type PublicProfile,
@@ -75,6 +76,15 @@ export async function listGames() {
   });
 
   return data.games;
+}
+
+export async function listFollowedSchools() {
+  const { data } = await apiRequest<FollowedSchoolsResponse>({
+    path: "/me/schools",
+    cookieHeader: await incomingCookieHeader()
+  });
+
+  return data.schools;
 }
 
 export async function getPublicProfile(id: string) {

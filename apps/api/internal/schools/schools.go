@@ -42,6 +42,7 @@ type FollowRepository interface {
 	Follow(ctx context.Context, userID string, schoolID string) error
 	Unfollow(ctx context.Context, userID string, schoolID string) error
 	IsFollowing(ctx context.Context, userID string, schoolID string) (bool, error)
+	ListFollowed(ctx context.Context, userID string) ([]School, error)
 }
 
 var ErrSchoolNotFound = fmt.Errorf("school not found")
@@ -178,4 +179,41 @@ func (r *PostgresRepository) IsFollowing(ctx context.Context, userID string, sch
 		)
 	`, userID, schoolID).Scan(&following)
 	return following, err
+}
+
+func (r *PostgresRepository) ListFollowed(ctx context.Context, userID string) ([]School, error) {
+	rows, err := r.pool.Query(ctx, `
+		SELECT s.id::text, s.unitid, s.name, COALESCE(s.alias, ''), s.slug,
+		       COALESCE(s.city, ''), COALESCE(s.state, ''), COALESCE(s.zip, ''),
+		       COALESCE(s.website_url, ''), s.latitude, s.longitude,
+		       s.is_main_campus, s.num_branches
+		FROM user_school_follows f
+		JOIN schools s ON s.id = f.school_id
+		WHERE f.user_id = $1::uuid
+		  AND f.deleted_at IS NULL
+		  AND s.deleted_at IS NULL
+		  AND s.is_active = TRUE
+		ORDER BY s.name, s.city, s.id
+	`, userID)
+	if err != nil {
+		return nil, fmt.Errorf("list followed schools: %w", err)
+	}
+	defer rows.Close()
+
+	result := make([]School, 0)
+	for rows.Next() {
+		var school School
+		if err := rows.Scan(
+			&school.ID, &school.UnitID, &school.Name, &school.Alias, &school.Slug,
+			&school.City, &school.State, &school.Zip, &school.WebsiteURL,
+			&school.Latitude, &school.Longitude, &school.IsMainCampus, &school.NumBranches,
+		); err != nil {
+			return nil, fmt.Errorf("scan followed school: %w", err)
+		}
+		result = append(result, school)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate followed schools: %w", err)
+	}
+	return result, nil
 }

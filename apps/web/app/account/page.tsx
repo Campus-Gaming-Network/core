@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ProfileForm } from "../../components/profile-form";
-import { currentProfile } from "../../lib/server-api";
+import { currentProfile, listFollowedSchools } from "../../lib/server-api";
 
 export default async function AccountPage() {
   const profile = await currentProfile();
@@ -9,6 +9,7 @@ export default async function AccountPage() {
   if (!profile) {
     redirect("/login?next=/account");
   }
+  const followedSchools = await listFollowedSchools().catch(() => []);
 
   return (
     <main className="narrow">
@@ -41,7 +42,41 @@ export default async function AccountPage() {
         </p>
       ) : null}
 
+      <section className="section" aria-labelledby="followed-schools-title">
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">Following</p>
+            <h2 id="followed-schools-title">Followed schools</h2>
+          </div>
+          <Link href="/schools">Find schools</Link>
+        </div>
+        {followedSchools.length > 0 ? (
+          <div className="list">
+            {followedSchools.map((school) => (
+              <Link
+                className="list-item"
+                href={`/schools/${school.slug}`}
+                key={school.id}
+              >
+                <span>
+                  <strong>{school.name}</strong>
+                  <small>{schoolLocation(school.city, school.state)}</small>
+                </span>
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <p className="empty-state">
+            You are not following any additional schools yet.
+          </p>
+        )}
+      </section>
+
       <ProfileForm profile={profile} />
     </main>
   );
+}
+
+function schoolLocation(city?: string, state?: string) {
+  return [city, state].filter(Boolean).join(", ") || "Location pending";
 }

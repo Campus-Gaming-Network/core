@@ -5,6 +5,7 @@ import (
 	"flag"
 	"log/slog"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/config"
@@ -49,4 +50,28 @@ func main() {
 		os.Exit(1)
 	}
 	slog.Info("school seed imported", "rows", count)
+
+	devUser, enabled, err := seed.EnsureDevUser(ctx, database, seed.DevUserInput{
+		Email:          os.Getenv("API_DEV_SEED_USER_EMAIL"),
+		Password:       os.Getenv("API_DEV_SEED_USER_PASSWORD"),
+		Name:           os.Getenv("API_DEV_SEED_USER_NAME"),
+		HomeSchoolSlug: os.Getenv("API_DEV_SEED_USER_SCHOOL_SLUG"),
+		Timezone:       os.Getenv("API_DEV_SEED_USER_TIMEZONE"),
+		FollowedSchoolSlugs: strings.Split(
+			os.Getenv("API_DEV_SEED_USER_FOLLOWED_SCHOOL_SLUGS"),
+			",",
+		),
+	})
+	if err != nil {
+		slog.Error("seed dev user", "error", err)
+		os.Exit(1)
+	}
+	if enabled {
+		slog.Info(
+			"dev user seeded",
+			"email", devUser.Email,
+			"user_id", devUser.UserID,
+			"followed_schools", devUser.FollowedCount,
+		)
+	}
 }

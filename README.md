@@ -35,6 +35,11 @@ Then open:
 - API health: http://localhost:8080/health
 - API readiness: http://localhost:8080/ready
 
+Local Docker Compose also seeds a verified development user:
+
+- Email: `dev@campusgamingnetwork.test`
+- Password: `Password12345!`
+
 The first run downloads Node and Go dependencies in Docker. The `migrate`
 service applies pending files from `db/migrations` before the API starts, even
 when the Postgres volume already exists.

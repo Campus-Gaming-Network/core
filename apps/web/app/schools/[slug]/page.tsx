@@ -4,8 +4,12 @@ import {
   followSchoolAction,
   unfollowSchoolAction
 } from "../../actions";
-import { ApiError } from "../../../lib/cgn-api";
-import { currentProfile, getSchool } from "../../../lib/server-api";
+import { ApiError, isSchoolFollowed } from "../../../lib/cgn-api";
+import {
+  currentProfile,
+  getSchool,
+  listFollowedSchools
+} from "../../../lib/server-api";
 
 type PageProps = {
   params: Promise<{ slug: string }>;
@@ -28,7 +32,11 @@ export default async function SchoolDetailPage({
     currentProfile()
   ]);
   const followStatus = param(query.follow);
+  const followedSchools = profile
+    ? await listFollowedSchools().catch(() => [])
+    : [];
   const isHomeSchool = profile?.home_school_id === school.id;
+  const isFollowing = isSchoolFollowed(followedSchools, school.id);
 
   return (
     <main className="narrow">
@@ -73,19 +81,23 @@ export default async function SchoolDetailPage({
         {profile ? (
           isHomeSchool ? (
             <p className="notice success">This is your home school.</p>
-          ) : (
-            <div className="actions">
-              <form action={followSchoolAction}>
-                <input type="hidden" name="school_id" value={school.id} />
-                <input type="hidden" name="slug" value={school.slug} />
-                <button type="submit">Follow school</button>
-              </form>
+          ) : isFollowing ? (
+            <div>
+              <p className="notice success">You are following this school.</p>
               <form action={unfollowSchoolAction}>
                 <input type="hidden" name="school_id" value={school.id} />
                 <input type="hidden" name="slug" value={school.slug} />
                 <button className="secondary" type="submit">
                   Unfollow
                 </button>
+              </form>
+            </div>
+          ) : (
+            <div className="actions">
+              <form action={followSchoolAction}>
+                <input type="hidden" name="school_id" value={school.id} />
+                <input type="hidden" name="slug" value={school.slug} />
+                <button type="submit">Follow school</button>
               </form>
             </div>
           )

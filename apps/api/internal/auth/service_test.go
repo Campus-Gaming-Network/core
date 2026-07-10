@@ -172,10 +172,22 @@ func TestAccountServiceResetPasswordStoresHash(t *testing.T) {
 	tokens := &fakeTokens{}
 	service := NewAccountService(userStore, fakeSchools{}, &fakeSessions{}, tokens, &fakeMailer{}, time.Hour, time.Hour, time.Hour)
 
-	if err := service.ResetPassword(context.Background(), "reset-token", "another-long-password"); err != nil {
+	if err := service.ResetPassword(context.Background(), "reset-token", "12345678"); err != nil {
 		t.Fatalf("ResetPassword() error = %v", err)
 	}
-	if tokens.resetPasswordHash == "another-long-password" || !ComparePassword(tokens.resetPasswordHash, "another-long-password") {
+	if tokens.resetPasswordHash == "12345678" || !ComparePassword(tokens.resetPasswordHash, "12345678") {
 		t.Fatal("reset did not pass a password hash to the token store")
+	}
+}
+
+func TestAccountServiceResetPasswordRejectsShortPassword(t *testing.T) {
+	tokens := &fakeTokens{}
+	service := NewAccountService(&fakeUsers{}, fakeSchools{}, &fakeSessions{}, tokens, &fakeMailer{}, time.Hour, time.Hour, time.Hour)
+
+	if err := service.ResetPassword(context.Background(), "reset-token", "1234567"); err == nil {
+		t.Fatal("ResetPassword() error = nil, want short password validation")
+	}
+	if tokens.resetPasswordHash != "" {
+		t.Fatal("short password should not be passed to the token store")
 	}
 }

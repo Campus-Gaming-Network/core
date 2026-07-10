@@ -52,6 +52,7 @@ Not every path must exist on day one — align with [05 — Roadmap](./05-roadma
 | GET | `/me` | Profile + timezone |
 | PATCH | `/me` | Name, bio, socials, timezone, majors, graduation |
 | DELETE | `/me` | Anonymize PII |
+| GET | `/me/schools` | Followed schools |
 | GET | `/me/activity` | User activity log |
 | GET | `/users/:id` | Public profile (database id) |
 | POST | `/users/:id/report` | Rate limited |
