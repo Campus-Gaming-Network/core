@@ -9,6 +9,7 @@
     "build": "next build",
     "start": "next start --hostname 0.0.0.0",
     "lint": "oxlint .",
+    "test": "tsc -p tsconfig.test.json && node --test .test-build/tests/*.test.js",
     "typecheck": "next typegen && tsc --noEmit"
   },
   "dependencies": {

@@ -36,6 +36,7 @@ node_modules/
 out/
 npm-debug.log*
 *.tsbuildinfo
+.test-build/
 
 # Go build artifacts
 bin/

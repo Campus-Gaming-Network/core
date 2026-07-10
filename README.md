@@ -47,6 +47,7 @@ When adding or updating npm packages, pin exact versions in `package.json` so in
 npm run dev:web
 npm run lint:web
 npm run typecheck:web
+npm run test:web
 npm run test:api
 ```
 

@@ -13,6 +13,7 @@
     "build:web": "npm --prefix apps/web run build",
     "lint:web": "npm --prefix apps/web run lint",
     "typecheck:web": "npm --prefix apps/web run typecheck",
+    "test:web": "npm --prefix apps/web run test",
     "fmt:api": "gofmt -w apps/api/cmd apps/api/internal",
     "test:api": "cd apps/api && go test ./..."
   }
