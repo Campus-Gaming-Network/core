@@ -30,13 +30,23 @@ type ResendMailer struct {
 }
 
 func (m *ResendMailer) SendVerification(ctx context.Context, recipient string, token string) error {
-	link := strings.TrimRight(m.SiteURL, "/") + "/auth/verify-email?token=" + url.QueryEscape(token)
-	return m.send(ctx, recipient, "Verify your Campus Gaming Network email", link, "verification")
+	return m.send(ctx, recipient, "Verify your Campus Gaming Network email", verificationLink(m.SiteURL, token), "verification")
 }
 
 func (m *ResendMailer) SendPasswordReset(ctx context.Context, recipient string, token string) error {
-	link := strings.TrimRight(m.SiteURL, "/") + "/auth/reset-password?token=" + url.QueryEscape(token)
-	return m.send(ctx, recipient, "Reset your Campus Gaming Network password", link, "password_reset")
+	return m.send(ctx, recipient, "Reset your Campus Gaming Network password", passwordResetLink(m.SiteURL, token), "password_reset")
+}
+
+func verificationLink(siteURL string, token string) string {
+	return accountLink(siteURL, "/auth/verify-email", token)
+}
+
+func passwordResetLink(siteURL string, token string) string {
+	return accountLink(siteURL, "/reset-password", token)
+}
+
+func accountLink(siteURL string, path string, token string) string {
+	return strings.TrimRight(siteURL, "/") + path + "?token=" + url.QueryEscape(token)
 }
 
 func (m *ResendMailer) send(ctx context.Context, recipient, subject, link, kind string) error {
