@@ -52,6 +52,8 @@ export type EventLifecycle =
   | "ended"
   | "full";
 
+export type EventRSVP = "yes" | "maybe" | "no";
+
 export type Event = {
   id: string;
   title: string;
@@ -73,6 +75,7 @@ export type Event = {
   payment_url?: string;
   host_school: SchoolSummary;
   games: GameSummary[];
+  viewer_rsvp?: EventRSVP;
 };
 
 export type LockedEvent = {
@@ -426,6 +429,16 @@ export function eventFormatLabel(format: EventFormat) {
   return labels[format];
 }
 
+export function eventRSVPLabel(response: EventRSVP) {
+  const labels: Record<EventRSVP, string> = {
+    maybe: "Maybe",
+    no: "No",
+    yes: "Yes"
+  };
+
+  return labels[response];
+}
+
 export function eventTimeRange(event: Pick<Event, "starts_at" | "ends_at" | "timezone">) {
   const formatter = new Intl.DateTimeFormat("en-US", {
     dateStyle: "medium",
@@ -450,7 +463,11 @@ export function userMessageForApiError(error: unknown) {
     email_not_verified: "Please verify your email before logging in.",
     event_create_failed: "We could not create that event. Please try again.",
     event_delete_failed: "We could not delete that event. Please try again.",
+    event_full: "That event is full.",
     event_not_found: "That event could not be found.",
+    event_rsvp_closed: "RSVPs are closed for that event.",
+    event_rsvp_email_failed: "Your RSVP was saved, but we could not send the confirmation email.",
+    event_rsvp_failed: "We could not save your RSVP. Please try again.",
     event_slug_unavailable: "That event URL is unavailable. Try changing the title or start time.",
     event_unlock_failed: "We could not unlock that event. Please try again.",
     event_update_failed: "We could not update that event. Please try again.",
@@ -463,6 +480,7 @@ export function userMessageForApiError(error: unknown) {
     invalid_or_expired_token: "That link is invalid or has expired.",
     invalid_request: "Check the form fields and try again.",
     not_event_organizer: "Only event organizers can change that event.",
+    private_event_locked: "Unlock that private event before RSVPing.",
     rate_limited: "Too many attempts. Give it a minute, then try again.",
     school_not_found: "That school could not be found.",
     user_not_found: "That profile could not be found."

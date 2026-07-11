@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { deleteEventAction } from "../../actions";
+import { EventRSVPForm } from "../../../components/event-rsvp-form";
 import { PrivateEventUnlockForm } from "../../../components/private-event-unlock-form";
 import {
   ApiError,
@@ -118,12 +119,10 @@ export default async function EventDetailPage({
 
       <section className="action-panel" aria-labelledby="event-actions">
         <h2 id="event-actions">Event actions</h2>
-        <p>
-          RSVP is coming in the next backend/UI slice.
-        </p>
-        <div className="actions">
-          {profile ? (
-            <>
+        {profile ? (
+          <>
+            <EventRSVPForm event={event} />
+            <div className="actions">
               <Link className="button" href={`/events/${event.slug}/edit`}>
                 Edit event
               </Link>
@@ -133,13 +132,18 @@ export default async function EventDetailPage({
                   Delete event
                 </button>
               </form>
-            </>
-          ) : (
+            </div>
+            <p className="form-footer">
+              Yes RSVPs send a confirmation email with a calendar file.
+            </p>
+          </>
+        ) : (
+          <div className="actions">
             <Link className="button primary" href={`/login?next=/events/${event.slug}`}>
               Log in to RSVP
             </Link>
-          )}
-        </div>
+          </div>
+        )}
       </section>
     </main>
   );
@@ -149,6 +153,7 @@ function EventNotice({ status }: { status: string }) {
   const messages: Record<string, string> = {
     created: "Event created.",
     "delete-failed": "We could not delete that event. Please try again.",
+    "rsvp-updated": "RSVP saved.",
     unlocked: "Event unlocked.",
     updated: "Event updated."
   };

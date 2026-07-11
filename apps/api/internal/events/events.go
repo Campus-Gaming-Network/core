@@ -22,6 +22,8 @@ var (
 	ErrSlugUnavailable    = errors.New("event slug unavailable")
 	ErrEventNotFound      = errors.New("event not found")
 	ErrOrganizerRequired  = errors.New("event organizer required")
+	ErrEventFull          = errors.New("event is full")
+	ErrRSVPClosed         = errors.New("event rsvp is closed")
 )
 
 const (
@@ -37,6 +39,10 @@ const (
 	LifecycleHappeningNow = "happening_now"
 	LifecycleEnded        = "ended"
 	LifecycleFull         = "full"
+
+	RSVPYes   = "yes"
+	RSVPMaybe = "maybe"
+	RSVPNo    = "no"
 )
 
 type Event struct {
@@ -60,6 +66,7 @@ type Event struct {
 	PaymentURL   string        `json:"payment_url,omitempty"`
 	HostSchool   SchoolSummary `json:"host_school"`
 	Games        []GameSummary `json:"games"`
+	ViewerRSVP   *string       `json:"viewer_rsvp,omitempty"`
 }
 
 type LockedEvent struct {
@@ -142,6 +149,12 @@ type UpdateParams struct {
 	PrivatePasswordHash string
 }
 
+type RSVPInput struct {
+	Slug     string
+	UserID   string
+	Response string
+}
+
 type Repository interface {
 	Create(ctx context.Context, params CreateParams) (Event, error)
 	Update(ctx context.Context, params UpdateParams) (Event, error)
@@ -150,6 +163,8 @@ type Repository interface {
 	PrivatePasswordHash(ctx context.Context, slug string) (string, error)
 	CreatePrivateUnlock(ctx context.Context, slug string, tokenHash []byte, expiresAt time.Time) error
 	IsPrivateUnlockValid(ctx context.Context, slug string, tokenHash []byte) (bool, error)
+	SetRSVP(ctx context.Context, input RSVPInput) (Event, error)
+	GetRSVP(ctx context.Context, slug string, userID string) (string, error)
 	ListPublic(ctx context.Context, params ListParams) ([]Event, error)
 	GetBySlug(ctx context.Context, slug string) (Event, error)
 }
@@ -209,6 +224,19 @@ func ValidateUpdateInput(input UpdateInput) error {
 		PaymentNote:     input.PaymentNote,
 		PaymentURL:      input.PaymentURL,
 	}, false)
+}
+
+func ValidateRSVPInput(input RSVPInput) error {
+	if strings.TrimSpace(input.Slug) == "" {
+		return errors.New("event slug is required")
+	}
+	if strings.TrimSpace(input.UserID) == "" {
+		return errors.New("user is required")
+	}
+	if !validRSVPResponse(input.Response) {
+		return errors.New("rsvp response must be yes, maybe, or no")
+	}
+	return nil
 }
 
 func validateEventFields(input CreateInput, requirePrivatePassword bool) error {
@@ -599,6 +627,100 @@ func (r *PostgresRepository) IsPrivateUnlockValid(ctx context.Context, slug stri
 	return unlocked, err
 }
 
+func (r *PostgresRepository) SetRSVP(ctx context.Context, input RSVPInput) (Event, error) {
+	input = normalizeRSVPInput(input)
+	if err := ValidateRSVPInput(input); err != nil {
+		return Event{}, err
+	}
+
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return Event{}, fmt.Errorf("begin event rsvp: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	var eventID string
+	var capacity sql.NullInt64
+	var endsAt time.Time
+	var yesCount int
+	var currentResponse sql.NullString
+	err = tx.QueryRow(ctx, `
+		SELECT e.id::text,
+		       e.capacity,
+		       e.ends_at,
+		       COALESCE(yes_counts.yes_count, 0)::int,
+		       (
+		           SELECT r.response
+		           FROM event_rsvps r
+		           WHERE r.event_id = e.id
+		             AND r.user_id = $2::uuid
+		             AND r.deleted_at IS NULL
+		       ) AS current_response
+		FROM events e
+		LEFT JOIN LATERAL (
+		    SELECT COUNT(*) AS yes_count
+		    FROM event_rsvps r
+		    WHERE r.event_id = e.id
+		      AND r.response = 'yes'
+		      AND r.deleted_at IS NULL
+		) yes_counts ON TRUE
+		WHERE e.slug = $1
+		  AND e.deleted_at IS NULL
+		FOR UPDATE OF e
+	`, input.Slug, input.UserID).Scan(&eventID, &capacity, &endsAt, &yesCount, &currentResponse)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return Event{}, ErrEventNotFound
+	}
+	if err != nil {
+		return Event{}, fmt.Errorf("lock event rsvp: %w", err)
+	}
+	if !r.now().Before(endsAt) {
+		return Event{}, ErrRSVPClosed
+	}
+	if input.Response == RSVPYes && capacity.Valid && yesCount >= int(capacity.Int64) &&
+		(!currentResponse.Valid || currentResponse.String != RSVPYes) {
+		return Event{}, ErrEventFull
+	}
+
+	if _, err := tx.Exec(ctx, `
+		INSERT INTO event_rsvps (event_id, user_id, response)
+		VALUES ($1::uuid, $2::uuid, $3)
+		ON CONFLICT (event_id, user_id)
+		DO UPDATE SET response = EXCLUDED.response,
+		              deleted_at = NULL
+	`, eventID, input.UserID, input.Response); err != nil {
+		return Event{}, fmt.Errorf("upsert event rsvp: %w", err)
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return Event{}, fmt.Errorf("commit event rsvp: %w", err)
+	}
+
+	event, err := r.GetBySlug(ctx, input.Slug)
+	if err != nil {
+		return Event{}, err
+	}
+	event.ViewerRSVP = &input.Response
+	return event, nil
+}
+
+func (r *PostgresRepository) GetRSVP(ctx context.Context, slug string, userID string) (string, error) {
+	var response string
+	err := r.pool.QueryRow(ctx, `
+		SELECT r.response
+		FROM events e
+		JOIN event_rsvps r ON r.event_id = e.id
+		WHERE e.slug = $1
+		  AND e.deleted_at IS NULL
+		  AND r.user_id = $2::uuid
+		  AND r.deleted_at IS NULL
+	`, strings.TrimSpace(slug), strings.TrimSpace(userID)).Scan(&response)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", nil
+	}
+	return response, err
+}
+
 func (r *PostgresRepository) ListPublic(ctx context.Context, params ListParams) ([]Event, error) {
 	params = NormalizeListParams(params)
 	rows, err := r.pool.Query(ctx, eventSelectSQL(`
@@ -831,6 +953,11 @@ func validFormat(value string) bool {
 	return value == FormatOnline || value == FormatInPerson || value == FormatHybrid
 }
 
+func validRSVPResponse(value string) bool {
+	value = strings.TrimSpace(value)
+	return value == RSVPYes || value == RSVPMaybe || value == RSVPNo
+}
+
 type schoolExistenceChecker interface {
 	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
 }
@@ -953,6 +1080,13 @@ func normalizeUpdateParams(params UpdateParams) UpdateParams {
 	params.PaymentNote = strings.TrimSpace(params.PaymentNote)
 	params.PaymentURL = strings.TrimSpace(params.PaymentURL)
 	return params
+}
+
+func normalizeRSVPInput(input RSVPInput) RSVPInput {
+	input.Slug = strings.TrimSpace(input.Slug)
+	input.UserID = strings.TrimSpace(input.UserID)
+	input.Response = strings.TrimSpace(input.Response)
+	return input
 }
 
 func normalizeIDs(values []string) []string {

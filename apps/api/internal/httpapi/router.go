@@ -31,6 +31,8 @@ type Router struct {
 	follows      schools.FollowRepository
 	games        games.Repository
 	events       eventstore.Repository
+	users        users.Repository
+	eventMailer  eventstore.RSVPMailer
 	account      *auth.AccountService
 	limiter      *ratelimit.Limiter
 	sessionStore *auth.SessionRepository
@@ -50,6 +52,13 @@ func NewRouter(cfg config.Config, pools ...*pgxpool.Pool) http.Handler {
 		router.follows = schoolRepository
 		router.games = games.NewPostgresRepository(router.db)
 		router.events = eventstore.NewPostgresRepository(router.db)
+		router.users = userRepository
+		router.eventMailer = &eventstore.ResendMailer{
+			APIKey:  cfg.ResendAPIKey,
+			From:    cfg.EventsEmailFrom,
+			SiteURL: cfg.SiteURL,
+			Logger:  slog.Default(),
+		}
 		router.account = auth.NewAccountService(
 			userRepository,
 			schoolRepository,
@@ -400,6 +409,19 @@ func (r *Router) handleEventPath(w http.ResponseWriter, req *http.Request) {
 		r.handleUnlockEvent(w, req, slug)
 		return
 	}
+	if len(parts) == 2 && parts[1] == "rsvp" {
+		if req.Method != http.MethodPost {
+			methodNotAllowed(w, http.MethodPost)
+			return
+		}
+		slug, err := url.PathUnescape(parts[0])
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid_event_slug")
+			return
+		}
+		r.handleRSVPEvent(w, req, slug)
+		return
+	}
 	if len(parts) != 1 || parts[0] == "" {
 		http.NotFound(w, req)
 		return
@@ -431,32 +453,58 @@ func (r *Router) handleEventPath(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	if event.IsPrivate() {
-		if userID, ok := auth.UserID(req.Context()); ok && looksLikeUUID(userID) {
-			organizer, err := r.events.IsOrganizer(req.Context(), slug, userID)
-			if err != nil {
-				writeError(w, http.StatusInternalServerError, "event_unavailable")
-				return
-			}
-			if organizer {
-				writeJSON(w, http.StatusOK, event)
-				return
-			}
+		allowed, err := r.canAccessPrivateEvent(req, slug)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "event_unavailable")
+			return
 		}
-		if token := strings.TrimSpace(req.Header.Get("X-CGN-Event-Unlock")); token != "" {
-			unlocked, err := r.events.IsPrivateUnlockValid(req.Context(), slug, auth.HashToken(token))
-			if err != nil {
+		if allowed {
+			if err := r.decorateEventForViewer(req, slug, &event); err != nil {
 				writeError(w, http.StatusInternalServerError, "event_unavailable")
 				return
 			}
-			if unlocked {
-				writeJSON(w, http.StatusOK, event)
-				return
-			}
+			writeJSON(w, http.StatusOK, event)
+			return
 		}
 		writeJSON(w, http.StatusOK, event.Locked())
 		return
 	}
+	if err := r.decorateEventForViewer(req, slug, &event); err != nil {
+		writeError(w, http.StatusInternalServerError, "event_unavailable")
+		return
+	}
 	writeJSON(w, http.StatusOK, event)
+}
+
+func (r *Router) canAccessPrivateEvent(req *http.Request, slug string) (bool, error) {
+	if userID, ok := auth.UserID(req.Context()); ok && looksLikeUUID(userID) {
+		organizer, err := r.events.IsOrganizer(req.Context(), slug, userID)
+		if err != nil {
+			return false, err
+		}
+		if organizer {
+			return true, nil
+		}
+	}
+	if token := strings.TrimSpace(req.Header.Get("X-CGN-Event-Unlock")); token != "" {
+		return r.events.IsPrivateUnlockValid(req.Context(), slug, auth.HashToken(token))
+	}
+	return false, nil
+}
+
+func (r *Router) decorateEventForViewer(req *http.Request, slug string, event *eventstore.Event) error {
+	userID, ok := auth.UserID(req.Context())
+	if !ok || !looksLikeUUID(userID) {
+		return nil
+	}
+	response, err := r.events.GetRSVP(req.Context(), slug, userID)
+	if err != nil {
+		return err
+	}
+	if response != "" {
+		event.ViewerRSVP = &response
+	}
+	return nil
 }
 
 func writeJSON(w http.ResponseWriter, status int, payload any) {

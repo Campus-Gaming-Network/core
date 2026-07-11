@@ -3,6 +3,7 @@ package httpapi
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -13,6 +14,7 @@ import (
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/config"
 	eventstore "github.com/Campus-Gaming-Network/core/apps/api/internal/events"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/schools"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/users"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -31,6 +33,47 @@ type fakeFollowRepository struct {
 	listFollowedCalled bool
 	followed           []schools.School
 	err                error
+}
+
+type fakeUserRepository struct {
+	profile users.Profile
+	err     error
+}
+
+func (r *fakeUserRepository) Create(context.Context, users.CreateParams) (users.Profile, error) {
+	return users.Profile{}, nil
+}
+
+func (r *fakeUserRepository) FindByID(_ context.Context, id string) (users.Profile, error) {
+	if r.err != nil {
+		return users.Profile{}, r.err
+	}
+	if r.profile.ID != id {
+		return users.Profile{}, pgx.ErrNoRows
+	}
+	return r.profile, nil
+}
+
+func (r *fakeUserRepository) FindByEmail(context.Context, string) (users.Profile, error) {
+	return users.Profile{}, nil
+}
+
+func (r *fakeUserRepository) UpdateProfile(context.Context, string, users.ProfileUpdate) (users.Profile, error) {
+	return users.Profile{}, nil
+}
+
+type fakeEventMailer struct {
+	called    bool
+	recipient string
+	event     eventstore.Event
+	err       error
+}
+
+func (m *fakeEventMailer) SendRSVPConfirmation(_ context.Context, recipient string, event eventstore.Event) error {
+	m.called = true
+	m.recipient = recipient
+	m.event = event
+	return m.err
 }
 
 type fakeEventRepository struct {
@@ -55,6 +98,11 @@ type fakeEventRepository struct {
 	unlockSlug       string
 	unlockTokenHash  []byte
 	unlockExpiresAt  time.Time
+	setRSVPCalled    bool
+	rsvpInput        eventstore.RSVPInput
+	rsvpEvent        eventstore.Event
+	rsvpErr          error
+	viewerRSVP       string
 	err              error
 }
 
@@ -123,6 +171,30 @@ func (r *fakeEventRepository) IsPrivateUnlockValid(_ context.Context, slug strin
 	r.unlockSlug = slug
 	r.unlockTokenHash = tokenHash
 	return r.unlockValid, r.err
+}
+
+func (r *fakeEventRepository) SetRSVP(_ context.Context, input eventstore.RSVPInput) (eventstore.Event, error) {
+	r.setRSVPCalled = true
+	r.rsvpInput = input
+	if r.rsvpErr != nil {
+		return eventstore.Event{}, r.rsvpErr
+	}
+	if r.rsvpEvent.ID != "" {
+		return r.rsvpEvent, nil
+	}
+	event := r.detail
+	if event.ID == "" {
+		event = testEvent(eventstore.VisibilityPublic)
+	}
+	event.ViewerRSVP = &input.Response
+	if input.Response == eventstore.RSVPYes && event.RSVPYesCount == 0 {
+		event.RSVPYesCount = 1
+	}
+	return event, nil
+}
+
+func (r *fakeEventRepository) GetRSVP(_ context.Context, _ string, _ string) (string, error) {
+	return r.viewerRSVP, r.err
 }
 
 func (r *fakeEventRepository) ListPublic(_ context.Context, params eventstore.ListParams) ([]eventstore.Event, error) {
@@ -383,6 +455,29 @@ func TestHandleEventPathReturnsPublicDetail(t *testing.T) {
 	}
 }
 
+func TestHandleEventPathReturnsViewerRSVPForAuthenticatedDetail(t *testing.T) {
+	repository := &fakeEventRepository{
+		detail:     testEvent(eventstore.VisibilityPublic),
+		viewerRSVP: eventstore.RSVPMaybe,
+	}
+	handler := authenticatedEventPathHandler(repository)
+	request := authenticatedEventRequest(http.MethodGet, "/events/campus-scrim-night", "")
+	response := httptest.NewRecorder()
+
+	handler.ServeHTTP(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d; body = %s", response.Code, http.StatusOK, response.Body.String())
+	}
+	var payload eventstore.Event
+	if err := json.NewDecoder(response.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if payload.ViewerRSVP == nil || *payload.ViewerRSVP != eventstore.RSVPMaybe {
+		t.Fatalf("ViewerRSVP = %#v, want maybe", payload.ViewerRSVP)
+	}
+}
+
 func TestHandleUpdateEventRequiresAuthentication(t *testing.T) {
 	repository := &fakeEventRepository{}
 	router := &Router{events: repository}
@@ -630,6 +725,142 @@ func TestHandleUnlockEventRejectsWrongPassword(t *testing.T) {
 	}
 }
 
+func TestHandleRSVPEventRequiresAuthentication(t *testing.T) {
+	repository := &fakeEventRepository{detail: testEvent(eventstore.VisibilityPublic)}
+	router := &Router{events: repository}
+	request := httptest.NewRequest(http.MethodPost, "/events/campus-scrim-night/rsvp", strings.NewReader(`{"response":"yes"}`))
+	response := httptest.NewRecorder()
+
+	router.handleEventPath(response, request)
+
+	if response.Code != http.StatusUnauthorized {
+		t.Fatalf("status = %d, want %d", response.Code, http.StatusUnauthorized)
+	}
+	if repository.setRSVPCalled {
+		t.Fatal("SetRSVP was called for unauthenticated request")
+	}
+}
+
+func TestHandleRSVPEventSetsViewerResponse(t *testing.T) {
+	repository := &fakeEventRepository{detail: testEvent(eventstore.VisibilityPublic)}
+	handler := authenticatedEventPathHandler(repository)
+	request := authenticatedEventRequest(http.MethodPost, "/events/campus-scrim-night/rsvp", `{"response":"yes"}`)
+	response := httptest.NewRecorder()
+
+	handler.ServeHTTP(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d; body = %s", response.Code, http.StatusOK, response.Body.String())
+	}
+	if !repository.setRSVPCalled {
+		t.Fatal("SetRSVP was not called")
+	}
+	if repository.rsvpInput.Slug != "campus-scrim-night" ||
+		repository.rsvpInput.UserID != testUserID ||
+		repository.rsvpInput.Response != eventstore.RSVPYes {
+		t.Fatalf("RSVP input = %#v, want slug, session user, yes", repository.rsvpInput)
+	}
+	var payload eventstore.Event
+	if err := json.NewDecoder(response.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if payload.ViewerRSVP == nil || *payload.ViewerRSVP != eventstore.RSVPYes {
+		t.Fatalf("ViewerRSVP = %#v, want yes", payload.ViewerRSVP)
+	}
+}
+
+func TestHandleRSVPEventSendsConfirmationEmailOnYes(t *testing.T) {
+	repository := &fakeEventRepository{detail: testEvent(eventstore.VisibilityPublic)}
+	mailer := &fakeEventMailer{}
+	handler := authenticatedEventPathHandlerWithMailer(repository, mailer)
+	request := authenticatedEventRequest(http.MethodPost, "/events/campus-scrim-night/rsvp", `{"response":"yes"}`)
+	response := httptest.NewRecorder()
+
+	handler.ServeHTTP(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d; body = %s", response.Code, http.StatusOK, response.Body.String())
+	}
+	if !mailer.called {
+		t.Fatal("SendRSVPConfirmation was not called")
+	}
+	if mailer.recipient != "player@example.com" || mailer.event.Slug != "campus-scrim-night" {
+		t.Fatalf("mailer recipient = %q event = %#v, want player email and event", mailer.recipient, mailer.event)
+	}
+}
+
+func TestHandleRSVPEventSkipsConfirmationEmailForMaybe(t *testing.T) {
+	repository := &fakeEventRepository{detail: testEvent(eventstore.VisibilityPublic)}
+	mailer := &fakeEventMailer{}
+	handler := authenticatedEventPathHandlerWithMailer(repository, mailer)
+	request := authenticatedEventRequest(http.MethodPost, "/events/campus-scrim-night/rsvp", `{"response":"maybe"}`)
+	response := httptest.NewRecorder()
+
+	handler.ServeHTTP(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d; body = %s", response.Code, http.StatusOK, response.Body.String())
+	}
+	if mailer.called {
+		t.Fatal("SendRSVPConfirmation was called for maybe RSVP")
+	}
+}
+
+func TestHandleRSVPEventMapsConfirmationEmailFailure(t *testing.T) {
+	repository := &fakeEventRepository{detail: testEvent(eventstore.VisibilityPublic)}
+	mailer := &fakeEventMailer{err: errors.New("send failed")}
+	handler := authenticatedEventPathHandlerWithMailer(repository, mailer)
+	request := authenticatedEventRequest(http.MethodPost, "/events/campus-scrim-night/rsvp", `{"response":"yes"}`)
+	response := httptest.NewRecorder()
+
+	handler.ServeHTTP(response, request)
+
+	if response.Code != http.StatusInternalServerError {
+		t.Fatalf("status = %d, want %d; body = %s", response.Code, http.StatusInternalServerError, response.Body.String())
+	}
+	if !strings.Contains(response.Body.String(), "event_rsvp_email_failed") {
+		t.Fatalf("body = %s, want event_rsvp_email_failed", response.Body.String())
+	}
+}
+
+func TestHandleRSVPEventRejectsLockedPrivateEvent(t *testing.T) {
+	repository := &fakeEventRepository{detail: testEvent(eventstore.VisibilityPrivate)}
+	handler := authenticatedEventPathHandler(repository)
+	request := authenticatedEventRequest(http.MethodPost, "/events/campus-scrim-night/rsvp", `{"response":"yes"}`)
+	response := httptest.NewRecorder()
+
+	handler.ServeHTTP(response, request)
+
+	if response.Code != http.StatusForbidden {
+		t.Fatalf("status = %d, want %d; body = %s", response.Code, http.StatusForbidden, response.Body.String())
+	}
+	if repository.setRSVPCalled {
+		t.Fatal("SetRSVP was called for locked private event")
+	}
+	if !strings.Contains(response.Body.String(), "private_event_locked") {
+		t.Fatalf("body = %s, want private_event_locked", response.Body.String())
+	}
+}
+
+func TestHandleRSVPEventMapsFullEvent(t *testing.T) {
+	repository := &fakeEventRepository{
+		detail:  testEvent(eventstore.VisibilityPublic),
+		rsvpErr: eventstore.ErrEventFull,
+	}
+	handler := authenticatedEventPathHandler(repository)
+	request := authenticatedEventRequest(http.MethodPost, "/events/campus-scrim-night/rsvp", `{"response":"yes"}`)
+	response := httptest.NewRecorder()
+
+	handler.ServeHTTP(response, request)
+
+	if response.Code != http.StatusConflict {
+		t.Fatalf("status = %d, want %d; body = %s", response.Code, http.StatusConflict, response.Body.String())
+	}
+	if !strings.Contains(response.Body.String(), "event_full") {
+		t.Fatalf("body = %s, want event_full", response.Body.String())
+	}
+}
+
 func TestHandleEventPathReturnsNotFoundForMissingEvent(t *testing.T) {
 	repository := &fakeEventRepository{detail: testEvent(eventstore.VisibilityPublic)}
 	router := &Router{events: repository}
@@ -692,6 +923,31 @@ func authenticatedEventPathHandler(repository *fakeEventRepository) http.Handler
 			SessionTTL:    time.Hour,
 		},
 		events: repository,
+	}
+	store := fakeSessionStore{session: auth.Session{
+		ID:        "session-id",
+		UserID:    testUserID,
+		ExpiresAt: time.Now().Add(time.Hour),
+	}}
+
+	return auth.WithSession(store, auth.SessionCookieConfig{
+		Name: "session",
+		TTL:  time.Hour,
+	})(http.HandlerFunc(router.handleEventPath))
+}
+
+func authenticatedEventPathHandlerWithMailer(repository *fakeEventRepository, mailer *fakeEventMailer) http.Handler {
+	router := &Router{
+		cfg: config.Config{
+			SessionCookie: "session",
+			SessionTTL:    time.Hour,
+		},
+		events: repository,
+		users: &fakeUserRepository{profile: users.Profile{
+			ID:    testUserID,
+			Email: "player@example.com",
+		}},
+		eventMailer: mailer,
 	}
 	store := fakeSessionStore{session: auth.Session{
 		ID:        "session-id",

@@ -36,7 +36,7 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 - [x] Project skeletons + BFF wiring
 - [x] Health checks
 - [ ] Sentry
-- [ ] Resend wired for transactional email
+- [x] Resend wired for transactional email
 - [ ] Deploy path for `campusgamingnetwork.com`
 
 ### Auth & profiles
@@ -72,9 +72,10 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 - [x] Slug = `slugify(name) + "-" + base64url(sha256(...))` (**8** chars)
 - [x] Visibility: public / unlisted / private
 - [x] Private: content fully gated (not inspectable); password form to unlock
-- [ ] Optional capacity (count **RSVP yes** only)
+- [x] Optional capacity (count **RSVP yes** only)
 - [x] Paid event toggle + off-site payment note/link only (no CGN payment processing)
-- [ ] RSVP yes/no/maybe + confirmation email + ICS on yes (Resend)
+- [x] RSVP yes/no/maybe
+- [x] RSVP confirmation email + ICS on yes (Resend)
 - [ ] Interested (favorite) separate from RSVP
 - [x] Browse/filter public events by game (no near-you yet)
 - [x] Lifecycle UI: upcoming / happening now / ended / full

@@ -107,6 +107,23 @@ func TestValidateCreateInputRejectsInvalidCapacityAndPaymentURL(t *testing.T) {
 	}
 }
 
+func TestValidateRSVPInput(t *testing.T) {
+	valid := RSVPInput{
+		Slug:     "campus-scrim-night",
+		UserID:   "user-id",
+		Response: RSVPMaybe,
+	}
+	if err := ValidateRSVPInput(valid); err != nil {
+		t.Fatalf("ValidateRSVPInput() error = %v", err)
+	}
+
+	invalid := valid
+	invalid.Response = "definitely"
+	if err := ValidateRSVPInput(invalid); err == nil {
+		t.Fatal("ValidateRSVPInput() error = nil, want invalid response error")
+	}
+}
+
 func validCreateInput(mutate func(*CreateInput)) CreateInput {
 	input := CreateInput{
 		Title:         "Campus Scrim Night",

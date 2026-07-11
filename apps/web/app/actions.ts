@@ -17,7 +17,11 @@ import {
   userMessageForApiError
 } from "../lib/cgn-api";
 import { type FormState } from "../lib/form-state";
-import { eventUnlockCookieName, incomingCookieHeader } from "../lib/server-api";
+import {
+  eventUnlockCookieName,
+  eventUnlockHeaders,
+  incomingCookieHeader
+} from "../lib/server-api";
 
 export async function signupAction(
   _previousState: FormState,
@@ -301,6 +305,34 @@ export async function unlockEventAction(
     await storeEventUnlockCookie(slug, data.unlock_token, data.expires_at);
     revalidatePath(`/events/${slug}`);
     destination = `/events/${data.event.slug}?event=unlocked`;
+  } catch (error) {
+    return failure(error);
+  }
+
+  redirect(destination);
+}
+
+export async function rsvpEventAction(
+  _previousState: FormState,
+  formData: FormData
+): Promise<FormState> {
+  const slug = formString(formData, "slug");
+  let destination = `/events/${encodeURIComponent(slug)}?event=rsvp-updated`;
+
+  try {
+    const { data } = await apiRequest<Event>({
+      path: `/events/${encodeURIComponent(slug)}/rsvp`,
+      method: "POST",
+      cookieHeader: await incomingCookieHeader(),
+      headers: await eventUnlockHeaders(slug),
+      body: {
+        response: formString(formData, "response")
+      }
+    });
+
+    revalidatePath("/events");
+    revalidatePath(`/events/${data.slug}`);
+    destination = `/events/${data.slug}?event=rsvp-updated`;
   } catch (error) {
     return failure(error);
   }

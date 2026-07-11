@@ -310,6 +310,17 @@ button:disabled {
   margin-bottom: 1rem;
 }
 
+.rsvp-form {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.rsvp-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
 .form-stack label,
 .search-bar label,
 .inline-form label {

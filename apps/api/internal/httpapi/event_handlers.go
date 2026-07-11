@@ -43,6 +43,10 @@ type unlockPrivateEventResponse struct {
 	ExpiresAt   time.Time        `json:"expires_at"`
 }
 
+type rsvpEventRequest struct {
+	Response string `json:"response"`
+}
+
 func (r *Router) handleCreateEvent(w http.ResponseWriter, req *http.Request) {
 	if r.events == nil {
 		writeError(w, http.StatusServiceUnavailable, "database_unavailable")
@@ -204,6 +208,71 @@ func (r *Router) handleUnlockEvent(w http.ResponseWriter, req *http.Request, slu
 	})
 }
 
+func (r *Router) handleRSVPEvent(w http.ResponseWriter, req *http.Request, slug string) {
+	if r.events == nil {
+		writeError(w, http.StatusServiceUnavailable, "database_unavailable")
+		return
+	}
+	userID, err := auth.RequireUser(req.Context())
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, "authentication_required")
+		return
+	}
+
+	var request rsvpEventRequest
+	if !decodeJSON(w, req, &request) {
+		return
+	}
+	event, err := r.events.GetBySlug(req.Context(), slug)
+	if errors.Is(err, pgx.ErrNoRows) {
+		writeError(w, http.StatusNotFound, "event_not_found")
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "event_unavailable")
+		return
+	}
+	if event.IsPrivate() {
+		allowed, err := r.canAccessPrivateEvent(req, slug)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "event_unavailable")
+			return
+		}
+		if !allowed {
+			writeError(w, http.StatusForbidden, "private_event_locked")
+			return
+		}
+	}
+
+	event, err = r.events.SetRSVP(req.Context(), eventstore.RSVPInput{
+		Slug:     slug,
+		UserID:   userID,
+		Response: request.Response,
+	})
+	if err != nil {
+		writeEventMutationError(w, err, "event_rsvp_failed")
+		return
+	}
+	if event.ViewerRSVP != nil && *event.ViewerRSVP == eventstore.RSVPYes {
+		if err := r.sendRSVPConfirmation(req, userID, event); err != nil {
+			writeError(w, http.StatusInternalServerError, "event_rsvp_email_failed")
+			return
+		}
+	}
+	writeJSON(w, http.StatusOK, event)
+}
+
+func (r *Router) sendRSVPConfirmation(req *http.Request, userID string, event eventstore.Event) error {
+	if r.eventMailer == nil || r.users == nil {
+		return nil
+	}
+	profile, err := r.users.FindByID(req.Context(), userID)
+	if err != nil {
+		return err
+	}
+	return r.eventMailer.SendRSVPConfirmation(req.Context(), profile.Email, event)
+}
+
 func createEventInputFromRequest(request createEventRequest, userID string) eventstore.CreateInput {
 	return eventstore.CreateInput{
 		Title:           request.Title,
@@ -263,6 +332,10 @@ func writeEventMutationError(w http.ResponseWriter, err error, fallbackCode stri
 		writeError(w, http.StatusUnprocessableEntity, "game_not_found")
 	case errors.Is(err, eventstore.ErrSlugUnavailable):
 		writeError(w, http.StatusConflict, "event_slug_unavailable")
+	case errors.Is(err, eventstore.ErrEventFull):
+		writeError(w, http.StatusConflict, "event_full")
+	case errors.Is(err, eventstore.ErrRSVPClosed):
+		writeError(w, http.StatusConflict, "event_rsvp_closed")
 	case isValidationError(err):
 		writeError(w, http.StatusBadRequest, "invalid_request")
 	default:

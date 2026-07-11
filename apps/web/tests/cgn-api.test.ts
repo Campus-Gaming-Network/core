@@ -7,6 +7,7 @@ import {
   eventFormatLabel,
   eventLifecycleLabel,
   eventLocation,
+  eventRSVPLabel,
   eventVisibilityLabel,
   isSchoolFollowed,
   isLockedEvent,
@@ -122,6 +123,18 @@ test("userMessageForApiError maps known backend errors", () => {
     userMessageForApiError(new ApiError(500, "event_unlock_failed")),
     "We could not unlock that event. Please try again."
   );
+  assert.equal(
+    userMessageForApiError(new ApiError(409, "event_full")),
+    "That event is full."
+  );
+  assert.equal(
+    userMessageForApiError(new ApiError(403, "private_event_locked")),
+    "Unlock that private event before RSVPing."
+  );
+  assert.equal(
+    userMessageForApiError(new ApiError(500, "event_rsvp_email_failed")),
+    "Your RSVP was saved, but we could not send the confirmation email."
+  );
 });
 
 test("isSchoolFollowed matches by school ID", () => {
@@ -189,6 +202,7 @@ test("event helpers format labels and locations", () => {
   assert.equal(eventLifecycleLabel("happening_now"), "Happening now");
   assert.equal(eventVisibilityLabel("unlisted"), "Unlisted");
   assert.equal(eventFormatLabel("in_person"), "In person");
+  assert.equal(eventRSVPLabel("maybe"), "Maybe");
   assert.equal(
     eventLocation({
       format: "hybrid",

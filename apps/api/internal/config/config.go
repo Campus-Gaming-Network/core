@@ -21,6 +21,7 @@ type Config struct {
 	SiteURL          string
 	ResendAPIKey     string
 	AccountEmailFrom string
+	EventsEmailFrom  string
 	AuthRateLimit    int
 	AuthRateWindow   time.Duration
 	SentryDSN        string
@@ -81,6 +82,7 @@ func Load() (Config, error) {
 		SiteURL:          getenv("API_SITE_URL", "http://localhost:3000"),
 		ResendAPIKey:     os.Getenv("RESEND_API_KEY"),
 		AccountEmailFrom: getenv("API_ACCOUNT_EMAIL_FROM", "account@campusgamingnetwork.com"),
+		EventsEmailFrom:  getenv("API_EVENTS_EMAIL_FROM", "events@campusgamingnetwork.com"),
 		AuthRateLimit:    authRateLimit,
 		AuthRateWindow:   authRateWindow,
 		SentryDSN:        os.Getenv("SENTRY_DSN"),

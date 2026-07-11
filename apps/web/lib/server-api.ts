@@ -115,13 +115,13 @@ type GetEventOptions = {
 };
 
 export async function getEvent(slug: string, options: GetEventOptions = {}) {
-  const unlockToken = options.includeUnlock
-    ? await eventUnlockToken(slug)
-    : "";
+  const unlockHeaders = options.includeUnlock
+    ? await eventUnlockHeaders(slug)
+    : undefined;
   const { data } = await apiRequest<EventDetail>({
     path: `/events/${encodeURIComponent(slug)}`,
     cookieHeader: options.includeCookie ? await incomingCookieHeader() : undefined,
-    headers: unlockToken ? { "X-CGN-Event-Unlock": unlockToken } : undefined
+    headers: unlockHeaders
   });
 
   return data;
@@ -134,6 +134,11 @@ export function eventUnlockCookieName(slug: string) {
 async function eventUnlockToken(slug: string) {
   const cookieStore = await cookies();
   return cookieStore.get(eventUnlockCookieName(slug))?.value ?? "";
+}
+
+export async function eventUnlockHeaders(slug: string) {
+  const token = await eventUnlockToken(slug);
+  return token ? { "X-CGN-Event-Unlock": token } : undefined;
 }
 
 export async function listFollowedSchools() {
