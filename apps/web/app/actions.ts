@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import {
+  type Event,
   type Profile,
   type SocialLink,
   ApiError,
@@ -217,6 +218,69 @@ export async function unfollowSchoolAction(formData: FormData) {
   redirect(destination);
 }
 
+export async function createEventAction(
+  _previousState: FormState,
+  formData: FormData
+): Promise<FormState> {
+  let destination = "/events";
+  try {
+    const { data } = await apiRequest<Event>({
+      path: "/events",
+      method: "POST",
+      cookieHeader: await incomingCookieHeader(),
+      body: eventBodyFromForm(formData)
+    });
+
+    revalidatePath("/events");
+    destination = `/events/${data.slug}?event=created`;
+  } catch (error) {
+    return failure(error);
+  }
+
+  redirect(destination);
+}
+
+export async function updateEventAction(
+  _previousState: FormState,
+  formData: FormData
+): Promise<FormState> {
+  const slug = formString(formData, "slug");
+  let destination = `/events/${encodeURIComponent(slug)}`;
+  try {
+    const { data } = await apiRequest<Event>({
+      path: `/events/${encodeURIComponent(slug)}`,
+      method: "PATCH",
+      cookieHeader: await incomingCookieHeader(),
+      body: eventBodyFromForm(formData)
+    });
+
+    revalidatePath("/events");
+    revalidatePath(`/events/${data.slug}`);
+    destination = `/events/${data.slug}?event=updated`;
+  } catch (error) {
+    return failure(error);
+  }
+
+  redirect(destination);
+}
+
+export async function deleteEventAction(formData: FormData) {
+  const slug = formString(formData, "slug");
+
+  try {
+    await apiRequest<void>({
+      path: `/events/${encodeURIComponent(slug)}`,
+      method: "DELETE",
+      cookieHeader: await incomingCookieHeader()
+    });
+  } catch {
+    redirect(`/events/${encodeURIComponent(slug)}?event=delete-failed`);
+  }
+
+  revalidatePath("/events");
+  redirect("/events?event=deleted");
+}
+
 function failure(error: unknown): FormState {
   return {
     status: "error",
@@ -286,4 +350,40 @@ function followErrorDestination(error: unknown, slug: string) {
   }
 
   return `/schools/${encodeURIComponent(slug)}?follow=failed`;
+}
+
+function eventBodyFromForm(formData: FormData) {
+  return {
+    title: formString(formData, "title"),
+    description: formString(formData, "description"),
+    host_school_id: formString(formData, "host_school_id"),
+    game_ids: formData.getAll("game_ids").filter(isString).map((value) => value.trim()),
+    visibility: formString(formData, "visibility"),
+    format: formString(formData, "format"),
+    starts_at: formString(formData, "starts_at"),
+    ends_at: formString(formData, "ends_at"),
+    timezone: formString(formData, "timezone") || "America/Los_Angeles",
+    location_name: formString(formData, "location_name"),
+    address: formString(formData, "address"),
+    online_url: formString(formData, "online_url"),
+    private_password: formString(formData, "private_password"),
+    capacity: capacityFromForm(formData),
+    is_paid: formCheckbox(formData, "is_paid"),
+    payment_note: formString(formData, "payment_note"),
+    payment_url: formString(formData, "payment_url")
+  };
+}
+
+function capacityFromForm(formData: FormData) {
+  const raw = formString(formData, "capacity");
+  if (!raw) {
+    return undefined;
+  }
+
+  const parsed = Number.parseInt(raw, 10);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function isString(value: FormDataEntryValue): value is string {
+  return typeof value === "string";
 }

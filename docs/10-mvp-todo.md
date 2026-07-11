@@ -64,24 +64,24 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
   - Overwatch 2
   - Super Smash Bros. Ultimate
   - CSGO
-- [ ] Browse/filter events by these games
+- [x] Browse/filter events by these games
 - [x] End users cannot edit games (CRM later / admin seed)
 
 ### Events
-- [ ] Create / edit / soft-delete (no approval; no cancel-notify emails yet)
-- [ ] Slug = `slugify(name) + "-" + base64url(sha256(...))` (**8** chars)
-- [ ] Visibility: public / unlisted / private
+- [x] Create / edit / soft-delete (no approval; no cancel-notify emails yet)
+- [x] Slug = `slugify(name) + "-" + base64url(sha256(...))` (**8** chars)
+- [x] Visibility: public / unlisted / private
 - [ ] Private: content fully gated (blurred / not inspectable); password modal to unlock
 - [ ] Optional capacity (count **RSVP yes** only)
-- [ ] Paid event toggle + off-site payment note/link only (no CGN payment processing)
+- [x] Paid event toggle + off-site payment note/link only (no CGN payment processing)
 - [ ] RSVP yes/no/maybe + confirmation email + ICS on yes (Resend)
 - [ ] Interested (favorite) separate from RSVP
-- [ ] Browse/filter public events by game (no near-you yet)
-- [ ] Lifecycle UI: upcoming / happening now / ended / full
-- [ ] Missing/deleted event page
+- [x] Browse/filter public events by game (no near-you yet)
+- [x] Lifecycle UI: upcoming / happening now / ended / full
+- [x] Missing/deleted event page
 - [ ] Rate limit event create + private unlock attempts
 - [ ] Default event banner/background placeholder (no custom uploads in MVP)
-- [ ] Empty states for events browse
+- [x] Empty states for events browse
 
 ### Teams
 - [ ] Create team

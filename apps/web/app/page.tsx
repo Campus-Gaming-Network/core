@@ -16,11 +16,14 @@ export default async function HomePage() {
           <h1 id="page-title">Find the campus gaming scene around you.</h1>
           <p className="lede">
             Browse schools, choose your home campus, and start following the
-            places where collegiate gaming is taking shape.
+            places where collegiate gaming events are taking shape.
           </p>
           <div className="actions">
             <Link className="button primary" href="/schools">
               Browse schools
+            </Link>
+            <Link className="button" href="/events">
+              Browse events
             </Link>
             <Link className="button" href="/signup">
               Create account

@@ -40,6 +40,55 @@ export type GamesResponse = {
   games: Game[];
 };
 
+export type GameSummary = Pick<Game, "id" | "name" | "slug">;
+
+export type EventVisibility = "public" | "unlisted" | "private";
+
+export type EventFormat = "online" | "in_person" | "hybrid";
+
+export type EventLifecycle =
+  | "upcoming"
+  | "happening_now"
+  | "ended"
+  | "full";
+
+export type Event = {
+  id: string;
+  title: string;
+  slug: string;
+  description: string;
+  visibility: EventVisibility;
+  format: EventFormat;
+  starts_at: string;
+  ends_at: string;
+  timezone: string;
+  location_name?: string;
+  address?: string;
+  online_url?: string;
+  capacity?: number;
+  rsvp_yes_count: number;
+  lifecycle: EventLifecycle;
+  is_paid: boolean;
+  payment_note?: string;
+  payment_url?: string;
+  host_school: SchoolSummary;
+  games: GameSummary[];
+};
+
+export type LockedEvent = {
+  slug: string;
+  visibility: "private";
+  locked: true;
+};
+
+export type EventDetail = Event | LockedEvent;
+
+export type EventsResponse = {
+  events: Event[];
+  limit: number;
+  offset: number;
+};
+
 export type SocialLink = {
   id?: string;
   label: string;
@@ -318,6 +367,71 @@ export function publicProfileHomeSchool(profile: PublicProfile) {
   };
 }
 
+export function isLockedEvent(event: EventDetail): event is LockedEvent {
+  return "locked" in event && event.locked === true;
+}
+
+export function eventLocation(event: Pick<Event, "format" | "location_name" | "address" | "online_url">) {
+  if (event.format === "online") {
+    return event.online_url ? "Online" : "Online details pending";
+  }
+
+  const inPersonLocation = [event.location_name, event.address]
+    .filter(Boolean)
+    .join(" · ");
+
+  if (event.format === "hybrid") {
+    return inPersonLocation
+      ? `${inPersonLocation} + online`
+      : "Hybrid details pending";
+  }
+
+  return inPersonLocation || "Location pending";
+}
+
+export function eventLifecycleLabel(lifecycle: EventLifecycle) {
+  const labels: Record<EventLifecycle, string> = {
+    ended: "Ended",
+    full: "Full",
+    happening_now: "Happening now",
+    upcoming: "Upcoming"
+  };
+
+  return labels[lifecycle];
+}
+
+export function eventVisibilityLabel(visibility: EventVisibility) {
+  const labels: Record<EventVisibility, string> = {
+    private: "Private",
+    public: "Public",
+    unlisted: "Unlisted"
+  };
+
+  return labels[visibility];
+}
+
+export function eventFormatLabel(format: EventFormat) {
+  const labels: Record<EventFormat, string> = {
+    hybrid: "Hybrid",
+    in_person: "In person",
+    online: "Online"
+  };
+
+  return labels[format];
+}
+
+export function eventTimeRange(event: Pick<Event, "starts_at" | "ends_at" | "timezone">) {
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: event.timezone
+  });
+
+  return `${formatter.format(new Date(event.starts_at))} – ${formatter.format(
+    new Date(event.ends_at)
+  )}`;
+}
+
 export function userMessageForApiError(error: unknown) {
   if (!(error instanceof ApiError)) {
     return "Something went wrong. Please try again.";
@@ -328,11 +442,19 @@ export function userMessageForApiError(error: unknown) {
     database_unavailable: "The service is starting up. Try again in a moment.",
     email_already_registered: "That email already has an account.",
     email_not_verified: "Please verify your email before logging in.",
+    event_create_failed: "We could not create that event. Please try again.",
+    event_delete_failed: "We could not delete that event. Please try again.",
+    event_not_found: "That event could not be found.",
+    event_slug_unavailable: "That event URL is unavailable. Try changing the title or start time.",
+    event_update_failed: "We could not update that event. Please try again.",
+    game_not_found: "Choose at least one active game from the list.",
     home_school_not_found: "Choose an active home school from the list.",
+    host_school_not_found: "Choose an active host school from the list.",
     invalid_credentials: "The email or password did not match.",
     invalid_id: "That profile link is not valid.",
     invalid_or_expired_token: "That link is invalid or has expired.",
     invalid_request: "Check the form fields and try again.",
+    not_event_organizer: "Only event organizers can change that event.",
     rate_limited: "Too many attempts. Give it a minute, then try again.",
     school_not_found: "That school could not be found.",
     user_not_found: "That profile could not be found."

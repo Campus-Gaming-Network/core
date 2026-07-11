@@ -146,6 +146,7 @@ type Repository interface {
 	Create(ctx context.Context, params CreateParams) (Event, error)
 	Update(ctx context.Context, params UpdateParams) (Event, error)
 	Delete(ctx context.Context, slug string, userID string) error
+	IsOrganizer(ctx context.Context, slug string, userID string) (bool, error)
 	ListPublic(ctx context.Context, params ListParams) ([]Event, error)
 	GetBySlug(ctx context.Context, slug string) (Event, error)
 }
@@ -499,6 +500,22 @@ func (r *PostgresRepository) Delete(ctx context.Context, slug string, userID str
 		return fmt.Errorf("commit event delete: %w", err)
 	}
 	return nil
+}
+
+func (r *PostgresRepository) IsOrganizer(ctx context.Context, slug string, userID string) (bool, error) {
+	var organizer bool
+	err := r.pool.QueryRow(ctx, `
+		SELECT EXISTS (
+			SELECT 1
+			FROM events e
+			JOIN event_organizers eo ON eo.event_id = e.id
+			WHERE e.slug = $1
+			  AND e.deleted_at IS NULL
+			  AND eo.user_id = $2::uuid
+			  AND eo.deleted_at IS NULL
+		)
+	`, strings.TrimSpace(slug), strings.TrimSpace(userID)).Scan(&organizer)
+	return organizer, err
 }
 
 func (r *PostgresRepository) ListPublic(ctx context.Context, params ListParams) ([]Event, error) {

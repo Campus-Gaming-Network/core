@@ -1,5 +1,7 @@
 import { headers } from "next/headers";
 import {
+  type EventDetail,
+  type EventsResponse,
   type FollowedSchoolsResponse,
   type GamesResponse,
   type Profile,
@@ -76,6 +78,44 @@ export async function listGames() {
   });
 
   return data.games;
+}
+
+export async function listEvents(params: {
+  game?: string;
+  school?: string;
+  limit?: number;
+  offset?: number;
+}) {
+  const query = new URLSearchParams();
+
+  if (params.game) {
+    query.set("game", params.game);
+  }
+  if (params.school) {
+    query.set("school", params.school);
+  }
+  if (params.limit) {
+    query.set("limit", String(params.limit));
+  }
+  if (params.offset) {
+    query.set("offset", String(params.offset));
+  }
+
+  const suffix = query.size > 0 ? `?${query.toString()}` : "";
+  const { data } = await apiRequest<EventsResponse>({
+    path: `/events${suffix}`
+  });
+
+  return data;
+}
+
+export async function getEvent(slug: string, includeCookie = false) {
+  const { data } = await apiRequest<EventDetail>({
+    path: `/events/${encodeURIComponent(slug)}`,
+    cookieHeader: includeCookie ? await incomingCookieHeader() : undefined
+  });
+
+  return data;
 }
 
 export async function listFollowedSchools() {

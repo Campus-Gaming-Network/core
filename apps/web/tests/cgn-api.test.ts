@@ -4,7 +4,12 @@ import {
   ApiError,
   apiRequest,
   buildApiUrl,
+  eventFormatLabel,
+  eventLifecycleLabel,
+  eventLocation,
+  eventVisibilityLabel,
   isSchoolFollowed,
+  isLockedEvent,
   parseSetCookie,
   publicProfileHomeSchool,
   schoolLocation,
@@ -105,6 +110,10 @@ test("userMessageForApiError maps known backend errors", () => {
     userMessageForApiError(new ApiError(429, "rate_limited")),
     "Too many attempts. Give it a minute, then try again."
   );
+  assert.equal(
+    userMessageForApiError(new ApiError(403, "not_event_organizer")),
+    "Only event organizers can change that event."
+  );
 });
 
 test("isSchoolFollowed matches by school ID", () => {
@@ -165,5 +174,61 @@ test("publicProfileHomeSchool prefers display summary over raw ID", () => {
       location: "",
       href: undefined
     }
+  );
+});
+
+test("event helpers format labels and locations", () => {
+  assert.equal(eventLifecycleLabel("happening_now"), "Happening now");
+  assert.equal(eventVisibilityLabel("unlisted"), "Unlisted");
+  assert.equal(eventFormatLabel("in_person"), "In person");
+  assert.equal(
+    eventLocation({
+      format: "hybrid",
+      location_name: "Student Union",
+      address: "1 Campus Way",
+      online_url: "https://meet.example.test/event"
+    }),
+    "Student Union · 1 Campus Way + online"
+  );
+  assert.equal(
+    eventLocation({
+      format: "online",
+      online_url: "https://meet.example.test/event"
+    }),
+    "Online"
+  );
+});
+
+test("isLockedEvent detects private locked shell responses", () => {
+  assert.equal(
+    isLockedEvent({
+      slug: "private-event",
+      visibility: "private",
+      locked: true
+    }),
+    true
+  );
+  assert.equal(
+    isLockedEvent({
+      id: "event-1",
+      title: "Public Event",
+      slug: "public-event",
+      description: "",
+      visibility: "public",
+      format: "online",
+      starts_at: "2026-08-15T20:00:00Z",
+      ends_at: "2026-08-15T22:00:00Z",
+      timezone: "America/Los_Angeles",
+      rsvp_yes_count: 0,
+      lifecycle: "upcoming",
+      is_paid: false,
+      host_school: {
+        id: "school-1",
+        name: "Example University",
+        slug: "example-university"
+      },
+      games: []
+    }),
+    false
   );
 });

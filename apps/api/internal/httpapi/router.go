@@ -417,6 +417,17 @@ func (r *Router) handleEventPath(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	if event.IsPrivate() {
+		if userID, ok := auth.UserID(req.Context()); ok && looksLikeUUID(userID) {
+			organizer, err := r.events.IsOrganizer(req.Context(), slug, userID)
+			if err != nil {
+				writeError(w, http.StatusInternalServerError, "event_unavailable")
+				return
+			}
+			if organizer {
+				writeJSON(w, http.StatusOK, event)
+				return
+			}
+		}
 		writeJSON(w, http.StatusOK, event.Locked())
 		return
 	}

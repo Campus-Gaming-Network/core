@@ -214,7 +214,8 @@ button:disabled {
 }
 
 .game-grid span,
-.pill-list a {
+.pill-list a,
+.pill-list span {
   padding: 0.75rem;
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -277,6 +278,13 @@ button:disabled {
   display: block;
 }
 
+.event-card-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.35rem;
+}
+
 .search-bar,
 .form-stack,
 .inline-form {
@@ -336,6 +344,17 @@ legend {
   padding: 0 0.35rem;
   color: var(--muted);
   font-weight: 800;
+}
+
+.form-help {
+  margin-bottom: 0;
+  color: var(--muted);
+}
+
+code {
+  padding: 0.1rem 0.3rem;
+  border-radius: 4px;
+  background: #fbfaf7;
 }
 
 .check-row {

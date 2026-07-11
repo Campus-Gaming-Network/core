@@ -47,6 +47,7 @@ type fakeEventRepository struct {
 	deleteCalled     bool
 	deleteSlug       string
 	deleteUserID     string
+	isOrganizer      bool
 	err              error
 }
 
@@ -86,6 +87,10 @@ func (r *fakeEventRepository) Delete(_ context.Context, slug string, userID stri
 	r.deleteSlug = slug
 	r.deleteUserID = userID
 	return r.err
+}
+
+func (r *fakeEventRepository) IsOrganizer(_ context.Context, _ string, _ string) (bool, error) {
+	return r.isOrganizer, r.err
 }
 
 func (r *fakeEventRepository) ListPublic(_ context.Context, params eventstore.ListParams) ([]eventstore.Event, error) {
@@ -474,6 +479,28 @@ func TestHandleEventPathReturnsLockedShellForPrivateDetail(t *testing.T) {
 	}
 	if !payload.Locked || payload.Visibility != eventstore.VisibilityPrivate {
 		t.Fatalf("locked payload = %#v, want private locked shell", payload)
+	}
+}
+
+func TestHandleEventPathReturnsPrivateDetailToOrganizer(t *testing.T) {
+	event := testEvent(eventstore.VisibilityPrivate)
+	event.Title = "Secret Scrim Night"
+	repository := &fakeEventRepository{detail: event, isOrganizer: true}
+	handler := authenticatedEventPathHandler(repository)
+	request := authenticatedEventRequest(http.MethodGet, "/events/campus-scrim-night", "")
+	response := httptest.NewRecorder()
+
+	handler.ServeHTTP(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d; body = %s", response.Code, http.StatusOK, response.Body.String())
+	}
+	var payload eventstore.Event
+	if err := json.NewDecoder(response.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if payload.Title != "Secret Scrim Night" {
+		t.Fatalf("title = %q, want private organizer detail", payload.Title)
 	}
 }
 

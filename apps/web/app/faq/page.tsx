@@ -12,7 +12,7 @@ const faqs = [
   {
     question: "Can I create events yet?",
     answer:
-      "Not in this slice. Events and teams come after the account and school foundation is stable."
+      "Yes. Logged-in users can create, edit, and delete MVP event listings. RSVP, private unlock, and email confirmations are coming next."
   }
 ];
 
