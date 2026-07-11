@@ -8,7 +8,7 @@ import {
   resetPasswordAction,
   signupAction
 } from "../app/actions";
-import { type School } from "../lib/cgn-api";
+import { schoolLocation, type School } from "../lib/cgn-api";
 import { initialFormState } from "../lib/form-state";
 
 type SignupFormProps = {
@@ -60,7 +60,7 @@ export function SignupForm({ schools, selectedSchoolId }: SignupFormProps) {
             <option key={school.id} value={school.id}>
               {school.name}
               {school.city || school.state
-                ? ` (${[school.city, school.state].filter(Boolean).join(", ")})`
+                ? ` (${schoolLocation(school, "")})`
                 : ""}
             </option>
           ))}

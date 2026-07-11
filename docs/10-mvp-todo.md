@@ -32,30 +32,32 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 ## P0 — Must ship (main site MVP)
 
 ### Foundation
-- [ ] Docker Compose: Next.js, Go API, Postgres (M1-friendly)
-- [ ] Project skeletons + BFF wiring
-- [ ] Health checks + Sentry
+- [x] Docker Compose: Next.js, Go API, Postgres (M1-friendly)
+- [x] Project skeletons + BFF wiring
+- [x] Health checks
+- [ ] Sentry
 - [ ] Resend wired for transactional email
 - [ ] Deploy path for `campusgamingnetwork.com`
 
 ### Auth & profiles
-- [ ] Signup / login / logout
-- [ ] Signup requires selecting a home school
-- [ ] Verification email + resend (rate limited) via Resend
-- [ ] 18+ checkbox (store timestamp)
-- [ ] Forgot / reset password
-- [ ] Profile: single **name** field, bio, socials, timezone, Gravatar
-- [ ] Public profile at `/users/:id` (database id)
+- [x] Signup / login / logout
+- [x] Signup requires selecting a home school
+- [x] Verification email + resend (rate limited)
+- [x] 18+ checkbox (store timestamp)
+- [x] Forgot / reset password
+- [x] Profile: single **name** field, bio, socials, timezone
+- [ ] Gravatar fallback
+- [x] Public profile at `/users/:id` (database id)
 
 ### Schools
-- [ ] One-time import of **all** seed schools as `is_active=true` (main + branch; same UI/UX)
-- [ ] Public search/browse (Postgres), including logged out
-- [ ] School detail by slug
-- [ ] Follow / unfollow school
-- [ ] Empty states for school list + school page
+- [x] One-time import of **all** seed schools as `is_active=true` (main + branch; same UI/UX)
+- [x] Public search/browse (Postgres), including logged out
+- [x] School detail by slug
+- [x] Follow / unfollow school
+- [x] Empty states for school list + school page
 
 ### Games (MVP seed)
-- [ ] Seed/curate launch games:
+- [x] Seed/curate launch games:
   - Rocket League
   - Valorant
   - League of Legends
@@ -63,7 +65,7 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
   - Super Smash Bros. Ultimate
   - CSGO
 - [ ] Browse/filter events by these games
-- [ ] End users cannot edit games (CRM later / admin seed)
+- [x] End users cannot edit games (CRM later / admin seed)
 
 ### Events
 - [ ] Create / edit / soft-delete (no approval; no cancel-notify emails yet)
@@ -89,9 +91,9 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 
 ### Dashboard & content
 - [ ] Simple dashboard: upcoming RSVPs + followed-school events + team activity
-- [ ] Homepage (works with little/no UGC)
+- [x] Homepage (works with little/no UGC)
 - [ ] Cold-start plan (demo seed and/or “create first event” CTA)
-- [ ] FAQ, About, Terms, Privacy
+- [x] FAQ, About, Terms, Privacy
 - [ ] Support ticket form — **anyone** can submit (logged out OK)
 
 ### Safety (minimum)

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ProfileForm } from "../../components/profile-form";
+import { schoolLocation } from "../../lib/cgn-api";
 import { currentProfile, listFollowedSchools } from "../../lib/server-api";
 
 export default async function AccountPage() {
@@ -60,7 +61,7 @@ export default async function AccountPage() {
               >
                 <span>
                   <strong>{school.name}</strong>
-                  <small>{schoolLocation(school.city, school.state)}</small>
+                  <small>{schoolLocation(school)}</small>
                 </span>
               </Link>
             ))}
@@ -75,8 +76,4 @@ export default async function AccountPage() {
       <ProfileForm profile={profile} />
     </main>
   );
-}
-
-function schoolLocation(city?: string, state?: string) {
-  return [city, state].filter(Boolean).join(", ") || "Location pending";
 }

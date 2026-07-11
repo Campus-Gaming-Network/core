@@ -7,21 +7,24 @@ covers the local scaffold and current Phase 1 progress.
 
 ## Current status
 
-The Phase 0 foundation and the first Phase 1 backend slices are implemented:
+Phase 0 and the Phase 1 auth/profile/school read slice are implemented locally:
 
-- `apps/web` — Next.js main-site shell
+- `apps/web` — Next.js main site with public pages, auth forms, profile, and school follow UI
 - `apps/api` — Go API with health, school/game reads, and session middleware
 - `db/migrations` — versioned MVP-only SQL migrations
 - `docker-compose.yml` — web + API + Postgres
 - `.github/workflows/ci.yml` — initial CI checks
 
-Phase 1A and the backend portions of Phase 1B/1C are complete: migrations cover
-identity/profile, schools, follows, and games; the six launch games are seeded;
-all 6,243 school rows are bootstrapped; public school/game reads and
-authenticated follow/unfollow routes are wired; and auth/profile APIs cover
-signup, 18+ and home-school enforcement, verification, login/logout, reset,
-social links, and public profiles. The main-site auth and profile UI/BFF wiring
-is the next Phase 1 slice.
+Phase 1A–1D are functionally covered for the MVP auth/profile/school read
+slice: migrations cover identity/profile, schools, follows, and games; the six
+launch games are seeded; all 6,243 school rows are bootstrapped; public
+school/game reads and authenticated follow/unfollow routes are wired; and the
+main site supports signup, 18+ and home-school enforcement, verification,
+login/logout, password reset, account/profile editing, social links, public
+profiles, followed-school states, and public content stubs.
+
+Remaining MVP work starts with Phase 2 events, plus production hardening and
+polish items tracked in [`docs/10-mvp-todo.md`](./docs/10-mvp-todo.md).
 
 ## Quick start
 

@@ -26,6 +26,7 @@ type Profile struct {
 	Bio               string       `json:"bio,omitempty"`
 	Timezone          string       `json:"timezone"`
 	HomeSchoolID      string       `json:"home_school_id"`
+	HomeSchool        *HomeSchool  `json:"home_school,omitempty"`
 	SocialLinks       []SocialLink `json:"social_links,omitempty"`
 }
 
@@ -35,7 +36,16 @@ type PublicProfile struct {
 	Bio               string       `json:"bio,omitempty"`
 	VerificationLevel string       `json:"verification_level"`
 	HomeSchoolID      string       `json:"home_school_id"`
+	HomeSchool        *HomeSchool  `json:"home_school,omitempty"`
 	SocialLinks       []SocialLink `json:"social_links,omitempty"`
+}
+
+type HomeSchool struct {
+	ID    string `json:"id"`
+	Name  string `json:"name"`
+	Slug  string `json:"slug"`
+	City  string `json:"city,omitempty"`
+	State string `json:"state,omitempty"`
 }
 
 type SocialLink struct {
@@ -95,6 +105,7 @@ func (p Profile) Public() PublicProfile {
 		Bio:               p.Bio,
 		VerificationLevel: p.VerificationLevel,
 		HomeSchoolID:      p.HomeSchoolID,
+		HomeSchool:        p.HomeSchool,
 		SocialLinks:       p.SocialLinks,
 	}
 }
@@ -189,7 +200,7 @@ func (r *PostgresRepository) Create(ctx context.Context, params CreateParams) (P
 	if err != nil {
 		return Profile{}, fmt.Errorf("create user: %w", err)
 	}
-	return profileWithSocialLinks(ctx, r, profile)
+	return profileWithAssociations(ctx, r, profile)
 }
 
 func (r *PostgresRepository) FindByID(ctx context.Context, id string) (Profile, error) {
@@ -222,7 +233,7 @@ func (r *PostgresRepository) find(ctx context.Context, predicate string, arg any
 	if err != nil {
 		return Profile{}, err
 	}
-	return profileWithSocialLinks(ctx, r, profile)
+	return profileWithAssociations(ctx, r, profile)
 }
 
 func (r *PostgresRepository) UpdateProfile(ctx context.Context, id string, update ProfileUpdate) (Profile, error) {
@@ -249,7 +260,7 @@ func (r *PostgresRepository) UpdateProfile(ctx context.Context, id string, updat
 		}
 		return Profile{}, fmt.Errorf("update profile: %w", err)
 	}
-	return profileWithSocialLinks(ctx, r, profile)
+	return profileWithAssociations(ctx, r, profile)
 }
 
 func (r *PostgresRepository) FindCredentialsByEmail(ctx context.Context, email string) (Credentials, error) {
@@ -276,7 +287,7 @@ func (r *PostgresRepository) FindCredentialsByEmail(ctx context.Context, email s
 	if err != nil {
 		return Credentials{}, err
 	}
-	profile, err := profileWithSocialLinks(ctx, r, credentials.Profile)
+	profile, err := profileWithAssociations(ctx, r, credentials.Profile)
 	if err != nil {
 		return Credentials{}, err
 	}
@@ -336,13 +347,35 @@ func (r *PostgresRepository) ReplaceSocialLinks(ctx context.Context, id string, 
 	return nil
 }
 
-func profileWithSocialLinks(ctx context.Context, repository *PostgresRepository, profile Profile) (Profile, error) {
+func profileWithAssociations(ctx context.Context, repository *PostgresRepository, profile Profile) (Profile, error) {
+	homeSchool, err := repository.getHomeSchool(ctx, profile.HomeSchoolID)
+	if err != nil {
+		return Profile{}, err
+	}
+	profile.HomeSchool = homeSchool
+
 	links, err := repository.listSocialLinks(ctx, profile.ID)
 	if err != nil {
 		return Profile{}, err
 	}
 	profile.SocialLinks = links
 	return profile, nil
+}
+
+func (r *PostgresRepository) getHomeSchool(ctx context.Context, id string) (*HomeSchool, error) {
+	var school HomeSchool
+	err := r.pool.QueryRow(ctx, `
+		SELECT id::text, name, slug, COALESCE(city, ''), COALESCE(state, '')
+		FROM schools
+		WHERE id = $1::uuid AND deleted_at IS NULL
+	`, id).Scan(&school.ID, &school.Name, &school.Slug, &school.City, &school.State)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("get home school: %w", err)
+	}
+	return &school, nil
 }
 
 func (r *PostgresRepository) listSocialLinks(ctx context.Context, id string) ([]SocialLink, error) {

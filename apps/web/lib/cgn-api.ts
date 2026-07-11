@@ -14,6 +14,11 @@ export type School = {
   num_branches: number;
 };
 
+export type SchoolSummary = Pick<
+  School,
+  "id" | "name" | "slug" | "city" | "state"
+>;
+
 export type SchoolsResponse = {
   schools: School[];
   limit: number;
@@ -50,6 +55,7 @@ export type Profile = {
   bio?: string;
   timezone: string;
   home_school_id: string;
+  home_school?: SchoolSummary;
   social_links?: SocialLink[];
 };
 
@@ -59,6 +65,7 @@ export type PublicProfile = {
   bio?: string;
   verification_level: string;
   home_school_id: string;
+  home_school?: SchoolSummary;
   social_links?: SocialLink[];
 };
 
@@ -286,6 +293,29 @@ export function formCheckbox(formData: FormData, key: string) {
 
 export function isSchoolFollowed(schools: School[], schoolID: string) {
   return schools.some((school) => school.id === schoolID);
+}
+
+export function schoolLocation(
+  school: Pick<SchoolSummary, "city" | "state">,
+  fallback = "Location pending"
+) {
+  return [school.city, school.state].filter(Boolean).join(", ") || fallback;
+}
+
+export function publicProfileHomeSchool(profile: PublicProfile) {
+  if (profile.home_school) {
+    return {
+      name: profile.home_school.name,
+      location: schoolLocation(profile.home_school, ""),
+      href: `/schools/${profile.home_school.slug}`
+    };
+  }
+
+  return {
+    name: profile.home_school_id,
+    location: "",
+    href: undefined
+  };
 }
 
 export function userMessageForApiError(error: unknown) {

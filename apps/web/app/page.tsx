@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { schoolLocation } from "../lib/cgn-api";
 import { listGames, listSchools } from "../lib/server-api";
 
 export default async function HomePage() {
@@ -49,7 +50,7 @@ export default async function HomePage() {
             {schools.schools.map((school) => (
               <Link className="school-card" href={`/schools/${school.slug}`} key={school.id}>
                 <span>{school.name}</span>
-                <small>{schoolLocation(school.city, school.state)}</small>
+                <small>{schoolLocation(school)}</small>
               </Link>
             ))}
           </div>
@@ -62,8 +63,4 @@ export default async function HomePage() {
       </section>
     </main>
   );
-}
-
-function schoolLocation(city?: string, state?: string) {
-  return [city, state].filter(Boolean).join(", ") || "Location pending";
 }

@@ -6,6 +6,8 @@ import {
   buildApiUrl,
   isSchoolFollowed,
   parseSetCookie,
+  publicProfileHomeSchool,
+  schoolLocation,
   userMessageForApiError,
   type Fetcher
 } from "../lib/cgn-api.js";
@@ -122,4 +124,46 @@ test("isSchoolFollowed matches by school ID", () => {
     true
   );
   assert.equal(isSchoolFollowed([], "school-1"), false);
+});
+
+test("schoolLocation formats city and state with fallback", () => {
+  assert.equal(schoolLocation({ city: "Irvine", state: "CA" }), "Irvine, CA");
+  assert.equal(schoolLocation({ state: "CA" }), "CA");
+  assert.equal(schoolLocation({}, "Online"), "Online");
+});
+
+test("publicProfileHomeSchool prefers display summary over raw ID", () => {
+  assert.deepEqual(
+    publicProfileHomeSchool({
+      id: "user-1",
+      name: "Player",
+      verification_level: "basic",
+      home_school_id: "school-1",
+      home_school: {
+        id: "school-1",
+        name: "Example University",
+        slug: "example-university",
+        city: "Irvine",
+        state: "CA"
+      }
+    }),
+    {
+      name: "Example University",
+      location: "Irvine, CA",
+      href: "/schools/example-university"
+    }
+  );
+  assert.deepEqual(
+    publicProfileHomeSchool({
+      id: "user-1",
+      name: "Player",
+      verification_level: "basic",
+      home_school_id: "school-1"
+    }),
+    {
+      name: "school-1",
+      location: "",
+      href: undefined
+    }
+  );
 });

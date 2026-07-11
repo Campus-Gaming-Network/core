@@ -1,5 +1,6 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ApiError } from "../../../lib/cgn-api";
+import { ApiError, publicProfileHomeSchool } from "../../../lib/cgn-api";
 import { getPublicProfile } from "../../../lib/server-api";
 
 type PageProps = {
@@ -15,6 +16,7 @@ export default async function PublicProfilePage({ params }: PageProps) {
 
     throw error;
   });
+  const homeSchool = publicProfileHomeSchool(profile);
 
   return (
     <main className="narrow">
@@ -37,8 +39,15 @@ export default async function PublicProfilePage({ params }: PageProps) {
           <strong>{profile.verification_level}</strong>
         </div>
         <div className="detail-row">
-          <span>Home school ID</span>
-          <strong>{profile.home_school_id}</strong>
+          <span>Home school</span>
+          <strong className="detail-value">
+            {homeSchool.href ? (
+              <Link href={homeSchool.href}>{homeSchool.name}</Link>
+            ) : (
+              homeSchool.name
+            )}
+            {homeSchool.location ? <small>{homeSchool.location}</small> : null}
+          </strong>
         </div>
       </section>
 

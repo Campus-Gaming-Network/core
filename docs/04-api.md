@@ -49,12 +49,12 @@ Not every path must exist on day one — align with [05 — Roadmap](./05-roadma
 
 | Method | Path | Notes |
 |--------|------|-------|
-| GET | `/me` | Profile + timezone |
+| GET | `/me` | Profile + timezone + home school summary |
 | PATCH | `/me` | Name, bio, socials, timezone, majors, graduation |
 | DELETE | `/me` | Anonymize PII |
 | GET | `/me/schools` | Followed schools |
 | GET | `/me/activity` | User activity log |
-| GET | `/users/:id` | Public profile (database id) |
+| GET | `/users/:id` | Public profile (database id), including `home_school_id` and a display-ready `home_school` summary when available |
 | POST | `/users/:id/report` | Rate limited |
 
 ### Schools

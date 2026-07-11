@@ -191,3 +191,33 @@ func TestAccountServiceResetPasswordRejectsShortPassword(t *testing.T) {
 		t.Fatal("short password should not be passed to the token store")
 	}
 }
+
+func TestAccountServiceGetPublicProfileIncludesHomeSchoolSummary(t *testing.T) {
+	userStore := &fakeUsers{
+		profile: users.Profile{
+			ID:                "user-id",
+			Name:              "Player",
+			VerificationLevel: "basic",
+			HomeSchoolID:      "school-id",
+			HomeSchool: &users.HomeSchool{
+				ID:    "school-id",
+				Name:  "Example University",
+				Slug:  "example-university",
+				City:  "Irvine",
+				State: "CA",
+			},
+		},
+	}
+	service := NewAccountService(userStore, fakeSchools{}, &fakeSessions{}, &fakeTokens{}, &fakeMailer{}, time.Hour, time.Hour, time.Hour)
+
+	profile, err := service.GetPublicProfile(context.Background(), "user-id")
+	if err != nil {
+		t.Fatalf("GetPublicProfile() error = %v", err)
+	}
+	if profile.HomeSchool == nil {
+		t.Fatal("GetPublicProfile() HomeSchool = nil, want summary")
+	}
+	if profile.HomeSchool.Name != "Example University" || profile.HomeSchool.Slug != "example-university" {
+		t.Fatalf("GetPublicProfile() HomeSchool = %#v, want display-ready school summary", profile.HomeSchool)
+	}
+}
