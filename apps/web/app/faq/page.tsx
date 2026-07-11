@@ -12,7 +12,7 @@ const faqs = [
   {
     question: "Can I create events yet?",
     answer:
-      "Yes. Logged-in users can create, edit, and delete MVP event listings. RSVP, private unlock, and email confirmations are coming next."
+      "Yes. Logged-in users can create, edit, and delete MVP event listings, and private events support password unlocks. RSVP and email confirmations are coming next."
   }
 ];
 

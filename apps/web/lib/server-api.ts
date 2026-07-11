@@ -1,4 +1,4 @@
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import {
   type EventDetail,
   type EventsResponse,
@@ -109,13 +109,31 @@ export async function listEvents(params: {
   return data;
 }
 
-export async function getEvent(slug: string, includeCookie = false) {
+type GetEventOptions = {
+  includeCookie?: boolean;
+  includeUnlock?: boolean;
+};
+
+export async function getEvent(slug: string, options: GetEventOptions = {}) {
+  const unlockToken = options.includeUnlock
+    ? await eventUnlockToken(slug)
+    : "";
   const { data } = await apiRequest<EventDetail>({
     path: `/events/${encodeURIComponent(slug)}`,
-    cookieHeader: includeCookie ? await incomingCookieHeader() : undefined
+    cookieHeader: options.includeCookie ? await incomingCookieHeader() : undefined,
+    headers: unlockToken ? { "X-CGN-Event-Unlock": unlockToken } : undefined
   });
 
   return data;
+}
+
+export function eventUnlockCookieName(slug: string) {
+  return `cgn_event_unlock_${slug.replace(/[^A-Za-z0-9_-]/g, "_")}`;
+}
+
+async function eventUnlockToken(slug: string) {
+  const cookieStore = await cookies();
+  return cookieStore.get(eventUnlockCookieName(slug))?.value ?? "";
 }
 
 export async function listFollowedSchools() {

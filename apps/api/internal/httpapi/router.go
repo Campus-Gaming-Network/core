@@ -386,11 +386,25 @@ func (r *Router) handleEventPath(w http.ResponseWriter, req *http.Request) {
 	}
 	path := strings.TrimPrefix(req.URL.Path, "/events/")
 	path = strings.TrimSuffix(path, "/")
-	if path == "" || strings.Contains(path, "/") {
+	parts := strings.Split(path, "/")
+	if len(parts) == 2 && parts[1] == "unlock" {
+		if req.Method != http.MethodPost {
+			methodNotAllowed(w, http.MethodPost)
+			return
+		}
+		slug, err := url.PathUnescape(parts[0])
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid_event_slug")
+			return
+		}
+		r.handleUnlockEvent(w, req, slug)
+		return
+	}
+	if len(parts) != 1 || parts[0] == "" {
 		http.NotFound(w, req)
 		return
 	}
-	slug, err := url.PathUnescape(path)
+	slug, err := url.PathUnescape(parts[0])
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "invalid_event_slug")
 		return
@@ -424,6 +438,17 @@ func (r *Router) handleEventPath(w http.ResponseWriter, req *http.Request) {
 				return
 			}
 			if organizer {
+				writeJSON(w, http.StatusOK, event)
+				return
+			}
+		}
+		if token := strings.TrimSpace(req.Header.Get("X-CGN-Event-Unlock")); token != "" {
+			unlocked, err := r.events.IsPrivateUnlockValid(req.Context(), slug, auth.HashToken(token))
+			if err != nil {
+				writeError(w, http.StatusInternalServerError, "event_unavailable")
+				return
+			}
+			if unlocked {
 				writeJSON(w, http.StatusOK, event)
 				return
 			}

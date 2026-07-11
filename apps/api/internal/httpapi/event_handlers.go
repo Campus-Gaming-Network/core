@@ -3,11 +3,15 @@ package httpapi
 import (
 	"errors"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/auth"
 	eventstore "github.com/Campus-Gaming-Network/core/apps/api/internal/events"
+	"github.com/jackc/pgx/v5"
 )
+
+const privateEventUnlockTTL = 24 * time.Hour
 
 type createEventRequest struct {
 	Title           string    `json:"title"`
@@ -27,6 +31,16 @@ type createEventRequest struct {
 	IsPaid          bool      `json:"is_paid"`
 	PaymentNote     string    `json:"payment_note"`
 	PaymentURL      string    `json:"payment_url"`
+}
+
+type unlockPrivateEventRequest struct {
+	Password string `json:"password"`
+}
+
+type unlockPrivateEventResponse struct {
+	Event       eventstore.Event `json:"event"`
+	UnlockToken string           `json:"unlock_token"`
+	ExpiresAt   time.Time        `json:"expires_at"`
 }
 
 func (r *Router) handleCreateEvent(w http.ResponseWriter, req *http.Request) {
@@ -132,6 +146,62 @@ func (r *Router) handleDeleteEvent(w http.ResponseWriter, req *http.Request, slu
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (r *Router) handleUnlockEvent(w http.ResponseWriter, req *http.Request, slug string) {
+	if r.events == nil {
+		writeError(w, http.StatusServiceUnavailable, "database_unavailable")
+		return
+	}
+	if !r.allow("event-unlock:"+slug, req) {
+		rateLimitExceeded(w, r)
+		return
+	}
+
+	var request unlockPrivateEventRequest
+	if !decodeJSON(w, req, &request) {
+		return
+	}
+
+	passwordHash, err := r.events.PrivatePasswordHash(req.Context(), slug)
+	if errors.Is(err, eventstore.ErrEventNotFound) {
+		writeError(w, http.StatusNotFound, "event_not_found")
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "event_unlock_failed")
+		return
+	}
+	if !auth.ComparePassword(passwordHash, strings.TrimSpace(request.Password)) {
+		writeError(w, http.StatusUnauthorized, "invalid_private_password")
+		return
+	}
+
+	token, tokenHash, err := auth.NewToken()
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "event_unlock_failed")
+		return
+	}
+	expiresAt := time.Now().Add(privateEventUnlockTTL)
+	if err := r.events.CreatePrivateUnlock(req.Context(), slug, tokenHash, expiresAt); err != nil {
+		writeEventMutationError(w, err, "event_unlock_failed")
+		return
+	}
+	event, err := r.events.GetBySlug(req.Context(), slug)
+	if errors.Is(err, pgx.ErrNoRows) {
+		writeError(w, http.StatusNotFound, "event_not_found")
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "event_unlock_failed")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, unlockPrivateEventResponse{
+		Event:       event,
+		UnlockToken: token,
+		ExpiresAt:   expiresAt,
+	})
 }
 
 func createEventInputFromRequest(request createEventRequest, userID string) eventstore.CreateInput {

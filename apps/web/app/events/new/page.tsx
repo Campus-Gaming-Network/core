@@ -22,8 +22,8 @@ export default async function NewEventPage() {
         <p className="eyebrow">Create event</p>
         <h1>Create a campus gaming event</h1>
         <p className="lede">
-          Start with the event basics. RSVP, private unlock, and confirmation
-          email flows are coming next.
+          Start with the event basics. Private events can be password-unlocked;
+          RSVP and confirmation email flows are coming next.
         </p>
       </section>
 

@@ -26,7 +26,7 @@ export default async function EditEventPage({ params }: PageProps) {
     redirect(`/login?next=/events/${slug}/edit`);
   }
 
-  const event = await getEvent(slug, true).catch((error) => {
+  const event = await getEvent(slug, { includeCookie: true }).catch((error) => {
     if (error instanceof ApiError && error.status === 404) {
       notFound();
     }

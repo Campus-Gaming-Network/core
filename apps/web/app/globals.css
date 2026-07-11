@@ -306,6 +306,10 @@ button:disabled {
   grid-template-columns: minmax(0, 1fr) auto;
 }
 
+.private-unlock-form {
+  margin-bottom: 1rem;
+}
+
 .form-stack label,
 .search-bar label,
 .inline-form label {

@@ -5,6 +5,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import {
   type Event,
+  type EventUnlockResponse,
   type Profile,
   type SocialLink,
   ApiError,
@@ -16,7 +17,7 @@ import {
   userMessageForApiError
 } from "../lib/cgn-api";
 import { type FormState } from "../lib/form-state";
-import { incomingCookieHeader } from "../lib/server-api";
+import { eventUnlockCookieName, incomingCookieHeader } from "../lib/server-api";
 
 export async function signupAction(
   _previousState: FormState,
@@ -281,11 +282,52 @@ export async function deleteEventAction(formData: FormData) {
   redirect("/events?event=deleted");
 }
 
+export async function unlockEventAction(
+  _previousState: FormState,
+  formData: FormData
+): Promise<FormState> {
+  const slug = formString(formData, "slug");
+  let destination = `/events/${encodeURIComponent(slug)}?event=unlocked`;
+
+  try {
+    const { data } = await apiRequest<EventUnlockResponse>({
+      path: `/events/${encodeURIComponent(slug)}/unlock`,
+      method: "POST",
+      body: {
+        password: formString(formData, "password")
+      }
+    });
+
+    await storeEventUnlockCookie(slug, data.unlock_token, data.expires_at);
+    revalidatePath(`/events/${slug}`);
+    destination = `/events/${data.event.slug}?event=unlocked`;
+  } catch (error) {
+    return failure(error);
+  }
+
+  redirect(destination);
+}
+
 function failure(error: unknown): FormState {
   return {
     status: "error",
     message: userMessageForApiError(error)
   };
+}
+
+async function storeEventUnlockCookie(slug: string, token: string, expiresAt: string) {
+  const parsedExpiresAt = new Date(expiresAt);
+  const cookieStore = await cookies();
+
+  cookieStore.set({
+    name: eventUnlockCookieName(slug),
+    value: token,
+    path: `/events/${slug}`,
+    expires: Number.isNaN(parsedExpiresAt.getTime()) ? undefined : parsedExpiresAt,
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax"
+  });
 }
 
 async function mirrorSessionCookie(response: Response) {

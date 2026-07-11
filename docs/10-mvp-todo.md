@@ -71,7 +71,7 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 - [x] Create / edit / soft-delete (no approval; no cancel-notify emails yet)
 - [x] Slug = `slugify(name) + "-" + base64url(sha256(...))` (**8** chars)
 - [x] Visibility: public / unlisted / private
-- [ ] Private: content fully gated (blurred / not inspectable); password modal to unlock
+- [x] Private: content fully gated (not inspectable); password form to unlock
 - [ ] Optional capacity (count **RSVP yes** only)
 - [x] Paid event toggle + off-site payment note/link only (no CGN payment processing)
 - [ ] RSVP yes/no/maybe + confirmation email + ICS on yes (Resend)
@@ -79,7 +79,7 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 - [x] Browse/filter public events by game (no near-you yet)
 - [x] Lifecycle UI: upcoming / happening now / ended / full
 - [x] Missing/deleted event page
-- [ ] Rate limit event create + private unlock attempts
+- [x] Rate limit event create + private unlock attempts
 - [ ] Default event banner/background placeholder (no custom uploads in MVP)
 - [x] Empty states for events browse
 

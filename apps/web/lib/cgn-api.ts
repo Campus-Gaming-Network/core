@@ -89,6 +89,12 @@ export type EventsResponse = {
   offset: number;
 };
 
+export type EventUnlockResponse = {
+  event: Event;
+  unlock_token: string;
+  expires_at: string;
+};
+
 export type SocialLink = {
   id?: string;
   label: string;
@@ -446,12 +452,14 @@ export function userMessageForApiError(error: unknown) {
     event_delete_failed: "We could not delete that event. Please try again.",
     event_not_found: "That event could not be found.",
     event_slug_unavailable: "That event URL is unavailable. Try changing the title or start time.",
+    event_unlock_failed: "We could not unlock that event. Please try again.",
     event_update_failed: "We could not update that event. Please try again.",
     game_not_found: "Choose at least one active game from the list.",
     home_school_not_found: "Choose an active home school from the list.",
     host_school_not_found: "Choose an active host school from the list.",
     invalid_credentials: "The email or password did not match.",
     invalid_id: "That profile link is not valid.",
+    invalid_private_password: "That event password did not match.",
     invalid_or_expired_token: "That link is invalid or has expired.",
     invalid_request: "Check the form fields and try again.",
     not_event_organizer: "Only event organizers can change that event.",

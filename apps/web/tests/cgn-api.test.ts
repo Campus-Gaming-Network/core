@@ -114,6 +114,14 @@ test("userMessageForApiError maps known backend errors", () => {
     userMessageForApiError(new ApiError(403, "not_event_organizer")),
     "Only event organizers can change that event."
   );
+  assert.equal(
+    userMessageForApiError(new ApiError(401, "invalid_private_password")),
+    "That event password did not match."
+  );
+  assert.equal(
+    userMessageForApiError(new ApiError(500, "event_unlock_failed")),
+    "We could not unlock that event. Please try again."
+  );
 });
 
 test("isSchoolFollowed matches by school ID", () => {

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { deleteEventAction } from "../../actions";
+import { PrivateEventUnlockForm } from "../../../components/private-event-unlock-form";
 import {
   ApiError,
   eventFormatLabel,
@@ -24,7 +25,7 @@ export default async function EventDetailPage({
   const [{ slug }, query] = await Promise.all([params, searchParams]);
   const [profile, event] = await Promise.all([
     currentProfile(),
-    getEvent(slug, true).catch((error) => {
+    getEvent(slug, { includeCookie: true, includeUnlock: true }).catch((error) => {
       if (error instanceof ApiError && error.status === 404) {
         notFound();
       }
@@ -41,9 +42,11 @@ export default async function EventDetailPage({
           <p className="eyebrow">Private event</p>
           <h1>This event is private.</h1>
           <p className="lede">
-            Event details are hidden until the private unlock flow is available.
+            Enter the event password to reveal the details. Nothing private is
+            sent to the browser until the password checks out.
           </p>
         </section>
+        <PrivateEventUnlockForm slug={slug} />
         <div className="actions">
           <Link className="button" href="/events">
             Browse public events
@@ -116,7 +119,7 @@ export default async function EventDetailPage({
       <section className="action-panel" aria-labelledby="event-actions">
         <h2 id="event-actions">Event actions</h2>
         <p>
-          RSVP and private unlock flows are coming in the next backend/UI slices.
+          RSVP is coming in the next backend/UI slice.
         </p>
         <div className="actions">
           {profile ? (
@@ -146,6 +149,7 @@ function EventNotice({ status }: { status: string }) {
   const messages: Record<string, string> = {
     created: "Event created.",
     "delete-failed": "We could not delete that event. Please try again.",
+    unlocked: "Event unlocked.",
     updated: "Event updated."
   };
 

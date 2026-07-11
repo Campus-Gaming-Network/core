@@ -147,6 +147,9 @@ type Repository interface {
 	Update(ctx context.Context, params UpdateParams) (Event, error)
 	Delete(ctx context.Context, slug string, userID string) error
 	IsOrganizer(ctx context.Context, slug string, userID string) (bool, error)
+	PrivatePasswordHash(ctx context.Context, slug string) (string, error)
+	CreatePrivateUnlock(ctx context.Context, slug string, tokenHash []byte, expiresAt time.Time) error
+	IsPrivateUnlockValid(ctx context.Context, slug string, tokenHash []byte) (bool, error)
 	ListPublic(ctx context.Context, params ListParams) ([]Event, error)
 	GetBySlug(ctx context.Context, slug string) (Event, error)
 }
@@ -449,6 +452,16 @@ func (r *PostgresRepository) Update(ctx context.Context, params UpdateParams) (E
 		return Event{}, ErrGameNotFound
 	}
 
+	if params.PrivatePasswordHash != "" || params.Visibility != VisibilityPrivate {
+		if _, err := tx.Exec(ctx, `
+			UPDATE event_private_unlocks
+			SET deleted_at = NOW()
+			WHERE event_id = $1::uuid AND deleted_at IS NULL
+		`, eventID); err != nil {
+			return Event{}, fmt.Errorf("archive private event unlocks: %w", err)
+		}
+	}
+
 	if err := tx.Commit(ctx); err != nil {
 		return Event{}, fmt.Errorf("commit event update: %w", err)
 	}
@@ -495,6 +508,13 @@ func (r *PostgresRepository) Delete(ctx context.Context, slug string, userID str
 	`, eventID); err != nil {
 		return fmt.Errorf("delete event interests: %w", err)
 	}
+	if _, err := tx.Exec(ctx, `
+		UPDATE event_private_unlocks
+		SET deleted_at = NOW()
+		WHERE event_id = $1::uuid AND deleted_at IS NULL
+	`, eventID); err != nil {
+		return fmt.Errorf("delete event private unlocks: %w", err)
+	}
 
 	if err := tx.Commit(ctx); err != nil {
 		return fmt.Errorf("commit event delete: %w", err)
@@ -516,6 +536,67 @@ func (r *PostgresRepository) IsOrganizer(ctx context.Context, slug string, userI
 		)
 	`, strings.TrimSpace(slug), strings.TrimSpace(userID)).Scan(&organizer)
 	return organizer, err
+}
+
+func (r *PostgresRepository) PrivatePasswordHash(ctx context.Context, slug string) (string, error) {
+	var hash sql.NullString
+	err := r.pool.QueryRow(ctx, `
+		SELECT private_password_hash
+		FROM events
+		WHERE slug = $1
+		  AND visibility = 'private'
+		  AND deleted_at IS NULL
+	`, strings.TrimSpace(slug)).Scan(&hash)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", ErrEventNotFound
+	}
+	if err != nil {
+		return "", fmt.Errorf("get private event password hash: %w", err)
+	}
+	if !hash.Valid || strings.TrimSpace(hash.String) == "" {
+		return "", ErrEventNotFound
+	}
+	return hash.String, nil
+}
+
+func (r *PostgresRepository) CreatePrivateUnlock(ctx context.Context, slug string, tokenHash []byte, expiresAt time.Time) error {
+	commandTag, err := r.pool.Exec(ctx, `
+		INSERT INTO event_private_unlocks (event_id, token_hash, expires_at)
+		SELECT id, $2, $3
+		FROM events
+		WHERE slug = $1
+		  AND visibility = 'private'
+		  AND deleted_at IS NULL
+	`, strings.TrimSpace(slug), tokenHash, expiresAt)
+	if err != nil {
+		return fmt.Errorf("create private event unlock: %w", err)
+	}
+	if commandTag.RowsAffected() != 1 {
+		return ErrEventNotFound
+	}
+	return nil
+}
+
+func (r *PostgresRepository) IsPrivateUnlockValid(ctx context.Context, slug string, tokenHash []byte) (bool, error) {
+	if len(tokenHash) == 0 {
+		return false, nil
+	}
+
+	var unlocked bool
+	err := r.pool.QueryRow(ctx, `
+		SELECT EXISTS (
+			SELECT 1
+			FROM events e
+			JOIN event_private_unlocks unlocks ON unlocks.event_id = e.id
+			WHERE e.slug = $1
+			  AND e.visibility = 'private'
+			  AND e.deleted_at IS NULL
+			  AND unlocks.token_hash = $2
+			  AND unlocks.expires_at > $3
+			  AND unlocks.deleted_at IS NULL
+		)
+	`, strings.TrimSpace(slug), tokenHash, r.now()).Scan(&unlocked)
+	return unlocked, err
 }
 
 func (r *PostgresRepository) ListPublic(ctx context.Context, params ListParams) ([]Event, error) {
