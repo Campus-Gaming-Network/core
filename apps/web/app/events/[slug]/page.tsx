@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { deleteEventAction, eventInterestAction } from "../../actions";
+import { EventBanner } from "../../../components/event-banner";
 import { EventRSVPForm } from "../../../components/event-rsvp-form";
 import { PrivateEventUnlockForm } from "../../../components/private-event-unlock-form";
 import {
@@ -39,6 +40,7 @@ export default async function EventDetailPage({
   if (isLockedEvent(event)) {
     return (
       <main className="narrow">
+        <EventBanner locked size="hero" />
         <section className="page-heading">
           <p className="eyebrow">Private event</p>
           <h1>This event is private.</h1>
@@ -64,6 +66,7 @@ export default async function EventDetailPage({
 
   return (
     <main className="narrow">
+      <EventBanner event={event} size="hero" />
       <section className="page-heading">
         <p className="eyebrow">Event</p>
         <h1>{event.title}</h1>

@@ -81,7 +81,7 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 - [x] Lifecycle UI: upcoming / happening now / ended / full
 - [x] Missing/deleted event page
 - [x] Rate limit event create + private unlock attempts
-- [ ] Default event banner/background placeholder (no custom uploads in MVP)
+- [x] Default event banner/background placeholder (no custom uploads in MVP)
 - [x] Empty states for events browse
 
 ### Teams

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { EventBanner } from "../../components/event-banner";
 import {
   eventLifecycleLabel,
   eventLocation,
@@ -76,6 +77,7 @@ export default async function EventsPage({ searchParams }: PageProps) {
         <div className="list">
           {result.events.map((event) => (
             <Link className="list-item block" href={`/events/${event.slug}`} key={event.id}>
+              <EventBanner event={event} />
               <span className="event-card-heading">
                 <strong>{event.title}</strong>
                 <small>{eventLifecycleLabel(event.lifecycle)}</small>
