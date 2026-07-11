@@ -14,6 +14,7 @@ import (
 
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/auth"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/config"
+	eventstore "github.com/Campus-Gaming-Network/core/apps/api/internal/events"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/games"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/ratelimit"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/schools"
@@ -29,6 +30,7 @@ type Router struct {
 	schools      schools.Repository
 	follows      schools.FollowRepository
 	games        games.Repository
+	events       eventstore.Repository
 	account      *auth.AccountService
 	limiter      *ratelimit.Limiter
 	sessionStore *auth.SessionRepository
@@ -47,6 +49,7 @@ func NewRouter(cfg config.Config, pools ...*pgxpool.Pool) http.Handler {
 		router.schools = schoolRepository
 		router.follows = schoolRepository
 		router.games = games.NewPostgresRepository(router.db)
+		router.events = eventstore.NewPostgresRepository(router.db)
 		router.account = auth.NewAccountService(
 			userRepository,
 			schoolRepository,
@@ -72,6 +75,8 @@ func NewRouter(cfg config.Config, pools ...*pgxpool.Pool) http.Handler {
 	router.mux.HandleFunc("/schools", router.handleSchools)
 	router.mux.HandleFunc("/schools/", router.handleSchoolPath)
 	router.mux.HandleFunc("/games", requireMethod(http.MethodGet, router.handleGames))
+	router.mux.HandleFunc("/events", router.handleEvents)
+	router.mux.HandleFunc("/events/", router.handleEventPath)
 	router.mux.HandleFunc("/auth/signup", router.handleSignup)
 	router.mux.HandleFunc("/auth/login", router.handleLogin)
 	router.mux.HandleFunc("/auth/logout", router.handleLogout)
@@ -319,6 +324,103 @@ func (r *Router) handleGames(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"games": result})
+}
+
+func (r *Router) handleEvents(w http.ResponseWriter, req *http.Request) {
+	if req.URL.Path != "/events" {
+		http.NotFound(w, req)
+		return
+	}
+	if req.Method == http.MethodPost {
+		r.handleCreateEvent(w, req)
+		return
+	}
+	if req.Method != http.MethodGet {
+		methodNotAllowed(w, http.MethodGet+", "+http.MethodPost)
+		return
+	}
+	if r.events == nil {
+		writeError(w, http.StatusServiceUnavailable, "database_unavailable")
+		return
+	}
+
+	params := eventstore.ListParams{
+		GameSlug:   req.URL.Query().Get("game"),
+		SchoolSlug: req.URL.Query().Get("school"),
+		Limit:      25,
+		Offset:     0,
+	}
+	var err error
+	if value := req.URL.Query().Get("limit"); value != "" {
+		params.Limit, err = strconv.Atoi(value)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid_limit")
+			return
+		}
+	}
+	if value := req.URL.Query().Get("offset"); value != "" {
+		params.Offset, err = strconv.Atoi(value)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid_offset")
+			return
+		}
+	}
+	params = eventstore.NormalizeListParams(params)
+	result, err := r.events.ListPublic(req.Context(), params)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "events_unavailable")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"events": result,
+		"limit":  params.Limit,
+		"offset": params.Offset,
+	})
+}
+
+func (r *Router) handleEventPath(w http.ResponseWriter, req *http.Request) {
+	if r.events == nil {
+		writeError(w, http.StatusServiceUnavailable, "database_unavailable")
+		return
+	}
+	path := strings.TrimPrefix(req.URL.Path, "/events/")
+	path = strings.TrimSuffix(path, "/")
+	if path == "" || strings.Contains(path, "/") {
+		http.NotFound(w, req)
+		return
+	}
+	slug, err := url.PathUnescape(path)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_event_slug")
+		return
+	}
+	if req.Method == http.MethodPatch {
+		r.handleUpdateEvent(w, req, slug)
+		return
+	}
+	if req.Method == http.MethodDelete {
+		r.handleDeleteEvent(w, req, slug)
+		return
+	}
+	if req.Method != http.MethodGet {
+		methodNotAllowed(w, http.MethodGet+", "+http.MethodPatch+", "+http.MethodDelete)
+		return
+	}
+	event, err := r.events.GetBySlug(req.Context(), slug)
+	if errors.Is(err, pgx.ErrNoRows) {
+		writeError(w, http.StatusNotFound, "event_not_found")
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "event_unavailable")
+		return
+	}
+	if event.IsPrivate() {
+		writeJSON(w, http.StatusOK, event.Locked())
+		return
+	}
+	writeJSON(w, http.StatusOK, event)
 }
 
 func writeJSON(w http.ResponseWriter, status int, payload any) {
