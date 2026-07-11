@@ -422,6 +422,19 @@ func (r *Router) handleEventPath(w http.ResponseWriter, req *http.Request) {
 		r.handleRSVPEvent(w, req, slug)
 		return
 	}
+	if len(parts) == 2 && parts[1] == "interest" {
+		if req.Method != http.MethodPost && req.Method != http.MethodDelete {
+			methodNotAllowed(w, http.MethodPost+", "+http.MethodDelete)
+			return
+		}
+		slug, err := url.PathUnescape(parts[0])
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid_event_slug")
+			return
+		}
+		r.handleEventInterest(w, req, slug)
+		return
+	}
 	if len(parts) != 1 || parts[0] == "" {
 		http.NotFound(w, req)
 		return
@@ -504,6 +517,11 @@ func (r *Router) decorateEventForViewer(req *http.Request, slug string, event *e
 	if response != "" {
 		event.ViewerRSVP = &response
 	}
+	interested, err := r.events.IsInterested(req.Context(), slug, userID)
+	if err != nil {
+		return err
+	}
+	event.ViewerInterested = interested
 	return nil
 }
 

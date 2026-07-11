@@ -135,6 +135,10 @@ test("userMessageForApiError maps known backend errors", () => {
     userMessageForApiError(new ApiError(500, "event_rsvp_email_failed")),
     "Your RSVP was saved, but we could not send the confirmation email."
   );
+  assert.equal(
+    userMessageForApiError(new ApiError(500, "event_interest_failed")),
+    "We could not update your interest in that event."
+  );
 });
 
 test("isSchoolFollowed matches by school ID", () => {
@@ -242,6 +246,7 @@ test("isLockedEvent detects private locked shell responses", () => {
       ends_at: "2026-08-15T22:00:00Z",
       timezone: "America/Los_Angeles",
       rsvp_yes_count: 0,
+      interest_count: 0,
       lifecycle: "upcoming",
       is_paid: false,
       host_school: {

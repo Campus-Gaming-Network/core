@@ -77,33 +77,39 @@ func (m *fakeEventMailer) SendRSVPConfirmation(_ context.Context, recipient stri
 }
 
 type fakeEventRepository struct {
-	listPublicCalled bool
-	listParams       eventstore.ListParams
-	listed           []eventstore.Event
-	detail           eventstore.Event
-	createCalled     bool
-	createParams     eventstore.CreateParams
-	created          eventstore.Event
-	updateCalled     bool
-	updateParams     eventstore.UpdateParams
-	updated          eventstore.Event
-	deleteCalled     bool
-	deleteSlug       string
-	deleteUserID     string
-	isOrganizer      bool
-	privateHash      string
-	unlockValid      bool
-	unlockChecked    bool
-	unlockCreated    bool
-	unlockSlug       string
-	unlockTokenHash  []byte
-	unlockExpiresAt  time.Time
-	setRSVPCalled    bool
-	rsvpInput        eventstore.RSVPInput
-	rsvpEvent        eventstore.Event
-	rsvpErr          error
-	viewerRSVP       string
-	err              error
+	listPublicCalled  bool
+	listParams        eventstore.ListParams
+	listed            []eventstore.Event
+	detail            eventstore.Event
+	createCalled      bool
+	createParams      eventstore.CreateParams
+	created           eventstore.Event
+	updateCalled      bool
+	updateParams      eventstore.UpdateParams
+	updated           eventstore.Event
+	deleteCalled      bool
+	deleteSlug        string
+	deleteUserID      string
+	isOrganizer       bool
+	privateHash       string
+	unlockValid       bool
+	unlockChecked     bool
+	unlockCreated     bool
+	unlockSlug        string
+	unlockTokenHash   []byte
+	unlockExpiresAt   time.Time
+	setRSVPCalled     bool
+	rsvpInput         eventstore.RSVPInput
+	rsvpEvent         eventstore.Event
+	rsvpErr           error
+	viewerRSVP        string
+	setInterestCalled bool
+	interestSlug      string
+	interestUserID    string
+	interestValue     bool
+	interestEvent     eventstore.Event
+	viewerInterested  bool
+	err               error
 }
 
 func (r *fakeEventRepository) Create(_ context.Context, params eventstore.CreateParams) (eventstore.Event, error) {
@@ -195,6 +201,32 @@ func (r *fakeEventRepository) SetRSVP(_ context.Context, input eventstore.RSVPIn
 
 func (r *fakeEventRepository) GetRSVP(_ context.Context, _ string, _ string) (string, error) {
 	return r.viewerRSVP, r.err
+}
+
+func (r *fakeEventRepository) SetInterest(_ context.Context, slug string, userID string, interested bool) (eventstore.Event, error) {
+	r.setInterestCalled = true
+	r.interestSlug = slug
+	r.interestUserID = userID
+	r.interestValue = interested
+	if r.err != nil {
+		return eventstore.Event{}, r.err
+	}
+	if r.interestEvent.ID != "" {
+		return r.interestEvent, nil
+	}
+	event := r.detail
+	if event.ID == "" {
+		event = testEvent(eventstore.VisibilityPublic)
+	}
+	event.ViewerInterested = interested
+	if interested && event.InterestCount == 0 {
+		event.InterestCount = 1
+	}
+	return event, nil
+}
+
+func (r *fakeEventRepository) IsInterested(_ context.Context, _ string, _ string) (bool, error) {
+	return r.viewerInterested, r.err
 }
 
 func (r *fakeEventRepository) ListPublic(_ context.Context, params eventstore.ListParams) ([]eventstore.Event, error) {
@@ -475,6 +507,29 @@ func TestHandleEventPathReturnsViewerRSVPForAuthenticatedDetail(t *testing.T) {
 	}
 	if payload.ViewerRSVP == nil || *payload.ViewerRSVP != eventstore.RSVPMaybe {
 		t.Fatalf("ViewerRSVP = %#v, want maybe", payload.ViewerRSVP)
+	}
+}
+
+func TestHandleEventPathReturnsViewerInterestForAuthenticatedDetail(t *testing.T) {
+	repository := &fakeEventRepository{
+		detail:           testEvent(eventstore.VisibilityPublic),
+		viewerInterested: true,
+	}
+	handler := authenticatedEventPathHandler(repository)
+	request := authenticatedEventRequest(http.MethodGet, "/events/campus-scrim-night", "")
+	response := httptest.NewRecorder()
+
+	handler.ServeHTTP(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d; body = %s", response.Code, http.StatusOK, response.Body.String())
+	}
+	var payload eventstore.Event
+	if err := json.NewDecoder(response.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if !payload.ViewerInterested {
+		t.Fatalf("ViewerInterested = false, want true")
 	}
 }
 
@@ -858,6 +913,81 @@ func TestHandleRSVPEventMapsFullEvent(t *testing.T) {
 	}
 	if !strings.Contains(response.Body.String(), "event_full") {
 		t.Fatalf("body = %s, want event_full", response.Body.String())
+	}
+}
+
+func TestHandleEventInterestRequiresAuthentication(t *testing.T) {
+	repository := &fakeEventRepository{detail: testEvent(eventstore.VisibilityPublic)}
+	router := &Router{events: repository}
+	request := httptest.NewRequest(http.MethodPost, "/events/campus-scrim-night/interest", nil)
+	response := httptest.NewRecorder()
+
+	router.handleEventPath(response, request)
+
+	if response.Code != http.StatusUnauthorized {
+		t.Fatalf("status = %d, want %d", response.Code, http.StatusUnauthorized)
+	}
+	if repository.setInterestCalled {
+		t.Fatal("SetInterest was called for unauthenticated request")
+	}
+}
+
+func TestHandleEventInterestSetsAndUnsetsViewerInterest(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		method string
+		want   bool
+	}{
+		{name: "set", method: http.MethodPost, want: true},
+		{name: "unset", method: http.MethodDelete, want: false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			repository := &fakeEventRepository{detail: testEvent(eventstore.VisibilityPublic)}
+			handler := authenticatedEventPathHandler(repository)
+			request := authenticatedEventRequest(tc.method, "/events/campus-scrim-night/interest", "")
+			response := httptest.NewRecorder()
+
+			handler.ServeHTTP(response, request)
+
+			if response.Code != http.StatusOK {
+				t.Fatalf("status = %d, want %d; body = %s", response.Code, http.StatusOK, response.Body.String())
+			}
+			if !repository.setInterestCalled {
+				t.Fatal("SetInterest was not called")
+			}
+			if repository.interestSlug != "campus-scrim-night" ||
+				repository.interestUserID != testUserID ||
+				repository.interestValue != tc.want {
+				t.Fatalf("interest = slug %q user %q value %t, want slug, session user, %t",
+					repository.interestSlug, repository.interestUserID, repository.interestValue, tc.want)
+			}
+			var payload eventstore.Event
+			if err := json.NewDecoder(response.Body).Decode(&payload); err != nil {
+				t.Fatalf("decode response: %v", err)
+			}
+			if payload.ViewerInterested != tc.want {
+				t.Fatalf("ViewerInterested = %t, want %t", payload.ViewerInterested, tc.want)
+			}
+		})
+	}
+}
+
+func TestHandleEventInterestRejectsLockedPrivateEvent(t *testing.T) {
+	repository := &fakeEventRepository{detail: testEvent(eventstore.VisibilityPrivate)}
+	handler := authenticatedEventPathHandler(repository)
+	request := authenticatedEventRequest(http.MethodPost, "/events/campus-scrim-night/interest", "")
+	response := httptest.NewRecorder()
+
+	handler.ServeHTTP(response, request)
+
+	if response.Code != http.StatusForbidden {
+		t.Fatalf("status = %d, want %d; body = %s", response.Code, http.StatusForbidden, response.Body.String())
+	}
+	if repository.setInterestCalled {
+		t.Fatal("SetInterest was called for locked private event")
+	}
+	if !strings.Contains(response.Body.String(), "private_event_locked") {
+		t.Fatalf("body = %s, want private_event_locked", response.Body.String())
 	}
 }
 

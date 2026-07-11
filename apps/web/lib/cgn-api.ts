@@ -69,6 +69,7 @@ export type Event = {
   online_url?: string;
   capacity?: number;
   rsvp_yes_count: number;
+  interest_count: number;
   lifecycle: EventLifecycle;
   is_paid: boolean;
   payment_note?: string;
@@ -76,6 +77,7 @@ export type Event = {
   host_school: SchoolSummary;
   games: GameSummary[];
   viewer_rsvp?: EventRSVP;
+  viewer_interested?: boolean;
 };
 
 export type LockedEvent = {
@@ -464,6 +466,7 @@ export function userMessageForApiError(error: unknown) {
     event_create_failed: "We could not create that event. Please try again.",
     event_delete_failed: "We could not delete that event. Please try again.",
     event_full: "That event is full.",
+    event_interest_failed: "We could not update your interest in that event.",
     event_not_found: "That event could not be found.",
     event_rsvp_closed: "RSVPs are closed for that event.",
     event_rsvp_email_failed: "Your RSVP was saved, but we could not send the confirmation email.",

@@ -76,7 +76,7 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 - [x] Paid event toggle + off-site payment note/link only (no CGN payment processing)
 - [x] RSVP yes/no/maybe
 - [x] RSVP confirmation email + ICS on yes (Resend)
-- [ ] Interested (favorite) separate from RSVP
+- [x] Interested (favorite) separate from RSVP
 - [x] Browse/filter public events by game (no near-you yet)
 - [x] Lifecycle UI: upcoming / happening now / ended / full
 - [x] Missing/deleted event page

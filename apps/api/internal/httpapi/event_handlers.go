@@ -262,6 +262,45 @@ func (r *Router) handleRSVPEvent(w http.ResponseWriter, req *http.Request, slug 
 	writeJSON(w, http.StatusOK, event)
 }
 
+func (r *Router) handleEventInterest(w http.ResponseWriter, req *http.Request, slug string) {
+	if r.events == nil {
+		writeError(w, http.StatusServiceUnavailable, "database_unavailable")
+		return
+	}
+	userID, err := auth.RequireUser(req.Context())
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, "authentication_required")
+		return
+	}
+	event, err := r.events.GetBySlug(req.Context(), slug)
+	if errors.Is(err, pgx.ErrNoRows) {
+		writeError(w, http.StatusNotFound, "event_not_found")
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "event_unavailable")
+		return
+	}
+	if event.IsPrivate() {
+		allowed, err := r.canAccessPrivateEvent(req, slug)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "event_unavailable")
+			return
+		}
+		if !allowed {
+			writeError(w, http.StatusForbidden, "private_event_locked")
+			return
+		}
+	}
+
+	event, err = r.events.SetInterest(req.Context(), slug, userID, req.Method == http.MethodPost)
+	if err != nil {
+		writeEventMutationError(w, err, "event_interest_failed")
+		return
+	}
+	writeJSON(w, http.StatusOK, event)
+}
+
 func (r *Router) sendRSVPConfirmation(req *http.Request, userID string, event eventstore.Event) error {
 	if r.eventMailer == nil || r.users == nil {
 		return nil

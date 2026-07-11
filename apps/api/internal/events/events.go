@@ -46,27 +46,29 @@ const (
 )
 
 type Event struct {
-	ID           string        `json:"id"`
-	Title        string        `json:"title"`
-	Slug         string        `json:"slug"`
-	Description  string        `json:"description"`
-	Visibility   string        `json:"visibility"`
-	Format       string        `json:"format"`
-	StartsAt     time.Time     `json:"starts_at"`
-	EndsAt       time.Time     `json:"ends_at"`
-	Timezone     string        `json:"timezone"`
-	LocationName string        `json:"location_name,omitempty"`
-	Address      string        `json:"address,omitempty"`
-	OnlineURL    string        `json:"online_url,omitempty"`
-	Capacity     *int          `json:"capacity,omitempty"`
-	RSVPYesCount int           `json:"rsvp_yes_count"`
-	Lifecycle    string        `json:"lifecycle"`
-	IsPaid       bool          `json:"is_paid"`
-	PaymentNote  string        `json:"payment_note,omitempty"`
-	PaymentURL   string        `json:"payment_url,omitempty"`
-	HostSchool   SchoolSummary `json:"host_school"`
-	Games        []GameSummary `json:"games"`
-	ViewerRSVP   *string       `json:"viewer_rsvp,omitempty"`
+	ID               string        `json:"id"`
+	Title            string        `json:"title"`
+	Slug             string        `json:"slug"`
+	Description      string        `json:"description"`
+	Visibility       string        `json:"visibility"`
+	Format           string        `json:"format"`
+	StartsAt         time.Time     `json:"starts_at"`
+	EndsAt           time.Time     `json:"ends_at"`
+	Timezone         string        `json:"timezone"`
+	LocationName     string        `json:"location_name,omitempty"`
+	Address          string        `json:"address,omitempty"`
+	OnlineURL        string        `json:"online_url,omitempty"`
+	Capacity         *int          `json:"capacity,omitempty"`
+	RSVPYesCount     int           `json:"rsvp_yes_count"`
+	InterestCount    int           `json:"interest_count"`
+	Lifecycle        string        `json:"lifecycle"`
+	IsPaid           bool          `json:"is_paid"`
+	PaymentNote      string        `json:"payment_note,omitempty"`
+	PaymentURL       string        `json:"payment_url,omitempty"`
+	HostSchool       SchoolSummary `json:"host_school"`
+	Games            []GameSummary `json:"games"`
+	ViewerRSVP       *string       `json:"viewer_rsvp,omitempty"`
+	ViewerInterested bool          `json:"viewer_interested,omitempty"`
 }
 
 type LockedEvent struct {
@@ -165,6 +167,8 @@ type Repository interface {
 	IsPrivateUnlockValid(ctx context.Context, slug string, tokenHash []byte) (bool, error)
 	SetRSVP(ctx context.Context, input RSVPInput) (Event, error)
 	GetRSVP(ctx context.Context, slug string, userID string) (string, error)
+	SetInterest(ctx context.Context, slug string, userID string, interested bool) (Event, error)
+	IsInterested(ctx context.Context, slug string, userID string) (bool, error)
 	ListPublic(ctx context.Context, params ListParams) ([]Event, error)
 	GetBySlug(ctx context.Context, slug string) (Event, error)
 }
@@ -721,6 +725,72 @@ func (r *PostgresRepository) GetRSVP(ctx context.Context, slug string, userID st
 	return response, err
 }
 
+func (r *PostgresRepository) SetInterest(ctx context.Context, slug string, userID string, interested bool) (Event, error) {
+	slug = strings.TrimSpace(slug)
+	userID = strings.TrimSpace(userID)
+	if slug == "" || userID == "" {
+		return Event{}, errors.New("event slug and user are required")
+	}
+
+	if interested {
+		commandTag, err := r.pool.Exec(ctx, `
+			INSERT INTO event_interests (event_id, user_id)
+			SELECT id, $2::uuid
+			FROM events
+			WHERE slug = $1
+			  AND deleted_at IS NULL
+			ON CONFLICT (event_id, user_id)
+			DO UPDATE SET deleted_at = NULL
+		`, slug, userID)
+		if err != nil {
+			return Event{}, fmt.Errorf("set event interest: %w", err)
+		}
+		if commandTag.RowsAffected() != 1 {
+			return Event{}, ErrEventNotFound
+		}
+	} else {
+		eventID, err := r.eventIDBySlug(ctx, slug)
+		if err != nil {
+			return Event{}, err
+		}
+		if _, err := r.pool.Exec(ctx, `
+			UPDATE event_interests
+			SET deleted_at = NOW()
+			WHERE event_id = $1::uuid
+			  AND user_id = $2::uuid
+			  AND deleted_at IS NULL
+		`, eventID, userID); err != nil {
+			return Event{}, fmt.Errorf("unset event interest: %w", err)
+		}
+	}
+
+	event, err := r.GetBySlug(ctx, slug)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return Event{}, ErrEventNotFound
+	}
+	if err != nil {
+		return Event{}, err
+	}
+	event.ViewerInterested = interested
+	return event, nil
+}
+
+func (r *PostgresRepository) IsInterested(ctx context.Context, slug string, userID string) (bool, error) {
+	var interested bool
+	err := r.pool.QueryRow(ctx, `
+		SELECT EXISTS (
+			SELECT 1
+			FROM events e
+			JOIN event_interests i ON i.event_id = e.id
+			WHERE e.slug = $1
+			  AND e.deleted_at IS NULL
+			  AND i.user_id = $2::uuid
+			  AND i.deleted_at IS NULL
+		)
+	`, strings.TrimSpace(slug), strings.TrimSpace(userID)).Scan(&interested)
+	return interested, err
+}
+
 func (r *PostgresRepository) ListPublic(ctx context.Context, params ListParams) ([]Event, error) {
 	params = NormalizeListParams(params)
 	rows, err := r.pool.Query(ctx, eventSelectSQL(`
@@ -864,6 +934,7 @@ func scanEvent(scanner eventScanner, now time.Time) (Event, error) {
 		&event.HostSchool.City,
 		&event.HostSchool.State,
 		&event.RSVPYesCount,
+		&event.InterestCount,
 		&gameIDs,
 		&gameNames,
 		&gameSlugs,
@@ -913,6 +984,7 @@ func eventSelectSQL(whereClause string, tailClause string) string {
 		       e.payment_note, e.payment_url,
 		       s.id::text, s.name, s.slug, COALESCE(s.city, ''), COALESCE(s.state, ''),
 		       COALESCE(yes_counts.yes_count, 0)::int,
+		       COALESCE(interest_counts.interest_count, 0)::int,
 		       COALESCE(
 		           array_agg(g.id::text ORDER BY g.name, g.id::text) FILTER (WHERE g.id IS NOT NULL),
 		           ARRAY[]::text[]
@@ -936,12 +1008,19 @@ func eventSelectSQL(whereClause string, tailClause string) string {
 			  AND r.response = 'yes'
 			  AND r.deleted_at IS NULL
 		) yes_counts ON TRUE
+		LEFT JOIN LATERAL (
+			SELECT COUNT(*) AS interest_count
+			FROM event_interests i
+			WHERE i.event_id = e.id
+			  AND i.deleted_at IS NULL
+		) interest_counts ON TRUE
 		WHERE ` + whereClause + `
 		GROUP BY e.id, e.title, e.slug, e.description, e.visibility,
 		         e.format, e.starts_at, e.ends_at, e.timezone,
 		         e.location_name, e.address, e.online_url, e.capacity, e.is_paid,
 		         e.payment_note, e.payment_url,
-		         s.id, s.name, s.slug, s.city, s.state, yes_counts.yes_count
+		         s.id, s.name, s.slug, s.city, s.state, yes_counts.yes_count,
+		         interest_counts.interest_count
 	` + tailClause
 }
 
@@ -1014,6 +1093,23 @@ func (r *PostgresRepository) createNoRowsError(ctx context.Context, checker scho
 		return ErrHostSchoolNotFound
 	}
 	return ErrSlugUnavailable
+}
+
+func (r *PostgresRepository) eventIDBySlug(ctx context.Context, slug string) (string, error) {
+	var eventID string
+	err := r.pool.QueryRow(ctx, `
+		SELECT id::text
+		FROM events
+		WHERE slug = $1
+		  AND deleted_at IS NULL
+	`, strings.TrimSpace(slug)).Scan(&eventID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", ErrEventNotFound
+	}
+	if err != nil {
+		return "", fmt.Errorf("get event id by slug: %w", err)
+	}
+	return eventID, nil
 }
 
 func insertEventGames(ctx context.Context, tx eventGameInserter, eventID string, gameIDs []string) (int, error) {

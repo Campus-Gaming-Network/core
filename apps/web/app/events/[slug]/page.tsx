@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { deleteEventAction } from "../../actions";
+import { deleteEventAction, eventInterestAction } from "../../actions";
 import { EventRSVPForm } from "../../../components/event-rsvp-form";
 import { PrivateEventUnlockForm } from "../../../components/private-event-unlock-form";
 import {
@@ -106,6 +106,10 @@ export default async function EventDetailPage({
             </strong>
           </div>
         ) : null}
+        <div className="detail-row">
+          <span>Interested</span>
+          <strong>{event.interest_count}</strong>
+        </div>
         {event.is_paid ? (
           <div className="detail-row">
             <span>Payment</span>
@@ -121,6 +125,20 @@ export default async function EventDetailPage({
         <h2 id="event-actions">Event actions</h2>
         {profile ? (
           <>
+            <form action={eventInterestAction} className="interest-form">
+              <input type="hidden" name="slug" value={event.slug} />
+              <input
+                type="hidden"
+                name="interested"
+                value={event.viewer_interested ? "false" : "true"}
+              />
+              <button
+                className={event.viewer_interested ? "secondary" : "primary"}
+                type="submit"
+              >
+                {event.viewer_interested ? "Remove interested" : "I'm interested"}
+              </button>
+            </form>
             <EventRSVPForm event={event} />
             <div className="actions">
               <Link className="button" href={`/events/${event.slug}/edit`}>
@@ -140,7 +158,7 @@ export default async function EventDetailPage({
         ) : (
           <div className="actions">
             <Link className="button primary" href={`/login?next=/events/${event.slug}`}>
-              Log in to RSVP
+              Log in to RSVP or mark interested
             </Link>
           </div>
         )}
@@ -153,6 +171,9 @@ function EventNotice({ status }: { status: string }) {
   const messages: Record<string, string> = {
     created: "Event created.",
     "delete-failed": "We could not delete that event. Please try again.",
+    "interest-added": "Marked as interested.",
+    "interest-failed": "We could not update your interest. Please try again.",
+    "interest-removed": "Removed from interested events.",
     "rsvp-updated": "RSVP saved.",
     unlocked: "Event unlocked.",
     updated: "Event updated."

@@ -315,6 +315,10 @@ button:disabled {
   gap: 0.75rem;
 }
 
+.interest-form {
+  margin-bottom: 1rem;
+}
+
 .rsvp-buttons {
   display: flex;
   flex-wrap: wrap;

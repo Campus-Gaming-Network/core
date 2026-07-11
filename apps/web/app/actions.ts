@@ -340,6 +340,29 @@ export async function rsvpEventAction(
   redirect(destination);
 }
 
+export async function eventInterestAction(formData: FormData) {
+  const slug = formString(formData, "slug");
+  const interested = formString(formData, "interested") === "true";
+  let destination = `/events/${encodeURIComponent(slug)}?event=interest-failed`;
+
+  try {
+    const { data } = await apiRequest<Event>({
+      path: `/events/${encodeURIComponent(slug)}/interest`,
+      method: interested ? "POST" : "DELETE",
+      cookieHeader: await incomingCookieHeader(),
+      headers: await eventUnlockHeaders(slug)
+    });
+
+    revalidatePath("/events");
+    revalidatePath(`/events/${data.slug}`);
+    destination = `/events/${data.slug}?event=${interested ? "interest-added" : "interest-removed"}`;
+  } catch {
+    // Keep this form as a no-JS redirect toggle for now.
+  }
+
+  redirect(destination);
+}
+
 function failure(error: unknown): FormState {
   return {
     status: "error",
