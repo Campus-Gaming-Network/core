@@ -8,6 +8,7 @@ import {
   type EventUnlockResponse,
   type Profile,
   type SocialLink,
+  type Team,
   ApiError,
   apiRequest,
   formCheckbox,
@@ -286,6 +287,106 @@ export async function deleteEventAction(formData: FormData) {
   redirect("/events?event=deleted");
 }
 
+export async function createTeamAction(
+  _previousState: FormState,
+  formData: FormData
+): Promise<FormState> {
+  let destination = "/teams";
+  try {
+    const { data } = await apiRequest<Team>({
+      path: "/teams",
+      method: "POST",
+      cookieHeader: await incomingCookieHeader(),
+      body: teamBodyFromForm(formData)
+    });
+
+    revalidatePath("/teams");
+    destination = `/teams/${data.slug}?team=created`;
+  } catch (error) {
+    return failure(error);
+  }
+
+  redirect(destination);
+}
+
+export async function joinTeamAction(
+  _previousState: FormState,
+  formData: FormData
+): Promise<FormState> {
+  const slug = formString(formData, "slug");
+  let destination = `/teams/${encodeURIComponent(slug)}?team=joined`;
+
+  try {
+    const { data } = await apiRequest<Team>({
+      path: `/teams/${encodeURIComponent(slug)}/join`,
+      method: "POST",
+      cookieHeader: await incomingCookieHeader(),
+      body: {
+        password: formString(formData, "password")
+      }
+    });
+
+    revalidatePath("/teams");
+    revalidatePath(`/teams/${data.slug}`);
+    destination = `/teams/${data.slug}?team=joined`;
+  } catch (error) {
+    return failure(error);
+  }
+
+  redirect(destination);
+}
+
+export async function setTeamCaptainAction(formData: FormData) {
+  const slug = formString(formData, "slug");
+  const userID = formString(formData, "user_id");
+  const captain = formString(formData, "captain") === "true";
+  let destination = `/teams/${encodeURIComponent(slug)}?team=manage-failed`;
+
+  try {
+    const { data } = await apiRequest<Team>({
+      path: `/teams/${encodeURIComponent(slug)}/captains`,
+      method: "POST",
+      cookieHeader: await incomingCookieHeader(),
+      body: {
+        user_id: userID,
+        captain
+      }
+    });
+
+    revalidatePath(`/teams/${data.slug}`);
+    destination = `/teams/${data.slug}?team=captain-updated`;
+  } catch {
+    // Keep this as a no-JS management action with a simple redirect notice.
+  }
+
+  redirect(destination);
+}
+
+export async function transferTeamOwnershipAction(formData: FormData) {
+  const slug = formString(formData, "slug");
+  const newOwnerUserID = formString(formData, "new_owner_user_id");
+  let destination = `/teams/${encodeURIComponent(slug)}?team=manage-failed`;
+
+  try {
+    const { data } = await apiRequest<Team>({
+      path: `/teams/${encodeURIComponent(slug)}/transfer-ownership`,
+      method: "POST",
+      cookieHeader: await incomingCookieHeader(),
+      body: {
+        new_owner_user_id: newOwnerUserID
+      }
+    });
+
+    revalidatePath("/teams");
+    revalidatePath(`/teams/${data.slug}`);
+    destination = `/teams/${data.slug}?team=ownership-transferred`;
+  } catch {
+    // Keep this as a no-JS management action with a simple redirect notice.
+  }
+
+  redirect(destination);
+}
+
 export async function unlockEventAction(
   _previousState: FormState,
   formData: FormData
@@ -479,6 +580,16 @@ function capacityFromForm(formData: FormData) {
 
   const parsed = Number.parseInt(raw, 10);
   return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function teamBodyFromForm(formData: FormData) {
+  return {
+    name: formString(formData, "name"),
+    description: formString(formData, "description"),
+    school_id: formString(formData, "school_id"),
+    game_ids: formData.getAll("game_ids").filter(isString).map((value) => value.trim()),
+    password: formString(formData, "password")
+  };
 }
 
 function isString(value: FormDataEntryValue): value is string {

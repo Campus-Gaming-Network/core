@@ -14,6 +14,7 @@ import {
   parseSetCookie,
   publicProfileHomeSchool,
   schoolLocation,
+  teamRoleLabel,
   userMessageForApiError,
   type Fetcher
 } from "../lib/cgn-api.js";
@@ -139,6 +140,22 @@ test("userMessageForApiError maps known backend errors", () => {
     userMessageForApiError(new ApiError(500, "event_interest_failed")),
     "We could not update your interest in that event."
   );
+  assert.equal(
+    userMessageForApiError(new ApiError(401, "invalid_team_password")),
+    "That team password did not match."
+  );
+  assert.equal(
+    userMessageForApiError(new ApiError(500, "team_join_failed")),
+    "We could not join that team. Please try again."
+  );
+  assert.equal(
+    userMessageForApiError(new ApiError(403, "not_team_owner")),
+    "Only the team owner can manage members."
+  );
+  assert.equal(
+    userMessageForApiError(new ApiError(422, "team_member_not_found")),
+    "Choose an active team member."
+  );
 });
 
 test("isSchoolFollowed matches by school ID", () => {
@@ -223,6 +240,12 @@ test("event helpers format labels and locations", () => {
     }),
     "Online"
   );
+});
+
+test("team helpers format member roles", () => {
+  assert.equal(teamRoleLabel("owner"), "Owner");
+  assert.equal(teamRoleLabel("captain"), "Captain");
+  assert.equal(teamRoleLabel("member"), "Member");
 });
 
 test("isLockedEvent detects private locked shell responses", () => {

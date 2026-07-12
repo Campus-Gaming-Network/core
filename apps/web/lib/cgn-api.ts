@@ -94,6 +94,33 @@ export type EventsResponse = {
   offset: number;
 };
 
+export type TeamRole = "owner" | "captain" | "member";
+
+export type TeamMember = {
+  user_id: string;
+  name: string;
+  role: TeamRole;
+};
+
+export type Team = {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  owner_user_id: string;
+  member_count: number;
+  school?: SchoolSummary;
+  games: GameSummary[];
+  viewer_role?: TeamRole;
+  members?: TeamMember[];
+};
+
+export type TeamsResponse = {
+  teams: Team[];
+  limit: number;
+  offset: number;
+};
+
 export type EventUnlockResponse = {
   event: Event;
   unlock_token: string;
@@ -441,6 +468,16 @@ export function eventRSVPLabel(response: EventRSVP) {
   return labels[response];
 }
 
+export function teamRoleLabel(role: TeamRole) {
+  const labels: Record<TeamRole, string> = {
+    captain: "Captain",
+    member: "Member",
+    owner: "Owner"
+  };
+
+  return labels[role];
+}
+
 export function eventTimeRange(event: Pick<Event, "starts_at" | "ends_at" | "timezone">) {
   const formatter = new Intl.DateTimeFormat("en-US", {
     dateStyle: "medium",
@@ -480,12 +517,24 @@ export function userMessageForApiError(error: unknown) {
     invalid_credentials: "The email or password did not match.",
     invalid_id: "That profile link is not valid.",
     invalid_private_password: "That event password did not match.",
+    invalid_team_password: "That team password did not match.",
+    invalid_team_role: "Choose a valid team member and role.",
     invalid_or_expired_token: "That link is invalid or has expired.",
     invalid_request: "Check the form fields and try again.",
     not_event_organizer: "Only event organizers can change that event.",
     private_event_locked: "Unlock that private event before RSVPing.",
     rate_limited: "Too many attempts. Give it a minute, then try again.",
     school_not_found: "That school could not be found.",
+    not_team_owner: "Only the team owner can manage members.",
+    team_captain_failed: "We could not update that captain role. Please try again.",
+    team_create_failed: "We could not create that team. Please try again.",
+    team_game_not_found: "Choose at least one active game from the list.",
+    team_join_failed: "We could not join that team. Please try again.",
+    team_member_not_found: "Choose an active team member.",
+    team_not_found: "That team could not be found.",
+    team_school_not_found: "Choose an active school for that team.",
+    team_slug_unavailable: "That team URL is unavailable. Try changing the name.",
+    team_transfer_failed: "We could not transfer ownership. Please try again.",
     user_not_found: "That profile could not be found."
   };
 

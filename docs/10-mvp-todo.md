@@ -85,9 +85,10 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 - [x] Empty states for events browse
 
 ### Teams
-- [ ] Create team
-- [ ] **Public** team page; password only required to **join / interact**
-- [ ] Captains + ownership transfer
+- [x] Create team
+- [x] **Public** team page
+- [x] Password only required to **join / interact**
+- [x] Captains + ownership transfer
 - [ ] Dashboard shows team activity
 
 ### Dashboard & content

@@ -27,6 +27,7 @@ export default async function RootLayout({
           <nav aria-label="Main navigation">
             <Link href="/schools">Schools</Link>
             <Link href="/events">Events</Link>
+            <Link href="/teams">Teams</Link>
             <Link href="/faq">FAQ</Link>
             {profile ? (
               <>

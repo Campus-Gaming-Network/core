@@ -8,6 +8,8 @@ import {
   type PublicProfile,
   type School,
   type SchoolsResponse,
+  type Team,
+  type TeamsResponse,
   ApiError,
   apiRequest
 } from "./cgn-api";
@@ -122,6 +124,48 @@ export async function getEvent(slug: string, options: GetEventOptions = {}) {
     path: `/events/${encodeURIComponent(slug)}`,
     cookieHeader: options.includeCookie ? await incomingCookieHeader() : undefined,
     headers: unlockHeaders
+  });
+
+  return data;
+}
+
+export async function listTeams(params: {
+  game?: string;
+  school?: string;
+  limit?: number;
+  offset?: number;
+}) {
+  const query = new URLSearchParams();
+
+  if (params.game) {
+    query.set("game", params.game);
+  }
+  if (params.school) {
+    query.set("school", params.school);
+  }
+  if (params.limit) {
+    query.set("limit", String(params.limit));
+  }
+  if (params.offset) {
+    query.set("offset", String(params.offset));
+  }
+
+  const suffix = query.size > 0 ? `?${query.toString()}` : "";
+  const { data } = await apiRequest<TeamsResponse>({
+    path: `/teams${suffix}`
+  });
+
+  return data;
+}
+
+type GetTeamOptions = {
+  includeCookie?: boolean;
+};
+
+export async function getTeam(slug: string, options: GetTeamOptions = {}) {
+  const { data } = await apiRequest<Team>({
+    path: `/teams/${encodeURIComponent(slug)}`,
+    cookieHeader: options.includeCookie ? await incomingCookieHeader() : undefined
   });
 
   return data;

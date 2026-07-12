@@ -14,11 +14,16 @@ import (
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/config"
 	eventstore "github.com/Campus-Gaming-Network/core/apps/api/internal/events"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/schools"
+	teamstore "github.com/Campus-Gaming-Network/core/apps/api/internal/teams"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/users"
 	"github.com/jackc/pgx/v5"
 )
 
-const testUserID = "11111111-1111-1111-1111-111111111111"
+const (
+	testUserID        = "11111111-1111-1111-1111-111111111111"
+	testTeamMemberID  = "66666666-6666-6666-6666-666666666666"
+	testTeamCaptainID = "77777777-7777-7777-7777-777777777777"
+)
 
 type fakeSessionStore struct {
 	session auth.Session
@@ -74,6 +79,147 @@ func (m *fakeEventMailer) SendRSVPConfirmation(_ context.Context, recipient stri
 	m.recipient = recipient
 	m.event = event
 	return m.err
+}
+
+type fakeTeamRepository struct {
+	listPublicCalled   bool
+	listParams         teamstore.ListParams
+	listed             []teamstore.Team
+	detail             teamstore.Team
+	createCalled       bool
+	createParams       teamstore.CreateParams
+	created            teamstore.Team
+	passwordHash       string
+	joinCalled         bool
+	joinSlug           string
+	joinUserID         string
+	joined             teamstore.Team
+	viewerRole         string
+	members            []teamstore.MemberSummary
+	listMembersCalled  bool
+	setCaptainCalled   bool
+	setCaptainSlug     string
+	setCaptainOwnerID  string
+	setCaptainUserID   string
+	setCaptainValue    bool
+	transferCalled     bool
+	transferSlug       string
+	transferOwnerID    string
+	transferNewOwnerID string
+	err                error
+}
+
+func (r *fakeTeamRepository) Create(_ context.Context, params teamstore.CreateParams) (teamstore.Team, error) {
+	r.createCalled = true
+	r.createParams = params
+	if r.err != nil {
+		return teamstore.Team{}, r.err
+	}
+	if r.created.ID != "" {
+		return r.created, nil
+	}
+	team := testTeam()
+	team.Name = params.Name
+	team.Description = params.Description
+	return team, nil
+}
+
+func (r *fakeTeamRepository) ListPublic(_ context.Context, params teamstore.ListParams) ([]teamstore.Team, error) {
+	r.listPublicCalled = true
+	r.listParams = params
+	return r.listed, r.err
+}
+
+func (r *fakeTeamRepository) GetBySlug(_ context.Context, slug string) (teamstore.Team, error) {
+	if r.err != nil {
+		return teamstore.Team{}, r.err
+	}
+	if r.detail.Slug != slug {
+		return teamstore.Team{}, pgx.ErrNoRows
+	}
+	return r.detail, nil
+}
+
+func (r *fakeTeamRepository) PasswordHash(_ context.Context, slug string) (string, error) {
+	if r.err != nil {
+		return "", r.err
+	}
+	if r.detail.Slug != slug {
+		return "", teamstore.ErrTeamNotFound
+	}
+	return r.passwordHash, nil
+}
+
+func (r *fakeTeamRepository) Join(_ context.Context, slug string, userID string) (teamstore.Team, error) {
+	r.joinCalled = true
+	r.joinSlug = slug
+	r.joinUserID = userID
+	if r.err != nil {
+		return teamstore.Team{}, r.err
+	}
+	if r.joined.ID != "" {
+		return r.joined, nil
+	}
+	team := r.detail
+	if team.ID == "" {
+		team = testTeam()
+	}
+	role := teamstore.RoleMember
+	team.ViewerRole = &role
+	team.MemberCount += 1
+	return team, nil
+}
+
+func (r *fakeTeamRepository) MembershipRole(_ context.Context, _ string, _ string) (string, error) {
+	return r.viewerRole, r.err
+}
+
+func (r *fakeTeamRepository) ListMembers(_ context.Context, _ string) ([]teamstore.MemberSummary, error) {
+	r.listMembersCalled = true
+	if r.err != nil {
+		return nil, r.err
+	}
+	if r.members != nil {
+		return r.members, nil
+	}
+	return testTeamMembers(), nil
+}
+
+func (r *fakeTeamRepository) SetCaptain(_ context.Context, slug string, ownerUserID string, memberUserID string, captain bool) (teamstore.Team, error) {
+	r.setCaptainCalled = true
+	r.setCaptainSlug = slug
+	r.setCaptainOwnerID = ownerUserID
+	r.setCaptainUserID = memberUserID
+	r.setCaptainValue = captain
+	if r.err != nil {
+		return teamstore.Team{}, r.err
+	}
+	team := r.detail
+	if team.ID == "" {
+		team = testTeam()
+	}
+	role := teamstore.RoleOwner
+	team.ViewerRole = &role
+	team.Members = testTeamMembers()
+	return team, nil
+}
+
+func (r *fakeTeamRepository) TransferOwnership(_ context.Context, slug string, ownerUserID string, newOwnerUserID string) (teamstore.Team, error) {
+	r.transferCalled = true
+	r.transferSlug = slug
+	r.transferOwnerID = ownerUserID
+	r.transferNewOwnerID = newOwnerUserID
+	if r.err != nil {
+		return teamstore.Team{}, r.err
+	}
+	team := r.detail
+	if team.ID == "" {
+		team = testTeam()
+	}
+	team.OwnerUserID = newOwnerUserID
+	role := teamstore.RoleMember
+	team.ViewerRole = &role
+	return team, nil
 }
 
 type fakeEventRepository struct {
@@ -361,6 +507,340 @@ func TestHandleEventsRejectsInvalidPagination(t *testing.T) {
 
 	if response.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d, want %d", response.Code, http.StatusBadRequest)
+	}
+}
+
+func TestHandleTeamsReturnsPublicTeamsWithFilters(t *testing.T) {
+	repository := &fakeTeamRepository{listed: []teamstore.Team{testTeam()}}
+	router := &Router{teams: repository}
+	request := httptest.NewRequest(http.MethodGet, "/teams?game=rocket-league&school=example-university&limit=5&offset=10", nil)
+	response := httptest.NewRecorder()
+
+	router.handleTeams(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d; body = %s", response.Code, http.StatusOK, response.Body.String())
+	}
+	if !repository.listPublicCalled {
+		t.Fatal("ListPublic was not called")
+	}
+	if repository.listParams.GameSlug != "rocket-league" || repository.listParams.SchoolSlug != "example-university" {
+		t.Fatalf("list params = %#v, want game and school filters", repository.listParams)
+	}
+	if repository.listParams.Limit != 5 || repository.listParams.Offset != 10 {
+		t.Fatalf("list params = %#v, want pagination filters", repository.listParams)
+	}
+	var payload struct {
+		Teams  []teamstore.Team `json:"teams"`
+		Limit  int              `json:"limit"`
+		Offset int              `json:"offset"`
+	}
+	if err := json.NewDecoder(response.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if len(payload.Teams) != 1 || payload.Teams[0].Slug != "varsity-rocket-league" {
+		t.Fatalf("teams = %#v, want public team payload", payload.Teams)
+	}
+}
+
+func TestHandleCreateTeamRequiresAuthentication(t *testing.T) {
+	repository := &fakeTeamRepository{}
+	router := &Router{teams: repository}
+	request := httptest.NewRequest(http.MethodPost, "/teams", strings.NewReader(validCreateTeamJSON()))
+	response := httptest.NewRecorder()
+
+	router.handleTeams(response, request)
+
+	if response.Code != http.StatusUnauthorized {
+		t.Fatalf("status = %d, want %d", response.Code, http.StatusUnauthorized)
+	}
+	if repository.createCalled {
+		t.Fatal("Create was called for unauthenticated request")
+	}
+}
+
+func TestHandleCreateTeamCreatesTeam(t *testing.T) {
+	repository := &fakeTeamRepository{}
+	handler := authenticatedTeamsHandler(repository)
+	request := authenticatedEventRequest(http.MethodPost, "/teams", validCreateTeamJSON())
+	response := httptest.NewRecorder()
+
+	handler.ServeHTTP(response, request)
+
+	if response.Code != http.StatusCreated {
+		t.Fatalf("status = %d, want %d; body = %s", response.Code, http.StatusCreated, response.Body.String())
+	}
+	if !repository.createCalled {
+		t.Fatal("Create was not called")
+	}
+	if repository.createParams.OwnerUserID != testUserID {
+		t.Fatalf("OwnerUserID = %q, want session user", repository.createParams.OwnerUserID)
+	}
+	if repository.createParams.PasswordHash == "" || repository.createParams.PasswordHash == "TeamPass8" {
+		t.Fatalf("PasswordHash = %q, want non-plaintext hash", repository.createParams.PasswordHash)
+	}
+	if !auth.ComparePassword(repository.createParams.PasswordHash, "TeamPass8") {
+		t.Fatal("PasswordHash does not verify against original password")
+	}
+	if len(repository.createParams.GameIDs) != 1 || repository.createParams.GameIDs[0] != "44444444-4444-4444-4444-444444444444" {
+		t.Fatalf("GameIDs = %#v, want request game IDs", repository.createParams.GameIDs)
+	}
+}
+
+func TestHandleCreateTeamMapsMissingSchoolAndGame(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		err  error
+		code string
+	}{
+		{name: "missing school", err: teamstore.ErrSchoolNotFound, code: "team_school_not_found"},
+		{name: "missing game", err: teamstore.ErrGameNotFound, code: "team_game_not_found"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			repository := &fakeTeamRepository{err: tc.err}
+			handler := authenticatedTeamsHandler(repository)
+			request := authenticatedEventRequest(http.MethodPost, "/teams", validCreateTeamJSON())
+			response := httptest.NewRecorder()
+
+			handler.ServeHTTP(response, request)
+
+			if response.Code != http.StatusUnprocessableEntity {
+				t.Fatalf("status = %d, want %d; body = %s", response.Code, http.StatusUnprocessableEntity, response.Body.String())
+			}
+			if !strings.Contains(response.Body.String(), tc.code) {
+				t.Fatalf("body = %s, want %q", response.Body.String(), tc.code)
+			}
+		})
+	}
+}
+
+func TestHandleTeamPathReturnsPublicDetail(t *testing.T) {
+	repository := &fakeTeamRepository{detail: testTeam()}
+	router := &Router{teams: repository}
+	request := httptest.NewRequest(http.MethodGet, "/teams/varsity-rocket-league", nil)
+	response := httptest.NewRecorder()
+
+	router.handleTeamPath(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d; body = %s", response.Code, http.StatusOK, response.Body.String())
+	}
+	var payload teamstore.Team
+	if err := json.NewDecoder(response.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if payload.Name != "Varsity Rocket League" {
+		t.Fatalf("name = %q, want team detail", payload.Name)
+	}
+}
+
+func TestHandleTeamPathReturnsViewerRoleForAuthenticatedDetail(t *testing.T) {
+	repository := &fakeTeamRepository{
+		detail:     testTeam(),
+		viewerRole: teamstore.RoleOwner,
+		members:    testTeamMembers(),
+	}
+	handler := authenticatedTeamPathHandler(repository)
+	request := authenticatedEventRequest(http.MethodGet, "/teams/varsity-rocket-league", "")
+	response := httptest.NewRecorder()
+
+	handler.ServeHTTP(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d; body = %s", response.Code, http.StatusOK, response.Body.String())
+	}
+	var payload teamstore.Team
+	if err := json.NewDecoder(response.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if payload.ViewerRole == nil || *payload.ViewerRole != teamstore.RoleOwner {
+		t.Fatalf("ViewerRole = %#v, want owner", payload.ViewerRole)
+	}
+	if !repository.listMembersCalled {
+		t.Fatal("ListMembers was not called for owner viewer")
+	}
+	if len(payload.Members) != 3 || payload.Members[1].Role != teamstore.RoleCaptain {
+		t.Fatalf("Members = %#v, want owner roster with captain", payload.Members)
+	}
+}
+
+func TestHandleJoinTeamRequiresAuthentication(t *testing.T) {
+	repository := &fakeTeamRepository{detail: testTeam()}
+	router := &Router{teams: repository}
+	request := httptest.NewRequest(http.MethodPost, "/teams/varsity-rocket-league/join", strings.NewReader(`{"password":"TeamPass8"}`))
+	response := httptest.NewRecorder()
+
+	router.handleTeamPath(response, request)
+
+	if response.Code != http.StatusUnauthorized {
+		t.Fatalf("status = %d, want %d", response.Code, http.StatusUnauthorized)
+	}
+	if repository.joinCalled {
+		t.Fatal("Join was called for unauthenticated request")
+	}
+}
+
+func TestHandleJoinTeamRejectsWrongPassword(t *testing.T) {
+	passwordHash, err := auth.HashPassword("TeamPass8")
+	if err != nil {
+		t.Fatalf("HashPassword() error = %v", err)
+	}
+	repository := &fakeTeamRepository{
+		detail:       testTeam(),
+		passwordHash: passwordHash,
+	}
+	handler := authenticatedTeamPathHandler(repository)
+	request := authenticatedEventRequest(http.MethodPost, "/teams/varsity-rocket-league/join", `{"password":"WrongPass8"}`)
+	response := httptest.NewRecorder()
+
+	handler.ServeHTTP(response, request)
+
+	if response.Code != http.StatusUnauthorized {
+		t.Fatalf("status = %d, want %d; body = %s", response.Code, http.StatusUnauthorized, response.Body.String())
+	}
+	if repository.joinCalled {
+		t.Fatal("Join was called for wrong password")
+	}
+	if !strings.Contains(response.Body.String(), "invalid_team_password") {
+		t.Fatalf("body = %s, want invalid_team_password", response.Body.String())
+	}
+}
+
+func TestHandleJoinTeamJoinsWithCorrectPassword(t *testing.T) {
+	passwordHash, err := auth.HashPassword("TeamPass8")
+	if err != nil {
+		t.Fatalf("HashPassword() error = %v", err)
+	}
+	repository := &fakeTeamRepository{
+		detail:       testTeam(),
+		passwordHash: passwordHash,
+	}
+	handler := authenticatedTeamPathHandler(repository)
+	request := authenticatedEventRequest(http.MethodPost, "/teams/varsity-rocket-league/join", `{"password":"TeamPass8"}`)
+	response := httptest.NewRecorder()
+
+	handler.ServeHTTP(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d; body = %s", response.Code, http.StatusOK, response.Body.String())
+	}
+	if !repository.joinCalled {
+		t.Fatal("Join was not called")
+	}
+	if repository.joinSlug != "varsity-rocket-league" || repository.joinUserID != testUserID {
+		t.Fatalf("join = slug %q user %q, want slug and session user", repository.joinSlug, repository.joinUserID)
+	}
+	var payload teamstore.Team
+	if err := json.NewDecoder(response.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if payload.ViewerRole == nil || *payload.ViewerRole != teamstore.RoleMember {
+		t.Fatalf("ViewerRole = %#v, want member", payload.ViewerRole)
+	}
+}
+
+func TestHandleSetTeamCaptainRequiresAuthentication(t *testing.T) {
+	repository := &fakeTeamRepository{detail: testTeam()}
+	router := &Router{teams: repository}
+	request := httptest.NewRequest(http.MethodPost, "/teams/varsity-rocket-league/captains", strings.NewReader(`{"user_id":"`+testTeamMemberID+`","captain":true}`))
+	response := httptest.NewRecorder()
+
+	router.handleTeamPath(response, request)
+
+	if response.Code != http.StatusUnauthorized {
+		t.Fatalf("status = %d, want %d", response.Code, http.StatusUnauthorized)
+	}
+	if repository.setCaptainCalled {
+		t.Fatal("SetCaptain was called for unauthenticated request")
+	}
+}
+
+func TestHandleSetTeamCaptainPromotesMember(t *testing.T) {
+	repository := &fakeTeamRepository{detail: testTeam()}
+	handler := authenticatedTeamPathHandler(repository)
+	request := authenticatedEventRequest(http.MethodPost, "/teams/varsity-rocket-league/captains", `{"user_id":"`+testTeamMemberID+`","captain":true}`)
+	response := httptest.NewRecorder()
+
+	handler.ServeHTTP(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d; body = %s", response.Code, http.StatusOK, response.Body.String())
+	}
+	if !repository.setCaptainCalled {
+		t.Fatal("SetCaptain was not called")
+	}
+	if repository.setCaptainSlug != "varsity-rocket-league" ||
+		repository.setCaptainOwnerID != testUserID ||
+		repository.setCaptainUserID != testTeamMemberID ||
+		!repository.setCaptainValue {
+		t.Fatalf("SetCaptain call = slug %q owner %q user %q captain %v",
+			repository.setCaptainSlug,
+			repository.setCaptainOwnerID,
+			repository.setCaptainUserID,
+			repository.setCaptainValue)
+	}
+}
+
+func TestHandleSetTeamCaptainMapsNonOwner(t *testing.T) {
+	repository := &fakeTeamRepository{detail: testTeam(), err: teamstore.ErrNotTeamOwner}
+	handler := authenticatedTeamPathHandler(repository)
+	request := authenticatedEventRequest(http.MethodPost, "/teams/varsity-rocket-league/captains", `{"user_id":"`+testTeamMemberID+`","captain":false}`)
+	response := httptest.NewRecorder()
+
+	handler.ServeHTTP(response, request)
+
+	if response.Code != http.StatusForbidden {
+		t.Fatalf("status = %d, want %d; body = %s", response.Code, http.StatusForbidden, response.Body.String())
+	}
+	if !strings.Contains(response.Body.String(), "not_team_owner") {
+		t.Fatalf("body = %s, want not_team_owner", response.Body.String())
+	}
+}
+
+func TestHandleTransferTeamOwnershipTransfersToMember(t *testing.T) {
+	repository := &fakeTeamRepository{detail: testTeam()}
+	handler := authenticatedTeamPathHandler(repository)
+	request := authenticatedEventRequest(http.MethodPost, "/teams/varsity-rocket-league/transfer-ownership", `{"new_owner_user_id":"`+testTeamCaptainID+`"}`)
+	response := httptest.NewRecorder()
+
+	handler.ServeHTTP(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d; body = %s", response.Code, http.StatusOK, response.Body.String())
+	}
+	if !repository.transferCalled {
+		t.Fatal("TransferOwnership was not called")
+	}
+	if repository.transferSlug != "varsity-rocket-league" ||
+		repository.transferOwnerID != testUserID ||
+		repository.transferNewOwnerID != testTeamCaptainID {
+		t.Fatalf("TransferOwnership call = slug %q owner %q new owner %q",
+			repository.transferSlug,
+			repository.transferOwnerID,
+			repository.transferNewOwnerID)
+	}
+	var payload teamstore.Team
+	if err := json.NewDecoder(response.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if payload.OwnerUserID != testTeamCaptainID {
+		t.Fatalf("OwnerUserID = %q, want transferred owner", payload.OwnerUserID)
+	}
+}
+
+func TestHandleTransferTeamOwnershipMapsMissingMember(t *testing.T) {
+	repository := &fakeTeamRepository{detail: testTeam(), err: teamstore.ErrTeamMemberNotFound}
+	handler := authenticatedTeamPathHandler(repository)
+	request := authenticatedEventRequest(http.MethodPost, "/teams/varsity-rocket-league/transfer-ownership", `{"new_owner_user_id":"`+testTeamCaptainID+`"}`)
+	response := httptest.NewRecorder()
+
+	handler.ServeHTTP(response, request)
+
+	if response.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("status = %d, want %d; body = %s", response.Code, http.StatusUnprocessableEntity, response.Body.String())
+	}
+	if !strings.Contains(response.Body.String(), "team_member_not_found") {
+		t.Fatalf("body = %s, want team_member_not_found", response.Body.String())
 	}
 }
 
@@ -1046,6 +1526,50 @@ func authenticatedEventsHandler(repository *fakeEventRepository) http.Handler {
 	})(http.HandlerFunc(router.handleEvents))
 }
 
+func authenticatedTeamsHandler(repository *fakeTeamRepository) http.Handler {
+	router := &Router{
+		cfg: config.Config{
+			SessionCookie:  "session",
+			SessionTTL:     time.Hour,
+			AuthRateLimit:  5,
+			AuthRateWindow: time.Minute,
+		},
+		teams: repository,
+	}
+	store := fakeSessionStore{session: auth.Session{
+		ID:        "session-id",
+		UserID:    testUserID,
+		ExpiresAt: time.Now().Add(time.Hour),
+	}}
+
+	return auth.WithSession(store, auth.SessionCookieConfig{
+		Name: "session",
+		TTL:  time.Hour,
+	})(http.HandlerFunc(router.handleTeams))
+}
+
+func authenticatedTeamPathHandler(repository *fakeTeamRepository) http.Handler {
+	router := &Router{
+		cfg: config.Config{
+			SessionCookie:  "session",
+			SessionTTL:     time.Hour,
+			AuthRateLimit:  5,
+			AuthRateWindow: time.Minute,
+		},
+		teams: repository,
+	}
+	store := fakeSessionStore{session: auth.Session{
+		ID:        "session-id",
+		UserID:    testUserID,
+		ExpiresAt: time.Now().Add(time.Hour),
+	}}
+
+	return auth.WithSession(store, auth.SessionCookieConfig{
+		Name: "session",
+		TTL:  time.Hour,
+	})(http.HandlerFunc(router.handleTeamPath))
+}
+
 func authenticatedEventPathHandler(repository *fakeEventRepository) http.Handler {
 	router := &Router{
 		cfg: config.Config{
@@ -1121,6 +1645,16 @@ func validCreateEventJSON(visibility string, privatePassword string) string {
 	}`
 }
 
+func validCreateTeamJSON() string {
+	return `{
+		"name":"Varsity Rocket League",
+		"description":"Competitive team for campus players.",
+		"school_id":"33333333-3333-3333-3333-333333333333",
+		"game_ids":["44444444-4444-4444-4444-444444444444"],
+		"password":"TeamPass8"
+	}`
+}
+
 func testEvent(visibility string) eventstore.Event {
 	return eventstore.Event{
 		ID:          "22222222-2222-2222-2222-222222222222",
@@ -1146,6 +1680,51 @@ func testEvent(visibility string) eventstore.Event {
 				Name: "Rocket League",
 				Slug: "rocket-league",
 			},
+		},
+	}
+}
+
+func testTeam() teamstore.Team {
+	return teamstore.Team{
+		ID:          "55555555-5555-5555-5555-555555555555",
+		Name:        "Varsity Rocket League",
+		Slug:        "varsity-rocket-league",
+		Description: "Competitive team for campus players.",
+		OwnerUserID: testUserID,
+		MemberCount: 1,
+		School: &teamstore.SchoolSummary{
+			ID:    "33333333-3333-3333-3333-333333333333",
+			Name:  "Example University",
+			Slug:  "example-university",
+			City:  "Irvine",
+			State: "CA",
+		},
+		Games: []teamstore.GameSummary{
+			{
+				ID:   "44444444-4444-4444-4444-444444444444",
+				Name: "Rocket League",
+				Slug: "rocket-league",
+			},
+		},
+	}
+}
+
+func testTeamMembers() []teamstore.MemberSummary {
+	return []teamstore.MemberSummary{
+		{
+			UserID: testUserID,
+			Name:   "Team Owner",
+			Role:   teamstore.RoleOwner,
+		},
+		{
+			UserID: testTeamCaptainID,
+			Name:   "Team Captain",
+			Role:   teamstore.RoleCaptain,
+		},
+		{
+			UserID: testTeamMemberID,
+			Name:   "Team Member",
+			Role:   teamstore.RoleMember,
 		},
 	}
 }

@@ -18,6 +18,7 @@ import (
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/games"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/ratelimit"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/schools"
+	teamstore "github.com/Campus-Gaming-Network/core/apps/api/internal/teams"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/users"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -31,6 +32,7 @@ type Router struct {
 	follows      schools.FollowRepository
 	games        games.Repository
 	events       eventstore.Repository
+	teams        teamstore.Repository
 	users        users.Repository
 	eventMailer  eventstore.RSVPMailer
 	account      *auth.AccountService
@@ -52,6 +54,7 @@ func NewRouter(cfg config.Config, pools ...*pgxpool.Pool) http.Handler {
 		router.follows = schoolRepository
 		router.games = games.NewPostgresRepository(router.db)
 		router.events = eventstore.NewPostgresRepository(router.db)
+		router.teams = teamstore.NewPostgresRepository(router.db)
 		router.users = userRepository
 		router.eventMailer = &eventstore.ResendMailer{
 			APIKey:  cfg.ResendAPIKey,
@@ -86,6 +89,8 @@ func NewRouter(cfg config.Config, pools ...*pgxpool.Pool) http.Handler {
 	router.mux.HandleFunc("/games", requireMethod(http.MethodGet, router.handleGames))
 	router.mux.HandleFunc("/events", router.handleEvents)
 	router.mux.HandleFunc("/events/", router.handleEventPath)
+	router.mux.HandleFunc("/teams", router.handleTeams)
+	router.mux.HandleFunc("/teams/", router.handleTeamPath)
 	router.mux.HandleFunc("/auth/signup", router.handleSignup)
 	router.mux.HandleFunc("/auth/login", router.handleLogin)
 	router.mux.HandleFunc("/auth/logout", router.handleLogout)
