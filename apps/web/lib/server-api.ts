@@ -1,5 +1,6 @@
 import { cookies, headers } from "next/headers";
 import {
+  type DashboardEventsResponse,
   type EventDetail,
   type EventsResponse,
   type FollowedSchoolsResponse,
@@ -129,6 +130,15 @@ export async function getEvent(slug: string, options: GetEventOptions = {}) {
   return data;
 }
 
+export async function getDashboardEvents(limit = 5) {
+  const { data } = await apiRequest<DashboardEventsResponse>({
+    path: `/me/events?limit=${encodeURIComponent(String(limit))}`,
+    cookieHeader: await incomingCookieHeader()
+  });
+
+  return data;
+}
+
 export async function listTeams(params: {
   game?: string;
   school?: string;
@@ -156,6 +166,15 @@ export async function listTeams(params: {
   });
 
   return data;
+}
+
+export async function listMyTeams(limit = 10) {
+  const { data } = await apiRequest<TeamsResponse>({
+    path: `/me/teams?limit=${encodeURIComponent(String(limit))}`,
+    cookieHeader: await incomingCookieHeader()
+  });
+
+  return data.teams;
 }
 
 type GetTeamOptions = {

@@ -90,6 +90,7 @@ type Repository interface {
 	Join(ctx context.Context, slug string, userID string) (Team, error)
 	MembershipRole(ctx context.Context, slug string, userID string) (string, error)
 	ListMembers(ctx context.Context, slug string) ([]MemberSummary, error)
+	ListForUser(ctx context.Context, userID string, limit int) ([]Team, error)
 	SetCaptain(ctx context.Context, slug string, ownerUserID string, memberUserID string, captain bool) (Team, error)
 	TransferOwnership(ctx context.Context, slug string, ownerUserID string, newOwnerUserID string) (Team, error)
 	ListPublic(ctx context.Context, params ListParams) ([]Team, error)
@@ -354,6 +355,49 @@ func (r *PostgresRepository) ListMembers(ctx context.Context, slug string) ([]Me
 	return members, nil
 }
 
+func (r *PostgresRepository) ListForUser(ctx context.Context, userID string, limit int) ([]Team, error) {
+	userID = strings.TrimSpace(userID)
+	if userID == "" {
+		return nil, errors.New("user is required")
+	}
+	if limit < 1 || limit > 25 {
+		limit = 10
+	}
+
+	rows, err := r.pool.Query(ctx, teamSelectForUserSQL(`
+		t.deleted_at IS NULL
+		AND viewer_membership.user_id = $1::uuid
+		AND viewer_membership.deleted_at IS NULL
+	`, `
+		ORDER BY CASE viewer_membership.role
+		           WHEN 'owner' THEN 0
+		           WHEN 'captain' THEN 1
+		           ELSE 2
+		         END,
+		         viewer_membership.created_at DESC,
+		         t.created_at DESC,
+		         t.id
+		LIMIT $2
+	`), userID, limit)
+	if err != nil {
+		return nil, fmt.Errorf("list user teams: %w", err)
+	}
+	defer rows.Close()
+
+	result := make([]Team, 0, limit)
+	for rows.Next() {
+		team, err := scanTeamWithRole(rows)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, team)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate user teams: %w", err)
+	}
+	return result, nil
+}
+
 func (r *PostgresRepository) SetCaptain(ctx context.Context, slug string, ownerUserID string, memberUserID string, captain bool) (Team, error) {
 	slug = strings.TrimSpace(slug)
 	ownerUserID = strings.TrimSpace(ownerUserID)
@@ -560,6 +604,64 @@ func scanTeam(scanner teamScanner) (Team, error) {
 	return team, nil
 }
 
+func scanTeamWithRole(scanner teamScanner) (Team, error) {
+	var role string
+	var team Team
+	var schoolID sql.NullString
+	var schoolName sql.NullString
+	var schoolSlug sql.NullString
+	var schoolCity sql.NullString
+	var schoolState sql.NullString
+	var gameIDs []string
+	var gameNames []string
+	var gameSlugs []string
+
+	err := scanner.Scan(
+		&team.ID,
+		&team.Name,
+		&team.Slug,
+		&team.Description,
+		&team.OwnerUserID,
+		&team.MemberCount,
+		&schoolID,
+		&schoolName,
+		&schoolSlug,
+		&schoolCity,
+		&schoolState,
+		&gameIDs,
+		&gameNames,
+		&gameSlugs,
+		&role,
+	)
+	if err != nil {
+		return Team{}, err
+	}
+
+	if schoolID.Valid {
+		team.School = &SchoolSummary{
+			ID:    schoolID.String,
+			Name:  schoolName.String,
+			Slug:  schoolSlug.String,
+			City:  schoolCity.String,
+			State: schoolState.String,
+		}
+	}
+
+	team.Games = make([]GameSummary, 0, len(gameIDs))
+	for index := range gameIDs {
+		team.Games = append(team.Games, GameSummary{
+			ID:   gameIDs[index],
+			Name: gameNames[index],
+			Slug: gameSlugs[index],
+		})
+	}
+	if role != "" {
+		team.ViewerRole = &role
+	}
+
+	return team, nil
+}
+
 func teamSelectSQL(whereClause string, tailClause string) string {
 	return `
 		SELECT t.id::text, t.name, t.slug, t.description, t.owner_user_id::text,
@@ -590,6 +692,42 @@ func teamSelectSQL(whereClause string, tailClause string) string {
 		WHERE ` + whereClause + `
 		GROUP BY t.id, t.name, t.slug, t.description, t.owner_user_id,
 		         s.id, s.name, s.slug, s.city, s.state, member_counts.member_count
+	` + tailClause
+}
+
+func teamSelectForUserSQL(whereClause string, tailClause string) string {
+	return `
+		SELECT t.id::text, t.name, t.slug, t.description, t.owner_user_id::text,
+		       COALESCE(member_counts.member_count, 0)::int,
+		       s.id::text, s.name, s.slug, COALESCE(s.city, ''), COALESCE(s.state, ''),
+		       COALESCE(
+		           array_agg(g.id::text ORDER BY g.name, g.id::text) FILTER (WHERE g.id IS NOT NULL),
+		           ARRAY[]::text[]
+		       ),
+		       COALESCE(
+		           array_agg(g.name ORDER BY g.name, g.id::text) FILTER (WHERE g.id IS NOT NULL),
+		           ARRAY[]::text[]
+		       ),
+		       COALESCE(
+		           array_agg(g.slug ORDER BY g.name, g.id::text) FILTER (WHERE g.id IS NOT NULL),
+		           ARRAY[]::text[]
+		       ),
+		       viewer_membership.role
+		FROM team_members viewer_membership
+		JOIN teams t ON t.id = viewer_membership.team_id
+		LEFT JOIN schools s ON s.id = t.school_id
+		LEFT JOIN team_games tg ON tg.team_id = t.id
+		LEFT JOIN games g ON g.id = tg.game_id AND g.deleted_at IS NULL
+		LEFT JOIN LATERAL (
+			SELECT COUNT(*) AS member_count
+			FROM team_members m
+			WHERE m.team_id = t.id
+			  AND m.deleted_at IS NULL
+		) member_counts ON TRUE
+		WHERE ` + whereClause + `
+		GROUP BY t.id, t.name, t.slug, t.description, t.owner_user_id,
+		         s.id, s.name, s.slug, s.city, s.state, member_counts.member_count,
+		         viewer_membership.role, viewer_membership.created_at
 	` + tailClause
 }
 

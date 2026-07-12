@@ -169,6 +169,8 @@ type Repository interface {
 	GetRSVP(ctx context.Context, slug string, userID string) (string, error)
 	SetInterest(ctx context.Context, slug string, userID string, interested bool) (Event, error)
 	IsInterested(ctx context.Context, slug string, userID string) (bool, error)
+	ListUpcomingRSVPs(ctx context.Context, userID string, limit int) ([]Event, error)
+	ListFollowedSchoolEvents(ctx context.Context, userID string, limit int) ([]Event, error)
 	ListPublic(ctx context.Context, params ListParams) ([]Event, error)
 	GetBySlug(ctx context.Context, slug string) (Event, error)
 }
@@ -791,6 +793,85 @@ func (r *PostgresRepository) IsInterested(ctx context.Context, slug string, user
 	return interested, err
 }
 
+func (r *PostgresRepository) ListUpcomingRSVPs(ctx context.Context, userID string, limit int) ([]Event, error) {
+	userID = strings.TrimSpace(userID)
+	if userID == "" {
+		return nil, errors.New("user is required")
+	}
+	if limit < 1 || limit > 25 {
+		limit = 5
+	}
+
+	rows, err := r.pool.Query(ctx, eventSelectForUserSQL(`
+		e.deleted_at IS NULL
+		AND e.ends_at > $2
+		AND viewer_rsvp.response IN ('yes', 'maybe')
+	`, `
+		ORDER BY e.starts_at, e.id
+		LIMIT $3
+	`), userID, r.now(), limit)
+	if err != nil {
+		return nil, fmt.Errorf("list upcoming event rsvps: %w", err)
+	}
+	defer rows.Close()
+
+	events := make([]Event, 0, limit)
+	for rows.Next() {
+		event, err := scanEventForUser(rows, r.now())
+		if err != nil {
+			return nil, err
+		}
+		events = append(events, event)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate upcoming event rsvps: %w", err)
+	}
+	return events, nil
+}
+
+func (r *PostgresRepository) ListFollowedSchoolEvents(ctx context.Context, userID string, limit int) ([]Event, error) {
+	userID = strings.TrimSpace(userID)
+	if userID == "" {
+		return nil, errors.New("user is required")
+	}
+	if limit < 1 || limit > 25 {
+		limit = 5
+	}
+
+	rows, err := r.pool.Query(ctx, eventSelectForUserSQL(`
+		e.deleted_at IS NULL
+		AND e.visibility = 'public'
+		AND e.ends_at > $2
+		AND EXISTS (
+			SELECT 1
+			FROM user_school_follows f
+			WHERE f.school_id = e.host_school_id
+			  AND f.user_id = $1::uuid
+			  AND f.deleted_at IS NULL
+		)
+	`, `
+		ORDER BY e.starts_at, e.id
+		LIMIT $3
+	`), userID, r.now(), limit)
+	if err != nil {
+		return nil, fmt.Errorf("list followed school events: %w", err)
+	}
+	defer rows.Close()
+
+	events := make([]Event, 0, limit)
+	for rows.Next() {
+		event, err := scanEventForUser(rows, r.now())
+		if err != nil {
+			return nil, err
+		}
+		events = append(events, event)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate followed school events: %w", err)
+	}
+	return events, nil
+}
+
 func (r *PostgresRepository) ListPublic(ctx context.Context, params ListParams) ([]Event, error) {
 	params = NormalizeListParams(params)
 	rows, err := r.pool.Query(ctx, eventSelectSQL(`
@@ -976,6 +1057,89 @@ func scanEvent(scanner eventScanner, now time.Time) (Event, error) {
 	return event, nil
 }
 
+func scanEventForUser(scanner eventScanner, now time.Time) (Event, error) {
+	var event Event
+	var capacity sql.NullInt64
+	var locationName sql.NullString
+	var address sql.NullString
+	var onlineURL sql.NullString
+	var paymentNote sql.NullString
+	var paymentURL sql.NullString
+	var viewerRSVP sql.NullString
+	var gameIDs []string
+	var gameNames []string
+	var gameSlugs []string
+
+	err := scanner.Scan(
+		&event.ID,
+		&event.Title,
+		&event.Slug,
+		&event.Description,
+		&event.Visibility,
+		&event.Format,
+		&event.StartsAt,
+		&event.EndsAt,
+		&event.Timezone,
+		&locationName,
+		&address,
+		&onlineURL,
+		&capacity,
+		&event.IsPaid,
+		&paymentNote,
+		&paymentURL,
+		&event.HostSchool.ID,
+		&event.HostSchool.Name,
+		&event.HostSchool.Slug,
+		&event.HostSchool.City,
+		&event.HostSchool.State,
+		&event.RSVPYesCount,
+		&event.InterestCount,
+		&gameIDs,
+		&gameNames,
+		&gameSlugs,
+		&viewerRSVP,
+		&event.ViewerInterested,
+	)
+	if err != nil {
+		return Event{}, err
+	}
+
+	if locationName.Valid {
+		event.LocationName = locationName.String
+	}
+	if address.Valid {
+		event.Address = address.String
+	}
+	if onlineURL.Valid {
+		event.OnlineURL = onlineURL.String
+	}
+	if capacity.Valid {
+		value := int(capacity.Int64)
+		event.Capacity = &value
+	}
+	if paymentNote.Valid {
+		event.PaymentNote = paymentNote.String
+	}
+	if paymentURL.Valid {
+		event.PaymentURL = paymentURL.String
+	}
+	if viewerRSVP.Valid {
+		event.ViewerRSVP = &viewerRSVP.String
+	}
+
+	event.Games = make([]GameSummary, 0, len(gameIDs))
+	for index := range gameIDs {
+		event.Games = append(event.Games, GameSummary{
+			ID:   gameIDs[index],
+			Name: gameNames[index],
+			Slug: gameSlugs[index],
+		})
+	}
+	event.Lifecycle = Lifecycle(now, event.StartsAt, event.EndsAt, event.Capacity, event.RSVPYesCount)
+
+	return event, nil
+}
+
 func eventSelectSQL(whereClause string, tailClause string) string {
 	return `
 		SELECT e.id::text, e.title, e.slug, e.description, e.visibility,
@@ -1021,6 +1185,63 @@ func eventSelectSQL(whereClause string, tailClause string) string {
 		         e.payment_note, e.payment_url,
 		         s.id, s.name, s.slug, s.city, s.state, yes_counts.yes_count,
 		         interest_counts.interest_count
+	` + tailClause
+}
+
+func eventSelectForUserSQL(whereClause string, tailClause string) string {
+	return `
+		SELECT e.id::text, e.title, e.slug, e.description, e.visibility,
+		       e.format, e.starts_at, e.ends_at, e.timezone,
+		       e.location_name, e.address, e.online_url, e.capacity, e.is_paid,
+		       e.payment_note, e.payment_url,
+		       s.id::text, s.name, s.slug, COALESCE(s.city, ''), COALESCE(s.state, ''),
+		       COALESCE(yes_counts.yes_count, 0)::int,
+		       COALESCE(interest_counts.interest_count, 0)::int,
+		       COALESCE(
+		           array_agg(g.id::text ORDER BY g.name, g.id::text) FILTER (WHERE g.id IS NOT NULL),
+		           ARRAY[]::text[]
+		       ),
+		       COALESCE(
+		           array_agg(g.name ORDER BY g.name, g.id::text) FILTER (WHERE g.id IS NOT NULL),
+		           ARRAY[]::text[]
+		       ),
+		       COALESCE(
+		           array_agg(g.slug ORDER BY g.name, g.id::text) FILTER (WHERE g.id IS NOT NULL),
+		           ARRAY[]::text[]
+		       ),
+		       viewer_rsvp.response,
+		       (viewer_interest.user_id IS NOT NULL)
+		FROM events e
+		JOIN schools s ON s.id = e.host_school_id
+		LEFT JOIN event_games eg ON eg.event_id = e.id
+		LEFT JOIN games g ON g.id = eg.game_id AND g.deleted_at IS NULL
+		LEFT JOIN event_rsvps viewer_rsvp ON viewer_rsvp.event_id = e.id
+		                                  AND viewer_rsvp.user_id = $1::uuid
+		                                  AND viewer_rsvp.deleted_at IS NULL
+		LEFT JOIN event_interests viewer_interest ON viewer_interest.event_id = e.id
+		                                         AND viewer_interest.user_id = $1::uuid
+		                                         AND viewer_interest.deleted_at IS NULL
+		LEFT JOIN LATERAL (
+			SELECT COUNT(*) AS yes_count
+			FROM event_rsvps r
+			WHERE r.event_id = e.id
+			  AND r.response = 'yes'
+			  AND r.deleted_at IS NULL
+		) yes_counts ON TRUE
+		LEFT JOIN LATERAL (
+			SELECT COUNT(*) AS interest_count
+			FROM event_interests i
+			WHERE i.event_id = e.id
+			  AND i.deleted_at IS NULL
+		) interest_counts ON TRUE
+		WHERE ` + whereClause + `
+		GROUP BY e.id, e.title, e.slug, e.description, e.visibility,
+		         e.format, e.starts_at, e.ends_at, e.timezone,
+		         e.location_name, e.address, e.online_url, e.capacity, e.is_paid,
+		         e.payment_note, e.payment_url,
+		         s.id, s.name, s.slug, s.city, s.state, yes_counts.yes_count,
+		         interest_counts.interest_count, viewer_rsvp.response,
+		         viewer_interest.user_id
 	` + tailClause
 }
 

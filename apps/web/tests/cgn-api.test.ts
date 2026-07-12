@@ -156,6 +156,18 @@ test("userMessageForApiError maps known backend errors", () => {
     userMessageForApiError(new ApiError(422, "team_member_not_found")),
     "Choose an active team member."
   );
+  assert.equal(
+    userMessageForApiError(new ApiError(500, "support_ticket_failed")),
+    "We could not submit that support ticket. Please try again."
+  );
+  assert.equal(
+    userMessageForApiError(new ApiError(500, "report_failed")),
+    "We could not submit that report. Please try again."
+  );
+  assert.equal(
+    userMessageForApiError(new ApiError(400, "cannot_report_self")),
+    "You cannot report your own profile."
+  );
 });
 
 test("isSchoolFollowed matches by school ID", () => {

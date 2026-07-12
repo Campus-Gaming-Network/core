@@ -86,6 +86,44 @@ func (r *Router) handleTeams(w http.ResponseWriter, req *http.Request) {
 	})
 }
 
+func (r *Router) handleMyTeams(w http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodGet {
+		methodNotAllowed(w, http.MethodGet)
+		return
+	}
+	if r.teams == nil {
+		writeError(w, http.StatusServiceUnavailable, "database_unavailable")
+		return
+	}
+	userID, err := auth.RequireUser(req.Context())
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, "authentication_required")
+		return
+	}
+
+	limit := 10
+	if value := req.URL.Query().Get("limit"); value != "" {
+		limit, err = strconv.Atoi(value)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid_limit")
+			return
+		}
+	}
+	if limit < 1 || limit > 25 {
+		limit = 10
+	}
+	result, err := r.teams.ListForUser(req.Context(), userID, limit)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "teams_unavailable")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"teams": result,
+		"limit": limit,
+	})
+}
+
 func (r *Router) handleCreateTeam(w http.ResponseWriter, req *http.Request) {
 	if r.teams == nil {
 		writeError(w, http.StatusServiceUnavailable, "database_unavailable")

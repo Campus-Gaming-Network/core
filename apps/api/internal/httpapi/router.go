@@ -17,6 +17,7 @@ import (
 	eventstore "github.com/Campus-Gaming-Network/core/apps/api/internal/events"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/games"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/ratelimit"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/safety"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/schools"
 	teamstore "github.com/Campus-Gaming-Network/core/apps/api/internal/teams"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/users"
@@ -33,6 +34,7 @@ type Router struct {
 	games        games.Repository
 	events       eventstore.Repository
 	teams        teamstore.Repository
+	safety       safety.Repository
 	users        users.Repository
 	eventMailer  eventstore.RSVPMailer
 	account      *auth.AccountService
@@ -55,6 +57,7 @@ func NewRouter(cfg config.Config, pools ...*pgxpool.Pool) http.Handler {
 		router.games = games.NewPostgresRepository(router.db)
 		router.events = eventstore.NewPostgresRepository(router.db)
 		router.teams = teamstore.NewPostgresRepository(router.db)
+		router.safety = safety.NewPostgresRepository(router.db)
 		router.users = userRepository
 		router.eventMailer = &eventstore.ResendMailer{
 			APIKey:  cfg.ResendAPIKey,
@@ -91,6 +94,7 @@ func NewRouter(cfg config.Config, pools ...*pgxpool.Pool) http.Handler {
 	router.mux.HandleFunc("/events/", router.handleEventPath)
 	router.mux.HandleFunc("/teams", router.handleTeams)
 	router.mux.HandleFunc("/teams/", router.handleTeamPath)
+	router.mux.HandleFunc("/support-tickets", router.handleSupportTickets)
 	router.mux.HandleFunc("/auth/signup", router.handleSignup)
 	router.mux.HandleFunc("/auth/login", router.handleLogin)
 	router.mux.HandleFunc("/auth/logout", router.handleLogout)
@@ -98,7 +102,9 @@ func NewRouter(cfg config.Config, pools ...*pgxpool.Pool) http.Handler {
 	router.mux.HandleFunc("/auth/resend-verification", router.handleResendVerification)
 	router.mux.HandleFunc("/auth/forgot-password", router.handleForgotPassword)
 	router.mux.HandleFunc("/auth/reset-password", router.handleResetPassword)
+	router.mux.HandleFunc("/me/events", router.handleMyEvents)
 	router.mux.HandleFunc("/me/schools", router.handleMySchools)
+	router.mux.HandleFunc("/me/teams", router.handleMyTeams)
 	router.mux.HandleFunc("/me", router.handleMe)
 	router.mux.HandleFunc("/users/", router.handleUserPath)
 
@@ -438,6 +444,19 @@ func (r *Router) handleEventPath(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 		r.handleEventInterest(w, req, slug)
+		return
+	}
+	if len(parts) == 2 && parts[1] == "report" {
+		if req.Method != http.MethodPost {
+			methodNotAllowed(w, http.MethodPost)
+			return
+		}
+		slug, err := url.PathUnescape(parts[0])
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid_event_slug")
+			return
+		}
+		r.handleReportEvent(w, req, slug)
 		return
 	}
 	if len(parts) != 1 || parts[0] == "" {

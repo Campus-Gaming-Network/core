@@ -64,6 +64,27 @@ export default async function HomePage() {
           </p>
         )}
       </section>
+
+      <section className="section action-panel" aria-labelledby="cold-start-title">
+        <p className="eyebrow">Start the scene</p>
+        <h2 id="cold-start-title">Not seeing activity for your campus yet?</h2>
+        <p>
+          CGN works even before the calendar fills up: create the first event,
+          start a team, or follow your school so new activity lands on your
+          dashboard.
+        </p>
+        <div className="actions">
+          <Link className="button primary" href="/events/new">
+            Create first event
+          </Link>
+          <Link className="button" href="/teams/new">
+            Start a team
+          </Link>
+          <Link className="button" href="/schools">
+            Follow a school
+          </Link>
+        </div>
+      </section>
     </main>
   );
 }

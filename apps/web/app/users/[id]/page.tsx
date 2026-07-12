@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ReportForm } from "../../../components/report-form";
 import { ApiError, publicProfileHomeSchool } from "../../../lib/cgn-api";
-import { getPublicProfile } from "../../../lib/server-api";
+import { currentProfile, getPublicProfile } from "../../../lib/server-api";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -9,13 +10,16 @@ type PageProps = {
 
 export default async function PublicProfilePage({ params }: PageProps) {
   const { id } = await params;
-  const profile = await getPublicProfile(id).catch((error) => {
-    if (error instanceof ApiError && error.status === 404) {
-      notFound();
-    }
+  const [currentUser, profile] = await Promise.all([
+    currentProfile(),
+    getPublicProfile(id).catch((error) => {
+      if (error instanceof ApiError && error.status === 404) {
+        notFound();
+      }
 
-    throw error;
-  });
+      throw error;
+    })
+  ]);
   const homeSchool = publicProfileHomeSchool(profile);
 
   return (
@@ -65,6 +69,19 @@ export default async function PublicProfilePage({ params }: PageProps) {
       ) : (
         <p className="empty-state">No public links yet.</p>
       )}
+
+      <section className="action-panel" aria-labelledby="profile-safety">
+        <h2 id="profile-safety">Safety</h2>
+        {currentUser && currentUser.id !== profile.id ? (
+          <ReportForm targetID={profile.id} targetType="user" />
+        ) : currentUser ? (
+          <p className="form-help">This is your profile.</p>
+        ) : (
+          <Link className="button primary" href={`/login?next=/users/${profile.id}`}>
+            Log in to report this profile
+          </Link>
+        )}
+      </section>
     </main>
   );
 }

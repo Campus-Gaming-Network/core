@@ -94,6 +94,11 @@ export type EventsResponse = {
   offset: number;
 };
 
+export type DashboardEventsResponse = {
+  upcoming_rsvps: Event[];
+  followed_school_events: Event[];
+};
+
 export type TeamRole = "owner" | "captain" | "member";
 
 export type TeamMember = {
@@ -497,6 +502,7 @@ export function userMessageForApiError(error: unknown) {
 
   const messages: Record<string, string> = {
     authentication_required: "Please log in to continue.",
+    cannot_report_self: "You cannot report your own profile.",
     database_unavailable: "The service is starting up. Try again in a moment.",
     email_already_registered: "That email already has an account.",
     email_not_verified: "Please verify your email before logging in.",
@@ -524,7 +530,10 @@ export function userMessageForApiError(error: unknown) {
     not_event_organizer: "Only event organizers can change that event.",
     private_event_locked: "Unlock that private event before RSVPing.",
     rate_limited: "Too many attempts. Give it a minute, then try again.",
+    report_failed: "We could not submit that report. Please try again.",
+    report_target_not_found: "That report target could not be found.",
     school_not_found: "That school could not be found.",
+    support_ticket_failed: "We could not submit that support ticket. Please try again.",
     not_team_owner: "Only the team owner can manage members.",
     team_captain_failed: "We could not update that captain role. Please try again.",
     team_create_failed: "We could not create that team. Please try again.",

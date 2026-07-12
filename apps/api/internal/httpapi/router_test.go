@@ -13,6 +13,8 @@ import (
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/auth"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/config"
 	eventstore "github.com/Campus-Gaming-Network/core/apps/api/internal/events"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/ratelimit"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/safety"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/schools"
 	teamstore "github.com/Campus-Gaming-Network/core/apps/api/internal/teams"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/users"
@@ -81,10 +83,80 @@ func (m *fakeEventMailer) SendRSVPConfirmation(_ context.Context, recipient stri
 	return m.err
 }
 
+type fakeSafetyRepository struct {
+	supportCalled      bool
+	supportInput       safety.SupportTicketInput
+	supportTicket      safety.SupportTicket
+	reportEventCalled  bool
+	reportEventUserID  string
+	reportEventSlug    string
+	reportEventReason  string
+	reportUserCalled   bool
+	reportUserReporter string
+	reportUserTarget   string
+	reportUserReason   string
+	report             safety.Report
+	err                error
+}
+
+func (r *fakeSafetyRepository) CreateSupportTicket(_ context.Context, input safety.SupportTicketInput) (safety.SupportTicket, error) {
+	r.supportCalled = true
+	r.supportInput = input
+	if r.err != nil {
+		return safety.SupportTicket{}, r.err
+	}
+	if r.supportTicket.ID != "" {
+		return r.supportTicket, nil
+	}
+	return safety.SupportTicket{
+		ID:           "99999999-9999-9999-9999-999999999999",
+		ContactEmail: input.ContactEmail,
+		Status:       "open",
+	}, nil
+}
+
+func (r *fakeSafetyRepository) ReportEvent(_ context.Context, reporterUserID string, eventSlug string, reason string) (safety.Report, error) {
+	r.reportEventCalled = true
+	r.reportEventUserID = reporterUserID
+	r.reportEventSlug = eventSlug
+	r.reportEventReason = reason
+	if r.err != nil {
+		return safety.Report{}, r.err
+	}
+	return r.reportOrDefault(safety.ReportTargetEvent)
+}
+
+func (r *fakeSafetyRepository) ReportUser(_ context.Context, reporterUserID string, targetUserID string, reason string) (safety.Report, error) {
+	r.reportUserCalled = true
+	r.reportUserReporter = reporterUserID
+	r.reportUserTarget = targetUserID
+	r.reportUserReason = reason
+	if r.err != nil {
+		return safety.Report{}, r.err
+	}
+	return r.reportOrDefault(safety.ReportTargetUser)
+}
+
+func (r *fakeSafetyRepository) reportOrDefault(targetType string) (safety.Report, error) {
+	if r.report.ID != "" {
+		return r.report, nil
+	}
+	return safety.Report{
+		ID:         "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+		TargetType: targetType,
+		TargetID:   "22222222-2222-2222-2222-222222222222",
+		Status:     "open",
+	}, nil
+}
+
 type fakeTeamRepository struct {
 	listPublicCalled   bool
 	listParams         teamstore.ListParams
+	listForUserCalled  bool
+	listForUserID      string
+	listForUserLimit   int
 	listed             []teamstore.Team
+	listedForUser      []teamstore.Team
 	detail             teamstore.Team
 	createCalled       bool
 	createParams       teamstore.CreateParams
@@ -128,6 +200,13 @@ func (r *fakeTeamRepository) ListPublic(_ context.Context, params teamstore.List
 	r.listPublicCalled = true
 	r.listParams = params
 	return r.listed, r.err
+}
+
+func (r *fakeTeamRepository) ListForUser(_ context.Context, userID string, limit int) ([]teamstore.Team, error) {
+	r.listForUserCalled = true
+	r.listForUserID = userID
+	r.listForUserLimit = limit
+	return r.listedForUser, r.err
 }
 
 func (r *fakeTeamRepository) GetBySlug(_ context.Context, slug string) (teamstore.Team, error) {
@@ -223,39 +302,47 @@ func (r *fakeTeamRepository) TransferOwnership(_ context.Context, slug string, o
 }
 
 type fakeEventRepository struct {
-	listPublicCalled  bool
-	listParams        eventstore.ListParams
-	listed            []eventstore.Event
-	detail            eventstore.Event
-	createCalled      bool
-	createParams      eventstore.CreateParams
-	created           eventstore.Event
-	updateCalled      bool
-	updateParams      eventstore.UpdateParams
-	updated           eventstore.Event
-	deleteCalled      bool
-	deleteSlug        string
-	deleteUserID      string
-	isOrganizer       bool
-	privateHash       string
-	unlockValid       bool
-	unlockChecked     bool
-	unlockCreated     bool
-	unlockSlug        string
-	unlockTokenHash   []byte
-	unlockExpiresAt   time.Time
-	setRSVPCalled     bool
-	rsvpInput         eventstore.RSVPInput
-	rsvpEvent         eventstore.Event
-	rsvpErr           error
-	viewerRSVP        string
-	setInterestCalled bool
-	interestSlug      string
-	interestUserID    string
-	interestValue     bool
-	interestEvent     eventstore.Event
-	viewerInterested  bool
-	err               error
+	listPublicCalled               bool
+	listParams                     eventstore.ListParams
+	listed                         []eventstore.Event
+	listUpcomingRSVPsCalled        bool
+	listUpcomingRSVPsUserID        string
+	listUpcomingRSVPsLimit         int
+	upcomingRSVPs                  []eventstore.Event
+	listFollowedSchoolEventsCalled bool
+	listFollowedSchoolEventsUserID string
+	listFollowedSchoolEventsLimit  int
+	followedSchoolEvents           []eventstore.Event
+	detail                         eventstore.Event
+	createCalled                   bool
+	createParams                   eventstore.CreateParams
+	created                        eventstore.Event
+	updateCalled                   bool
+	updateParams                   eventstore.UpdateParams
+	updated                        eventstore.Event
+	deleteCalled                   bool
+	deleteSlug                     string
+	deleteUserID                   string
+	isOrganizer                    bool
+	privateHash                    string
+	unlockValid                    bool
+	unlockChecked                  bool
+	unlockCreated                  bool
+	unlockSlug                     string
+	unlockTokenHash                []byte
+	unlockExpiresAt                time.Time
+	setRSVPCalled                  bool
+	rsvpInput                      eventstore.RSVPInput
+	rsvpEvent                      eventstore.Event
+	rsvpErr                        error
+	viewerRSVP                     string
+	setInterestCalled              bool
+	interestSlug                   string
+	interestUserID                 string
+	interestValue                  bool
+	interestEvent                  eventstore.Event
+	viewerInterested               bool
+	err                            error
 }
 
 func (r *fakeEventRepository) Create(_ context.Context, params eventstore.CreateParams) (eventstore.Event, error) {
@@ -379,6 +466,20 @@ func (r *fakeEventRepository) ListPublic(_ context.Context, params eventstore.Li
 	r.listPublicCalled = true
 	r.listParams = params
 	return r.listed, r.err
+}
+
+func (r *fakeEventRepository) ListUpcomingRSVPs(_ context.Context, userID string, limit int) ([]eventstore.Event, error) {
+	r.listUpcomingRSVPsCalled = true
+	r.listUpcomingRSVPsUserID = userID
+	r.listUpcomingRSVPsLimit = limit
+	return r.upcomingRSVPs, r.err
+}
+
+func (r *fakeEventRepository) ListFollowedSchoolEvents(_ context.Context, userID string, limit int) ([]eventstore.Event, error) {
+	r.listFollowedSchoolEventsCalled = true
+	r.listFollowedSchoolEventsUserID = userID
+	r.listFollowedSchoolEventsLimit = limit
+	return r.followedSchoolEvents, r.err
 }
 
 func (r *fakeEventRepository) GetBySlug(_ context.Context, slug string) (eventstore.Event, error) {
@@ -540,6 +641,312 @@ func TestHandleTeamsReturnsPublicTeamsWithFilters(t *testing.T) {
 	}
 	if len(payload.Teams) != 1 || payload.Teams[0].Slug != "varsity-rocket-league" {
 		t.Fatalf("teams = %#v, want public team payload", payload.Teams)
+	}
+}
+
+func TestHandleMyTeamsRequiresAuthentication(t *testing.T) {
+	repository := &fakeTeamRepository{}
+	router := &Router{teams: repository}
+	request := httptest.NewRequest(http.MethodGet, "/me/teams", nil)
+	response := httptest.NewRecorder()
+
+	router.handleMyTeams(response, request)
+
+	if response.Code != http.StatusUnauthorized {
+		t.Fatalf("status = %d, want %d", response.Code, http.StatusUnauthorized)
+	}
+	if repository.listForUserCalled {
+		t.Fatal("ListForUser was called for unauthenticated request")
+	}
+}
+
+func TestHandleMyTeamsReturnsUserTeams(t *testing.T) {
+	role := teamstore.RoleCaptain
+	team := testTeam()
+	team.ViewerRole = &role
+	repository := &fakeTeamRepository{listedForUser: []teamstore.Team{team}}
+	handler := authenticatedMyTeamsHandler(repository)
+	request := authenticatedEventRequest(http.MethodGet, "/me/teams?limit=3", "")
+	response := httptest.NewRecorder()
+
+	handler.ServeHTTP(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d; body = %s", response.Code, http.StatusOK, response.Body.String())
+	}
+	if !repository.listForUserCalled {
+		t.Fatal("ListForUser was not called")
+	}
+	if repository.listForUserID != testUserID || repository.listForUserLimit != 3 {
+		t.Fatalf("ListForUser = user %q limit %d, want session user and query limit", repository.listForUserID, repository.listForUserLimit)
+	}
+	var payload struct {
+		Teams []teamstore.Team `json:"teams"`
+		Limit int              `json:"limit"`
+	}
+	if err := json.NewDecoder(response.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if payload.Limit != 3 {
+		t.Fatalf("limit = %d, want 3", payload.Limit)
+	}
+	if len(payload.Teams) != 1 || payload.Teams[0].ViewerRole == nil || *payload.Teams[0].ViewerRole != teamstore.RoleCaptain {
+		t.Fatalf("teams = %#v, want team with captain viewer role", payload.Teams)
+	}
+}
+
+func TestHandleMyEventsRequiresAuthentication(t *testing.T) {
+	repository := &fakeEventRepository{}
+	router := &Router{events: repository}
+	request := httptest.NewRequest(http.MethodGet, "/me/events", nil)
+	response := httptest.NewRecorder()
+
+	router.handleMyEvents(response, request)
+
+	if response.Code != http.StatusUnauthorized {
+		t.Fatalf("status = %d, want %d", response.Code, http.StatusUnauthorized)
+	}
+	if repository.listUpcomingRSVPsCalled || repository.listFollowedSchoolEventsCalled {
+		t.Fatal("dashboard event queries were called for unauthenticated request")
+	}
+}
+
+func TestHandleMyEventsReturnsDashboardEvents(t *testing.T) {
+	upcoming := testEvent(eventstore.VisibilityPublic)
+	yes := eventstore.RSVPYes
+	upcoming.ViewerRSVP = &yes
+	followed := testEvent(eventstore.VisibilityPublic)
+	followed.ID = "88888888-8888-8888-8888-888888888888"
+	followed.Slug = "followed-campus-final"
+	followed.Title = "Followed Campus Final"
+	repository := &fakeEventRepository{
+		upcomingRSVPs:        []eventstore.Event{upcoming},
+		followedSchoolEvents: []eventstore.Event{followed},
+	}
+	handler := authenticatedMyEventsHandler(repository)
+	request := authenticatedEventRequest(http.MethodGet, "/me/events?limit=4", "")
+	response := httptest.NewRecorder()
+
+	handler.ServeHTTP(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d; body = %s", response.Code, http.StatusOK, response.Body.String())
+	}
+	if !repository.listUpcomingRSVPsCalled || !repository.listFollowedSchoolEventsCalled {
+		t.Fatal("dashboard event queries were not called")
+	}
+	if repository.listUpcomingRSVPsUserID != testUserID ||
+		repository.listFollowedSchoolEventsUserID != testUserID ||
+		repository.listUpcomingRSVPsLimit != 4 ||
+		repository.listFollowedSchoolEventsLimit != 4 {
+		t.Fatalf("queries = upcoming user %q limit %d followed user %q limit %d",
+			repository.listUpcomingRSVPsUserID,
+			repository.listUpcomingRSVPsLimit,
+			repository.listFollowedSchoolEventsUserID,
+			repository.listFollowedSchoolEventsLimit)
+	}
+	var payload struct {
+		UpcomingRSVPs        []eventstore.Event `json:"upcoming_rsvps"`
+		FollowedSchoolEvents []eventstore.Event `json:"followed_school_events"`
+	}
+	if err := json.NewDecoder(response.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if len(payload.UpcomingRSVPs) != 1 || payload.UpcomingRSVPs[0].ViewerRSVP == nil || *payload.UpcomingRSVPs[0].ViewerRSVP != eventstore.RSVPYes {
+		t.Fatalf("upcoming_rsvps = %#v, want RSVP event", payload.UpcomingRSVPs)
+	}
+	if len(payload.FollowedSchoolEvents) != 1 || payload.FollowedSchoolEvents[0].Slug != "followed-campus-final" {
+		t.Fatalf("followed_school_events = %#v, want followed school event", payload.FollowedSchoolEvents)
+	}
+}
+
+func TestHandleSupportTicketsAllowsAnonymousSubmission(t *testing.T) {
+	repository := &fakeSafetyRepository{}
+	router := &Router{safety: repository}
+	request := httptest.NewRequest(http.MethodPost, "/support-tickets", strings.NewReader(`{
+		"contact_email":"player@example.com",
+		"name":"Player One",
+		"subject":"Need help",
+		"message":"I need help with my account."
+	}`))
+	response := httptest.NewRecorder()
+
+	router.handleSupportTickets(response, request)
+
+	if response.Code != http.StatusCreated {
+		t.Fatalf("status = %d, want %d; body = %s", response.Code, http.StatusCreated, response.Body.String())
+	}
+	if !repository.supportCalled {
+		t.Fatal("CreateSupportTicket was not called")
+	}
+	if repository.supportInput.SubmitterUserID != "" {
+		t.Fatalf("SubmitterUserID = %q, want empty for anonymous support", repository.supportInput.SubmitterUserID)
+	}
+	if repository.supportInput.ContactEmail != "player@example.com" ||
+		repository.supportInput.Subject != "Need help" {
+		t.Fatalf("support input = %#v, want request fields", repository.supportInput)
+	}
+}
+
+func TestHandleSupportTicketsMapsValidationError(t *testing.T) {
+	repository := &fakeSafetyRepository{err: errors.New("subject is required")}
+	router := &Router{safety: repository}
+	request := httptest.NewRequest(http.MethodPost, "/support-tickets", strings.NewReader(`{
+		"contact_email":"player@example.com",
+		"message":"I need help."
+	}`))
+	response := httptest.NewRecorder()
+
+	router.handleSupportTickets(response, request)
+
+	if response.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want %d; body = %s", response.Code, http.StatusBadRequest, response.Body.String())
+	}
+	if !strings.Contains(response.Body.String(), "invalid_request") {
+		t.Fatalf("body = %s, want invalid_request", response.Body.String())
+	}
+}
+
+func TestHandleSupportTicketsRateLimitsSubmissions(t *testing.T) {
+	repository := &fakeSafetyRepository{}
+	router := &Router{
+		cfg: config.Config{
+			AuthRateLimit:  1,
+			AuthRateWindow: time.Minute,
+		},
+		limiter: ratelimit.New(1, time.Minute),
+		safety:  repository,
+	}
+	body := `{"contact_email":"player@example.com","subject":"Need help","message":"Please help."}`
+	first := httptest.NewRecorder()
+	router.handleSupportTickets(first, httptest.NewRequest(http.MethodPost, "/support-tickets", strings.NewReader(body)))
+	second := httptest.NewRecorder()
+	router.handleSupportTickets(second, httptest.NewRequest(http.MethodPost, "/support-tickets", strings.NewReader(body)))
+
+	if first.Code != http.StatusCreated {
+		t.Fatalf("first status = %d, want %d", first.Code, http.StatusCreated)
+	}
+	if second.Code != http.StatusTooManyRequests {
+		t.Fatalf("second status = %d, want %d; body = %s", second.Code, http.StatusTooManyRequests, second.Body.String())
+	}
+}
+
+func TestHandleReportEventRequiresAuthentication(t *testing.T) {
+	repository := &fakeSafetyRepository{}
+	router := &Router{
+		events: &fakeEventRepository{detail: testEvent(eventstore.VisibilityPublic)},
+		safety: repository,
+	}
+	request := httptest.NewRequest(http.MethodPost, "/events/campus-scrim-night/report", strings.NewReader(`{"reason":"Spam listing"}`))
+	response := httptest.NewRecorder()
+
+	router.handleEventPath(response, request)
+
+	if response.Code != http.StatusUnauthorized {
+		t.Fatalf("status = %d, want %d", response.Code, http.StatusUnauthorized)
+	}
+	if repository.reportEventCalled {
+		t.Fatal("ReportEvent was called for unauthenticated request")
+	}
+}
+
+func TestHandleReportEventCreatesReport(t *testing.T) {
+	repository := &fakeSafetyRepository{}
+	handler := authenticatedEventReportHandler(repository)
+	request := authenticatedEventRequest(http.MethodPost, "/events/campus-scrim-night/report", `{"reason":"Spam listing"}`)
+	response := httptest.NewRecorder()
+
+	handler.ServeHTTP(response, request)
+
+	if response.Code != http.StatusCreated {
+		t.Fatalf("status = %d, want %d; body = %s", response.Code, http.StatusCreated, response.Body.String())
+	}
+	if !repository.reportEventCalled {
+		t.Fatal("ReportEvent was not called")
+	}
+	if repository.reportEventUserID != testUserID ||
+		repository.reportEventSlug != "campus-scrim-night" ||
+		repository.reportEventReason != "Spam listing" {
+		t.Fatalf("ReportEvent call = user %q slug %q reason %q",
+			repository.reportEventUserID,
+			repository.reportEventSlug,
+			repository.reportEventReason)
+	}
+}
+
+func TestHandleReportEventRateLimitsSubmissions(t *testing.T) {
+	repository := &fakeSafetyRepository{}
+	router := &Router{
+		cfg: config.Config{
+			SessionCookie:  "session",
+			SessionTTL:     time.Hour,
+			AuthRateLimit:  1,
+			AuthRateWindow: time.Minute,
+		},
+		events:  &fakeEventRepository{detail: testEvent(eventstore.VisibilityPublic)},
+		limiter: ratelimit.New(1, time.Minute),
+		safety:  repository,
+	}
+	store := fakeSessionStore{session: auth.Session{
+		ID:        "session-id",
+		UserID:    testUserID,
+		ExpiresAt: time.Now().Add(time.Hour),
+	}}
+	handler := auth.WithSession(store, auth.SessionCookieConfig{
+		Name: "session",
+		TTL:  time.Hour,
+	})(http.HandlerFunc(router.handleEventPath))
+	body := `{"reason":"Spam listing"}`
+	first := httptest.NewRecorder()
+	handler.ServeHTTP(first, authenticatedEventRequest(http.MethodPost, "/events/campus-scrim-night/report", body))
+	second := httptest.NewRecorder()
+	handler.ServeHTTP(second, authenticatedEventRequest(http.MethodPost, "/events/campus-scrim-night/report", body))
+
+	if first.Code != http.StatusCreated {
+		t.Fatalf("first status = %d, want %d; body = %s", first.Code, http.StatusCreated, first.Body.String())
+	}
+	if second.Code != http.StatusTooManyRequests {
+		t.Fatalf("second status = %d, want %d; body = %s", second.Code, http.StatusTooManyRequests, second.Body.String())
+	}
+}
+
+func TestHandleReportUserCreatesReport(t *testing.T) {
+	repository := &fakeSafetyRepository{}
+	handler := authenticatedUserReportHandler(repository)
+	request := authenticatedEventRequest(http.MethodPost, "/users/22222222-2222-2222-2222-222222222222/report", `{"reason":"Harassment"}`)
+	response := httptest.NewRecorder()
+
+	handler.ServeHTTP(response, request)
+
+	if response.Code != http.StatusCreated {
+		t.Fatalf("status = %d, want %d; body = %s", response.Code, http.StatusCreated, response.Body.String())
+	}
+	if !repository.reportUserCalled {
+		t.Fatal("ReportUser was not called")
+	}
+	if repository.reportUserReporter != testUserID ||
+		repository.reportUserTarget != "22222222-2222-2222-2222-222222222222" ||
+		repository.reportUserReason != "Harassment" {
+		t.Fatalf("ReportUser call = reporter %q target %q reason %q",
+			repository.reportUserReporter,
+			repository.reportUserTarget,
+			repository.reportUserReason)
+	}
+}
+
+func TestHandleReportUserMapsSelfReport(t *testing.T) {
+	repository := &fakeSafetyRepository{err: safety.ErrCannotReportSelf}
+	handler := authenticatedUserReportHandler(repository)
+	request := authenticatedEventRequest(http.MethodPost, "/users/22222222-2222-2222-2222-222222222222/report", `{"reason":"Oops"}`)
+	response := httptest.NewRecorder()
+
+	handler.ServeHTTP(response, request)
+
+	if response.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want %d; body = %s", response.Code, http.StatusBadRequest, response.Body.String())
+	}
+	if !strings.Contains(response.Body.String(), "cannot_report_self") {
+		t.Fatalf("body = %s, want cannot_report_self", response.Body.String())
 	}
 }
 
@@ -1526,6 +1933,67 @@ func authenticatedEventsHandler(repository *fakeEventRepository) http.Handler {
 	})(http.HandlerFunc(router.handleEvents))
 }
 
+func authenticatedMyEventsHandler(repository *fakeEventRepository) http.Handler {
+	router := &Router{
+		cfg: config.Config{
+			SessionCookie: "session",
+			SessionTTL:    time.Hour,
+		},
+		events: repository,
+	}
+	store := fakeSessionStore{session: auth.Session{
+		ID:        "session-id",
+		UserID:    testUserID,
+		ExpiresAt: time.Now().Add(time.Hour),
+	}}
+
+	return auth.WithSession(store, auth.SessionCookieConfig{
+		Name: "session",
+		TTL:  time.Hour,
+	})(http.HandlerFunc(router.handleMyEvents))
+}
+
+func authenticatedEventReportHandler(repository *fakeSafetyRepository) http.Handler {
+	router := &Router{
+		cfg: config.Config{
+			SessionCookie: "session",
+			SessionTTL:    time.Hour,
+		},
+		events: &fakeEventRepository{detail: testEvent(eventstore.VisibilityPublic)},
+		safety: repository,
+	}
+	store := fakeSessionStore{session: auth.Session{
+		ID:        "session-id",
+		UserID:    testUserID,
+		ExpiresAt: time.Now().Add(time.Hour),
+	}}
+
+	return auth.WithSession(store, auth.SessionCookieConfig{
+		Name: "session",
+		TTL:  time.Hour,
+	})(http.HandlerFunc(router.handleEventPath))
+}
+
+func authenticatedUserReportHandler(repository *fakeSafetyRepository) http.Handler {
+	router := &Router{
+		cfg: config.Config{
+			SessionCookie: "session",
+			SessionTTL:    time.Hour,
+		},
+		safety: repository,
+	}
+	store := fakeSessionStore{session: auth.Session{
+		ID:        "session-id",
+		UserID:    testUserID,
+		ExpiresAt: time.Now().Add(time.Hour),
+	}}
+
+	return auth.WithSession(store, auth.SessionCookieConfig{
+		Name: "session",
+		TTL:  time.Hour,
+	})(http.HandlerFunc(router.handleUserPath))
+}
+
 func authenticatedTeamsHandler(repository *fakeTeamRepository) http.Handler {
 	router := &Router{
 		cfg: config.Config{
@@ -1546,6 +2014,26 @@ func authenticatedTeamsHandler(repository *fakeTeamRepository) http.Handler {
 		Name: "session",
 		TTL:  time.Hour,
 	})(http.HandlerFunc(router.handleTeams))
+}
+
+func authenticatedMyTeamsHandler(repository *fakeTeamRepository) http.Handler {
+	router := &Router{
+		cfg: config.Config{
+			SessionCookie: "session",
+			SessionTTL:    time.Hour,
+		},
+		teams: repository,
+	}
+	store := fakeSessionStore{session: auth.Session{
+		ID:        "session-id",
+		UserID:    testUserID,
+		ExpiresAt: time.Now().Add(time.Hour),
+	}}
+
+	return auth.WithSession(store, auth.SessionCookieConfig{
+		Name: "session",
+		TTL:  time.Hour,
+	})(http.HandlerFunc(router.handleMyTeams))
 }
 
 func authenticatedTeamPathHandler(repository *fakeTeamRepository) http.Handler {

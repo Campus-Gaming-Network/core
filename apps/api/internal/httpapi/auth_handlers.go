@@ -68,6 +68,11 @@ func (r *Router) handleSignup(w http.ResponseWriter, req *http.Request) {
 	if !decodeJSON(w, req, &input) {
 		return
 	}
+	normalizedEmail := users.NormalizeEmail(input.Email)
+	if validEmail(normalizedEmail) && !r.allow("signup-email:"+normalizedEmail, req) {
+		rateLimitExceeded(w, r)
+		return
+	}
 	profile, err := r.account.Signup(req.Context(), users.SignupInput{
 		Email:        input.Email,
 		Password:     input.Password,
@@ -329,15 +334,33 @@ func (r *Router) handleMe(w http.ResponseWriter, req *http.Request) {
 }
 
 func (r *Router) handleUserPath(w http.ResponseWriter, req *http.Request) {
-	if req.Method != http.MethodGet {
-		methodNotAllowed(w, http.MethodGet)
+	path := strings.Trim(strings.TrimPrefix(req.URL.Path, "/users/"), "/")
+	parts := strings.Split(path, "/")
+	if len(parts) == 2 && parts[1] == "report" {
+		if req.Method != http.MethodPost {
+			methodNotAllowed(w, http.MethodPost)
+			return
+		}
+		if !looksLikeUUID(parts[0]) {
+			writeError(w, http.StatusBadRequest, "invalid_id")
+			return
+		}
+		r.handleReportUser(w, req, parts[0])
 		return
 	}
 	if r.account == nil {
 		writeError(w, http.StatusServiceUnavailable, "database_unavailable")
 		return
 	}
-	id := strings.Trim(strings.TrimPrefix(req.URL.Path, "/users/"), "/")
+	if len(parts) != 1 || parts[0] == "" {
+		http.NotFound(w, req)
+		return
+	}
+	if req.Method != http.MethodGet {
+		methodNotAllowed(w, http.MethodGet)
+		return
+	}
+	id := parts[0]
 	if !looksLikeUUID(id) {
 		writeError(w, http.StatusBadRequest, "invalid_id")
 		return

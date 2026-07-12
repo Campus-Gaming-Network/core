@@ -3,6 +3,7 @@ package httpapi
 import (
 	"errors"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -45,6 +46,55 @@ type unlockPrivateEventResponse struct {
 
 type rsvpEventRequest struct {
 	Response string `json:"response"`
+}
+
+type myEventsResponse struct {
+	UpcomingRSVPs        []eventstore.Event `json:"upcoming_rsvps"`
+	FollowedSchoolEvents []eventstore.Event `json:"followed_school_events"`
+}
+
+func (r *Router) handleMyEvents(w http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodGet {
+		methodNotAllowed(w, http.MethodGet)
+		return
+	}
+	if r.events == nil {
+		writeError(w, http.StatusServiceUnavailable, "database_unavailable")
+		return
+	}
+	userID, err := auth.RequireUser(req.Context())
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, "authentication_required")
+		return
+	}
+
+	limit := 5
+	if value := req.URL.Query().Get("limit"); value != "" {
+		limit, err = strconv.Atoi(value)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid_limit")
+			return
+		}
+	}
+	if limit < 1 || limit > 25 {
+		limit = 5
+	}
+
+	upcomingRSVPs, err := r.events.ListUpcomingRSVPs(req.Context(), userID, limit)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "events_unavailable")
+		return
+	}
+	followedSchoolEvents, err := r.events.ListFollowedSchoolEvents(req.Context(), userID, limit)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "events_unavailable")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, myEventsResponse{
+		UpcomingRSVPs:        upcomingRSVPs,
+		FollowedSchoolEvents: followedSchoolEvents,
+	})
 }
 
 func (r *Router) handleCreateEvent(w http.ResponseWriter, req *http.Request) {

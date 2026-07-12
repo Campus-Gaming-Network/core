@@ -1,3 +1,5 @@
+import { SupportTicketForm } from "../../components/support-ticket-form";
+
 export default function SupportPage() {
   return (
     <main className="narrow">
@@ -5,17 +7,11 @@ export default function SupportPage() {
         <p className="eyebrow">Support</p>
         <h1>Need help?</h1>
         <p className="lede">
-          For now, use the support email stub while the dedicated support flow
-          is still out of scope.
+          Submit a ticket and we will queue it for review. You can send one
+          whether or not you are logged in.
         </p>
       </section>
-      <p>
-        Email{" "}
-        <a href="mailto:support@campusgamingnetwork.com">
-          support@campusgamingnetwork.com
-        </a>
-        .
-      </p>
+      <SupportTicketForm />
     </main>
   );
 }

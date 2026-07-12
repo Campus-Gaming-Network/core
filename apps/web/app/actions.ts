@@ -186,6 +186,82 @@ export async function updateProfileAction(
   }
 }
 
+export async function submitSupportTicketAction(
+  _previousState: FormState,
+  formData: FormData
+): Promise<FormState> {
+  try {
+    await apiRequest<{ id: string }>({
+      path: "/support-tickets",
+      method: "POST",
+      cookieHeader: await incomingCookieHeader(),
+      body: {
+        contact_email: formString(formData, "contact_email"),
+        name: formString(formData, "name"),
+        subject: formString(formData, "subject"),
+        message: formString(formData, "message")
+      }
+    });
+
+    return {
+      status: "success",
+      message: "Support ticket submitted. We will review it soon."
+    };
+  } catch (error) {
+    return failure(error);
+  }
+}
+
+export async function reportEventAction(
+  _previousState: FormState,
+  formData: FormData
+): Promise<FormState> {
+  const slug = formString(formData, "slug");
+
+  try {
+    await apiRequest<{ id: string }>({
+      path: `/events/${encodeURIComponent(slug)}/report`,
+      method: "POST",
+      cookieHeader: await incomingCookieHeader(),
+      body: {
+        reason: formString(formData, "reason")
+      }
+    });
+
+    return {
+      status: "success",
+      message: "Report submitted for review."
+    };
+  } catch (error) {
+    return failure(error);
+  }
+}
+
+export async function reportUserAction(
+  _previousState: FormState,
+  formData: FormData
+): Promise<FormState> {
+  const userID = formString(formData, "user_id");
+
+  try {
+    await apiRequest<{ id: string }>({
+      path: `/users/${encodeURIComponent(userID)}/report`,
+      method: "POST",
+      cookieHeader: await incomingCookieHeader(),
+      body: {
+        reason: formString(formData, "reason")
+      }
+    });
+
+    return {
+      status: "success",
+      message: "Report submitted for review."
+    };
+  } catch (error) {
+    return failure(error);
+  }
+}
+
 export async function followSchoolAction(formData: FormData) {
   const schoolID = formString(formData, "school_id");
   const slug = formString(formData, "slug");

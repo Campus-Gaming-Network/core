@@ -4,6 +4,7 @@ import { deleteEventAction, eventInterestAction } from "../../actions";
 import { EventBanner } from "../../../components/event-banner";
 import { EventRSVPForm } from "../../../components/event-rsvp-form";
 import { PrivateEventUnlockForm } from "../../../components/private-event-unlock-form";
+import { ReportForm } from "../../../components/report-form";
 import {
   ApiError,
   eventFormatLabel,
@@ -157,6 +158,10 @@ export default async function EventDetailPage({
             <p className="form-footer">
               Yes RSVPs send a confirmation email with a calendar file.
             </p>
+            <section aria-labelledby="report-event">
+              <h3 id="report-event">Report this event</h3>
+              <ReportForm targetID={event.slug} targetType="event" />
+            </section>
           </>
         ) : (
           <div className="actions">

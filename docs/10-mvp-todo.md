@@ -89,19 +89,19 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 - [x] **Public** team page
 - [x] Password only required to **join / interact**
 - [x] Captains + ownership transfer
-- [ ] Dashboard shows team activity
+- [x] Dashboard shows team activity
 
 ### Dashboard & content
-- [ ] Simple dashboard: upcoming RSVPs + followed-school events + team activity
+- [x] Simple dashboard: upcoming RSVPs + followed-school events + team activity
 - [x] Homepage (works with little/no UGC)
-- [ ] Cold-start plan (demo seed and/or “create first event” CTA)
+- [x] Cold-start plan (demo seed and/or “create first event” CTA)
 - [x] FAQ, About, Terms, Privacy
-- [ ] Support ticket form — **anyone** can submit (logged out OK)
+- [x] Support ticket form — **anyone** can submit (logged out OK)
 
 ### Safety (minimum)
-- [ ] Rate limits: signup, resend verification, event create, reports, private unlock, support tickets
-- [ ] Report event + report user (queued for post-MVP CRM/admin review)
-- [ ] New-account abuse limits (basic)
+- [x] Rate limits: signup, resend verification, event create, reports, private unlock, support tickets
+- [x] Report event + report user (queued for post-MVP CRM/admin review)
+- [x] New-account abuse limits (basic)
 
 ---
 
