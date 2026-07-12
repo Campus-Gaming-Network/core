@@ -23,8 +23,9 @@ banners, teams with password join/captains/ownership transfer, dashboard
 sections, support tickets, and event/user reports.
 
 Remaining MVP work is mostly launch-readiness polish and infrastructure
-tracked in [`docs/10-mvp-todo.md`](./docs/10-mvp-todo.md), including Sentry,
-and deployment path.
+tracked in [`docs/10-mvp-todo.md`](./docs/10-mvp-todo.md), especially the
+Railway production deploy. The target deploy shape is documented in
+[`docs/13-deployment-plan.md`](./docs/13-deployment-plan.md).
 
 ## Quick start
 

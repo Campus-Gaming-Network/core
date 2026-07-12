@@ -15,10 +15,11 @@ Small, concrete engineering choices for Phase 0 and early MVP implementation. Th
 | Go version | Go 1.21 for local compatibility |
 | Go dependencies | Standard library first; add dependencies only when Phase 1 needs them |
 | Frontend auth | Opaque server-side session cookies; no browser JWT auth |
-| Auth session backing | Still open: Postgres vs Redis before auth implementation |
+| Auth session backing | Postgres-backed opaque server-side sessions |
 | Primary keys | Use UUIDs for domain tables unless a later migration ADR overrides this |
 | Migrations | Keep first migrations MVP-only; use timestamped/versioned SQL files in `db/migrations` |
 | Database readiness | Phase 0 `/ready` checks Postgres network reachability; real SQL checks arrive with the DB driver |
+| MVP production hosting | Railway hosts Next.js web, Go API, and PostgreSQL; Cloudflare manages DNS/protection |
 | CRM | Skipped for MVP; CRM/admin app remains post-MVP |
 | Branch campuses | Same UI/UX as other schools |
 | Paid events | MVP supports off-site-payment listings only; no CGN payment processing |
@@ -52,13 +53,8 @@ tests that only assert implementation details. When a test runner or coverage
 threshold is introduced for a layer, add it to CI and keep the threshold
 ratcheting upward rather than treating coverage as a one-time report.
 
-## Deferred until Phase 1+
+## Deferred until post-MVP / later hardening
 
-- Real auth/session implementation
-- SQL driver and query layer
-- User/profile/school/event/team tables
-- School seed import command
-- Resend integration
-- Sentry SDK integration
+- Sentry SDK integration (post-MVP)
 - CRM/admin app
 - TypeScript 7 adoption; revisit when Next.js officially supports it

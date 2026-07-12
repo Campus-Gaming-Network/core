@@ -42,10 +42,12 @@ Decisions to resolve before or during implementation. Until answered, implemente
 ### Technical
 
 21. **Go API style** — REST only, or RPC (Connect/gRPC) behind the BFF?
-22. **Auth session store backing** — Store opaque server-side sessions in Postgres or Redis?
-23. **Analytics** — Plausible vs Cloudflare Web Analytics vs other?
-24. **Activity log vs audit log** — One table with `kind`, or two tables?
-25. **Friends / notifications / i18n** — timing and depth after MVP?
+22. **Railway staging** — Create a separate staging Railway environment before public launch?
+23. **Railway migrations** — Run migrations as a dedicated service/job or API pre-deploy command?
+24. **Domain aliases** — Should `www.campusgamingnetwork.com` redirect to apex or serve the app directly?
+25. **Analytics** — Plausible vs Cloudflare Web Analytics vs other?
+26. **Activity log vs audit log** — One table with `kind`, or two tables?
+27. **Friends / notifications / i18n** — timing and depth after MVP?
 
 ---
 
@@ -72,6 +74,9 @@ Decisions to resolve before or during implementation. Until answered, implemente
 | Event slug hash | **Decided:** **8** Base64URL characters |
 | CRM | **TanStack Start** at `crm.campusgamingnetwork.com` (post-MVP separate release; skipped for main-site MVP) |
 | Main site | `campusgamingnetwork.com` (Next.js) |
+| MVP hosting | **Railway** hosts Next.js web, Go API, and PostgreSQL; Cloudflare manages DNS/protection |
+| Production database | **Railway PostgreSQL** for MVP; enable/verify backups before public launch |
+| Auth session store | Opaque sessions stored in Postgres |
 | School import | All seed rows active (incl. 1,300 branches); branch campuses use same UI/UX; `unitid` optional |
 | Home school | User selects one home school on signup; additional schools are follows |
 | Frontend auth | Use opaque server-side session cookies; avoid JWTs for browser auth |

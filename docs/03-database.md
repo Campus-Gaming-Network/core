@@ -231,12 +231,13 @@ Do not list `unlisted` or `private` events in discovery search. Unlisted is reac
 
 ## Backups
 
-- Nightly automated backups in production
+- Railway PostgreSQL backups must be enabled/verified before public launch
 - Document restore drill in ops notes when infra exists
 
 ## Migrations
 
-- Versioned migrations (tool TBD: golang-migrate, Atlas, etc.)
+- Versioned SQL migrations live in `db/migrations` and are applied by the Go migrator
 - First migrations stay MVP-only; defer schema for clubs, tournaments, feature flags, site announcements, on-site payments, IGDB sync, and CRM/admin-only workflows.
+- In Railway production, run the Go migrator as a pre-deploy command or dedicated migration service/job before the API serves traffic
 - Never rely on manual prod SQL for schema changes
 - CRM/admin tooling exists later so operators are not editing rows by hand for routine ACL/school work

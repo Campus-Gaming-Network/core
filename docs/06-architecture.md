@@ -11,20 +11,25 @@ CRM/admin app:  crm.campusgamingnetwork.com   (post-MVP separate app + separate 
 Browser (Next.js UI, Untitled UI, SSR)
         │
         ▼
+Railway web service
 Next.js BFF (TypeScript)  ── opaque cookie sessions, page data, form actions
         │
         ▼
+Railway private networking
+        │
+        ▼
+Railway API service
 Go API / services         ── domain logic, Postgres access
         │
         ▼
-PostgreSQL
+Railway PostgreSQL
 
 Side paths:
   Post-MVP CRM (TanStack Start, separate deploy) ──► Go API
   Resend ──► transactional mail + ICS
   Cloudflare R2 ──► school logos (post-MVP CRM/admin); other uploads later
-  Sentry ──► errors
-  Cloudflare ──► edge / protection / hosting preference
+  Sentry ──► errors (post-MVP)
+  Cloudflare ──► DNS / edge protection
   IGDB ──► later game enrichment (via CRM / cron); MVP uses curated seed list
 ```
 
@@ -38,13 +43,14 @@ Side paths:
 | UI kit | Untitled UI | Primary component library |
 | A11y / patterns | GOV.UK Design System (reference) | Prefer accessible, clear components |
 | Server / API | Go | All server domain code in Go |
-| Database | PostgreSQL | Nightly backups |
+| Database | Railway PostgreSQL | Backups required before public launch |
 | Local dev | Docker | Works on all systems; develop on M1 MacBook |
-| Edge / host | Cloudflare (preferred) | Protection + hosting; main site at campusgamingnetwork.com |
+| App host | Railway | Hosts Next.js web and Go API for MVP |
+| DNS / edge | Cloudflare | DNS and edge protection for campusgamingnetwork.com |
 | CRM | TanStack Start | Post-MVP separate app/release at crm.campusgamingnetwork.com |
 | Email | Resend | Verification, password reset, RSVP+ICS, etc. |
 | Object storage | Cloudflare R2 | Post-MVP school logos via CRM/admin app (PNG/JPG ≤500 MB); custom event banners later |
-| Errors | Sentry | Bug reporting |
+| Errors | Sentry | Post-MVP bug reporting; not required for MVP launch |
 | Avatars | Gravatar with initials fallback | Custom avatars later |
 | Maps | Google Maps embed (mini) | Post-MVP nicety; address text first |
 | Games data | Curated MVP seed; IGDB later | Not user-editable; CRM/admin app manages later |
@@ -85,14 +91,14 @@ Side paths:
 - Impersonation for site admins (audit every impersonation)
 - XSS prevention (encode/sanitize output)
 - SQL injection prevention (parameterized queries)
-- Cloudflare for edge protection where possible
+- Cloudflare for DNS and edge protection
 - Support email for user issues
 
 ## Observability
 
 | Concern | Approach |
 |---------|----------|
-| Errors | Sentry |
+| Errors | App/system logs for MVP; Sentry post-MVP |
 | Health | Dedicated health checks |
 | Audit | Polymorphic `audit_logs` (who changed what on which entity) |
 | System logs | App/ops logging (distinct from audit) |
@@ -148,10 +154,15 @@ Side paths:
 
 ## Deployment & data
 
-- Prefer Cloudflare hosting/protection
-- Nightly database backups
+- Main-site MVP deploys to Railway: one public Next.js service, one private Go API service, and Railway PostgreSQL.
+- Cloudflare manages DNS/protection for `campusgamingnetwork.com`.
+- Railway PostgreSQL backups must be enabled/verified before public launch.
+- Run migrations through the existing Go migrator as a Railway pre-deploy command or dedicated migration service/job.
+- Keep the Go API private to Railway networking unless a temporary public URL is needed for debugging.
 - Environment-based config; secrets not in repo
 - US-only product assumptions at launch (no i18n school directory yet)
+
+See [13 — Deployment plan](./13-deployment-plan.md) for the concrete Railway topology, environment variables, launch smoke test, and rollback posture.
 
 ## Dependency policy
 

@@ -4,9 +4,9 @@ Phased delivery for a single developer. Each phase should be shippable. Do not p
 
 **URLs:** main site MVP = `campusgamingnetwork.com` · CRM/admin app = `crm.campusgamingnetwork.com` (post-MVP TanStack Start release).
 
-**Infra:** Resend (email; `events@` / `notifications@` / `support@` / `account@`) · curated MVP games (6 titles). Cloudflare R2 for CRM/admin logo uploads is post-MVP.
+**Infra:** Railway (Next.js web, Go API, PostgreSQL) · Cloudflare DNS/protection · Resend email (`events@` / `notifications@` / `support@` / `account@`) · curated MVP games (6 titles). Cloudflare R2 for CRM/admin logo uploads is post-MVP.
 
-**MVP excludes:** CRM/admin app, clubs, tournaments, on-site payments, usernames, waitlists, team invite links, feature flags, near-you, cancel-event RSVP emails, custom event banner uploads.
+**MVP excludes:** Sentry/error monitoring, CRM/admin app, clubs, tournaments, on-site payments, usernames, waitlists, team invite links, feature flags, near-you, cancel-event RSVP emails, custom event banner uploads.
 
 **School seed:** import all 6,243 operating schools (4,943 main · 1,300 branch) as `is_active=true`; branch campuses use the same UI/UX; review later in CRM/admin tooling.
 
@@ -19,12 +19,13 @@ Phased delivery for a single developer. Each phase should be shippable. Do not p
 - Untitled UI + base layout; accessibility baseline
 - `created_at` / `updated_at` / `deleted_at` conventions
 - Health (`/health`, `/ready`)
-- Sentry hooked up
 - System logging vs audit logging distinction established
 - CI lint/test stubs
-- Cloudflare-friendly deploy path for `campusgamingnetwork.com` (even if staging-only)
+- Railway deploy path for `campusgamingnetwork.com` with web, API, Postgres, migrations, backups, and DNS defined
 
 **Exit:** `docker compose up` works; health green; blank accessible shell page.
+
+**Production deploy decision:** [13 — Deployment plan](./13-deployment-plan.md) locks the main-site MVP onto Railway for the Next.js web service, Go API service, and PostgreSQL database, with Cloudflare for DNS/protection.
 
 ## Phase 1 — Auth, profiles, schools (read) — MVP
 
@@ -124,6 +125,7 @@ Phased delivery for a single developer. Each phase should be shippable. Do not p
 **Goal:** Safe to run with real users at scale.
 
 - Nightly DB backups + restore notes
+- Sentry/error monitoring
 - Broader rate limiting
 - Impersonation for site admins (audited)
 - Account deletion anonymization path tested

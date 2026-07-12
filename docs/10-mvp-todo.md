@@ -2,11 +2,11 @@
 
 Status tracker for the main-site MVP. Locked product decisions live in the other docs (`01`, `05`, `08`) — not repeated here.
 
-**Current P0 remaining:** Sentry and deploy path for `campusgamingnetwork.com`.
+**Current P0 remaining:** implement the Railway production deploy, DNS, backups, migrations, and smoke test for `campusgamingnetwork.com`.
 
 **MVP slice:** auth → home school on signup → schools search/follow → events + curated games → teams → dashboard.
 
-**Out of MVP:** CRM/admin app, clubs, tournaments, on-site payments, usernames, waitlists, invite links, feature flags, near-you, cancel-event RSVP emails, custom event banner uploads (use default placeholder; moderation later).
+**Out of MVP:** Sentry/error monitoring, CRM/admin app, clubs, tournaments, on-site payments, usernames, waitlists, invite links, feature flags, near-you, cancel-event RSVP emails, custom event banner uploads (use default placeholder; moderation later).
 
 **School seed:** 6,243 operating schools (4,943 main · **1,300 branch**). Import all, `is_active=true`; branch campuses use the same UI/UX; review later in CRM/admin tooling.
 
@@ -28,6 +28,7 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 | School logos | Placeholder in MVP; CRM/admin upload via R2 later |
 | Email From | `events@` / `notifications@` / `support@` / `account@campusgamingnetwork.com` |
 | Paid events | Allowed in MVP as off-site-payment listings only; no CGN checkout/payments |
+| MVP deploy path | Railway hosts Next.js, Go API, and PostgreSQL; Cloudflare manages DNS/protection |
 
 ---
 
@@ -37,9 +38,9 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 - [x] Docker Compose: Next.js, Go API, Postgres (M1-friendly)
 - [x] Project skeletons + BFF wiring
 - [x] Health checks
-- [ ] Sentry
 - [x] Resend wired for transactional email
-- [ ] Deploy path for `campusgamingnetwork.com`
+- [x] Deploy path selected: Railway for web, API, and Postgres
+- [ ] Implement Railway production deploy + DNS + backups + migration/smoke-test flow for `campusgamingnetwork.com`
 
 ### Auth & profiles
 - [x] Signup / login / logout
@@ -122,6 +123,7 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 
 ### Product polish
 - [ ] Soft-pedal friends/clubs/tournaments in marketing copy
+- [ ] Sentry/error monitoring
 - [ ] Analytics (non-GA: Plausible or Cloudflare Web Analytics)
 - [ ] Profanity filter scope (or explicitly defer)
 
