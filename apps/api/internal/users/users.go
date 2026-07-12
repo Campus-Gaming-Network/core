@@ -2,6 +2,7 @@ package users
 
 import (
 	"context"
+	"crypto/md5"
 	"errors"
 	"fmt"
 	"net/mail"
@@ -23,6 +24,7 @@ type Profile struct {
 	EmailVerifiedAt   *time.Time   `json:"email_verified_at,omitempty"`
 	VerificationLevel string       `json:"verification_level"`
 	Name              string       `json:"name"`
+	AvatarURL         string       `json:"avatar_url,omitempty"`
 	Bio               string       `json:"bio,omitempty"`
 	Timezone          string       `json:"timezone"`
 	HomeSchoolID      string       `json:"home_school_id"`
@@ -33,6 +35,7 @@ type Profile struct {
 type PublicProfile struct {
 	ID                string       `json:"id"`
 	Name              string       `json:"name"`
+	AvatarURL         string       `json:"avatar_url,omitempty"`
 	Bio               string       `json:"bio,omitempty"`
 	VerificationLevel string       `json:"verification_level"`
 	HomeSchoolID      string       `json:"home_school_id"`
@@ -102,6 +105,7 @@ func (p Profile) Public() PublicProfile {
 	return PublicProfile{
 		ID:                p.ID,
 		Name:              p.Name,
+		AvatarURL:         p.AvatarURL,
 		Bio:               p.Bio,
 		VerificationLevel: p.VerificationLevel,
 		HomeSchoolID:      p.HomeSchoolID,
@@ -112,6 +116,15 @@ func (p Profile) Public() PublicProfile {
 
 func NormalizeEmail(email string) string {
 	return strings.ToLower(strings.TrimSpace(email))
+}
+
+func GravatarURL(email string) string {
+	normalized := NormalizeEmail(email)
+	if normalized == "" {
+		return ""
+	}
+	hash := md5.Sum([]byte(normalized))
+	return fmt.Sprintf("https://www.gravatar.com/avatar/%x?s=160&d=404", hash)
 }
 
 func ValidateSignup(input SignupInput) error {
@@ -348,6 +361,8 @@ func (r *PostgresRepository) ReplaceSocialLinks(ctx context.Context, id string, 
 }
 
 func profileWithAssociations(ctx context.Context, repository *PostgresRepository, profile Profile) (Profile, error) {
+	profile.AvatarURL = GravatarURL(profile.Email)
+
 	homeSchool, err := repository.getHomeSchool(ctx, profile.HomeSchoolID)
 	if err != nil {
 		return Profile{}, err

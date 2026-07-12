@@ -3,28 +3,28 @@
 Central hub for collegiate gamers: discover schools, events, teams, and campus gaming activity.
 
 The product/domain docs live in [`docs/`](./docs/README.md). This root README
-covers the local scaffold and current Phase 1 progress.
+covers the local scaffold and current MVP implementation status.
 
 ## Current status
 
-Phase 0 and the Phase 1 auth/profile/school read slice are implemented locally:
+The main-site MVP feature slices through events, teams, dashboard, and basic
+safety intake are implemented locally:
 
-- `apps/web` — Next.js main site with public pages, auth forms, profile, and school follow UI
-- `apps/api` — Go API with health, school/game reads, and session middleware
+- `apps/web` — Next.js main site with public pages, auth forms, profiles, schools, events, teams, dashboard, support, and report UI
+- `apps/api` — Go API with health, auth/session middleware, schools/games, events, teams, dashboard helpers, support tickets, and reports
 - `db/migrations` — versioned MVP-only SQL migrations
 - `docker-compose.yml` — web + API + Postgres
 - `.github/workflows/ci.yml` — initial CI checks
 
-Phase 1A–1D are functionally covered for the MVP auth/profile/school read
-slice: migrations cover identity/profile, schools, follows, and games; the six
-launch games are seeded; all 6,243 school rows are bootstrapped; public
-school/game reads and authenticated follow/unfollow routes are wired; and the
-main site supports signup, 18+ and home-school enforcement, verification,
-login/logout, password reset, account/profile editing, social links, public
-profiles, followed-school states, and public content stubs.
+Implemented locally: identity/profile, 18+ and home-school signup enforcement,
+email verification, password reset, all 6,243 seeded schools, six launch games,
+school follow/unfollow, events with RSVP/interested/private unlock/default
+banners, teams with password join/captains/ownership transfer, dashboard
+sections, support tickets, and event/user reports.
 
-Remaining MVP work starts with Phase 2 events, plus production hardening and
-polish items tracked in [`docs/10-mvp-todo.md`](./docs/10-mvp-todo.md).
+Remaining MVP work is mostly launch-readiness polish and infrastructure
+tracked in [`docs/10-mvp-todo.md`](./docs/10-mvp-todo.md), including Sentry,
+and deployment path.
 
 ## Quick start
 

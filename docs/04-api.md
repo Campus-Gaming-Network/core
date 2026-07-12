@@ -21,7 +21,7 @@ Prefer server-rendered pages and server actions over exposing a wide public JSON
 
 - **AuthN** — frontend auth uses opaque server-side session cookies (not JWTs); every mutating call validates the session or an explicit non-frontend service credential
 - **AuthZ** — enforce roles from [07 — Permissions](./07-permissions.md)
-- **Rate limiting** — especially `POST /auth/signup`, `POST /events`, `POST /reports`
+- **Rate limiting** — especially `POST /auth/signup`, `POST /auth/resend-verification`, `POST /events`, private event unlocks, report endpoints, and `POST /support-tickets`
 - **Idempotency** — consider keys for RSVP and registration emails
 - **Health** — `GET /health` (liveness) and `GET /ready` (DB connectivity)
 - **Errors** — structured error codes; no stack traces to clients
@@ -53,7 +53,9 @@ Not every path must exist on day one — align with [05 — Roadmap](./05-roadma
 | PATCH | `/me` | Name, bio, socials, timezone, majors, graduation |
 | DELETE | `/me` | Anonymize PII |
 | GET | `/me/schools` | Followed schools |
-| GET | `/me/activity` | User activity log |
+| GET | `/me/events` | Dashboard event sections: upcoming RSVPs + followed-school public events |
+| GET | `/me/teams` | Dashboard team activity |
+| GET | `/me/activity` | Future full user activity log |
 | GET | `/users/:id` | Public profile (database id), including `home_school_id` and a display-ready `home_school` summary when available |
 | POST | `/users/:id/report` | Rate limited |
 
@@ -85,11 +87,11 @@ Not every path must exist on day one — align with [05 — Roadmap](./05-roadma
 | Method | Path | Notes |
 |--------|------|-------|
 | POST | `/teams` | Anyone authenticated |
-| GET | `/teams/:id` | **Public** team page |
-| POST | `/teams/:id/join` | Password required to join/interact |
-| POST | `/teams/:id/transfer-ownership` | Owner |
-| POST | `/teams/:id/captains` | Assign captains |
-| GET | `/teams/:id/audit` | Team change history |
+| GET | `/teams/:slug` | **Public** team page |
+| POST | `/teams/:slug/join` | Password required to join/interact |
+| POST | `/teams/:slug/transfer-ownership` | Owner |
+| POST | `/teams/:slug/captains` | Assign captains |
+| GET | `/teams/:slug/audit` | Team change history |
 
 ### Events
 
@@ -102,8 +104,8 @@ Not every path must exist on day one — align with [05 — Roadmap](./05-roadma
 | PATCH | `/events/:slug` | Organizers; past-event field restrictions |
 | DELETE | `/events/:slug` | Soft delete (no RSVP notify emails in MVP) |
 | POST | `/events/:slug/rsvp` | yes/no/maybe; capacity counts **yes only**; reject yes if full; email+ICS on yes |
-| POST | `/events/:slug/interested` | Favorite/bookmark (toggle); independent of RSVP |
-| DELETE | `/events/:slug/interested` | Remove favorite |
+| POST | `/events/:slug/interest` | Favorite/bookmark; independent of RSVP |
+| DELETE | `/events/:slug/interest` | Remove favorite |
 | POST | `/events/:slug/report` | Rate limited |
 | GET | `/events/:slug/audit` | |
 
@@ -140,11 +142,11 @@ Discovery lists only `visibility = public`. Unlisted is link/slug only. Private:
 
 | Method | Path | Notes |
 |--------|------|-------|
+| POST | `/support-tickets` | Main site: anyone can submit (logged out OK); rate limited |
 | GET | `/admin/reports` | All reports |
 | PATCH | `/admin/reports/:id` | |
 | GET | `/admin/support-tickets` | Support tickets from main site |
 | PATCH | `/admin/support-tickets/:id` | |
-| POST | `/support-tickets` | Main site: anyone can submit (logged out OK); rate limited |
 | POST | `/admin/impersonate` | Site admin; heavily audited (may be later) |
 | POST | `/admin/impersonate/stop` | |
 | CRUD | `/admin/feature-flags` | Post-MVP |

@@ -15,6 +15,7 @@ import {
   publicProfileHomeSchool,
   schoolLocation,
   teamRoleLabel,
+  userInitials,
   userMessageForApiError,
   type Fetcher
 } from "../lib/cgn-api.js";
@@ -229,6 +230,12 @@ test("publicProfileHomeSchool prefers display summary over raw ID", () => {
       href: undefined
     }
   );
+});
+
+test("userInitials uses up to the first two name parts", () => {
+  assert.equal(userInitials("Player One"), "PO");
+  assert.equal(userInitials("  solo  "), "S");
+  assert.equal(userInitials(""), "CG");
 });
 
 test("event helpers format labels and locations", () => {

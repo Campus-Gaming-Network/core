@@ -144,6 +144,7 @@ export type Profile = {
   email_verified_at?: string;
   verification_level: string;
   name: string;
+  avatar_url?: string;
   bio?: string;
   timezone: string;
   home_school_id: string;
@@ -154,6 +155,7 @@ export type Profile = {
 export type PublicProfile = {
   id: string;
   name: string;
+  avatar_url?: string;
   bio?: string;
   verification_level: string;
   home_school_id: string;
@@ -408,6 +410,17 @@ export function publicProfileHomeSchool(profile: PublicProfile) {
     location: "",
     href: undefined
   };
+}
+
+export function userInitials(name: string) {
+  const initials = name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => Array.from(part)[0]?.toUpperCase() ?? "")
+    .join("");
+
+  return initials || "CG";
 }
 
 export function isLockedEvent(event: EventDetail): event is LockedEvent {

@@ -1,6 +1,8 @@
 # MVP todo
 
-Remaining work only. Locked product decisions live in the other docs (`01`, `05`, `08`) — not repeated here.
+Status tracker for the main-site MVP. Locked product decisions live in the other docs (`01`, `05`, `08`) — not repeated here.
+
+**Current P0 remaining:** Sentry and deploy path for `campusgamingnetwork.com`.
 
 **MVP slice:** auth → home school on signup → schools search/follow → events + curated games → teams → dashboard.
 
@@ -46,7 +48,7 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 - [x] 18+ checkbox (store timestamp)
 - [x] Forgot / reset password
 - [x] Profile: single **name** field, bio, socials, timezone
-- [ ] Gravatar fallback
+- [x] Gravatar with initials fallback
 - [x] Public profile at `/users/:id` (database id)
 
 ### Schools

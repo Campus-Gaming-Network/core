@@ -35,6 +35,7 @@ func TestProfilePublicIncludesHomeSchoolSummary(t *testing.T) {
 	profile := Profile{
 		ID:                "user-id",
 		Name:              "Player",
+		AvatarURL:         "https://www.gravatar.com/avatar/example?s=160&d=404",
 		VerificationLevel: "basic",
 		HomeSchoolID:      "school-id",
 		HomeSchool: &HomeSchool{
@@ -58,7 +59,21 @@ func TestProfilePublicIncludesHomeSchoolSummary(t *testing.T) {
 	if public.HomeSchoolID != "school-id" {
 		t.Fatalf("Public() HomeSchoolID = %q, want original ID", public.HomeSchoolID)
 	}
+	if public.AvatarURL != profile.AvatarURL {
+		t.Fatalf("Public() AvatarURL = %q, want profile avatar URL", public.AvatarURL)
+	}
 	if len(public.SocialLinks) != 1 {
 		t.Fatalf("Public() SocialLinks = %#v, want social links preserved", public.SocialLinks)
+	}
+}
+
+func TestGravatarURL(t *testing.T) {
+	got := GravatarURL(" Player@Example.COM ")
+	want := "https://www.gravatar.com/avatar/b946f2a0c0264d3d46b7d332c9f0b7c7?s=160&d=404"
+	if got != want {
+		t.Fatalf("GravatarURL() = %q, want %q", got, want)
+	}
+	if GravatarURL("") != "" {
+		t.Fatal("GravatarURL(\"\") returned a URL, want empty string")
 	}
 }

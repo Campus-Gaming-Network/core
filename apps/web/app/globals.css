@@ -527,14 +527,29 @@ code {
 
 .avatar {
   display: grid;
+  position: relative;
   width: 5rem;
   height: 5rem;
+  overflow: hidden;
   place-items: center;
   border-radius: 8px;
   background: var(--brand-dark);
   color: #ffffff;
   font-size: 1.5rem;
   font-weight: 900;
+}
+
+.avatar span {
+  z-index: 1;
+}
+
+.avatar img {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .pill-list {

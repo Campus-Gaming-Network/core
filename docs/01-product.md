@@ -180,7 +180,7 @@ Signup also requires confirming **age 18+**. Alumni can participate. Faculty who
 
 ### Profiles & social
 
-- Gravatar avatars at launch
+- Gravatar avatars at launch, with initials fallback when no Gravatar image exists
 - Single **name** field (no usernames; no separate first/last/display)
 - Profile URL: `/users/:id` (database id)
 - Bio + social links

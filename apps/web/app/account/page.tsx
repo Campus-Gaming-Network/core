@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ProfileForm } from "../../components/profile-form";
+import { UserAvatar } from "../../components/user-avatar";
 import {
   type Event as DashboardEvent,
   eventLifecycleLabel,
@@ -33,13 +34,16 @@ export default async function AccountPage() {
 
   return (
     <main className="narrow">
-      <section className="page-heading">
-        <p className="eyebrow">Account</p>
-        <h1>{profile.name}</h1>
-        <p className="lede">
-          Your account dashboard for profile details, followed schools, and
-          team activity.
-        </p>
+      <section className="profile-hero">
+        <UserAvatar avatarURL={profile.avatar_url} name={profile.name} />
+        <div>
+          <p className="eyebrow">Account</p>
+          <h1>{profile.name}</h1>
+          <p className="lede">
+            Your account dashboard for profile details, followed schools, and
+            team activity.
+          </p>
+        </div>
       </section>
 
       <section className="summary-strip" aria-label="Account summary">

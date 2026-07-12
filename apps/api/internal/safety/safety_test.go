@@ -25,6 +25,26 @@ func TestValidateSupportTicket(t *testing.T) {
 	}
 }
 
+func TestNormalizeSupportTicketParsesContactEmail(t *testing.T) {
+	input := SupportTicketInput{
+		SubmitterUserID: " 11111111-1111-1111-1111-111111111111 ",
+		ContactEmail:    " Player One <PLAYER@Example.COM> ",
+		Name:            " Player One ",
+		Subject:         " Need help ",
+		Message:         " Hello! ",
+	}
+
+	normalized := normalizeSupportTicket(input)
+	if normalized.ContactEmail != "player@example.com" {
+		t.Fatalf("ContactEmail = %q, want parsed lowercase address", normalized.ContactEmail)
+	}
+	if normalized.Name != "Player One" ||
+		normalized.Subject != "Need help" ||
+		normalized.Message != "Hello!" {
+		t.Fatalf("normalized text fields = %#v, want trimmed values", normalized)
+	}
+}
+
 func TestValidateReport(t *testing.T) {
 	valid := ReportInput{
 		ReporterUserID: "11111111-1111-1111-1111-111111111111",

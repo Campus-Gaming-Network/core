@@ -208,11 +208,19 @@ func (r *PostgresRepository) ensureActiveUser(ctx context.Context, id string) er
 
 func normalizeSupportTicket(input SupportTicketInput) SupportTicketInput {
 	input.SubmitterUserID = strings.TrimSpace(input.SubmitterUserID)
-	input.ContactEmail = strings.ToLower(strings.TrimSpace(input.ContactEmail))
+	input.ContactEmail = normalizeEmailAddress(input.ContactEmail)
 	input.Name = strings.TrimSpace(input.Name)
 	input.Subject = strings.TrimSpace(input.Subject)
 	input.Message = strings.TrimSpace(input.Message)
 	return input
+}
+
+func normalizeEmailAddress(value string) string {
+	address, err := mail.ParseAddress(strings.TrimSpace(value))
+	if err != nil {
+		return strings.ToLower(strings.TrimSpace(value))
+	}
+	return strings.ToLower(strings.TrimSpace(address.Address))
 }
 
 func normalizeReport(input ReportInput) ReportInput {

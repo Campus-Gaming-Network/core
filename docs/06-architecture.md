@@ -45,7 +45,7 @@ Side paths:
 | Email | Resend | Verification, password reset, RSVP+ICS, etc. |
 | Object storage | Cloudflare R2 | Post-MVP school logos via CRM/admin app (PNG/JPG ≤500 MB); custom event banners later |
 | Errors | Sentry | Bug reporting |
-| Avatars | Gravatar | Custom avatars later |
+| Avatars | Gravatar with initials fallback | Custom avatars later |
 | Maps | Google Maps embed (mini) | Post-MVP nicety; address text first |
 | Games data | Curated MVP seed; IGDB later | Not user-editable; CRM/admin app manages later |
 | Analytics | Non-GA tool (TBD) | No Google Analytics (perf) |
@@ -68,7 +68,7 @@ Side paths:
 - Shared **audit log** for entity changes
 - Separate **system logs** (ops) from audit logs (domain history)
 - Health check endpoints
-- Rate limiting (global + signups, event creation, reports, private-event unlock)
+- Rate limiting (global + signups/resend by IP and email, event creation, reports, private-event unlock, support tickets)
 - Profanity filter on user-generated text fields
 - **Search in Postgres first** (`pg_trgm` / `tsvector`) for schools, events, tournaments — no Elasticsearch until Postgres is proven insufficient
 

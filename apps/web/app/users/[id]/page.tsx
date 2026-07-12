@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ReportForm } from "../../../components/report-form";
+import { UserAvatar } from "../../../components/user-avatar";
 import { ApiError, publicProfileHomeSchool } from "../../../lib/cgn-api";
 import { currentProfile, getPublicProfile } from "../../../lib/server-api";
 
@@ -25,9 +26,7 @@ export default async function PublicProfilePage({ params }: PageProps) {
   return (
     <main className="narrow">
       <section className="profile-hero">
-        <div className="avatar" aria-hidden="true">
-          {initials(profile.name)}
-        </div>
+        <UserAvatar avatarURL={profile.avatar_url} name={profile.name} />
         <div>
           <p className="eyebrow">Public profile</p>
           <h1>{profile.name}</h1>
@@ -84,13 +83,4 @@ export default async function PublicProfilePage({ params }: PageProps) {
       </section>
     </main>
   );
-}
-
-function initials(name: string) {
-  return name
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join("");
 }
