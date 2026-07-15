@@ -35,11 +35,11 @@ export default async function TeamsPage({ searchParams }: PageProps) {
         </p>
         <div className="actions">
           {profile ? (
-            <Link className="button primary" href="/teams/new">
+            <Link className="button button--primary" href="/teams/new">
               Create team
             </Link>
           ) : (
-            <Link className="button primary" href="/login?next=/teams/new">
+            <Link className="button button--primary" href="/login?next=/teams/new">
               Log in to create
             </Link>
           )}
@@ -84,7 +84,7 @@ export default async function TeamsPage({ searchParams }: PageProps) {
       {result.teams.length > 0 ? (
         <div className="list">
           {result.teams.map((team) => (
-            <Link className="list-item block" href={`/teams/${team.slug}`} key={team.id}>
+            <Link className="card card--default list-item block" href={`/teams/${team.slug}`} key={team.id}>
               <span className="event-card-heading">
                 <strong>{team.name}</strong>
                 <small>{team.member_count} member{team.member_count === 1 ? "" : "s"}</small>
@@ -95,7 +95,7 @@ export default async function TeamsPage({ searchParams }: PageProps) {
           ))}
         </div>
       ) : (
-        <EmptyState className="empty-state">
+        <EmptyState>
           <h2>No teams found</h2>
           <p>
             Try clearing filters or create the first team for your campus.

@@ -36,8 +36,7 @@ export function TeamForm({
     <form action={action} className="form-stack">
       {state.message ? (
         <Alert
-          className={`notice ${state.status}`}
-          status={state.status === "error" ? "danger" : "success"}
+      status={state.status === "error" ? "danger" : "success"}
         >
           {state.message}
         </Alert>
@@ -86,7 +85,7 @@ export function TeamForm({
       <Fieldset>
         <Fieldset.Legend>Games</Fieldset.Legend>
         {games.map((game) => (
-          <Checkbox className="check-row" key={game.id} name="game_ids" value={game.id}>
+          <Checkbox key={game.id} name="game_ids" value={game.id}>
             {game.name}
           </Checkbox>
         ))}

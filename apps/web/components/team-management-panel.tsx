@@ -44,7 +44,7 @@ export function TeamManagementPanel({ team }: TeamManagementPanelProps) {
             ))}
           </div>
         ) : (
-          <EmptyState className="empty-state">
+          <EmptyState>
             Members will appear here after they join with the team password.
           </EmptyState>
         )}
@@ -90,12 +90,12 @@ export function TeamManagementPanel({ team }: TeamManagementPanelProps) {
               Ownership transfer is immediate. You will remain on the team as a
               member after the transfer.
             </p>
-            <Button className="secondary" type="submit">
+            <Button variant="secondary" type="submit">
               Transfer ownership
             </Button>
           </form>
         ) : (
-          <EmptyState className="empty-state">
+          <EmptyState>
             Add another member before transferring ownership.
           </EmptyState>
         )}
@@ -123,7 +123,7 @@ function MemberManagementRow({
         <input type="hidden" name="slug" value={slug} />
         <input type="hidden" name="user_id" value={member.user_id} />
         <input type="hidden" name="captain" value={isCaptain ? "false" : "true"} />
-        <Button className={isCaptain ? "secondary" : "primary"} type="submit">
+        <Button variant={isCaptain ? "secondary" : "primary"} type="submit">
           {isCaptain ? "Remove captain" : "Make captain"}
         </Button>
       </form>

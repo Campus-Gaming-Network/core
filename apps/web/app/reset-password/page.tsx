@@ -19,9 +19,9 @@ export default async function ResetPasswordPage({ searchParams }: PageProps) {
       {token ? (
         <ResetPasswordForm token={token} />
       ) : (
-        <Alert className="notice error" status="danger">
+        <Alert status="danger">
           This reset link is missing its token. Request a new link from{" "}
-          <Link href="/forgot-password">forgot password</Link>.
+          <Link className="link" href="/forgot-password">forgot password</Link>.
         </Alert>
       )}
     </main>

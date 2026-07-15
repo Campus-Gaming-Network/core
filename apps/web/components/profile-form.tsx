@@ -21,8 +21,7 @@ export function ProfileForm({ profile }: { profile: Profile }) {
     <form action={action} className="form-stack">
       {state.message ? (
         <Alert
-          className={`notice ${state.status}`}
-          status={state.status === "error" ? "danger" : "success"}
+      status={state.status === "error" ? "danger" : "success"}
         >
           {state.message}
         </Alert>

@@ -26,12 +26,12 @@ export default async function VerifyEmailPage({ searchParams }: PageProps) {
         <h1>{heading(status)}</h1>
       </section>
       {status === "verified" ? (
-        <Alert className="notice success" status="success">
-          Your email is verified. <Link href="/login">Log in</Link> to continue.
+        <Alert status="success">
+          Your email is verified. <Link className="link" href="/login">Log in</Link> to continue.
         </Alert>
       ) : (
         <>
-          <Alert className="notice error" status="danger">
+          <Alert status="danger">
             {status === "missing"
               ? "This verification link is missing its token."
               : "This verification link is invalid or expired."}

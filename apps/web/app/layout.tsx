@@ -26,23 +26,23 @@ export default async function RootLayout({
             Campus Gaming Network
           </Link>
           <nav aria-label="Main navigation">
-            <Link href="/schools">Schools</Link>
-            <Link href="/events">Events</Link>
-            <Link href="/teams">Teams</Link>
-            <Link href="/faq">FAQ</Link>
+            <Link className="link" href="/schools">Schools</Link>
+            <Link className="link" href="/events">Events</Link>
+            <Link className="link" href="/teams">Teams</Link>
+            <Link className="link" href="/faq">FAQ</Link>
             {profile ? (
               <>
-                <Link href="/account">Account</Link>
+                <Link className="link" href="/account">Account</Link>
                 <form action={logoutAction}>
-                  <Button className="secondary" type="submit">
+                  <Button variant="secondary" type="submit">
                     Log out
                   </Button>
                 </form>
               </>
             ) : (
               <>
-                <Link href="/login">Log in</Link>
-                <Link className="nav-cta" href="/signup">
+                <Link className="link" href="/login">Log in</Link>
+                <Link className="button button--primary" href="/signup">
                   Sign up
                 </Link>
               </>
@@ -51,10 +51,10 @@ export default async function RootLayout({
         </header>
         {children}
         <footer className="site-footer">
-          <Link href="/about">About</Link>
-          <Link href="/support">Support</Link>
-          <Link href="/terms">Terms</Link>
-          <Link href="/privacy">Privacy</Link>
+          <Link className="link" href="/about">About</Link>
+          <Link className="link" href="/support">Support</Link>
+          <Link className="link" href="/terms">Terms</Link>
+          <Link className="link" href="/privacy">Privacy</Link>
         </footer>
       </body>
     </html>

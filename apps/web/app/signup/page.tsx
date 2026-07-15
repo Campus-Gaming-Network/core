@@ -44,7 +44,7 @@ export default async function SignupPage({ searchParams }: PageProps) {
         selectedSchoolId={selectedSchoolId}
       />
       <p className="form-footer">
-        Already verified? <Link href="/login">Log in</Link>
+        Already verified? <Link className="link" href="/login">Log in</Link>
       </p>
     </main>
   );

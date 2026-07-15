@@ -48,7 +48,7 @@ export default async function SchoolsPage({ searchParams }: PageProps) {
       {result.schools.length > 0 ? (
         <div className="list">
           {result.schools.map((school) => (
-            <Link className="list-item" href={`/schools/${school.slug}`} key={school.id}>
+            <Link className="card card--default list-item" href={`/schools/${school.slug}`} key={school.id}>
               <span>
                 <strong>{school.name}</strong>
                 {school.alias ? <small>{school.alias}</small> : null}
@@ -58,7 +58,7 @@ export default async function SchoolsPage({ searchParams }: PageProps) {
           ))}
         </div>
       ) : (
-        <EmptyState className="empty-state">
+        <EmptyState>
           <h2>No schools found</h2>
           <p>
             Try a broader school name or clear the state filter. If this keeps

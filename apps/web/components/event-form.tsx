@@ -48,8 +48,7 @@ export function EventForm({
       {event ? <input type="hidden" name="slug" value={event.slug} /> : null}
       {state.message ? (
         <Alert
-          className={`notice ${state.status}`}
-          status={state.status === "error" ? "danger" : "success"}
+      status={state.status === "error" ? "danger" : "success"}
         >
           {state.message}
         </Alert>
@@ -270,7 +269,7 @@ export function EventForm({
             }
           />
         </label>
-        <Checkbox className="check-row" name="is_paid" defaultSelected={event?.is_paid}>
+        <Checkbox name="is_paid" defaultSelected={event?.is_paid}>
           <span>This event has off-site payment instructions.</span>
         </Checkbox>
         <label>

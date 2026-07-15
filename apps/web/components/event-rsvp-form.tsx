@@ -31,8 +31,7 @@ export function EventRSVPForm({ event }: EventRSVPFormProps) {
       {state.message ? (
         <Alert
           aria-live="polite"
-          className={`notice ${state.status}`}
-          status={state.status === "error" ? "danger" : "success"}
+      status={state.status === "error" ? "danger" : "success"}
         >
           {state.message}
         </Alert>
@@ -51,7 +50,7 @@ export function EventRSVPForm({ event }: EventRSVPFormProps) {
         {responses.map((response) => (
           <Button
             aria-pressed={event.viewer_rsvp === response}
-            className={event.viewer_rsvp === response ? "primary" : "secondary"}
+            variant={event.viewer_rsvp === response ? "primary" : "secondary"}
             isDisabled={
               pending ||
               isEnded ||

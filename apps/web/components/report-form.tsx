@@ -31,8 +31,7 @@ export function ReportForm({ targetID, targetType }: ReportFormProps) {
       {state.message ? (
         <Alert
           aria-live="polite"
-          className={`notice ${state.status}`}
-          status={state.status === "error" ? "danger" : "success"}
+      status={state.status === "error" ? "danger" : "success"}
         >
           {state.message}
         </Alert>
@@ -47,7 +46,7 @@ export function ReportForm({ targetID, targetType }: ReportFormProps) {
           placeholder="Tell us what looks unsafe, abusive, spammy, or misleading."
         />
       </label>
-      <Button className="secondary" type="submit" isDisabled={pending}>
+      <Button variant="secondary" type="submit" isDisabled={pending}>
         {pending ? "Submitting..." : "Submit report"}
       </Button>
     </form>

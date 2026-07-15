@@ -60,12 +60,12 @@ export default async function AccountPage() {
         </Card>
         <Card>
           <strong>Public profile</strong>
-          <Link href={`/users/${profile.id}`}>View profile</Link>
+          <Link className="link" href={`/users/${profile.id}`}>View profile</Link>
         </Card>
       </section>
 
       {!profile.email_verified_at ? (
-        <Alert className="notice error" status="danger">
+        <Alert status="danger">
           Verify your email to unlock normal authenticated use.
         </Alert>
       ) : null}
@@ -76,7 +76,7 @@ export default async function AccountPage() {
             <p className="eyebrow">Events</p>
             <h2 id="upcoming-rsvps-title">Upcoming RSVPs</h2>
           </div>
-          <Link href="/events">Browse events</Link>
+          <Link className="link" href="/events">Browse events</Link>
         </div>
         <EventList
           empty="You have no upcoming yes or maybe RSVPs."
@@ -91,7 +91,7 @@ export default async function AccountPage() {
             <p className="eyebrow">Following</p>
             <h2 id="followed-school-events-title">Followed-school events</h2>
           </div>
-          <Link href="/schools">Manage follows</Link>
+          <Link className="link" href="/schools">Manage follows</Link>
         </div>
         <EventList
           empty="No upcoming public events from followed schools yet."
@@ -106,13 +106,13 @@ export default async function AccountPage() {
             <p className="eyebrow">Following</p>
             <h2 id="followed-schools-title">Followed schools</h2>
           </div>
-          <Link href="/schools">Find schools</Link>
+          <Link className="link" href="/schools">Find schools</Link>
         </div>
         {followedSchools.length > 0 ? (
           <div className="list">
             {followedSchools.map((school) => (
               <Link
-                className="list-item"
+                className="card card--default list-item"
                 href={`/schools/${school.slug}`}
                 key={school.id}
               >
@@ -124,7 +124,7 @@ export default async function AccountPage() {
             ))}
           </div>
         ) : (
-          <EmptyState className="empty-state">
+          <EmptyState>
             You are not following any additional schools yet.
           </EmptyState>
         )}
@@ -136,13 +136,13 @@ export default async function AccountPage() {
             <p className="eyebrow">Teams</p>
             <h2 id="team-activity-title">Team activity</h2>
           </div>
-          <Link href="/teams">Find teams</Link>
+          <Link className="link" href="/teams">Find teams</Link>
         </div>
         {teams.length > 0 ? (
           <div className="list">
             {teams.map((team) => (
               <Link
-                className="list-item"
+                className="card card--default list-item"
                 href={`/teams/${team.slug}`}
                 key={team.id}
               >
@@ -160,7 +160,7 @@ export default async function AccountPage() {
             ))}
           </div>
         ) : (
-          <EmptyState className="empty-state">
+          <EmptyState>
             You have not joined any teams yet. Join with a team password or
             create your first team.
           </EmptyState>
@@ -182,13 +182,13 @@ function EventList({
   variant: "followed" | "rsvp";
 }) {
   if (events.length === 0) {
-    return <EmptyState className="empty-state">{empty}</EmptyState>;
+    return <EmptyState>{empty}</EmptyState>;
   }
 
   return (
     <div className="list">
       {events.map((event) => (
-        <Link className="list-item" href={`/events/${event.slug}`} key={event.id}>
+        <Link className="card card--default list-item" href={`/events/${event.slug}`} key={event.id}>
           <span className="event-card-heading">
             <strong>{event.title}</strong>
             <small>{eventTimeRange(event)}</small>

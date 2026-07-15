@@ -23,8 +23,7 @@ export function PrivateEventUnlockForm({ slug }: PrivateEventUnlockFormProps) {
       {state.message ? (
         <Alert
           aria-live="polite"
-          className={`notice ${state.status}`}
-          status={state.status === "error" ? "danger" : "success"}
+      status={state.status === "error" ? "danger" : "success"}
         >
           {state.message}
         </Alert>

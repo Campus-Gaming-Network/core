@@ -23,8 +23,7 @@ export function TeamJoinForm({ slug }: TeamJoinFormProps) {
       {state.message ? (
         <Alert
           aria-live="polite"
-          className={`notice ${state.status}`}
-          status={state.status === "error" ? "danger" : "success"}
+      status={state.status === "error" ? "danger" : "success"}
         >
           {state.message}
         </Alert>
@@ -45,7 +44,7 @@ export function TeamJoinForm({ slug }: TeamJoinFormProps) {
         interact as a member.
       </p>
 
-      <Button className="primary" type="submit" isDisabled={pending}>
+      <Button type="submit" isDisabled={pending}>
         {pending ? "Joining..." : "Join team"}
       </Button>
     </form>

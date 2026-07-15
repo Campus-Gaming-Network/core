@@ -43,11 +43,11 @@ export default async function EventsPage({ searchParams }: PageProps) {
         </p>
         <div className="actions">
           {profile ? (
-            <Link className="button primary" href="/events/new">
+            <Link className="button button--primary" href="/events/new">
               Create event
             </Link>
           ) : (
-            <Link className="button primary" href="/login?next=/events/new">
+            <Link className="button button--primary" href="/login?next=/events/new">
               Log in to create
             </Link>
           )}
@@ -94,7 +94,7 @@ export default async function EventsPage({ searchParams }: PageProps) {
       {result.events.length > 0 ? (
         <div className="list">
           {result.events.map((event) => (
-            <Link className="list-item block" href={`/events/${event.slug}`} key={event.id}>
+            <Link className="card card--default list-item block" href={`/events/${event.slug}`} key={event.id}>
               <EventBanner event={event} />
               <span className="event-card-heading">
                 <strong>{event.title}</strong>
@@ -109,7 +109,7 @@ export default async function EventsPage({ searchParams }: PageProps) {
           ))}
         </div>
       ) : (
-        <EmptyState className="empty-state">
+        <EmptyState>
           <h2>No public events found</h2>
           <p>
             Try clearing filters or create the first event for your campus.
@@ -128,7 +128,6 @@ function EventNotice({ status }: { status: string }) {
 
   return (
     <Alert
-      className={`notice ${status === "failed" ? "error" : "success"}`}
       status={status === "failed" ? "danger" : "success"}
     >
       {messages[status] ?? ""}

@@ -32,9 +32,9 @@ export default async function LoginPage({ searchParams }: PageProps) {
         }
       />
       <p className="form-footer">
-        Need an account? <Link href="/signup">Sign up</Link>
+        Need an account? <Link className="link" href="/signup">Sign up</Link>
         {" | "}
-        <Link href="/forgot-password">Forgot password?</Link>
+        <Link className="link" href="/forgot-password">Forgot password?</Link>
       </p>
     </main>
   );

@@ -83,18 +83,18 @@ export default async function SchoolDetailPage({
         <h2 id="school-actions">School actions</h2>
         {profile ? (
           isHomeSchool ? (
-            <Alert className="notice success" status="success">
+            <Alert status="success">
               This is your home school.
             </Alert>
           ) : isFollowing ? (
             <div>
-              <Alert className="notice success" status="success">
+              <Alert status="success">
                 You are following this school.
               </Alert>
               <form action={unfollowSchoolAction}>
                 <input type="hidden" name="school_id" value={school.id} />
                 <input type="hidden" name="slug" value={school.slug} />
-                <Button className="secondary" type="submit">
+                <Button variant="secondary" type="submit">
                   Unfollow
                 </Button>
               </form>
@@ -110,10 +110,10 @@ export default async function SchoolDetailPage({
           )
         ) : (
           <div className="actions">
-            <Link className="button primary" href="/signup">
+            <Link className="button button--primary" href="/signup">
               Create account
             </Link>
-            <Link className="button" href={`/login?next=/schools/${school.slug}`}>
+            <Link className="button button--secondary" href={`/login?next=/schools/${school.slug}`}>
               Log in to follow
             </Link>
           </div>
@@ -132,7 +132,6 @@ function FollowNotice({ status }: { status: string }) {
 
   return (
     <Alert
-      className={`notice ${status === "failed" ? "error" : "success"}`}
       status={status === "failed" ? "danger" : "success"}
     >
       {messages[status] ?? ""}

@@ -13,7 +13,7 @@ export default function ForgotPasswordPage() {
       </section>
       <ForgotPasswordForm />
       <p className="form-footer">
-        Remembered it? <Link href="/login">Log in</Link>
+        Remembered it? <Link className="link" href="/login">Log in</Link>
       </p>
     </main>
   );

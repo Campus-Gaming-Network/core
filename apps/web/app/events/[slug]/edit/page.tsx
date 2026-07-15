@@ -44,7 +44,7 @@ export default async function EditEventPage({ params }: PageProps) {
             Only an event organizer can load private event details for editing.
           </p>
         </section>
-        <Link className="button" href={`/events/${slug}`}>
+        <Link className="button button--secondary" href={`/events/${slug}`}>
           Back to event
         </Link>
       </main>

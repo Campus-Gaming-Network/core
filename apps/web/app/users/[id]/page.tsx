@@ -48,7 +48,7 @@ export default async function PublicProfilePage({ params }: PageProps) {
           <span>Home school</span>
           <strong className="detail-value">
             {homeSchool.href ? (
-              <Link href={homeSchool.href}>{homeSchool.name}</Link>
+              <Link className="link" href={homeSchool.href}>{homeSchool.name}</Link>
             ) : (
               homeSchool.name
             )}
@@ -69,7 +69,7 @@ export default async function PublicProfilePage({ params }: PageProps) {
           </div>
         </section>
       ) : (
-        <EmptyState className="empty-state">No public links yet.</EmptyState>
+        <EmptyState>No public links yet.</EmptyState>
       )}
 
       <Card className="action-panel" aria-labelledby="profile-safety">
@@ -79,7 +79,7 @@ export default async function PublicProfilePage({ params }: PageProps) {
         ) : currentUser ? (
           <p className="form-help">This is your profile.</p>
         ) : (
-          <Link className="button primary" href={`/login?next=/users/${profile.id}`}>
+          <Link className="button button--primary" href={`/login?next=/users/${profile.id}`}>
             Log in to report this profile
           </Link>
         )}

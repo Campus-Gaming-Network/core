@@ -53,7 +53,7 @@ export default async function TeamDetailPage({
           <div className="detail-row">
             <span>School</span>
             <strong>
-              <Link href={`/schools/${team.school.slug}`}>
+              <Link className="link" href={`/schools/${team.school.slug}`}>
                 {team.school.name}
               </Link>
             </strong>
@@ -65,7 +65,7 @@ export default async function TeamDetailPage({
         <h2 id="team-actions">Team actions</h2>
         {team.viewer_role ? (
           <>
-            <Alert className="notice success" status="success">
+            <Alert status="success">
               Your role: {teamRoleLabel(team.viewer_role)}.
             </Alert>
             {team.viewer_role === "owner" ? (
@@ -86,7 +86,7 @@ export default async function TeamDetailPage({
               logging in and entering the team password.
             </p>
             <div className="actions">
-              <Link className="button primary" href={`/login?next=/teams/${team.slug}`}>
+              <Link className="button button--primary" href={`/login?next=/teams/${team.slug}`}>
                 Log in to join
               </Link>
             </div>
@@ -108,7 +108,6 @@ function TeamNotice({ status }: { status: string }) {
 
   return (
     <Alert
-      className={`notice ${status === "manage-failed" ? "error" : "success"}`}
       status={status === "manage-failed" ? "danger" : "success"}
     >
       {messages[status] ?? ""}

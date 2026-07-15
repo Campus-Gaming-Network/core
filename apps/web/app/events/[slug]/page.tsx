@@ -56,11 +56,11 @@ export default async function EventDetailPage({
         </section>
         <PrivateEventUnlockForm slug={slug} />
         <div className="actions">
-          <Link className="button" href="/events">
+          <Link className="button button--secondary" href="/events">
             Browse public events
           </Link>
           {profile ? null : (
-            <Link className="button primary" href={`/login?next=/events/${slug}`}>
+            <Link className="button button--primary" href={`/login?next=/events/${slug}`}>
               Log in
             </Link>
           )}
@@ -97,7 +97,7 @@ export default async function EventDetailPage({
         <div className="detail-row">
           <span>Host school</span>
           <strong>
-            <Link href={`/schools/${event.host_school.slug}`}>
+            <Link className="link" href={`/schools/${event.host_school.slug}`}>
               {event.host_school.name}
             </Link>
           </strong>
@@ -141,7 +141,7 @@ export default async function EventDetailPage({
                 value={event.viewer_interested ? "false" : "true"}
               />
               <Button
-                className={event.viewer_interested ? "secondary" : "primary"}
+                variant={event.viewer_interested ? "secondary" : "primary"}
                 type="submit"
               >
                 {event.viewer_interested ? "Remove interested" : "I'm interested"}
@@ -149,12 +149,12 @@ export default async function EventDetailPage({
             </form>
             <EventRSVPForm event={event} />
             <div className="actions">
-              <Link className="button" href={`/events/${event.slug}/edit`}>
+              <Link className="button button--secondary" href={`/events/${event.slug}/edit`}>
                 Edit event
               </Link>
               <form action={deleteEventAction}>
                 <input type="hidden" name="slug" value={event.slug} />
-                <Button className="secondary" type="submit">
+                <Button variant="secondary" type="submit">
                   Delete event
                 </Button>
               </form>
@@ -169,7 +169,7 @@ export default async function EventDetailPage({
           </>
         ) : (
           <div className="actions">
-            <Link className="button primary" href={`/login?next=/events/${event.slug}`}>
+            <Link className="button button--primary" href={`/login?next=/events/${event.slug}`}>
               Log in to RSVP or mark interested
             </Link>
           </div>
@@ -193,7 +193,6 @@ function EventNotice({ status }: { status: string }) {
 
   return (
     <Alert
-      className={`notice ${status === "delete-failed" ? "error" : "success"}`}
       status={status === "delete-failed" ? "danger" : "success"}
     >
       {messages[status] ?? ""}

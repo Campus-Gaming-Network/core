@@ -92,7 +92,7 @@ export function SignupForm({ schools, selectedSchoolId }: SignupFormProps) {
           </Select.Popover>
         </Select>
       </label>
-      <Checkbox className="check-row" name="age_confirmed" isRequired>
+      <Checkbox name="age_confirmed" isRequired>
         <span>I confirm I am 18 or older.</span>
       </Checkbox>
       <Button type="submit" isDisabled={pending}>
@@ -118,7 +118,7 @@ export function LoginForm({
     <form action={action} className="form-stack">
       {next ? <input type="hidden" name="next" value={next} /> : null}
       {notice ? (
-        <Alert className="notice success" status="success">
+        <Alert status="success">
           {notice}
         </Alert>
       ) : null}
@@ -224,7 +224,6 @@ function FormNotice({
 
   return (
     <Alert
-      className={`notice ${state.status}`}
       status={state.status === "error" ? "danger" : "success"}
     >
       {state.message}

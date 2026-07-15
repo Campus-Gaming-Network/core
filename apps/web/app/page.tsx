@@ -22,13 +22,13 @@ export default async function HomePage() {
             places where collegiate gaming events are taking shape.
           </p>
           <div className="actions">
-            <Link className="button primary" href="/schools">
+            <Link className="button button--primary" href="/schools">
               Browse schools
             </Link>
-            <Link className="button" href="/events">
+            <Link className="button button--secondary" href="/events">
               Browse events
             </Link>
-            <Link className="button" href="/signup">
+            <Link className="button button--secondary" href="/signup">
               Create account
             </Link>
           </div>
@@ -49,19 +49,19 @@ export default async function HomePage() {
         <div className="section-heading">
           <p className="eyebrow">School discovery</p>
           <h2 id="schools-title">Start with a campus.</h2>
-          <Link href="/schools">Search all schools</Link>
+          <Link className="link" href="/schools">Search all schools</Link>
         </div>
         {schools.schools.length > 0 ? (
           <div className="card-grid">
             {schools.schools.map((school) => (
-              <Link className="school-card" href={`/schools/${school.slug}`} key={school.id}>
+              <Link className="card card--default school-card" href={`/schools/${school.slug}`} key={school.id}>
                 <span>{school.name}</span>
                 <small>{schoolLocation(school)}</small>
               </Link>
             ))}
           </div>
         ) : (
-          <EmptyState className="empty-state">
+          <EmptyState>
             School results are unavailable right now. The API may still be
             starting.
           </EmptyState>
@@ -77,13 +77,13 @@ export default async function HomePage() {
           dashboard.
         </p>
         <div className="actions">
-          <Link className="button primary" href="/events/new">
+          <Link className="button button--primary" href="/events/new">
             Create first event
           </Link>
-          <Link className="button" href="/teams/new">
+          <Link className="button button--secondary" href="/teams/new">
             Start a team
           </Link>
-          <Link className="button" href="/schools">
+          <Link className="button button--secondary" href="/schools">
             Follow a school
           </Link>
         </div>
