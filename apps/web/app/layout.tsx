@@ -1,3 +1,4 @@
+import { Button } from "@heroui/react/button";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import Link from "next/link";
@@ -33,7 +34,9 @@ export default async function RootLayout({
               <>
                 <Link href="/account">Account</Link>
                 <form action={logoutAction}>
-                  <button type="submit">Log out</button>
+                  <Button className="secondary" type="submit">
+                    Log out
+                  </Button>
                 </form>
               </>
             ) : (

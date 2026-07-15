@@ -1,3 +1,6 @@
+import { Alert } from "@heroui/react/alert";
+import { Card } from "@heroui/react/card";
+import { Chip } from "@heroui/react/chip";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { TeamJoinForm } from "../../../components/team-join-form";
@@ -34,8 +37,8 @@ export default async function TeamDetailPage({
         <h1>{team.name}</h1>
         <p className="lede">{team.description || "Team details are coming soon."}</p>
         <div className="pill-list">
-          <span>{team.member_count} member{team.member_count === 1 ? "" : "s"}</span>
-          <span>{team.school?.name ?? "Independent team"}</span>
+          <Chip>{team.member_count} member{team.member_count === 1 ? "" : "s"}</Chip>
+          <Chip>{team.school?.name ?? "Independent team"}</Chip>
         </div>
       </section>
 
@@ -58,13 +61,13 @@ export default async function TeamDetailPage({
         ) : null}
       </section>
 
-      <section className="action-panel" aria-labelledby="team-actions">
+      <Card className="action-panel" aria-labelledby="team-actions">
         <h2 id="team-actions">Team actions</h2>
         {team.viewer_role ? (
           <>
-            <p className="notice success">
+            <Alert className="notice success" status="success">
               Your role: {teamRoleLabel(team.viewer_role)}.
-            </p>
+            </Alert>
             {team.viewer_role === "owner" ? (
               <TeamManagementPanel team={team} />
             ) : (
@@ -89,7 +92,7 @@ export default async function TeamDetailPage({
             </div>
           </>
         )}
-      </section>
+      </Card>
     </main>
   );
 }
@@ -104,9 +107,12 @@ function TeamNotice({ status }: { status: string }) {
   };
 
   return (
-    <p className={`notice ${status === "manage-failed" ? "error" : "success"}`}>
+    <Alert
+      className={`notice ${status === "manage-failed" ? "error" : "success"}`}
+      status={status === "manage-failed" ? "danger" : "success"}
+    >
       {messages[status] ?? ""}
-    </p>
+    </Alert>
   );
 }
 

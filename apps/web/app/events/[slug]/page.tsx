@@ -1,3 +1,7 @@
+import { Alert } from "@heroui/react/alert";
+import { Button } from "@heroui/react/button";
+import { Card } from "@heroui/react/card";
+import { Chip } from "@heroui/react/chip";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { deleteEventAction, eventInterestAction } from "../../actions";
@@ -73,9 +77,9 @@ export default async function EventDetailPage({
         <h1>{event.title}</h1>
         <p className="lede">{event.description || "Event details are coming soon."}</p>
         <div className="pill-list">
-          <span>{eventLifecycleLabel(event.lifecycle)}</span>
-          <span>{eventVisibilityLabel(event.visibility)}</span>
-          <span>{eventFormatLabel(event.format)}</span>
+          <Chip>{eventLifecycleLabel(event.lifecycle)}</Chip>
+          <Chip>{eventVisibilityLabel(event.visibility)}</Chip>
+          <Chip>{eventFormatLabel(event.format)}</Chip>
         </div>
       </section>
 
@@ -125,7 +129,7 @@ export default async function EventDetailPage({
         ) : null}
       </section>
 
-      <section className="action-panel" aria-labelledby="event-actions">
+      <Card className="action-panel" aria-labelledby="event-actions">
         <h2 id="event-actions">Event actions</h2>
         {profile ? (
           <>
@@ -136,12 +140,12 @@ export default async function EventDetailPage({
                 name="interested"
                 value={event.viewer_interested ? "false" : "true"}
               />
-              <button
+              <Button
                 className={event.viewer_interested ? "secondary" : "primary"}
                 type="submit"
               >
                 {event.viewer_interested ? "Remove interested" : "I'm interested"}
-              </button>
+              </Button>
             </form>
             <EventRSVPForm event={event} />
             <div className="actions">
@@ -150,9 +154,9 @@ export default async function EventDetailPage({
               </Link>
               <form action={deleteEventAction}>
                 <input type="hidden" name="slug" value={event.slug} />
-                <button className="secondary" type="submit">
+                <Button className="secondary" type="submit">
                   Delete event
-                </button>
+                </Button>
               </form>
             </div>
             <p className="form-footer">
@@ -170,7 +174,7 @@ export default async function EventDetailPage({
             </Link>
           </div>
         )}
-      </section>
+      </Card>
     </main>
   );
 }
@@ -188,9 +192,12 @@ function EventNotice({ status }: { status: string }) {
   };
 
   return (
-    <p className={`notice ${status === "delete-failed" ? "error" : "success"}`}>
+    <Alert
+      className={`notice ${status === "delete-failed" ? "error" : "success"}`}
+      status={status === "delete-failed" ? "danger" : "success"}
+    >
       {messages[status] ?? ""}
-    </p>
+    </Alert>
   );
 }
 

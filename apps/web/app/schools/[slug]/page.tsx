@@ -1,3 +1,6 @@
+import { Alert } from "@heroui/react/alert";
+import { Button } from "@heroui/react/button";
+import { Card } from "@heroui/react/card";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
@@ -76,20 +79,24 @@ export default async function SchoolDetailPage({
         ) : null}
       </section>
 
-      <section className="action-panel" aria-labelledby="school-actions">
+      <Card className="action-panel" aria-labelledby="school-actions">
         <h2 id="school-actions">School actions</h2>
         {profile ? (
           isHomeSchool ? (
-            <p className="notice success">This is your home school.</p>
+            <Alert className="notice success" status="success">
+              This is your home school.
+            </Alert>
           ) : isFollowing ? (
             <div>
-              <p className="notice success">You are following this school.</p>
+              <Alert className="notice success" status="success">
+                You are following this school.
+              </Alert>
               <form action={unfollowSchoolAction}>
                 <input type="hidden" name="school_id" value={school.id} />
                 <input type="hidden" name="slug" value={school.slug} />
-                <button className="secondary" type="submit">
+                <Button className="secondary" type="submit">
                   Unfollow
-                </button>
+                </Button>
               </form>
             </div>
           ) : (
@@ -97,7 +104,7 @@ export default async function SchoolDetailPage({
               <form action={followSchoolAction}>
                 <input type="hidden" name="school_id" value={school.id} />
                 <input type="hidden" name="slug" value={school.slug} />
-                <button type="submit">Follow school</button>
+                <Button type="submit">Follow school</Button>
               </form>
             </div>
           )
@@ -111,7 +118,7 @@ export default async function SchoolDetailPage({
             </Link>
           </div>
         )}
-      </section>
+      </Card>
     </main>
   );
 }
@@ -124,9 +131,12 @@ function FollowNotice({ status }: { status: string }) {
   };
 
   return (
-    <p className={`notice ${status === "failed" ? "error" : "success"}`}>
+    <Alert
+      className={`notice ${status === "failed" ? "error" : "success"}`}
+      status={status === "failed" ? "danger" : "success"}
+    >
       {messages[status] ?? ""}
-    </p>
+    </Alert>
   );
 }
 

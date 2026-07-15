@@ -1,5 +1,8 @@
 "use client";
 
+import { Alert } from "@heroui/react/alert";
+import { Button } from "@heroui/react/button";
+import { TextArea } from "@heroui/react/textarea";
 import { useActionState } from "react";
 import {
   reportEventAction,
@@ -26,13 +29,17 @@ export function ReportForm({ targetID, targetType }: ReportFormProps) {
         value={targetID}
       />
       {state.message ? (
-        <p className={`notice ${state.status}`} aria-live="polite">
+        <Alert
+          aria-live="polite"
+          className={`notice ${state.status}`}
+          status={state.status === "error" ? "danger" : "success"}
+        >
           {state.message}
-        </p>
+        </Alert>
       ) : null}
       <label>
         Reason
-        <textarea
+        <TextArea
           name="reason"
           required
           maxLength={2000}
@@ -40,9 +47,9 @@ export function ReportForm({ targetID, targetType }: ReportFormProps) {
           placeholder="Tell us what looks unsafe, abusive, spammy, or misleading."
         />
       </label>
-      <button className="secondary" type="submit" disabled={pending}>
+      <Button className="secondary" type="submit" isDisabled={pending}>
         {pending ? "Submitting..." : "Submit report"}
-      </button>
+      </Button>
     </form>
   );
 }

@@ -1,5 +1,11 @@
 "use client";
 
+import { Alert } from "@heroui/react/alert";
+import { Button } from "@heroui/react/button";
+import { Checkbox } from "@heroui/react/checkbox";
+import { Input } from "@heroui/react/input";
+import { ListBox } from "@heroui/react/list-box";
+import { Select } from "@heroui/react/select";
 import { useActionState } from "react";
 import {
   forgotPasswordAction,
@@ -27,15 +33,15 @@ export function SignupForm({ schools, selectedSchoolId }: SignupFormProps) {
       <FormNotice state={state} />
       <label>
         Name
-        <input name="name" autoComplete="name" required maxLength={120} />
+        <Input name="name" autoComplete="name" required maxLength={120} />
       </label>
       <label>
         Email
-        <input name="email" type="email" autoComplete="email" required />
+        <Input name="email" type="email" autoComplete="email" required />
       </label>
       <label>
         Password
-        <input
+        <Input
           name="password"
           type="password"
           autoComplete="new-password"
@@ -45,7 +51,7 @@ export function SignupForm({ schools, selectedSchoolId }: SignupFormProps) {
       </label>
       <label>
         Time zone
-        <input
+        <Input
           name="timezone"
           defaultValue="America/Los_Angeles"
           autoComplete="off"
@@ -54,25 +60,44 @@ export function SignupForm({ schools, selectedSchoolId }: SignupFormProps) {
       </label>
       <label>
         Home school
-        <select name="home_school_id" defaultValue={selectedSchoolId} required>
-          <option value="">Choose a school</option>
-          {schools.map((school) => (
-            <option key={school.id} value={school.id}>
-              {school.name}
-              {school.city || school.state
-                ? ` (${schoolLocation(school, "")})`
-                : ""}
-            </option>
-          ))}
-        </select>
+        <Select
+          fullWidth
+          name="home_school_id"
+          defaultSelectedKey={selectedSchoolId || ""}
+          isRequired
+        >
+          <Select.Trigger>
+            <Select.Value />
+            <Select.Indicator />
+          </Select.Trigger>
+          <Select.Popover>
+            <ListBox>
+              <ListBox.Item id="" textValue="Choose a school">
+                Choose a school
+              </ListBox.Item>
+              {schools.map((school) => {
+                const label = `${school.name}${
+                  school.city || school.state
+                    ? ` (${schoolLocation(school, "")})`
+                    : ""
+                }`;
+
+                return (
+                  <ListBox.Item id={school.id} key={school.id} textValue={label}>
+                    {label}
+                  </ListBox.Item>
+                );
+              })}
+            </ListBox>
+          </Select.Popover>
+        </Select>
       </label>
-      <label className="check-row">
-        <input name="age_confirmed" type="checkbox" required />
+      <Checkbox className="check-row" name="age_confirmed" isRequired>
         <span>I confirm I am 18 or older.</span>
-      </label>
-      <button type="submit" disabled={pending}>
+      </Checkbox>
+      <Button type="submit" isDisabled={pending}>
         {pending ? "Creating account..." : "Create account"}
-      </button>
+      </Button>
     </form>
   );
 }
@@ -92,24 +117,28 @@ export function LoginForm({
   return (
     <form action={action} className="form-stack">
       {next ? <input type="hidden" name="next" value={next} /> : null}
-      {notice ? <p className="notice success">{notice}</p> : null}
+      {notice ? (
+        <Alert className="notice success" status="success">
+          {notice}
+        </Alert>
+      ) : null}
       <FormNotice state={state} />
       <label>
         Email
-        <input name="email" type="email" autoComplete="email" required />
+        <Input name="email" type="email" autoComplete="email" required />
       </label>
       <label>
         Password
-        <input
+        <Input
           name="password"
           type="password"
           autoComplete="current-password"
           required
         />
       </label>
-      <button type="submit" disabled={pending}>
+      <Button type="submit" isDisabled={pending}>
         {pending ? "Logging in..." : "Log in"}
-      </button>
+      </Button>
     </form>
   );
 }
@@ -125,11 +154,11 @@ export function ForgotPasswordForm() {
       <FormNotice state={state} />
       <label>
         Email
-        <input name="email" type="email" autoComplete="email" required />
+        <Input name="email" type="email" autoComplete="email" required />
       </label>
-      <button type="submit" disabled={pending}>
+      <Button type="submit" isDisabled={pending}>
         {pending ? "Sending..." : "Send reset link"}
-      </button>
+      </Button>
     </form>
   );
 }
@@ -146,7 +175,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
       <FormNotice state={state} />
       <label>
         New password
-        <input
+        <Input
           name="password"
           type="password"
           autoComplete="new-password"
@@ -154,9 +183,9 @@ export function ResetPasswordForm({ token }: { token: string }) {
           required
         />
       </label>
-      <button type="submit" disabled={pending}>
+      <Button type="submit" isDisabled={pending}>
         {pending ? "Resetting..." : "Reset password"}
-      </button>
+      </Button>
     </form>
   );
 }
@@ -172,11 +201,11 @@ export function ResendVerificationForm() {
       <FormNotice state={state} />
       <label>
         Email
-        <input name="email" type="email" autoComplete="email" required />
+        <Input name="email" type="email" autoComplete="email" required />
       </label>
-      <button type="submit" disabled={pending}>
+      <Button type="submit" isDisabled={pending}>
         {pending ? "Sending..." : "Resend verification"}
-      </button>
+      </Button>
     </form>
   );
 }
@@ -193,5 +222,12 @@ function FormNotice({
     return null;
   }
 
-  return <p className={`notice ${state.status}`}>{state.message}</p>;
+  return (
+    <Alert
+      className={`notice ${state.status}`}
+      status={state.status === "error" ? "danger" : "success"}
+    >
+      {state.message}
+    </Alert>
+  );
 }

@@ -1,5 +1,7 @@
 "use client";
 
+import { Alert } from "@heroui/react/alert";
+import { Button } from "@heroui/react/button";
 import { useActionState } from "react";
 import { rsvpEventAction } from "../app/actions";
 import {
@@ -27,9 +29,13 @@ export function EventRSVPForm({ event }: EventRSVPFormProps) {
     <form action={action} className="rsvp-form">
       <input type="hidden" name="slug" value={event.slug} />
       {state.message ? (
-        <p className={`notice ${state.status}`} aria-live="polite">
+        <Alert
+          aria-live="polite"
+          className={`notice ${state.status}`}
+          status={state.status === "error" ? "danger" : "success"}
+        >
           {state.message}
-        </p>
+        </Alert>
       ) : null}
       <p className="form-help">
         Current RSVP:{" "}
@@ -43,10 +49,10 @@ export function EventRSVPForm({ event }: EventRSVPFormProps) {
       ) : null}
       <div className="rsvp-buttons">
         {responses.map((response) => (
-          <button
+          <Button
             aria-pressed={event.viewer_rsvp === response}
             className={event.viewer_rsvp === response ? "primary" : "secondary"}
-            disabled={
+            isDisabled={
               pending ||
               isEnded ||
               (response === "yes" && isFullForViewer)
@@ -57,7 +63,7 @@ export function EventRSVPForm({ event }: EventRSVPFormProps) {
             value={response}
           >
             {eventRSVPLabel(response)}
-          </button>
+          </Button>
         ))}
       </div>
     </form>

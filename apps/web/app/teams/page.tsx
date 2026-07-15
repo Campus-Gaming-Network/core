@@ -1,3 +1,8 @@
+import { Button } from "@heroui/react/button";
+import { EmptyState } from "@heroui/react/empty-state";
+import { Input } from "@heroui/react/input";
+import { ListBox } from "@heroui/react/list-box";
+import { Select } from "@heroui/react/select";
 import Link from "next/link";
 import { currentProfile, listGames, listTeams } from "../../lib/server-api";
 
@@ -44,24 +49,36 @@ export default async function TeamsPage({ searchParams }: PageProps) {
       <form action="/teams" className="search-bar">
         <label>
           Game
-          <select name="game" defaultValue={game}>
-            <option value="">All games</option>
-            {games.map((gameOption) => (
-              <option key={gameOption.id} value={gameOption.slug}>
-                {gameOption.name}
-              </option>
-            ))}
-          </select>
+          <Select fullWidth name="game" defaultSelectedKey={game}>
+            <Select.Trigger>
+              <Select.Value />
+              <Select.Indicator />
+            </Select.Trigger>
+            <Select.Popover>
+              <ListBox>
+                <ListBox.Item id="" textValue="All games">All games</ListBox.Item>
+                {games.map((gameOption) => (
+                  <ListBox.Item
+                    id={gameOption.slug}
+                    key={gameOption.id}
+                    textValue={gameOption.name}
+                  >
+                    {gameOption.name}
+                  </ListBox.Item>
+                ))}
+              </ListBox>
+            </Select.Popover>
+          </Select>
         </label>
         <label>
           School slug
-          <input
+          <Input
             name="school"
             defaultValue={school}
             placeholder="university-of-california-irvine"
           />
         </label>
-        <button type="submit">Filter</button>
+        <Button type="submit">Filter</Button>
       </form>
 
       {result.teams.length > 0 ? (
@@ -78,12 +95,12 @@ export default async function TeamsPage({ searchParams }: PageProps) {
           ))}
         </div>
       ) : (
-        <div className="empty-state">
+        <EmptyState className="empty-state">
           <h2>No teams found</h2>
           <p>
             Try clearing filters or create the first team for your campus.
           </p>
-        </div>
+        </EmptyState>
       )}
     </main>
   );

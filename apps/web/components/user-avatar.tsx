@@ -1,5 +1,6 @@
 "use client";
 
+import { Avatar } from "@heroui/react/avatar";
 import { userInitials } from "../lib/cgn-api";
 
 type UserAvatarProps = {
@@ -9,10 +10,9 @@ type UserAvatarProps = {
 
 export function UserAvatar({ avatarURL, name }: UserAvatarProps) {
   return (
-    <div className="avatar" aria-hidden="true">
-      <span>{userInitials(name)}</span>
+    <Avatar className="avatar" aria-hidden="true">
       {avatarURL ? (
-        <img
+        <Avatar.Image
           alt=""
           onError={(event) => {
             event.currentTarget.hidden = true;
@@ -20,6 +20,7 @@ export function UserAvatar({ avatarURL, name }: UserAvatarProps) {
           src={avatarURL}
         />
       ) : null}
-    </div>
+      <Avatar.Fallback>{userInitials(name)}</Avatar.Fallback>
+    </Avatar>
   );
 }

@@ -1,3 +1,6 @@
+import { Button } from "@heroui/react/button";
+import { EmptyState } from "@heroui/react/empty-state";
+import { Input } from "@heroui/react/input";
 import Link from "next/link";
 import { listSchools } from "../../lib/server-api";
 
@@ -29,7 +32,7 @@ export default async function SchoolsPage({ searchParams }: PageProps) {
       <form action="/schools" className="search-bar">
         <label>
           Search
-          <input
+          <Input
             name="q"
             defaultValue={query}
             placeholder="University, college, campus"
@@ -37,9 +40,9 @@ export default async function SchoolsPage({ searchParams }: PageProps) {
         </label>
         <label>
           State
-          <input name="state" defaultValue={state} placeholder="CA" maxLength={2} />
+          <Input name="state" defaultValue={state} placeholder="CA" maxLength={2} />
         </label>
-        <button type="submit">Search</button>
+        <Button type="submit">Search</Button>
       </form>
 
       {result.schools.length > 0 ? (
@@ -55,13 +58,13 @@ export default async function SchoolsPage({ searchParams }: PageProps) {
           ))}
         </div>
       ) : (
-        <div className="empty-state">
+        <EmptyState className="empty-state">
           <h2>No schools found</h2>
           <p>
             Try a broader school name or clear the state filter. If this keeps
             happening, the API may still be starting.
           </p>
-        </div>
+        </EmptyState>
       )}
     </main>
   );

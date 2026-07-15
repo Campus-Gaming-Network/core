@@ -1,5 +1,8 @@
 "use client";
 
+import { Alert } from "@heroui/react/alert";
+import { Button } from "@heroui/react/button";
+import { Input } from "@heroui/react/input";
 import { useActionState } from "react";
 import { joinTeamAction } from "../app/actions";
 import { initialFormState } from "../lib/form-state";
@@ -18,14 +21,18 @@ export function TeamJoinForm({ slug }: TeamJoinFormProps) {
     <form action={action} className="form-stack">
       <input type="hidden" name="slug" value={slug} />
       {state.message ? (
-        <p className={`notice ${state.status}`} aria-live="polite">
+        <Alert
+          aria-live="polite"
+          className={`notice ${state.status}`}
+          status={state.status === "error" ? "danger" : "success"}
+        >
           {state.message}
-        </p>
+        </Alert>
       ) : null}
 
       <label>
         Team password
-        <input
+        <Input
           name="password"
           type="password"
           autoComplete="current-password"
@@ -38,9 +45,9 @@ export function TeamJoinForm({ slug }: TeamJoinFormProps) {
         interact as a member.
       </p>
 
-      <button className="primary" type="submit" disabled={pending}>
+      <Button className="primary" type="submit" isDisabled={pending}>
         {pending ? "Joining..." : "Join team"}
-      </button>
+      </Button>
     </form>
   );
 }

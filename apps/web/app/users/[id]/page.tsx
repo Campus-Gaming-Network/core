@@ -1,3 +1,6 @@
+import { Card } from "@heroui/react/card";
+import { Chip } from "@heroui/react/chip";
+import { EmptyState } from "@heroui/react/empty-state";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ReportForm } from "../../../components/report-form";
@@ -60,16 +63,16 @@ export default async function PublicProfilePage({ params }: PageProps) {
           <div className="pill-list">
             {profile.social_links.map((link) => (
               <a href={link.url} key={`${link.label}-${link.url}`}>
-                {link.label}
+                <Chip>{link.label}</Chip>
               </a>
             ))}
           </div>
         </section>
       ) : (
-        <p className="empty-state">No public links yet.</p>
+        <EmptyState className="empty-state">No public links yet.</EmptyState>
       )}
 
-      <section className="action-panel" aria-labelledby="profile-safety">
+      <Card className="action-panel" aria-labelledby="profile-safety">
         <h2 id="profile-safety">Safety</h2>
         {currentUser && currentUser.id !== profile.id ? (
           <ReportForm targetID={profile.id} targetType="user" />
@@ -80,7 +83,7 @@ export default async function PublicProfilePage({ params }: PageProps) {
             Log in to report this profile
           </Link>
         )}
-      </section>
+      </Card>
     </main>
   );
 }

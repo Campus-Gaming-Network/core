@@ -13,9 +13,12 @@
     "typecheck": "next typegen && tsc --noEmit"
   },
   "dependencies": {
+    "@heroui/react": "3.2.2",
+    "@tailwindcss/postcss": "4.3.2",
     "next": "16.2.10",
     "react": "19.2.7",
-    "react-dom": "19.2.7"
+    "react-dom": "19.2.7",
+    "tailwindcss": "4.3.2"
   },
   "devDependencies": {
     "@types/node": "24.13.3",

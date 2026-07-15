@@ -1,5 +1,13 @@
 "use client";
 
+import { Alert } from "@heroui/react/alert";
+import { Button } from "@heroui/react/button";
+import { Checkbox } from "@heroui/react/checkbox";
+import { Fieldset } from "@heroui/react/fieldset";
+import { Input } from "@heroui/react/input";
+import { ListBox } from "@heroui/react/list-box";
+import { Select } from "@heroui/react/select";
+import { TextArea } from "@heroui/react/textarea";
 import { useActionState } from "react";
 import { createTeamAction } from "../app/actions";
 import {
@@ -27,47 +35,66 @@ export function TeamForm({
   return (
     <form action={action} className="form-stack">
       {state.message ? (
-        <p className={`notice ${state.status}`}>{state.message}</p>
+        <Alert
+          className={`notice ${state.status}`}
+          status={state.status === "error" ? "danger" : "success"}
+        >
+          {state.message}
+        </Alert>
       ) : null}
 
       <label>
         Team name
-        <input name="name" required maxLength={120} />
+        <Input name="name" required maxLength={120} />
       </label>
 
       <label>
         Description
-        <textarea name="description" maxLength={5000} rows={6} />
+        <TextArea name="description" maxLength={5000} rows={6} />
       </label>
 
       <label>
         School link
-        <select name="school_id" defaultValue={defaultSchoolID ?? ""}>
-          <option value="">No school link yet</option>
-          {schools.map((school) => (
-            <option key={school.id} value={school.id}>
-              {school.name}
-              {school.city || school.state
-                ? ` (${[school.city, school.state].filter(Boolean).join(", ")})`
-                : ""}
-            </option>
-          ))}
-        </select>
+        <Select fullWidth name="school_id" defaultSelectedKey={defaultSchoolID ?? ""}>
+          <Select.Trigger>
+            <Select.Value />
+            <Select.Indicator />
+          </Select.Trigger>
+          <Select.Popover>
+            <ListBox>
+              <ListBox.Item id="" textValue="No school link yet">
+                No school link yet
+              </ListBox.Item>
+              {schools.map((school) => {
+                const label = `${school.name}${
+                  school.city || school.state
+                    ? ` (${[school.city, school.state].filter(Boolean).join(", ")})`
+                    : ""
+                }`;
+
+                return (
+                  <ListBox.Item id={school.id} key={school.id} textValue={label}>
+                    {label}
+                  </ListBox.Item>
+                );
+              })}
+            </ListBox>
+          </Select.Popover>
+        </Select>
       </label>
 
-      <fieldset>
-        <legend>Games</legend>
+      <Fieldset>
+        <Fieldset.Legend>Games</Fieldset.Legend>
         {games.map((game) => (
-          <label className="check-row" key={game.id}>
-            <input name="game_ids" type="checkbox" value={game.id} />
+          <Checkbox className="check-row" key={game.id} name="game_ids" value={game.id}>
             {game.name}
-          </label>
+          </Checkbox>
         ))}
-      </fieldset>
+      </Fieldset>
 
       <label>
         Join password
-        <input
+        <Input
           name="password"
           type="password"
           autoComplete="new-password"
@@ -80,9 +107,9 @@ export function TeamForm({
         with the team as a member.
       </p>
 
-      <button type="submit" disabled={pending}>
+      <Button type="submit" isDisabled={pending}>
         {pending ? "Creating..." : "Create team"}
-      </button>
+      </Button>
     </form>
   );
 }

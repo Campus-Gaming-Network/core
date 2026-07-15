@@ -1,3 +1,6 @@
+import { Card } from "@heroui/react/card";
+import { Chip } from "@heroui/react/chip";
+import { EmptyState } from "@heroui/react/empty-state";
 import Link from "next/link";
 import { schoolLocation } from "../lib/cgn-api";
 import { listGames, listSchools } from "../lib/server-api";
@@ -30,16 +33,16 @@ export default async function HomePage() {
             </Link>
           </div>
         </div>
-        <div className="feature-board" aria-label="Launch games">
+        <Card className="feature-board" aria-label="Launch games">
           <p className="board-kicker">Launch games</p>
           <div className="game-grid">
             {games.length > 0 ? (
-              games.map((game) => <span key={game.id}>{game.name}</span>)
+              games.map((game) => <Chip key={game.id}>{game.name}</Chip>)
             ) : (
-              <span>Games will appear when the API is available.</span>
+              <Chip>Games will appear when the API is available.</Chip>
             )}
           </div>
-        </div>
+        </Card>
       </section>
 
       <section className="section" aria-labelledby="schools-title">
@@ -58,14 +61,14 @@ export default async function HomePage() {
             ))}
           </div>
         ) : (
-          <p className="empty-state">
+          <EmptyState className="empty-state">
             School results are unavailable right now. The API may still be
             starting.
-          </p>
+          </EmptyState>
         )}
       </section>
 
-      <section className="section action-panel" aria-labelledby="cold-start-title">
+      <Card className="section action-panel" aria-labelledby="cold-start-title">
         <p className="eyebrow">Start the scene</p>
         <h2 id="cold-start-title">Not seeing activity for your campus yet?</h2>
         <p>
@@ -84,7 +87,7 @@ export default async function HomePage() {
             Follow a school
           </Link>
         </div>
-      </section>
+      </Card>
     </main>
   );
 }

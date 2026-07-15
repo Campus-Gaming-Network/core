@@ -1,3 +1,4 @@
+import { Alert } from "@heroui/react/alert";
 import Link from "next/link";
 import { ResendVerificationForm } from "../../../components/auth-forms";
 import { verifyEmailToken } from "../../../lib/server-api";
@@ -25,16 +26,16 @@ export default async function VerifyEmailPage({ searchParams }: PageProps) {
         <h1>{heading(status)}</h1>
       </section>
       {status === "verified" ? (
-        <p className="notice success">
+        <Alert className="notice success" status="success">
           Your email is verified. <Link href="/login">Log in</Link> to continue.
-        </p>
+        </Alert>
       ) : (
         <>
-          <p className="notice error">
+          <Alert className="notice error" status="danger">
             {status === "missing"
               ? "This verification link is missing its token."
               : "This verification link is invalid or expired."}
-          </p>
+          </Alert>
           <ResendVerificationForm />
         </>
       )}

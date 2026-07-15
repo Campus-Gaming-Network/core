@@ -1,3 +1,5 @@
+import { Button } from "@heroui/react/button";
+import { Input } from "@heroui/react/input";
 import Link from "next/link";
 import { SignupForm } from "../../components/auth-forms";
 import { listSchools } from "../../lib/server-api";
@@ -28,13 +30,13 @@ export default async function SignupPage({ searchParams }: PageProps) {
       <form action="/signup" className="search-bar compact">
         <label>
           Find home school
-          <input
+          <Input
             name="q"
             defaultValue={query}
             placeholder="Search schools before signing up"
           />
         </label>
-        <button type="submit">Search</button>
+        <Button type="submit">Search</Button>
       </form>
 
       <SignupForm

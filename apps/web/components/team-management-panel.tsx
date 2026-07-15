@@ -1,3 +1,8 @@
+import { Button } from "@heroui/react/button";
+import { Card } from "@heroui/react/card";
+import { EmptyState } from "@heroui/react/empty-state";
+import { ListBox } from "@heroui/react/list-box";
+import { Select } from "@heroui/react/select";
 import {
   setTeamCaptainAction,
   transferTeamOwnershipAction
@@ -21,7 +26,7 @@ export function TeamManagementPanel({ team }: TeamManagementPanelProps) {
   }
 
   return (
-    <div className="form-stack">
+    <Card className="form-stack">
       <section aria-labelledby="captain-management">
         <h3 id="captain-management">Captains</h3>
         <p className="form-help">
@@ -39,9 +44,9 @@ export function TeamManagementPanel({ team }: TeamManagementPanelProps) {
             ))}
           </div>
         ) : (
-          <p className="empty-state">
+          <EmptyState className="empty-state">
             Members will appear here after they join with the team password.
-          </p>
+          </EmptyState>
         )}
       </section>
 
@@ -52,29 +57,50 @@ export function TeamManagementPanel({ team }: TeamManagementPanelProps) {
             <input type="hidden" name="slug" value={team.slug} />
             <label>
               New owner
-              <select name="new_owner_user_id" required>
-                {manageableMembers.map((member) => (
-                  <option key={member.user_id} value={member.user_id}>
-                    {member.name} · {teamRoleLabel(member.role)}
-                  </option>
-                ))}
-              </select>
+              <Select
+                fullWidth
+                name="new_owner_user_id"
+                defaultSelectedKey={manageableMembers[0]?.user_id}
+                isRequired
+              >
+                <Select.Trigger>
+                  <Select.Value />
+                  <Select.Indicator />
+                </Select.Trigger>
+                <Select.Popover>
+                  <ListBox>
+                    {manageableMembers.map((member) => {
+                      const label = `${member.name} · ${teamRoleLabel(member.role)}`;
+
+                      return (
+                        <ListBox.Item
+                          id={member.user_id}
+                          key={member.user_id}
+                          textValue={label}
+                        >
+                          {label}
+                        </ListBox.Item>
+                      );
+                    })}
+                  </ListBox>
+                </Select.Popover>
+              </Select>
             </label>
             <p className="form-help">
               Ownership transfer is immediate. You will remain on the team as a
               member after the transfer.
             </p>
-            <button className="secondary" type="submit">
+            <Button className="secondary" type="submit">
               Transfer ownership
-            </button>
+            </Button>
           </form>
         ) : (
-          <p className="empty-state">
+          <EmptyState className="empty-state">
             Add another member before transferring ownership.
-          </p>
+          </EmptyState>
         )}
       </section>
-    </div>
+    </Card>
   );
 }
 
@@ -88,7 +114,7 @@ function MemberManagementRow({
   const isCaptain = member.role === "captain";
 
   return (
-    <div className="list-item">
+    <Card className="list-item">
       <span className="event-card-heading">
         <strong>{member.name}</strong>
         <small>{teamRoleLabel(member.role)}</small>
@@ -97,10 +123,10 @@ function MemberManagementRow({
         <input type="hidden" name="slug" value={slug} />
         <input type="hidden" name="user_id" value={member.user_id} />
         <input type="hidden" name="captain" value={isCaptain ? "false" : "true"} />
-        <button className={isCaptain ? "secondary" : "primary"} type="submit">
+        <Button className={isCaptain ? "secondary" : "primary"} type="submit">
           {isCaptain ? "Remove captain" : "Make captain"}
-        </button>
+        </Button>
       </form>
-    </div>
+    </Card>
   );
 }

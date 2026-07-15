@@ -1,5 +1,9 @@
 "use client";
 
+import { Alert } from "@heroui/react/alert";
+import { Button } from "@heroui/react/button";
+import { Input } from "@heroui/react/input";
+import { TextArea } from "@heroui/react/textarea";
 import { useActionState } from "react";
 import { submitSupportTicketAction } from "../app/actions";
 import { initialFormState } from "../lib/form-state";
@@ -13,34 +17,38 @@ export function SupportTicketForm() {
   return (
     <form action={action} className="form-stack">
       {state.message ? (
-        <p className={`notice ${state.status}`} aria-live="polite">
+        <Alert
+          aria-live="polite"
+          className={`notice ${state.status}`}
+          status={state.status === "error" ? "danger" : "success"}
+        >
           {state.message}
-        </p>
+        </Alert>
       ) : null}
 
       <label>
         Email
-        <input name="contact_email" type="email" autoComplete="email" required />
+        <Input name="contact_email" type="email" autoComplete="email" required />
       </label>
       <label>
         Name
-        <input name="name" autoComplete="name" maxLength={120} />
+        <Input name="name" autoComplete="name" maxLength={120} />
       </label>
       <label>
         Subject
-        <input name="subject" required maxLength={160} />
+        <Input name="subject" required maxLength={160} />
       </label>
       <label>
         Message
-        <textarea name="message" required maxLength={5000} rows={7} />
+        <TextArea name="message" required maxLength={5000} rows={7} />
       </label>
       <p className="form-help">
         Support tickets are queued for review. Do not include passwords,
         payment card details, or other sensitive secrets.
       </p>
-      <button type="submit" disabled={pending}>
+      <Button type="submit" isDisabled={pending}>
         {pending ? "Submitting..." : "Submit support ticket"}
-      </button>
+      </Button>
     </form>
   );
 }

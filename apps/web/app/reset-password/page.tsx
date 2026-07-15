@@ -1,3 +1,4 @@
+import { Alert } from "@heroui/react/alert";
 import Link from "next/link";
 import { ResetPasswordForm } from "../../components/auth-forms";
 
@@ -18,10 +19,10 @@ export default async function ResetPasswordPage({ searchParams }: PageProps) {
       {token ? (
         <ResetPasswordForm token={token} />
       ) : (
-        <p className="notice error">
+        <Alert className="notice error" status="danger">
           This reset link is missing its token. Request a new link from{" "}
           <Link href="/forgot-password">forgot password</Link>.
-        </p>
+        </Alert>
       )}
     </main>
   );

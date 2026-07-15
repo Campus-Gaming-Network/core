@@ -1,3 +1,6 @@
+import { Alert } from "@heroui/react/alert";
+import { Card } from "@heroui/react/card";
+import { EmptyState } from "@heroui/react/empty-state";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ProfileForm } from "../../components/profile-form";
@@ -47,24 +50,24 @@ export default async function AccountPage() {
       </section>
 
       <section className="summary-strip" aria-label="Account summary">
-        <span>
+        <Card>
           <strong>Email</strong>
           {profile.email}
-        </span>
-        <span>
+        </Card>
+        <Card>
           <strong>Verification</strong>
           {profile.email_verified_at ? "Email verified" : "Email pending"}
-        </span>
-        <span>
+        </Card>
+        <Card>
           <strong>Public profile</strong>
           <Link href={`/users/${profile.id}`}>View profile</Link>
-        </span>
+        </Card>
       </section>
 
       {!profile.email_verified_at ? (
-        <p className="notice error">
+        <Alert className="notice error" status="danger">
           Verify your email to unlock normal authenticated use.
-        </p>
+        </Alert>
       ) : null}
 
       <section className="section" aria-labelledby="upcoming-rsvps-title">
@@ -121,9 +124,9 @@ export default async function AccountPage() {
             ))}
           </div>
         ) : (
-          <p className="empty-state">
+          <EmptyState className="empty-state">
             You are not following any additional schools yet.
-          </p>
+          </EmptyState>
         )}
       </section>
 
@@ -157,10 +160,10 @@ export default async function AccountPage() {
             ))}
           </div>
         ) : (
-          <p className="empty-state">
+          <EmptyState className="empty-state">
             You have not joined any teams yet. Join with a team password or
             create your first team.
-          </p>
+          </EmptyState>
         )}
       </section>
 
@@ -179,7 +182,7 @@ function EventList({
   variant: "followed" | "rsvp";
 }) {
   if (events.length === 0) {
-    return <p className="empty-state">{empty}</p>;
+    return <EmptyState className="empty-state">{empty}</EmptyState>;
   }
 
   return (

@@ -1,5 +1,10 @@
 "use client";
 
+import { Alert } from "@heroui/react/alert";
+import { Button } from "@heroui/react/button";
+import { Fieldset } from "@heroui/react/fieldset";
+import { Input } from "@heroui/react/input";
+import { TextArea } from "@heroui/react/textarea";
 import { useActionState } from "react";
 import { updateProfileAction } from "../app/actions";
 import { type Profile } from "../lib/cgn-api";
@@ -15,11 +20,16 @@ export function ProfileForm({ profile }: { profile: Profile }) {
   return (
     <form action={action} className="form-stack">
       {state.message ? (
-        <p className={`notice ${state.status}`}>{state.message}</p>
+        <Alert
+          className={`notice ${state.status}`}
+          status={state.status === "error" ? "danger" : "success"}
+        >
+          {state.message}
+        </Alert>
       ) : null}
       <label>
         Name
-        <input
+        <Input
           name="name"
           defaultValue={profile.name}
           required
@@ -28,7 +38,7 @@ export function ProfileForm({ profile }: { profile: Profile }) {
       </label>
       <label>
         Bio
-        <textarea
+        <TextArea
           name="bio"
           defaultValue={profile.bio ?? ""}
           maxLength={2000}
@@ -37,15 +47,15 @@ export function ProfileForm({ profile }: { profile: Profile }) {
       </label>
       <label>
         Time zone
-        <input name="timezone" defaultValue={profile.timezone} required />
+        <Input name="timezone" defaultValue={profile.timezone} required />
       </label>
-      <fieldset>
-        <legend>Social links</legend>
+      <Fieldset>
+        <Fieldset.Legend>Social links</Fieldset.Legend>
         {[0, 1, 2].map((index) => (
           <div className="split-fields" key={index}>
             <label>
               Label
-              <input
+              <Input
                 name={`social_label_${index}`}
                 defaultValue={socialLinks[index]?.label ?? ""}
                 maxLength={40}
@@ -53,7 +63,7 @@ export function ProfileForm({ profile }: { profile: Profile }) {
             </label>
             <label>
               URL
-              <input
+              <Input
                 name={`social_url_${index}`}
                 defaultValue={socialLinks[index]?.url ?? ""}
                 type="url"
@@ -62,10 +72,10 @@ export function ProfileForm({ profile }: { profile: Profile }) {
             </label>
           </div>
         ))}
-      </fieldset>
-      <button type="submit" disabled={pending}>
+      </Fieldset>
+      <Button type="submit" isDisabled={pending}>
         {pending ? "Saving..." : "Save profile"}
-      </button>
+      </Button>
     </form>
   );
 }

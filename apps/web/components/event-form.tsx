@@ -1,5 +1,13 @@
 "use client";
 
+import { Alert } from "@heroui/react/alert";
+import { Button } from "@heroui/react/button";
+import { Checkbox } from "@heroui/react/checkbox";
+import { Fieldset } from "@heroui/react/fieldset";
+import { Input } from "@heroui/react/input";
+import { ListBox } from "@heroui/react/list-box";
+import { Select } from "@heroui/react/select";
+import { TextArea } from "@heroui/react/textarea";
 import { useActionState } from "react";
 import {
   createEventAction,
@@ -39,12 +47,17 @@ export function EventForm({
     <form action={action} className="form-stack">
       {event ? <input type="hidden" name="slug" value={event.slug} /> : null}
       {state.message ? (
-        <p className={`notice ${state.status}`}>{state.message}</p>
+        <Alert
+          className={`notice ${state.status}`}
+          status={state.status === "error" ? "danger" : "success"}
+        >
+          {state.message}
+        </Alert>
       ) : null}
 
       <label>
         Title
-        <input
+        <Input
           name="title"
           defaultValue={event?.title ?? ""}
           required
@@ -54,7 +67,7 @@ export function EventForm({
 
       <label>
         Description
-        <textarea
+        <TextArea
           name="description"
           defaultValue={event?.description ?? ""}
           maxLength={5000}
@@ -65,28 +78,50 @@ export function EventForm({
       <div className="split-fields">
         <label>
           Visibility
-          <select
+          <Select
+            fullWidth
             name="visibility"
-            defaultValue={event?.visibility ?? "public"}
-            required
+            defaultSelectedKey={event?.visibility ?? "public"}
+            isRequired
           >
-            <option value="public">Public</option>
-            <option value="unlisted">Unlisted</option>
-            <option value="private">Private</option>
-          </select>
+            <Select.Trigger>
+              <Select.Value />
+              <Select.Indicator />
+            </Select.Trigger>
+            <Select.Popover>
+              <ListBox>
+                <ListBox.Item id="public" textValue="Public">Public</ListBox.Item>
+                <ListBox.Item id="unlisted" textValue="Unlisted">Unlisted</ListBox.Item>
+                <ListBox.Item id="private" textValue="Private">Private</ListBox.Item>
+              </ListBox>
+            </Select.Popover>
+          </Select>
         </label>
         <label>
           Format
-          <select name="format" defaultValue={event?.format ?? "in_person"} required>
-            <option value="in_person">In person</option>
-            <option value="online">Online</option>
-            <option value="hybrid">Hybrid</option>
-          </select>
+          <Select
+            fullWidth
+            name="format"
+            defaultSelectedKey={event?.format ?? "in_person"}
+            isRequired
+          >
+            <Select.Trigger>
+              <Select.Value />
+              <Select.Indicator />
+            </Select.Trigger>
+            <Select.Popover>
+              <ListBox>
+                <ListBox.Item id="in_person" textValue="In person">In person</ListBox.Item>
+                <ListBox.Item id="online" textValue="Online">Online</ListBox.Item>
+                <ListBox.Item id="hybrid" textValue="Hybrid">Hybrid</ListBox.Item>
+              </ListBox>
+            </Select.Popover>
+          </Select>
         </label>
       </div>
 
-      <fieldset>
-        <legend>When</legend>
+      <Fieldset>
+        <Fieldset.Legend>When</Fieldset.Legend>
         <p className="form-help">
           Use ISO timestamps for this MVP form, for example
           <code>2026-08-15T20:00:00Z</code>.
@@ -94,7 +129,7 @@ export function EventForm({
         <div className="split-fields">
           <label>
             Starts at
-            <input
+            <Input
               name="starts_at"
               defaultValue={event?.starts_at ?? ""}
               placeholder="2026-08-15T20:00:00Z"
@@ -103,7 +138,7 @@ export function EventForm({
           </label>
           <label>
             Ends at
-            <input
+            <Input
               name="ends_at"
               defaultValue={event?.ends_at ?? ""}
               placeholder="2026-08-15T22:00:00Z"
@@ -113,34 +148,54 @@ export function EventForm({
         </div>
         <label>
           Time zone
-          <input
+          <Input
             name="timezone"
             defaultValue={event?.timezone ?? "America/Los_Angeles"}
             required
           />
         </label>
-      </fieldset>
+      </Fieldset>
 
-      <fieldset>
-        <legend>Where</legend>
+      <Fieldset>
+        <Fieldset.Legend>Where</Fieldset.Legend>
         <label>
           Host school
-          <select name="host_school_id" defaultValue={selectedSchoolID} required>
-            <option value="">Choose a school</option>
-            {schools.map((school) => (
-              <option key={school.id} value={school.id}>
-                {school.name}
-                {school.city || school.state
-                  ? ` (${[school.city, school.state].filter(Boolean).join(", ")})`
-                  : ""}
-              </option>
-            ))}
-          </select>
+          <Select
+            fullWidth
+            name="host_school_id"
+            defaultSelectedKey={selectedSchoolID}
+            isRequired
+          >
+            <Select.Trigger>
+              <Select.Value />
+              <Select.Indicator />
+            </Select.Trigger>
+            <Select.Popover>
+              <ListBox>
+                <ListBox.Item id="" textValue="Choose a school">
+                  Choose a school
+                </ListBox.Item>
+                {schools.map((school) => {
+                  const label = `${school.name}${
+                    school.city || school.state
+                      ? ` (${[school.city, school.state].filter(Boolean).join(", ")})`
+                      : ""
+                  }`;
+
+                  return (
+                    <ListBox.Item id={school.id} key={school.id} textValue={label}>
+                      {label}
+                    </ListBox.Item>
+                  );
+                })}
+              </ListBox>
+            </Select.Popover>
+          </Select>
         </label>
         <div className="split-fields">
           <label>
             Location name
-            <input
+            <Input
               name="location_name"
               defaultValue={event?.location_name ?? ""}
               maxLength={200}
@@ -149,7 +204,7 @@ export function EventForm({
           </label>
           <label>
             Online URL
-            <input
+            <Input
               name="online_url"
               defaultValue={event?.online_url ?? ""}
               maxLength={500}
@@ -160,17 +215,17 @@ export function EventForm({
         </div>
         <label>
           Address
-          <input
+          <Input
             name="address"
             defaultValue={event?.address ?? ""}
             maxLength={1000}
             placeholder="Optional for in-person or hybrid events"
           />
         </label>
-      </fieldset>
+      </Fieldset>
 
-      <fieldset>
-        <legend>Games and capacity</legend>
+      <Fieldset>
+        <Fieldset.Legend>Games and capacity</Fieldset.Legend>
         <label>
           Games
           <select
@@ -190,7 +245,7 @@ export function EventForm({
         </label>
         <label>
           Capacity
-          <input
+          <Input
             name="capacity"
             defaultValue={event?.capacity?.toString() ?? ""}
             min={1}
@@ -198,13 +253,13 @@ export function EventForm({
             type="number"
           />
         </label>
-      </fieldset>
+      </Fieldset>
 
-      <fieldset>
-        <legend>Private and paid event details</legend>
+      <Fieldset>
+        <Fieldset.Legend>Private and paid event details</Fieldset.Legend>
         <label>
           Private event password
-          <input
+          <Input
             name="private_password"
             type="password"
             minLength={8}
@@ -215,13 +270,12 @@ export function EventForm({
             }
           />
         </label>
-        <label className="check-row">
-          <input name="is_paid" type="checkbox" defaultChecked={event?.is_paid} />
+        <Checkbox className="check-row" name="is_paid" defaultSelected={event?.is_paid}>
           <span>This event has off-site payment instructions.</span>
-        </label>
+        </Checkbox>
         <label>
           Payment note
-          <textarea
+          <TextArea
             name="payment_note"
             defaultValue={event?.payment_note ?? ""}
             maxLength={1000}
@@ -231,7 +285,7 @@ export function EventForm({
         </label>
         <label>
           Payment URL
-          <input
+          <Input
             name="payment_url"
             defaultValue={event?.payment_url ?? ""}
             maxLength={500}
@@ -239,9 +293,9 @@ export function EventForm({
             type="url"
           />
         </label>
-      </fieldset>
+      </Fieldset>
 
-      <button type="submit" disabled={pending}>
+      <Button type="submit" isDisabled={pending}>
         {pending
           ? mode === "create"
             ? "Creating..."
@@ -249,7 +303,7 @@ export function EventForm({
           : mode === "create"
             ? "Create event"
             : "Save event"}
-      </button>
+      </Button>
     </form>
   );
 }

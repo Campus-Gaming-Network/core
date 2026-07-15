@@ -1,3 +1,5 @@
+import { Accordion } from "@heroui/react/accordion";
+
 const faqs = [
   {
     question: "Can any school be listed?",
@@ -23,14 +25,20 @@ export default function FAQPage() {
         <p className="eyebrow">FAQ</p>
         <h1>Questions for the MVP.</h1>
       </section>
-      <div className="list">
+      <Accordion>
         {faqs.map((item) => (
-          <article className="list-item block" key={item.question}>
-            <h2>{item.question}</h2>
-            <p>{item.answer}</p>
-          </article>
+          <Accordion.Item key={item.question}>
+            <Accordion.Heading>
+              <Accordion.Trigger>{item.question}</Accordion.Trigger>
+            </Accordion.Heading>
+            <Accordion.Panel>
+              <Accordion.Body>
+                <p>{item.answer}</p>
+              </Accordion.Body>
+            </Accordion.Panel>
+          </Accordion.Item>
         ))}
-      </div>
+      </Accordion>
     </main>
   );
 }

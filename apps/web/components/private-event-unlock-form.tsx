@@ -1,5 +1,8 @@
 "use client";
 
+import { Alert } from "@heroui/react/alert";
+import { Button } from "@heroui/react/button";
+import { Input } from "@heroui/react/input";
 import { useActionState } from "react";
 import { unlockEventAction } from "../app/actions";
 import { initialFormState } from "../lib/form-state";
@@ -18,13 +21,17 @@ export function PrivateEventUnlockForm({ slug }: PrivateEventUnlockFormProps) {
     <form action={action} className="inline-form private-unlock-form">
       <input type="hidden" name="slug" value={slug} />
       {state.message ? (
-        <p className={`notice ${state.status}`} aria-live="polite">
+        <Alert
+          aria-live="polite"
+          className={`notice ${state.status}`}
+          status={state.status === "error" ? "danger" : "success"}
+        >
           {state.message}
-        </p>
+        </Alert>
       ) : null}
       <label>
         Event password
-        <input
+        <Input
           name="password"
           type="password"
           autoComplete="off"
@@ -32,9 +39,9 @@ export function PrivateEventUnlockForm({ slug }: PrivateEventUnlockFormProps) {
           minLength={8}
         />
       </label>
-      <button type="submit" disabled={pending}>
+      <Button type="submit" isDisabled={pending}>
         {pending ? "Unlocking…" : "Unlock event"}
-      </button>
+      </Button>
     </form>
   );
 }
