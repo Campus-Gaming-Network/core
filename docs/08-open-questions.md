@@ -42,12 +42,9 @@ Decisions to resolve before or during implementation. Until answered, implemente
 ### Technical
 
 21. **Go API style** — REST only, or RPC (Connect/gRPC) behind the BFF?
-22. **Railway staging** — Create a separate staging Railway environment before public launch?
-23. **Railway migrations** — Run migrations as a dedicated service/job or API pre-deploy command?
-24. **Domain aliases** — Should `www.campusgamingnetwork.com` redirect to apex or serve the app directly?
-25. **Analytics** — Plausible vs Cloudflare Web Analytics vs other?
-26. **Activity log vs audit log** — One table with `kind`, or two tables?
-27. **Friends / notifications / i18n** — timing and depth after MVP?
+22. **Analytics** — Plausible vs Cloudflare Web Analytics vs other?
+23. **Activity log vs audit log** — One table with `kind`, or two tables?
+24. **Friends / notifications / i18n** — timing and depth after MVP?
 
 ---
 
@@ -68,7 +65,7 @@ Decisions to resolve before or during implementation. Until answered, implemente
 | Clubs / tournaments | Out of MVP |
 | Feature flags / near-you / cancel-notify | Hold off for MVP |
 | Support tickets | Anyone can submit (logged out OK) |
-| Email | **Resend** — `events@` / `notifications@` / `support@` / `account@campusgamingnetwork.com` |
+| Email | **Resend** — MVP sends from `events@` and `account@`; `notifications@` and `support@` workflows are post-MVP |
 | Object storage | **Cloudflare R2** — post-MVP school logos via CRM/admin app only; PNG/JPG; max **500 MB** |
 | Event banners MVP | **Decided:** default placeholder; custom uploads later with moderation |
 | Event slug hash | **Decided:** **8** Base64URL characters |
@@ -76,6 +73,9 @@ Decisions to resolve before or during implementation. Until answered, implemente
 | Main site | `campusgamingnetwork.com` (Next.js) |
 | MVP hosting | **Railway** hosts Next.js web, Go API, and PostgreSQL; Cloudflare manages DNS/protection |
 | Production database | **Railway PostgreSQL** for MVP; enable/verify backups before public launch |
+| Railway environments | Rehearse launch in a separate `staging` environment, then deploy `production` with separate Postgres and secrets |
+| Railway migrations | API pre-deploy command runs the Go migrator before Railway activates the new API deployment |
+| Domain aliases | Apex is canonical; Cloudflare permanently redirects `www` to `campusgamingnetwork.com` |
 | Auth session store | Opaque sessions stored in Postgres |
 | School import | All seed rows active (incl. 1,300 branches); branch campuses use same UI/UX; `unitid` optional |
 | Home school | User selects one home school on signup; additional schools are follows |

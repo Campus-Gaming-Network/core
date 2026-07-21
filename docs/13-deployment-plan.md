@@ -1,19 +1,18 @@
-# 13 — Deployment plan
+# 13 — Deployment plan (Railway)
 
-Main-site MVP deployment target and launch checklist.
+Concrete deployment configuration and launch checklist for the main-site MVP. The repository-side work is encoded under `railway/`; provisioning services, secrets, backups, DNS, and running the production smoke test remain operator actions.
 
-## Decision
+## Locked production decisions
 
-Deploy the main-site MVP on **Railway**:
-
-- Railway hosts the Next.js web service.
-- Railway hosts the Go API service.
-- Railway hosts production PostgreSQL.
-- Cloudflare remains the DNS/protection layer for `campusgamingnetwork.com`.
-- Resend remains the transactional email provider.
-- Sentry/error monitoring is post-MVP.
-
-This replaces the earlier open-ended “deploy path” question. Supabase is no longer the assumed production database for the MVP unless we later decide to migrate.
+| Area | Decision |
+|------|----------|
+| Project services | `web`, `api`, and `postgres`; `seed` exists only for the one-time catalog bootstrap |
+| Environments | Use `staging` for the launch rehearsal, then `production`; keep their databases and secrets separate |
+| Public access | Only `web` receives a public/custom domain; `api` and `postgres` stay private |
+| Migrations | The `api` Railway pre-deploy command runs `cgn-migrate -dir /migrations` before each API deployment |
+| School seed | Deploy the temporary `seed` service once per fresh environment, verify 6,243 schools, then disconnect/delete it |
+| Primary domain | `campusgamingnetwork.com`; Cloudflare redirects `www.campusgamingnetwork.com` to the apex |
+| Backups | Scheduled Railway volume backups plus a restore rehearsal before production launch |
 
 ## Production shape
 
@@ -27,10 +26,7 @@ Cloudflare DNS / edge protection
 Railway public web service
 Next.js app / BFF / Server Actions
         │
-        ▼
-Railway private networking
-        │
-        ▼
+        ▼  http over Railway private networking
 Railway private API service
 Go REST/JSON API
         │
@@ -38,124 +34,160 @@ Go REST/JSON API
 Railway PostgreSQL
 ```
 
-Only the Next.js web service should be publicly exposed for the main MVP. The Go API should be reachable by the web service over Railway private networking. If a public API URL is temporarily needed for debugging, it should be treated as temporary and removed before public launch.
+## Repository deployment assets
 
-## Services
+| File | Purpose |
+|------|---------|
+| `railway/web.toml` | Web Docker build, `/api/health` deployment check, restart/drain policy |
+| `railway/api.toml` | API Docker build, migration pre-deploy, `/ready` deployment check, restart/drain policy |
+| `railway/seed.toml` | Temporary one-shot school-catalog bootstrap service |
+| `apps/web/Dockerfile` | Node 24 production image installed with the pinned root lockfile |
+| `apps/api/Dockerfile` | Go API image containing the API, migrator, seed command, migrations, and school CSV |
+| `scripts/smoke_test.sh` | Automated checks for public pages and the web-to-private-API health path |
 
-| Railway service | Public? | Purpose |
-|-----------------|---------|---------|
-| `web` | Yes | Next.js main site at `campusgamingnetwork.com` |
-| `api` | Prefer no | Go API used by the Next.js BFF/server actions |
-| `postgres` | No | Production database |
-| `migrate` or pre-deploy command | No | Applies SQL migrations before the API serves traffic |
+Railway config-as-code is service-specific. All source services use repository root `/` as their Railway root directory. Assign these absolute config paths in each service’s settings:
 
-## Environments
+| Service | Config file path |
+|---------|------------------|
+| `web` | `/railway/web.toml` |
+| `api` | `/railway/api.toml` |
+| temporary `seed` | `/railway/seed.toml` |
 
-Use at least:
+## First-time Railway setup
 
-- `production` — `campusgamingnetwork.com`, production Postgres, real email.
-- `staging` — optional but preferred before launch; Railway-generated domain or `staging.campusgamingnetwork.com`, separate Postgres, email either sandboxed or clearly marked.
-
-Local development remains Docker Compose with local Postgres.
-
-## Domain and DNS
-
-Production domain target:
-
-- Primary: `campusgamingnetwork.com`
-- Optional redirect/alias: `www.campusgamingnetwork.com`
-
-Cloudflare should manage DNS. Railway custom-domain records should be added in Cloudflare for the public Next.js service. Keep proxy/protection enabled unless Railway domain validation requires a temporary DNS-only setup.
+1. Create one Railway project and add `staging` and `production` environments.
+2. In `staging`, provision Railway PostgreSQL and name the service exactly `postgres`.
+3. Create empty source services named exactly `api` and `web`, connect both to this repository and the intended branch, keep root directory `/`, and assign the config paths above.
+4. Set the variables below. Do not generate a public domain for `api` or `postgres`.
+5. Deploy `api` first. Its pre-deploy command applies every pending migration; `/ready` must reach Postgres before Railway activates the deployment.
+6. Create a temporary service named `seed`, connect the same repository with `/railway/seed.toml`, set only its database variable, and deploy it once. Verify the logs report 6,243 imported rows, then disconnect or delete the service.
+7. Deploy `web`, generate a Railway domain for the staging rehearsal, and complete all smoke tests.
+8. Reproduce the same topology in `production`, using production-only Postgres, secrets, Resend credentials, and URLs.
 
 ## Environment variables
 
-Production values should be set in Railway service variables, not committed to the repo.
+Values belong in Railway variables, not in the repository. Seal the Resend key after setting it. Railway injects `PORT`; both services are configured to listen on it, so do not hard-code a production port.
 
-### Web service
+### `web`
 
-| Variable | Notes |
-|----------|-------|
-| `API_INTERNAL_URL` | Internal Railway URL for the `api` service, ideally private-network URL |
-| `API_SESSION_COOKIE` | `cgn_session` unless changed |
+| Variable | Production value |
+|----------|------------------|
+| `API_INTERNAL_URL` | `http://${{api.RAILWAY_PRIVATE_DOMAIN}}:${{api.PORT}}` |
+| `API_SESSION_COOKIE` | `cgn_session` |
 | `NODE_ENV` | `production` |
+| `NEXT_TELEMETRY_DISABLED` | `1` |
 
-### API service and migration runner
+The internal URL deliberately uses `http`, because Railway private-network traffic remains inside the project environment. It is available to server components/actions only and is never a browser-facing URL.
 
-| Variable | Notes |
-|----------|-------|
-| `API_DATABASE_URL` | Railway Postgres connection string |
+### `api`
+
+| Variable | Production value |
+|----------|------------------|
+| `API_DATABASE_URL` | `${{postgres.DATABASE_URL}}` |
 | `API_SITE_URL` | `https://campusgamingnetwork.com` |
 | `API_SESSION_COOKIE` | `cgn_session` |
 | `API_COOKIE_SECURE` | `true` |
-| `API_RESEND_API_KEY` | Production Resend key |
+| `API_RESEND_API_KEY` | Production Resend API key; seal this variable |
 | `API_ACCOUNT_EMAIL_FROM` | `account@campusgamingnetwork.com` |
 | `API_EVENTS_EMAIL_FROM` | `events@campusgamingnetwork.com` |
-| `API_NOTIFICATIONS_EMAIL_FROM` | `notifications@campusgamingnetwork.com` |
-| `API_SUPPORT_EMAIL_FROM` | `support@campusgamingnetwork.com` |
 
-## Migrations and seed data
+Do not set any `API_DEV_SEED_USER_*` variables outside local development. `RESEND_API_KEY` remains a temporary backwards-compatible alias in code, but `API_RESEND_API_KEY` is the canonical name.
 
-Use the existing Go migrator against Railway Postgres:
+### Temporary `seed`
 
-```bash
-cd apps/api
-go run ./cmd/migrate -dir ../../db/migrations
+| Variable | Value |
+|----------|-------|
+| `API_DATABASE_URL` | `${{postgres.DATABASE_URL}}` |
+
+The seed command is intentionally not part of every deployment. It refuses a partially populated catalog, and routine catalog management moves to the post-MVP CRM.
+
+## Migrations
+
+`railway/api.toml` defines this API pre-deploy command:
+
+```text
+cgn-migrate -dir /migrations
 ```
 
-For Railway, prefer a dedicated migration service/job or API pre-deploy command that runs before the API starts serving the new version.
+The API image contains the migration files. Railway runs pre-deploy commands after the image build, inside the private network, with service variables available. A non-zero migration exit blocks the new API deployment. Migration files are immutable after production use: add a new numbered migration for every schema change.
 
-Production launch data:
-
-- Apply every `db/migrations/*.up.sql` file.
-- Run the school seed once with all 6,243 active schools.
-- Seed the six MVP games.
-- Do not seed the local development test user in production.
-
-## Backups and restore
+## Backups and restore rehearsal
 
 Before public launch:
 
-- Enable/verify Railway Postgres backups.
-- Document the restore process in ops notes.
-- Perform at least one restore drill against staging or a disposable Railway environment.
+1. In the `postgres` service Backups tab, enable at least daily and weekly volume backups. Monthly retention is also recommended.
+2. Trigger and retain a manual backup immediately before the first production migration and before later high-risk migrations.
+3. Restore a staging backup. Railway stages a replacement volume; review and deploy the staged restore, then verify migrations, the school count, signup, and event creation.
+4. Record the rehearsal date and result in the launch record.
 
-Point-in-time recovery is not required for MVP, but can be revisited after launch.
+Railway’s current scheduled retention is six days for daily backups, one month for weekly backups, and three months for monthly backups. Point-in-time recovery is optional after launch, not an MVP blocker.
 
-## Launch smoke test
+## Domain and Cloudflare
 
-After deploying to Railway and pointing DNS:
+1. After the production `web` service passes on its Railway domain, add `campusgamingnetwork.com` as its Railway custom domain.
+2. Add the CNAME/flattened record Railway supplies in Cloudflare. Keep `_acme-challenge` DNS-only if certificate validation requires it.
+3. Once Railway shows the certificate/domain as active, enable the normal Cloudflare proxy/protection setting.
+4. Add a Cloudflare redirect rule from `www.campusgamingnetwork.com/*` to `https://campusgamingnetwork.com/$1` with a permanent redirect.
+5. Confirm the API and Postgres still have no public domain or TCP proxy.
 
-1. `GET /health` on the API returns healthy from inside Railway.
-2. `GET /ready` confirms API → Railway Postgres connectivity.
-3. `https://campusgamingnetwork.com` loads.
-4. Signup creates an account, requires 18+ and home school, and sends verification email.
-5. Login/logout works with secure cookies.
-6. School search and follow/unfollow work.
-7. Event create → RSVP yes → confirmation email with calendar file works.
-8. Team create → join by password works.
-9. Dashboard shows upcoming RSVPs, followed-school events, and team activity.
-10. Support ticket submission works logged out.
-11. Event/user reports work logged in.
-12. Private event unlock does not leak private details pre-unlock.
+## Launch sequence
+
+1. CI passes on the exact commit being deployed.
+2. Staging API deploy applies migrations and passes `/ready`.
+3. Staging seed completes once; verify 6,243 active schools and six launch games.
+4. Staging web deploy passes `/api/health` and the complete manual smoke test.
+5. Production Postgres backup schedules are enabled and a manual pre-launch backup exists.
+6. Production API deploy applies migrations and passes `/ready`.
+7. Production seed completes once and is removed/disconnected.
+8. Production web deploy passes on its Railway domain.
+9. Attach the apex domain, configure the `www` redirect, and run public smoke tests.
+10. Watch Railway logs and metrics during the first launch window.
+
+## Smoke tests
+
+Run the automated public checks after the Railway domain is live and again after Cloudflare DNS is live:
+
+```bash
+./scripts/smoke_test.sh https://campusgamingnetwork.com
+```
+
+Then complete these manual checks:
+
+1. Signup requires 18+ confirmation and a home school and sends a verification email.
+2. Verification, login, logout, forgot-password, and reset-password work with secure cookies.
+3. School search and follow/unfollow work.
+4. Event create → RSVP yes → confirmation email with calendar file works.
+5. Only organizers see event edit/delete controls; direct non-organizer edits are rejected.
+6. Paid-event instructions link off-site and do not imply CGN checkout.
+7. Team create → password join → captain/ownership controls work.
+8. Dashboard shows upcoming RSVPs, followed-school events, and team activity.
+9. Support ticket submission works logged out; event/user reports work logged in.
+10. Private event responses and page source do not expose details before unlock.
 
 ## Rollback posture
 
-For MVP:
+- App regression: use Railway’s rollback/redeploy action for the previous successful `web` or `api` deployment.
+- Failed pre-deploy migration: Railway does not activate the new API image; fix forward with a new migration or corrected unapplied migration.
+- Applied bad migration/data change: stop writes if necessary and restore the verified Railway backup into the same project/environment, then redeploy the previous compatible app release.
+- Never edit a migration already applied to production and never rely on manual production SQL for routine schema changes.
 
-- App rollback: redeploy the previous Railway deployment.
-- Database rollback: restore from Railway backup if a bad migration/data issue requires it.
-- Migration rule: never edit production schema manually; apply changes through migration files.
+## Operator-only launch gates
 
-## Open deployment choices
+- [ ] Railway project and `staging`/`production` environments provisioned
+- [ ] `web`, `api`, and `postgres` service names/config paths verified
+- [ ] Production and staging variables set; secrets separated and Resend key sealed
+- [ ] Staging migration, one-time seed, and full smoke rehearsal passed
+- [ ] Production daily/weekly backups enabled; restore rehearsal recorded
+- [ ] Production migration and one-time seed passed
+- [ ] Apex custom domain and Cloudflare `www` redirect active
+- [ ] Automated and manual production smoke tests passed
 
-- Whether to create a separate staging Railway environment before first public launch.
-- Whether `www.campusgamingnetwork.com` redirects to apex or also serves the app directly.
-- Whether migrations run as a dedicated service/job or as API pre-deploy.
-- Exact Railway service names and environment names.
+## Railway references
 
-## References
-
-- [Railway Next.js guide](https://docs.railway.com/guides/nextjs)
-- [Railway PostgreSQL](https://docs.railway.com/databases/postgresql)
-- [Railway private networking](https://docs.railway.com/networking/private-networking)
-- [Railway public networking](https://docs.railway.com/networking/public-networking)
+- [Config as code](https://docs.railway.com/config-as-code)
+- [Monorepo deployment](https://docs.railway.com/deployments/monorepo)
+- [Pre-deploy commands](https://docs.railway.com/deployments/pre-deploy-command)
+- [Private networking](https://docs.railway.com/networking/private-networking)
+- [Health checks](https://docs.railway.com/deployments/healthchecks)
+- [Volume backups](https://docs.railway.com/volumes/backups)
+- [Working with domains](https://docs.railway.com/networking/domains/working-with-domains)

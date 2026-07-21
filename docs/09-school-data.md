@@ -86,12 +86,19 @@ schools
 
 Logos are **not** in Scorecard and **cannot** be uploaded from the main site. Placeholder in MVP; post-MVP a site admin can set one in the CRM/admin app.
 
-## One-time import (to implement)
+## One-time import (implemented)
 
-1. Migration or admin command reads `data/schools_seed.csv` **once** (guard: refuse if schools table already has Scorecard rows, or require `--force` for empty-env resets only).
-2. Insert **all** rows as `is_active=true` (unique on `unitid` when present and on `slug`).
-3. Write a single audit entry for the bulk bootstrap (`actor` = system).
-4. After success, day-to-day changes are post-MVP CRM/admin-tooling only — do not re-run against production.
+The Go seed command reads `data/schools_seed.csv`, validates every row, and inserts the full catalog transactionally:
+
+```bash
+cd apps/api
+go run ./cmd/seed -csv ../../data/schools_seed.csv
+```
+
+1. The command inserts **all** rows as `is_active=true` (unique on `unitid` when present and on `slug`).
+2. It is idempotent when the table already contains exactly the seed row count and refuses any other non-empty catalog, preventing an accidental recurring sync.
+3. Local Docker Compose runs it after migrations. Railway production runs it once during bootstrap, without development-user environment variables.
+4. After success, day-to-day changes are post-MVP CRM/admin-tooling only — do not re-run it as a scheduled production job.
 
 ## Known gaps in this download
 

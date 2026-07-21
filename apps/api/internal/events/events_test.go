@@ -7,11 +7,11 @@ import (
 )
 
 func TestGenerateSlugUsesTitleAndStableHashSuffix(t *testing.T) {
-	startsAt := time.Date(2026, 8, 15, 20, 30, 0, 0, time.UTC)
+	createdAt := time.Date(2026, 8, 15, 20, 30, 0, 0, time.UTC)
 
-	slug := GenerateSlug("Rocket League Kickoff!", "user-1", startsAt)
-	again := GenerateSlug("Rocket League Kickoff!", "user-1", startsAt)
-	otherUser := GenerateSlug("Rocket League Kickoff!", "user-2", startsAt)
+	slug := GenerateSlug("Rocket League Kickoff!", "user-1", createdAt)
+	again := GenerateSlug("Rocket League Kickoff!", "user-1", createdAt)
+	otherUser := GenerateSlug("Rocket League Kickoff!", "user-2", createdAt)
 
 	if !strings.HasPrefix(slug, "rocket-league-kickoff-") {
 		t.Fatalf("GenerateSlug() = %q, want slugified title prefix", slug)
@@ -24,6 +24,24 @@ func TestGenerateSlugUsesTitleAndStableHashSuffix(t *testing.T) {
 	}
 	if slug == otherUser {
 		t.Fatalf("GenerateSlug() = %q for different creators, want different suffix", slug)
+	}
+}
+
+func TestGenerateSlugUsesUTCCreationDate(t *testing.T) {
+	createdAt := time.Date(2026, 8, 15, 1, 30, 0, 0, time.UTC)
+	sameUTCDay := createdAt.Add(20 * time.Hour)
+	sameInstantWithOffset := createdAt.In(time.FixedZone("Pacific", -7*60*60))
+	nextUTCDay := createdAt.Add(24 * time.Hour)
+
+	slug := GenerateSlug("Rocket League Kickoff!", "user-1", createdAt)
+	if got := GenerateSlug("Rocket League Kickoff!", "user-1", sameUTCDay); got != slug {
+		t.Fatalf("GenerateSlug() = %q for the same UTC date, want %q", got, slug)
+	}
+	if got := GenerateSlug("Rocket League Kickoff!", "user-1", sameInstantWithOffset); got != slug {
+		t.Fatalf("GenerateSlug() = %q for the same instant in another timezone, want %q", got, slug)
+	}
+	if got := GenerateSlug("Rocket League Kickoff!", "user-1", nextUTCDay); got == slug {
+		t.Fatalf("GenerateSlug() = %q for a different UTC date, want a different slug", got)
 	}
 }
 

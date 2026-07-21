@@ -29,6 +29,7 @@
 - Internet Explorer support
 - Heavy user-generated content on the homepage (keep it simple until content exists)
 - Shipping the CRM/admin app in the MVP release (CRM is post-MVP)
+- In-app notifications and user/entity audit-history views (post-MVP)
 
 ## Product principles
 
@@ -142,7 +143,7 @@ Signup also requires confirming **age 18+**. Alumni can participate. Faculty who
 ### Events
 
 - Created by users or schools; multiple organizers; **no approval needed** to create
-- Slug = `slugify(name) + "-" +` first **8** Base64URL chars of SHA-256(creatorId + createdDate + name)
+- Slug = `slugify(title) + "-" +` first **8** Base64URL chars of SHA-256(creatorId + createdDate + title)
 - Online or in-person; recurring supported
 - Paid events are allowed in MVP as informational/off-site-payment events only; no checkout, money handling, refunds, tax, or payout logic on CGN
 - Visibility (MVP): **public** (in search) · **unlisted** (link only) · **private** (password modal; content gated/blurred until unlocked)
@@ -188,7 +189,7 @@ Signup also requires confirming **age 18+**. Alumni can participate. Faculty who
 - Support graduate students, alumni, faculty
 - Visible indicators for school admin and faculty roles
 - Users can report other users from profiles
-- Activity log visible to the user
+- Activity log visible to the user (post-MVP)
 
 ### Auth & account
 
@@ -201,10 +202,10 @@ Signup also requires confirming **age 18+**. Alumni can participate. Faculty who
 
 ### Notifications & email
 
-- Notifications table
+- In-app notifications table (post-MVP)
 - Email after event RSVP yes (details + calendar add) from `events@campusgamingnetwork.com`
-- Basic notifications from `notifications@campusgamingnetwork.com`
-- Support / report emails from `support@campusgamingnetwork.com`
+- Basic notifications from `notifications@campusgamingnetwork.com` (post-MVP)
+- Support / report follow-up email from `support@campusgamingnetwork.com` (post-MVP CRM workflow)
 - Account emails (verify, reset password) from `account@campusgamingnetwork.com`
 - Support tickets: **anyone** can submit (logged out OK); queued for post-MVP CRM/admin review
 - Site-wide announcement banner deployable to every page (post-MVP ok)
@@ -226,7 +227,7 @@ Signup also requires confirming **age 18+**. Alumni can participate. Faculty who
 
 ## UX / design direction
 
-- Component library: **Untitled UI**
+- Component library: **HeroUI**
 - Accessibility reference: [GOV.UK Design System](https://design-system.service.gov.uk/components/)
 - Mobile-friendly; no IE
 - Prefer CSS over extra JS

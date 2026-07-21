@@ -69,6 +69,7 @@ type Event struct {
 	Games            []GameSummary `json:"games"`
 	ViewerRSVP       *string       `json:"viewer_rsvp,omitempty"`
 	ViewerInterested bool          `json:"viewer_interested,omitempty"`
+	ViewerCanEdit    bool          `json:"viewer_can_edit,omitempty"`
 }
 
 type LockedEvent struct {
@@ -320,11 +321,11 @@ func validateEventFields(input CreateInput, requirePrivatePassword bool) error {
 	return nil
 }
 
-func GenerateSlug(title string, creatorUserID string, startsAt time.Time) string {
+func GenerateSlug(title string, creatorUserID string, createdAt time.Time) string {
 	base := Slugify(title)
 	hash := sha256.Sum256([]byte(strings.Join([]string{
 		strings.TrimSpace(creatorUserID),
-		startsAt.UTC().Format(time.RFC3339Nano),
+		createdAt.UTC().Format(time.DateOnly),
 		strings.TrimSpace(title),
 	}, "|")))
 	suffix := base64.RawURLEncoding.EncodeToString(hash[:])[:8]
@@ -391,7 +392,7 @@ func (r *PostgresRepository) Create(ctx context.Context, params CreateParams) (E
 	}
 
 	params = normalizeCreateParams(params)
-	baseSlug := GenerateSlug(params.Title, params.CreatorUserID, params.StartsAt)
+	baseSlug := GenerateSlug(params.Title, params.CreatorUserID, r.now())
 	for attempt := 0; attempt < 5; attempt++ {
 		slug := baseSlug
 		if attempt > 0 {

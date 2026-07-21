@@ -20,10 +20,10 @@ Tournament ── games, optional Event, individual | team, capacity, slug
 Game ── MVP seed first; post-MVP CRM/IGDB managed (not editable by end users)
 
 Report ── target: Event | User | …
-Notification ── User
-AuditLog ── polymorphic (school, event, team, club, …)
-FeatureFlag ── targets: user | school | event | team
-SiteAnnouncement ── global banner
+Notification ── User                                      (post-MVP)
+AuditLog ── polymorphic (school, event, team, club, …)    (post-MVP)
+FeatureFlag ── targets: user | school | event | team    (post-MVP)
+SiteAnnouncement ── global banner                        (post-MVP)
 ```
 
 ## Entities
@@ -52,7 +52,7 @@ SiteAnnouncement ── global banner
 
 - Account deletion: remove PII; retain structural records with name **“Deleted User”**
 - Users can report other users from profiles
-- Users see their own activity log
+- Users see their own activity log after the post-MVP activity-history slice ships
 
 ### School
 
@@ -221,12 +221,12 @@ Used for: browse/filter events (and later tournaments) by game; popular games by
 - Visible to site admins in aggregate moderation views
 - Rate-limited on create
 
-### Notification
+### Notification (post-MVP)
 
 - Per-user notifications table
 - Complements transactional email (e.g. event registration)
 
-### Audit log (shared)
+### Audit log (shared, post-MVP)
 
 - Generic polymorphic log for school, event, team, club, etc.
 - Schools/teams/events (and similar) can show what changed
@@ -237,7 +237,7 @@ Used for: browse/filter events (and later tournaments) by game; popular games by
 - Hold off for MVP
 - Later: scopes for users, schools, events, teams; targeting specific users/schools
 
-### Site announcement
+### Site announcement (post-MVP)
 
 - Deployable banner shown on every page
 

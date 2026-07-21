@@ -4,7 +4,7 @@ Phased delivery for a single developer. Each phase should be shippable. Do not p
 
 **URLs:** main site MVP = `campusgamingnetwork.com` · CRM/admin app = `crm.campusgamingnetwork.com` (post-MVP TanStack Start release).
 
-**Infra:** Railway (Next.js web, Go API, PostgreSQL) · Cloudflare DNS/protection · Resend email (`events@` / `notifications@` / `support@` / `account@`) · curated MVP games (6 titles). Cloudflare R2 for CRM/admin logo uploads is post-MVP.
+**Infra:** Railway (Next.js web, Go API, PostgreSQL) · Cloudflare DNS/protection · Resend MVP email (`events@` / `account@`) · curated MVP games (6 titles). `notifications@` and `support@` workflows, plus Cloudflare R2 for CRM/admin logo uploads, are post-MVP.
 
 **MVP excludes:** Sentry/error monitoring, CRM/admin app, clubs, tournaments, on-site payments, usernames, waitlists, team invite links, feature flags, near-you, cancel-event RSVP emails, custom event banner uploads.
 
@@ -16,7 +16,7 @@ Phased delivery for a single developer. Each phase should be shippable. Do not p
 
 - Docker Compose: Next.js, Go API, Postgres (M1-friendly)
 - TypeScript + Go project skeletons; BFF pattern wired
-- Untitled UI + base layout; accessibility baseline
+- HeroUI + base layout; accessibility baseline
 - `created_at` / `updated_at` / `deleted_at` conventions
 - Health (`/health`, `/ready`)
 - System logging vs audit logging distinction established
@@ -67,7 +67,6 @@ Phased delivery for a single developer. Each phase should be shippable. Do not p
 - Confirmation email + ICS on RSVP yes via **Resend**
 - Missing/deleted event page
 - Rate limit event creation + private unlock attempts
-- Audit log writes on event changes
 - Support ticket submission from main site (**anyone**, including logged out)
 
 **Exit:** User creates event → another user RSVPs yes → email received with calendar file.
@@ -124,8 +123,9 @@ Phased delivery for a single developer. Each phase should be shippable. Do not p
 
 **Goal:** Safe to run with real users at scale.
 
-- Nightly DB backups + restore notes
+- Expanded backup retention / point-in-time recovery beyond the launch baseline
 - Sentry/error monitoring
+- Database-backed audit/activity history and in-app notifications
 - Broader rate limiting
 - Impersonation for site admins (audited)
 - Account deletion anonymization path tested
@@ -169,6 +169,6 @@ Phased delivery for a single developer. Each phase should be shippable. Do not p
 1. Schema + Go domain API
 2. BFF + SSR page (main site) or CRM screens
 3. Email/side effects
-4. Audit/activity writes
+4. Audit/activity writes when that post-MVP slice is in scope
 5. Rate limits
 6. Deploy the app that owns the phase (main vs CRM)

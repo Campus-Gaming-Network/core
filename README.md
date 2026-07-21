@@ -22,9 +22,10 @@ school follow/unfollow, events with RSVP/interested/private unlock/default
 banners, teams with password join/captains/ownership transfer, dashboard
 sections, support tickets, and event/user reports.
 
-Remaining MVP work is mostly launch-readiness polish and infrastructure
-tracked in [`docs/10-mvp-todo.md`](./docs/10-mvp-todo.md), especially the
-Railway production deploy. The target deploy shape is documented in
+Remaining MVP work is the external launch rehearsal and production rollout
+tracked in [`docs/10-mvp-todo.md`](./docs/10-mvp-todo.md). Railway build,
+pre-deploy migration, health-check, one-time seed, and smoke-test configuration
+now lives in [`railway/`](./railway) and is documented in
 [`docs/13-deployment-plan.md`](./docs/13-deployment-plan.md).
 
 ## Quick start
@@ -88,10 +89,10 @@ go run ./cmd/migrate -dir ../../db/migrations
 
 ## Environment
 
-Copy `.env.example` if you want local overrides:
+Copy `.env.example` if you want Docker Compose overrides:
 
 ```bash
-cp .env.example .env.local
+cp .env.example .env
 ```
 
 Docker Compose provides sensible local defaults.

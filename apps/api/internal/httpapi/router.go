@@ -546,6 +546,11 @@ func (r *Router) decorateEventForViewer(req *http.Request, slug string, event *e
 		return err
 	}
 	event.ViewerInterested = interested
+	organizer, err := r.events.IsOrganizer(req.Context(), slug, userID)
+	if err != nil {
+		return err
+	}
+	event.ViewerCanEdit = organizer
 	return nil
 }
 

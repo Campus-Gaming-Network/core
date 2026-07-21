@@ -1,0 +1,8 @@
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "apps/api/Dockerfile"
+watchPatterns = ["apps/api/**", "data/schools_seed.csv", "railway/seed.toml"]
+
+[deploy]
+startCommand = "cgn-seed -csv /data/schools_seed.csv"
+restartPolicyType = "NEVER"

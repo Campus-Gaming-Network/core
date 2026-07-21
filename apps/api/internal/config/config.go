@@ -69,7 +69,7 @@ func Load() (Config, error) {
 	}
 
 	return Config{
-		HTTPAddr:         getenv("API_HTTP_ADDR", ":8080"),
+		HTTPAddr:         httpAddr(),
 		DatabaseURL:      getenv("API_DATABASE_URL", "postgres://cgn:cgn@localhost:5432/cgn?sslmode=disable"),
 		DBHost:           getenv("API_DB_HOST", "localhost"),
 		DBPort:           port,
@@ -80,13 +80,32 @@ func Load() (Config, error) {
 		VerificationTTL:  verificationTTL,
 		ResetTTL:         resetTTL,
 		SiteURL:          getenv("API_SITE_URL", "http://localhost:3000"),
-		ResendAPIKey:     os.Getenv("RESEND_API_KEY"),
+		ResendAPIKey:     firstNonEmptyEnv("API_RESEND_API_KEY", "RESEND_API_KEY"),
 		AccountEmailFrom: getenv("API_ACCOUNT_EMAIL_FROM", "account@campusgamingnetwork.com"),
 		EventsEmailFrom:  getenv("API_EVENTS_EMAIL_FROM", "events@campusgamingnetwork.com"),
 		AuthRateLimit:    authRateLimit,
 		AuthRateWindow:   authRateWindow,
 		SentryDSN:        os.Getenv("SENTRY_DSN"),
 	}, nil
+}
+
+func httpAddr() string {
+	if value := os.Getenv("API_HTTP_ADDR"); value != "" {
+		return value
+	}
+	if port := os.Getenv("PORT"); port != "" {
+		return ":" + port
+	}
+	return ":8080"
+}
+
+func firstNonEmptyEnv(keys ...string) string {
+	for _, key := range keys {
+		if value := os.Getenv(key); value != "" {
+			return value
+		}
+	}
+	return ""
 }
 
 func getenv(key, fallback string) string {

@@ -174,9 +174,8 @@ Build only the MVP surface needed for auth, profiles, schools, and launch games.
 2. Next.js BFF route or server action.
 3. SSR/page UI.
 4. Email or other side effects.
-5. Audit/activity writes where relevant.
-6. Rate limits on sensitive actions.
-7. Verification and deploy check.
+5. Rate limits on sensitive actions.
+6. Verification and deploy check.
 
 ## Phase 1 final exit criteria
 

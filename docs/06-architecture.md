@@ -8,7 +8,7 @@ Stack, runtime, ops, and engineering constraints for a single-developer, cost-co
 Main site MVP:  campusgamingnetwork.com
 CRM/admin app:  crm.campusgamingnetwork.com   (post-MVP separate app + separate release)
 
-Browser (Next.js UI, Untitled UI, SSR)
+Browser (Next.js UI, HeroUI, SSR)
         │
         ▼
 Railway web service
@@ -35,12 +35,14 @@ Side paths:
 
 **Backend for Frontend (BFF):** the Next.js layer shapes data for UI routes; Go owns domain rules and persistence. Do not put core business logic only in the browser.
 
+See [14 — Architecture diagrams](./14-architecture-diagrams.md) for Mermaid views of the frontend, backend, and complete production system.
+
 ## Technology choices
 
 | Layer | Choice | Notes |
 |-------|--------|-------|
 | Frontend | Next.js + TypeScript | Server rendering important; code-split routes |
-| UI kit | Untitled UI | Primary component library |
+| UI kit | HeroUI | Primary component library |
 | A11y / patterns | GOV.UK Design System (reference) | Prefer accessible, clear components |
 | Server / API | Go | All server domain code in Go |
 | Database | Railway PostgreSQL | Backups required before public launch |
@@ -63,7 +65,7 @@ Side paths:
 - Prefer **CSS** over adding JavaScript when CSS can solve it
 - Mobile-friendly; no Internet Explorer
 - Simple homepage until UGC volume justifies more
-- Site-wide announcement banner support
+- Site-wide announcement banner support — **post-MVP**
 - Feature-flag-aware UI — **post-MVP** (do not build for MVP)
 
 ## Backend guidelines
@@ -71,8 +73,8 @@ Side paths:
 - Domain logic in **Go**
 - Parameterized SQL; never string-concatenate user input
 - Soft deletes via `deleted_at`
-- Shared **audit log** for entity changes
-- Separate **system logs** (ops) from audit logs (domain history)
+- Structured **system logs** for MVP operations
+- Post-MVP shared **audit log** for entity changes, kept separate from system logs
 - Health check endpoints
 - Rate limiting (global + signups/resend by IP and email, event creation, reports, private-event unlock, support tickets)
 - Profanity filter on user-generated text fields
@@ -100,10 +102,10 @@ Side paths:
 |---------|----------|
 | Errors | App/system logs for MVP; Sentry post-MVP |
 | Health | Dedicated health checks |
-| Audit | Polymorphic `audit_logs` (who changed what on which entity) |
+| Audit | Post-MVP polymorphic `audit_logs` (who changed what on which entity) |
 | System logs | App/ops logging (distinct from audit) |
-| User activity | Users can view their own activity history |
-| Entity history | Schools, teams, events show relevant change history |
+| User activity | Post-MVP user-visible activity history |
+| Entity history | Post-MVP school, team, and event change history |
 
 ## Feature flags (post-MVP)
 
@@ -132,8 +134,8 @@ Side paths:
 | From address | Use for |
 |--------------|---------|
 | `events@campusgamingnetwork.com` | Any email related to an event RSVP (confirmation, ICS, future RSVP updates) |
-| `notifications@campusgamingnetwork.com` | Basic notification emails |
-| `support@campusgamingnetwork.com` | Support and report-related emails |
+| `notifications@campusgamingnetwork.com` | Post-MVP basic notification emails |
+| `support@campusgamingnetwork.com` | Post-MVP support and report workflow email |
 | `account@campusgamingnetwork.com` | Account emails (verification, password reset, etc.) |
 
 ## Object storage (Cloudflare R2)
@@ -169,7 +171,7 @@ See [13 — Deployment plan](./13-deployment-plan.md) for the concrete Railway t
 1. Prefer platform features and a small core set of libraries
 2. Add a dependency only if it is clearly valuable, maintained, performant, and safe
 3. TanStack Start is the post-MVP CRM framework; other TanStack libs OK when justified
-4. Untitled UI is the chosen component library for the main site
+4. HeroUI is the chosen component library for the main site
 
 ## Explicitly deferred
 

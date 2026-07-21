@@ -6,21 +6,21 @@ PostgreSQL is the system of record. Conventions first; then core tables. Exact c
 
 | Rule | Detail |
 |------|--------|
-| Primary keys | `uuid` (preferred) or `bigint` — pick one and stay consistent |
+| Primary keys | **UUID** (`gen_random_uuid()`) for domain tables — decided in [11 — Implementation decisions](./11-implementation-decisions.md) |
 | Timestamps | Every table has `created_at`, `updated_at`, `deleted_at` (nullable) |
 | Soft deletes | Default for user-facing rows; queries filter `deleted_at IS NULL` unless admin/history |
 | Time storage | Store instants in UTC (`timestamptz`); display in user timezone in app layer |
 | Money | MVP may list paid/off-site-payment events, but CGN does not process payment. Store only lightweight display fields such as `is_paid`, `payment_note`, and optional `payment_url`; use integer cents + currency only if on-site payments ship later. |
 | Slugs | Unique URL keys: `schools.slug`; `events.slug` — events use `slugify(title)-` + **8** Base64URL chars of SHA-256(creatorId\|date\|title) |
 | Images | Event banners use default placeholder in MVP; school `logo_url` comes later via CRM/admin upload (PNG/JPG only; max 500 MB) |
-| Audit vs system | `audit_logs` = domain history; system/ops logs are not this table |
+| Audit vs system | MVP uses system/ops logs. A future `audit_logs` table will hold domain history and remain separate. |
 | Nightly backups | Required in production |
 
 ## MVP migration scope
 
-Keep the first migration set MVP-only. Create only the tables needed for auth/profile, home school and follows, schools seed, MVP games, events, teams, reports/support tickets, notifications, audit/activity, and operational needs.
+Keep the first migration set MVP-only. Create only the tables needed for auth/profile, home school and follows, schools seed, MVP games, events, teams, reports/support tickets, and operational needs.
 
-Do **not** create first-pass tables for clubs, tournaments, feature flags, site announcements, on-site payments, IGDB sync, or CRM/admin-only workflows until those phases are actively being built.
+Do **not** create first-pass tables for clubs, tournaments, notifications, audit/activity history, feature flags, site announcements, on-site payments, IGDB sync, or CRM/admin-only workflows until those phases are actively being built.
 
 ## Core tables (logical)
 
@@ -170,20 +170,20 @@ support_tickets
   id, submitter_user_id nullable, contact_email, name, subject, message, status, ...
   -- anyone can submit (logged out OK); viewed/managed in post-MVP CRM/admin tooling
 
-notifications
+notifications  (post-MVP)
   id, user_id, type, payload jsonb, read_at, ...
 
-feature_flags
+feature_flags  (post-MVP)
   id, key, description, enabled_globally, ...
 
-feature_flag_targets
+feature_flag_targets  (post-MVP)
   flag_id, target_type (user|school|event|team), target_id, enabled, ...
 
-site_announcements
+site_announcements  (post-MVP)
   id, message, starts_at, ends_at, is_active, ...
 ```
 
-### Audit & activity
+### Audit & activity (post-MVP)
 
 ```text
 audit_logs
@@ -207,7 +207,7 @@ If activity and audit can share one table with a clear `kind` discriminator, pre
 - Interest uniqueness: `(event_id, user_id)`
 - Follow uniqueness: `(user_id, school_id)`
 - Common filters: `events.starts_at`, `events.visibility`, `events.deleted_at`, game FKs, geo later if needed
-- Audit: `(entity_type, entity_id, created_at DESC)`
+- Future audit history: `(entity_type, entity_id, created_at DESC)`
 
 ## Search (Postgres first)
 

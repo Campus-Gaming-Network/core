@@ -12,7 +12,7 @@ Post-MVP CRM screens      →  (CRM BFF or direct) →  Go Admin API  →  Postg
 | Layer | Responsibility |
 |-------|----------------|
 | Next.js BFF | Opaque server-side session cookies, CSRF, aggregating page props, mapping DTOs to UI, route handlers / server actions |
-| Go API | AuthZ checks, validation, transactions, audit writes, emails triggers, rate limits |
+| Go API | AuthZ checks, validation, transactions, email triggers, rate limits, and future audit writes |
 | Browser | Progressive enhancement only; no core business rules |
 
 Prefer server-rendered pages and server actions over exposing a wide public JSON surface. Where JSON is needed (mobile later, CRM, TanStack Query), version it (`/api/v1/...`).
@@ -25,8 +25,7 @@ Prefer server-rendered pages and server actions over exposing a wide public JSON
 - **Idempotency** — consider keys for RSVP and registration emails
 - **Health** — `GET /health` (liveness) and `GET /ready` (DB connectivity)
 - **Errors** — structured error codes; no stack traces to clients
-- **Audit** — write `audit_logs` on entity mutations
-- **Activity** — record user-visible activity where product requires it
+- **Audit/activity** — post-MVP; keep operational logs now, then add database-backed domain history as its own slice
 - **Feature flags** — post-MVP; when added, evaluate server-side
 
 ## Endpoint surface (v1 intent)
@@ -91,7 +90,7 @@ Not every path must exist on day one — align with [05 — Roadmap](./05-roadma
 | POST | `/teams/:slug/join` | Password required to join/interact |
 | POST | `/teams/:slug/transfer-ownership` | Owner |
 | POST | `/teams/:slug/captains` | Assign captains |
-| GET | `/teams/:slug/audit` | Team change history |
+| GET | `/teams/:slug/audit` | Post-MVP team change history |
 
 ### Events
 
@@ -107,7 +106,7 @@ Not every path must exist on day one — align with [05 — Roadmap](./05-roadma
 | POST | `/events/:slug/interest` | Favorite/bookmark; independent of RSVP |
 | DELETE | `/events/:slug/interest` | Remove favorite |
 | POST | `/events/:slug/report` | Rate limited |
-| GET | `/events/:slug/audit` | |
+| GET | `/events/:slug/audit` | Post-MVP event change history |
 
 Discovery lists only `visibility = public`. Unlisted is link/slug only. Private: do not leak event details in HTML/JSON before unlock — blurred shell + password modal only. Capacity = count of RSVP `yes`; full → cannot RSVP yes (no waitlist). Paid events are allowed in MVP only as off-site-payment listings: no checkout, payment intent, refund, tax, payout, or ledger behavior in CGN.
 
@@ -130,7 +129,7 @@ Discovery lists only `visibility = public`. Unlisted is link/slug only. Private:
 | POST | `/admin/games/sync` | IGDB import later (post-MVP CRM / cron) |
 | PATCH | `/admin/games/:id` | Post-MVP CRM/admin only — end users cannot edit games |
 
-### Notifications & announcements
+### Notifications & announcements (post-MVP)
 
 | Method | Path | Notes |
 |--------|------|-------|
@@ -167,8 +166,8 @@ Discovery lists only `visibility = public`. Unlisted is link/slug only. Private:
 | Event RSVP (yes) | Details + ICS — from `events@campusgamingnetwork.com` |
 | Signup verification | Link — from `account@campusgamingnetwork.com` |
 | Password reset | Link — from `account@campusgamingnetwork.com` |
-| Basic notifications | From `notifications@campusgamingnetwork.com` |
-| Support / report related | From `support@campusgamingnetwork.com` |
+| Basic notifications (post-MVP) | From `notifications@campusgamingnetwork.com` |
+| Support / report follow-up (post-MVP) | From `support@campusgamingnetwork.com` |
 | (Future) club approval, team invite links | As needed |
 
 ## Validation & safety

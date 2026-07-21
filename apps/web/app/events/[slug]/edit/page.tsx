@@ -51,6 +51,21 @@ export default async function EditEventPage({ params }: PageProps) {
     );
   }
 
+  if (!event.viewer_can_edit) {
+    return (
+      <main className="narrow">
+        <section className="page-heading">
+          <p className="eyebrow">Edit event</p>
+          <h1>You do not have permission to edit this event.</h1>
+          <p className="lede">Only an event organizer can change or delete it.</p>
+        </section>
+        <Link className="button button--secondary" href={`/events/${slug}`}>
+          Back to event
+        </Link>
+      </main>
+    );
+  }
+
   const [games, schoolsResult] = await Promise.all([
     listGames(),
     listSchools({ limit: 100 })

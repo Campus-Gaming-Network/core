@@ -1420,6 +1420,29 @@ func TestHandleEventPathReturnsViewerInterestForAuthenticatedDetail(t *testing.T
 	}
 }
 
+func TestHandleEventPathReturnsEditPermissionForOrganizer(t *testing.T) {
+	repository := &fakeEventRepository{
+		detail:      testEvent(eventstore.VisibilityPublic),
+		isOrganizer: true,
+	}
+	handler := authenticatedEventPathHandler(repository)
+	request := authenticatedEventRequest(http.MethodGet, "/events/campus-scrim-night", "")
+	response := httptest.NewRecorder()
+
+	handler.ServeHTTP(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d; body = %s", response.Code, http.StatusOK, response.Body.String())
+	}
+	var payload eventstore.Event
+	if err := json.NewDecoder(response.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if !payload.ViewerCanEdit {
+		t.Fatal("ViewerCanEdit = false, want true for organizer")
+	}
+}
+
 func TestHandleUpdateEventRequiresAuthentication(t *testing.T) {
 	repository := &fakeEventRepository{}
 	router := &Router{events: repository}

@@ -78,6 +78,7 @@ export type Event = {
   games: GameSummary[];
   viewer_rsvp?: EventRSVP;
   viewer_interested?: boolean;
+  viewer_can_edit?: boolean;
 };
 
 export type LockedEvent = {

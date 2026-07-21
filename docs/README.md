@@ -23,6 +23,7 @@ These docs are the source of truth for product intent, domain rules, architectur
 | [11 — Implementation decisions](./11-implementation-decisions.md) | Concrete engineering choices for Phase 0 and early MVP work |
 | [12 — Phase 1 plan](./12-phase-1-plan.md) | Reviewable Phase 1A–1D breakdown for auth, profiles, schools, and games |
 | [13 — Deployment plan](./13-deployment-plan.md) | Railway deploy target, env vars, migrations, backups, DNS, and launch smoke test |
+| [14 — Architecture diagrams](./14-architecture-diagrams.md) | Mermaid overviews of the frontend, backend, and complete system |
 
 ## How to use with AI / LLMs
 

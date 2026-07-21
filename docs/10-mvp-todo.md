@@ -1,8 +1,8 @@
-# MVP todo
+# 10 — MVP todo
 
 Status tracker for the main-site MVP. Locked product decisions live in the other docs (`01`, `05`, `08`) — not repeated here.
 
-**Current P0 remaining:** implement the Railway production deploy, DNS, backups, migrations, and smoke test for `campusgamingnetwork.com`.
+**Current P0 remaining:** provision Railway/Cloudflare, configure secrets and backups, run staging rehearsal, and complete the production smoke test for `campusgamingnetwork.com`. Repository deployment configuration is implemented.
 
 **MVP slice:** auth → home school on signup → schools search/follow → events + curated games → teams → dashboard.
 
@@ -26,7 +26,7 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 | Images | **PNG or JPG only**; max **500 MB** |
 | Event banners (MVP) | Default placeholder image/background — **no user uploads yet** |
 | School logos | Placeholder in MVP; CRM/admin upload via R2 later |
-| Email From | `events@` / `notifications@` / `support@` / `account@campusgamingnetwork.com` |
+| Email From | MVP: `events@` / `account@`; post-MVP workflows: `notifications@` / `support@campusgamingnetwork.com` |
 | Paid events | Allowed in MVP as off-site-payment listings only; no CGN checkout/payments |
 | MVP deploy path | Railway hosts Next.js, Go API, and PostgreSQL; Cloudflare manages DNS/protection |
 
@@ -40,7 +40,8 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 - [x] Health checks
 - [x] Resend wired for transactional email
 - [x] Deploy path selected: Railway for web, API, and Postgres
-- [ ] Implement Railway production deploy + DNS + backups + migration/smoke-test flow for `campusgamingnetwork.com`
+- [x] Add Railway web/API/seed config, production Docker builds, migration pre-deploy, health checks, and smoke script
+- [ ] Provision Railway staging/production + DNS + backups and execute the documented launch/smoke-test flow
 
 ### Auth & profiles
 - [x] Signup / login / logout
@@ -72,7 +73,7 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 
 ### Events
 - [x] Create / edit / soft-delete (no approval; no cancel-notify emails yet)
-- [x] Slug = `slugify(name) + "-" + base64url(sha256(...))` (**8** chars)
+- [x] Slug = `slugify(title) + "-" + base64url(sha256(...))` (**8** chars)
 - [x] Visibility: public / unlisted / private
 - [x] Private: content fully gated (not inspectable); password form to unlock
 - [x] Optional capacity (count **RSVP yes** only)
@@ -137,7 +138,7 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 - [ ] `.edu` verified-student badge UX
 - [ ] School admin / faculty role indicators (if few admins at launch)
 - [ ] Event organizer badges
-- [ ] Full activity / audit history UIs (keep write-side logs)
+- [ ] Database-backed activity/audit history and corresponding UIs
 - [ ] Site-wide announcements
 - [ ] Impersonation
 - [ ] Broader IGDB game import

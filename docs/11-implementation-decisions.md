@@ -20,9 +20,11 @@ Small, concrete engineering choices for Phase 0 and early MVP implementation. Th
 | Migrations | Keep first migrations MVP-only; use timestamped/versioned SQL files in `db/migrations` |
 | Database readiness | Phase 0 `/ready` checks Postgres network reachability; real SQL checks arrive with the DB driver |
 | MVP production hosting | Railway hosts Next.js web, Go API, and PostgreSQL; Cloudflare manages DNS/protection |
+| Railway topology | Services are named `web`, `api`, and `postgres`; staging rehearsal precedes production; API migrations run as pre-deploy; Cloudflare redirects `www` to the apex domain |
 | CRM | Skipped for MVP; CRM/admin app remains post-MVP |
 | Branch campuses | Same UI/UX as other schools |
 | Paid events | MVP supports off-site-payment listings only; no CGN payment processing |
+| Audit/activity/notifications | Database-backed domain audit history, user activity history, and in-app notifications are post-MVP. MVP uses structured operational logs plus account and RSVP transactional email. |
 
 ## Initial folder responsibilities
 
@@ -58,3 +60,4 @@ ratcheting upward rather than treating coverage as a one-time report.
 - Sentry SDK integration (post-MVP)
 - CRM/admin app
 - TypeScript 7 adoption; revisit when Next.js officially supports it
+- Database-backed audit/activity history and in-app notifications

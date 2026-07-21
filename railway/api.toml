@@ -1,0 +1,13 @@
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "apps/api/Dockerfile"
+watchPatterns = ["apps/api/**", "db/migrations/**", "data/schools_seed.csv", "railway/api.toml"]
+
+[deploy]
+preDeployCommand = ["cgn-migrate -dir /migrations"]
+startCommand = "cgn-api"
+healthcheckPath = "/ready"
+healthcheckTimeout = 120
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10
+drainingSeconds = "10"

@@ -148,17 +148,19 @@ export default async function EventDetailPage({
               </Button>
             </form>
             <EventRSVPForm event={event} />
-            <div className="actions">
-              <Link className="button button--secondary" href={`/events/${event.slug}/edit`}>
-                Edit event
-              </Link>
-              <form action={deleteEventAction}>
-                <input type="hidden" name="slug" value={event.slug} />
-                <Button variant="secondary" type="submit">
-                  Delete event
-                </Button>
-              </form>
-            </div>
+            {event.viewer_can_edit ? (
+              <div className="actions">
+                <Link className="button button--secondary" href={`/events/${event.slug}/edit`}>
+                  Edit event
+                </Link>
+                <form action={deleteEventAction}>
+                  <input type="hidden" name="slug" value={event.slug} />
+                  <Button variant="secondary" type="submit">
+                    Delete event
+                  </Button>
+                </form>
+              </div>
+            ) : null}
             <p className="form-footer">
               Yes RSVPs send a confirmation email with a calendar file.
             </p>
