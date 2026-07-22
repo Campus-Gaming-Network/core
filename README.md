@@ -4,6 +4,7 @@ Central hub for collegiate gamers: discover schools, events, teams, and campus g
 
 The product/domain docs live in [`docs/`](./docs/README.md). This root README
 covers the local scaffold and current MVP implementation status.
+This file also works well for lightweight integration smoke-test changes.
 
 ## Current status
 
