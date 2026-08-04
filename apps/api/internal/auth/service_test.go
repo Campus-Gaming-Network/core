@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -115,15 +116,61 @@ func (f *fakeTokens) UsePasswordResetToken(_ context.Context, _ []byte, _ time.T
 type fakeMailer struct {
 	verificationToken string
 	resetToken        string
+	err               error
 }
 
 func (f *fakeMailer) SendVerification(_ context.Context, _ string, token string) error {
 	f.verificationToken = token
-	return nil
+	return f.err
 }
 func (f *fakeMailer) SendPasswordReset(_ context.Context, _ string, token string) error {
 	f.resetToken = token
-	return nil
+	return f.err
+}
+
+// A delivery failure must not fail the account change that already happened.
+// Failing signup here would leave the address taken by a committed user row
+// while telling the caller signup failed, so they could never retry.
+func TestAccountServiceSignupSucceedsWhenVerificationEmailFails(t *testing.T) {
+	userStore := &fakeUsers{}
+	mailer := &fakeMailer{err: errors.New("resend unavailable")}
+	service := NewAccountService(userStore, fakeSchools{}, &fakeSessions{}, &fakeTokens{}, mailer, time.Hour, time.Hour, time.Hour)
+
+	profile, err := service.Signup(context.Background(), users.SignupInput{
+		Email:        "player@example.com",
+		Password:     "a-long-enough-password",
+		Name:         "Player",
+		HomeSchoolID: "school-id",
+		AgeConfirmed: true,
+		Timezone:     "UTC",
+	})
+	if err != nil {
+		t.Fatalf("Signup() error = %v, want nil when only delivery failed", err)
+	}
+	if profile.Email != "player@example.com" {
+		t.Fatalf("profile email = %q, want the created account", profile.Email)
+	}
+	if userStore.created.Email == "" {
+		t.Fatal("signup did not persist the account")
+	}
+}
+
+func TestAccountServicePasswordResetSucceedsWhenEmailFails(t *testing.T) {
+	userStore := &fakeUsers{}
+	now := time.Now()
+	userStore.credentials.Profile.ID = "user-id"
+	userStore.credentials.Profile.Email = "player@example.com"
+	userStore.credentials.Profile.EmailVerifiedAt = &now
+	mailer := &fakeMailer{err: errors.New("resend unavailable")}
+	tokens := &fakeTokens{}
+	service := NewAccountService(userStore, fakeSchools{}, &fakeSessions{}, tokens, mailer, time.Hour, time.Hour, time.Hour)
+
+	if err := service.RequestPasswordReset(context.Background(), "player@example.com"); err != nil {
+		t.Fatalf("RequestPasswordReset() error = %v, want nil when only delivery failed", err)
+	}
+	if mailer.resetToken == "" {
+		t.Fatal("reset token was never issued")
+	}
 }
 
 func TestAccountServiceSignupAndLogin(t *testing.T) {
