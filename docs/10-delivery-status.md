@@ -50,6 +50,7 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 - [x] Account deletion and anonymization via `DELETE /me`, with team ownership succession
 - [x] Bounded rate-limiter memory and an hourly sweeper for expired sessions, tokens, and event unlocks
 - [x] Panic recovery middleware, HTTP server timeouts, configurable database pool ceiling
+- [x] School catalog served from memory with HTTP caching; dead trigram indexes dropped (search 9.4 ms → 1.0 ms)
 
 ### Auth & profiles
 - [x] Signup / login / logout

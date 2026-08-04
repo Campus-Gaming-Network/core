@@ -16,6 +16,12 @@ import {
   apiRequest
 } from "./cgn-api";
 
+// The school and game catalogs change on the order of once or twice a year and
+// carry no viewer-specific fields, so Next.js can hold them across requests.
+// Everything else keeps the no-store default, because it either reads the
+// session or changes with user activity.
+const catalogRevalidateSeconds = 300;
+
 export async function incomingCookieHeader() {
   const requestHeaders = await headers();
 
@@ -67,7 +73,8 @@ export async function listSchools(params: {
 
   const suffix = query.size > 0 ? `?${query.toString()}` : "";
   const { data } = await apiRequest<SchoolsResponse>({
-    path: `/schools${suffix}`
+    path: `/schools${suffix}`,
+    revalidate: catalogRevalidateSeconds
   });
 
   return data;
@@ -75,7 +82,8 @@ export async function listSchools(params: {
 
 export const getSchool = cache(async (slug: string) => {
   const { data } = await apiRequest<School>({
-    path: `/schools/${encodeURIComponent(slug)}`
+    path: `/schools/${encodeURIComponent(slug)}`,
+    revalidate: catalogRevalidateSeconds
   });
 
   return data;
@@ -83,7 +91,8 @@ export const getSchool = cache(async (slug: string) => {
 
 export async function listGames() {
   const { data } = await apiRequest<GamesResponse>({
-    path: "/games"
+    path: "/games",
+    revalidate: catalogRevalidateSeconds
   });
 
   return data.games;

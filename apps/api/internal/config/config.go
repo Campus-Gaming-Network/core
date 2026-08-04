@@ -25,6 +25,8 @@ type Config struct {
 	AuthRateLimit    int
 	AuthRateWindow   time.Duration
 	DBMaxConns       int32
+	CatalogRefresh   time.Duration
+	MaintenanceToken string
 }
 
 func Load() (Config, error) {
@@ -68,6 +70,11 @@ func Load() (Config, error) {
 		return Config{}, fmt.Errorf("parse API_AUTH_RATE_WINDOW: %w", err)
 	}
 
+	catalogRefresh, err := time.ParseDuration(getenv("API_CATALOG_REFRESH_INTERVAL", "15m"))
+	if err != nil {
+		return Config{}, fmt.Errorf("parse API_CATALOG_REFRESH_INTERVAL: %w", err)
+	}
+
 	// 0 means "unset"; db.Open applies its own default rather than config
 	// depending on the db package.
 	dbMaxConns, err := strconv.Atoi(getenv("API_DB_MAX_CONNS", "0"))
@@ -93,6 +100,8 @@ func Load() (Config, error) {
 		AuthRateLimit:    authRateLimit,
 		AuthRateWindow:   authRateWindow,
 		DBMaxConns:       int32(dbMaxConns),
+		CatalogRefresh:   catalogRefresh,
+		MaintenanceToken: os.Getenv("API_MAINTENANCE_TOKEN"),
 	}, nil
 }
 

@@ -180,6 +180,12 @@ type ApiRequestOptions = {
   body?: unknown;
   cookieHeader?: string;
   cache?: RequestCache;
+  /**
+   * Seconds Next.js may reuse this response for. Use only for reads that do not
+   * vary by viewer — the school and game catalogs — since a cached entry is
+   * shared across every request. Setting it replaces the no-store default.
+   */
+  revalidate?: number;
   headers?: HeadersInit;
   fetcher?: Fetcher;
   baseUrl?: string;
@@ -218,6 +224,7 @@ export async function apiRequest<T>({
   body,
   cookieHeader,
   cache = "no-store",
+  revalidate,
   headers,
   fetcher = fetch,
   baseUrl = apiBaseUrl()
@@ -231,11 +238,19 @@ export async function apiRequest<T>({
     requestHeaders.set("cookie", cookieHeader);
   }
 
+  // cache and next.revalidate are mutually exclusive in Next.js, so a caller
+  // asking for revalidation drops the no-store default rather than combining
+  // the two.
+  const cachePolicy =
+    revalidate === undefined
+      ? { cache }
+      : { next: { revalidate } };
+
   const response = await fetcher(buildApiUrl(baseUrl, path), {
     method,
     headers: requestHeaders,
     body: body === undefined ? undefined : JSON.stringify(body),
-    cache
+    ...cachePolicy
   });
 
   const payload = await readPayload(response);

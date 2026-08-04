@@ -97,6 +97,14 @@ See [14 — Architecture diagrams](./14-architecture-diagrams.md) for Mermaid vi
 - Profanity filter on user-generated text fields
 - **Search in Postgres first** (`pg_trgm` / `tsvector`) for schools, events, tournaments — no Elasticsearch until Postgres is proven insufficient
 
+### Catalog caching
+
+The school and game catalogs are effectively static — roughly 6,200 schools growing by one or two a year — so they are treated as reference data rather than live queries.
+
+- The API holds the school catalog in memory (`internal/schools/cache.go`), refreshed on an interval and on demand through `POST /internal/schools/refresh`. Reads never reach Postgres; a failed refresh keeps the previous snapshot rather than emptying the catalog, and reads fall back to Postgres before the first load completes.
+- `/schools`, `/schools/:slug`, and `/games` send `Cache-Control` with `stale-while-revalidate`, so the BFF data cache, Cloudflare, and browsers all hold them. Only responses free of viewer-specific fields may be marked this way — followed schools and anything session-derived must stay uncached.
+- Do not add indexes to `schools` on the assumption that search needs them. At this row count Postgres reads the whole table faster than it can use an index; the original trigram indexes were measured at zero scans and dropped in migration `000007`.
+
 ## Catalog mutations
 
 - Schools are bootstrapped once from the Scorecard seed; users cannot create schools.
