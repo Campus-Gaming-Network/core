@@ -22,6 +22,7 @@ Small, concrete engineering choices for Phase 0 and early early implementation. 
 | Go dependencies | Standard library first; add dependencies only when Phase 1 needs them |
 | Frontend auth | Opaque server-side session cookies; no browser JWT auth |
 | Auth session backing | Postgres-backed opaque server-side sessions |
+| Password hashing | Argon2id (`m=19456`, `t=2`, `p=1`), stored as a PHC string so parameters travel with each hash. Verification reads them back per-hash, so the cost can be raised later without a rehash-on-login migration. bcrypt hashes still verify for databases seeded before the switch; nothing writes them. The same functions hash team join and private event passwords, so each concurrent verification holds ~19 MiB. |
 | Primary keys | Use UUIDs for domain tables unless a later migration ADR overrides this |
 | Migrations | Keep first migrations scoped to shipped features; use timestamped/versioned SQL files in `db/migrations` |
 | Database readiness | Phase 0 `/ready` checks Postgres network reachability; real SQL checks arrive with the DB driver |
