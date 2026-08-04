@@ -70,7 +70,7 @@ func Load() (Config, error) {
 		return Config{}, fmt.Errorf("parse API_AUTH_RATE_WINDOW: %w", err)
 	}
 
-	catalogRefresh, err := time.ParseDuration(getenv("API_CATALOG_REFRESH_INTERVAL", "15m"))
+	catalogRefresh, err := time.ParseDuration(getenv("API_CATALOG_REFRESH_INTERVAL", "24h"))
 	if err != nil {
 		return Config{}, fmt.Errorf("parse API_CATALOG_REFRESH_INTERVAL: %w", err)
 	}

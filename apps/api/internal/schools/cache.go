@@ -11,7 +11,7 @@ import (
 
 // DefaultRefreshInterval is how often the cached catalog reloads when no
 // explicit interval is configured.
-const DefaultRefreshInterval = 15 * time.Minute
+const DefaultRefreshInterval = 24 * time.Hour
 
 // CachedRepository serves the school catalog from memory.
 //

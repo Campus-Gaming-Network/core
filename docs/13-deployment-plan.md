@@ -90,7 +90,7 @@ The internal URL deliberately uses `http`, because Railway private-network traff
 | `API_RESEND_API_KEY` | Production Resend API key; seal this variable |
 | `API_ACCOUNT_EMAIL_FROM` | `account@campusgamingnetwork.com` |
 | `API_EVENTS_EMAIL_FROM` | `events@campusgamingnetwork.com` |
-| `API_CATALOG_REFRESH_INTERVAL` | `15m` — how often the in-memory school catalog reloads |
+| `API_CATALOG_REFRESH_INTERVAL` | `24h` — how often the in-memory school catalog reloads. The catalog changes once or twice a year, so the manual refresh endpoint below is the path for a same-day change. |
 | `API_MAINTENANCE_TOKEN` | Optional. Set it to enable `POST /internal/schools/refresh`, which reloads the catalog immediately after a change; seal this variable. Leave unset and the endpoint stays a 404. |
 
 Do not set any `API_DEV_SEED_USER_*` variables outside local development. `RESEND_API_KEY` remains a temporary backwards-compatible alias in code, but `API_RESEND_API_KEY` is the canonical name.
