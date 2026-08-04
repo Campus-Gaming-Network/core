@@ -12,7 +12,7 @@ Small, concrete engineering choices for Phase 0 and early MVP implementation. Th
 | Web linting | Oxlint for fast JavaScript/TypeScript linting; TypeScript remains the type-safety gate. Package versions are pinned exactly and upgraded intentionally. |
 | npm package versions | Pin exact npm package versions. Do not use `^`, `~`, `latest`, or broad semver ranges when adding or updating packages. |
 | API | Go REST/JSON HTTP service |
-| Go version | Go 1.21 for local compatibility |
+| Go version | Go 1.25 minimum, set by the `go` directive in `apps/api/go.mod`. Go 1.21 reached end of life, and the current `pgx` and `golang.org/x/*` releases require 1.25 or newer. CI installs the version from `go.mod`; the API image builds on `golang:1.25-alpine`. |
 | Go dependencies | Standard library first; add dependencies only when Phase 1 needs them |
 | Frontend auth | Opaque server-side session cookies; no browser JWT auth |
 | Auth session backing | Postgres-backed opaque server-side sessions |
