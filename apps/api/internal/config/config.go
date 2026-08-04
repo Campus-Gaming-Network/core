@@ -24,6 +24,7 @@ type Config struct {
 	EventsEmailFrom  string
 	AuthRateLimit    int
 	AuthRateWindow   time.Duration
+	DBMaxConns       int32
 }
 
 func Load() (Config, error) {
@@ -67,6 +68,13 @@ func Load() (Config, error) {
 		return Config{}, fmt.Errorf("parse API_AUTH_RATE_WINDOW: %w", err)
 	}
 
+	// 0 means "unset"; db.Open applies its own default rather than config
+	// depending on the db package.
+	dbMaxConns, err := strconv.Atoi(getenv("API_DB_MAX_CONNS", "0"))
+	if err != nil || dbMaxConns < 0 {
+		return Config{}, fmt.Errorf("parse API_DB_MAX_CONNS: must be a non-negative integer")
+	}
+
 	return Config{
 		HTTPAddr:         httpAddr(),
 		DatabaseURL:      getenv("API_DATABASE_URL", "postgres://cgn:cgn@localhost:5432/cgn?sslmode=disable"),
@@ -84,6 +92,7 @@ func Load() (Config, error) {
 		EventsEmailFrom:  getenv("API_EVENTS_EMAIL_FROM", "events@campusgamingnetwork.com"),
 		AuthRateLimit:    authRateLimit,
 		AuthRateWindow:   authRateWindow,
+		DBMaxConns:       int32(dbMaxConns),
 	}, nil
 }
 

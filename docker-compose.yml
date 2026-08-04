@@ -56,6 +56,7 @@ services:
       API_DB_HOST: ${API_DB_HOST:-postgres}
       API_DB_PORT: ${API_DB_PORT:-5432}
       API_DB_CONNECT_TIMEOUT: ${API_DB_CONNECT_TIMEOUT:-2s}
+      API_DB_MAX_CONNS: ${API_DB_MAX_CONNS:-10}
       API_DATABASE_URL: ${API_DATABASE_URL:-postgres://cgn:cgn@postgres:5432/cgn?sslmode=disable}
       API_SESSION_COOKIE: ${API_SESSION_COOKIE:-cgn_session}
       API_SESSION_TTL: ${API_SESSION_TTL:-720h}

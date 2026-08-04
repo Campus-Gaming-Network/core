@@ -13,6 +13,7 @@ import (
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/config"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/db"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/httpapi"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/maintenance"
 )
 
 func main() {
@@ -22,7 +23,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	database, err := db.Open(context.Background(), cfg.DatabaseURL)
+	database, err := db.Open(context.Background(), cfg.DatabaseURL, cfg.DBMaxConns)
 	if err != nil {
 		slog.Error("open database", "error", err)
 		os.Exit(1)
@@ -31,13 +32,21 @@ func main() {
 
 	handler := httpapi.NewRouter(cfg, database)
 	server := &http.Server{
-		Addr:              cfg.HTTPAddr,
-		Handler:           handler,
+		Addr:    cfg.HTTPAddr,
+		Handler: handler,
+		// Without these a slow client or a slow query has no upper bound, and
+		// stalled connections accumulate against a small pool.
 		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       15 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       60 * time.Second,
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+
+	go maintenance.NewSweeper(database, slog.Default()).
+		Start(ctx, maintenance.DefaultInterval)
 
 	go func() {
 		slog.Info("api listening", "addr", cfg.HTTPAddr)

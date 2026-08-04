@@ -4,10 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net"
 	"net/http"
 	"net/url"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"time"
@@ -120,7 +122,7 @@ func NewRouter(cfg config.Config, pools ...*pgxpool.Pool) http.Handler {
 		)(handler)
 	}
 
-	return withRequestLogging(handler)
+	return withRequestLogging(withPanicRecovery(handler))
 }
 
 func (r *Router) handleRoot(w http.ResponseWriter, req *http.Request) {
@@ -572,6 +574,39 @@ func withRequestLogging(next http.Handler) http.Handler {
 			"path", req.URL.Path,
 			"duration_ms", time.Since(start).Milliseconds(),
 		)
+	})
+}
+
+// withPanicRecovery turns a panicking handler into a JSON 500.
+//
+// net/http already recovers handler panics so the process survives, but it
+// abruptly closes the connection without a response and reports the panic to
+// the server's default logger rather than slog. That leaves the BFF seeing a
+// transport failure instead of an API error, and the panic outside the
+// structured logs.
+func withPanicRecovery(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		defer func() {
+			recovered := recover()
+			if recovered == nil {
+				return
+			}
+			// http.ErrAbortHandler is the documented way to abort a response on
+			// purpose; passing it along preserves that behavior.
+			if err, ok := recovered.(error); ok && errors.Is(err, http.ErrAbortHandler) {
+				panic(recovered)
+			}
+
+			slog.Error("panic recovered",
+				"panic", fmt.Sprint(recovered),
+				"method", req.Method,
+				"path", req.URL.Path,
+				"stack", string(debug.Stack()),
+			)
+			writeError(w, http.StatusInternalServerError, "internal_error")
+		}()
+
+		next.ServeHTTP(w, req)
 	})
 }
 
