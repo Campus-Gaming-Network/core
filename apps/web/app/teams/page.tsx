@@ -89,7 +89,7 @@ export default async function TeamsPage({ searchParams }: PageProps) {
                 <strong>{team.name}</strong>
                 <small>{team.member_count} member{team.member_count === 1 ? "" : "s"}</small>
               </span>
-              <small>{team.games.map((game) => game.name).join(", ")}</small>
+              <small>{team.games.map((teamGame) => teamGame.name).join(", ")}</small>
               <small>{team.school?.name ?? "Independent team"}</small>
             </Link>
           ))}

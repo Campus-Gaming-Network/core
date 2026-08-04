@@ -102,7 +102,7 @@ export default async function EventsPage({ searchParams }: PageProps) {
               </span>
               <small>{eventTimeRange(event)}</small>
               <small>
-                {event.host_school.name} · {event.games.map((game) => game.name).join(", ")}
+                {event.host_school.name} · {event.games.map((eventGame) => eventGame.name).join(", ")}
               </small>
               <small>{eventLocation(event)}</small>
             </Link>
