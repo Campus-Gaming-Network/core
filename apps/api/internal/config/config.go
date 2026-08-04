@@ -24,7 +24,6 @@ type Config struct {
 	EventsEmailFrom  string
 	AuthRateLimit    int
 	AuthRateWindow   time.Duration
-	SentryDSN        string
 }
 
 func Load() (Config, error) {
@@ -85,7 +84,6 @@ func Load() (Config, error) {
 		EventsEmailFrom:  getenv("API_EVENTS_EMAIL_FROM", "events@campusgamingnetwork.com"),
 		AuthRateLimit:    authRateLimit,
 		AuthRateWindow:   authRateWindow,
-		SentryDSN:        os.Getenv("SENTRY_DSN"),
 	}, nil
 }
 

@@ -68,7 +68,6 @@ services:
       API_EVENTS_EMAIL_FROM: ${API_EVENTS_EMAIL_FROM:-events@campusgamingnetwork.com}
       API_AUTH_RATE_LIMIT: ${API_AUTH_RATE_LIMIT:-5}
       API_AUTH_RATE_WINDOW: ${API_AUTH_RATE_WINDOW:-15m}
-      SENTRY_DSN: ${SENTRY_DSN:-}
     ports:
       - "8080:8080"
     depends_on:
@@ -89,7 +88,6 @@ services:
       API_INTERNAL_URL: ${WEB_API_INTERNAL_URL:-http://api:8080}
       NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}
       NEXT_TELEMETRY_DISABLED: "1"
-      SENTRY_DSN: ${SENTRY_DSN:-}
     ports:
       - "3000:3000"
     depends_on:
