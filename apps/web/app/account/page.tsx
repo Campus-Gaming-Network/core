@@ -3,6 +3,7 @@ import { Card } from "@heroui/react/card";
 import { EmptyState } from "@heroui/react/empty-state";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { DeleteAccountForm } from "../../components/delete-account-form";
 import { ProfileForm } from "../../components/profile-form";
 import { UserAvatar } from "../../components/user-avatar";
 import {
@@ -177,6 +178,8 @@ export default async function AccountPage() {
       </section>
 
       <ProfileForm profile={profile} />
+
+      <DeleteAccountForm />
     </main>
   );
 }

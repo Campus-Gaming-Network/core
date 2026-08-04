@@ -15,6 +15,8 @@ type fakeUsers struct {
 	credentials  users.Credentials
 	created      users.CreateParams
 	passwordHash string
+	deletedID    string
+	deleteErr    error
 }
 
 func (f *fakeUsers) Create(_ context.Context, params users.CreateParams) (users.Profile, error) {
@@ -65,6 +67,11 @@ func (f *fakeUsers) UpdatePassword(_ context.Context, _ string, passwordHash str
 func (f *fakeUsers) ReplaceSocialLinks(_ context.Context, _ string, links []users.SocialLink) error {
 	f.profile.SocialLinks = links
 	return nil
+}
+
+func (f *fakeUsers) DeleteAccount(_ context.Context, id string) error {
+	f.deletedID = id
+	return f.deleteErr
 }
 
 type fakeSchools struct{}

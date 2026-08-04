@@ -191,6 +191,13 @@ func (s *AccountService) ResetPassword(ctx context.Context, rawToken string, pas
 	return nil
 }
 
+// DeleteAccount anonymizes the account and invalidates its credentials. See
+// users.PostgresRepository.DeleteAccount for what is scrubbed, transferred, and
+// deliberately kept.
+func (s *AccountService) DeleteAccount(ctx context.Context, userID string) error {
+	return s.Users.DeleteAccount(ctx, userID)
+}
+
 func (s *AccountService) GetProfile(ctx context.Context, userID string) (users.Profile, error) {
 	return s.Users.FindByID(ctx, userID)
 }

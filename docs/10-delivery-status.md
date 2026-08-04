@@ -45,6 +45,11 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 - [x] Dependency and advisory sweep: Go 1.25 with current `pgx`/`golang.org/x/*`, Next.js 16.3 clearing 9 high-severity advisories plus transitive `postcss`/`sharp`, oxlint 1.77
 - [x] Per-page metadata and social tags, with `noindex` on authenticated, token, private, and unlisted routes
 - [x] Error, loading, and not-found boundaries; browse pages in `(browse)` route groups so missing entities still return 404
+- [x] Transactional email failures no longer fail the committed write behind them (RSVP, signup, password reset)
+- [x] Argon2id password hashing with parameters stored per hash
+- [x] Account deletion and anonymization via `DELETE /me`, with team ownership succession
+- [x] Bounded rate-limiter memory and an hourly sweeper for expired sessions, tokens, and event unlocks
+- [x] Panic recovery middleware, HTTP server timeouts, configurable database pool ceiling
 
 ### Auth & profiles
 - [x] Signup / login / logout

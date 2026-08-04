@@ -50,7 +50,7 @@ Not every path must exist on day one — align with [05 — Roadmap](./05-roadma
 |--------|------|-------|
 | GET | `/me` | Profile + timezone + home school summary |
 | PATCH | `/me` | Name, bio, socials, timezone, majors, graduation |
-| DELETE | `/me` | Anonymize PII |
+| DELETE | `/me` | Anonymize the account in place and return 204. Scrubs email, name, bio, and timezone; marks `account_status = 'deleted'`; hard-deletes social links, school follows, RSVPs, and interests; revokes sessions and drops outstanding tokens. Teams they own pass to the longest-tenured captain, else the longest-tenured member, else are soft-deleted. Events they created stay published, since nothing exposes an organizer name and attendees hold RSVPs and calendar files. The scrubbed email releases the original address for re-registration. |
 | GET | `/me/schools` | Followed schools |
 | GET | `/me/events` | Dashboard event sections: upcoming RSVPs + followed-school public events |
 | GET | `/me/teams` | Dashboard team activity |
