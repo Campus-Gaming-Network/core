@@ -1,3 +1,12 @@
+import { pageMetadata } from "../../lib/metadata";
+
+export const metadata = pageMetadata({
+  title: "About",
+  description:
+    "How Campus Gaming Network connects collegiate gamers with events, teams, and campus activity.",
+  path: "/about"
+});
+
 export default function AboutPage() {
   return (
     <main className="narrow">

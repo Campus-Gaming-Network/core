@@ -2,6 +2,15 @@ import { redirect } from "next/navigation";
 import { EventForm } from "../../../components/event-form";
 import { type School, type SchoolSummary } from "../../../lib/cgn-api";
 import { currentProfile, listGames, listSchools } from "../../../lib/server-api";
+import { pageMetadata } from "../../../lib/metadata";
+
+export const metadata = pageMetadata({
+  title: "Create event",
+  description:
+    "Create a new campus gaming event.",
+  path: "/events/new",
+  noIndex: true
+});
 
 export default async function NewEventPage() {
   const profile = await currentProfile();

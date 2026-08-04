@@ -5,6 +5,14 @@ import { ListBox } from "@heroui/react/list-box";
 import { Select } from "@heroui/react/select";
 import Link from "next/link";
 import { currentProfile, listGames, listTeams } from "../../lib/server-api";
+import { pageMetadata } from "../../lib/metadata";
+
+export const metadata = pageMetadata({
+  title: "Teams",
+  description:
+    "Browse collegiate gaming teams and find one to join on your campus.",
+  path: "/teams"
+});
 
 type PageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;

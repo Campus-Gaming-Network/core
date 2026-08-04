@@ -1,16 +1,45 @@
 import { Card } from "@heroui/react/card";
 import { Chip } from "@heroui/react/chip";
 import { EmptyState } from "@heroui/react/empty-state";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ReportForm } from "../../../components/report-form";
 import { UserAvatar } from "../../../components/user-avatar";
 import { ApiError, publicProfileHomeSchool } from "../../../lib/cgn-api";
+import { pageMetadata } from "../../../lib/metadata";
 import { currentProfile, getPublicProfile } from "../../../lib/server-api";
 
 type PageProps = {
   params: Promise<{ id: string }>;
 };
+
+export async function generateMetadata({
+  params
+}: PageProps): Promise<Metadata> {
+  const { id } = await params;
+  const profile = await getPublicProfile(id).catch(() => null);
+
+  if (!profile) {
+    return pageMetadata({
+      title: "Profile not found",
+      description: "This profile is unavailable.",
+      noIndex: true
+    });
+  }
+
+  const homeSchool = publicProfileHomeSchool(profile);
+
+  return pageMetadata({
+    title: profile.name,
+    description:
+      profile.bio ||
+      (homeSchool
+        ? `${profile.name} plays at ${homeSchool.name} on Campus Gaming Network.`
+        : `${profile.name} on Campus Gaming Network.`),
+    path: `/users/${profile.id}`
+  });
+}
 
 export default async function PublicProfilePage({ params }: PageProps) {
   const { id } = await params;

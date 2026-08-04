@@ -19,6 +19,15 @@ import {
   listFollowedSchools,
   listMyTeams
 } from "../../lib/server-api";
+import { pageMetadata } from "../../lib/metadata";
+
+export const metadata = pageMetadata({
+  title: "Account",
+  description:
+    "Manage your Campus Gaming Network profile, home school, and followed schools.",
+  path: "/account",
+  noIndex: true
+});
 
 export default async function AccountPage() {
   const profile = await currentProfile();

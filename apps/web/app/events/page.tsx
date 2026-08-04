@@ -12,6 +12,14 @@ import {
   eventTimeRange
 } from "../../lib/cgn-api";
 import { currentProfile, listEvents, listGames } from "../../lib/server-api";
+import { pageMetadata } from "../../lib/metadata";
+
+export const metadata = pageMetadata({
+  title: "Events",
+  description:
+    "Browse upcoming collegiate gaming events and filter them by game or school.",
+  path: "/events"
+});
 
 type PageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;

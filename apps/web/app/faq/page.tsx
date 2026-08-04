@@ -1,4 +1,12 @@
 import { Accordion } from "@heroui/react/accordion";
+import { pageMetadata } from "../../lib/metadata";
+
+export const metadata = pageMetadata({
+  title: "FAQ",
+  description:
+    "Answers to common questions about accounts, events, teams, and schools on Campus Gaming Network.",
+  path: "/faq"
+});
 
 const faqs = [
   {

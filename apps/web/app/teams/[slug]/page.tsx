@@ -1,17 +1,44 @@
 import { Alert } from "@heroui/react/alert";
 import { Card } from "@heroui/react/card";
 import { Chip } from "@heroui/react/chip";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { TeamJoinForm } from "../../../components/team-join-form";
 import { TeamManagementPanel } from "../../../components/team-management-panel";
 import { ApiError, teamRoleLabel } from "../../../lib/cgn-api";
+import { pageMetadata } from "../../../lib/metadata";
 import { currentProfile, getTeam } from "../../../lib/server-api";
 
 type PageProps = {
   params: Promise<{ slug: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
+
+export async function generateMetadata({
+  params
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const team = await getTeam(slug).catch(() => null);
+
+  if (!team) {
+    return pageMetadata({
+      title: "Team not found",
+      description: "This team is unavailable.",
+      noIndex: true
+    });
+  }
+
+  return pageMetadata({
+    title: team.name,
+    description:
+      team.description ||
+      `A collegiate gaming team at ${team.school?.name ?? "Campus Gaming Network"}.`,
+    path: `/teams/${team.slug}`
+  });
+}
 
 export default async function TeamDetailPage({
   params,

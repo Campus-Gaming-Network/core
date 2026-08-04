@@ -1,3 +1,12 @@
+import { pageMetadata } from "../../lib/metadata";
+
+export const metadata = pageMetadata({
+  title: "Privacy",
+  description:
+    "How Campus Gaming Network collects, uses, and protects your information.",
+  path: "/privacy"
+});
+
 export default function PrivacyPage() {
   return (
     <main className="narrow">

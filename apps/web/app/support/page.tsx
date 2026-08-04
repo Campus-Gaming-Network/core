@@ -1,4 +1,12 @@
 import { SupportTicketForm } from "../../components/support-ticket-form";
+import { pageMetadata } from "../../lib/metadata";
+
+export const metadata = pageMetadata({
+  title: "Support",
+  description:
+    "Get help with Campus Gaming Network or send the team a support request.",
+  path: "/support"
+});
 
 export default function SupportPage() {
   return (

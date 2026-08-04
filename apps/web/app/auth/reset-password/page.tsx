@@ -1,4 +1,13 @@
 import { redirect } from "next/navigation";
+import { pageMetadata } from "../../../lib/metadata";
+
+export const metadata = pageMetadata({
+  title: "Reset password",
+  description:
+    "Choose a new password for your Campus Gaming Network account.",
+  path: "/auth/reset-password",
+  noIndex: true
+});
 
 type PageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;

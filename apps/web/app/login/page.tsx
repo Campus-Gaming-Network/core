@@ -1,5 +1,13 @@
 import Link from "next/link";
 import { LoginForm } from "../../components/auth-forms";
+import { pageMetadata } from "../../lib/metadata";
+
+export const metadata = pageMetadata({
+  title: "Log in",
+  description:
+    "Log in to your Campus Gaming Network account to RSVP to events and manage teams.",
+  path: "/login"
+});
 
 type PageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;

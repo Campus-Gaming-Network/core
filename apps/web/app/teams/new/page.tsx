@@ -2,6 +2,15 @@ import { redirect } from "next/navigation";
 import { TeamForm } from "../../../components/team-form";
 import { type School, type SchoolSummary } from "../../../lib/cgn-api";
 import { currentProfile, listGames, listSchools } from "../../../lib/server-api";
+import { pageMetadata } from "../../../lib/metadata";
+
+export const metadata = pageMetadata({
+  title: "Start a team",
+  description:
+    "Start a new collegiate gaming team.",
+  path: "/teams/new",
+  noIndex: true
+});
 
 export default async function NewTeamPage() {
   const profile = await currentProfile();

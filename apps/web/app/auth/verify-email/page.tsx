@@ -2,6 +2,15 @@ import { Alert } from "@heroui/react/alert";
 import Link from "next/link";
 import { ResendVerificationForm } from "../../../components/auth-forms";
 import { verifyEmailToken } from "../../../lib/server-api";
+import { pageMetadata } from "../../../lib/metadata";
+
+export const metadata = pageMetadata({
+  title: "Verify email",
+  description:
+    "Confirm your email address for Campus Gaming Network.",
+  path: "/auth/verify-email",
+  noIndex: true
+});
 
 type PageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;

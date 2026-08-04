@@ -3,6 +3,14 @@ import { Input } from "@heroui/react/input";
 import Link from "next/link";
 import { SignupForm } from "../../components/auth-forms";
 import { listSchools } from "../../lib/server-api";
+import { pageMetadata } from "../../lib/metadata";
+
+export const metadata = pageMetadata({
+  title: "Sign up",
+  description:
+    "Create a Campus Gaming Network account, pick your home school, and join the campus gaming scene.",
+  path: "/signup"
+});
 
 type PageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
