@@ -1,6 +1,6 @@
 # 11 — Implementation decisions
 
-Small, concrete engineering choices for Phase 0 and early MVP implementation. These decisions keep the scaffold boring, explicit, and easy to change before real users.
+Small, concrete engineering choices for Phase 0 and early early implementation. These decisions keep the scaffold boring, explicit, and easy to change before real users.
 
 ## Phase 0 decisions
 
@@ -23,14 +23,14 @@ Small, concrete engineering choices for Phase 0 and early MVP implementation. Th
 | Frontend auth | Opaque server-side session cookies; no browser JWT auth |
 | Auth session backing | Postgres-backed opaque server-side sessions |
 | Primary keys | Use UUIDs for domain tables unless a later migration ADR overrides this |
-| Migrations | Keep first migrations MVP-only; use timestamped/versioned SQL files in `db/migrations` |
+| Migrations | Keep first migrations scoped to shipped features; use timestamped/versioned SQL files in `db/migrations` |
 | Database readiness | Phase 0 `/ready` checks Postgres network reachability; real SQL checks arrive with the DB driver |
-| MVP production hosting | Railway hosts Next.js web, Go API, and PostgreSQL; Cloudflare manages DNS/protection |
+| Production hosting | Railway hosts Next.js web, Go API, and PostgreSQL; Cloudflare manages DNS/protection |
 | Railway topology | Services are named `web`, `api`, and `postgres`; staging rehearsal precedes production; API migrations run as pre-deploy; Cloudflare redirects `www` to the apex domain |
-| CRM | Skipped for MVP; CRM/admin app remains post-MVP |
+| CRM | Not in the first release; the CRM/admin app comes later |
 | Branch campuses | Same UI/UX as other schools |
-| Paid events | MVP supports off-site-payment listings only; no CGN payment processing |
-| Audit/activity/notifications | Database-backed domain audit history, user activity history, and in-app notifications are post-MVP. MVP uses structured operational logs plus account and RSVP transactional email. |
+| Paid events | Supports off-site-payment listings only; no CGN payment processing |
+| Audit/activity/notifications | Database-backed domain audit history, user activity history, and in-app notifications are later. Uses structured operational logs plus account and RSVP transactional email. |
 
 ## Initial folder responsibilities
 
@@ -61,9 +61,9 @@ tests that only assert implementation details. When a test runner or coverage
 threshold is introduced for a layer, add it to CI and keep the threshold
 ratcheting upward rather than treating coverage as a one-time report.
 
-## Deferred until post-MVP / later hardening
+## Deferred to later hardening
 
-- Sentry SDK integration (post-MVP)
+- Sentry SDK integration (later)
 - CRM/admin app
 - TypeScript 7 adoption; revisit when Next.js officially supports it
 - Database-backed audit/activity history and in-app notifications

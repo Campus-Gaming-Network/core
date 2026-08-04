@@ -1,12 +1,12 @@
-# 10 — MVP todo
+# 10 — Delivery status
 
-Status tracker for the main-site MVP. Locked product decisions live in the other docs (`01`, `05`, `08`) — not repeated here.
+Status tracker for Campus Gaming Network. Locked product decisions live in the other docs (`01`, `05`, `08`) — not repeated here.
 
-**Current P0 remaining:** provision Railway/Cloudflare, configure secrets and backups, run staging rehearsal, and complete the production smoke test for `campusgamingnetwork.com`. Repository deployment configuration is implemented.
+Work is grouped **Now** (building toward the first public release), **Next** (planned immediately after), and **Later** (planned, not yet scheduled). Nothing here is written off — Later means "not scheduled yet", not "out of scope".
 
-**MVP slice:** auth → home school on signup → schools search/follow → events + curated games → teams → dashboard.
+**Currently remaining in Now:** provision Railway/Cloudflare, configure secrets and backups, run staging rehearsal, and complete the production smoke test for `campusgamingnetwork.com`. Repository deployment configuration is implemented.
 
-**Out of MVP:** Sentry/error monitoring, CRM/admin app, clubs, tournaments, on-site payments, usernames, waitlists, invite links, feature flags, near-you, cancel-event RSVP emails, custom event banner uploads (use default placeholder; moderation later).
+**First release slice:** auth → home school on signup → schools search/follow → events + curated games → teams → dashboard.
 
 **School seed:** 6,243 operating schools (4,943 main · **1,300 branch**). Import all, `is_active=true`; branch campuses use the same UI/UX; review later in CRM/admin tooling.
 
@@ -14,25 +14,23 @@ Status tracker for the main-site MVP. Locked product decisions live in the other
 
 ---
 
-## P0 — Decide before coding
+## Decided before coding
 
 No blocking decisions left for media/slugs/email. Optional later: exact default banner asset design.
-
-**Decided:**
 
 | Topic | Decision |
 |-------|----------|
 | Event slug hash | **8** Base64URL chars |
 | Images | **PNG or JPG only**; max **500 MB** |
-| Event banners (MVP) | Default placeholder image/background — **no user uploads yet** |
-| School logos | Placeholder in MVP; CRM/admin upload via R2 later |
-| Email From | MVP: `events@` / `account@`; post-MVP workflows: `notifications@` / `support@campusgamingnetwork.com` |
-| Paid events | Allowed in MVP as off-site-payment listings only; no CGN checkout/payments |
-| MVP deploy path | Railway hosts Next.js, Go API, and PostgreSQL; Cloudflare manages DNS/protection |
+| Event banners | Default placeholder image/background — **no user uploads yet** |
+| School logos | Placeholder for now; CRM/admin upload via R2 later |
+| Email From | Now: `events@` / `account@`; later workflows: `notifications@` / `support@campusgamingnetwork.com` |
+| Paid events | Off-site-payment listings only; no CGN checkout/payments |
+| Deploy path | Railway hosts Next.js, Go API, and PostgreSQL; Cloudflare manages DNS/protection |
 
 ---
 
-## P0 — Must ship (main site MVP)
+## Now — first public release
 
 ### Foundation
 - [x] Docker Compose: Next.js, Go API, Postgres (M1-friendly)
@@ -65,7 +63,7 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 - [x] Follow / unfollow school
 - [x] Empty states for school list + school page
 
-### Games (MVP seed)
+### Games (curated seed)
 - [x] Seed/curate launch games:
   - Rocket League
   - Valorant
@@ -74,7 +72,7 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
   - Super Smash Bros. Ultimate
   - CSGO
 - [x] Browse/filter events by these games
-- [x] End users cannot edit games (CRM later / admin seed)
+- [x] End users cannot edit games (admin seed; CRM later)
 
 ### Events
 - [x] Create / edit / soft-delete (no approval; no cancel-notify emails yet)
@@ -90,7 +88,7 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 - [x] Lifecycle UI: upcoming / happening now / ended / full
 - [x] Missing/deleted event page
 - [x] Rate limit event create + private unlock attempts
-- [x] Default event banner/background placeholder (no custom uploads in MVP)
+- [x] Default event banner/background placeholder (no custom uploads yet)
 - [x] Empty states for events browse
 
 ### Teams
@@ -107,20 +105,20 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 - [x] FAQ, About, Terms, Privacy
 - [x] Support ticket form — **anyone** can submit (logged out OK)
 
-### Safety (minimum)
+### Safety (baseline)
 - [x] Rate limits: signup, resend verification, event create, reports, private unlock, support tickets
-- [x] Report event + report user (queued for post-MVP CRM/admin review)
+- [x] Report event + report user (queued for CRM/admin review)
 - [x] New-account abuse limits (basic)
 
 ---
 
-## P1 — Important soon after main MVP (CRM/admin separate release)
+## Next — immediately after the first release
 
 ### CRM/admin app (`crm.campusgamingnetwork.com` — TanStack Start)
 - [ ] Bootstrap first site admin (CLI / env seed)
 - [ ] TanStack Start CRM app (separate deploy, shared Go API)
 - [ ] Schools: create / edit / soft-delete, logos (**CRM/admin-only** R2 PNG/JPG ≤500 MB), activation (`unitid` optional)
-- [ ] Review/deactivate bad seed schools later
+- [ ] Review/deactivate bad seed schools
 - [ ] Grant school admins
 - [ ] Games catalog management (start from the six launch games; IGDB later)
 - [ ] Reports queue
@@ -128,45 +126,44 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 - [ ] Placeholder school logos until CRM upload
 
 ### Product polish
-- [ ] Soft-pedal friends/clubs/tournaments in marketing copy
 - [ ] Sentry/error monitoring
 - [ ] Analytics (non-GA: Plausible or Cloudflare Web Analytics)
 - [ ] Profanity filter scope (or explicitly defer)
+- [ ] Frontend regression test coverage for pages, components, and server actions
+- [ ] Open Graph share image, favicon, `robots.txt`, and `sitemap.xml`
 
 ---
 
-## P2 — Nice to have (can slip)
+## Later — planned, not yet scheduled
 
+### Near-term candidates
 - [ ] Google Maps embed (address text is enough first)
 - [ ] Recurring events
 - [ ] Richer profile fields (majors, graduation automation, faculty extras)
 - [ ] `.edu` verified-student badge UX
-- [ ] School admin / faculty role indicators (if few admins at launch)
+- [ ] School admin / faculty role indicators
 - [ ] Event organizer badges
 - [ ] Database-backed activity/audit history and corresponding UIs
 - [ ] Site-wide announcements
 - [ ] Impersonation
 - [ ] Broader IGDB game import
 
----
-
-## Later (explicitly not MVP)
-
-- Clubs
-- Tournaments
-- On-site payments
-- Waitlists
-- Team invite-link tokens
-- Usernames / first+last+display split
-- Feature flags
-- **Near you** / geo discovery
-- Cancel-event notify RSVPs
-- **Custom event banner uploads** (with strict moderation)
-- Friends graph
-- WebSockets / live updates
-- Custom avatars
-- Elasticsearch
-- International schools
+### Larger feature areas
+- [ ] Clubs
+- [ ] Tournaments
+- [ ] On-site payments
+- [ ] Waitlists
+- [ ] Team invite-link tokens
+- [ ] Usernames / first+last+display split
+- [ ] Feature flags
+- [ ] **Near you** / geo discovery
+- [ ] Cancel-event notify RSVPs
+- [ ] **Custom event banner uploads** (with strict moderation)
+- [ ] Friends graph
+- [ ] WebSockets / live updates
+- [ ] Custom avatars
+- [ ] Elasticsearch
+- [ ] International schools
 
 ---
 
@@ -174,5 +171,5 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 
 1. Foundation + auth + schools + **six launch games**
 2. Events (default banners) + teams + dashboard + legal/support
-3. CRM/admin app (TanStack Start) separate post-MVP release — school logos
-4. Post-MVP backlog
+3. CRM/admin app (TanStack Start), separate release — school logos
+4. Work down the Later list by value

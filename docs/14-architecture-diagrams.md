@@ -1,6 +1,6 @@
 # 14 — Architecture diagrams
 
-These diagrams reflect the current main-site MVP and its Railway deployment plan. In the system overview, dashed components are explicitly post-MVP.
+These diagrams reflect the current first release and its Railway deployment plan. In the system overview, dashed components are explicitly later.
 
 ## 1. Frontend architecture overview
 
@@ -161,10 +161,10 @@ flowchart LR
         Database --> Backups
     end
 
-    CRM["Post-MVP CRM<br/>TanStack Start"]
-    R2["Post-MVP Cloudflare R2<br/>school logos"]
-    IGDB["Post-MVP IGDB<br/>game enrichment"]
-    Sentry["Post-MVP Sentry"]
+    CRM["Later CRM<br/>TanStack Start"]
+    R2["Later Cloudflare R2<br/>school logos"]
+    IGDB["Later IGDB<br/>game enrichment"]
+    Sentry["Later Sentry"]
 
     User -->|"HTTPS"| Cloudflare --> Web
     Web -->|"SSR HTML, redirects, opaque cookies"| User

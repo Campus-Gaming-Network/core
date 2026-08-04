@@ -1,6 +1,6 @@
 # 13 — Deployment plan (Railway)
 
-Concrete deployment configuration and launch checklist for the main-site MVP. The repository-side work is encoded under `railway/`; provisioning services, secrets, backups, DNS, and running the production smoke test remain operator actions.
+Concrete deployment configuration and launch checklist for the first release. The repository-side work is encoded under `railway/`; provisioning services, secrets, backups, DNS, and running the production smoke test remain operator actions.
 
 ## Locked production decisions
 
@@ -99,7 +99,7 @@ Do not set any `API_DEV_SEED_USER_*` variables outside local development. `RESEN
 |----------|-------|
 | `API_DATABASE_URL` | `${{postgres.DATABASE_URL}}` |
 
-The seed command is intentionally not part of every deployment. It refuses a partially populated catalog, and routine catalog management moves to the post-MVP CRM.
+The seed command is intentionally not part of every deployment. It refuses a partially populated catalog, and routine catalog management moves to the later CRM.
 
 ## Migrations
 
@@ -120,7 +120,7 @@ Before public launch:
 3. Restore a staging backup. Railway stages a replacement volume; review and deploy the staged restore, then verify migrations, the school count, signup, and event creation.
 4. Record the rehearsal date and result in the launch record.
 
-Railway’s current scheduled retention is six days for daily backups, one month for weekly backups, and three months for monthly backups. Point-in-time recovery is optional after launch, not an MVP blocker.
+Railway’s current scheduled retention is six days for daily backups, one month for weekly backups, and three months for monthly backups. Point-in-time recovery is optional after launch, not a launch blocker.
 
 ## Domain and Cloudflare
 

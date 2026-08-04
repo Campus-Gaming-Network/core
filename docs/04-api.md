@@ -1,12 +1,12 @@
 # 04 — API
 
-Public UI talks to a **Next.js BFF**; the BFF calls **Go** services that own domain logic and Postgres. The post-MVP CRM app also calls Go (directly or via an admin BFF).
+Public UI talks to a **Next.js BFF**; the BFF calls **Go** services that own domain logic and Postgres. The later CRM app also calls Go (directly or via an admin BFF).
 
 ## Pattern: Backend for Frontend (BFF)
 
 ```text
 UI route / Server Action  →  Next.js BFF  →  Go API  →  Postgres
-Post-MVP CRM screens      →  (CRM BFF or direct) →  Go Admin API  →  Postgres
+Later CRM screens      →  (CRM BFF or direct) →  Go Admin API  →  Postgres
 ```
 
 | Layer | Responsibility |
@@ -25,8 +25,8 @@ Prefer server-rendered pages and server actions over exposing a wide public JSON
 - **Idempotency** — consider keys for RSVP and registration emails
 - **Health** — `GET /health` (liveness) and `GET /ready` (DB connectivity)
 - **Errors** — structured error codes; no stack traces to clients
-- **Audit/activity** — post-MVP; keep operational logs now, then add database-backed domain history as its own slice
-- **Feature flags** — post-MVP; when added, evaluate server-side
+- **Audit/activity** — later; keep operational logs now, then add database-backed domain history as its own slice
+- **Feature flags** — later; when added, evaluate server-side
 
 ## Endpoint surface (v1 intent)
 
@@ -68,9 +68,9 @@ Not every path must exist on day one — align with [05 — Roadmap](./05-roadma
 | DELETE | `/schools/:id/follow` | |
 | GET | `/schools/:id/games/popular` | |
 | PATCH | `/schools/:id` | School admin only |
-| POST | `/admin/schools` | Post-MVP site admin / CRM-admin only |
+| POST | `/admin/schools` | Later site admin / CRM-admin only |
 
-### Clubs (post-MVP)
+### Clubs (later)
 
 | Method | Path | Notes |
 |--------|------|-------|
@@ -90,27 +90,27 @@ Not every path must exist on day one — align with [05 — Roadmap](./05-roadma
 | POST | `/teams/:slug/join` | Password required to join/interact |
 | POST | `/teams/:slug/transfer-ownership` | Owner |
 | POST | `/teams/:slug/captains` | Assign captains |
-| GET | `/teams/:slug/audit` | Post-MVP team change history |
+| GET | `/teams/:slug/audit` | Later team change history |
 
 ### Events
 
 | Method | Path | Notes |
 |--------|------|-------|
-| GET | `/events` | Search/browse **public only**; filters: game, school, format, … (no near-you in MVP) |
+| GET | `/events` | Search/browse **public only**; filters: game, school, format, … (no near-you yet) |
 | GET | `/events/:slug` | Public & unlisted return full page; private returns gated shell until unlocked |
 | POST | `/events/:slug/unlock` | Password for private events; unlock session required before details/RSVP |
 | POST | `/events` | Auth; no approval; rate limited; 8-char slug hash; optional capacity; optional off-site payment fields; default banner only |
 | PATCH | `/events/:slug` | Organizers; past-event field restrictions |
-| DELETE | `/events/:slug` | Soft delete (no RSVP notify emails in MVP) |
+| DELETE | `/events/:slug` | Soft delete (no RSVP notify emails yet) |
 | POST | `/events/:slug/rsvp` | yes/no/maybe; capacity counts **yes only**; reject yes if full; email+ICS on yes |
 | POST | `/events/:slug/interest` | Favorite/bookmark; independent of RSVP |
 | DELETE | `/events/:slug/interest` | Remove favorite |
 | POST | `/events/:slug/report` | Rate limited |
-| GET | `/events/:slug/audit` | Post-MVP event change history |
+| GET | `/events/:slug/audit` | Later event change history |
 
-Discovery lists only `visibility = public`. Unlisted is link/slug only. Private: do not leak event details in HTML/JSON before unlock — blurred shell + password modal only. Capacity = count of RSVP `yes`; full → cannot RSVP yes (no waitlist). Paid events are allowed in MVP only as off-site-payment listings: no checkout, payment intent, refund, tax, payout, or ledger behavior in CGN.
+Discovery lists only `visibility = public`. Unlisted is link/slug only. Private: do not leak event details in HTML/JSON before unlock — blurred shell + password modal only. Capacity = count of RSVP `yes`; full → cannot RSVP yes (no waitlist). Paid events are allowed only as off-site-payment listings: no checkout, payment intent, refund, tax, payout, or ledger behavior in CGN.
 
-### Tournaments (post-MVP)
+### Tournaments (later)
 
 | Method | Path | Notes |
 |--------|------|-------|
@@ -123,13 +123,13 @@ Discovery lists only `visibility = public`. Unlisted is link/slug only. Private:
 
 | Method | Path | Notes |
 |--------|------|-------|
-| GET | `/games` | Browse (public); MVP = 6 curated launch games |
+| GET | `/games` | Browse (public); currently the 6 curated launch games |
 | GET | `/games/:slug/events` | Public events for game + filters |
-| GET | `/games/:slug/tournaments` | Tournaments for game + filters (post-MVP) |
-| POST | `/admin/games/sync` | IGDB import later (post-MVP CRM / cron) |
-| PATCH | `/admin/games/:id` | Post-MVP CRM/admin only — end users cannot edit games |
+| GET | `/games/:slug/tournaments` | Tournaments for game + filters (later) |
+| POST | `/admin/games/sync` | IGDB import (later; CRM / cron) |
+| PATCH | `/admin/games/:id` | Later CRM/admin only — end users cannot edit games |
 
-### Notifications & announcements (post-MVP)
+### Notifications & announcements (later)
 
 | Method | Path | Notes |
 |--------|------|-------|
@@ -137,7 +137,7 @@ Discovery lists only `visibility = public`. Unlisted is link/slug only. Private:
 | POST | `/me/notifications/:id/read` | |
 | GET | `/announcements/active` | Site-wide banner |
 
-### Moderation & admin (post-MVP CRM — crm.campusgamingnetwork.com)
+### Moderation & admin (CRM, later — crm.campusgamingnetwork.com)
 
 | Method | Path | Notes |
 |--------|------|-------|
@@ -146,11 +146,11 @@ Discovery lists only `visibility = public`. Unlisted is link/slug only. Private:
 | PATCH | `/admin/reports/:id` | |
 | GET | `/admin/support-tickets` | Support tickets from main site |
 | PATCH | `/admin/support-tickets/:id` | |
-| POST | `/admin/impersonate` | Site admin; heavily audited (may be later) |
+| POST | `/admin/impersonate` | Site admin; heavily audited (later) |
 | POST | `/admin/impersonate/stop` | |
-| CRUD | `/admin/feature-flags` | Post-MVP |
+| CRUD | `/admin/feature-flags` | Later |
 | CRUD | `/admin/users` | ACL management |
-| CRUD | `/admin/announcements` | Later-friendly |
+| CRUD | `/admin/announcements` | Later |
 
 ### Health
 
@@ -166,8 +166,8 @@ Discovery lists only `visibility = public`. Unlisted is link/slug only. Private:
 | Event RSVP (yes) | Details + ICS — from `events@campusgamingnetwork.com` |
 | Signup verification | Link — from `account@campusgamingnetwork.com` |
 | Password reset | Link — from `account@campusgamingnetwork.com` |
-| Basic notifications (post-MVP) | From `notifications@campusgamingnetwork.com` |
-| Support / report follow-up (post-MVP) | From `support@campusgamingnetwork.com` |
+| Basic notifications (later) | From `notifications@campusgamingnetwork.com` |
+| Support / report follow-up (later) | From `support@campusgamingnetwork.com` |
 | (Future) club approval, team invite links | As needed |
 
 ## Validation & safety
@@ -180,6 +180,6 @@ Discovery lists only `visibility = public`. Unlisted is link/slug only. Private:
 
 ## TanStack usage
 
-- **TanStack Start** — post-MVP CRM app (`crm.campusgamingnetwork.com`)
-- **TanStack Query / Table / Form** — fine in post-MVP CRM and selective main-site islands
+- **TanStack Start** — later CRM app (`crm.campusgamingnetwork.com`)
+- **TanStack Query / Table / Form** — fine in later CRM and selective main-site islands
 - Do not add TanStack by default to main-site SSR pages that work with server props

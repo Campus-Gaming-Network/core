@@ -99,7 +99,7 @@ func EventICS(event Event, eventURL string, now time.Time) string {
 	lines := []string{
 		"BEGIN:VCALENDAR",
 		"VERSION:2.0",
-		"PRODID:-//Campus Gaming Network//CGN MVP//EN",
+		"PRODID:-//Campus Gaming Network//CGN//EN",
 		"CALSCALE:GREGORIAN",
 		"METHOD:PUBLISH",
 		"BEGIN:VEVENT",

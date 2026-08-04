@@ -22,7 +22,7 @@ const faqs = [
   {
     question: "Can I create events yet?",
     answer:
-      "Yes. Logged-in users can create, edit, delete, and RSVP to MVP event listings. Private events support password unlocks, and yes RSVPs send confirmation emails with calendar files."
+      "Yes. Logged-in users can create, edit, delete, and RSVP to event listings. Private events support password unlocks, and yes RSVPs send confirmation emails with calendar files."
   }
 ];
 
@@ -31,7 +31,7 @@ export default function FAQPage() {
     <main className="narrow">
       <section className="page-heading">
         <p className="eyebrow">FAQ</p>
-        <h1>Questions for the MVP.</h1>
+        <h1>Frequently asked questions.</h1>
       </section>
       <Accordion>
         {faqs.map((item) => (

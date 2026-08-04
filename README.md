@@ -3,16 +3,16 @@
 Central hub for collegiate gamers: discover schools, events, teams, and campus gaming activity.
 
 The product/domain docs live in [`docs/`](./docs/README.md). This root README
-covers the local scaffold and current MVP implementation status.
+covers the local scaffold and current implementation status.
 
 ## Current status
 
-The main-site MVP feature slices through events, teams, dashboard, and basic
+The feature slices through events, teams, dashboard, and basic
 safety intake are implemented locally:
 
 - `apps/web` — Next.js main site with public pages, auth forms, profiles, schools, events, teams, dashboard, support, and report UI, plus per-page metadata/social tags and error, loading, and not-found boundaries
 - `apps/api` — Go API with health, auth/session middleware, schools/games, events, teams, dashboard helpers, support tickets, and reports
-- `db/migrations` — versioned MVP-only SQL migrations
+- `db/migrations` — versioned SQL migrations
 - `docker-compose.yml` — web + API + Postgres
 - `.github/workflows/ci.yml` — initial CI checks
 
@@ -22,8 +22,8 @@ school follow/unfollow, events with RSVP/interested/private unlock/default
 banners, teams with password join/captains/ownership transfer, dashboard
 sections, support tickets, and event/user reports.
 
-Remaining MVP work is the external launch rehearsal and production rollout
-tracked in [`docs/10-mvp-todo.md`](./docs/10-mvp-todo.md). Railway build,
+Remaining launch work is the external launch rehearsal and production rollout
+tracked in [`docs/10-delivery-status.md`](./docs/10-delivery-status.md). Railway build,
 pre-deploy migration, health-check, one-time seed, and smoke-test configuration
 now lives in [`railway/`](./railway) and is documented in
 [`docs/13-deployment-plan.md`](./docs/13-deployment-plan.md).

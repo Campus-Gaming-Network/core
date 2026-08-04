@@ -20,7 +20,7 @@ export default function AboutPage() {
       </section>
       <p>
         More detailed company and community information will land as the product
-        moves beyond the Phase 1 MVP.
+        grows.
       </p>
     </main>
   );

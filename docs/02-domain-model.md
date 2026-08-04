@@ -17,13 +17,13 @@ Club   ── games
 Team   ── games, members (URL + password), owner, captains; optional club_id
 Event ── games, organizers, RSVPs, interests, location, capacity, visibility, slug
 Tournament ── games, optional Event, individual | team, capacity, slug
-Game ── MVP seed first; post-MVP CRM/IGDB managed (not editable by end users)
+Game ── curated seed first; later CRM/IGDB managed (not editable by end users)
 
 Report ── target: Event | User | …
-Notification ── User                                      (post-MVP)
-AuditLog ── polymorphic (school, event, team, club, …)    (post-MVP)
-FeatureFlag ── targets: user | school | event | team    (post-MVP)
-SiteAnnouncement ── global banner                        (post-MVP)
+Notification ── User                                      (later)
+AuditLog ── polymorphic (school, event, team, club, …)    (later)
+FeatureFlag ── targets: user | school | event | team    (later)
+SiteAnnouncement ── global banner                        (later)
 ```
 
 ## Entities
@@ -52,7 +52,7 @@ SiteAnnouncement ── global banner                        (post-MVP)
 
 - Account deletion: remove PII; retain structural records with name **“Deleted User”**
 - Users can report other users from profiles
-- Users see their own activity log after the post-MVP activity-history slice ships
+- Users see their own activity log after the later activity-history slice ships
 
 ### School
 
@@ -61,22 +61,22 @@ SiteAnnouncement ── global banner                        (post-MVP)
 | Name | Not required to be unique |
 | Slug | URL identity; on collision append auto-increment (`-2`, `-3`, …) |
 | UNITID | Optional (set on Scorecard-seeded rows; admin/CRM-created schools may omit) |
-| Logo | Post-MVP CRM/admin upload only (PNG/JPG ≤500 MB); placeholder until set |
+| Logo | Later CRM/admin upload only (PNG/JPG ≤500 MB); placeholder until set |
 | Location | City, state, zip, lat/lng (from seed or CRM) |
 | Admins | Many; a user may admin many schools |
-| Clubs | Listed on school page when clubs ship (post-MVP) |
+| Clubs | Listed on school page when clubs ship (later) |
 | Popularity | Derived (e.g. event volume) |
 
 **Rules**
 
 - National catalog **bootstrapped once** from College Scorecard (`data/schools_seed.csv`) — see [09 — School data](./09-school-data.md)
 - Import **all** seed schools (main + branch), `is_active=true`; branch campuses use the same UI/UX as other schools; review/deactivate later in CRM/admin tooling
-- After bootstrap, **post-MVP admin/CRM tooling** owns create / edit / soft-delete (users cannot create schools)
+- After bootstrap, **later admin/CRM tooling** owns create / edit / soft-delete (users cannot create schools)
 - Anyone (including logged-out) can **search and browse** schools
 - School admins edit school details, **manage clubs** (when clubs ship), and assign school teams
 - School admins **cannot** remove other school admins
 - US only at launch
-- Near-you / geo discovery is **post-MVP**
+- Near-you / geo discovery is **later**
 
 ### Club
 
@@ -121,13 +121,13 @@ SiteAnnouncement ── global banner                        (post-MVP)
 | Creator | Shown on event |
 | Hosts / organizers | Multiple; shown on event |
 | Slug | `slugify(title) + "-" + shortHash` — see slug algorithm below |
-| Visibility | `public` \| `unlisted` \| `private` (all in MVP) |
+| Visibility | `public` \| `unlisted` \| `private` (all supported) |
 | Password | Required when `visibility = private` (stored hashed); share URL + password manually |
-| Capacity | Optional max attendees; counts **RSVP yes only**; when full, block new yes (no waitlist in MVP) |
+| Capacity | Optional max attendees; counts **RSVP yes only**; when full, block new yes (no waitlist yet) |
 | Format | `online` \| `in_person` |
-| Pricing | MVP supports free vs paid/off-site-payment events; CGN does not process payment |
+| Pricing | Supports free vs paid/off-site-payment events; CGN does not process payment |
 | Location | Physical address; optional mini Google Map |
-| Banner | MVP: default placeholder only; custom user uploads later (moderated) |
+| Banner | Default placeholder only; custom user uploads later (moderated) |
 | Description | Character-limited |
 | Recurrence | Supported |
 | Games | One or more |
@@ -158,7 +158,7 @@ SiteAnnouncement ── global banner                        (post-MVP)
 - **Interested** = favorite/bookmark; independent of RSVP
 - On RSVP yes: send email with details + calendar (ICS)
 - Creating an event requires **no approval**
-- Soft-delete/cancel does **not** email RSVPs in MVP (notify later)
+- Soft-delete/cancel does **not** email RSVPs yet (notify later)
 - Slug is generated at create time and should remain stable (do not regenerate on title edit)
 
 **Event slug algorithm**
@@ -200,11 +200,11 @@ slug    = slugify(eventTitle) + "-" + short
 
 | Field / concept | Notes |
 |-----------------|-------|
-| MVP seed | Curated list (below); not user-editable |
+| Launch seed | Curated list (below); not user-editable |
 | Later | IGDB import / CRM enrichment |
-| Editable by end users | **No** — MVP seed first; post-MVP CRM/admin app later |
+| Editable by end users | **No** — curated seed first; CRM/admin app later |
 
-**MVP launch games**
+**launch games**
 
 1. Rocket League
 2. Valorant
@@ -221,23 +221,23 @@ Used for: browse/filter events (and later tournaments) by game; popular games by
 - Visible to site admins in aggregate moderation views
 - Rate-limited on create
 
-### Notification (post-MVP)
+### Notification (later)
 
 - Per-user notifications table
 - Complements transactional email (e.g. event registration)
 
-### Audit log (shared, post-MVP)
+### Audit log (shared, later)
 
 - Generic polymorphic log for school, event, team, club, etc.
 - Schools/teams/events (and similar) can show what changed
 - **Not** the same as system/operational logs
 
-### Feature flag (post-MVP)
+### Feature flag (later)
 
-- Hold off for MVP
+- Not scheduled yet
 - Later: scopes for users, schools, events, teams; targeting specific users/schools
 
-### Site announcement (post-MVP)
+### Site announcement (later)
 
 - Deployable banner shown on every page
 
@@ -248,7 +248,7 @@ Used for: browse/filter events (and later tournaments) by game; popular games by
 | Timestamps | Every table: `created_at`, `updated_at`, `deleted_at` |
 | Soft deletes | Default for user-facing entities (esp. events) |
 | Slugs | Schools: name + numeric suffix on collision. Events: `slugify(title)-` + first **8** Base64URL chars of SHA-256(creatorId\|date\|title) |
-| Images | Event banners default placeholder in MVP; school logos later via CRM/admin upload (PNG or JPG only; max 500 MB) |
+| Images | Event banners default placeholder for now; school logos later via CRM/admin upload (PNG or JPG only; max 500 MB) |
 | Search | Postgres (`tsvector` / `pg_trgm`) before any external search service |
 | Profanity | Block bad words in user-entered text |
 | XSS / SQLi | Prevent via parameterized queries + output encoding / sanitization |

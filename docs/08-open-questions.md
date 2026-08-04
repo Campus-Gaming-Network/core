@@ -18,17 +18,17 @@ Decisions to resolve before or during implementation. Until answered, implemente
 7. **Approved organizers** — Who approves badge organizers, and is approval per-school or global?
 8. **Past event “minor corrections”** — Exact allowlist of editable fields?
 9. **Private unlock session** — Cookie/session length after password modal success? Rate-limit / lockout policy?
-10. **Cancel notify RSVPs (post-MVP)** — Email copy and timing when reintroduced?
-11. **Tournament capacity (post-MVP)** — Count seats vs teams for team tournaments?
-12. **Custom event banners (post-MVP)** — Moderation workflow when user uploads return?
+10. **Cancel notify RSVPs (later)** — Email copy and timing when reintroduced?
+11. **Tournament capacity (later)** — Count seats vs teams for team tournaments?
+12. **Custom event banners (later)** — Moderation workflow when user uploads return?
 
-### Teams & clubs (clubs post-MVP)
+### Teams & clubs (clubs later)
 
 13. **Sponsored teams vs clubs** — How do we display sponsorship without conflating with official clubs?
 14. **Club request workflow** — Required fields? Notify which admins?
 15. **Who assigns teams to clubs** — School admin only, or also club officers?
 
-### Tournaments (post-MVP)
+### Tournaments (later)
 
 16. **Bracket / results** — Registration-only first, or brackets in first tournament ship?
 17. **Tournament tied to event** — UX: embed on event page, or standalone with link?
@@ -44,7 +44,7 @@ Decisions to resolve before or during implementation. Until answered, implemente
 21. **Go API style** — REST only, or RPC (Connect/gRPC) behind the BFF?
 22. **Analytics** — Plausible vs Cloudflare Web Analytics vs other?
 23. **Activity log vs audit log** — One table with `kind`, or two tables?
-24. **Friends / notifications / i18n** — timing and depth after MVP?
+24. **Friends / notifications / i18n** — timing and depth after the first release?
 
 ---
 
@@ -56,23 +56,23 @@ Decisions to resolve before or during implementation. Until answered, implemente
 | Age gate | 18+ checkbox at signup |
 | Email verification | Verification email link on signup |
 | Event create approval | None required |
-| Event visibility MVP | public + unlisted + private |
-| Capacity | Optional; counts **RSVP yes only**; no waitlist in MVP |
+| Event visibility | public + unlisted + private |
+| Capacity | Optional; counts **RSVP yes only**; no waitlist yet |
 | Names | Single `name` field; profile `/users/:id` |
-| Teams | In MVP; **public** pages; password only to join/interact |
+| Teams | **public** pages; password only to join/interact |
 | Private event UX | Blurred/gated + password modal; no inspectable details pre-unlock |
-| Paid events | Allowed in MVP as off-site-payment listings only; CGN does not process payment |
-| Clubs / tournaments | Out of MVP |
-| Feature flags / near-you / cancel-notify | Hold off for MVP |
+| Paid events | Allowed as off-site-payment listings only; CGN does not process payment |
+| Clubs / tournaments | Not scheduled yet |
+| Feature flags / near-you / cancel-notify | Not scheduled yet |
 | Support tickets | Anyone can submit (logged out OK) |
-| Email | **Resend** — MVP sends from `events@` and `account@`; `notifications@` and `support@` workflows are post-MVP |
-| Object storage | **Cloudflare R2** — post-MVP school logos via CRM/admin app only; PNG/JPG; max **500 MB** |
-| Event banners MVP | **Decided:** default placeholder; custom uploads later with moderation |
+| Email | **Resend** — sends from `events@` and `account@`; `notifications@` and `support@` workflows are later |
+| Object storage | **Cloudflare R2** — later school logos via CRM/admin app only; PNG/JPG; max **500 MB** |
+| Event banners | **Decided:** default placeholder; custom uploads later with moderation |
 | Event slug hash | **Decided:** **8** Base64URL characters |
-| CRM | **TanStack Start** at `crm.campusgamingnetwork.com` (post-MVP separate release; skipped for main-site MVP) |
+| CRM | **TanStack Start** at `crm.campusgamingnetwork.com` (separate later release; skipped for first release) |
 | Main site | `campusgamingnetwork.com` (Next.js) |
-| MVP hosting | **Railway** hosts Next.js web, Go API, and PostgreSQL; Cloudflare manages DNS/protection |
-| Production database | **Railway PostgreSQL** for MVP; enable/verify backups before public launch |
+| Production hosting | **Railway** hosts Next.js web, Go API, and PostgreSQL; Cloudflare manages DNS/protection |
+| Production database | **Railway PostgreSQL** for now; enable/verify backups before public launch |
 | Railway environments | Rehearse launch in a separate `staging` environment, then deploy `production` with separate Postgres and secrets |
 | Railway migrations | API pre-deploy command runs the Go migrator before Railway activates the new API deployment |
 | Domain aliases | Apex is canonical; Cloudflare permanently redirects `www` to `campusgamingnetwork.com` |
@@ -81,7 +81,7 @@ Decisions to resolve before or during implementation. Until answered, implemente
 | Home school | User selects one home school on signup; additional schools are follows |
 | Frontend auth | Use opaque server-side session cookies; avoid JWTs for browser auth |
 | Event slugs | `slugify(title)-` + first **8** Base64URL chars of SHA-256(creatorId\|createdDate\|title) |
-| MVP games | Rocket League, Valorant, League of Legends, Overwatch 2, Super Smash Bros. Ultimate, CSGO |
+| Launch games | Rocket League, Valorant, League of Legends, Overwatch 2, Super Smash Bros. Ultimate, CSGO |
 | Search | Postgres first; no Elasticsearch |
 | Rich text default | Plain text + newlines |
 | English only | Yes at launch |

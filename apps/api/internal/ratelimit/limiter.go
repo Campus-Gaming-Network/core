@@ -6,8 +6,9 @@ import (
 )
 
 // Limiter is a small fixed-window limiter for sensitive API actions. It is
-// intentionally process-local for the MVP; a shared limiter can replace this
-// boundary when the API is deployed across multiple instances.
+// intentionally process-local; a shared limiter must replace this boundary
+// before the API is deployed across multiple instances, because each instance
+// otherwise enforces its own independent quota.
 type Limiter struct {
 	mu      sync.Mutex
 	limit   int

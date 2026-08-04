@@ -10,15 +10,15 @@ PostgreSQL is the system of record. Conventions first; then core tables. Exact c
 | Timestamps | Every table has `created_at`, `updated_at`, `deleted_at` (nullable) |
 | Soft deletes | Default for user-facing rows; queries filter `deleted_at IS NULL` unless admin/history |
 | Time storage | Store instants in UTC (`timestamptz`); display in user timezone in app layer |
-| Money | MVP may list paid/off-site-payment events, but CGN does not process payment. Store only lightweight display fields such as `is_paid`, `payment_note`, and optional `payment_url`; use integer cents + currency only if on-site payments ship later. |
+| Money | May list paid/off-site-payment events, but CGN does not process payment. Store only lightweight display fields such as `is_paid`, `payment_note`, and optional `payment_url`; use integer cents + currency only if on-site payments ship later. |
 | Slugs | Unique URL keys: `schools.slug`; `events.slug` — events use `slugify(title)-` + **8** Base64URL chars of SHA-256(creatorId\|date\|title) |
-| Images | Event banners use default placeholder in MVP; school `logo_url` comes later via CRM/admin upload (PNG/JPG only; max 500 MB) |
-| Audit vs system | MVP uses system/ops logs. A future `audit_logs` table will hold domain history and remain separate. |
+| Images | Event banners use default placeholder for now; school `logo_url` comes later via CRM/admin upload (PNG/JPG only; max 500 MB) |
+| Audit vs system | Uses system/ops logs. A future `audit_logs` table will hold domain history and remain separate. |
 | Nightly backups | Required in production |
 
-## MVP migration scope
+## Initial migration scope
 
-Keep the first migration set MVP-only. Create only the tables needed for auth/profile, home school and follows, schools seed, MVP games, events, teams, reports/support tickets, and operational needs.
+Keep the first migration set scoped to shipped features. Create only the tables needed for auth/profile, home school and follows, schools seed, launch games, events, teams, reports/support tickets, and operational needs.
 
 Do **not** create first-pass tables for clubs, tournaments, notifications, audit/activity history, feature flags, site announcements, on-site payments, IGDB sync, or CRM/admin-only workflows until those phases are actively being built.
 
@@ -58,7 +58,7 @@ user_school_affiliations
 ```text
 schools
   id, unitid nullable (unique when present; College Scorecard/IPEDS),
-  name, alias, slug (unique), logo_url,  -- post-MVP CRM/admin upload (PNG/JPG ≤500 MB); placeholder until set
+  name, alias, slug (unique), logo_url,  -- later CRM/admin upload (PNG/JPG ≤500 MB); placeholder until set
   city, state, zip, website_url,
   latitude, longitude,
   is_main_campus, num_branches, is_active,
@@ -67,7 +67,7 @@ schools
   -- catalog bootstrapped once from data/schools_seed.csv; admin tooling / CRM owns create/edit/delete after that
   -- unitid optional/unique when present; admin/CRM-created schools may omit
   -- one-time seed imports ALL rows as is_active=true (main + branch); branch campuses use same UI/UX
-  -- logo_url is post-MVP CRM/admin-only (PNG/JPG ≤500 MB), not Scorecard; not uploadable from main site
+  -- logo_url is later CRM/admin-only (PNG/JPG ≤500 MB), not Scorecard; not uploadable from main site
 
 school_admins
   school_id, user_id, created_at, ...
@@ -89,7 +89,7 @@ club_games
 ```text
 teams
   id, name, owner_user_id,
-  password_hash,             -- join via shared URL + password (no invite tokens in MVP)
+  password_hash,             -- join via shared URL + password (no invite tokens yet)
   club_id nullable,          -- when assigned to a school club (Varsity, JV, ...)
   school_id nullable,        -- sponsored / school-linked without club
   ...
@@ -106,13 +106,13 @@ team_games
 ```text
 events
   id, title, slug (unique; slugify(title) + 8-char Base64URL(SHA-256(creatorId|createdDate|title))),
-  description, banner_url nullable,  -- MVP: null / default placeholder; custom uploads later
+  description, banner_url nullable,  -- null / default placeholder; custom uploads later
   visibility (public|unlisted|private),
   password_hash nullable,    -- required when private; share URL + password manually
-  capacity nullable,         -- max RSVP yes count only; when full, block new yes (no waitlist in MVP)
+  capacity nullable,         -- max RSVP yes count only; when full, block new yes (no waitlist yet)
   format (online|in_person),
   is_paid boolean default false, payment_note nullable, payment_url nullable,
-                              -- MVP: organizer handles any payment off-site; no CGN checkout/payment records
+                              -- organizer handles any payment off-site; no CGN checkout/payment records
   location_address, location_lat, location_lng,
   starts_at, ends_at, registration_closes_at,
   recurrence_rule nullable,
@@ -141,7 +141,7 @@ tournaments
   id, title, slug (unique; name + small hash with date/other info),
   type (individual|team), capacity nullable,
   event_id nullable, ...
-  -- capacity full => block new registrations; no waitlist in MVP
+  -- capacity full => block new registrations; no waitlist yet
 
 tournament_games
   tournament_id, game_id
@@ -155,10 +155,10 @@ tournament_registrations
 ```text
 games
   id, igdb_id nullable, name, slug, cover_url, raw_payload jsonb?, last_synced_at, ...
-  -- end users cannot edit; MVP seeded with 6 launch games; IGDB/CRM enrichment later
+  -- end users cannot edit; curated seeded with 6 launch games; IGDB/CRM enrichment later
 ```
 
-**MVP game seed:** Rocket League, Valorant, League of Legends, Overwatch 2, Super Smash Bros. Ultimate, CSGO.
+**Launch game seed:** Rocket League, Valorant, League of Legends, Overwatch 2, Super Smash Bros. Ultimate, CSGO.
 
 ### Trust, notify, flags, announcements
 
@@ -168,22 +168,22 @@ reports
 
 support_tickets
   id, submitter_user_id nullable, contact_email, name, subject, message, status, ...
-  -- anyone can submit (logged out OK); viewed/managed in post-MVP CRM/admin tooling
+  -- anyone can submit (logged out OK); viewed/managed in later CRM/admin tooling
 
-notifications  (post-MVP)
+notifications  (later)
   id, user_id, type, payload jsonb, read_at, ...
 
-feature_flags  (post-MVP)
+feature_flags  (later)
   id, key, description, enabled_globally, ...
 
-feature_flag_targets  (post-MVP)
+feature_flag_targets  (later)
   flag_id, target_type (user|school|event|team), target_id, enabled, ...
 
-site_announcements  (post-MVP)
+site_announcements  (later)
   id, message, starts_at, ends_at, is_active, ...
 ```
 
-### Audit & activity (post-MVP)
+### Audit & activity (later)
 
 ```text
 audit_logs
@@ -237,7 +237,7 @@ Do not list `unlisted` or `private` events in discovery search. Unlisted is reac
 ## Migrations
 
 - Versioned SQL migrations live in `db/migrations` and are applied by the Go migrator
-- First migrations stay MVP-only; defer schema for clubs, tournaments, feature flags, site announcements, on-site payments, IGDB sync, and CRM/admin-only workflows.
+- First migrations stay scoped to shipped features; defer schema for clubs, tournaments, feature flags, site announcements, on-site payments, IGDB sync, and CRM/admin-only workflows.
 - In Railway production, run the Go migrator as a pre-deploy command or dedicated migration service/job before the API serves traffic
 - Never rely on manual prod SQL for schema changes
 - CRM/admin tooling exists later so operators are not editing rows by hand for routine ACL/school work
