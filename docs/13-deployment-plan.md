@@ -162,7 +162,9 @@ Then complete these manual checks:
 7. Team create → password join → captain/ownership controls work.
 8. Dashboard shows upcoming RSVPs, followed-school events, and team activity.
 9. Support ticket submission works logged out; event/user reports work logged in.
-10. Private event responses and page source do not expose details before unlock.
+10. Private event responses do not expose details before unlock — check the page **head** as well as the body. A locked event must render only a generic "Private event" title with `noindex`, and its real title, description, location name, address, and password must appear nowhere in the source. The slug legitimately contains the slugified title by the documented `slugify(title)` + hash design; that is the URL itself and is not a leak.
+11. Missing events, schools, teams, and profiles return **HTTP 404, not 200**. Check the status code, not just the page: a soft 404 renders the correct not-found content while still answering 200, and search engines treat that as a real page. Adding a `loading.tsx` above a `notFound()` route reintroduces this — see the constraint in [06 — Architecture](./06-architecture.md).
+12. Public event and school pages carry their own title, description, and Open Graph tags; unlisted events resolve normally but are `noindex`.
 
 ## Rollback posture
 

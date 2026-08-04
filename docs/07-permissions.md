@@ -150,3 +150,5 @@ Apply stricter limits to:
 - Private-event password attempts
 
 Failed authZ returns **403**; missing resource **404**. Do not leak private/unlisted events via search — only `public` appears in discovery.
+
+On the web side this is enforced in page metadata as well as in responses: a locked private event renders only a generic "Private event" title with `noindex`, and unlisted events resolve normally but are also `noindex`. Metadata is part of the gating guarantee — see [06 — Architecture](./06-architecture.md).

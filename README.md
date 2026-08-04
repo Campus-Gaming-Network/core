@@ -10,7 +10,7 @@ covers the local scaffold and current MVP implementation status.
 The main-site MVP feature slices through events, teams, dashboard, and basic
 safety intake are implemented locally:
 
-- `apps/web` — Next.js main site with public pages, auth forms, profiles, schools, events, teams, dashboard, support, and report UI
+- `apps/web` — Next.js main site with public pages, auth forms, profiles, schools, events, teams, dashboard, support, and report UI, plus per-page metadata/social tags and error, loading, and not-found boundaries
 - `apps/api` — Go API with health, auth/session middleware, schools/games, events, teams, dashboard helpers, support tickets, and reports
 - `db/migrations` — versioned MVP-only SQL migrations
 - `docker-compose.yml` — web + API + Postgres
@@ -72,7 +72,8 @@ nvm use
 npm install --prefix apps/web
 ```
 
-The API uses Go plus the PostgreSQL driver:
+The API needs Go 1.25 or newer (set by the `go` directive in `apps/api/go.mod`)
+plus the PostgreSQL driver:
 
 ```bash
 cd apps/api

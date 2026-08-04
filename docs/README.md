@@ -47,6 +47,8 @@ These docs are the source of truth for product intent, domain rules, architectur
 - **Games (MVP)** — Rocket League, Valorant, League of Legends, Overwatch 2, Super Smash Bros. Ultimate, CSGO.
 - **Images** — event banners = default placeholder in MVP; school logos come later via CRM/admin app uploads (PNG/JPG only, max 500 MB).
 - **Event slugs** — `slugify(title)-` + 8-char Base64URL(SHA-256(…)).
+- **Page metadata** — every route sets its own title/description/Open Graph tags; authenticated, token, private, and unlisted routes are `noindex`. A locked private event exposes only a generic title.
+- **Not-found routes** — missing entities must return HTTP 404, never a soft 404; never put a `loading.tsx` above a `notFound()` route.
 - **Infra** — Railway hosts Next.js, Go API, and production Postgres for the main MVP; Cloudflare manages DNS/protection; Resend handles email; Cloudflare R2 and TanStack Start CRM are post-MVP/admin-app concerns.
 - **Search** — Postgres full-text / trigram first; no Elasticsearch until proven necessary.
 - **Soft deletes** — use `deleted_at`; never hard-delete user-facing content without an explicit policy.

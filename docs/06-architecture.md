@@ -68,6 +68,23 @@ See [14 — Architecture diagrams](./14-architecture-diagrams.md) for Mermaid vi
 - Site-wide announcement banner support — **post-MVP**
 - Feature-flag-aware UI — **post-MVP** (do not build for MVP)
 
+### Page metadata
+
+- Every route carries its own title, description, and Open Graph / Twitter tags through the `pageMetadata` helper in `apps/web/lib/metadata.ts`. The root layout owns the title template and `metadataBase`.
+- Authenticated pages, one-time-token flows, private events, and unlisted events set `noIndex`. See [07 — Permissions](./07-permissions.md) for the discovery rule this enforces.
+- A locked private event must expose only a generic title and description. Metadata is part of the gating guarantee, not an exception to it.
+
+### Error and loading boundaries
+
+- `error.tsx`, `global-error.tsx`, and `not-found.tsx` live at the app root. Error UI shows `error.digest` only — never `error.message`, which can carry API internals.
+- **Never add a `loading.tsx` to a segment that contains a route calling `notFound()`.** A `loading.tsx` opens a Suspense boundary over its whole subtree, so the response begins streaming and commits a 200 before the page can set a 404. Every missing event, school, team, and profile then answers 200 with not-found content — a soft 404 that renders correctly and is invisible unless you check the status code.
+- Browse pages live in `(browse)` route groups for exactly this reason: the group scopes their loading boundary to the list page and keeps it off the sibling `[slug]` detail routes. URLs are unaffected by the group.
+
+### Request memoization
+
+- Per-request getters in `apps/web/lib/server-api.ts` are wrapped in React `cache()`. `apiRequest` defaults to `cache: "no-store"`, which Next.js does **not** deduplicate, so without this a route's `generateMetadata` and its page body would each issue the same API call.
+- `cache()` compares arguments by reference, so wrapped functions take primitives rather than options objects. `getEvent` and `getTeam` flatten their options before calling the cached inner function.
+
 ## Backend guidelines
 
 - Domain logic in **Go**

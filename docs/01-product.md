@@ -233,7 +233,7 @@ Signup also requires confirming **age 18+**. Alumni can participate. Faculty who
 - Prefer CSS over extra JS
 - Server rendering important; code-split routes
 - Event lifecycle copy: upcoming date/time → “happening now” → “ended” (no more signups)
-- Missing/deleted event → dedicated not-found style page
+- Missing/deleted event → dedicated not-found style page. The same branded not-found page covers missing schools, teams, and profiles, and answers HTTP 404 rather than a soft 404.
 
 ## Hosting URLs
 

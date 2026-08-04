@@ -11,6 +11,12 @@ Small, concrete engineering choices for Phase 0 and early MVP implementation. Th
 | Main site | Next.js 16 + TypeScript App Router |
 | Web linting | Oxlint for fast JavaScript/TypeScript linting; TypeScript remains the type-safety gate. Package versions are pinned exactly and upgraded intentionally. |
 | npm package versions | Pin exact npm package versions. Do not use `^`, `~`, `latest`, or broad semver ranges when adding or updating packages. |
+| Dependency security | `npm audit --omit=dev` must report zero vulnerabilities before a release, and `go list -m -u all` should show no updates for modules in the API build graph. Treat advisory-clearing upgrades as their own commit, separate from lint or tooling churn. |
+| Type package versions | `@types/node` tracks the pinned Node major (24.x), not the newest release. Types ahead of the runtime admit APIs that do not exist at run time. |
+| Page metadata | Per-page title, description, Open Graph, and Twitter tags via `apps/web/lib/metadata.ts`; the root layout owns the title template and `metadataBase`. Open Graph images are deferred until a share asset exists. |
+| Search indexing | `noindex` on authenticated pages, one-time-token flows, private events, and unlisted events. |
+| Route loading boundaries | Browse pages sit in `(browse)` route groups so their `loading.tsx` never wraps a `notFound()` route. See the soft-404 constraint in [06 — Architecture](./06-architecture.md). |
+| Request memoization | Per-request getters in `lib/server-api.ts` wrap React `cache()`, because `apiRequest` defaults to `cache: "no-store"` and Next.js does not deduplicate those. `cache()` compares by reference, so wrapped functions take primitives rather than options objects. |
 | API | Go REST/JSON HTTP service |
 | Go version | Go 1.25 minimum, set by the `go` directive in `apps/api/go.mod`. Go 1.21 reached end of life, and the current `pgx` and `golang.org/x/*` releases require 1.25 or newer. CI installs the version from `go.mod`; the API image builds on `golang:1.25-alpine`. |
 | Go dependencies | Standard library first; add dependencies only when Phase 1 needs them |
