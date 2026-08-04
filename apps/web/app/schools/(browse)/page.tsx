@@ -2,8 +2,8 @@ import { Button } from "@heroui/react/button";
 import { EmptyState } from "@heroui/react/empty-state";
 import { Input } from "@heroui/react/input";
 import Link from "next/link";
-import { listSchools } from "../../lib/server-api";
-import { pageMetadata } from "../../lib/metadata";
+import { listSchools } from "../../../lib/server-api";
+import { pageMetadata } from "../../../lib/metadata";
 
 export const metadata = pageMetadata({
   title: "Schools",

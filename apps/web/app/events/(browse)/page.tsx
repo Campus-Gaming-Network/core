@@ -5,14 +5,14 @@ import { Input } from "@heroui/react/input";
 import { ListBox } from "@heroui/react/list-box";
 import { Select } from "@heroui/react/select";
 import Link from "next/link";
-import { EventBanner } from "../../components/event-banner";
+import { EventBanner } from "../../../components/event-banner";
 import {
   eventLifecycleLabel,
   eventLocation,
   eventTimeRange
-} from "../../lib/cgn-api";
-import { currentProfile, listEvents, listGames } from "../../lib/server-api";
-import { pageMetadata } from "../../lib/metadata";
+} from "../../../lib/cgn-api";
+import { currentProfile, listEvents, listGames } from "../../../lib/server-api";
+import { pageMetadata } from "../../../lib/metadata";
 
 export const metadata = pageMetadata({
   title: "Events",

@@ -33,18 +33,19 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
+  // Resolve the missing case the same way the page body does. If this returned
+  // fallback metadata instead, the response would commit at 200 before the page
+  // called notFound(), and a missing event would answer 200 instead of 404.
   const event = await getEvent(slug, {
     includeCookie: true,
     includeUnlock: true
-  }).catch(() => null);
+  }).catch((error) => {
+    if (error instanceof ApiError && error.status === 404) {
+      notFound();
+    }
 
-  if (!event) {
-    return pageMetadata({
-      title: "Event not found",
-      description: "This event is unavailable.",
-      noIndex: true
-    });
-  }
+    throw error;
+  });
 
   // A locked private event must not put its real title or description in the
   // page head. The event body is gated behind the password form, and metadata

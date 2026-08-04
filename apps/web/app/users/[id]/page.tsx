@@ -18,15 +18,15 @@ export async function generateMetadata({
   params
 }: PageProps): Promise<Metadata> {
   const { id } = await params;
-  const profile = await getPublicProfile(id).catch(() => null);
+  // Match the page body so a missing profile still answers 404 rather than
+  // committing a 200 response from metadata generation.
+  const profile = await getPublicProfile(id).catch((error) => {
+    if (error instanceof ApiError && error.status === 404) {
+      notFound();
+    }
 
-  if (!profile) {
-    return pageMetadata({
-      title: "Profile not found",
-      description: "This profile is unavailable.",
-      noIndex: true
-    });
-  }
+    throw error;
+  });
 
   const homeSchool = publicProfileHomeSchool(profile);
 

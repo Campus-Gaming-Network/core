@@ -21,15 +21,15 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const team = await getTeam(slug).catch(() => null);
+  // Match the page body so a missing team still answers 404 rather than
+  // committing a 200 response from metadata generation.
+  const team = await getTeam(slug).catch((error) => {
+    if (error instanceof ApiError && error.status === 404) {
+      notFound();
+    }
 
-  if (!team) {
-    return pageMetadata({
-      title: "Team not found",
-      description: "This team is unavailable.",
-      noIndex: true
-    });
-  }
+    throw error;
+  });
 
   return pageMetadata({
     title: team.name,

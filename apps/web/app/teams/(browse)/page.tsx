@@ -4,8 +4,8 @@ import { Input } from "@heroui/react/input";
 import { ListBox } from "@heroui/react/list-box";
 import { Select } from "@heroui/react/select";
 import Link from "next/link";
-import { currentProfile, listGames, listTeams } from "../../lib/server-api";
-import { pageMetadata } from "../../lib/metadata";
+import { currentProfile, listGames, listTeams } from "../../../lib/server-api";
+import { pageMetadata } from "../../../lib/metadata";
 
 export const metadata = pageMetadata({
   title: "Teams",

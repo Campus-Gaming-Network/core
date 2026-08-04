@@ -31,15 +31,15 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const school = await getSchool(slug).catch(() => null);
+  // Match the page body so a missing school still answers 404 rather than
+  // committing a 200 response from metadata generation.
+  const school = await getSchool(slug).catch((error) => {
+    if (error instanceof ApiError && error.status === 404) {
+      notFound();
+    }
 
-  if (!school) {
-    return pageMetadata({
-      title: "School not found",
-      description: "This school is unavailable.",
-      noIndex: true
-    });
-  }
+    throw error;
+  });
 
   const location = schoolLocation(school);
 
