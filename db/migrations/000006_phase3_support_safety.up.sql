@@ -1,5 +1,5 @@
--- Phase 3: MVP support and safety intake.
--- Queues support tickets and reports for post-MVP CRM/admin review.
+-- Phase 3: support and safety intake.
+-- Queues support tickets and reports for CRM/admin review.
 
 CREATE TABLE support_tickets (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

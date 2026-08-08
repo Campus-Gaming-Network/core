@@ -275,8 +275,8 @@ func (r *Router) handleMe(w http.ResponseWriter, req *http.Request) {
 		http.NotFound(w, req)
 		return
 	}
-	if req.Method != http.MethodGet && req.Method != http.MethodPatch {
-		methodNotAllowed(w, http.MethodGet+", "+http.MethodPatch)
+	if req.Method != http.MethodGet && req.Method != http.MethodPatch && req.Method != http.MethodDelete {
+		methodNotAllowed(w, http.MethodGet+", "+http.MethodPatch+", "+http.MethodDelete)
 		return
 	}
 	if r.account == nil {
@@ -286,6 +286,24 @@ func (r *Router) handleMe(w http.ResponseWriter, req *http.Request) {
 	userID, err := auth.RequireUser(req.Context())
 	if err != nil {
 		writeError(w, http.StatusUnauthorized, "authentication_required")
+		return
+	}
+	if req.Method == http.MethodDelete {
+		if err := r.account.DeleteAccount(req.Context(), userID); err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				writeError(w, http.StatusNotFound, "account_not_found")
+				return
+			}
+			writeError(w, http.StatusInternalServerError, "account_delete_failed")
+			return
+		}
+		// Deletion revokes every session, so drop this one's cookie too.
+		auth.ClearSessionCookie(w, auth.SessionCookieConfig{
+			Name:   r.cfg.SessionCookie,
+			Secure: r.cfg.CookieSecure,
+			TTL:    r.cfg.SessionTTL,
+		})
+		w.WriteHeader(http.StatusNoContent)
 		return
 	}
 	if req.Method == http.MethodGet {

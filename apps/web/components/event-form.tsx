@@ -122,7 +122,7 @@ export function EventForm({
       <Fieldset>
         <Fieldset.Legend>When</Fieldset.Legend>
         <p className="form-help">
-          Use ISO timestamps for this MVP form, for example
+          Use ISO timestamps, for example
           <code>2026-08-15T20:00:00Z</code>.
         </p>
         <div className="split-fields">

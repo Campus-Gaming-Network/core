@@ -4,7 +4,15 @@ import { Input } from "@heroui/react/input";
 import { ListBox } from "@heroui/react/list-box";
 import { Select } from "@heroui/react/select";
 import Link from "next/link";
-import { currentProfile, listGames, listTeams } from "../../lib/server-api";
+import { currentProfile, listGames, listTeams } from "../../../lib/server-api";
+import { pageMetadata } from "../../../lib/metadata";
+
+export const metadata = pageMetadata({
+  title: "Teams",
+  description:
+    "Browse collegiate gaming teams and find one to join on your campus.",
+  path: "/teams"
+});
 
 type PageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -89,7 +97,7 @@ export default async function TeamsPage({ searchParams }: PageProps) {
                 <strong>{team.name}</strong>
                 <small>{team.member_count} member{team.member_count === 1 ? "" : "s"}</small>
               </span>
-              <small>{team.games.map((game) => game.name).join(", ")}</small>
+              <small>{team.games.map((teamGame) => teamGame.name).join(", ")}</small>
               <small>{team.school?.name ?? "Independent team"}</small>
             </Link>
           ))}

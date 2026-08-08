@@ -2,6 +2,7 @@ import { Alert } from "@heroui/react/alert";
 import { Button } from "@heroui/react/button";
 import { Card } from "@heroui/react/card";
 import { Chip } from "@heroui/react/chip";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { deleteEventAction, eventInterestAction } from "../../actions";
@@ -18,12 +19,56 @@ import {
   eventVisibilityLabel,
   isLockedEvent
 } from "../../../lib/cgn-api";
+import { pageMetadata } from "../../../lib/metadata";
 import { currentProfile, getEvent } from "../../../lib/server-api";
 
 type PageProps = {
   params: Promise<{ slug: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
+
+export async function generateMetadata({
+  params
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  // Resolve the missing case the same way the page body does. If this returned
+  // fallback metadata instead, the response would commit at 200 before the page
+  // called notFound(), and a missing event would answer 200 instead of 404.
+  const event = await getEvent(slug, {
+    includeCookie: true,
+    includeUnlock: true
+  }).catch((error) => {
+    if (error instanceof ApiError && error.status === 404) {
+      notFound();
+    }
+
+    throw error;
+  });
+
+  // A locked private event must not put its real title or description in the
+  // page head. The event body is gated behind the password form, and metadata
+  // is part of the same guarantee.
+  if (isLockedEvent(event)) {
+    return pageMetadata({
+      title: "Private event",
+      description: "This event is private. Enter the password to view it.",
+      noIndex: true
+    });
+  }
+
+  return pageMetadata({
+    title: event.title,
+    description:
+      event.description ||
+      `A campus gaming event hosted by ${event.host_school.name}.`,
+    path: `/events/${event.slug}`,
+    // Unlisted events are reachable by direct link but must stay out of
+    // search results.
+    noIndex: event.visibility !== "public"
+  });
+}
 
 export default async function EventDetailPage({
   params,

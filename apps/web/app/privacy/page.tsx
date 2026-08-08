@@ -1,3 +1,12 @@
+import { pageMetadata } from "../../lib/metadata";
+
+export const metadata = pageMetadata({
+  title: "Privacy",
+  description:
+    "How Campus Gaming Network collects, uses, and protects your information.",
+  path: "/privacy"
+});
+
 export default function PrivacyPage() {
   return (
     <main className="narrow">
@@ -5,8 +14,9 @@ export default function PrivacyPage() {
         <p className="eyebrow">Privacy</p>
         <h1>Privacy placeholder</h1>
         <p className="lede">
-          The MVP stores account, profile, school, and session information. A
-          reviewed privacy policy is still required before public launch.
+          Campus Gaming Network stores account, profile, school, and session
+          information. A reviewed privacy policy is still required before public
+          launch.
         </p>
       </section>
       <p>

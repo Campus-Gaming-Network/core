@@ -1,12 +1,12 @@
 # 12 — Phase 1 plan
 
-Reviewable implementation plan for **Phase 1 — Auth, profiles, schools (read) — MVP**.
+Reviewable implementation plan for **Phase 1 — Auth, profiles, schools (read)**.
 
 Phase 1 turns the Phase 0 scaffold into the first usable product slice: a logged-out visitor can browse schools, and a new user can sign up, verify email, select a home school, and follow additional schools.
 
 ## Scope boundary
 
-Build only the MVP surface needed for auth, profiles, schools, and launch games.
+Build only the surface needed for auth, profiles, schools, and launch games.
 
 **In scope**
 
@@ -17,7 +17,7 @@ Build only the MVP surface needed for auth, profiles, schools, and launch games.
 - Follow/unfollow additional schools after signup.
 - Public school browse/search/detail.
 - One-time seed import for all school rows as active, including branch campuses with the same UI/UX.
-- MVP launch games seed.
+- launch games seed.
 - Public profile shell at `/users/:id`.
 - Simple homepage and static support/legal/info pages.
 - Rate limits for sensitive auth/email actions.
@@ -32,7 +32,7 @@ Build only the MVP surface needed for auth, profiles, schools, and launch games.
 - Feature flags.
 - Near-you/geo discovery.
 - Custom event banners or school logo uploads.
-- Routine school editing UI; post-MVP CRM/admin owns that.
+- Routine school editing UI; later CRM/admin owns that.
 
 ## Phase 1A — Schema + Go API foundation
 
@@ -41,7 +41,7 @@ Build only the MVP surface needed for auth, profiles, schools, and launch games.
 **Deliverables**
 
 - Add a real migration runner workflow before product schema work.
-- Create MVP-only migrations for:
+- Create migrations scoped to current features for:
   - `users`
   - auth sessions
   - email verification tokens
@@ -58,7 +58,7 @@ Build only the MVP surface needed for auth, profiles, schools, and launch games.
 
 **Review focus**
 
-- Schema stays MVP-only and does not pull in CRM/admin, clubs, tournaments, on-site payments, IGDB sync, or feature flags.
+- Schema stays scoped to shipped features and does not pull in CRM/admin, clubs, tournaments, on-site payments, IGDB sync, or feature flags.
 - Session model is cookie-based and server-owned.
 - Tables can support the Phase 1 exit criteria without over-modeling later phases.
 
@@ -81,7 +81,7 @@ Build only the MVP surface needed for auth, profiles, schools, and launch games.
 - Add public school detail endpoint by slug.
 - Add home-school lookup support for signup.
 - Add follow/unfollow endpoints for authenticated users.
-- Seed the six MVP games:
+- Seed the six launch games:
   - Rocket League
   - Valorant
   - League of Legends
@@ -99,7 +99,7 @@ Build only the MVP surface needed for auth, profiles, schools, and launch games.
 
 - Logged-out users can search schools and view school details.
 - Authenticated users can follow and unfollow schools.
-- MVP games are queryable.
+- launch games are queryable.
 
 ## Phase 1C — Signup/login/profile flow
 
@@ -189,5 +189,5 @@ Phase 1 is done when:
 - Users can log in, log out, and reset passwords.
 - Users can follow/unfollow schools after signup.
 - Users have a basic public profile at `/users/:id`.
-- MVP games are seeded and available for later event filtering.
+- launch games are seeded and available for later event filtering.
 - Auth uses secure server-managed sessions, not frontend JWTs.

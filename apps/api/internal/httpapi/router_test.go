@@ -1771,7 +1771,11 @@ func TestHandleRSVPEventSkipsConfirmationEmailForMaybe(t *testing.T) {
 	}
 }
 
-func TestHandleRSVPEventMapsConfirmationEmailFailure(t *testing.T) {
+// The RSVP transaction commits before the confirmation email is attempted, so a
+// delivery failure must still report success. Returning 500 here told the user
+// their RSVP had failed while the row was already saved, and sent them into a
+// retry loop against a committed write.
+func TestHandleRSVPEventSucceedsWhenConfirmationEmailFails(t *testing.T) {
 	repository := &fakeEventRepository{detail: testEvent(eventstore.VisibilityPublic)}
 	mailer := &fakeEventMailer{err: errors.New("send failed")}
 	handler := authenticatedEventPathHandlerWithMailer(repository, mailer)
@@ -1780,11 +1784,14 @@ func TestHandleRSVPEventMapsConfirmationEmailFailure(t *testing.T) {
 
 	handler.ServeHTTP(response, request)
 
-	if response.Code != http.StatusInternalServerError {
-		t.Fatalf("status = %d, want %d; body = %s", response.Code, http.StatusInternalServerError, response.Body.String())
+	if response.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d; body = %s", response.Code, http.StatusOK, response.Body.String())
 	}
-	if !strings.Contains(response.Body.String(), "event_rsvp_email_failed") {
-		t.Fatalf("body = %s, want event_rsvp_email_failed", response.Body.String())
+	if strings.Contains(response.Body.String(), "event_rsvp_email_failed") {
+		t.Fatalf("body = %s, want the saved event rather than a mail error", response.Body.String())
+	}
+	if !strings.Contains(response.Body.String(), `"viewer_rsvp":"yes"`) {
+		t.Fatalf("body = %s, want the persisted RSVP reflected back", response.Body.String())
 	}
 }
 
@@ -2237,5 +2244,38 @@ func testTeamMembers() []teamstore.MemberSummary {
 			Name:   "Team Member",
 			Role:   teamstore.RoleMember,
 		},
+	}
+}
+
+// net/http recovers handler panics on its own, but it closes the connection
+// without a response and logs outside slog. The BFF then sees a transport
+// failure rather than an API error.
+func TestRouterRecoversPanicAsJSONError(t *testing.T) {
+	panicking := http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
+		panic("boom")
+	})
+	handler := withPanicRecovery(panicking)
+	response := httptest.NewRecorder()
+
+	handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/events", nil))
+
+	if response.Code != http.StatusInternalServerError {
+		t.Fatalf("status = %d, want %d", response.Code, http.StatusInternalServerError)
+	}
+	if !strings.Contains(response.Body.String(), "internal_error") {
+		t.Fatalf("body = %s, want internal_error", response.Body.String())
+	}
+}
+
+func TestRouterPassesThroughSuccessfulHandlers(t *testing.T) {
+	handler := withPanicRecovery(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		writeJSON(w, http.StatusTeapot, map[string]string{"status": "fine"})
+	}))
+	response := httptest.NewRecorder()
+
+	handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/events", nil))
+
+	if response.Code != http.StatusTeapot {
+		t.Fatalf("status = %d, want %d", response.Code, http.StatusTeapot)
 	}
 }

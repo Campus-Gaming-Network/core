@@ -1,6 +1,6 @@
 # 07 — Permissions
 
-Authorization rules for the public site and post-MVP CRM/admin app. Enforce in **Go** on every mutating API; the BFF must not be the only gate.
+Authorization rules for the public site and later CRM/admin app. Enforce in **Go** on every mutating API; the BFF must not be the only gate.
 
 ## Roles overview
 
@@ -11,13 +11,13 @@ Authorization rules for the public site and post-MVP CRM/admin app. Enforce in *
 | **Verified student** | `.edu` email | Same as basic + verified-student trust badge |
 | **Staff / faculty** | Site admin grant | Same as verified + faculty context; **visible faculty indicator** |
 | **Alumni** | Affiliation / graduation | Can participate (not locked out after grad) |
-| **School admin** | Site admin / post-MVP CRM | Edit school; **manage clubs**; assign school teams; badge events; **visible admin indicator** |
+| **School admin** | Site admin / later CRM | Edit school; **manage clubs**; assign school teams; badge events; **visible admin indicator** |
 | **Club officer** | School admin / club flow | Manage club; badge-eligible events |
 | **Team owner** | Creator or transfer | Manage team; transfer ownership; assign captains |
 | **Team captain** | Owner assigns | Register team for tournaments; limited team mgmt |
 | **Event organizer** | Creator or assigned | Edit event (with past-event limits); manage RSVPs as needed |
 | **Approved organizer** | Explicit grant | Badge-eligible events |
-| **Site admin** | Bootstrap / post-MVP CRM | Schools CRM/admin app; games CRM/admin app; reports; support tickets; staff grants; impersonation/feature flags later |
+| **Site admin** | Bootstrap, then CRM | Schools CRM/admin app; games CRM/admin app; reports; support tickets; staff grants; impersonation and feature flags later |
 
 A user may hold **multiple** roles (e.g. school admin at two schools, member of many teams).
 
@@ -60,15 +60,15 @@ Verification is not a substitute for school admin or site admin.
 | Create/approve/manage club | | | ✓ | | | | ✓ |
 | Assign team to club | | | ✓ | ✓? | | | ✓ |
 | Edit school details | | | ✓ | | | | ✓ |
-| Create/edit/delete school | | | | | | | ✓ (post-MVP CRM/admin tooling) |
-| Edit games | | | | | | | ✓ (post-MVP CRM/admin tooling) |
+| Create/edit/delete school | | | | | | | ✓ (later CRM/admin tooling) |
+| Edit games | | | | | | | ✓ (later CRM/admin tooling) |
 | Remove other school admin | | | ✗ | | | | ✓ only |
 | Edit past event date/location | | ✗ | ✗ | ✗ | ✗ | ✗ | break-glass TBD |
 | Minor edit past event | | | | | | ✓ | ✓ |
 | Soft-delete event | | | | | | ✓ | ✓ |
 | View all reports | | | | | | | ✓ |
 | Impersonate user | | | | | | | ✓ |
-| Manage feature flags | | | | | | | ✓ (post-MVP) |
+| Manage feature flags | | | | | | | ✓ (later) |
 | Sync IGDB / manage games | | | | | | | ✓ / cron |
 
 \* Anonymous may open a private event link and submit the password via modal; pre-unlock responses must not leak event details. Still no account mutations without login where required (e.g. RSVP). Anyone (including anonymous) may submit a support ticket.
@@ -79,12 +79,12 @@ Verification is not a substitute for school admin or site admin.
 - A user may be admin of **multiple** schools
 - School admins **cannot remove** other school admins (site admin can)
 - School admins can edit school details, **manage clubs**, and assign school / sponsored teams
-- Only site admins **create** schools, via post-MVP CRM/admin tooling
+- Only site admins **create** schools, via later CRM/admin tooling
 
 ## Team rules
 
 - Anyone authenticated (email-verified) can create a team
-- Team pages are **public**; password required only to **join / interact** (no invite-link tokens in MVP)
+- Team pages are **public**; password required only to **join / interact** (no invite-link tokens yet)
 - Owner can transfer ownership
 - Captains can be assigned; captains register teams for team tournaments
 - User may create and belong to many teams
@@ -94,12 +94,12 @@ Verification is not a substitute for school admin or site admin.
 
 - Anyone authenticated (email-verified) can create an event — **no approval required**
 - Multiple organizers allowed
-- Visibility (MVP): **public** · **unlisted** · **private** (password modal; content gated/blurred until unlock)
-- Optional **capacity**; counts RSVP **yes** only; when full, block new yes — **no waitlist** in MVP
+- Visibility: **public** · **unlisted** · **private** (password modal; content gated/blurred until unlock)
+- Optional **capacity**; counts RSVP **yes** only; when full, block new yes — **no waitlist** yet
 - RSVP: yes/no/maybe; **interested** is a separate favorite
 - Registration closes automatically; ended or full → no new yes RSVPs
 - Past events: organizers limited to minor corrections (not date/location)
-- Soft delete only (no RSVP cancel emails in MVP)
+- Soft delete only (no RSVP cancel emails yet)
 - Slug = event name + small hash (date + other info)
 
 ## Club rules
@@ -112,7 +112,7 @@ Verification is not a substitute for school admin or site admin.
 ## Games
 
 - End users: read-only
-- Create/update/delete and IGDB sync: **post-MVP CRM/admin tooling / site admin only**
+- Create/update/delete and IGDB sync: **later CRM/admin tooling / site admin only**
 
 ## Impersonation (“mimic”)
 
@@ -121,24 +121,24 @@ Verification is not a substitute for school admin or site admin.
 - UI must clearly show impersonation is active
 - Impersonator must not silently gain password reset or email change on target without extra confirmation (recommended hardening)
 
-## CRM (post-MVP)
+## CRM (later)
 
-**TanStack Start** application at **crm.campusgamingnetwork.com**, released after the main-site MVP:
+**TanStack Start** application at **crm.campusgamingnetwork.com**, released after the first public release:
 
 - Schools CRUD (create = site admin)
 - **Games** catalog (IGDB sync + edits)
 - Users and ACL grants (school admin, staff/faculty, approved organizer, etc.)
 - **Report** queue
 - **Support ticket** queue
-- Feature flags — **hold off for MVP**
-- Announcements (may be later)
-- Impersonation (may be later)
+- Feature flags — **not scheduled yet**
+- Announcements (later)
+- Impersonation (later)
 
 Operators should not need raw SQL for routine ACL/school/game/moderation management.
 
-## Feature flags & AuthZ (post-MVP)
+## Feature flags & AuthZ (later)
 
-**Out of MVP.** When added: flags can hide features per user/school/event/team, but **flags are not permissions**. A disabled flag hides UX/API behavior; roles still gate who may act when the flag is on.
+**Not scheduled yet.** When added: flags can hide features per user/school/event/team, but **flags are not permissions**. A disabled flag hides UX/API behavior; roles still gate who may act when the flag is on.
 
 ## Rate-limited actions (AuthZ adjacent)
 
@@ -150,3 +150,5 @@ Apply stricter limits to:
 - Private-event password attempts
 
 Failed authZ returns **403**; missing resource **404**. Do not leak private/unlisted events via search — only `public` appears in discovery.
+
+On the web side this is enforced in page metadata as well as in responses: a locked private event renders only a generic "Private event" title with `noindex`, and unlisted events resolve normally but are also `noindex`. Metadata is part of the gating guarantee — see [06 — Architecture](./06-architecture.md).

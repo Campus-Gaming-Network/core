@@ -1,4 +1,5 @@
 import { cookies, headers } from "next/headers";
+import { cache } from "react";
 import {
   type DashboardEventsResponse,
   type EventDetail,
@@ -15,13 +16,24 @@ import {
   apiRequest
 } from "./cgn-api";
 
+// The school and game catalogs change on the order of once or twice a year and
+// carry no viewer-specific fields, so Next.js can hold them across requests.
+// Everything else keeps the no-store default, because it either reads the
+// session or changes with user activity.
+const catalogRevalidateSeconds = 300;
+
 export async function incomingCookieHeader() {
   const requestHeaders = await headers();
 
   return requestHeaders.get("cookie") ?? "";
 }
 
-export async function currentProfile() {
+// Requests default to cache: "no-store", which Next.js does not deduplicate.
+// The per-request getters below are wrapped in React cache() so a route's
+// generateMetadata and its page body share a single API call instead of
+// doubling every request. cache() compares arguments by reference, so the
+// wrapped functions take primitives rather than options objects.
+export const currentProfile = cache(async () => {
   try {
     const { data } = await apiRequest<Profile>({
       path: "/me",
@@ -36,7 +48,7 @@ export async function currentProfile() {
 
     return null;
   }
-}
+});
 
 export async function listSchools(params: {
   query?: string;
@@ -61,23 +73,26 @@ export async function listSchools(params: {
 
   const suffix = query.size > 0 ? `?${query.toString()}` : "";
   const { data } = await apiRequest<SchoolsResponse>({
-    path: `/schools${suffix}`
+    path: `/schools${suffix}`,
+    revalidate: catalogRevalidateSeconds
   });
 
   return data;
 }
 
-export async function getSchool(slug: string) {
+export const getSchool = cache(async (slug: string) => {
   const { data } = await apiRequest<School>({
-    path: `/schools/${encodeURIComponent(slug)}`
+    path: `/schools/${encodeURIComponent(slug)}`,
+    revalidate: catalogRevalidateSeconds
   });
 
   return data;
-}
+});
 
 export async function listGames() {
   const { data } = await apiRequest<GamesResponse>({
-    path: "/games"
+    path: "/games",
+    revalidate: catalogRevalidateSeconds
   });
 
   return data.games;
@@ -117,17 +132,27 @@ type GetEventOptions = {
   includeUnlock?: boolean;
 };
 
-export async function getEvent(slug: string, options: GetEventOptions = {}) {
-  const unlockHeaders = options.includeUnlock
-    ? await eventUnlockHeaders(slug)
-    : undefined;
-  const { data } = await apiRequest<EventDetail>({
-    path: `/events/${encodeURIComponent(slug)}`,
-    cookieHeader: options.includeCookie ? await incomingCookieHeader() : undefined,
-    headers: unlockHeaders
-  });
+const fetchEvent = cache(
+  async (slug: string, includeCookie: boolean, includeUnlock: boolean) => {
+    const unlockHeaders = includeUnlock
+      ? await eventUnlockHeaders(slug)
+      : undefined;
+    const { data } = await apiRequest<EventDetail>({
+      path: `/events/${encodeURIComponent(slug)}`,
+      cookieHeader: includeCookie ? await incomingCookieHeader() : undefined,
+      headers: unlockHeaders
+    });
 
-  return data;
+    return data;
+  }
+);
+
+export async function getEvent(slug: string, options: GetEventOptions = {}) {
+  return fetchEvent(
+    slug,
+    options.includeCookie === true,
+    options.includeUnlock === true
+  );
 }
 
 export async function getDashboardEvents(limit = 5) {
@@ -181,13 +206,17 @@ type GetTeamOptions = {
   includeCookie?: boolean;
 };
 
-export async function getTeam(slug: string, options: GetTeamOptions = {}) {
+const fetchTeam = cache(async (slug: string, includeCookie: boolean) => {
   const { data } = await apiRequest<Team>({
     path: `/teams/${encodeURIComponent(slug)}`,
-    cookieHeader: options.includeCookie ? await incomingCookieHeader() : undefined
+    cookieHeader: includeCookie ? await incomingCookieHeader() : undefined
   });
 
   return data;
+});
+
+export async function getTeam(slug: string, options: GetTeamOptions = {}) {
+  return fetchTeam(slug, options.includeCookie === true);
 }
 
 export function eventUnlockCookieName(slug: string) {
@@ -213,13 +242,13 @@ export async function listFollowedSchools() {
   return data.schools;
 }
 
-export async function getPublicProfile(id: string) {
+export const getPublicProfile = cache(async (id: string) => {
   const { data } = await apiRequest<PublicProfile>({
     path: `/users/${encodeURIComponent(id)}`
   });
 
   return data;
-}
+});
 
 export async function verifyEmailToken(token: string) {
   await apiRequest<{ status: string }>({

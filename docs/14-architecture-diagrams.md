@@ -1,6 +1,6 @@
 # 14 — Architecture diagrams
 
-These diagrams reflect the current main-site MVP and its Railway deployment plan. In the system overview, dashed components are explicitly post-MVP.
+These diagrams reflect the current first release and its Railway deployment plan. In the system overview, dashed components are explicitly later.
 
 ## 1. Frontend architecture overview
 
@@ -14,9 +14,11 @@ flowchart TB
 
     subgraph Web["Railway web service — Next.js 16 + TypeScript"]
         AppRouter["App Router<br/>layouts, pages, SSR server components"]
+        Boundaries["Error, loading, and not-found boundaries<br/>error.tsx, global-error.tsx, not-found.tsx"]
         ServerActions["Server Actions<br/>app/actions.ts"]
         HealthRoute["Route Handler<br/>GET /api/health"]
-        ServerAPI["Server-side data helpers<br/>lib/server-api.ts"]
+        Metadata["Page metadata and social tags<br/>lib/metadata.ts"]
+        ServerAPI["Server-side data helpers<br/>lib/server-api.ts (React cache)"]
         APIClient["Typed API client and DTOs<br/>lib/cgn-api.ts"]
     end
 
@@ -27,6 +29,9 @@ flowchart TB
     Cookies -->|"sent with web requests"| AppRouter
     Cookies -->|"sent with mutations"| ServerActions
 
+    AppRouter --> Boundaries
+    AppRouter --> Metadata
+    Metadata --> ServerAPI
     AppRouter --> ServerAPI
     ServerAPI --> APIClient
     ServerActions --> APIClient
@@ -156,10 +161,10 @@ flowchart LR
         Database --> Backups
     end
 
-    CRM["Post-MVP CRM<br/>TanStack Start"]
-    R2["Post-MVP Cloudflare R2<br/>school logos"]
-    IGDB["Post-MVP IGDB<br/>game enrichment"]
-    Sentry["Post-MVP Sentry"]
+    CRM["Later CRM<br/>TanStack Start"]
+    R2["Later Cloudflare R2<br/>school logos"]
+    IGDB["Later IGDB<br/>game enrichment"]
+    Sentry["Later Sentry"]
 
     User -->|"HTTPS"| Cloudflare --> Web
     Web -->|"SSR HTML, redirects, opaque cookies"| User

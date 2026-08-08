@@ -2,11 +2,11 @@
 
 Phased delivery for a single developer. Each phase should be shippable. Do not pull later-phase work forward without a clear need.
 
-**URLs:** main site MVP = `campusgamingnetwork.com` · CRM/admin app = `crm.campusgamingnetwork.com` (post-MVP TanStack Start release).
+**URLs:** first release = `campusgamingnetwork.com` · CRM/admin app = `crm.campusgamingnetwork.com` (later TanStack Start release).
 
-**Infra:** Railway (Next.js web, Go API, PostgreSQL) · Cloudflare DNS/protection · Resend MVP email (`events@` / `account@`) · curated MVP games (6 titles). `notifications@` and `support@` workflows, plus Cloudflare R2 for CRM/admin logo uploads, are post-MVP.
+**Infra:** Railway (Next.js web, Go API, PostgreSQL) · Cloudflare DNS/protection · Resend email (`events@` / `account@`) · curated launch games (6 titles). `notifications@` and `support@` workflows, plus Cloudflare R2 for CRM/admin logo uploads, are later.
 
-**MVP excludes:** Sentry/error monitoring, CRM/admin app, clubs, tournaments, on-site payments, usernames, waitlists, team invite links, feature flags, near-you, cancel-event RSVP emails, custom event banner uploads.
+**Not yet scheduled:** Sentry/error monitoring, CRM/admin app, clubs, tournaments, on-site payments, usernames, waitlists, team invite links, feature flags, near-you, cancel-event RSVP emails, custom event banner uploads.
 
 **School seed:** import all 6,243 operating schools (4,943 main · 1,300 branch) as `is_active=true`; branch campuses use the same UI/UX; review later in CRM/admin tooling.
 
@@ -25,9 +25,9 @@ Phased delivery for a single developer. Each phase should be shippable. Do not p
 
 **Exit:** `docker compose up` works; health green; blank accessible shell page.
 
-**Production deploy decision:** [13 — Deployment plan](./13-deployment-plan.md) locks the main-site MVP onto Railway for the Next.js web service, Go API service, and PostgreSQL database, with Cloudflare for DNS/protection.
+**Production deploy decision:** [13 — Deployment plan](./13-deployment-plan.md) locks the first release onto Railway for the Next.js web service, Go API service, and PostgreSQL database, with Cloudflare for DNS/protection.
 
-## Phase 1 — Auth, profiles, schools (read) — MVP
+## Phase 1 — Auth, profiles, schools (read)
 
 **Goal:** Users can register and browse schools.
 
@@ -41,15 +41,15 @@ Phased delivery for a single developer. Each phase should be shippable. Do not p
 - Profile: single **name** field, bio, social links, timezone, Gravatar with initials fallback; URL `/users/:id`
 - Home school selected on signup; follow additional schools afterward
 - One-time import of **all** `data/schools_seed.csv` rows as `is_active=true` (`unitid` optional on later admin/CRM creates)
-- Public search/browse schools (Postgres `pg_trgm`); school detail by slug (no clubs list until post-MVP)
+- Public search/browse schools (Postgres `pg_trgm`); school detail by slug (no clubs list until later)
 - Rate limit signups + resend verification (Resend)
-- Seed MVP games: Rocket League, Valorant, League of Legends, Overwatch 2, Super Smash Bros. Ultimate, CSGO
+- Seed launch games: Rocket League, Valorant, League of Legends, Overwatch 2, Super Smash Bros. Ultimate, CSGO
 - Support email + FAQ + About + Terms + Privacy stubs
 - Simple homepage
 
 **Exit:** Logged-out user can search schools; new user verifies email (18+) and can follow a school.
 
-## Phase 2 — Events MVP
+## Phase 2 — Events
 
 **Goal:** Create events, RSVP, email+ICS on the main site.
 
@@ -71,7 +71,7 @@ Phased delivery for a single developer. Each phase should be shippable. Do not p
 
 **Exit:** User creates event → another user RSVPs yes → email received with calendar file.
 
-## Phase 3 — Teams + dashboard — MVP
+## Phase 3 — Teams + dashboard
 
 **Goal:** Teams and a useful home dashboard (still no clubs/tournaments).
 
@@ -83,11 +83,11 @@ Phased delivery for a single developer. Each phase should be shippable. Do not p
 
 **Exit:** Student joins a team via password and sees a useful dashboard.
 
-## Phase 4 — CRM/admin app (TanStack Start, post-MVP separate release)
+## Phase 4 — CRM/admin app (TanStack Start, separate later release)
 
-**Goal:** After the main-site MVP, operators manage the catalog without SQL. Deploy to `crm.campusgamingnetwork.com`.
+**Goal:** After the first release, operators manage the catalog without SQL. Deploy to `crm.campusgamingnetwork.com`.
 
-- **TanStack Start** CRM/admin app (not shipped in the main-site MVP)
+- **TanStack Start** CRM/admin app (not shipped in the first release)
 - Schools: create/edit/soft-delete, logos (**CRM/admin-only** R2 PNG/JPG ≤500 MB), activation, school admins
 - Games: manage the curated set; IGDB enrichment later; CRM/admin-only edits
 - Users / ACL grants (school admin, staff/faculty)
@@ -107,7 +107,7 @@ Phased delivery for a single developer. Each phase should be shippable. Do not p
 
 **Exit:** Catalog can grow without user-editable games.
 
-## Phase 6 — Clubs & tournaments (post-MVP)
+## Phase 6 — Clubs & tournaments (later)
 
 **Goal:** Official school orgs + competitive layer.
 
@@ -131,7 +131,7 @@ Phased delivery for a single developer. Each phase should be shippable. Do not p
 - Account deletion anonymization path tested
 - Past-event edit restrictions enforced
 - Recurring events (if not done earlier)
-- On-site payments decision (MVP paid events remain off-site-payment listings)
+- On-site payments decision (paid events currently remain off-site-payment listings)
 - Event/tournament **waitlists**
 - Team **invite links**
 - **Near you** / geo discovery
@@ -144,7 +144,7 @@ Phased delivery for a single developer. Each phase should be shippable. Do not p
 
 **Exit:** Production checklist signed off.
 
-## Later (explicitly not MVP)
+## Later (not yet scheduled)
 
 - Clubs
 - Tournaments
@@ -169,6 +169,6 @@ Phased delivery for a single developer. Each phase should be shippable. Do not p
 1. Schema + Go domain API
 2. BFF + SSR page (main site) or CRM screens
 3. Email/side effects
-4. Audit/activity writes when that post-MVP slice is in scope
+4. Audit/activity writes when that later slice is in scope
 5. Rate limits
 6. Deploy the app that owns the phase (main vs CRM)

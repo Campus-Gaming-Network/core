@@ -19,13 +19,19 @@ func NewSessionRepository(pool *pgxpool.Pool) *SessionRepository {
 
 func (r *SessionRepository) FindSession(ctx context.Context, tokenHash []byte) (Session, error) {
 	var session Session
+	// The join is redundant with revoking sessions on account deletion, but it
+	// means a stray unrevoked row can never authenticate a deleted or suspended
+	// account.
 	err := r.pool.QueryRow(ctx, `
-		SELECT id::text, user_id::text, expires_at
-		FROM auth_sessions
-		WHERE token_hash = $1
-		  AND revoked_at IS NULL
-		  AND deleted_at IS NULL
-		  AND expires_at > NOW()
+		SELECT s.id::text, s.user_id::text, s.expires_at
+		FROM auth_sessions s
+		JOIN users u ON u.id = s.user_id
+		WHERE s.token_hash = $1
+		  AND s.revoked_at IS NULL
+		  AND s.deleted_at IS NULL
+		  AND s.expires_at > NOW()
+		  AND u.deleted_at IS NULL
+		  AND u.account_status = 'active'
 	`, tokenHash).Scan(&session.ID, &session.UserID, &session.ExpiresAt)
 	if err != nil {
 		return Session{}, err

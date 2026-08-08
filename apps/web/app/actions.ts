@@ -671,3 +671,33 @@ function teamBodyFromForm(formData: FormData) {
 function isString(value: FormDataEntryValue): value is string {
   return typeof value === "string";
 }
+
+export async function deleteAccountAction(
+  _previousState: FormState,
+  formData: FormData
+): Promise<FormState> {
+  // Typed confirmation, so an irreversible action cannot be a stray click.
+  if (formString(formData, "confirm").trim().toUpperCase() !== "DELETE") {
+    return {
+      status: "error",
+      message: "Type DELETE to confirm removing your account."
+    };
+  }
+
+  try {
+    await apiRequest<void>({
+      path: "/me",
+      method: "DELETE",
+      cookieHeader: await incomingCookieHeader()
+    });
+  } catch (error) {
+    return failure(error);
+  }
+
+  // The API revokes every session, so drop the local cookie to match.
+  const cookieStore = await cookies();
+  cookieStore.delete(sessionCookieName());
+
+  revalidatePath("/", "layout");
+  redirect("/?account=deleted");
+}

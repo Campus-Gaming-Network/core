@@ -1,5 +1,5 @@
 -- Phase 2: events foundation.
--- Creates the MVP event catalog, organizer, RSVP, interest, and private-unlock
+-- Creates the event catalog, organizer, RSVP, interest, and private-unlock
 -- tables. Create/edit/RSVP behavior is wired in later Phase 2 slices.
 
 CREATE TABLE events (

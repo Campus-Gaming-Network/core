@@ -6,9 +6,31 @@ import { logoutAction } from "./actions";
 import "./globals.css";
 import { currentProfile } from "../lib/server-api";
 
+const siteName = "Campus Gaming Network";
+const siteDescription =
+  "Find campus gaming events, teams, and school activity.";
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+
 export const metadata: Metadata = {
-  title: "Campus Gaming Network",
-  description: "Find campus gaming events, teams, and school activity."
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: siteName,
+    template: `%s | ${siteName}`
+  },
+  description: siteDescription,
+  applicationName: siteName,
+  openGraph: {
+    type: "website",
+    siteName,
+    title: siteName,
+    description: siteDescription,
+    url: siteUrl
+  },
+  twitter: {
+    card: "summary",
+    title: siteName,
+    description: siteDescription
+  }
 };
 
 export default async function RootLayout({

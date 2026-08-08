@@ -1,6 +1,15 @@
 import { Alert } from "@heroui/react/alert";
 import Link from "next/link";
 import { ResetPasswordForm } from "../../components/auth-forms";
+import { pageMetadata } from "../../lib/metadata";
+
+export const metadata = pageMetadata({
+  title: "Reset password",
+  description:
+    "Choose a new password for your Campus Gaming Network account.",
+  path: "/reset-password",
+  noIndex: true
+});
 
 type PageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;

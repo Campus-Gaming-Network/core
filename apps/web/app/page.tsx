@@ -2,8 +2,31 @@ import { Card } from "@heroui/react/card";
 import { Chip } from "@heroui/react/chip";
 import { EmptyState } from "@heroui/react/empty-state";
 import Link from "next/link";
+import type { Metadata } from "next";
 import { schoolLocation } from "../lib/cgn-api";
+import { siteName } from "../lib/metadata";
 import { listGames, listSchools } from "../lib/server-api";
+
+const homeDescription =
+  "Discover collegiate gaming events, teams, and campus activity. Follow your school and find the scene around you.";
+
+// The home page keeps the bare site name rather than the "%s | Campus Gaming
+// Network" template applied to every other page.
+export const metadata: Metadata = {
+  description: homeDescription,
+  openGraph: {
+    type: "website",
+    siteName,
+    title: siteName,
+    description: homeDescription,
+    url: "/"
+  },
+  twitter: {
+    card: "summary",
+    title: siteName,
+    description: homeDescription
+  }
+};
 
 export default async function HomePage() {
   const [schools, games] = await Promise.all([

@@ -1,7 +1,9 @@
 package httpapi
 
 import (
+	"context"
 	"errors"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
@@ -13,6 +15,10 @@ import (
 )
 
 const privateEventUnlockTTL = 24 * time.Hour
+
+// rsvpEmailTimeout bounds the confirmation send so a slow mail provider cannot
+// hold the RSVP handler open.
+const rsvpEmailTimeout = 10 * time.Second
 
 type createEventRequest struct {
 	Title           string    `json:"title"`
@@ -304,9 +310,15 @@ func (r *Router) handleRSVPEvent(w http.ResponseWriter, req *http.Request, slug 
 		return
 	}
 	if event.ViewerRSVP != nil && *event.ViewerRSVP == eventstore.RSVPYes {
+		// The RSVP is already committed, so a mail failure must not fail the
+		// request. Reporting 500 here would tell the user their RSVP did not
+		// take when it did, and they would retry against a saved row.
 		if err := r.sendRSVPConfirmation(req, userID, event); err != nil {
-			writeError(w, http.StatusInternalServerError, "event_rsvp_email_failed")
-			return
+			slog.Error("rsvp confirmation email failed",
+				"error", err,
+				"event_slug", slug,
+				"user_id", userID,
+			)
 		}
 	}
 	writeJSON(w, http.StatusOK, event)
@@ -359,7 +371,13 @@ func (r *Router) sendRSVPConfirmation(req *http.Request, userID string, event ev
 	if err != nil {
 		return err
 	}
-	return r.eventMailer.SendRSVPConfirmation(req.Context(), profile.Email, event)
+	// Detached from the request context, which is cancelled as soon as the
+	// response is written. The deadline keeps a slow provider from holding the
+	// handler open indefinitely.
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(req.Context()), rsvpEmailTimeout)
+	defer cancel()
+
+	return r.eventMailer.SendRSVPConfirmation(ctx, profile.Email, event)
 }
 
 func createEventInputFromRequest(request createEventRequest, userID string) eventstore.CreateInput {

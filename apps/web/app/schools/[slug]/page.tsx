@@ -1,13 +1,19 @@
 import { Alert } from "@heroui/react/alert";
 import { Button } from "@heroui/react/button";
 import { Card } from "@heroui/react/card";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   followSchoolAction,
   unfollowSchoolAction
 } from "../../actions";
-import { ApiError, isSchoolFollowed } from "../../../lib/cgn-api";
+import {
+  ApiError,
+  isSchoolFollowed,
+  schoolLocation
+} from "../../../lib/cgn-api";
+import { pageMetadata } from "../../../lib/metadata";
 import {
   currentProfile,
   getSchool,
@@ -18,6 +24,33 @@ type PageProps = {
   params: Promise<{ slug: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
+
+export async function generateMetadata({
+  params
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  // Match the page body so a missing school still answers 404 rather than
+  // committing a 200 response from metadata generation.
+  const school = await getSchool(slug).catch((error) => {
+    if (error instanceof ApiError && error.status === 404) {
+      notFound();
+    }
+
+    throw error;
+  });
+
+  const location = schoolLocation(school);
+
+  return pageMetadata({
+    title: school.name,
+    description: location
+      ? `Campus gaming events, teams, and activity at ${school.name} in ${location}.`
+      : `Campus gaming events, teams, and activity at ${school.name}.`,
+    path: `/schools/${school.slug}`
+  });
+}
 
 export default async function SchoolDetailPage({
   params,

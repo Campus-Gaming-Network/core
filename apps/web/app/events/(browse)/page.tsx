@@ -5,13 +5,21 @@ import { Input } from "@heroui/react/input";
 import { ListBox } from "@heroui/react/list-box";
 import { Select } from "@heroui/react/select";
 import Link from "next/link";
-import { EventBanner } from "../../components/event-banner";
+import { EventBanner } from "../../../components/event-banner";
 import {
   eventLifecycleLabel,
   eventLocation,
   eventTimeRange
-} from "../../lib/cgn-api";
-import { currentProfile, listEvents, listGames } from "../../lib/server-api";
+} from "../../../lib/cgn-api";
+import { currentProfile, listEvents, listGames } from "../../../lib/server-api";
+import { pageMetadata } from "../../../lib/metadata";
+
+export const metadata = pageMetadata({
+  title: "Events",
+  description:
+    "Browse upcoming collegiate gaming events and filter them by game or school.",
+  path: "/events"
+});
 
 type PageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -102,7 +110,7 @@ export default async function EventsPage({ searchParams }: PageProps) {
               </span>
               <small>{eventTimeRange(event)}</small>
               <small>
-                {event.host_school.name} · {event.games.map((game) => game.name).join(", ")}
+                {event.host_school.name} · {event.games.map((eventGame) => eventGame.name).join(", ")}
               </small>
               <small>{eventLocation(event)}</small>
             </Link>

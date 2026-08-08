@@ -7,12 +7,21 @@ import {
   type School,
   type SchoolSummary
 } from "../../../../lib/cgn-api";
+import { pageMetadata } from "../../../../lib/metadata";
 import {
   currentProfile,
   getEvent,
   listGames,
   listSchools
 } from "../../../../lib/server-api";
+
+// Organizer-only page. Kept generic so an event title never reaches the head
+// of a route that only organizers may open.
+export const metadata = pageMetadata({
+  title: "Edit event",
+  description: "Edit your campus gaming event.",
+  noIndex: true
+});
 
 type PageProps = {
   params: Promise<{ slug: string }>;

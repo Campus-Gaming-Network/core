@@ -5,8 +5,8 @@ Stack, runtime, ops, and engineering constraints for a single-developer, cost-co
 ## High-level shape
 
 ```text
-Main site MVP:  campusgamingnetwork.com
-CRM/admin app:  crm.campusgamingnetwork.com   (post-MVP separate app + separate release)
+Main site:  campusgamingnetwork.com
+CRM/admin app:  crm.campusgamingnetwork.com   (later separate app + separate release)
 
 Browser (Next.js UI, HeroUI, SSR)
         │
@@ -25,12 +25,12 @@ Go API / services         ── domain logic, Postgres access
 Railway PostgreSQL
 
 Side paths:
-  Post-MVP CRM (TanStack Start, separate deploy) ──► Go API
+  Later CRM (TanStack Start, separate deploy) ──► Go API
   Resend ──► transactional mail + ICS
-  Cloudflare R2 ──► school logos (post-MVP CRM/admin); other uploads later
-  Sentry ──► errors (post-MVP)
+  Cloudflare R2 ──► school logos (CRM/admin, later); other uploads after that
+  Sentry ──► errors (later)
   Cloudflare ──► DNS / edge protection
-  IGDB ──► later game enrichment (via CRM / cron); MVP uses curated seed list
+  IGDB ──► later game enrichment (via CRM / cron); uses the curated seed list
 ```
 
 **Backend for Frontend (BFF):** the Next.js layer shapes data for UI routes; Go owns domain rules and persistence. Do not put core business logic only in the browser.
@@ -47,17 +47,17 @@ See [14 — Architecture diagrams](./14-architecture-diagrams.md) for Mermaid vi
 | Server / API | Go | All server domain code in Go |
 | Database | Railway PostgreSQL | Backups required before public launch |
 | Local dev | Docker | Works on all systems; develop on M1 MacBook |
-| App host | Railway | Hosts Next.js web and Go API for MVP |
+| App host | Railway | Hosts Next.js web and Go API for now |
 | DNS / edge | Cloudflare | DNS and edge protection for campusgamingnetwork.com |
-| CRM | TanStack Start | Post-MVP separate app/release at crm.campusgamingnetwork.com |
+| CRM | TanStack Start | Later separate app/release at crm.campusgamingnetwork.com |
 | Email | Resend | Verification, password reset, RSVP+ICS, etc. |
-| Object storage | Cloudflare R2 | Post-MVP school logos via CRM/admin app (PNG/JPG ≤500 MB); custom event banners later |
-| Errors | Sentry | Post-MVP bug reporting; not required for MVP launch |
+| Object storage | Cloudflare R2 | School logos via CRM/admin app (PNG/JPG ≤500 MB), then custom event banners — both later |
+| Errors | Sentry | Later bug reporting; not required for launch |
 | Avatars | Gravatar with initials fallback | Custom avatars later |
-| Maps | Google Maps embed (mini) | Post-MVP nicety; address text first |
-| Games data | Curated MVP seed; IGDB later | Not user-editable; CRM/admin app manages later |
+| Maps | Google Maps embed (mini) | Later nicety; address text first |
+| Games data | Curated seed; IGDB later | Not user-editable; CRM/admin app takes over management |
 | Analytics | Non-GA tool (TBD) | No Google Analytics (perf) |
-| Client data libs | TanStack where justified | Post-MVP CRM uses TanStack Start; Query/Table as needed |
+| Client data libs | TanStack where justified | Later CRM uses TanStack Start; Query/Table as needed |
 
 ## Frontend guidelines
 
@@ -65,26 +65,51 @@ See [14 — Architecture diagrams](./14-architecture-diagrams.md) for Mermaid vi
 - Prefer **CSS** over adding JavaScript when CSS can solve it
 - Mobile-friendly; no Internet Explorer
 - Simple homepage until UGC volume justifies more
-- Site-wide announcement banner support — **post-MVP**
-- Feature-flag-aware UI — **post-MVP** (do not build for MVP)
+- Site-wide announcement banner support — **later**
+- Feature-flag-aware UI — **later** (do not build now)
+
+### Page metadata
+
+- Every route carries its own title, description, and Open Graph / Twitter tags through the `pageMetadata` helper in `apps/web/lib/metadata.ts`. The root layout owns the title template and `metadataBase`.
+- Authenticated pages, one-time-token flows, private events, and unlisted events set `noIndex`. See [07 — Permissions](./07-permissions.md) for the discovery rule this enforces.
+- A locked private event must expose only a generic title and description. Metadata is part of the gating guarantee, not an exception to it.
+
+### Error and loading boundaries
+
+- `error.tsx`, `global-error.tsx`, and `not-found.tsx` live at the app root. Error UI shows `error.digest` only — never `error.message`, which can carry API internals.
+- **Never add a `loading.tsx` to a segment that contains a route calling `notFound()`.** A `loading.tsx` opens a Suspense boundary over its whole subtree, so the response begins streaming and commits a 200 before the page can set a 404. Every missing event, school, team, and profile then answers 200 with not-found content — a soft 404 that renders correctly and is invisible unless you check the status code.
+- Browse pages live in `(browse)` route groups for exactly this reason: the group scopes their loading boundary to the list page and keeps it off the sibling `[slug]` detail routes. URLs are unaffected by the group.
+
+### Request memoization
+
+- Per-request getters in `apps/web/lib/server-api.ts` are wrapped in React `cache()`. `apiRequest` defaults to `cache: "no-store"`, which Next.js does **not** deduplicate, so without this a route's `generateMetadata` and its page body would each issue the same API call.
+- `cache()` compares arguments by reference, so wrapped functions take primitives rather than options objects. `getEvent` and `getTeam` flatten their options before calling the cached inner function.
 
 ## Backend guidelines
 
 - Domain logic in **Go**
 - Parameterized SQL; never string-concatenate user input
 - Soft deletes via `deleted_at`
-- Structured **system logs** for MVP operations
-- Post-MVP shared **audit log** for entity changes, kept separate from system logs
+- Structured **system logs** for operations
+- Later shared **audit log** for entity changes, kept separate from system logs
 - Health check endpoints
 - Rate limiting (global + signups/resend by IP and email, event creation, reports, private-event unlock, support tickets)
 - Profanity filter on user-generated text fields
 - **Search in Postgres first** (`pg_trgm` / `tsvector`) for schools, events, tournaments — no Elasticsearch until Postgres is proven insufficient
 
+### Catalog caching
+
+The school and game catalogs are effectively static — roughly 6,200 schools growing by one or two a year — so they are treated as reference data rather than live queries.
+
+- The API holds the school catalog in memory (`internal/schools/cache.go`), refreshed on an interval and on demand through `POST /internal/schools/refresh`. Reads never reach Postgres; a failed refresh keeps the previous snapshot rather than emptying the catalog, and reads fall back to Postgres before the first load completes.
+- `/schools`, `/schools/:slug`, and `/games` send `Cache-Control` with `stale-while-revalidate`, so the BFF data cache, Cloudflare, and browsers all hold them. Only responses free of viewer-specific fields may be marked this way — followed schools and anything session-derived must stay uncached.
+- Do not add indexes to `schools` on the assumption that search needs them. At this row count Postgres reads the whole table faster than it can use an index; the original trigram indexes were measured at zero scans and dropped in migration `000007`.
+
 ## Catalog mutations
 
-- MVP: schools are bootstrapped once from the Scorecard seed; users cannot create schools.
-- Post-MVP CRM/admin app: schools create/edit/delete, logo uploads, school admins, games catalog, and IGDB enrichment.
-- Games: MVP uses the curated seed; **not** editable by end users.
+- Schools are bootstrapped once from the Scorecard seed; users cannot create schools.
+- Later CRM/admin app: schools create/edit/delete, logo uploads, school admins, games catalog, and IGDB enrichment.
+- Games: Uses the curated seed; **not** editable by end users.
 
 ## Auth & security
 
@@ -100,24 +125,24 @@ See [14 — Architecture diagrams](./14-architecture-diagrams.md) for Mermaid vi
 
 | Concern | Approach |
 |---------|----------|
-| Errors | App/system logs for MVP; Sentry post-MVP |
+| Errors | App/system logs for now; Sentry later |
 | Health | Dedicated health checks |
-| Audit | Post-MVP polymorphic `audit_logs` (who changed what on which entity) |
+| Audit | Later polymorphic `audit_logs` (who changed what on which entity) |
 | System logs | App/ops logging (distinct from audit) |
-| User activity | Post-MVP user-visible activity history |
-| Entity history | Post-MVP school, team, and event change history |
+| User activity | Later user-visible activity history |
+| Entity history | Later school, team, and event change history |
 
-## Feature flags (post-MVP)
+## Feature flags (later)
 
-**Hold off for MVP.** When added later:
+**Not scheduled yet.** When added later:
 
 - Flag entities: users, schools, events, teams
 - Targeting: at least specific users and specific schools
 - Evaluated server-side when possible so UI and API stay consistent
 
-## CRM (admin application, post-MVP)
+## CRM (admin application, later)
 
-- **TanStack Start** app, separate deploy/release after the main-site MVP
+- **TanStack Start** app, separate deploy/release after the first release
 - URLs: main = `campusgamingnetwork.com`; CRM = `crm.campusgamingnetwork.com`
 - Shared Go API with the main site
 - Manage schools, users, ACLs, games without touching the database directly
@@ -134,16 +159,16 @@ See [14 — Architecture diagrams](./14-architecture-diagrams.md) for Mermaid vi
 | From address | Use for |
 |--------------|---------|
 | `events@campusgamingnetwork.com` | Any email related to an event RSVP (confirmation, ICS, future RSVP updates) |
-| `notifications@campusgamingnetwork.com` | Post-MVP basic notification emails |
-| `support@campusgamingnetwork.com` | Post-MVP support and report workflow email |
+| `notifications@campusgamingnetwork.com` | Later basic notification emails |
+| `support@campusgamingnetwork.com` | Later support and report workflow email |
 | `account@campusgamingnetwork.com` | Account emails (verification, password reset, etc.) |
 
 ## Object storage (Cloudflare R2)
 
 - Provider: **Cloudflare R2**
-- **MVP:** no user uploads; school logos use placeholders
-- **Post-MVP:** school logos uploaded via **CRM/admin app** (not the main site)
-- **Event banners (MVP):** use a default placeholder image/background — no user uploads yet (custom banners later with strict moderation)
+- **Now:** no user uploads; school logos use placeholders
+- **Later:** school logos uploaded via **CRM/admin app** (not the main site)
+- **Event banners:** use a default placeholder image/background — no user uploads yet (custom banners later with strict moderation)
 - Allowed types: **PNG or JPG only**
 - **Max size:** 500 MB per image
 - Enforce type + size server-side
@@ -156,7 +181,7 @@ See [14 — Architecture diagrams](./14-architecture-diagrams.md) for Mermaid vi
 
 ## Deployment & data
 
-- Main-site MVP deploys to Railway: one public Next.js service, one private Go API service, and Railway PostgreSQL.
+- First release deploys to Railway: one public Next.js service, one private Go API service, and Railway PostgreSQL.
 - Cloudflare manages DNS/protection for `campusgamingnetwork.com`.
 - Railway PostgreSQL backups must be enabled/verified before public launch.
 - Run migrations through the existing Go migrator as a Railway pre-deploy command or dedicated migration service/job.
@@ -170,7 +195,7 @@ See [13 — Deployment plan](./13-deployment-plan.md) for the concrete Railway t
 
 1. Prefer platform features and a small core set of libraries
 2. Add a dependency only if it is clearly valuable, maintained, performant, and safe
-3. TanStack Start is the post-MVP CRM framework; other TanStack libs OK when justified
+3. TanStack Start is the later CRM framework; other TanStack libs OK when justified
 4. HeroUI is the chosen component library for the main site
 
 ## Explicitly deferred

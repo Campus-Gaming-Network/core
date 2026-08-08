@@ -99,6 +99,7 @@ type AccountRepository interface {
 	MarkEmailVerified(ctx context.Context, id string) error
 	UpdatePassword(ctx context.Context, id string, passwordHash string) error
 	ReplaceSocialLinks(ctx context.Context, id string, links []SocialLink) error
+	DeleteAccount(ctx context.Context, id string) error
 }
 
 func (p Profile) Public() PublicProfile {

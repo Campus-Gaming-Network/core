@@ -2,7 +2,15 @@ import { Button } from "@heroui/react/button";
 import { EmptyState } from "@heroui/react/empty-state";
 import { Input } from "@heroui/react/input";
 import Link from "next/link";
-import { listSchools } from "../../lib/server-api";
+import { listSchools } from "../../../lib/server-api";
+import { pageMetadata } from "../../../lib/metadata";
+
+export const metadata = pageMetadata({
+  title: "Schools",
+  description:
+    "Search and follow colleges and universities to see their gaming events and teams.",
+  path: "/schools"
+});
 
 type PageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;

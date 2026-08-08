@@ -2,7 +2,7 @@
 
 One-time bootstrap of the US school catalog from the Department of Education [College Scorecard](https://collegescorecard.ed.gov/data/).
 
-**This seed runs once.** After the initial import, routine school create / edit / delete happens through post-MVP admin tooling / **CRM**. Do not re-import Scorecard on a schedule.
+**This seed runs once.** After the initial import, routine school create / edit / delete happens through later admin tooling / **CRM**. Do not re-import Scorecard on a schedule.
 
 ## Files
 
@@ -29,7 +29,7 @@ Identity and location only (no public/private/nonprofit classification).
 | `slug` | derived | URL slug; collisions get `-2`, `-3`, … |
 | `city` / `state` / `zip` | `CITY` / `STABBR` / `ZIP` | |
 | `website_url` | `INSTURL` | Normalized with `https://` when missing |
-| `latitude` / `longitude` | `LATITUDE` / `LONGITUDE` | Stored now; near-you feature is post-MVP |
+| `latitude` / `longitude` | `LATITUDE` / `LONGITUDE` | Stored now; near-you feature is later |
 | `is_main_campus` | `MAIN` | `1` = main |
 | `num_branches` | `NUMBRANCH` | |
 
@@ -57,9 +57,9 @@ Scorecard CSV  →  schools_seed.csv  →  one-time DB import (ALL rows, is_acti
 ```
 
 1. **One-time import** loads **all** `data/schools_seed.csv` rows (main + branch) with `is_active=true`.
-2. Branch campuses use the same browse/detail UI as other schools; no special branch-campus UX in MVP.
+2. Branch campuses use the same browse/detail UI as other schools; no special branch-campus UX for now.
 3. Review/deactivate bad or unwanted schools later in CRM/admin tooling — do not filter at import time.
-4. Post-MVP **CRM/admin tooling** is the routine way to add schools later, edit fields, upload logos, activate/deactivate, assign admins, or soft-delete.
+4. **CRM/admin tooling** later becomes the routine way to add schools, edit fields, upload logos, activate/deactivate, assign admins, or soft-delete.
 5. Users **cannot** create schools.
 6. School **names are not unique**; **slugs are unique**.
 7. **`unitid` is optional** in the schema (unique when present). Seeded rows have it; admin/CRM-created schools may omit it.
@@ -76,7 +76,7 @@ schools
   slug            -- unique
   city, state, zip
   website_url
-  logo_url        -- NOT from Scorecard; post-MVP CRM/admin-only upload (PNG/JPG ≤500 MB)
+  logo_url        -- NOT from Scorecard; later CRM/admin-only upload (PNG/JPG ≤500 MB)
   latitude, longitude
   is_main_campus
   num_branches
@@ -84,7 +84,7 @@ schools
   created_at, updated_at, deleted_at
 ```
 
-Logos are **not** in Scorecard and **cannot** be uploaded from the main site. Placeholder in MVP; post-MVP a site admin can set one in the CRM/admin app.
+Logos are **not** in Scorecard and **cannot** be uploaded from the main site. Placeholder for now; later a site admin can set one in the CRM/admin app.
 
 ## One-time import (implemented)
 
@@ -98,7 +98,7 @@ go run ./cmd/seed -csv ../../data/schools_seed.csv
 1. The command inserts **all** rows as `is_active=true` (unique on `unitid` when present and on `slug`).
 2. It is idempotent when the table already contains exactly the seed row count and refuses any other non-empty catalog, preventing an accidental recurring sync.
 3. Local Docker Compose runs it after migrations. Railway production runs it once during bootstrap, without development-user environment variables.
-4. After success, day-to-day changes are post-MVP CRM/admin-tooling only — do not re-run it as a scheduled production job.
+4. After success, day-to-day changes are later CRM/admin-tooling only — do not re-run it as a scheduled production job.
 
 ## Known gaps in this download
 

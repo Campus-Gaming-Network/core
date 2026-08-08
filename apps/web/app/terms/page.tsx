@@ -1,3 +1,12 @@
+import { pageMetadata } from "../../lib/metadata";
+
+export const metadata = pageMetadata({
+  title: "Terms",
+  description:
+    "The terms of service for using Campus Gaming Network.",
+  path: "/terms"
+});
+
 export default function TermsPage() {
   return (
     <main className="narrow">

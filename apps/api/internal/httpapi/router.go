@@ -2,12 +2,15 @@ package httpapi
 
 import (
 	"context"
+	"crypto/subtle"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net"
 	"net/http"
 	"net/url"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"time"
@@ -40,6 +43,7 @@ type Router struct {
 	account      *auth.AccountService
 	limiter      *ratelimit.Limiter
 	sessionStore *auth.SessionRepository
+	catalog      *schools.CachedRepository
 }
 
 func NewRouter(cfg config.Config, pools ...*pgxpool.Pool) http.Handler {
@@ -52,7 +56,13 @@ func NewRouter(cfg config.Config, pools ...*pgxpool.Pool) http.Handler {
 		schoolRepository := schools.NewPostgresRepository(router.db)
 		userRepository := users.NewPostgresRepository(router.db)
 		sessionRepository := auth.NewSessionRepository(router.db)
-		router.schools = schoolRepository
+		// Reads come from the cached catalog; follows are per-user and stay on
+		// Postgres. The refresh loop lives as long as the process, matching the
+		// server it serves.
+		catalog := schools.NewCachedRepository(schoolRepository, slog.Default())
+		go catalog.Start(context.Background(), cfg.CatalogRefresh)
+		router.catalog = catalog
+		router.schools = catalog
 		router.follows = schoolRepository
 		router.games = games.NewPostgresRepository(router.db)
 		router.events = eventstore.NewPostgresRepository(router.db)
@@ -90,6 +100,7 @@ func NewRouter(cfg config.Config, pools ...*pgxpool.Pool) http.Handler {
 	router.mux.HandleFunc("/schools", router.handleSchools)
 	router.mux.HandleFunc("/schools/", router.handleSchoolPath)
 	router.mux.HandleFunc("/games", requireMethod(http.MethodGet, router.handleGames))
+	router.mux.HandleFunc("/internal/schools/refresh", requireMethod(http.MethodPost, router.handleRefreshCatalog))
 	router.mux.HandleFunc("/events", router.handleEvents)
 	router.mux.HandleFunc("/events/", router.handleEventPath)
 	router.mux.HandleFunc("/teams", router.handleTeams)
@@ -120,7 +131,7 @@ func NewRouter(cfg config.Config, pools ...*pgxpool.Pool) http.Handler {
 		)(handler)
 	}
 
-	return withRequestLogging(handler)
+	return withRequestLogging(withPanicRecovery(handler))
 }
 
 func (r *Router) handleRoot(w http.ResponseWriter, req *http.Request) {
@@ -220,6 +231,7 @@ func (r *Router) handleSchools(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	setPublicCatalogCache(w)
 	writeJSON(w, http.StatusOK, map[string]any{
 		"schools": result,
 		"limit":   params.Limit,
@@ -246,7 +258,9 @@ func (r *Router) handleSchoolPath(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 		school, err := r.schools.GetBySlug(req.Context(), slug)
-		if errors.Is(err, pgx.ErrNoRows) {
+		// The cached catalog reports a miss as ErrSchoolNotFound while the
+		// Postgres repository surfaces pgx.ErrNoRows; both mean 404 here.
+		if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, schools.ErrSchoolNotFound) {
 			writeError(w, http.StatusNotFound, "school_not_found")
 			return
 		}
@@ -254,6 +268,7 @@ func (r *Router) handleSchoolPath(w http.ResponseWriter, req *http.Request) {
 			writeError(w, http.StatusInternalServerError, "school_unavailable")
 			return
 		}
+		setPublicCatalogCache(w)
 		writeJSON(w, http.StatusOK, school)
 		return
 	}
@@ -343,6 +358,7 @@ func (r *Router) handleGames(w http.ResponseWriter, req *http.Request) {
 		writeError(w, http.StatusInternalServerError, "games_unavailable")
 		return
 	}
+	setPublicCatalogCache(w)
 	writeJSON(w, http.StatusOK, map[string]any{"games": result})
 }
 
@@ -575,6 +591,54 @@ func withRequestLogging(next http.Handler) http.Handler {
 	})
 }
 
+// withPanicRecovery turns a panicking handler into a JSON 500.
+//
+// net/http already recovers handler panics so the process survives, but it
+// abruptly closes the connection without a response and reports the panic to
+// the server's default logger rather than slog. That leaves the BFF seeing a
+// transport failure instead of an API error, and the panic outside the
+// structured logs.
+func withPanicRecovery(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		defer func() {
+			recovered := recover()
+			if recovered == nil {
+				return
+			}
+			// http.ErrAbortHandler is the documented way to abort a response on
+			// purpose; passing it along preserves that behavior.
+			if err, ok := recovered.(error); ok && errors.Is(err, http.ErrAbortHandler) {
+				panic(recovered)
+			}
+
+			slog.Error("panic recovered",
+				"panic", fmt.Sprint(recovered),
+				"method", req.Method,
+				"path", req.URL.Path,
+				"stack", string(debug.Stack()),
+			)
+			writeError(w, http.StatusInternalServerError, "internal_error")
+		}()
+
+		next.ServeHTTP(w, req)
+	})
+}
+
+// catalogCacheControl marks the school and game catalogs as publicly cacheable.
+//
+// Both change on the order of once or twice a year and carry no viewer-specific
+// fields, so every layer in front of the API — the BFF data cache, Cloudflare,
+// and the browser — can hold them. stale-while-revalidate means a refresh never
+// makes a user wait on a revalidation.
+const catalogCacheControl = "public, max-age=300, stale-while-revalidate=86400"
+
+// setPublicCatalogCache must only be used on responses that do not vary by
+// viewer. Anything reading the session, such as followed schools, must stay
+// uncached.
+func setPublicCatalogCache(w http.ResponseWriter) {
+	w.Header().Set("Cache-Control", catalogCacheControl)
+}
+
 func requireMethod(method string, handler http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		if req.Method != method {
@@ -614,4 +678,31 @@ func looksLikeUUID(value string) bool {
 		}
 	}
 	return true
+}
+
+// handleRefreshCatalog reloads the cached school catalog immediately, so an
+// edit does not have to wait out the refresh interval. Intended for the future
+// CRM and for operator use.
+//
+// Guarded by a shared secret rather than a session, because there is no admin
+// role yet. The endpoint stays disabled unless API_MAINTENANCE_TOKEN is set.
+func (r *Router) handleRefreshCatalog(w http.ResponseWriter, req *http.Request) {
+	if r.catalog == nil || r.cfg.MaintenanceToken == "" {
+		http.NotFound(w, req)
+		return
+	}
+
+	provided := strings.TrimPrefix(req.Header.Get("Authorization"), "Bearer ")
+	if subtle.ConstantTimeCompare([]byte(provided), []byte(r.cfg.MaintenanceToken)) != 1 {
+		writeError(w, http.StatusUnauthorized, "authentication_required")
+		return
+	}
+
+	if err := r.catalog.Refresh(req.Context()); err != nil {
+		slog.Error("catalog refresh failed", "error", err)
+		writeError(w, http.StatusInternalServerError, "catalog_refresh_failed")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]string{"status": "refreshed"})
 }
