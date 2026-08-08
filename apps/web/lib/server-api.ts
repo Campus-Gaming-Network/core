@@ -101,6 +101,7 @@ export async function listGames() {
 export async function listEvents(params: {
   game?: string;
   school?: string;
+  format?: string;
   limit?: number;
   offset?: number;
 }) {
@@ -111,6 +112,9 @@ export async function listEvents(params: {
   }
   if (params.school) {
     query.set("school", params.school);
+  }
+  if (params.format) {
+    query.set("format", params.format);
   }
   if (params.limit) {
     query.set("limit", String(params.limit));

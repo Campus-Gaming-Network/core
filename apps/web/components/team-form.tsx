@@ -2,7 +2,6 @@
 
 import { Alert } from "@heroui/react/alert";
 import { Button } from "@heroui/react/button";
-import { Checkbox } from "@heroui/react/checkbox";
 import { Fieldset } from "@heroui/react/fieldset";
 import { Input } from "@heroui/react/input";
 import { ListBox } from "@heroui/react/list-box";
@@ -54,7 +53,12 @@ export function TeamForm({
 
       <label>
         School link
-        <Select fullWidth name="school_id" defaultSelectedKey={defaultSchoolID ?? ""}>
+        <Select
+          fullWidth
+          name="school_id"
+          defaultSelectedKey={defaultSchoolID ?? ""}
+          aria-label="School link"
+        >
           <Select.Trigger>
             <Select.Value />
             <Select.Indicator />
@@ -85,9 +89,10 @@ export function TeamForm({
       <Fieldset>
         <Fieldset.Legend>Games</Fieldset.Legend>
         {games.map((game) => (
-          <Checkbox key={game.id} name="game_ids" value={game.id}>
+          <label className="checkbox-field" key={game.id}>
+            <input type="checkbox" name="game_ids" value={game.id} />
             {game.name}
-          </Checkbox>
+          </label>
         ))}
       </Fieldset>
 

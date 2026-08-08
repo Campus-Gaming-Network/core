@@ -43,6 +43,10 @@ const (
 	RSVPYes   = "yes"
 	RSVPMaybe = "maybe"
 	RSVPNo    = "no"
+
+	RecurrenceWeekly   = "weekly"
+	RecurrenceBiweekly = "biweekly"
+	RecurrenceMonthly  = "monthly"
 )
 
 type Event struct {
@@ -62,6 +66,8 @@ type Event struct {
 	RSVPYesCount     int           `json:"rsvp_yes_count"`
 	InterestCount    int           `json:"interest_count"`
 	Lifecycle        string        `json:"lifecycle"`
+	RecurrenceRule   string        `json:"recurrence_rule,omitempty"`
+	RecurrenceUntil  *time.Time    `json:"recurrence_until,omitempty"`
 	IsPaid           bool          `json:"is_paid"`
 	PaymentNote      string        `json:"payment_note,omitempty"`
 	PaymentURL       string        `json:"payment_url,omitempty"`
@@ -95,6 +101,7 @@ type GameSummary struct {
 type ListParams struct {
 	GameSlug   string
 	SchoolSlug string
+	Format     string
 	Limit      int
 	Offset     int
 }
@@ -118,6 +125,8 @@ type CreateInput struct {
 	IsPaid          bool
 	PaymentNote     string
 	PaymentURL      string
+	RecurrenceRule  string
+	RecurrenceUntil time.Time
 }
 
 type CreateParams struct {
@@ -172,6 +181,7 @@ type Repository interface {
 	IsInterested(ctx context.Context, slug string, userID string) (bool, error)
 	ListUpcomingRSVPs(ctx context.Context, userID string, limit int) ([]Event, error)
 	ListFollowedSchoolEvents(ctx context.Context, userID string, limit int) ([]Event, error)
+	ListRSVPRecipients(ctx context.Context, slug string) ([]string, error)
 	ListPublic(ctx context.Context, params ListParams) ([]Event, error)
 	GetBySlug(ctx context.Context, slug string) (Event, error)
 }
@@ -191,6 +201,10 @@ func NewPostgresRepository(pool *pgxpool.Pool) *PostgresRepository {
 func NormalizeListParams(params ListParams) ListParams {
 	params.GameSlug = strings.TrimSpace(params.GameSlug)
 	params.SchoolSlug = strings.TrimSpace(params.SchoolSlug)
+	params.Format = strings.TrimSpace(params.Format)
+	if params.Format != "" && params.Format != FormatOnline && params.Format != FormatInPerson && params.Format != FormatHybrid {
+		params.Format = ""
+	}
 	if params.Limit < 1 || params.Limit > 100 {
 		params.Limit = 25
 	}
@@ -310,6 +324,16 @@ func validateEventFields(input CreateInput, requirePrivatePassword bool) error {
 	if input.Capacity != nil && *input.Capacity < 1 {
 		return errors.New("capacity must be positive when set")
 	}
+	if input.RecurrenceRule != "" {
+		if !validRecurrenceRule(input.RecurrenceRule) || input.RecurrenceUntil.IsZero() || !input.RecurrenceUntil.After(input.EndsAt) {
+			return errors.New("recurrence must have a valid rule and end date after the event")
+		}
+		if input.RecurrenceUntil.After(input.StartsAt.AddDate(1, 0, 0)) {
+			return errors.New("recurrence cannot extend more than one year")
+		}
+	} else if !input.RecurrenceUntil.IsZero() {
+		return errors.New("recurrence end date requires a recurrence rule")
+	}
 	if len(input.PaymentNote) > 1000 {
 		return errors.New("payment note must be 1,000 characters or fewer")
 	}
@@ -399,7 +423,13 @@ func (r *PostgresRepository) Create(ctx context.Context, params CreateParams) (E
 			slug = fmt.Sprintf("%s-%d", baseSlug, attempt+1)
 		}
 
-		createdSlug, err := r.createWithSlug(ctx, params, slug)
+		var createdSlug string
+		var err error
+		if params.RecurrenceRule == "" {
+			createdSlug, err = r.createWithSlug(ctx, params, slug)
+		} else {
+			createdSlug, err = r.createSeriesWithSlug(ctx, params, slug)
+		}
 		if errors.Is(err, ErrSlugUnavailable) {
 			continue
 		}
@@ -873,6 +903,39 @@ func (r *PostgresRepository) ListFollowedSchoolEvents(ctx context.Context, userI
 	return events, nil
 }
 
+func (r *PostgresRepository) ListRSVPRecipients(ctx context.Context, slug string) ([]string, error) {
+	rows, err := r.pool.Query(ctx, `
+		SELECT u.email::text
+		FROM events e
+		JOIN event_rsvps r ON r.event_id = e.id
+		JOIN users u ON u.id = r.user_id
+		WHERE e.slug = $1
+		  AND e.deleted_at IS NULL
+		  AND r.deleted_at IS NULL
+		  AND r.response IN ('yes', 'maybe')
+		  AND u.deleted_at IS NULL
+		  AND u.account_status = 'active'
+		ORDER BY u.email
+	`, strings.TrimSpace(slug))
+	if err != nil {
+		return nil, fmt.Errorf("list event cancellation recipients: %w", err)
+	}
+	defer rows.Close()
+
+	recipients := []string{}
+	for rows.Next() {
+		var email string
+		if err := rows.Scan(&email); err != nil {
+			return nil, fmt.Errorf("scan event cancellation recipient: %w", err)
+		}
+		recipients = append(recipients, email)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate event cancellation recipients: %w", err)
+	}
+	return recipients, nil
+}
+
 func (r *PostgresRepository) ListPublic(ctx context.Context, params ListParams) ([]Event, error) {
 	params = NormalizeListParams(params)
 	rows, err := r.pool.Query(ctx, eventSelectSQL(`
@@ -887,10 +950,11 @@ func (r *PostgresRepository) ListPublic(ctx context.Context, params ListParams) 
 			  AND filter_g.deleted_at IS NULL
 		))
 		AND ($2 = '' OR s.slug = $2)
+		AND ($3 = '' OR e.format = $3)
 	`, `
 		ORDER BY e.starts_at, e.id
-		LIMIT $3 OFFSET $4
-	`), params.GameSlug, params.SchoolSlug, params.Limit, params.Offset)
+		LIMIT $4 OFFSET $5
+	`), params.GameSlug, params.SchoolSlug, params.Format, params.Limit, params.Offset)
 	if err != nil {
 		return nil, fmt.Errorf("list events: %w", err)
 	}
@@ -930,11 +994,13 @@ func (r *PostgresRepository) createWithSlug(ctx context.Context, params CreatePa
 		INSERT INTO events (
 			creator_user_id, host_school_id, title, slug, description, visibility,
 			format, starts_at, ends_at, timezone, location_name, address, online_url,
-			private_password_hash, capacity, is_paid, payment_note, payment_url
+			private_password_hash, capacity, is_paid, payment_note, payment_url,
+			recurrence_rule, recurrence_until
 		)
 		SELECT $1::uuid, s.id, $3, $4, $5, $6, $7, $8, $9, $10,
 		       NULLIF($11, ''), NULLIF($12, ''), NULLIF($13, ''),
-		       NULLIF($14, ''), $15, $16, NULLIF($17, ''), NULLIF($18, '')
+		       NULLIF($14, ''), $15, $16, NULLIF($17, ''), NULLIF($18, ''),
+		       NULLIF($19, ''), $20
 		FROM schools s
 		WHERE s.id = $2::uuid
 		  AND s.deleted_at IS NULL
@@ -944,7 +1010,8 @@ func (r *PostgresRepository) createWithSlug(ctx context.Context, params CreatePa
 	`, params.CreatorUserID, params.HostSchoolID, params.Title, slug, params.Description,
 		params.Visibility, params.Format, params.StartsAt, params.EndsAt, params.Timezone,
 		params.LocationName, params.Address, params.OnlineURL, params.PrivatePasswordHash,
-		nullableInt(params.Capacity), params.IsPaid, params.PaymentNote, params.PaymentURL).Scan(&eventID)
+		nullableInt(params.Capacity), params.IsPaid, params.PaymentNote, params.PaymentURL,
+		params.RecurrenceRule, nullableTime(params.RecurrenceUntil)).Scan(&eventID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return "", r.createNoRowsError(ctx, tx, params.HostSchoolID)
 	}
@@ -973,6 +1040,119 @@ func (r *PostgresRepository) createWithSlug(ctx context.Context, params CreatePa
 	return slug, nil
 }
 
+func (r *PostgresRepository) createSeriesWithSlug(ctx context.Context, params CreateParams, slug string) (string, error) {
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return "", fmt.Errorf("begin recurring event create: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	rootID, err := insertRecurringOccurrence(ctx, tx, params, slug, params.StartsAt, params.EndsAt, "")
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", r.createNoRowsError(ctx, tx, params.HostSchoolID)
+	}
+	if err != nil {
+		return "", err
+	}
+	if err := insertEventAssociations(ctx, tx, rootID, params); err != nil {
+		return "", err
+	}
+
+	start := params.StartsAt
+	end := params.EndsAt
+	occurrence := 2
+	for {
+		start, end = nextOccurrence(params.RecurrenceRule, start, end)
+		if start.After(params.RecurrenceUntil) {
+			break
+		}
+		childSlug := fmt.Sprintf("%s-%d", GenerateSlug(params.Title, params.CreatorUserID, start), occurrence)
+		childID, err := insertRecurringOccurrence(ctx, tx, params, childSlug, start, end, rootID)
+		if err != nil {
+			return "", err
+		}
+		if err := insertEventAssociations(ctx, tx, childID, params); err != nil {
+			return "", err
+		}
+		occurrence++
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return "", fmt.Errorf("commit recurring event create: %w", err)
+	}
+	return slug, nil
+}
+
+func insertRecurringOccurrence(ctx context.Context, tx pgx.Tx, params CreateParams, slug string, startsAt time.Time, endsAt time.Time, parentID string) (string, error) {
+	var eventID string
+	err := tx.QueryRow(ctx, `
+		INSERT INTO events (
+			creator_user_id, host_school_id, title, slug, description, visibility,
+			format, starts_at, ends_at, timezone, location_name, address, online_url,
+			private_password_hash, capacity, is_paid, payment_note, payment_url,
+			recurrence_rule, recurrence_until, recurrence_parent_id
+		)
+		SELECT $1::uuid, s.id, $3, $4, $5, $6, $7, $8, $9, $10,
+		       NULLIF($11, ''), NULLIF($12, ''), NULLIF($13, ''),
+		       NULLIF($14, ''), $15, $16, NULLIF($17, ''), NULLIF($18, ''),
+		       NULLIF($19, ''), $20, NULLIF($21, '')::uuid
+		FROM schools s
+		WHERE s.id = $2::uuid
+		  AND s.deleted_at IS NULL
+		  AND s.is_active = TRUE
+		ON CONFLICT (slug) DO NOTHING
+		RETURNING id::text
+	`, params.CreatorUserID, params.HostSchoolID, params.Title, slug, params.Description,
+		params.Visibility, params.Format, startsAt, endsAt, params.Timezone,
+		params.LocationName, params.Address, params.OnlineURL, params.PrivatePasswordHash,
+		nullableInt(params.Capacity), params.IsPaid, params.PaymentNote, params.PaymentURL,
+		params.RecurrenceRule, nullableTime(params.RecurrenceUntil), parentID).Scan(&eventID)
+	if err != nil {
+		return "", fmt.Errorf("insert recurring event occurrence: %w", err)
+	}
+	return eventID, nil
+}
+
+func insertEventAssociations(ctx context.Context, tx pgx.Tx, eventID string, params CreateParams) error {
+	if _, err := tx.Exec(ctx, `
+		INSERT INTO event_organizers (event_id, user_id, role)
+		VALUES ($1::uuid, $2::uuid, 'creator')
+	`, eventID, params.CreatorUserID); err != nil {
+		return fmt.Errorf("insert event organizer: %w", err)
+	}
+	insertedGameCount, err := insertEventGames(ctx, tx, eventID, params.GameIDs)
+	if err != nil {
+		return err
+	}
+	if insertedGameCount != len(params.GameIDs) {
+		return ErrGameNotFound
+	}
+	return nil
+}
+
+func nextOccurrence(rule string, startsAt time.Time, endsAt time.Time) (time.Time, time.Time) {
+	var nextStart time.Time
+	switch rule {
+	case RecurrenceBiweekly:
+		nextStart = startsAt.AddDate(0, 0, 14)
+	case RecurrenceMonthly:
+		nextStart = addMonthClamped(startsAt)
+	default:
+		nextStart = startsAt.AddDate(0, 0, 7)
+	}
+	return nextStart, nextStart.Add(endsAt.Sub(startsAt))
+}
+
+func addMonthClamped(value time.Time) time.Time {
+	year, month, day := value.Date()
+	nextMonth := time.Date(year, month+1, 1, value.Hour(), value.Minute(), value.Second(), value.Nanosecond(), value.Location())
+	lastDay := nextMonth.AddDate(0, 1, -1).Day()
+	if day > lastDay {
+		day = lastDay
+	}
+	return time.Date(nextMonth.Year(), nextMonth.Month(), day, value.Hour(), value.Minute(), value.Second(), value.Nanosecond(), value.Location())
+}
+
 type eventScanner interface {
 	Scan(dest ...any) error
 }
@@ -989,6 +1169,8 @@ func scanEvent(scanner eventScanner, now time.Time) (Event, error) {
 	var onlineURL sql.NullString
 	var paymentNote sql.NullString
 	var paymentURL sql.NullString
+	var recurrenceRule sql.NullString
+	var recurrenceUntil sql.NullTime
 	var gameIDs []string
 	var gameNames []string
 	var gameSlugs []string
@@ -1010,6 +1192,8 @@ func scanEvent(scanner eventScanner, now time.Time) (Event, error) {
 		&event.IsPaid,
 		&paymentNote,
 		&paymentURL,
+		&recurrenceRule,
+		&recurrenceUntil,
 		&event.HostSchool.ID,
 		&event.HostSchool.Name,
 		&event.HostSchool.Slug,
@@ -1044,6 +1228,13 @@ func scanEvent(scanner eventScanner, now time.Time) (Event, error) {
 	if paymentURL.Valid {
 		event.PaymentURL = paymentURL.String
 	}
+	if recurrenceRule.Valid {
+		event.RecurrenceRule = recurrenceRule.String
+	}
+	if recurrenceUntil.Valid {
+		value := recurrenceUntil.Time
+		event.RecurrenceUntil = &value
+	}
 
 	event.Games = make([]GameSummary, 0, len(gameIDs))
 	for index := range gameIDs {
@@ -1066,6 +1257,8 @@ func scanEventForUser(scanner eventScanner, now time.Time) (Event, error) {
 	var onlineURL sql.NullString
 	var paymentNote sql.NullString
 	var paymentURL sql.NullString
+	var recurrenceRule sql.NullString
+	var recurrenceUntil sql.NullTime
 	var viewerRSVP sql.NullString
 	var gameIDs []string
 	var gameNames []string
@@ -1088,6 +1281,8 @@ func scanEventForUser(scanner eventScanner, now time.Time) (Event, error) {
 		&event.IsPaid,
 		&paymentNote,
 		&paymentURL,
+		&recurrenceRule,
+		&recurrenceUntil,
 		&event.HostSchool.ID,
 		&event.HostSchool.Name,
 		&event.HostSchool.Slug,
@@ -1124,6 +1319,13 @@ func scanEventForUser(scanner eventScanner, now time.Time) (Event, error) {
 	if paymentURL.Valid {
 		event.PaymentURL = paymentURL.String
 	}
+	if recurrenceRule.Valid {
+		event.RecurrenceRule = recurrenceRule.String
+	}
+	if recurrenceUntil.Valid {
+		value := recurrenceUntil.Time
+		event.RecurrenceUntil = &value
+	}
 	if viewerRSVP.Valid {
 		event.ViewerRSVP = &viewerRSVP.String
 	}
@@ -1147,6 +1349,7 @@ func eventSelectSQL(whereClause string, tailClause string) string {
 		       e.format, e.starts_at, e.ends_at, e.timezone,
 		       e.location_name, e.address, e.online_url, e.capacity, e.is_paid,
 		       e.payment_note, e.payment_url,
+		       e.recurrence_rule, e.recurrence_until,
 		       s.id::text, s.name, s.slug, COALESCE(s.city, ''), COALESCE(s.state, ''),
 		       COALESCE(yes_counts.yes_count, 0)::int,
 		       COALESCE(interest_counts.interest_count, 0)::int,
@@ -1183,7 +1386,7 @@ func eventSelectSQL(whereClause string, tailClause string) string {
 		GROUP BY e.id, e.title, e.slug, e.description, e.visibility,
 		         e.format, e.starts_at, e.ends_at, e.timezone,
 		         e.location_name, e.address, e.online_url, e.capacity, e.is_paid,
-		         e.payment_note, e.payment_url,
+		         e.payment_note, e.payment_url, e.recurrence_rule, e.recurrence_until,
 		         s.id, s.name, s.slug, s.city, s.state, yes_counts.yes_count,
 		         interest_counts.interest_count
 	` + tailClause
@@ -1195,6 +1398,7 @@ func eventSelectForUserSQL(whereClause string, tailClause string) string {
 		       e.format, e.starts_at, e.ends_at, e.timezone,
 		       e.location_name, e.address, e.online_url, e.capacity, e.is_paid,
 		       e.payment_note, e.payment_url,
+		       e.recurrence_rule, e.recurrence_until,
 		       s.id::text, s.name, s.slug, COALESCE(s.city, ''), COALESCE(s.state, ''),
 		       COALESCE(yes_counts.yes_count, 0)::int,
 		       COALESCE(interest_counts.interest_count, 0)::int,
@@ -1239,7 +1443,7 @@ func eventSelectForUserSQL(whereClause string, tailClause string) string {
 		GROUP BY e.id, e.title, e.slug, e.description, e.visibility,
 		         e.format, e.starts_at, e.ends_at, e.timezone,
 		         e.location_name, e.address, e.online_url, e.capacity, e.is_paid,
-		         e.payment_note, e.payment_url,
+		         e.payment_note, e.payment_url, e.recurrence_rule, e.recurrence_until,
 		         s.id, s.name, s.slug, s.city, s.state, yes_counts.yes_count,
 		         interest_counts.interest_count, viewer_rsvp.response,
 		         viewer_interest.user_id
@@ -1252,6 +1456,10 @@ func validVisibility(value string) bool {
 
 func validFormat(value string) bool {
 	return value == FormatOnline || value == FormatInPerson || value == FormatHybrid
+}
+
+func validRecurrenceRule(value string) bool {
+	return value == RecurrenceWeekly || value == RecurrenceBiweekly || value == RecurrenceMonthly
 }
 
 func validRSVPResponse(value string) bool {
@@ -1378,6 +1586,7 @@ func normalizeCreateParams(params CreateParams) CreateParams {
 	params.PrivatePasswordHash = strings.TrimSpace(params.PrivatePasswordHash)
 	params.PaymentNote = strings.TrimSpace(params.PaymentNote)
 	params.PaymentURL = strings.TrimSpace(params.PaymentURL)
+	params.RecurrenceRule = strings.TrimSpace(params.RecurrenceRule)
 	return params
 }
 
@@ -1437,4 +1646,11 @@ func nullableInt(value *int) any {
 		return nil
 	}
 	return *value
+}
+
+func nullableTime(value time.Time) any {
+	if value.IsZero() {
+		return nil
+	}
+	return value
 }

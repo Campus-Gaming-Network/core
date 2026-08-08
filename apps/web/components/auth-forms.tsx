@@ -2,7 +2,6 @@
 
 import { Alert } from "@heroui/react/alert";
 import { Button } from "@heroui/react/button";
-import { Checkbox } from "@heroui/react/checkbox";
 import { Input } from "@heroui/react/input";
 import { ListBox } from "@heroui/react/list-box";
 import { Select } from "@heroui/react/select";
@@ -64,6 +63,7 @@ export function SignupForm({ schools, selectedSchoolId }: SignupFormProps) {
           fullWidth
           name="home_school_id"
           defaultSelectedKey={selectedSchoolId || ""}
+          aria-label="Home school"
           isRequired
         >
           <Select.Trigger>
@@ -92,9 +92,10 @@ export function SignupForm({ schools, selectedSchoolId }: SignupFormProps) {
           </Select.Popover>
         </Select>
       </label>
-      <Checkbox name="age_confirmed" isRequired>
+      <label className="checkbox-field">
+        <input type="checkbox" name="age_confirmed" required />
         <span>I confirm I am 18 or older.</span>
-      </Checkbox>
+      </label>
       <Button type="submit" isDisabled={pending}>
         {pending ? "Creating account..." : "Create account"}
       </Button>

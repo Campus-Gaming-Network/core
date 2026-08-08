@@ -46,3 +46,16 @@ func TestEventURLTrimsTrailingSlash(t *testing.T) {
 		t.Fatalf("eventURL() = %q", got)
 	}
 }
+
+func TestEventCancellationHTMLEscapesDetails(t *testing.T) {
+	html := eventCancellationHTML(
+		Event{Title: "Smash <Night>"},
+		"https://campusgamingnetwork.com/events/smash-night",
+	)
+	if strings.Contains(html, "<Night>") || !strings.Contains(html, "Smash &lt;Night&gt;") {
+		t.Fatalf("cancellation HTML = %q, want escaped title", html)
+	}
+	if !strings.Contains(html, "Event cancelled") || strings.Contains(html, "You're going to") {
+		t.Fatalf("cancellation HTML = %q, want cancellation copy", html)
+	}
+}

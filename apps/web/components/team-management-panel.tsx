@@ -61,6 +61,7 @@ export function TeamManagementPanel({ team }: TeamManagementPanelProps) {
                 fullWidth
                 name="new_owner_user_id"
                 defaultSelectedKey={manageableMembers[0]?.user_id}
+                aria-label="New owner"
                 isRequired
               >
                 <Select.Trigger>

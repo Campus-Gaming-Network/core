@@ -13,10 +13,12 @@ import {
   isLockedEvent,
   parseSetCookie,
   publicProfileHomeSchool,
+  recurrenceRuleLabel,
   schoolLocation,
   teamRoleLabel,
   userInitials,
   userMessageForApiError,
+  verificationLabel,
   type Fetcher
 } from "../lib/cgn-api.js";
 
@@ -122,16 +124,24 @@ test("userMessageForApiError maps known backend errors", () => {
     "That event password did not match."
   );
   assert.equal(
-    userMessageForApiError(new ApiError(500, "event_unlock_failed")),
-    "We could not unlock that event. Please try again."
-  );
-  assert.equal(
     userMessageForApiError(new ApiError(409, "event_full")),
     "That event is full."
   );
   assert.equal(
+    userMessageForApiError(new ApiError(409, "event_rsvp_closed")),
+    "RSVPs are closed for that event."
+  );
+  assert.equal(
+    userMessageForApiError(new ApiError(500, "event_rsvp_failed")),
+    "We could not save your RSVP. Please try again."
+  );
+  assert.equal(
     userMessageForApiError(new ApiError(403, "private_event_locked")),
     "Unlock that private event before RSVPing."
+  );
+  assert.equal(
+    userMessageForApiError(new ApiError(500, "event_unlock_failed")),
+    "We could not unlock that event. Please try again."
   );
   assert.equal(
     userMessageForApiError(new ApiError(500, "event_rsvp_email_failed")),
@@ -265,6 +275,20 @@ test("team helpers format member roles", () => {
   assert.equal(teamRoleLabel("owner"), "Owner");
   assert.equal(teamRoleLabel("captain"), "Captain");
   assert.equal(teamRoleLabel("member"), "Member");
+});
+
+test("verificationLabel turns internal levels into trust labels", () => {
+  assert.equal(verificationLabel("basic"), "Community member");
+  assert.equal(verificationLabel("verified"), "Verified student");
+  assert.equal(verificationLabel("staff_faculty"), "Staff / faculty");
+  assert.equal(verificationLabel("unknown"), "Community member");
+});
+
+test("recurrenceRuleLabel formats supported recurrence rules", () => {
+  assert.equal(recurrenceRuleLabel("weekly"), "Weekly");
+  assert.equal(recurrenceRuleLabel("biweekly"), "Every two weeks");
+  assert.equal(recurrenceRuleLabel("monthly"), "Monthly");
+  assert.equal(recurrenceRuleLabel("unknown"), "Recurring");
 });
 
 test("isLockedEvent detects private locked shell responses", () => {

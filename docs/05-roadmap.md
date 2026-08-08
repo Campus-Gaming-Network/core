@@ -83,6 +83,27 @@ Phased delivery for a single developer. Each phase should be shippable. Do not p
 
 **Exit:** Student joins a team via password and sees a useful dashboard.
 
+## Phase 3.5 — Product readiness and engagement
+
+**Goal:** Make the existing events-and-teams product polished, trustworthy, and
+reliable enough for real users before expanding into clubs and tournaments.
+
+- Frontend regression coverage for signup, event creation, RSVP, team joining, and dashboard flows
+- Mobile and accessibility pass on primary journeys
+- Reviewed Terms and Privacy content
+- Sentry/error monitoring and basic product analytics
+- Recurring events
+- Cancellation notifications to RSVPs
+- Stronger event discovery filters
+- `.edu` verified-student badge UX
+- School admin/faculty role indicators and event organizer badges
+- Basic profanity/content filtering
+- Lightweight moderation and operations tools for reports and support tickets
+
+**Exit:** A real user can discover an event, participate in it, join a team, and
+receive trustworthy product feedback and notifications without the main flows
+feeling unfinished.
+
 ## Phase 4 — CRM/admin app (TanStack Start, separate later release)
 
 **Goal:** After the first release, operators manage the catalog without SQL. Deploy to `crm.campusgamingnetwork.com`.

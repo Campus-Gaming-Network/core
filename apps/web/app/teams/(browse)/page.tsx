@@ -57,7 +57,12 @@ export default async function TeamsPage({ searchParams }: PageProps) {
       <form action="/teams" className="search-bar">
         <label>
           Game
-          <Select fullWidth name="game" defaultSelectedKey={game}>
+          <Select
+            fullWidth
+            name="game"
+            defaultSelectedKey={game}
+            aria-label="Filter teams by game"
+          >
             <Select.Trigger>
               <Select.Value />
               <Select.Indicator />

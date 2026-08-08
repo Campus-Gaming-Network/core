@@ -29,11 +29,12 @@ export default async function EventsPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const game = param(params.game);
   const school = param(params.school);
+  const format = param(params.format);
   const notice = param(params.event);
   const [profile, games, result] = await Promise.all([
     currentProfile(),
     listGames().catch(() => []),
-    listEvents({ game, school, limit: 25 }).catch(() => ({
+    listEvents({ game, school, format, limit: 25 }).catch(() => ({
       events: [],
       limit: 25,
       offset: 0
@@ -67,7 +68,12 @@ export default async function EventsPage({ searchParams }: PageProps) {
       <form action="/events" className="search-bar">
         <label>
           Game
-          <Select fullWidth name="game" defaultSelectedKey={game}>
+          <Select
+            fullWidth
+            name="game"
+            defaultSelectedKey={game}
+            aria-label="Filter events by game"
+          >
             <Select.Trigger>
               <Select.Value />
               <Select.Indicator />
@@ -95,6 +101,28 @@ export default async function EventsPage({ searchParams }: PageProps) {
             defaultValue={school}
             placeholder="university-of-california-irvine"
           />
+        </label>
+        <label>
+          Format
+          <Select
+            fullWidth
+            name="format"
+            defaultSelectedKey={format}
+            aria-label="Filter events by format"
+          >
+            <Select.Trigger>
+              <Select.Value />
+              <Select.Indicator />
+            </Select.Trigger>
+            <Select.Popover>
+              <ListBox>
+                <ListBox.Item id="" textValue="All formats">All formats</ListBox.Item>
+                <ListBox.Item id="online" textValue="Online">Online</ListBox.Item>
+                <ListBox.Item id="in_person" textValue="In person">In person</ListBox.Item>
+                <ListBox.Item id="hybrid" textValue="Hybrid">Hybrid</ListBox.Item>
+              </ListBox>
+            </Select.Popover>
+          </Select>
         </label>
         <Button type="submit">Filter</Button>
       </form>
@@ -130,7 +158,9 @@ export default async function EventsPage({ searchParams }: PageProps) {
 
 function EventNotice({ status }: { status: string }) {
   const messages: Record<string, string> = {
-    deleted: "Event deleted.",
+    cancelled: "Event cancelled.",
+    "cancel-failed": "We could not cancel that event. Please try again.",
+    deleted: "Event cancelled.",
     failed: "We could not update that event. Please try again."
   };
 

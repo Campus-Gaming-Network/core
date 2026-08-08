@@ -2,7 +2,6 @@
 
 import { Alert } from "@heroui/react/alert";
 import { Button } from "@heroui/react/button";
-import { Checkbox } from "@heroui/react/checkbox";
 import { Fieldset } from "@heroui/react/fieldset";
 import { Input } from "@heroui/react/input";
 import { ListBox } from "@heroui/react/list-box";
@@ -81,6 +80,7 @@ export function EventForm({
             fullWidth
             name="visibility"
             defaultSelectedKey={event?.visibility ?? "public"}
+            aria-label="Visibility"
             isRequired
           >
             <Select.Trigger>
@@ -102,6 +102,7 @@ export function EventForm({
             fullWidth
             name="format"
             defaultSelectedKey={event?.format ?? "in_person"}
+            aria-label="Format"
             isRequired
           >
             <Select.Trigger>
@@ -153,6 +154,42 @@ export function EventForm({
             required
           />
         </label>
+        <div className="split-fields">
+          <label>
+            Repeat
+            <Select
+              fullWidth
+              name="recurrence_rule"
+              defaultSelectedKey={event?.recurrence_rule ?? ""}
+              aria-label="Repeat event"
+            >
+              <Select.Trigger>
+                <Select.Value />
+                <Select.Indicator />
+              </Select.Trigger>
+              <Select.Popover>
+                <ListBox>
+                  <ListBox.Item id="" textValue="Does not repeat">Does not repeat</ListBox.Item>
+                  <ListBox.Item id="weekly" textValue="Weekly">Weekly</ListBox.Item>
+                  <ListBox.Item id="biweekly" textValue="Every two weeks">Every two weeks</ListBox.Item>
+                  <ListBox.Item id="monthly" textValue="Monthly">Monthly</ListBox.Item>
+                </ListBox>
+              </Select.Popover>
+            </Select>
+          </label>
+          <label>
+            Repeat until
+            <Input
+              name="recurrence_until"
+              defaultValue={event?.recurrence_until?.slice(0, 10) ?? ""}
+              type="date"
+            />
+          </label>
+        </div>
+        <p className="form-help">
+          Recurring events create independent occurrences. Each occurrence can
+          be RSVP’d to or cancelled separately.
+        </p>
       </Fieldset>
 
       <Fieldset>
@@ -163,6 +200,7 @@ export function EventForm({
             fullWidth
             name="host_school_id"
             defaultSelectedKey={selectedSchoolID}
+            aria-label="Host school"
             isRequired
           >
             <Select.Trigger>
@@ -269,9 +307,14 @@ export function EventForm({
             }
           />
         </label>
-        <Checkbox name="is_paid" defaultSelected={event?.is_paid}>
+        <label className="checkbox-field">
+          <input
+            type="checkbox"
+            name="is_paid"
+            defaultChecked={event?.is_paid}
+          />
           <span>This event has off-site payment instructions.</span>
-        </Checkbox>
+        </label>
         <label>
           Payment note
           <TextArea
