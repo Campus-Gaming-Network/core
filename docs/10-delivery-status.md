@@ -4,7 +4,17 @@ Status tracker for Campus Gaming Network. Locked product decisions live in the o
 
 Work is grouped **Now** (building toward the first public release), **Next** (planned immediately after), and **Later** (planned, not yet scheduled). Nothing here is written off — Later means "not scheduled yet", not "out of scope".
 
-**Currently remaining in Now:** provision Railway/Cloudflare, configure secrets and backups, run staging rehearsal, and complete the production smoke test for `campusgamingnetwork.com`. Repository deployment configuration is implemented.
+**Current focus:** continue feature development, product refinement, regression coverage, and production-readiness hardening. Deployment and external environment setup are intentionally deferred until the product plan is refreshed.
+
+**Active milestone:** make the existing events-and-teams product polished and reliable enough for real users.
+
+**Priority order:**
+
+1. Quality pass on current user journeys: signup, event creation, RSVP, team joining, and dashboard.
+2. Event lifecycle improvements: recurring events, cancellation notifications, and stronger discovery filters.
+3. Trust and identity: `.edu` verification badges, school role indicators, organizer badges, and basic content filtering.
+4. Lightweight moderation and operations: reports/support queue, deactivation tools, audit history, and notifications.
+5. Clubs and tournaments after the current event loop has been validated with real users.
 
 **First release slice:** auth → home school on signup → schools search/follow → events + curated games → teams → dashboard.
 
@@ -137,6 +147,18 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 - [ ] Profanity filter scope (or explicitly defer)
 - [ ] Frontend regression test coverage for pages, components, and server actions
 - [ ] Open Graph share image, favicon, `robots.txt`, and `sitemap.xml`
+
+### Active product milestone
+- [ ] Complete frontend regression coverage for signup, event creation, RSVP, team joining, and dashboard flows
+- [ ] Complete mobile and accessibility pass on the primary journeys
+- [ ] Replace placeholder Terms and Privacy content with reviewed content
+- [ ] Add recurring events
+- [ ] Add cancellation notifications to RSVPs
+- [ ] Improve event discovery filters
+- [ ] Add `.edu` verified-student badge UX
+- [ ] Add school admin/faculty role indicators
+- [ ] Add event organizer badges
+- [ ] Define and apply basic profanity/content filtering
 
 ---
 

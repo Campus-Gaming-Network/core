@@ -12,25 +12,30 @@ The first-release product is implemented locally: authentication, profiles,
 schools, launch games, events, teams, dashboard, support, and baseline safety
 intake are in place.
 
-Repository deployment configuration is also implemented. The remaining launch
-work is external environment setup and rehearsal.
+Repository deployment configuration is implemented, but deployment and external
+environment setup are intentionally deferred while product work continues.
 
 ## Current milestone
 
-Complete the staging rehearsal and production rollout for
-`campusgamingnetwork.com`.
+Make the existing events-and-teams product polished and reliable enough for
+real users. Deployment planning and external environment setup will be
+revisited later.
 
 ## Next three tasks
 
-1. Provision Railway staging and production environments.
-2. Configure Cloudflare DNS, production secrets, email, and database backups.
-3. Run the documented staging rehearsal, then the production smoke test.
+1. Complete a quality pass on signup, event creation, RSVP, team joining, and
+   dashboard flows, including frontend regression coverage, mobile/accessibility
+   fixes, and replacement of placeholder legal content.
+2. Improve the event lifecycle with recurring events, cancellation notifications,
+   and stronger discovery filters.
+3. Add trust and identity features: `.edu` verification badges, school
+   admin/faculty indicators, organizer badges, and basic content filtering.
 
 ## Blockers and decisions
 
-- Launch work requires access to Railway, Cloudflare, Resend, and the production
-  domain.
-- No major product decisions currently block the launch rehearsal.
+- Deployment work is intentionally deferred and is not currently a blocker.
+- Clubs and tournaments remain later expansion work until the current event loop
+  is polished and exercised by real users.
 - Product and technical questions that are intentionally unresolved are tracked
   in [08 — Open questions](./08-open-questions.md).
 
