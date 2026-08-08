@@ -11,6 +11,7 @@ import (
 	"time"
 	_ "time/tzdata"
 
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/safety"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -30,6 +31,7 @@ type Profile struct {
 	HomeSchoolID      string       `json:"home_school_id"`
 	HomeSchool        *HomeSchool  `json:"home_school,omitempty"`
 	SocialLinks       []SocialLink `json:"social_links,omitempty"`
+	RoleIndicators    []string     `json:"role_indicators,omitempty"`
 }
 
 type PublicProfile struct {
@@ -41,6 +43,7 @@ type PublicProfile struct {
 	HomeSchoolID      string       `json:"home_school_id"`
 	HomeSchool        *HomeSchool  `json:"home_school,omitempty"`
 	SocialLinks       []SocialLink `json:"social_links,omitempty"`
+	RoleIndicators    []string     `json:"role_indicators,omitempty"`
 }
 
 type HomeSchool struct {
@@ -112,6 +115,7 @@ func (p Profile) Public() PublicProfile {
 		HomeSchoolID:      p.HomeSchoolID,
 		HomeSchool:        p.HomeSchool,
 		SocialLinks:       p.SocialLinks,
+		RoleIndicators:    p.RoleIndicators,
 	}
 }
 
@@ -139,6 +143,9 @@ func ValidateSignup(input SignupInput) error {
 	if name := strings.TrimSpace(input.Name); name == "" || len(name) > 120 {
 		return errors.New("name is required and must be 120 characters or fewer")
 	}
+	if err := safety.ValidateCleanText("name", input.Name); err != nil {
+		return err
+	}
 	if strings.TrimSpace(input.HomeSchoolID) == "" {
 		return errors.New("home school is required")
 	}
@@ -153,8 +160,14 @@ func ValidateProfileUpdate(update ProfileUpdate, links []SocialLink) error {
 	if name == "" || len(name) > 120 {
 		return errors.New("name is required and must be 120 characters or fewer")
 	}
+	if err := safety.ValidateCleanText("name", name); err != nil {
+		return err
+	}
 	if len(update.Bio) > 2000 {
 		return errors.New("bio must be 2,000 characters or fewer")
+	}
+	if err := safety.ValidateCleanText("bio", update.Bio); err != nil {
+		return err
 	}
 	timezone := strings.TrimSpace(update.Timezone)
 	if timezone == "" {
@@ -375,7 +388,44 @@ func profileWithAssociations(ctx context.Context, repository *PostgresRepository
 		return Profile{}, err
 	}
 	profile.SocialLinks = links
+
+	profile.RoleIndicators, err = repository.listRoleIndicators(ctx, profile.ID, profile.VerificationLevel)
+	if err != nil {
+		return Profile{}, err
+	}
 	return profile, nil
+}
+
+func (r *PostgresRepository) listRoleIndicators(ctx context.Context, userID string, verificationLevel string) ([]string, error) {
+	rows, err := r.pool.Query(ctx, `
+		SELECT 'school_admin'
+		WHERE EXISTS (
+			SELECT 1
+			FROM school_admins
+			WHERE user_id = $1::uuid AND deleted_at IS NULL
+		)
+		UNION ALL
+		SELECT 'staff_faculty'
+		WHERE $2 = 'staff_faculty'
+		ORDER BY 1
+	`, userID, verificationLevel)
+	if err != nil {
+		return nil, fmt.Errorf("list role indicators: %w", err)
+	}
+	defer rows.Close()
+
+	roles := make([]string, 0, 2)
+	for rows.Next() {
+		var role string
+		if err := rows.Scan(&role); err != nil {
+			return nil, fmt.Errorf("scan role indicator: %w", err)
+		}
+		roles = append(roles, role)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate role indicators: %w", err)
+	}
+	return roles, nil
 }
 
 func (r *PostgresRepository) getHomeSchool(ctx context.Context, id string) (*HomeSchool, error) {

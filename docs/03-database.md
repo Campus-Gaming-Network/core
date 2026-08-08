@@ -51,6 +51,10 @@ user_school_follows
 
 user_school_affiliations
   user_id, school_id, role_context (student|alumni|faculty|...), ...
+
+school_admins
+  school_id, user_id, created_at, updated_at, deleted_at
+  -- school-scoped role grant; soft-revocable; future CRM/admin owns assignment
 ```
 
 ### Schools & clubs
@@ -68,10 +72,6 @@ schools
   -- unitid optional/unique when present; admin/CRM-created schools may omit
   -- one-time seed imports ALL rows as is_active=true (main + branch); branch campuses use same UI/UX
   -- logo_url is later CRM/admin-only (PNG/JPG ≤500 MB), not Scorecard; not uploadable from main site
-
-school_admins
-  school_id, user_id, created_at, ...
-  -- school admins cannot remove other school admins (enforce in app)
 
 clubs
   id, school_id (required), name, is_official, status (pending|approved|...), ...

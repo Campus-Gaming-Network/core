@@ -11,8 +11,8 @@ Work is grouped **Now** (building toward the first public release), **Next** (pl
 **Priority order:**
 
 1. Quality pass on current user journeys: signup, event creation, RSVP, team joining, and dashboard.
-2. Trust and identity: school role indicators, organizer badges, and basic content filtering.
-3. Lightweight moderation and operations: reports/support queue, deactivation tools, audit history, and notifications.
+2. Lightweight moderation and operations: reports/support queue, deactivation tools, audit history, and notifications.
+3. Expand trust and safety beyond the first role and content-filtering pass.
 4. Production-readiness hardening: monitoring, legal content, performance, and launch checks.
 5. Clubs and tournaments after the current event loop has been validated with real users.
 
@@ -137,7 +137,7 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 - [ ] TanStack Start CRM app (separate deploy, shared Go API)
 - [ ] Schools: create / edit / soft-delete, logos (**CRM/admin-only** R2 PNG/JPG ≤500 MB), activation (`unitid` optional)
 - [ ] Review/deactivate bad seed schools
-- [ ] Grant school admins
+- [ ] Manage/grant school admins in CRM (grant storage and indicators implemented)
 - [ ] Games catalog management (start from the six launch games; IGDB later)
 - [ ] Reports queue
 - [ ] Support tickets queue
@@ -146,7 +146,7 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 ### Product polish
 - [ ] Sentry/error monitoring
 - [ ] Analytics (non-GA: Plausible or Cloudflare Web Analytics)
-- [ ] Profanity filter scope (or explicitly defer)
+- [x] Define and apply basic blocked-language filtering
 - [ ] Frontend regression test coverage for pages, components, and server actions
 - [ ] Open Graph share image, favicon, `robots.txt`, and `sitemap.xml`
 
@@ -158,9 +158,9 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 - [x] Add cancellation notifications to active yes/maybe RSVPs
 - [x] Improve event discovery filters (game, school, and format)
 - [x] Add `.edu` verified-student badge UX
-- [ ] Add school admin/faculty role indicators
-- [ ] Add event organizer badges
-- [ ] Define and apply basic profanity/content filtering
+- [x] Add school admin/faculty role indicators
+- [x] Add event organizer badges
+- [x] Define and apply basic blocked-language filtering
 
 ---
 
@@ -169,8 +169,6 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 ### Near-term candidates
 - [ ] Google Maps embed (address text is enough first)
 - [ ] Richer profile fields (majors, graduation automation, faculty extras)
-- [ ] School admin / faculty role indicators
-- [ ] Event organizer badges
 - [ ] Database-backed activity/audit history and corresponding UIs
 - [ ] Site-wide announcements
 - [ ] Impersonation

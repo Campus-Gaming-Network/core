@@ -98,8 +98,8 @@ reliable enough for real users before expanding into clubs and tournaments.
 - **Implemented:** cancellation notifications as best-effort email to active yes/maybe RSVPs
 - **Implemented:** stronger event discovery filters by game, school, and format
 - **Implemented:** `.edu` verified-student badge UX
-- School admin/faculty role indicators and event organizer badges
-- Basic profanity/content filtering
+- **Implemented:** school-admin/staff-faculty role indicators and event organizer badges
+- **Implemented:** basic blocked-language filtering on user-authored text
 - Lightweight moderation and operations tools for reports and support tickets
 
 **Exit:** A real user can discover an event, participate in it, join a team, and

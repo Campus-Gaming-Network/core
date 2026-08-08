@@ -53,3 +53,15 @@ func TestValidateCreateInput(t *testing.T) {
 		t.Fatal("ValidateCreateInput() error = nil, want password validation error")
 	}
 }
+
+func TestValidateCreateInputRejectsBlockedLanguage(t *testing.T) {
+	input := CreateInput{
+		Name:        "Bullshit League",
+		OwnerUserID: "user-id",
+		GameIDs:     []string{"game-id"},
+		Password:    "TeamPass8",
+	}
+	if err := ValidateCreateInput(input); err == nil || !strings.Contains(err.Error(), "not allowed") {
+		t.Fatalf("ValidateCreateInput() error = %v, want blocked-language error", err)
+	}
+}

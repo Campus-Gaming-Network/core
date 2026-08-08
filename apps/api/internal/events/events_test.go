@@ -125,6 +125,15 @@ func TestValidateCreateInputRejectsInvalidCapacityAndPaymentURL(t *testing.T) {
 	}
 }
 
+func TestValidateCreateInputRejectsBlockedLanguage(t *testing.T) {
+	input := validCreateInput(func(input *CreateInput) {
+		input.Title = "Campus bullshit night"
+	})
+	if err := ValidateCreateInput(input); err == nil || !strings.Contains(err.Error(), "not allowed") {
+		t.Fatalf("ValidateCreateInput() error = %v, want blocked-language error", err)
+	}
+}
+
 func TestValidateCreateInputAcceptsBoundedRecurrence(t *testing.T) {
 	input := validCreateInput(func(input *CreateInput) {
 		input.RecurrenceRule = RecurrenceWeekly

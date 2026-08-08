@@ -48,14 +48,14 @@ Not every path must exist on day one — align with [05 — Roadmap](./05-roadma
 
 | Method | Path | Notes |
 |--------|------|-------|
-| GET | `/me` | Profile + timezone + home school summary |
+| GET | `/me` | Profile + timezone + home school summary + role indicators |
 | PATCH | `/me` | Name, bio, socials, timezone, majors, graduation |
-| DELETE | `/me` | Anonymize the account in place and return 204. Scrubs email, name, bio, and timezone; marks `account_status = 'deleted'`; hard-deletes social links, school follows, RSVPs, and interests; revokes sessions and drops outstanding tokens. Teams they own pass to the longest-tenured captain, else the longest-tenured member, else are soft-deleted. Events they created stay published, since nothing exposes an organizer name and attendees hold RSVPs and calendar files. The scrubbed email releases the original address for re-registration. |
+| DELETE | `/me` | Anonymize the account in place and return 204. Scrubs email, name, bio, and timezone; marks `account_status = 'deleted'`; hard-deletes social links, school follows, RSVPs, and interests; revokes sessions and drops outstanding tokens. Teams they own pass to the longest-tenured captain, else the longest-tenured member, else are soft-deleted. Events they created stay published; the deleted organizer is omitted from public organizer summaries. The scrubbed email releases the original address for re-registration. |
 | GET | `/me/schools` | Followed schools |
 | GET | `/me/events` | Dashboard event sections: upcoming RSVPs + followed-school public events |
 | GET | `/me/teams` | Dashboard team activity |
 | GET | `/me/activity` | Future full user activity log |
-| GET | `/users/:id` | Public profile (database id), including `home_school_id` and a display-ready `home_school` summary when available |
+| GET | `/users/:id` | Public profile (database id), including `home_school_id`, display-ready `home_school`, verification level, and role indicators when available |
 | POST | `/users/:id/report` | Rate limited |
 
 ### Schools
@@ -114,6 +114,9 @@ Recurring creation expands into independent event occurrences. The supported
 rules are weekly, biweekly, and monthly, with an inclusive end date no more
 than one year after the first occurrence. Each occurrence has its own slug,
 RSVPs, and cancellation lifecycle.
+
+Event detail responses include `organizers`, with each organizer's name, role,
+and applicable `role_indicators` (`school_admin` and/or `staff_faculty`).
 
 ### Tournaments (later)
 
@@ -179,7 +182,8 @@ RSVPs, and cancellation lifecycle.
 ## Validation & safety
 
 - Character limits enforced server-side (event description, bio, etc.)
-- Profanity filter on free-text fields
+- Basic blocked-language filter on names, bios, event/team text, reports, and
+  support messages; reject matches before persistence
 - Reject unexpected HTML; store plain text or tightly sanitized markdown (decision TBD)
 - Payment fields are display/off-site only; validate any `payment_url` as a safe external URL and make clear users are leaving CGN
 - Pagination on all list endpoints

@@ -50,6 +50,8 @@ These docs are the source of truth for product intent, domain rules, architectur
 - **Event slugs** — `slugify(title)-` + 8-char Base64URL(SHA-256(…)).
 - **Recurring events** — weekly, biweekly, or monthly; max one year; occurrences are independent event rows with independent RSVPs and cancellation.
 - **Cancellation email** — best-effort email to active yes/maybe RSVPs after soft cancellation; delivery failure does not undo cancellation.
+- **Trust indicators** — public profiles expose verified-student, staff/faculty, and active school-admin indicators; event details expose applicable organizer indicators.
+- **Content filtering** — reject a small word-boundary blocked-term list in user-authored names, bios, event/team text, reports, and support messages before persistence.
 - **Page metadata** — every route sets its own title/description/Open Graph tags; authenticated, token, private, and unlisted routes are `noindex`. A locked private event exposes only a generic title.
 - **Not-found routes** — missing entities must return HTTP 404, never a soft 404; never put a `loading.tsx` above a `notFound()` route.
 - **Infra** — Railway hosts Next.js, Go API, and production Postgres for the ma for now; Cloudflare manages DNS/protection; Resend handles email; Cloudflare R2 and TanStack Start CRM are later/admin-app concerns.

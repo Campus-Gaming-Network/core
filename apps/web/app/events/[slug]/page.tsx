@@ -18,6 +18,7 @@ import {
   eventTimeRange,
   eventVisibilityLabel,
   isLockedEvent,
+  roleIndicatorLabel,
   recurrenceRuleLabel
 } from "../../../lib/cgn-api";
 import { pageMetadata } from "../../../lib/metadata";
@@ -182,6 +183,24 @@ export default async function EventDetailPage({
           </div>
         ) : null}
       </section>
+
+      {event.organizers && event.organizers.length > 0 ? (
+        <section className="section" aria-labelledby="event-organizers">
+          <h2 id="event-organizers">Organizers</h2>
+          <div className="pill-list">
+            {event.organizers.map((organizer) => (
+              <span className="pill-list-item" key={organizer.id}>
+                <Link className="link" href={`/users/${organizer.id}`}>
+                  {organizer.name}
+                </Link>
+                {organizer.role_indicators?.map((role) => (
+                  <Chip key={`${organizer.id}-${role}`}>{roleIndicatorLabel(role)}</Chip>
+                ))}
+              </span>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       <Card className="action-panel" aria-labelledby="event-actions">
         <h2 id="event-actions">Event actions</h2>

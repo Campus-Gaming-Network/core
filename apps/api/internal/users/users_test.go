@@ -31,6 +31,19 @@ func TestValidateSignupRejectsPasswordBelowMinimumLength(t *testing.T) {
 	}
 }
 
+func TestValidateSignupRejectsBlockedLanguage(t *testing.T) {
+	err := ValidateSignup(SignupInput{
+		Email:        "player@example.com",
+		Password:     "12345678",
+		Name:         "Bullshit Player",
+		HomeSchoolID: "school-id",
+		AgeConfirmed: true,
+	})
+	if err == nil || !strings.Contains(err.Error(), "not allowed") {
+		t.Fatalf("ValidateSignup() error = %v, want blocked-language error", err)
+	}
+}
+
 func TestProfilePublicIncludesHomeSchoolSummary(t *testing.T) {
 	profile := Profile{
 		ID:                "user-id",

@@ -46,7 +46,7 @@ SiteAnnouncement ── global banner                        (later)
 | Graduation | Expected graduation date; alumni still participate |
 | Degree level | Undergrad / graduate / etc. (open question) |
 | Role context | Student, alumni, faculty advisor, etc. |
-| Role indicators | School admin and faculty show a visible badge/indicator in UI |
+| Role indicators | School-admin grants and staff/faculty status produce visible role indicators |
 
 **Rules**
 
@@ -86,7 +86,7 @@ SiteAnnouncement ── global banner                        (later)
 | Official | Clubs are the official school org type |
 | Teams | Optional assigned teams (Varsity, JV, etc.) |
 | Games | One or more |
-| Officers | Can create badge-eligible events |
+| Officers | Club officer workflow is later; current event badges use school-admin and staff/faculty indicators |
 
 **Rules**
 
@@ -177,7 +177,9 @@ slug    = slugify(eventTitle) + "-" + short
 **Edit rules**
 
 - Past events: organizers may edit **minor corrections only** — not date or location
-- Badge: events created by school admin, club officer, or approved organizers
+- Event organizer summaries show school-admin and staff/faculty role indicators
+  when applicable to the host school; future club-officer/approved-organizer
+  grants can extend this model
 
 **Reports**
 
@@ -257,6 +259,7 @@ Used for: browse/filter events (and later tournaments) by game; popular games by
 | Profanity | Block bad words in user-entered text |
 | XSS / SQLi | Prevent via parameterized queries + output encoding / sanitization |
 | Rate limits | Signups, event creation, reports (and general API rate limiting) |
+| Content filtering | Basic blocked-term list with word boundaries; reject disallowed user-authored text before persistence |
 | Timezones | Store events in absolute time; display in user timezone |
 | US scope | No international school handling at launch |
 

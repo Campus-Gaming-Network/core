@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/mail"
 	"strings"
+	"unicode"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -20,6 +21,12 @@ const (
 	ReportTargetEvent = "event"
 	ReportTargetUser  = "user"
 )
+
+var blockedTerms = map[string]struct{}{
+	"ass": {}, "asshole": {}, "bastard": {}, "bitch": {}, "bullshit": {},
+	"crap": {}, "cunt": {}, "damn": {}, "fag": {}, "fuck": {},
+	"motherfucker": {}, "nigger": {}, "shit": {}, "slut": {}, "whore": {},
+}
 
 type SupportTicket struct {
 	ID           string `json:"id"`
@@ -64,6 +71,15 @@ func NewPostgresRepository(pool *pgxpool.Pool) *PostgresRepository {
 }
 
 func ValidateSupportTicket(input SupportTicketInput) error {
+	if err := ValidateCleanText("name", input.Name); err != nil {
+		return err
+	}
+	if err := ValidateCleanText("subject", input.Subject); err != nil {
+		return err
+	}
+	if err := ValidateCleanText("message", input.Message); err != nil {
+		return err
+	}
 	if _, err := mail.ParseAddress(strings.TrimSpace(input.ContactEmail)); err != nil {
 		return errors.New("contact email must be valid")
 	}
@@ -80,6 +96,9 @@ func ValidateSupportTicket(input SupportTicketInput) error {
 }
 
 func ValidateReport(input ReportInput) error {
+	if err := ValidateCleanText("reason", input.Reason); err != nil {
+		return err
+	}
 	if strings.TrimSpace(input.ReporterUserID) == "" {
 		return errors.New("reporter is required")
 	}
@@ -91,6 +110,34 @@ func ValidateReport(input ReportInput) error {
 	}
 	if reason := strings.TrimSpace(input.Reason); reason == "" || len(reason) > 2000 {
 		return errors.New("reason is required and must be 2,000 characters or fewer")
+	}
+	return nil
+}
+
+// ContainsBlockedLanguage applies the launch content policy to user-authored
+// text. It tokenizes on punctuation so ordinary words such as "class" do not
+// match shorter blocked terms.
+func ContainsBlockedLanguage(value string) bool {
+	word := make([]rune, 0, len(value))
+	for _, character := range strings.ToLower(value) {
+		if unicode.IsLetter(character) || unicode.IsNumber(character) {
+			word = append(word, character)
+			continue
+		}
+		if len(word) > 0 {
+			if _, blocked := blockedTerms[string(word)]; blocked {
+				return true
+			}
+			word = word[:0]
+		}
+	}
+	_, blocked := blockedTerms[string(word)]
+	return blocked
+}
+
+func ValidateCleanText(field string, value string) error {
+	if ContainsBlockedLanguage(value) {
+		return fmt.Errorf("%s contains language that is not allowed", field)
 	}
 	return nil
 }

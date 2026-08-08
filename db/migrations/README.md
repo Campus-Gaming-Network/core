@@ -6,6 +6,7 @@ Phase 0 intentionally creates only foundation-level database setup. Phase 1A
 adds the identity and read-catalog foundation in `000002_phase1_identity_catalog.up.sql`.
 Phase 3.5 adds recurring event fields and occurrence indexing in
 `000008_recurring_events.up.sql`; occurrences remain normal event rows.
+The same phase adds school-scoped role grants in `000009_trust_roles.up.sql`.
 Do not add clubs, tournaments, feature flags, site announcements, on-site
 payment tables, IGDB sync tables, or CRM/admin-only workflow tables until those
 phases are active.

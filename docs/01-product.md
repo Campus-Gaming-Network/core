@@ -76,7 +76,8 @@ Signup also requires confirming **age 18+**. Alumni can participate. Faculty who
 - Select a home school during signup; follow additional schools afterward (logged in)
 - See popular games by school
 - Dashboard: upcoming events, activity at followed schools, team activity
-- School admin and faculty roles show a visible indicator on profiles / relevant UI
+- School admin and staff/faculty roles show visible indicators on profiles and
+  relevant event UI
 
 ### Participate
 
@@ -88,7 +89,8 @@ Signup also requires confirming **age 18+**. Alumni can participate. Faculty who
 ### Organize
 
 - Anyone can create an event or a team — **no approval required** to create an event
-- School admins (and later club officers / approved organizers) get a **badge** on events they create
+- Event organizers show school-admin or staff/faculty badges when those roles
+  apply to the host school or organizer
 - Events can be online, in-person, or hybrid; one-off or recurring; paid events are allowed, but payment happens off-site
 - Event visibility: **public**, **unlisted**, or **private**
 - Private events: page content is **not visible/inspectable** until unlocked; show blurred shell + **password modal** (share URL + password manually)
@@ -98,7 +100,8 @@ Signup also requires confirming **age 18+**. Alumni can participate. Faculty who
 
 ### Trust & safety
 
-- Report events and users
+- Report events and users; basic blocked-language filtering runs before text is
+  stored for names, bios, event/team text, reports, and support messages
 - Site admins review all reports
 - Soft-delete events; deleted/missing event shows a clear “no longer exists” page
 - Account deletion anonymizes PII (“Deleted User”) while retaining non-personal records
@@ -161,7 +164,7 @@ Signup also requires confirming **age 18+**. Alumni can participate. Faculty who
 - Status display: upcoming (date/time), happening now, ended
 - Soft deletes only
 - Past events: organizers may make minor corrections only (not date/location)
-- Badge for events by school admin (and later club officer / approved organizers)
+- Organizer role badges are shown on event pages
 - Report inappropriate events
 - Reference one or more games; browse/filter by game
 - Timezone: user preference (default system) for display

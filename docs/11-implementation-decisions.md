@@ -44,6 +44,15 @@ Small, concrete engineering choices for Phase 0 and early early implementation. 
 | Series editing | No edit-series workflow yet. Occurrences are edited and cancelled independently. |
 | Cancellation email | After soft cancellation, send a best-effort email from `events@campusgamingnetwork.com` to active `yes`/`maybe` RSVPs. Email failure is logged and does not roll back cancellation; no ICS is attached. |
 
+## Trust and safety decisions
+
+| Area | Decision |
+|------|----------|
+| School-admin role | Store school-scoped grants in `school_admins`; grants are soft-revocable and future CRM/admin tooling owns assignment. Public profiles expose `school_admin` when a user has an active grant. |
+| Staff/faculty role | Use the existing `staff_faculty` verification level as the visible staff/faculty role indicator. |
+| Event organizer badges | Event detail responses include organizer summaries. Show `school_admin` for an active grant at the event's host school and `staff_faculty` for verified staff/faculty. |
+| Basic content filtering | Reject a small word-boundary blocked-term list in names, bios, event titles/descriptions/location/payment notes, team names/descriptions, reports, and support messages. This is an intake guard, not a replacement for moderation. |
+
 ## Initial folder responsibilities
 
 ```text

@@ -11,8 +11,8 @@ Authorization rules for the public site and later CRM/admin app. Enforce in **Go
 | **Verified student** | `.edu` email | Same as basic + verified-student trust badge |
 | **Staff / faculty** | Site admin grant | Same as verified + faculty context; **visible faculty indicator** |
 | **Alumni** | Affiliation / graduation | Can participate (not locked out after grad) |
-| **School admin** | Site admin / later CRM | Edit school; **manage clubs**; assign school teams; badge events; **visible admin indicator** |
-| **Club officer** | School admin / club flow | Manage club; badge-eligible events |
+| **School admin** | School-scoped grant; future CRM manages grants | Edit school; **manage clubs**; assign school teams; organizer badge; **visible admin indicator** |
+| **Club officer** | Later club workflow | Manage club; future badge-eligible events |
 | **Team owner** | Creator or transfer | Manage team; transfer ownership; assign captains |
 | **Team captain** | Owner assigns | Register team for tournaments; limited team mgmt |
 | **Event organizer** | Creator or assigned | Edit event (with past-event limits); manage RSVPs as needed |
@@ -37,8 +37,8 @@ Verification is not a substitute for school admin or site admin.
 
 | Role | Indicator |
 |------|-----------|
-| School admin | Visible badge/label on profile and school-related UI |
-| Staff / faculty | Visible badge/label on profile and relevant UI |
+| School admin | Visible badge/label on profile and event organizer UI for the granted school |
+| Staff / faculty | Visible badge/label on profile and event organizer UI |
 | Verified (`.edu`) | Optional trust mark (lighter than admin/faculty) |
 
 ## Permission matrix (summary)
@@ -49,7 +49,7 @@ Verification is not a substitute for school admin or site admin.
 | View school clubs | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Browse public events/tournaments by game | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Create event | | ✓ (no approval) | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Badge on created event | | | ✓ | ✓ | | if approved | ✓ |
+| Badge on created event | | | ✓ | later | | if approved | ✓ |
 | Unlock private event (password modal) | ✓* | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Mark event interested (favorite) | | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | Create team | | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
@@ -94,12 +94,16 @@ Verification is not a substitute for school admin or site admin.
 
 - Anyone authenticated (email-verified) can create an event — **no approval required**
 - Multiple organizers allowed
+- Event pages show organizer names and school-admin/staff-faculty role indicators
+  when applicable
 - Visibility: **public** · **unlisted** · **private** (password modal; content gated/blurred until unlock)
 - Optional **capacity**; counts RSVP **yes** only; when full, block new yes — **no waitlist** yet
 - RSVP: yes/no/maybe; **interested** is a separate favorite
 - Registration closes automatically; ended or full → no new yes RSVPs
 - Past events: organizers limited to minor corrections (not date/location)
 - Soft cancel only; active yes/maybe RSVPs receive a best-effort cancellation email
+- Basic blocked-language filtering rejects disallowed names, bios, event/team
+  text, reports, and support messages before persistence
 - Slug = event name + small hash (date + other info)
 
 ## Club rules

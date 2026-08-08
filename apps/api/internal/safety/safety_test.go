@@ -1,6 +1,9 @@
 package safety
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestValidateSupportTicket(t *testing.T) {
 	valid := SupportTicketInput{
@@ -66,5 +69,26 @@ func TestValidateReport(t *testing.T) {
 	invalid.Reason = ""
 	if err := ValidateReport(invalid); err == nil {
 		t.Fatal("ValidateReport() error = nil, want reason error")
+	}
+}
+
+func TestContainsBlockedLanguageUsesWordBoundaries(t *testing.T) {
+	if !ContainsBlockedLanguage("This event is bullshit!") {
+		t.Fatal("ContainsBlockedLanguage() = false, want blocked language")
+	}
+	if ContainsBlockedLanguage("Build a classic campus team") {
+		t.Fatal("ContainsBlockedLanguage() matched a substring inside an ordinary word")
+	}
+}
+
+func TestValidateReportRejectsBlockedLanguage(t *testing.T) {
+	err := ValidateReport(ReportInput{
+		ReporterUserID: "reporter",
+		TargetType:     ReportTargetEvent,
+		TargetID:       "event",
+		Reason:         "This is bullshit",
+	})
+	if err == nil || !strings.Contains(err.Error(), "not allowed") {
+		t.Fatalf("ValidateReport() error = %v, want blocked-language error", err)
 	}
 }

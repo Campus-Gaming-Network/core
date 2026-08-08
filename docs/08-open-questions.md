@@ -33,16 +33,15 @@ Decisions to resolve before or during implementation. Until answered, implemente
 
 ### Content & safety
 
-16. **Profanity list** — Which library/list, and for which fields?
-17. **Rich text** — Plain text only, or limited Markdown?
-18. **Support ticket fields** — Which fields are required on the public form?
+16. **Rich text** — Plain text only, or limited Markdown?
+17. **Support ticket fields** — Which fields are required on the public form?
 
 ### Technical
 
-19. **Go API style** — REST only, or RPC (Connect/gRPC) behind the BFF?
-20. **Analytics** — Plausible vs Cloudflare Web Analytics vs other?
-21. **Activity log vs audit log** — One table with `kind`, or two tables?
-22. **Friends / notifications / i18n** — timing and depth after the first release?
+18. **Go API style** — REST only, or RPC (Connect/gRPC) behind the BFF?
+19. **Analytics** — Plausible vs Cloudflare Web Analytics vs other?
+20. **Activity log vs audit log** — One table with `kind`, or two tables?
+21. **Friends / notifications / i18n** — timing and depth after the first release?
 
 ---
 
@@ -58,6 +57,8 @@ Decisions to resolve before or during implementation. Until answered, implemente
 | Capacity | Optional; counts **RSVP yes only**; no waitlist yet |
 | Recurring events | **Decided:** weekly, biweekly, or monthly; max one year; each occurrence is an independent event with its own RSVP and cancellation; no edit-series workflow yet |
 | Cancellation notifications | **Decided:** after soft cancellation, best-effort email active yes/maybe RSVPs from `events@`; delivery failure does not undo cancellation |
+| Role indicators | **Decided:** staff/faculty comes from verification level; school-admin grants are school-scoped in `school_admins`; event organizers expose applicable indicators |
+| Basic content filtering | **Decided:** reject a small word-boundary blocklist in names, bios, event/team text, reports, and support messages; richer moderation remains future work |
 | Names | Single `name` field; profile `/users/:id` |
 | Teams | **public** pages; password only to join/interact |
 | Private event UX | Blurred/gated + password modal; no inspectable details pre-unlock |
