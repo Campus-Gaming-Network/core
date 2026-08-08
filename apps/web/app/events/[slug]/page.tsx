@@ -17,7 +17,8 @@ import {
   eventLocation,
   eventTimeRange,
   eventVisibilityLabel,
-  isLockedEvent
+  isLockedEvent,
+  recurrenceRuleLabel
 } from "../../../lib/cgn-api";
 import { pageMetadata } from "../../../lib/metadata";
 import { currentProfile, getEvent } from "../../../lib/server-api";
@@ -151,6 +152,14 @@ export default async function EventDetailPage({
           <span>Games</span>
           <strong>{event.games.map((game) => game.name).join(", ")}</strong>
         </div>
+        {event.recurrence_rule && event.recurrence_until ? (
+          <div className="detail-row">
+            <span>Repeats</span>
+            <strong>
+              {recurrenceRuleLabel(event.recurrence_rule)} until {new Date(event.recurrence_until).toLocaleDateString()}
+            </strong>
+          </div>
+        ) : null}
         {event.capacity ? (
           <div className="detail-row">
             <span>Capacity</span>
@@ -201,7 +210,7 @@ export default async function EventDetailPage({
                 <form action={deleteEventAction}>
                   <input type="hidden" name="slug" value={event.slug} />
                   <Button variant="secondary" type="submit">
-                    Delete event
+                    Cancel event
                   </Button>
                 </form>
               </div>
@@ -229,7 +238,8 @@ export default async function EventDetailPage({
 function EventNotice({ status }: { status: string }) {
   const messages: Record<string, string> = {
     created: "Event created.",
-    "delete-failed": "We could not delete that event. Please try again.",
+    "cancel-failed": "We could not cancel that event. Please try again.",
+    "delete-failed": "We could not cancel that event. Please try again.",
     "interest-added": "Marked as interested.",
     "interest-failed": "We could not update your interest. Please try again.",
     "interest-removed": "Removed from interested events.",

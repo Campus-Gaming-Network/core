@@ -71,6 +71,8 @@ export type Event = {
   rsvp_yes_count: number;
   interest_count: number;
   lifecycle: EventLifecycle;
+  recurrence_rule?: "weekly" | "biweekly" | "monthly";
+  recurrence_until?: string;
   is_paid: boolean;
   payment_note?: string;
   payment_url?: string;
@@ -510,6 +512,26 @@ export function teamRoleLabel(role: TeamRole) {
   };
 
   return labels[role];
+}
+
+export function verificationLabel(level: string) {
+  const labels: Record<string, string> = {
+    basic: "Community member",
+    verified: "Verified student",
+    staff_faculty: "Staff / faculty"
+  };
+
+  return labels[level] ?? "Community member";
+}
+
+export function recurrenceRuleLabel(rule: string) {
+  const labels: Record<string, string> = {
+    weekly: "Weekly",
+    biweekly: "Every two weeks",
+    monthly: "Monthly"
+  };
+
+  return labels[rule] ?? "Recurring";
 }
 
 export function eventTimeRange(event: Pick<Event, "starts_at" | "ends_at" | "timezone">) {

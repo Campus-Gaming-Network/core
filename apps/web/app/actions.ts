@@ -7,7 +7,6 @@ import {
   type Event,
   type EventUnlockResponse,
   type Profile,
-  type SocialLink,
   type Team,
   ApiError,
   apiRequest,
@@ -17,6 +16,14 @@ import {
   parseSetCookie,
   userMessageForApiError
 } from "../lib/cgn-api";
+import {
+  eventBodyFromForm,
+  privateUnlockBodyFromForm,
+  rsvpBodyFromForm,
+  socialLinksFromForm,
+  teamBodyFromForm,
+  teamJoinBodyFromForm
+} from "../lib/action-payloads";
 import { type FormState } from "../lib/form-state";
 import {
   eventUnlockCookieName,
@@ -356,11 +363,11 @@ export async function deleteEventAction(formData: FormData) {
       cookieHeader: await incomingCookieHeader()
     });
   } catch {
-    redirect(`/events/${encodeURIComponent(slug)}?event=delete-failed`);
+    redirect(`/events/${encodeURIComponent(slug)}?event=cancel-failed`);
   }
 
   revalidatePath("/events");
-  redirect("/events?event=deleted");
+  redirect("/events?event=cancelled");
 }
 
 export async function createTeamAction(
@@ -397,9 +404,7 @@ export async function joinTeamAction(
       path: `/teams/${encodeURIComponent(slug)}/join`,
       method: "POST",
       cookieHeader: await incomingCookieHeader(),
-      body: {
-        password: formString(formData, "password")
-      }
+      body: teamJoinBodyFromForm(formData)
     });
 
     revalidatePath("/teams");
@@ -474,9 +479,7 @@ export async function unlockEventAction(
     const { data } = await apiRequest<EventUnlockResponse>({
       path: `/events/${encodeURIComponent(slug)}/unlock`,
       method: "POST",
-      body: {
-        password: formString(formData, "password")
-      }
+      body: privateUnlockBodyFromForm(formData)
     });
 
     await storeEventUnlockCookie(slug, data.unlock_token, data.expires_at);
@@ -502,9 +505,7 @@ export async function rsvpEventAction(
       method: "POST",
       cookieHeader: await incomingCookieHeader(),
       headers: await eventUnlockHeaders(slug),
-      body: {
-        response: formString(formData, "response")
-      }
+      body: rsvpBodyFromForm(formData)
     });
 
     revalidatePath("/events");
@@ -603,73 +604,12 @@ function safeRedirect(value: string) {
   return null;
 }
 
-function socialLinksFromForm(formData: FormData) {
-  const links: SocialLink[] = [];
-
-  for (let index = 0; index < 3; index += 1) {
-    const label = formString(formData, `social_label_${index}`);
-    const url = formString(formData, `social_url_${index}`);
-
-    if (label || url) {
-      links.push({ label, url });
-    }
-  }
-
-  return links;
-}
-
 function followErrorDestination(error: unknown, slug: string) {
   if (error instanceof ApiError && error.status === 401) {
     return `/login?next=${encodeURIComponent(`/schools/${slug}`)}`;
   }
 
   return `/schools/${encodeURIComponent(slug)}?follow=failed`;
-}
-
-function eventBodyFromForm(formData: FormData) {
-  return {
-    title: formString(formData, "title"),
-    description: formString(formData, "description"),
-    host_school_id: formString(formData, "host_school_id"),
-    game_ids: formData.getAll("game_ids").filter(isString).map((value) => value.trim()),
-    visibility: formString(formData, "visibility"),
-    format: formString(formData, "format"),
-    starts_at: formString(formData, "starts_at"),
-    ends_at: formString(formData, "ends_at"),
-    timezone: formString(formData, "timezone") || "America/Los_Angeles",
-    location_name: formString(formData, "location_name"),
-    address: formString(formData, "address"),
-    online_url: formString(formData, "online_url"),
-    private_password: formString(formData, "private_password"),
-    capacity: capacityFromForm(formData),
-    is_paid: formCheckbox(formData, "is_paid"),
-    payment_note: formString(formData, "payment_note"),
-    payment_url: formString(formData, "payment_url")
-  };
-}
-
-function capacityFromForm(formData: FormData) {
-  const raw = formString(formData, "capacity");
-  if (!raw) {
-    return undefined;
-  }
-
-  const parsed = Number.parseInt(raw, 10);
-  return Number.isFinite(parsed) ? parsed : 0;
-}
-
-function teamBodyFromForm(formData: FormData) {
-  return {
-    name: formString(formData, "name"),
-    description: formString(formData, "description"),
-    school_id: formString(formData, "school_id"),
-    game_ids: formData.getAll("game_ids").filter(isString).map((value) => value.trim()),
-    password: formString(formData, "password")
-  };
-}
-
-function isString(value: FormDataEntryValue): value is string {
-  return typeof value === "string";
 }
 
 export async function deleteAccountAction(

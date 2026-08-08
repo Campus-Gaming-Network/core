@@ -6,7 +6,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ReportForm } from "../../../components/report-form";
 import { UserAvatar } from "../../../components/user-avatar";
-import { ApiError, publicProfileHomeSchool } from "../../../lib/cgn-api";
+import {
+  ApiError,
+  publicProfileHomeSchool,
+  verificationLabel
+} from "../../../lib/cgn-api";
 import { pageMetadata } from "../../../lib/metadata";
 import { currentProfile, getPublicProfile } from "../../../lib/server-api";
 
@@ -65,13 +69,16 @@ export default async function PublicProfilePage({ params }: PageProps) {
           <p className="lede">
             {profile.bio || "This profile is ready for campus gaming activity."}
           </p>
+          <div className="pill-list" aria-label="Profile verification">
+            <Chip>{verificationLabel(profile.verification_level)}</Chip>
+          </div>
         </div>
       </section>
 
       <section className="detail-grid" aria-label="Profile details">
         <div className="detail-row">
           <span>Verification</span>
-          <strong>{profile.verification_level}</strong>
+          <strong>{verificationLabel(profile.verification_level)}</strong>
         </div>
         <div className="detail-row">
           <span>Home school</span>

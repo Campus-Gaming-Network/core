@@ -125,6 +125,52 @@ func TestValidateCreateInputRejectsInvalidCapacityAndPaymentURL(t *testing.T) {
 	}
 }
 
+func TestValidateCreateInputAcceptsBoundedRecurrence(t *testing.T) {
+	input := validCreateInput(func(input *CreateInput) {
+		input.RecurrenceRule = RecurrenceWeekly
+		input.RecurrenceUntil = input.StartsAt.AddDate(0, 0, 21)
+	})
+	if err := ValidateCreateInput(input); err != nil {
+		t.Fatalf("ValidateCreateInput() error = %v, want recurring event accepted", err)
+	}
+}
+
+func TestValidateCreateInputRejectsInvalidRecurrence(t *testing.T) {
+	for _, mutate := range []func(*CreateInput){
+		func(input *CreateInput) {
+			input.RecurrenceRule = "daily"
+			input.RecurrenceUntil = input.StartsAt.AddDate(0, 0, 7)
+		},
+		func(input *CreateInput) {
+			input.RecurrenceRule = RecurrenceMonthly
+			input.RecurrenceUntil = input.StartsAt.AddDate(1, 0, 1)
+		},
+	} {
+		if err := ValidateCreateInput(validCreateInput(mutate)); err == nil {
+			t.Fatal("ValidateCreateInput() error = nil, want recurrence validation error")
+		}
+	}
+}
+
+func TestNextOccurrenceSupportsWeeklyBiweeklyAndMonthly(t *testing.T) {
+	start := time.Date(2026, 1, 31, 20, 0, 0, 0, time.UTC)
+	end := start.Add(2 * time.Hour)
+	cases := []struct {
+		rule string
+		want time.Time
+	}{
+		{rule: RecurrenceWeekly, want: time.Date(2026, 2, 7, 20, 0, 0, 0, time.UTC)},
+		{rule: RecurrenceBiweekly, want: time.Date(2026, 2, 14, 20, 0, 0, 0, time.UTC)},
+		{rule: RecurrenceMonthly, want: time.Date(2026, 2, 28, 20, 0, 0, 0, time.UTC)},
+	}
+	for _, tt := range cases {
+		next, nextEnd := nextOccurrence(tt.rule, start, end)
+		if !next.Equal(tt.want) || !nextEnd.Equal(tt.want.Add(2*time.Hour)) {
+			t.Fatalf("nextOccurrence(%q) = %s - %s, want %s - %s", tt.rule, next, nextEnd, tt.want, tt.want.Add(2*time.Hour))
+		}
+	}
+}
+
 func TestValidateRSVPInput(t *testing.T) {
 	valid := RSVPInput{
 		Slug:     "campus-scrim-night",

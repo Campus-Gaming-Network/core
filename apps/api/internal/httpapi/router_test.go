@@ -70,15 +70,22 @@ func (r *fakeUserRepository) UpdateProfile(context.Context, string, users.Profil
 }
 
 type fakeEventMailer struct {
-	called    bool
-	recipient string
-	event     eventstore.Event
-	err       error
+	called                 bool
+	recipient              string
+	event                  eventstore.Event
+	err                    error
+	cancellationRecipients []string
 }
 
 func (m *fakeEventMailer) SendRSVPConfirmation(_ context.Context, recipient string, event eventstore.Event) error {
 	m.called = true
 	m.recipient = recipient
+	m.event = event
+	return m.err
+}
+
+func (m *fakeEventMailer) SendCancellationNotification(_ context.Context, recipient string, event eventstore.Event) error {
+	m.cancellationRecipients = append(m.cancellationRecipients, recipient)
 	m.event = event
 	return m.err
 }
@@ -313,6 +320,7 @@ type fakeEventRepository struct {
 	listFollowedSchoolEventsUserID string
 	listFollowedSchoolEventsLimit  int
 	followedSchoolEvents           []eventstore.Event
+	cancellationRecipients         []string
 	detail                         eventstore.Event
 	createCalled                   bool
 	createParams                   eventstore.CreateParams
@@ -434,6 +442,10 @@ func (r *fakeEventRepository) SetRSVP(_ context.Context, input eventstore.RSVPIn
 
 func (r *fakeEventRepository) GetRSVP(_ context.Context, _ string, _ string) (string, error) {
 	return r.viewerRSVP, r.err
+}
+
+func (r *fakeEventRepository) ListRSVPRecipients(_ context.Context, _ string) ([]string, error) {
+	return r.cancellationRecipients, r.err
 }
 
 func (r *fakeEventRepository) SetInterest(_ context.Context, slug string, userID string, interested bool) (eventstore.Event, error) {
@@ -569,7 +581,7 @@ func TestHandleEventsReturnsPublicEventsWithFilters(t *testing.T) {
 		testEvent(eventstore.VisibilityPublic),
 	}}
 	router := &Router{events: repository}
-	request := httptest.NewRequest(http.MethodGet, "/events?game=rocket-league&school=example-university&limit=5&offset=10", nil)
+	request := httptest.NewRequest(http.MethodGet, "/events?game=rocket-league&school=example-university&format=online&limit=5&offset=10", nil)
 	response := httptest.NewRecorder()
 
 	router.handleEvents(response, request)
@@ -582,6 +594,9 @@ func TestHandleEventsReturnsPublicEventsWithFilters(t *testing.T) {
 	}
 	if repository.listParams.GameSlug != "rocket-league" || repository.listParams.SchoolSlug != "example-university" {
 		t.Fatalf("list params = %#v, want game and school filters", repository.listParams)
+	}
+	if repository.listParams.Format != eventstore.FormatOnline {
+		t.Fatalf("format = %q, want %q", repository.listParams.Format, eventstore.FormatOnline)
 	}
 	if repository.listParams.Limit != 5 || repository.listParams.Offset != 10 {
 		t.Fatalf("list params = %#v, want pagination filters", repository.listParams)
@@ -1545,6 +1560,22 @@ func TestHandleDeleteEventMapsMissingEvent(t *testing.T) {
 
 	if response.Code != http.StatusNotFound {
 		t.Fatalf("status = %d, want %d; body = %s", response.Code, http.StatusNotFound, response.Body.String())
+	}
+}
+
+func TestSendCancellationNotificationsSendsToEveryRSVPRecipient(t *testing.T) {
+	mailer := &fakeEventMailer{}
+	router := &Router{eventMailer: mailer}
+	request := httptest.NewRequest(http.MethodDelete, "/events/campus-scrim-night", nil)
+	event := testEvent(eventstore.VisibilityPublic)
+
+	router.sendCancellationNotifications(request, []string{"maybe@example.com", "yes@example.com"}, event)
+
+	if len(mailer.cancellationRecipients) != 2 {
+		t.Fatalf("cancellation recipients = %#v, want two emails", mailer.cancellationRecipients)
+	}
+	if mailer.event.Slug != event.Slug {
+		t.Fatalf("cancelled event slug = %q, want %q", mailer.event.Slug, event.Slug)
 	}
 }
 

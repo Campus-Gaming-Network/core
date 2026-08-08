@@ -16,6 +16,7 @@ import (
 
 type RSVPMailer interface {
 	SendRSVPConfirmation(ctx context.Context, recipient string, event Event) error
+	SendCancellationNotification(ctx context.Context, recipient string, event Event) error
 }
 
 type ResendMailer struct {
@@ -89,6 +90,56 @@ func (m *ResendMailer) SendRSVPConfirmation(ctx context.Context, recipient strin
 	return nil
 }
 
+func (m *ResendMailer) SendCancellationNotification(ctx context.Context, recipient string, event Event) error {
+	eventLink := eventURL(m.SiteURL, event.Slug)
+	if m.APIKey == "" {
+		if m.Logger != nil {
+			m.Logger.Info("local event cancellation notification",
+				"recipient", recipient,
+				"event", event.Title,
+				"url", eventLink,
+			)
+		}
+		return nil
+	}
+
+	payload := struct {
+		From    string   `json:"from"`
+		To      []string `json:"to"`
+		Subject string   `json:"subject"`
+		HTML    string   `json:"html"`
+	}{
+		From:    m.From,
+		To:      []string{recipient},
+		Subject: "Event cancelled: " + event.Title,
+		HTML:    eventCancellationHTML(event, eventLink),
+	}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("encode event cancellation email: %w", err)
+	}
+	request, err := http.NewRequestWithContext(ctx, http.MethodPost, "https://api.resend.com/emails", bytes.NewReader(body))
+	if err != nil {
+		return fmt.Errorf("create event cancellation email request: %w", err)
+	}
+	request.Header.Set("Authorization", "Bearer "+m.APIKey)
+	request.Header.Set("Content-Type", "application/json")
+	client := m.Client
+	if client == nil {
+		client = http.DefaultClient
+	}
+	response, err := client.Do(request)
+	if err != nil {
+		return fmt.Errorf("send event cancellation email: %w", err)
+	}
+	defer response.Body.Close()
+	if response.StatusCode < 200 || response.StatusCode >= 300 {
+		detail, _ := io.ReadAll(io.LimitReader(response.Body, 2048))
+		return fmt.Errorf("resend returned %s: %s", response.Status, strings.TrimSpace(string(detail)))
+	}
+	return nil
+}
+
 type attachment struct {
 	Filename    string `json:"filename"`
 	Content     string `json:"content"`
@@ -131,6 +182,14 @@ func eventConfirmationHTML(event Event, eventURL string) string {
 		html.EscapeString(event.Title),
 		html.EscapeString(event.StartsAt.Format(time.RFC1123)),
 		html.EscapeString(icsLocation(event)),
+		html.EscapeString(eventURL),
+	)
+}
+
+func eventCancellationHTML(event Event, eventURL string) string {
+	return fmt.Sprintf(
+		`<h1>Event cancelled</h1><p><strong>%s</strong> has been cancelled by the organizer.</p><p><a href="%s">View event details</a></p>`,
+		html.EscapeString(event.Title),
 		html.EscapeString(eventURL),
 	)
 }

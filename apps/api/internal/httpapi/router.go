@@ -383,6 +383,7 @@ func (r *Router) handleEvents(w http.ResponseWriter, req *http.Request) {
 	params := eventstore.ListParams{
 		GameSlug:   req.URL.Query().Get("game"),
 		SchoolSlug: req.URL.Query().Get("school"),
+		Format:     req.URL.Query().Get("format"),
 		Limit:      25,
 		Offset:     0,
 	}

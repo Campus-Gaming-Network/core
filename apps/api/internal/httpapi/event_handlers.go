@@ -20,6 +20,8 @@ const privateEventUnlockTTL = 24 * time.Hour
 // hold the RSVP handler open.
 const rsvpEmailTimeout = 10 * time.Second
 
+const cancellationEmailTimeout = 10 * time.Second
+
 type createEventRequest struct {
 	Title           string    `json:"title"`
 	Description     string    `json:"description"`
@@ -38,6 +40,8 @@ type createEventRequest struct {
 	IsPaid          bool      `json:"is_paid"`
 	PaymentNote     string    `json:"payment_note"`
 	PaymentURL      string    `json:"payment_url"`
+	RecurrenceRule  string    `json:"recurrence_rule"`
+	RecurrenceUntil string    `json:"recurrence_until"`
 }
 
 type unlockPrivateEventRequest struct {
@@ -124,6 +128,14 @@ func (r *Router) handleCreateEvent(w http.ResponseWriter, req *http.Request) {
 	}
 
 	input := createEventInputFromRequest(request, userID)
+	if request.RecurrenceUntil != "" {
+		parsed, err := time.Parse(time.DateOnly, request.RecurrenceUntil)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid_request")
+			return
+		}
+		input.RecurrenceUntil = parsed.Add(24*time.Hour - time.Nanosecond)
+	}
 	if err := eventstore.ValidateCreateInput(input); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid_request")
 		return
@@ -201,9 +213,14 @@ func (r *Router) handleDeleteEvent(w http.ResponseWriter, req *http.Request, slu
 		writeError(w, http.StatusUnauthorized, "authentication_required")
 		return
 	}
+	event, eventErr := r.events.GetBySlug(req.Context(), slug)
+	recipients, recipientsErr := r.events.ListRSVPRecipients(req.Context(), slug)
 	if err := r.events.Delete(req.Context(), slug, userID); err != nil {
 		writeEventMutationError(w, err, "event_delete_failed")
 		return
+	}
+	if eventErr == nil && recipientsErr == nil && len(recipients) > 0 {
+		go r.sendCancellationNotifications(req, recipients, event)
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
@@ -380,6 +397,23 @@ func (r *Router) sendRSVPConfirmation(req *http.Request, userID string, event ev
 	return r.eventMailer.SendRSVPConfirmation(ctx, profile.Email, event)
 }
 
+func (r *Router) sendCancellationNotifications(req *http.Request, recipients []string, event eventstore.Event) {
+	if r.eventMailer == nil {
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(req.Context()), cancellationEmailTimeout)
+	defer cancel()
+	for _, recipient := range recipients {
+		if err := r.eventMailer.SendCancellationNotification(ctx, recipient, event); err != nil {
+			slog.Error("event cancellation email failed",
+				"error", err,
+				"event_slug", event.Slug,
+				"recipient", recipient,
+			)
+		}
+	}
+}
+
 func createEventInputFromRequest(request createEventRequest, userID string) eventstore.CreateInput {
 	return eventstore.CreateInput{
 		Title:           request.Title,
@@ -400,6 +434,7 @@ func createEventInputFromRequest(request createEventRequest, userID string) even
 		IsPaid:          request.IsPaid,
 		PaymentNote:     request.PaymentNote,
 		PaymentURL:      request.PaymentURL,
+		RecurrenceRule:  strings.TrimSpace(request.RecurrenceRule),
 	}
 }
 

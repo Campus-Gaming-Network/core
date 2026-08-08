@@ -46,6 +46,25 @@ revisited later.
 - Removed unused school search indexes.
 - Completed several launch-hardening changes, including account deletion,
   password hashing, rate-limit bounds, and HTTP timeouts.
+- Established a green verification baseline: API tests, web tests, web lint, and
+  web typecheck all pass.
+- Regenerated stale Next.js development route metadata that was breaking the
+  web typecheck.
+- Added regression coverage for event, team, profile, RSVP, private-unlock, and
+  team-join form payloads; web tests now cover 20 cases.
+- Completed the first mobile/accessibility pass: native labeled checkboxes now
+  power age confirmation, paid-event status, and team game selection, and
+  custom select controls have explicit accessible names.
+- Added an end-to-end event format filter for online, in-person, and hybrid
+  events.
+- Added readable verification badges to public profiles for community members,
+  verified students, and staff/faculty.
+- Added event cancellation notifications for active yes/maybe RSVPs, sent as
+  best-effort email side effects after the event is cancelled.
+- Added weekly, biweekly, and monthly recurring event creation, with independent
+  occurrence records, per-occurrence RSVPs, and recurrence details on event
+  pages. Recurrence is limited to one year and each occurrence can be cancelled
+  separately.
 
 ## Resume checklist
 
