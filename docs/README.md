@@ -10,6 +10,7 @@ These docs are the source of truth for product intent, domain rules, architectur
 
 | Doc | Purpose |
 |-----|---------|
+| [00 — Current state](./00-current-state.md) | Quick re-entry point: where we are, what is next, and what is blocked |
 | [01 — Product](./01-product.md) | Vision, principles, personas, feature inventory, launch scope |
 | [02 — Domain model](./02-domain-model.md) | Entities, relationships, and business rules |
 | [03 — Database](./03-database.md) | Schema conventions, tables, soft deletes, audit/system logs |
