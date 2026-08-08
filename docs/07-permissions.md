@@ -99,7 +99,7 @@ Verification is not a substitute for school admin or site admin.
 - RSVP: yes/no/maybe; **interested** is a separate favorite
 - Registration closes automatically; ended or full → no new yes RSVPs
 - Past events: organizers limited to minor corrections (not date/location)
-- Soft delete only (no RSVP cancel emails yet)
+- Soft cancel only; active yes/maybe RSVPs receive a best-effort cancellation email
 - Slug = event name + small hash (date + other info)
 
 ## Club rules

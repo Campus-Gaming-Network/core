@@ -36,7 +36,7 @@ These docs are the source of truth for product intent, domain rules, architectur
 ## Conventions
 
 - **US launch only** — international schools are out of scope at launch.
-- **Not yet scheduled** — Sentry/error monitoring, CRM/admin app, clubs, tournaments, on-site payments, usernames, waitlists, invite links, feature flags, near-you, cancel-notify emails, custom event banners.
+- **Not yet scheduled** — Sentry/error monitoring, CRM/admin app, clubs, tournaments, on-site payments, usernames, waitlists, invite links, feature flags, near-you, custom event banners.
 - **Events ≠ tournaments** — events are things you attend; tournaments (later) are competitions you enter.
 - **Clubs ≠ teams** — clubs (later) belong to schools; teams are supported now (public pages; password to join).
 - **Event visibility** — `public` · `unlisted` · `private` (blurred/gated + password modal).
@@ -48,6 +48,8 @@ These docs are the source of truth for product intent, domain rules, architectur
 - **Launch games** — Rocket League, Valorant, League of Legends, Overwatch 2, Super Smash Bros. Ultimate, CSGO.
 - **Images** — event banners = default placeholder for now; school logos come later via CRM/admin app uploads (PNG/JPG only, max 500 MB).
 - **Event slugs** — `slugify(title)-` + 8-char Base64URL(SHA-256(…)).
+- **Recurring events** — weekly, biweekly, or monthly; max one year; occurrences are independent event rows with independent RSVPs and cancellation.
+- **Cancellation email** — best-effort email to active yes/maybe RSVPs after soft cancellation; delivery failure does not undo cancellation.
 - **Page metadata** — every route sets its own title/description/Open Graph tags; authenticated, token, private, and unlisted routes are `noindex`. A locked private event exposes only a generic title.
 - **Not-found routes** — missing entities must return HTTP 404, never a soft 404; never put a `loading.tsx` above a `notFound()` route.
 - **Infra** — Railway hosts Next.js, Go API, and production Postgres for the ma for now; Cloudflare manages DNS/protection; Resend handles email; Cloudflare R2 and TanStack Start CRM are later/admin-app concerns.

@@ -36,6 +36,14 @@ Small, concrete engineering choices for Phase 0 and early early implementation. 
 | Paid events | Supports off-site-payment listings only; no CGN payment processing |
 | Audit/activity/notifications | Database-backed domain audit history, user activity history, and in-app notifications are later. Uses structured operational logs plus account and RSVP transactional email. |
 
+## Current event lifecycle decisions
+
+| Area | Decision |
+|------|----------|
+| Recurrence | Creation supports weekly, biweekly, and monthly schedules through an inclusive end date no more than one year after the first occurrence. Each occurrence is a normal event row with its own slug, RSVPs, and cancellation lifecycle. |
+| Series editing | No edit-series workflow yet. Occurrences are edited and cancelled independently. |
+| Cancellation email | After soft cancellation, send a best-effort email from `events@campusgamingnetwork.com` to active `yes`/`maybe` RSVPs. Email failure is logged and does not roll back cancellation; no ICS is attached. |
+
 ## Initial folder responsibilities
 
 ```text

@@ -14,37 +14,35 @@ Decisions to resolve before or during implementation. Until answered, implemente
 
 ### Events
 
-6. **Recurring events** — Which recurrence model (RRULE)? Edit one vs edit series?
-7. **Approved organizers** — Who approves badge organizers, and is approval per-school or global?
-8. **Past event “minor corrections”** — Exact allowlist of editable fields?
-9. **Private unlock session** — Cookie/session length after password modal success? Rate-limit / lockout policy?
-10. **Cancel notify RSVPs (later)** — Email copy and timing when reintroduced?
-11. **Tournament capacity (later)** — Count seats vs teams for team tournaments?
-12. **Custom event banners (later)** — Moderation workflow when user uploads return?
+6. **Approved organizers** — Who approves badge organizers, and is approval per-school or global?
+7. **Past event “minor corrections”** — Exact allowlist of editable fields?
+8. **Private unlock session** — Cookie/session length after password modal success? Rate-limit / lockout policy?
+9. **Tournament capacity (later)** — Count seats vs teams for team tournaments?
+10. **Custom event banners (later)** — Moderation workflow when user uploads return?
 
 ### Teams & clubs (clubs later)
 
-13. **Sponsored teams vs clubs** — How do we display sponsorship without conflating with official clubs?
-14. **Club request workflow** — Required fields? Notify which admins?
-15. **Who assigns teams to clubs** — School admin only, or also club officers?
+11. **Sponsored teams vs clubs** — How do we display sponsorship without conflating with official clubs?
+12. **Club request workflow** — Required fields? Notify which admins?
+13. **Who assigns teams to clubs** — School admin only, or also club officers?
 
 ### Tournaments (later)
 
-16. **Bracket / results** — Registration-only first, or brackets in first tournament ship?
-17. **Tournament tied to event** — UX: embed on event page, or standalone with link?
+14. **Bracket / results** — Registration-only first, or brackets in first tournament ship?
+15. **Tournament tied to event** — UX: embed on event page, or standalone with link?
 
 ### Content & safety
 
-18. **Profanity list** — Which library/list, and for which fields?
-19. **Rich text** — Plain text only, or limited Markdown?
-20. **Support ticket fields** — Which fields are required on the public form?
+16. **Profanity list** — Which library/list, and for which fields?
+17. **Rich text** — Plain text only, or limited Markdown?
+18. **Support ticket fields** — Which fields are required on the public form?
 
 ### Technical
 
-21. **Go API style** — REST only, or RPC (Connect/gRPC) behind the BFF?
-22. **Analytics** — Plausible vs Cloudflare Web Analytics vs other?
-23. **Activity log vs audit log** — One table with `kind`, or two tables?
-24. **Friends / notifications / i18n** — timing and depth after the first release?
+19. **Go API style** — REST only, or RPC (Connect/gRPC) behind the BFF?
+20. **Analytics** — Plausible vs Cloudflare Web Analytics vs other?
+21. **Activity log vs audit log** — One table with `kind`, or two tables?
+22. **Friends / notifications / i18n** — timing and depth after the first release?
 
 ---
 
@@ -58,12 +56,14 @@ Decisions to resolve before or during implementation. Until answered, implemente
 | Event create approval | None required |
 | Event visibility | public + unlisted + private |
 | Capacity | Optional; counts **RSVP yes only**; no waitlist yet |
+| Recurring events | **Decided:** weekly, biweekly, or monthly; max one year; each occurrence is an independent event with its own RSVP and cancellation; no edit-series workflow yet |
+| Cancellation notifications | **Decided:** after soft cancellation, best-effort email active yes/maybe RSVPs from `events@`; delivery failure does not undo cancellation |
 | Names | Single `name` field; profile `/users/:id` |
 | Teams | **public** pages; password only to join/interact |
 | Private event UX | Blurred/gated + password modal; no inspectable details pre-unlock |
 | Paid events | Allowed as off-site-payment listings only; CGN does not process payment |
 | Clubs / tournaments | Not scheduled yet |
-| Feature flags / near-you / cancel-notify | Not scheduled yet |
+| Feature flags / near-you | Not scheduled yet |
 | Support tickets | Anyone can submit (logged out OK) |
 | Email | **Resend** — sends from `events@` and `account@`; `notifications@` and `support@` workflows are later |
 | Object storage | **Cloudflare R2** — later school logos via CRM/admin app only; PNG/JPG; max **500 MB** |

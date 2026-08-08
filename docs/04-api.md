@@ -99,9 +99,9 @@ Not every path must exist on day one — align with [05 — Roadmap](./05-roadma
 | GET | `/events` | Search/browse **public only**; filters: game, school, format, … (no near-you yet) |
 | GET | `/events/:slug` | Public & unlisted return full page; private returns gated shell until unlocked |
 | POST | `/events/:slug/unlock` | Password for private events; unlock session required before details/RSVP |
-| POST | `/events` | Auth; no approval; rate limited; 8-char slug hash; optional capacity; optional off-site payment fields; default banner only |
-| PATCH | `/events/:slug` | Organizers; past-event field restrictions |
-| DELETE | `/events/:slug` | Soft delete (no RSVP notify emails yet) |
+| POST | `/events` | Auth; no approval; rate limited; 8-char slug hash; optional capacity; optional off-site payment fields; default banner only; optional `recurrence_rule` (`weekly`, `biweekly`, `monthly`) and `recurrence_until` (`YYYY-MM-DD`) |
+| PATCH | `/events/:slug` | Organizers; past-event field restrictions; recurrence is configured at creation and occurrences are edited independently (no edit-series workflow yet) |
+| DELETE | `/events/:slug` | Soft-cancel; best-effort email to active yes/maybe RSVPs after cancellation |
 | POST | `/events/:slug/rsvp` | yes/no/maybe; capacity counts **yes only**; reject yes if full; email+ICS on yes |
 | POST | `/events/:slug/interest` | Favorite/bookmark; independent of RSVP |
 | DELETE | `/events/:slug/interest` | Remove favorite |
@@ -109,6 +109,11 @@ Not every path must exist on day one — align with [05 — Roadmap](./05-roadma
 | GET | `/events/:slug/audit` | Later event change history |
 
 Discovery lists only `visibility = public`. Unlisted is link/slug only. Private: do not leak event details in HTML/JSON before unlock — blurred shell + password modal only. Capacity = count of RSVP `yes`; full → cannot RSVP yes (no waitlist). Paid events are allowed only as off-site-payment listings: no checkout, payment intent, refund, tax, payout, or ledger behavior in CGN.
+
+Recurring creation expands into independent event occurrences. The supported
+rules are weekly, biweekly, and monthly, with an inclusive end date no more
+than one year after the first occurrence. Each occurrence has its own slug,
+RSVPs, and cancellation lifecycle.
 
 ### Tournaments (later)
 
@@ -164,6 +169,7 @@ Discovery lists only `visibility = public`. Unlisted is link/slug only. Private:
 | Trigger | Email |
 |---------|-------|
 | Event RSVP (yes) | Details + ICS — from `events@campusgamingnetwork.com` |
+| Event cancellation | Active yes/maybe RSVPs; best effort, without ICS — from `events@campusgamingnetwork.com` |
 | Signup verification | Link — from `account@campusgamingnetwork.com` |
 | Password reset | Link — from `account@campusgamingnetwork.com` |
 | Basic notifications (later) | From `notifications@campusgamingnetwork.com` |

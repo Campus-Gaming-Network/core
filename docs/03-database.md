@@ -115,7 +115,9 @@ events
                               -- organizer handles any payment off-site; no CGN checkout/payment records
   location_address, location_lat, location_lng,
   starts_at, ends_at, registration_closes_at,
-  recurrence_rule nullable,
+  recurrence_rule nullable,       -- weekly | biweekly | monthly
+  recurrence_until nullable,      -- inclusive UTC end date; max one year from start
+  recurrence_parent_id nullable,   -- generated occurrence's root event
   created_by_user_id, school_id nullable,
   badge_eligible boolean or derived,
   created_at, updated_at, deleted_at
@@ -225,7 +227,7 @@ Do not list `unlisted` or `private` events in discovery search. Unlisted is reac
 
 | Case | Behavior |
 |------|----------|
-| Event deleted | Soft delete; public URL shows “no longer exists” |
+| Event cancelled | Soft delete; public URL shows “no longer exists”; best-effort cancellation email to active yes/maybe RSVPs |
 | User deletes account | Scrub PII; `name = 'Deleted User'`; keep FKs for history |
 | Hard delete | Avoid for domain entities unless legally required |
 

@@ -26,10 +26,10 @@ revisited later.
 1. Complete a quality pass on signup, event creation, RSVP, team joining, and
    dashboard flows, including frontend regression coverage, mobile/accessibility
    fixes, and replacement of placeholder legal content.
-2. Improve the event lifecycle with recurring events, cancellation notifications,
-   and stronger discovery filters.
-3. Add trust and identity features: `.edu` verification badges, school
-   admin/faculty indicators, organizer badges, and basic content filtering.
+2. Add remaining trust and identity features: school admin/faculty indicators,
+   organizer badges, and basic content filtering.
+3. Add lightweight moderation and operations tooling for reports, support,
+   audit history, and in-app notifications.
 
 ## Blockers and decisions
 
@@ -51,7 +51,7 @@ revisited later.
 - Regenerated stale Next.js development route metadata that was breaking the
   web typecheck.
 - Added regression coverage for event, team, profile, RSVP, private-unlock, and
-  team-join form payloads; web tests now cover 20 cases.
+  team-join form payloads; web tests now cover 22 cases.
 - Completed the first mobile/accessibility pass: native labeled checkboxes now
   power age confirmation, paid-event status, and team game selection, and
   custom select controls have explicit accessible names.

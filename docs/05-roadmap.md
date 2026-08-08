@@ -6,7 +6,7 @@ Phased delivery for a single developer. Each phase should be shippable. Do not p
 
 **Infra:** Railway (Next.js web, Go API, PostgreSQL) · Cloudflare DNS/protection · Resend email (`events@` / `account@`) · curated launch games (6 titles). `notifications@` and `support@` workflows, plus Cloudflare R2 for CRM/admin logo uploads, are later.
 
-**Not yet scheduled:** Sentry/error monitoring, CRM/admin app, clubs, tournaments, on-site payments, usernames, waitlists, team invite links, feature flags, near-you, cancel-event RSVP emails, custom event banner uploads.
+**Not yet scheduled:** Sentry/error monitoring, CRM/admin app, clubs, tournaments, on-site payments, usernames, waitlists, team invite links, feature flags, near-you, custom event banner uploads.
 
 **School seed:** import all 6,243 operating schools (4,943 main · 1,300 branch) as `is_active=true`; branch campuses use the same UI/UX; review later in CRM/admin tooling.
 
@@ -53,7 +53,8 @@ Phased delivery for a single developer. Each phase should be shippable. Do not p
 
 **Goal:** Create events, RSVP, email+ICS on the main site.
 
-- Create/edit events; soft delete (no RSVP cancel emails yet); **no approval**
+- Create/edit/cancel events; cancellation emails to active yes/maybe RSVPs are
+  handled as a best-effort side effect; **no approval**
 - Slug = `slugify(title)-` + **8** Base64URL chars of SHA-256(creatorId\|createdDate\|title)
 - Visibility: public / unlisted / private
 - Private: gated/blurred content + password modal (no inspectable details pre-unlock)
@@ -92,10 +93,11 @@ reliable enough for real users before expanding into clubs and tournaments.
 - Mobile and accessibility pass on primary journeys
 - Reviewed Terms and Privacy content
 - Sentry/error monitoring and basic product analytics
-- Recurring events
-- Cancellation notifications to RSVPs
-- Stronger event discovery filters
-- `.edu` verified-student badge UX
+- **Implemented:** recurring events with weekly, biweekly, and monthly schedules up to one year;
+  independent occurrence records with per-occurrence RSVP and cancellation
+- **Implemented:** cancellation notifications as best-effort email to active yes/maybe RSVPs
+- **Implemented:** stronger event discovery filters by game, school, and format
+- **Implemented:** `.edu` verified-student badge UX
 - School admin/faculty role indicators and event organizer badges
 - Basic profanity/content filtering
 - Lightweight moderation and operations tools for reports and support tickets
@@ -151,12 +153,10 @@ feeling unfinished.
 - Impersonation for site admins (audited)
 - Account deletion anonymization path tested
 - Past-event edit restrictions enforced
-- Recurring events (if not done earlier)
 - On-site payments decision (paid events currently remain off-site-payment listings)
 - Event/tournament **waitlists**
 - Team **invite links**
 - **Near you** / geo discovery
-- Cancel-event notify RSVPs
 - Feature flags
 - Announcements (if still deferred)
 - Non-GA analytics
@@ -174,7 +174,6 @@ feeling unfinished.
 - Team invite-link tokens
 - Usernames / first+last+display split
 - Near you / geo discovery
-- Cancel-event notify RSVPs
 - Custom event banner uploads (with strict moderation)
 - Feature flags
 - Impersonation / site announcements (unless pulled into CRM earlier)
