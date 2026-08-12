@@ -35,7 +35,6 @@ func NewSweeper(pool *pgxpool.Pool, logger *slog.Logger) *Sweeper {
 	return &Sweeper{pool: pool, logger: logger, now: time.Now}
 }
 
-// Result counts what a single pass removed.
 type Result struct {
 	Sessions           int64
 	VerificationTokens int64

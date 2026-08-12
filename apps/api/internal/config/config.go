@@ -1,3 +1,4 @@
+// Package config loads API configuration from environment variables.
 package config
 
 import (
@@ -29,6 +30,7 @@ type Config struct {
 	MaintenanceToken string
 }
 
+// Load reads and validates API configuration from the environment.
 func Load() (Config, error) {
 	timeout, err := time.ParseDuration(getenv("API_DB_CONNECT_TIMEOUT", "2s"))
 	if err != nil {

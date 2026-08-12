@@ -1,7 +1,9 @@
+// Package schools provides the school catalog and follow operations.
 package schools
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -45,8 +47,10 @@ type FollowRepository interface {
 	ListFollowed(ctx context.Context, userID string) ([]School, error)
 }
 
-var ErrSchoolNotFound = fmt.Errorf("school not found")
+// ErrSchoolNotFound indicates that an active school does not exist.
+var ErrSchoolNotFound = errors.New("school not found")
 
+// NormalizeListParams applies the catalog's pagination and filter defaults.
 func NormalizeListParams(params ListParams) ListParams {
 	if params.Limit < 1 || params.Limit > 100 {
 		params.Limit = 25

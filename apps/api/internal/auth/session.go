@@ -1,3 +1,4 @@
+// Package auth provides account authentication, sessions, tokens, and email flows.
 package auth
 
 import (
@@ -45,11 +46,13 @@ func NewToken() (string, []byte, error) {
 	return raw, hash[:], nil
 }
 
+// HashToken returns the SHA-256 digest used to look up a raw session token.
 func HashToken(raw string) []byte {
 	hash := sha256.Sum256([]byte(raw))
 	return hash[:]
 }
 
+// WithSession adds the authenticated user to the request context when present.
 func WithSession(store SessionStore, cookieConfig SessionCookieConfig) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
@@ -68,11 +71,13 @@ func WithSession(store SessionStore, cookieConfig SessionCookieConfig) func(http
 	}
 }
 
+// UserID returns the authenticated user ID stored in ctx.
 func UserID(ctx context.Context) (string, bool) {
 	userID, ok := ctx.Value(userIDContextKey).(string)
 	return userID, ok && userID != ""
 }
 
+// RequireUser returns the authenticated user ID or ErrUnauthenticated.
 func RequireUser(ctx context.Context) (string, error) {
 	userID, ok := UserID(ctx)
 	if !ok {

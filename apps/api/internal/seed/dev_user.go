@@ -1,3 +1,4 @@
+// Package seed provides bootstrap import and development-user operations.
 package seed
 
 import (
@@ -34,6 +35,7 @@ type DevUserResult struct {
 	FollowedCount int
 }
 
+// EnsureDevUser creates or updates the configured development user when enabled.
 func EnsureDevUser(ctx context.Context, pool *pgxpool.Pool, input DevUserInput) (DevUserResult, bool, error) {
 	input, enabled, err := normalizeDevUserInput(input)
 	if err != nil || !enabled {

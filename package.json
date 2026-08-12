@@ -15,6 +15,8 @@
     "typecheck:web": "npm --prefix apps/web run typecheck",
     "test:web": "npm --prefix apps/web run test",
     "fmt:api": "gofmt -w apps/api/cmd apps/api/internal",
+    "fmt:check:api": "test -z \"$(gofmt -l apps/api/cmd apps/api/internal)\"",
+    "vet:api": "cd apps/api && go vet ./...",
     "test:api": "cd apps/api && go test ./..."
   }
 }

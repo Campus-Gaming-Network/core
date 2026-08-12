@@ -1,3 +1,4 @@
+// Package migrate applies versioned PostgreSQL migrations.
 package migrate
 
 import (

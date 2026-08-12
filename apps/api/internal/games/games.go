@@ -1,3 +1,4 @@
+// Package games provides game catalog reads.
 package games
 
 import (

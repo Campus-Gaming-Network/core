@@ -109,7 +109,6 @@ func (c *CachedRepository) Start(ctx context.Context, interval time.Duration) {
 	}
 }
 
-// Loaded reports whether a snapshot is available.
 func (c *CachedRepository) Loaded() bool {
 	c.mu.RLock()
 	defer c.mu.RUnlock()

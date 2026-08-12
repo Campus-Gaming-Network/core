@@ -1,3 +1,4 @@
+// Package events provides event creation, discovery, RSVP, and interest operations.
 package events
 
 import (
@@ -198,6 +199,7 @@ func NewPostgresRepository(pool *pgxpool.Pool) *PostgresRepository {
 	}
 }
 
+// NormalizeListParams applies the event list's pagination and filter defaults.
 func NormalizeListParams(params ListParams) ListParams {
 	params.GameSlug = strings.TrimSpace(params.GameSlug)
 	params.SchoolSlug = strings.TrimSpace(params.SchoolSlug)
@@ -345,6 +347,7 @@ func validateEventFields(input CreateInput, requirePrivatePassword bool) error {
 	return nil
 }
 
+// GenerateSlug returns a stable, URL-safe slug for an event.
 func GenerateSlug(title string, creatorUserID string, createdAt time.Time) string {
 	base := Slugify(title)
 	hash := sha256.Sum256([]byte(strings.Join([]string{
@@ -357,6 +360,7 @@ func GenerateSlug(title string, creatorUserID string, createdAt time.Time) strin
 	return base + "-" + suffix
 }
 
+// Slugify converts a title into a URL-safe slug.
 func Slugify(value string) string {
 	var builder strings.Builder
 	previousHyphen := false
@@ -382,6 +386,7 @@ func Slugify(value string) string {
 	return result
 }
 
+// Lifecycle returns the current display state of an event.
 func Lifecycle(now time.Time, startsAt time.Time, endsAt time.Time, capacity *int, yesCount int) string {
 	if !now.Before(endsAt) {
 		return LifecycleEnded

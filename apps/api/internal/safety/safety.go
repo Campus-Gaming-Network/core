@@ -1,3 +1,4 @@
+// Package safety handles support tickets and user-submitted reports.
 package safety
 
 import (

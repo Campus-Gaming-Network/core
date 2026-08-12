@@ -1,3 +1,4 @@
+// Package ratelimit provides in-process request limiters.
 package ratelimit
 
 import (

@@ -1,3 +1,4 @@
+// Package db provides PostgreSQL connection helpers.
 package db
 
 import (

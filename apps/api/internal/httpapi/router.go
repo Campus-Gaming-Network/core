@@ -1,3 +1,4 @@
+// Package httpapi assembles the API's HTTP routes and handlers.
 package httpapi
 
 import (

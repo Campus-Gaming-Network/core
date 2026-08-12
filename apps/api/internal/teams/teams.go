@@ -1,3 +1,4 @@
+// Package teams provides team management and membership operations.
 package teams
 
 import (
@@ -109,6 +110,7 @@ func NewPostgresRepository(pool *pgxpool.Pool) *PostgresRepository {
 	}
 }
 
+// NormalizeListParams applies the team's pagination and filter defaults.
 func NormalizeListParams(params ListParams) ListParams {
 	params.GameSlug = strings.TrimSpace(params.GameSlug)
 	params.SchoolSlug = strings.TrimSpace(params.SchoolSlug)

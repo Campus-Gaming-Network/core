@@ -1,3 +1,4 @@
+// Package users provides profile, account, and social-link operations.
 package users
 
 import (
@@ -115,10 +116,12 @@ func (p Profile) Public() PublicProfile {
 	}
 }
 
+// NormalizeEmail trims and lowercases an email address.
 func NormalizeEmail(email string) string {
 	return strings.ToLower(strings.TrimSpace(email))
 }
 
+// GravatarURL returns the stable Gravatar URL for email.
 func GravatarURL(email string) string {
 	normalized := NormalizeEmail(email)
 	if normalized == "" {
@@ -420,6 +423,7 @@ func (r *PostgresRepository) listSocialLinks(ctx context.Context, id string) ([]
 	return links, nil
 }
 
+// IsDuplicateEmail reports whether err is a unique-email constraint violation.
 func IsDuplicateEmail(err error) bool {
 	var pgErr *pgconn.PgError
 	return errors.As(err, &pgErr) && pgErr.Code == "23505" && pgErr.ConstraintName == "users_email_key"
