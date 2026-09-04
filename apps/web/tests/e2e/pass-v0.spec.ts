@@ -53,6 +53,17 @@ test("event server actions create, toggle interest, and cancel", async ({
   await page.getByLabel("Location name").fill("Student Union Arena");
   await page.getByLabel("Games").selectOption("game-valorant");
   await page.getByLabel("Capacity").fill("24");
+  await page
+    .getByRole("checkbox", {
+      name: "This event has off-site payment instructions."
+    })
+    .check();
+  await page
+    .getByLabel("Payment note")
+    .fill("Register with the campus esports desk.");
+  await page
+    .getByLabel("Payment URL")
+    .fill("https://tickets.example.test/fall-brawl");
   await expectAccessible(page);
   await page.getByRole("button", { name: "Create event" }).click();
 
@@ -63,6 +74,14 @@ test("event server actions create, toggle interest, and cancel", async ({
     page.getByRole("heading", { name: "Campus Fall Brawl", level: 1 })
   ).toBeVisible();
   await expect(page.getByText("Event created.")).toBeVisible();
+  await expect(page.getByText("0 / 24")).toBeVisible();
+  await expect(
+    page.getByText("Register with the campus esports desk.")
+  ).toBeVisible();
+  await expect(page.getByRole("link", { name: "Payment link" })).toHaveAttribute(
+    "href",
+    "https://tickets.example.test/fall-brawl"
+  );
 
   await page.getByRole("button", { name: "I'm interested" }).click();
   await expect(page).toHaveURL(/\?event=interest-added$/);

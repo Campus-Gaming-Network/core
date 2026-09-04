@@ -1305,6 +1305,18 @@ func TestHandleCreateEventCreatesPublicEvent(t *testing.T) {
 	if len(repository.createParams.GameIDs) != 1 || repository.createParams.GameIDs[0] != "44444444-4444-4444-4444-444444444444" {
 		t.Fatalf("GameIDs = %#v, want request game IDs", repository.createParams.GameIDs)
 	}
+	if repository.createParams.Capacity == nil || *repository.createParams.Capacity != 24 {
+		t.Fatalf("Capacity = %v, want 24", repository.createParams.Capacity)
+	}
+	if !repository.createParams.IsPaid {
+		t.Fatal("IsPaid = false, want true")
+	}
+	if repository.createParams.PaymentNote != "Pay at the venue." {
+		t.Fatalf("PaymentNote = %q, want request payment note", repository.createParams.PaymentNote)
+	}
+	if repository.createParams.PaymentURL != "https://payments.example.test/scrim-night" {
+		t.Fatalf("PaymentURL = %q, want request payment URL", repository.createParams.PaymentURL)
+	}
 }
 
 func TestHandleCreateEventHashesPrivatePassword(t *testing.T) {

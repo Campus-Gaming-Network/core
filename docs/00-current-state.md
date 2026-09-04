@@ -80,6 +80,8 @@ revisited later.
   service, Resend transport, and HTTP contract coverage.
 - Verified that blocked-language signup names return `invalid_request` before
   the user repository is called.
+- Completed event-create acceptance for public events, private unlock gating,
+  capacity, and paid off-site registration details across API and browser tests.
 
 ## Resume checklist
 

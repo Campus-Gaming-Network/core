@@ -50,7 +50,7 @@ Failure cases to keep green: `rate_limited`, `event_full`, `invalid_private_pass
 - [x] Blocked-language name rejected before persistence
 
 #### Event create
-- [ ] Public create; private unlock gate; capacity; paid off-site fields
+- [x] Public create; private unlock gate; capacity; paid off-site fields
 - [ ] Recurrence bounds (weekly/biweekly/monthly, ≤1 year)
 - [ ] Soft cancel notifies active yes/maybe RSVPs (best-effort)
 

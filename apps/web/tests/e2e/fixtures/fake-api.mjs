@@ -298,7 +298,9 @@ const server = createServer(async (request, response) => {
         body.timezone !== "America/Los_Angeles" ||
         body.location_name !== "Student Union Arena" ||
         body.capacity !== 24 ||
-        body.is_paid !== false ||
+        body.is_paid !== true ||
+        body.payment_note !== "Register with the campus esports desk." ||
+        body.payment_url !== "https://tickets.example.test/fall-brawl" ||
         !Array.isArray(body.game_ids) ||
         body.game_ids.length !== 1 ||
         body.game_ids[0] !== game.id
@@ -327,7 +329,9 @@ const server = createServer(async (request, response) => {
           rsvp_yes_count: 0,
           interest_count: 0,
           lifecycle: "upcoming",
-          is_paid: false,
+          is_paid: body.is_paid,
+          payment_note: body.payment_note,
+          payment_url: body.payment_url,
           host_school: homeSchool,
           games: [game],
           organizers: [
