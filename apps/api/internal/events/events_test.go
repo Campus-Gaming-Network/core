@@ -144,6 +144,23 @@ func TestValidateCreateInputAcceptsBoundedRecurrence(t *testing.T) {
 	}
 }
 
+func TestValidateCreateInputAcceptsRecurrenceThroughOneYearCalendarDate(t *testing.T) {
+	input := validCreateInput(func(input *CreateInput) {
+		input.RecurrenceRule = RecurrenceMonthly
+		oneYearLater := input.StartsAt.AddDate(1, 0, 0)
+		input.RecurrenceUntil = time.Date(
+			oneYearLater.Year(),
+			oneYearLater.Month(),
+			oneYearLater.Day(),
+			23, 59, 59, int(time.Second-time.Nanosecond),
+			oneYearLater.Location(),
+		)
+	})
+	if err := ValidateCreateInput(input); err != nil {
+		t.Fatalf("ValidateCreateInput() error = %v, want same calendar date next year accepted", err)
+	}
+}
+
 func TestValidateCreateInputRejectsInvalidRecurrence(t *testing.T) {
 	for _, mutate := range []func(*CreateInput){
 		func(input *CreateInput) {

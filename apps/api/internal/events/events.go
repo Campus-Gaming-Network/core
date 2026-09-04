@@ -348,7 +348,7 @@ func validateEventFields(input CreateInput, requirePrivatePassword bool) error {
 		if !validRecurrenceRule(input.RecurrenceRule) || input.RecurrenceUntil.IsZero() || !input.RecurrenceUntil.After(input.EndsAt) {
 			return errors.New("recurrence must have a valid rule and end date after the event")
 		}
-		if input.RecurrenceUntil.After(input.StartsAt.AddDate(1, 0, 0)) {
+		if calendarDateAfter(input.RecurrenceUntil, input.StartsAt.AddDate(1, 0, 0)) {
 			return errors.New("recurrence cannot extend more than one year")
 		}
 	} else if !input.RecurrenceUntil.IsZero() {
@@ -366,6 +366,14 @@ func validateEventFields(input CreateInput, requirePrivatePassword bool) error {
 		}
 	}
 	return nil
+}
+
+func calendarDateAfter(value time.Time, limit time.Time) bool {
+	valueYear, valueMonth, valueDay := value.Date()
+	limitYear, limitMonth, limitDay := limit.Date()
+	valueDate := time.Date(valueYear, valueMonth, valueDay, 0, 0, 0, 0, time.UTC)
+	limitDate := time.Date(limitYear, limitMonth, limitDay, 0, 0, 0, 0, time.UTC)
+	return valueDate.After(limitDate)
 }
 
 // GenerateSlug returns a stable, URL-safe slug for an event.

@@ -1305,6 +1305,18 @@ func TestHandleCreateEventCreatesPublicEvent(t *testing.T) {
 	if len(repository.createParams.GameIDs) != 1 || repository.createParams.GameIDs[0] != "44444444-4444-4444-4444-444444444444" {
 		t.Fatalf("GameIDs = %#v, want request game IDs", repository.createParams.GameIDs)
 	}
+	if repository.createParams.Capacity == nil || *repository.createParams.Capacity != 24 {
+		t.Fatalf("Capacity = %v, want 24", repository.createParams.Capacity)
+	}
+	if !repository.createParams.IsPaid {
+		t.Fatal("IsPaid = false, want true")
+	}
+	if repository.createParams.PaymentNote != "Pay at the venue." {
+		t.Fatalf("PaymentNote = %q, want request payment note", repository.createParams.PaymentNote)
+	}
+	if repository.createParams.PaymentURL != "https://payments.example.test/scrim-night" {
+		t.Fatalf("PaymentURL = %q, want request payment URL", repository.createParams.PaymentURL)
+	}
 }
 
 func TestHandleCreateEventHashesPrivatePassword(t *testing.T) {
@@ -1324,6 +1336,80 @@ func TestHandleCreateEventHashesPrivatePassword(t *testing.T) {
 	if !auth.ComparePassword(repository.createParams.PrivatePasswordHash, "PrivatePass8") {
 		t.Fatal("PrivatePasswordHash does not verify against original password")
 	}
+}
+
+func TestHandleCreateEventAcceptsSupportedRecurrenceRules(t *testing.T) {
+	wantUntil := time.Date(2026, time.October, 15, 23, 59, 59, int(time.Second-time.Nanosecond), time.UTC)
+	for _, rule := range []string{
+		eventstore.RecurrenceWeekly,
+		eventstore.RecurrenceBiweekly,
+		eventstore.RecurrenceMonthly,
+	} {
+		t.Run(rule, func(t *testing.T) {
+			repository := &fakeEventRepository{}
+			handler := authenticatedEventsHandler(repository)
+			request := authenticatedEventRequest(
+				http.MethodPost,
+				"/events",
+				recurringCreateEventJSON(rule, "2026-10-15"),
+			)
+			response := httptest.NewRecorder()
+
+			handler.ServeHTTP(response, request)
+
+			if response.Code != http.StatusCreated {
+				t.Fatalf("status = %d, want %d; body = %s", response.Code, http.StatusCreated, response.Body.String())
+			}
+			if repository.createParams.RecurrenceRule != rule {
+				t.Fatalf("RecurrenceRule = %q, want %q", repository.createParams.RecurrenceRule, rule)
+			}
+			if !repository.createParams.RecurrenceUntil.Equal(wantUntil) {
+				t.Fatalf("RecurrenceUntil = %v, want %v", repository.createParams.RecurrenceUntil, wantUntil)
+			}
+		})
+	}
+}
+
+func TestHandleCreateEventEnforcesOneYearRecurrenceDateBoundary(t *testing.T) {
+	t.Run("same calendar date next year", func(t *testing.T) {
+		repository := &fakeEventRepository{}
+		handler := authenticatedEventsHandler(repository)
+		request := authenticatedEventRequest(
+			http.MethodPost,
+			"/events",
+			recurringCreateEventJSON(eventstore.RecurrenceMonthly, "2027-08-15"),
+		)
+		response := httptest.NewRecorder()
+
+		handler.ServeHTTP(response, request)
+
+		if response.Code != http.StatusCreated {
+			t.Fatalf("status = %d, want %d; body = %s", response.Code, http.StatusCreated, response.Body.String())
+		}
+		if !repository.createCalled {
+			t.Fatal("Create was not called at the one-year boundary")
+		}
+	})
+
+	t.Run("next calendar date", func(t *testing.T) {
+		repository := &fakeEventRepository{}
+		handler := authenticatedEventsHandler(repository)
+		request := authenticatedEventRequest(
+			http.MethodPost,
+			"/events",
+			recurringCreateEventJSON(eventstore.RecurrenceMonthly, "2027-08-16"),
+		)
+		response := httptest.NewRecorder()
+
+		handler.ServeHTTP(response, request)
+
+		if response.Code != http.StatusBadRequest {
+			t.Fatalf("status = %d, want %d; body = %s", response.Code, http.StatusBadRequest, response.Body.String())
+		}
+		if repository.createCalled {
+			t.Fatal("Create was called beyond the one-year boundary")
+		}
+	})
 }
 
 func TestHandleCreateEventRejectsInvalidInput(t *testing.T) {
@@ -2192,6 +2278,11 @@ func validCreateEventJSON(visibility string, privatePassword string) string {
 		"payment_note":"Pay at the venue.",
 		"payment_url":"https://payments.example.test/scrim-night"` + passwordField + `
 	}`
+}
+
+func recurringCreateEventJSON(rule string, until string) string {
+	body := strings.TrimSuffix(strings.TrimSpace(validCreateEventJSON(eventstore.VisibilityPublic, "")), "}")
+	return body + `,"recurrence_rule":"` + rule + `","recurrence_until":"` + until + `"}`
 }
 
 func validCreateTeamJSON() string {
