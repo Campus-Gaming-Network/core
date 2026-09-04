@@ -3,6 +3,118 @@ import { expect, test, type Page } from "@playwright/test";
 
 const eventSlug = "private-scrim-abc123";
 const eventTitle = "Midnight Strategy Session";
+const managedTeamSlug = "long-beach-legends-abc123";
+
+test("signup and resend verification use their server actions", async ({
+  page
+}) => {
+  await page.goto("/signup?school_id=school-csulb");
+  await page.getByLabel("Name").fill("New Campus Player");
+  await page.getByLabel("Email").fill("new-player@example.test");
+  await page.getByLabel("Password").fill("NewPassword123!");
+  await page
+    .getByRole("checkbox", { name: "I confirm I am 18 or older." })
+    .check();
+  await page.getByRole("button", { name: "Create account" }).click();
+
+  await expect(
+    page.getByText(
+      "Account created. Check your email for the verification link before logging in."
+    )
+  ).toBeVisible();
+  await expectAccessible(page);
+  await expectNoHorizontalOverflow(page);
+
+  await page.goto("/auth/verify-email");
+  await page.getByLabel("Email").fill("new-player@example.test");
+  await page.getByRole("button", { name: "Resend verification" }).click();
+
+  await expect(
+    page.getByText(
+      "If that account needs verification, another email is on the way."
+    )
+  ).toBeVisible();
+  await expectAccessible(page);
+  await expectNoHorizontalOverflow(page);
+});
+
+test("event server actions create, toggle interest, and cancel", async ({
+  page
+}) => {
+  await logIn(page, "player@example.test", "/events/new");
+  await expect(page).toHaveURL(/\/events\/new$/);
+
+  await page.getByLabel("Title").fill("Campus Fall Brawl");
+  await page
+    .getByLabel("Description")
+    .fill("An evening tournament for campus players.");
+  await page.getByLabel("Starts at").fill("2037-03-10T02:00:00Z");
+  await page.getByLabel("Ends at").fill("2037-03-10T05:00:00Z");
+  await page.getByLabel("Location name").fill("Student Union Arena");
+  await page.getByLabel("Games").selectOption("game-valorant");
+  await page.getByLabel("Capacity").fill("24");
+  await expectAccessible(page);
+  await page.getByRole("button", { name: "Create event" }).click();
+
+  await expect(page).toHaveURL(
+    /\/events\/campus-fall-brawl-[^?]+\?event=created$/
+  );
+  await expect(
+    page.getByRole("heading", { name: "Campus Fall Brawl", level: 1 })
+  ).toBeVisible();
+  await expect(page.getByText("Event created.")).toBeVisible();
+
+  await page.getByRole("button", { name: "I'm interested" }).click();
+  await expect(page).toHaveURL(/\?event=interest-added$/);
+  await expect(page.getByText("Marked as interested.")).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Remove interested" })
+  ).toBeVisible();
+
+  await page.getByRole("button", { name: "Remove interested" }).click();
+  await expect(page).toHaveURL(/\?event=interest-removed$/);
+  await expect(
+    page.getByText("Removed from interested events.")
+  ).toBeVisible();
+
+  await page.getByRole("button", { name: "Cancel event" }).click();
+  await expect(page).toHaveURL(/\/events\?event=cancelled$/);
+  await expect(page.getByText("Event cancelled.")).toBeVisible();
+  await expectAccessible(page);
+  await expectNoHorizontalOverflow(page);
+});
+
+test("team server actions join, promote a captain, and transfer ownership", async ({
+  context,
+  page
+}) => {
+  await logIn(page, "player@example.test", `/teams/${managedTeamSlug}`);
+  await expect(page).toHaveURL(new RegExp(`/teams/${managedTeamSlug}$`));
+  await page.getByLabel("Team password").fill("TeamPass123!");
+  await page.getByRole("button", { name: "Join team" }).click();
+
+  await expect(page).toHaveURL(/\?team=joined$/);
+  await expect(page.getByText("You joined the team.")).toBeVisible();
+  await expect(page.getByText("Your role: Member.")).toBeVisible();
+
+  await context.clearCookies();
+  await logIn(page, "owner@example.test", `/teams/${managedTeamSlug}`);
+  await expect(page.getByText("Your role: Owner.")).toBeVisible();
+  await page.getByRole("button", { name: "Make captain" }).click();
+
+  await expect(page).toHaveURL(/\?team=captain-updated$/);
+  await expect(page.getByText("Captain role updated.")).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Remove captain" })
+  ).toBeVisible();
+
+  await page.getByRole("button", { name: "Transfer ownership" }).click();
+  await expect(page).toHaveURL(/\?team=ownership-transferred$/);
+  await expect(page.getByText("Ownership transferred.")).toBeVisible();
+  await expect(page.getByText("Your role: Member.")).toBeVisible();
+  await expectAccessible(page);
+  await expectNoHorizontalOverflow(page);
+});
 
 test("private event unlock cookie survives login and authorizes RSVP", async ({
   context,
@@ -117,4 +229,11 @@ async function expectNoHorizontalOverflow(page: Page) {
       )
     )
     .toBe(true);
+}
+
+async function logIn(page: Page, email: string, next: string) {
+  await page.goto(`/login?next=${encodeURIComponent(next)}`);
+  await page.getByLabel("Email").fill(email);
+  await page.getByLabel("Password").fill("Password12345!");
+  await page.getByRole("button", { name: "Log in" }).click();
 }

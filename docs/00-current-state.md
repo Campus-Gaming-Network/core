@@ -70,8 +70,10 @@ revisited later.
   occurrence records, per-occurrence RSVPs, and recurrence details on event
   pages. Recurrence is limited to one year and each occurrence can be cancelled
   separately.
-- Added desktop/mobile Playwright coverage for private-event unlock through RSVP
-  and dashboard composition, including automated WCAG A/AA checks.
+- Added desktop/mobile Playwright coverage for signup/resend, event
+  create/interest/cancel, private unlock through RSVP, team
+  join/captain/ownership transfer, and dashboard composition, including
+  automated WCAG A/AA checks.
 
 ## Resume checklist
 

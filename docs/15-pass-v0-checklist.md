@@ -39,7 +39,8 @@ Failure cases to keep green: `rate_limited`, `event_full`, `invalid_private_pass
 - [x] Playwright/Next harness: private unlock cookie → login → RSVP
 - [x] Playwright: dashboard composition (`upcoming_rsvps` + followed-school + teams)
 - [x] Desktop/mobile Chromium projects with automated WCAG A/AA scans
-- [ ] Expand server-action integration to the remaining primary journeys
+- [x] Server-action integration for signup/resend, event create/interest/cancel,
+  and team join/captain/ownership transfer
 
 ### Journey acceptance (manual / later E2E)
 
@@ -57,10 +58,10 @@ Failure cases to keep green: `rate_limited`, `event_full`, `invalid_private_pass
 - [ ] yes/no/maybe; ICS on yes; interested separate; capacity counts yes only
 
 #### Team join
-- [ ] Public page; password gate; captain/transfer smoke
+- [x] Public page; password gate; captain/transfer smoke
 
 #### Dashboard
-- [ ] Upcoming RSVPs + followed-school events + team activity
+- [x] Upcoming RSVPs + followed-school events + team activity
 
 #### Post-#12 nits
 - [ ] Organizers on event detail; role indicators on profile
