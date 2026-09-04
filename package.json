@@ -14,6 +14,7 @@
     "lint:web": "npm --prefix apps/web run lint",
     "typecheck:web": "npm --prefix apps/web run typecheck",
     "test:web": "npm --prefix apps/web run test",
+    "test:e2e:web": "npm --prefix apps/web run test:e2e",
     "fmt:api": "gofmt -w apps/api/cmd apps/api/internal",
     "fmt:check:api": "test -z \"$(gofmt -l apps/api/cmd apps/api/internal)\"",
     "vet:api": "cd apps/api && go vet ./...",

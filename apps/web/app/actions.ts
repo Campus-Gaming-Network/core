@@ -539,7 +539,11 @@ async function storeEventUnlockCookie(slug: string, token: string, expiresAt: st
   cookieStore.set({
     name: eventUnlockCookieName(slug),
     value: token,
-    path: `/events/${slug}`,
+    // Login happens at /login, so a path-scoped event cookie is absent from the
+    // server action request that renders the redirect back to this event.
+    // Event-specific names keep tokens isolated while the root path preserves
+    // private-event access across that authentication round trip.
+    path: "/",
     expires: Number.isNaN(parsedExpiresAt.getTime()) ? undefined : parsedExpiresAt,
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",

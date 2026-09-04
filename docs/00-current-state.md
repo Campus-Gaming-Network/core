@@ -4,7 +4,7 @@ Quick re-entry point for Campus Gaming Network. Read this first after time away;
 the detailed product and engineering context remains in the other documents in
 this folder.
 
-**Last updated:** 2026-08-07
+**Last updated:** 2026-09-03
 
 ## Where we are
 
@@ -70,6 +70,8 @@ revisited later.
   occurrence records, per-occurrence RSVPs, and recurrence details on event
   pages. Recurrence is limited to one year and each occurrence can be cancelled
   separately.
+- Added desktop/mobile Playwright coverage for private-event unlock through RSVP
+  and dashboard composition, including automated WCAG A/AA checks.
 
 ## Resume checklist
 

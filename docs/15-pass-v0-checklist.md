@@ -7,8 +7,8 @@ payload integration remains deferred. Product status still lives in
 
 **Owner:** Quality  
 **Branch baseline:** `next` @ post-#12 (`d47d243`)  
-**Harness:** web `node:test` suite first; thin Playwright only where browser state
-matters (private unlock cookie, dashboard composition). Playwright is deferred.
+**Harness:** web `node:test` for request contracts; Playwright with an isolated
+API fixture where browser and server-rendered state matter.
 
 **Locked web request surface (method, path, body/header shape):**
 
@@ -36,9 +36,10 @@ Failure cases to keep green: `rate_limited`, `event_full`, `invalid_private_pass
 - [x] Existing payload builders for event/RSVP/unlock/team join (`action-payloads.test.ts`)
 - [x] Existing client helpers incl. role indicators (`cgn-api.test.ts`)
 - [ ] Cross-service integration for exact Go status and payload shapes
-- [ ] Server-action integration (needs Next test harness — deferred)
-- [ ] Playwright: private unlock cookie → RSVP
-- [ ] Playwright: dashboard composition (`upcoming_rsvps` + followed-school + teams)
+- [x] Playwright/Next harness: private unlock cookie → login → RSVP
+- [x] Playwright: dashboard composition (`upcoming_rsvps` + followed-school + teams)
+- [x] Desktop/mobile Chromium projects with automated WCAG A/AA scans
+- [ ] Expand server-action integration to the remaining primary journeys
 
 ### Journey acceptance (manual / later E2E)
 
@@ -66,7 +67,7 @@ Failure cases to keep green: `rate_limited`, `event_full`, `invalid_private_pass
 - [ ] Blocked terms on event/team/user/support/report forms
 
 ### Still open after Pass v0 web slice
-- Mobile + a11y pass on the same journeys
+- Manual mobile + assistive-technology pass on the same journeys
 - Real Terms/Privacy content
 - `school_admins` grant path (CRM later; indicators read-only today)
 - Thin Go tests for `populateOrganizers` / `listRoleIndicators` (API)

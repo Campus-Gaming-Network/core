@@ -1,5 +1,10 @@
 @import "@heroui/react/styles";
 
+:root {
+  --muted: #62626c;
+  --accent: #006dcc;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -20,6 +25,10 @@ body {
 
 a {
   color: inherit;
+}
+
+a.button {
+  color: var(--button-fg);
 }
 
 h1,
