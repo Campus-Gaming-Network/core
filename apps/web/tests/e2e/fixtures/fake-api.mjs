@@ -3,12 +3,11 @@ import { createServer } from "node:http";
 
 const host = "127.0.0.1";
 const port = Number.parseInt(process.env.PORT ?? "18080", 10);
-const eventSlug = "private-scrim-abc123";
 const managedTeamSlug = "long-beach-legends-abc123";
 const transferCandidateID = "user-transfer-e2e";
 const unlockToken = "e2e-private-event-unlock";
 const sessions = new Map();
-const rsvps = new Set();
+const privateEventRecords = new Map();
 const createdEvents = new Map();
 const teamRoles = new Map();
 const promotedCaptainSessions = new Set();
@@ -147,11 +146,13 @@ function createdEvent(record, sessionToken) {
   };
 }
 
-function privateEvent(sessionToken) {
+function privateEvent(slug, sessionToken) {
+  const record = privateEventRecord(slug);
+
   return {
     id: "event-private",
     title: "Midnight Strategy Session",
-    slug: eventSlug,
+    slug,
     description: "Private practice details for invited players.",
     visibility: "private",
     format: "online",
@@ -160,8 +161,10 @@ function privateEvent(sessionToken) {
     timezone: "America/Los_Angeles",
     online_url: "https://example.test/private-room",
     capacity: 10,
-    rsvp_yes_count: rsvps.size,
-    interest_count: 0,
+    rsvp_yes_count: Array.from(record.rsvps.values()).filter(
+      (response) => response === "yes"
+    ).length,
+    interest_count: record.interestedSessions.size,
     lifecycle: "upcoming",
     is_paid: false,
     host_school: homeSchool,
@@ -174,11 +177,26 @@ function privateEvent(sessionToken) {
         role_indicators: ["school_admin"]
       }
     ],
-    viewer_rsvp:
-      sessionToken && rsvps.has(sessionToken) ? "yes" : undefined,
-    viewer_interested: false,
+    viewer_rsvp: sessionToken ? record.rsvps.get(sessionToken) : undefined,
+    viewer_interested: record.interestedSessions.has(sessionToken),
     viewer_can_edit: false
   };
+}
+
+function privateEventRecord(slug) {
+  let record = privateEventRecords.get(slug);
+  if (!record) {
+    record = {
+      rsvps: new Map(),
+      interestedSessions: new Set()
+    };
+    privateEventRecords.set(slug, record);
+  }
+  return record;
+}
+
+function isPrivateEventSlug(slug) {
+  return /^private-scrim-(?:desktop-|mobile-)?abc123$/.test(slug);
 }
 
 const server = createServer(async (request, response) => {
@@ -367,16 +385,32 @@ const server = createServer(async (request, response) => {
       }
       const slug = decodeURIComponent(interestMatch[1]);
       const record = createdEvents.get(slug);
-      if (!record) {
+      if (record) {
+        if (request.method === "POST") {
+          record.interestedSessions.add(sessionToken);
+        } else {
+          record.interestedSessions.delete(sessionToken);
+        }
+        json(response, 200, createdEvent(record, sessionToken));
+        return;
+      }
+
+      if (!isPrivateEventSlug(slug)) {
         json(response, 404, { error: "event_not_found" });
         return;
       }
-      if (request.method === "POST") {
-        record.interestedSessions.add(sessionToken);
-      } else {
-        record.interestedSessions.delete(sessionToken);
+      if (!unlocked) {
+        json(response, 403, { error: "private_event_locked" });
+        return;
       }
-      json(response, 200, createdEvent(record, sessionToken));
+
+      const privateRecord = privateEventRecord(slug);
+      if (request.method === "POST") {
+        privateRecord.interestedSessions.add(sessionToken);
+      } else {
+        privateRecord.interestedSessions.delete(sessionToken);
+      }
+      json(response, 200, privateEvent(slug, sessionToken));
       return;
     }
 
@@ -402,27 +436,35 @@ const server = createServer(async (request, response) => {
       }
     }
 
-    if (
-      request.method === "POST" &&
-      url.pathname === `/events/${eventSlug}/unlock`
-    ) {
+    const privateUnlockMatch = url.pathname.match(
+      /^\/events\/([^/]+)\/unlock$/
+    );
+    if (request.method === "POST" && privateUnlockMatch) {
+      const slug = decodeURIComponent(privateUnlockMatch[1]);
+      if (!isPrivateEventSlug(slug)) {
+        json(response, 404, { error: "event_not_found" });
+        return;
+      }
       const body = await readJSON(request);
       if (body.password !== "EventPass123!") {
         json(response, 401, { error: "invalid_private_password" });
         return;
       }
       json(response, 200, {
-        event: privateEvent(sessionToken),
+        event: privateEvent(slug, sessionToken),
         unlock_token: unlockToken,
         expires_at: "2037-02-15T06:00:00Z"
       });
       return;
     }
 
-    if (
-      request.method === "POST" &&
-      url.pathname === `/events/${eventSlug}/rsvp`
-    ) {
+    const privateRSVPMatch = url.pathname.match(/^\/events\/([^/]+)\/rsvp$/);
+    if (request.method === "POST" && privateRSVPMatch) {
+      const slug = decodeURIComponent(privateRSVPMatch[1]);
+      if (!isPrivateEventSlug(slug)) {
+        json(response, 404, { error: "event_not_found" });
+        return;
+      }
       const body = await readJSON(request);
       if (!authenticated) {
         json(response, 401, { error: "authentication_required" });
@@ -432,26 +474,29 @@ const server = createServer(async (request, response) => {
         json(response, 403, { error: "private_event_locked" });
         return;
       }
-      if (body.response !== "yes") {
+      if (!["yes", "maybe", "no"].includes(body.response)) {
         json(response, 400, { error: "invalid_request" });
         return;
       }
 
-      rsvps.add(sessionToken);
-      json(response, 200, privateEvent(sessionToken));
+      privateEventRecord(slug).rsvps.set(sessionToken, body.response);
+      json(response, 200, privateEvent(slug, sessionToken));
       return;
     }
 
-    if (
-      request.method === "GET" &&
-      url.pathname === `/events/${eventSlug}`
-    ) {
+    const privateEventMatch = url.pathname.match(/^\/events\/([^/]+)$/);
+    if (request.method === "GET" && privateEventMatch) {
+      const slug = decodeURIComponent(privateEventMatch[1]);
+      if (!isPrivateEventSlug(slug)) {
+        json(response, 404, { error: "event_not_found" });
+        return;
+      }
       json(
         response,
         200,
         unlocked
-          ? privateEvent(sessionToken)
-          : { slug: eventSlug, visibility: "private", locked: true }
+          ? privateEvent(slug, sessionToken)
+          : { slug, visibility: "private", locked: true }
       );
       return;
     }

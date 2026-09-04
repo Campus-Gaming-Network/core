@@ -84,6 +84,13 @@ revisited later.
   capacity, and paid off-site registration details across API and browser tests.
 - Added handler-level recurrence acceptance for weekly, biweekly, and monthly
   events and fixed the inclusive one-year calendar-date boundary.
+- Verified soft cancellation still succeeds when email delivery fails while
+  attempting notifications for every active yes/maybe RSVP recipient.
+- Expanded RSVP acceptance across yes/maybe/no, independent interest state,
+  yes-only capacity counting, and the exact Resend ICS attachment; also fixed
+  selected-button contrast to meet WCAG AA.
+- Added coverage for host-scoped organizer/profile role indicators and blocked
+  terms across the remaining event, team, profile, support, and report fields.
 
 ## Resume checklist
 
