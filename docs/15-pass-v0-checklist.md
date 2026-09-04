@@ -47,7 +47,7 @@ Failure cases to keep green: `rate_limited`, `event_full`, `invalid_private_pass
 #### Signup
 - [x] Home school required; 18+ checkbox stored
 - [x] Verification email + resend rate limit
-- [ ] Blocked-language name rejected before persistence
+- [x] Blocked-language name rejected before persistence
 
 #### Event create
 - [ ] Public create; private unlock gate; capacity; paid off-site fields

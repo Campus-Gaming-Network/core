@@ -78,6 +78,8 @@ revisited later.
   confirmation with HTTP, service, and repository regression coverage.
 - Locked verification-email delivery and per-address/IP resend throttling with
   service, Resend transport, and HTTP contract coverage.
+- Verified that blocked-language signup names return `invalid_request` before
+  the user repository is called.
 
 ## Resume checklist
 

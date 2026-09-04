@@ -294,6 +294,21 @@ func TestPassV0ErrorResponseContracts(t *testing.T) {
 		requireErrorContract(t, response, http.StatusConflict, "email_already_registered")
 	})
 
+	t.Run("blocked signup name", func(t *testing.T) {
+		userStore := &passV0ContractUsers{}
+		router := &Router{account: newPassV0ContractAccountService(userStore)}
+		body := strings.Replace(validPassV0SignupJSON(), "Player One", "Bullshit Player", 1)
+		response := serveContractRequest(
+			http.HandlerFunc(router.handleSignup),
+			httptest.NewRequest(http.MethodPost, "/auth/signup", strings.NewReader(body)),
+		)
+
+		requireErrorContract(t, response, http.StatusBadRequest, "invalid_request")
+		if userStore.createCalled {
+			t.Fatal("blocked signup name reached the user repository")
+		}
+	})
+
 	t.Run("blocked event text", func(t *testing.T) {
 		repository := &fakeEventRepository{}
 		body := strings.Replace(validCreateEventJSON(eventstore.VisibilityPublic, ""), "Campus Scrim Night", "Bullshit Tournament", 1)
