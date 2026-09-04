@@ -10,7 +10,6 @@ import {
   type Team,
   ApiError,
   apiRequest,
-  formCheckbox,
   formString,
   getSetCookieHeader,
   parseSetCookie,
@@ -18,13 +17,21 @@ import {
 } from "../lib/cgn-api";
 import {
   eventBodyFromForm,
-  privateUnlockBodyFromForm,
-  rsvpBodyFromForm,
   socialLinksFromForm,
-  teamBodyFromForm,
-  teamJoinBodyFromForm
+  teamBodyFromForm
 } from "../lib/action-payloads";
 import { type FormState } from "../lib/form-state";
+import {
+  buildCreateEventRequest,
+  buildDeleteEventRequest,
+  buildEventInterestRequest,
+  buildResendVerificationRequest,
+  buildRsvpEventRequest,
+  buildSignupRequest,
+  buildTeamJoinRequest,
+  buildTransferTeamOwnershipRequest,
+  buildUnlockEventRequest
+} from "../lib/pass-v0-requests";
 import {
   eventUnlockCookieName,
   eventUnlockHeaders,
@@ -36,18 +43,7 @@ export async function signupAction(
   formData: FormData
 ): Promise<FormState> {
   try {
-    await apiRequest<Profile>({
-      path: "/auth/signup",
-      method: "POST",
-      body: {
-        email: formString(formData, "email"),
-        password: formString(formData, "password"),
-        name: formString(formData, "name"),
-        home_school_id: formString(formData, "home_school_id"),
-        age_confirmed: formCheckbox(formData, "age_confirmed"),
-        timezone: formString(formData, "timezone") || "America/Los_Angeles"
-      }
-    });
+    await apiRequest<Profile>(buildSignupRequest(formData));
 
     return {
       status: "success",
@@ -147,13 +143,9 @@ export async function resendVerificationAction(
   formData: FormData
 ): Promise<FormState> {
   try {
-    await apiRequest<{ status: string }>({
-      path: "/auth/resend-verification",
-      method: "POST",
-      body: {
-        email: formString(formData, "email")
-      }
-    });
+    await apiRequest<{ status: string }>(
+      buildResendVerificationRequest(formData)
+    );
 
     return {
       status: "success",
@@ -313,12 +305,9 @@ export async function createEventAction(
 ): Promise<FormState> {
   let destination = "/events";
   try {
-    const { data } = await apiRequest<Event>({
-      path: "/events",
-      method: "POST",
-      cookieHeader: await incomingCookieHeader(),
-      body: eventBodyFromForm(formData)
-    });
+    const { data } = await apiRequest<Event>(
+      buildCreateEventRequest(formData, await incomingCookieHeader())
+    );
 
     revalidatePath("/events");
     destination = `/events/${data.slug}?event=created`;
@@ -357,11 +346,9 @@ export async function deleteEventAction(formData: FormData) {
   const slug = formString(formData, "slug");
 
   try {
-    await apiRequest<void>({
-      path: `/events/${encodeURIComponent(slug)}`,
-      method: "DELETE",
-      cookieHeader: await incomingCookieHeader()
-    });
+    await apiRequest<void>(
+      buildDeleteEventRequest(slug, await incomingCookieHeader())
+    );
   } catch {
     redirect(`/events/${encodeURIComponent(slug)}?event=cancel-failed`);
   }
@@ -400,12 +387,9 @@ export async function joinTeamAction(
   let destination = `/teams/${encodeURIComponent(slug)}?team=joined`;
 
   try {
-    const { data } = await apiRequest<Team>({
-      path: `/teams/${encodeURIComponent(slug)}/join`,
-      method: "POST",
-      cookieHeader: await incomingCookieHeader(),
-      body: teamJoinBodyFromForm(formData)
-    });
+    const { data } = await apiRequest<Team>(
+      buildTeamJoinRequest(slug, formData, await incomingCookieHeader())
+    );
 
     revalidatePath("/teams");
     revalidatePath(`/teams/${data.slug}`);
@@ -449,14 +433,13 @@ export async function transferTeamOwnershipAction(formData: FormData) {
   let destination = `/teams/${encodeURIComponent(slug)}?team=manage-failed`;
 
   try {
-    const { data } = await apiRequest<Team>({
-      path: `/teams/${encodeURIComponent(slug)}/transfer-ownership`,
-      method: "POST",
-      cookieHeader: await incomingCookieHeader(),
-      body: {
-        new_owner_user_id: newOwnerUserID
-      }
-    });
+    const { data } = await apiRequest<Team>(
+      buildTransferTeamOwnershipRequest(
+        slug,
+        newOwnerUserID,
+        await incomingCookieHeader()
+      )
+    );
 
     revalidatePath("/teams");
     revalidatePath(`/teams/${data.slug}`);
@@ -476,11 +459,9 @@ export async function unlockEventAction(
   let destination = `/events/${encodeURIComponent(slug)}?event=unlocked`;
 
   try {
-    const { data } = await apiRequest<EventUnlockResponse>({
-      path: `/events/${encodeURIComponent(slug)}/unlock`,
-      method: "POST",
-      body: privateUnlockBodyFromForm(formData)
-    });
+    const { data } = await apiRequest<EventUnlockResponse>(
+      buildUnlockEventRequest(slug, formData)
+    );
 
     await storeEventUnlockCookie(slug, data.unlock_token, data.expires_at);
     revalidatePath(`/events/${slug}`);
@@ -500,13 +481,14 @@ export async function rsvpEventAction(
   let destination = `/events/${encodeURIComponent(slug)}?event=rsvp-updated`;
 
   try {
-    const { data } = await apiRequest<Event>({
-      path: `/events/${encodeURIComponent(slug)}/rsvp`,
-      method: "POST",
-      cookieHeader: await incomingCookieHeader(),
-      headers: await eventUnlockHeaders(slug),
-      body: rsvpBodyFromForm(formData)
-    });
+    const { data } = await apiRequest<Event>(
+      buildRsvpEventRequest(
+        slug,
+        formData,
+        await incomingCookieHeader(),
+        await eventUnlockHeaders(slug)
+      )
+    );
 
     revalidatePath("/events");
     revalidatePath(`/events/${data.slug}`);
@@ -524,12 +506,14 @@ export async function eventInterestAction(formData: FormData) {
   let destination = `/events/${encodeURIComponent(slug)}?event=interest-failed`;
 
   try {
-    const { data } = await apiRequest<Event>({
-      path: `/events/${encodeURIComponent(slug)}/interest`,
-      method: interested ? "POST" : "DELETE",
-      cookieHeader: await incomingCookieHeader(),
-      headers: await eventUnlockHeaders(slug)
-    });
+    const { data } = await apiRequest<Event>(
+      buildEventInterestRequest(
+        slug,
+        interested,
+        await incomingCookieHeader(),
+        await eventUnlockHeaders(slug)
+      )
+    );
 
     revalidatePath("/events");
     revalidatePath(`/events/${data.slug}`);

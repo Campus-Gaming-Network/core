@@ -1,15 +1,16 @@
 # 15 — Pass v0 quality checklist
 
 Quality regression checklist for the primary events-and-teams loop on `next`.
-Tracks coverage against the locked BFF→Go contract surface. Product status still
-lives in [10 — Delivery status](./10-delivery-status.md).
+Tracks web-side request coverage at the BFF→Go boundary. Cross-service status and
+payload integration remains deferred. Product status still lives in
+[10 — Delivery status](./10-delivery-status.md).
 
 **Owner:** Quality  
 **Branch baseline:** `next` @ post-#12 (`d47d243`)  
 **Harness:** web `node:test` suite first; thin Playwright only where browser state
 matters (private unlock cookie, dashboard composition). Playwright is deferred.
 
-**Locked contract surface (assert status + error `code` / user message):**
+**Locked web request surface (method, path, body/header shape):**
 
 | Journey | Routes |
 |---------|--------|
@@ -29,10 +30,12 @@ Failure cases to keep green: `rate_limited`, `event_full`, `invalid_private_pass
 ### Web suite (this pass)
 
 - [x] Checklist checked in (`docs/15-pass-v0-checklist.md`)
-- [x] Contract request shapes for the locked routes (`apps/web/tests/pass-v0-contracts.test.ts`)
-- [x] Failure mapping coverage for Pass v0 codes via `userMessageForApiError`
+- [x] Production request builders for the locked routes (`apps/web/lib/pass-v0-requests.ts`)
+- [x] Request-shape regression coverage (`apps/web/tests/pass-v0-contracts.test.ts`)
+- [x] Non-2xx parsing and user-message coverage for Pass v0 error codes
 - [x] Existing payload builders for event/RSVP/unlock/team join (`action-payloads.test.ts`)
 - [x] Existing client helpers incl. role indicators (`cgn-api.test.ts`)
+- [ ] Cross-service integration for exact Go status and payload shapes
 - [ ] Server-action integration (needs Next test harness — deferred)
 - [ ] Playwright: private unlock cookie → RSVP
 - [ ] Playwright: dashboard composition (`upcoming_rsvps` + followed-school + teams)

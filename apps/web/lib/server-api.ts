@@ -15,6 +15,10 @@ import {
   ApiError,
   apiRequest
 } from "./cgn-api";
+import {
+  buildDashboardEventsRequest,
+  buildMyTeamsRequest
+} from "./pass-v0-requests";
 
 // The school and game catalogs change on the order of once or twice a year and
 // carry no viewer-specific fields, so Next.js can hold them across requests.
@@ -160,10 +164,9 @@ export async function getEvent(slug: string, options: GetEventOptions = {}) {
 }
 
 export async function getDashboardEvents(limit = 5) {
-  const { data } = await apiRequest<DashboardEventsResponse>({
-    path: `/me/events?limit=${encodeURIComponent(String(limit))}`,
-    cookieHeader: await incomingCookieHeader()
-  });
+  const { data } = await apiRequest<DashboardEventsResponse>(
+    buildDashboardEventsRequest(limit, await incomingCookieHeader())
+  );
 
   return data;
 }
@@ -198,10 +201,9 @@ export async function listTeams(params: {
 }
 
 export async function listMyTeams(limit = 10) {
-  const { data } = await apiRequest<TeamsResponse>({
-    path: `/me/teams?limit=${encodeURIComponent(String(limit))}`,
-    cookieHeader: await incomingCookieHeader()
-  });
+  const { data } = await apiRequest<TeamsResponse>(
+    buildMyTeamsRequest(limit, await incomingCookieHeader())
+  );
 
   return data.teams;
 }

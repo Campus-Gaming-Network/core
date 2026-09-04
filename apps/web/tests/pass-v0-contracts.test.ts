@@ -1,37 +1,41 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { eventBodyFromForm } from "../lib/action-payloads.js";
 import {
   ApiError,
   apiRequest,
   userMessageForApiError,
   type Fetcher
 } from "../lib/cgn-api.js";
+import {
+  buildCreateEventRequest,
+  buildDashboardEventsRequest,
+  buildDeleteEventRequest,
+  buildEventInterestRequest,
+  buildMyTeamsRequest,
+  buildResendVerificationRequest,
+  buildRsvpEventRequest,
+  buildSignupRequest,
+  buildTeamJoinRequest,
+  buildTransferTeamOwnershipRequest,
+  buildUnlockEventRequest
+} from "../lib/pass-v0-requests.js";
 
 const baseUrl = "http://api:8080";
+const cookieHeader = "cgn_session=abc";
+const unlockHeaders = { "X-CGN-Event-Unlock": "unlock-token" };
 
-function jsonFetcher(
-  status: number,
-  body: unknown,
-  capture: Array<{ input: string; init?: RequestInit }>
-): Fetcher {
-  return async (input, init) => {
-    capture.push({ input: String(input), init });
-    return new Response(JSON.stringify(body), {
-      status,
-      headers: { "content-type": "application/json" }
-    });
-  };
-}
+test("Pass v0 signup request uses the production builder and trims fields", () => {
+  const formData = new FormData();
+  formData.set("email", " player@example.com ");
+  formData.set("password", " password123 ");
+  formData.set("name", " Player One ");
+  formData.set("home_school_id", " school-1 ");
+  formData.set("age_confirmed", "on");
 
-test("Pass v0 signup posts /auth/signup with trimmed account fields", async () => {
-  const calls: Array<{ input: string; init?: RequestInit }> = [];
-  const fetcher = jsonFetcher(201, { id: "user-1" }, calls);
-
-  await apiRequest({
+  assert.deepEqual(buildSignupRequest(formData), {
     path: "/auth/signup",
     method: "POST",
-    baseUrl,
-    fetcher,
     body: {
       email: "player@example.com",
       password: "password123",
@@ -41,255 +45,166 @@ test("Pass v0 signup posts /auth/signup with trimmed account fields", async () =
       timezone: "America/Los_Angeles"
     }
   });
-
-  assert.equal(calls[0]?.input, `${baseUrl}/auth/signup`);
-  assert.equal(calls[0]?.init?.method, "POST");
-  assert.deepEqual(JSON.parse(String(calls[0]?.init?.body)), {
-    email: "player@example.com",
-    password: "password123",
-    name: "Player One",
-    home_school_id: "school-1",
-    age_confirmed: true,
-    timezone: "America/Los_Angeles"
-  });
 });
 
-test("Pass v0 resend verification posts /auth/resend-verification", async () => {
-  const calls: Array<{ input: string; init?: RequestInit }> = [];
-  const fetcher = jsonFetcher(200, { status: "ok" }, calls);
+test("Pass v0 resend-verification request uses the production builder", () => {
+  const formData = new FormData();
+  formData.set("email", " player@example.com ");
 
-  await apiRequest({
+  assert.deepEqual(buildResendVerificationRequest(formData), {
     path: "/auth/resend-verification",
     method: "POST",
-    baseUrl,
-    fetcher,
     body: { email: "player@example.com" }
   });
-
-  assert.equal(calls[0]?.input, `${baseUrl}/auth/resend-verification`);
-  assert.equal(calls[0]?.init?.method, "POST");
 });
 
-test("Pass v0 event create posts /events", async () => {
-  const calls: Array<{ input: string; init?: RequestInit }> = [];
-  const fetcher = jsonFetcher(201, { slug: "smash-night-abcd1234" }, calls);
+test("Pass v0 event-create request uses the production builder", () => {
+  const formData = new FormData();
+  formData.set("title", " Smash night ");
+  formData.set("host_school_id", "school-1");
+  formData.append("game_ids", "game-1");
+  formData.set("visibility", "public");
+  formData.set("format", "in_person");
+  formData.set("starts_at", "2026-08-15T20:00:00Z");
+  formData.set("ends_at", "2026-08-15T22:00:00Z");
 
-  await apiRequest({
+  assert.deepEqual(buildCreateEventRequest(formData, cookieHeader), {
     path: "/events",
     method: "POST",
-    baseUrl,
-    fetcher,
-    cookieHeader: "cgn_session=abc",
-    body: {
-      title: "Smash night",
-      host_school_id: "school-1",
-      game_ids: ["game-1"],
-      visibility: "public",
-      format: "in_person",
-      starts_at: "2026-08-15T20:00:00Z",
-      ends_at: "2026-08-15T22:00:00Z"
-    }
+    cookieHeader,
+    body: eventBodyFromForm(formData)
   });
-
-  assert.equal(calls[0]?.input, `${baseUrl}/events`);
-  assert.equal(calls[0]?.init?.method, "POST");
-  assert.equal(
-    new Headers(calls[0]?.init?.headers).get("cookie"),
-    "cgn_session=abc"
-  );
 });
 
-test("Pass v0 private unlock posts /events/:slug/unlock", async () => {
-  const calls: Array<{ input: string; init?: RequestInit }> = [];
-  const fetcher = jsonFetcher(
-    200,
-    {
-      event: { slug: "private-event" },
-      unlock_token: "token",
-      expires_at: "2037-01-01T00:00:00Z"
-    },
-    calls
-  );
+test("Pass v0 private-unlock and cancel requests encode the event slug", () => {
+  const formData = new FormData();
+  formData.set("password", " secret-pass ");
 
-  await apiRequest({
-    path: "/events/private-event/unlock",
+  assert.deepEqual(buildUnlockEventRequest("private/event", formData), {
+    path: "/events/private%2Fevent/unlock",
     method: "POST",
-    baseUrl,
-    fetcher,
     body: { password: "secret-pass" }
   });
-
-  assert.equal(calls[0]?.input, `${baseUrl}/events/private-event/unlock`);
-  assert.deepEqual(JSON.parse(String(calls[0]?.init?.body)), {
-    password: "secret-pass"
-  });
-});
-
-test("Pass v0 event cancel deletes /events/:slug", async () => {
-  const calls: Array<{ input: string; init?: RequestInit }> = [];
-  const emptyFetcher: Fetcher = async (input, init) => {
-    calls.push({ input: String(input), init });
-    return new Response(null, { status: 204 });
-  };
-
-  await apiRequest({
-    path: "/events/smash-night",
+  assert.deepEqual(buildDeleteEventRequest("smash/night", cookieHeader), {
+    path: "/events/smash%2Fnight",
     method: "DELETE",
-    baseUrl,
-    fetcher: emptyFetcher,
-    cookieHeader: "cgn_session=abc"
+    cookieHeader
   });
-
-  assert.equal(calls[0]?.input, `${baseUrl}/events/smash-night`);
-  assert.equal(calls[0]?.init?.method, "DELETE");
 });
 
-test("Pass v0 RSVP posts /events/:slug/rsvp with unlock header support", async () => {
-  const calls: Array<{ input: string; init?: RequestInit }> = [];
-  const fetcher = jsonFetcher(200, { slug: "smash-night" }, calls);
+test("Pass v0 RSVP and interest requests use the production builders", () => {
+  const formData = new FormData();
+  formData.set("response", " yes ");
 
-  await apiRequest({
-    path: "/events/smash-night/rsvp",
-    method: "POST",
-    baseUrl,
-    fetcher,
-    cookieHeader: "cgn_session=abc",
-    headers: { "X-CGN-Event-Unlock": "unlock-token" },
-    body: { response: "yes" }
-  });
-
-  assert.equal(calls[0]?.input, `${baseUrl}/events/smash-night/rsvp`);
-  assert.equal(
-    new Headers(calls[0]?.init?.headers).get("x-cgn-event-unlock"),
-    "unlock-token"
+  assert.deepEqual(
+    buildRsvpEventRequest(
+      "smash/night",
+      formData,
+      cookieHeader,
+      unlockHeaders
+    ),
+    {
+      path: "/events/smash%2Fnight/rsvp",
+      method: "POST",
+      cookieHeader,
+      headers: unlockHeaders,
+      body: { response: "yes" }
+    }
   );
-  assert.deepEqual(JSON.parse(String(calls[0]?.init?.body)), {
-    response: "yes"
-  });
+  assert.deepEqual(
+    buildEventInterestRequest(
+      "smash/night",
+      true,
+      cookieHeader,
+      unlockHeaders
+    ),
+    {
+      path: "/events/smash%2Fnight/interest",
+      method: "POST",
+      cookieHeader,
+      headers: unlockHeaders
+    }
+  );
+  assert.equal(
+    buildEventInterestRequest(
+      "smash/night",
+      false,
+      cookieHeader,
+      unlockHeaders
+    ).method,
+    "DELETE"
+  );
 });
 
-test("Pass v0 interest posts and deletes /events/:slug/interest", async () => {
-  const calls: Array<{ input: string; init?: RequestInit }> = [];
-  const fetcher = jsonFetcher(200, { slug: "smash-night" }, calls);
+test("Pass v0 team requests use the production builders", () => {
+  const formData = new FormData();
+  formData.set("password", " team-pass ");
 
-  await apiRequest({
-    path: "/events/smash-night/interest",
+  assert.deepEqual(buildTeamJoinRequest("falcons/a", formData, cookieHeader), {
+    path: "/teams/falcons%2Fa/join",
     method: "POST",
-    baseUrl,
-    fetcher,
-    cookieHeader: "cgn_session=abc"
-  });
-  await apiRequest({
-    path: "/events/smash-night/interest",
-    method: "DELETE",
-    baseUrl,
-    fetcher,
-    cookieHeader: "cgn_session=abc"
-  });
-
-  assert.equal(calls[0]?.init?.method, "POST");
-  assert.equal(calls[1]?.init?.method, "DELETE");
-  assert.equal(calls[0]?.input, `${baseUrl}/events/smash-night/interest`);
-});
-
-test("Pass v0 team join posts /teams/:slug/join", async () => {
-  const calls: Array<{ input: string; init?: RequestInit }> = [];
-  const fetcher = jsonFetcher(200, { slug: "falcons" }, calls);
-
-  await apiRequest({
-    path: "/teams/falcons/join",
-    method: "POST",
-    baseUrl,
-    fetcher,
-    cookieHeader: "cgn_session=abc",
+    cookieHeader,
     body: { password: "team-pass" }
   });
-
-  assert.equal(calls[0]?.input, `${baseUrl}/teams/falcons/join`);
-  assert.deepEqual(JSON.parse(String(calls[0]?.init?.body)), {
-    password: "team-pass"
-  });
-});
-
-test("Pass v0 ownership transfer posts /teams/:slug/transfer-ownership", async () => {
-  const calls: Array<{ input: string; init?: RequestInit }> = [];
-  const fetcher = jsonFetcher(200, { slug: "falcons" }, calls);
-
-  await apiRequest({
-    path: "/teams/falcons/transfer-ownership",
-    method: "POST",
-    baseUrl,
-    fetcher,
-    cookieHeader: "cgn_session=abc",
-    body: { new_owner_user_id: "user-2" }
-  });
-
-  assert.equal(
-    calls[0]?.input,
-    `${baseUrl}/teams/falcons/transfer-ownership`
+  assert.deepEqual(
+    buildTransferTeamOwnershipRequest("falcons/a", "user-2", cookieHeader),
+    {
+      path: "/teams/falcons%2Fa/transfer-ownership",
+      method: "POST",
+      cookieHeader,
+      body: { new_owner_user_id: "user-2" }
+    }
   );
 });
 
-test("Pass v0 dashboard reads /me/events and /me/teams", async () => {
-  const calls: Array<{ input: string; init?: RequestInit }> = [];
-  const fetcher = jsonFetcher(
-    200,
-    { upcoming_rsvps: [], followed_school_events: [], teams: [] },
-    calls
-  );
-
-  await apiRequest({
+test("Pass v0 dashboard requests use the production builders", () => {
+  assert.deepEqual(buildDashboardEventsRequest(5, cookieHeader), {
     path: "/me/events?limit=5",
-    baseUrl,
-    fetcher,
-    cookieHeader: "cgn_session=abc"
+    cookieHeader
   });
-  await apiRequest({
+  assert.deepEqual(buildMyTeamsRequest(10, cookieHeader), {
     path: "/me/teams?limit=10",
-    baseUrl,
-    fetcher,
-    cookieHeader: "cgn_session=abc"
+    cookieHeader
   });
+});
 
-  assert.equal(calls[0]?.input, `${baseUrl}/me/events?limit=5`);
-  assert.equal(calls[1]?.input, `${baseUrl}/me/teams?limit=10`);
-  assert.equal(
-    new Headers(calls[0]?.init?.headers).get("cookie"),
-    "cgn_session=abc"
+test("Pass v0 non-2xx responses preserve status, code, and user message", async () => {
+  const cases = [
+    [429, "rate_limited", "Too many attempts. Give it a minute, then try again."],
+    [409, "event_full", "That event is full."],
+    [401, "invalid_private_password", "That event password did not match."],
+    [403, "private_event_locked", "Unlock that private event before RSVPing."],
+    [400, "invalid_request", "Check the form fields and try again."],
+    [401, "invalid_team_password", "That team password did not match."],
+    [500, "team_transfer_failed", "We could not transfer ownership. Please try again."],
+    [409, "email_already_registered", "That email already has an account."]
+  ] as const;
+
+  await Promise.all(
+    cases.map(([status, code, message]) =>
+      assert.rejects(
+        () =>
+          apiRequest({
+            path: "/contract-error",
+            baseUrl,
+            fetcher: errorFetcher(status, code)
+          }),
+        (error) => {
+          assert.ok(error instanceof ApiError);
+          assert.equal(error.status, status);
+          assert.equal(error.code, code);
+          assert.equal(userMessageForApiError(error), message);
+          return true;
+        }
+      )
+    )
   );
 });
 
-test("Pass v0 failure codes map to user-facing messages", () => {
-  assert.equal(
-    userMessageForApiError(new ApiError(429, "rate_limited")),
-    "Too many attempts. Give it a minute, then try again."
-  );
-  assert.equal(
-    userMessageForApiError(new ApiError(409, "event_full")),
-    "That event is full."
-  );
-  assert.equal(
-    userMessageForApiError(new ApiError(401, "invalid_private_password")),
-    "That event password did not match."
-  );
-  assert.equal(
-    userMessageForApiError(new ApiError(403, "private_event_locked")),
-    "Unlock that private event before RSVPing."
-  );
-  assert.equal(
-    userMessageForApiError(new ApiError(400, "invalid_request")),
-    "Check the form fields and try again."
-  );
-  assert.equal(
-    userMessageForApiError(new ApiError(401, "invalid_team_password")),
-    "That team password did not match."
-  );
-  assert.equal(
-    userMessageForApiError(new ApiError(500, "team_transfer_failed")),
-    "We could not transfer ownership. Please try again."
-  );
-  assert.equal(
-    userMessageForApiError(new ApiError(409, "email_already_registered")),
-    "That email already has an account."
-  );
-});
+function errorFetcher(status: number, code: string): Fetcher {
+  return async () =>
+    new Response(JSON.stringify({ error: code }), {
+      status,
+      headers: { "content-type": "application/json" }
+    });
+}
