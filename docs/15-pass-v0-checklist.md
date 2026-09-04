@@ -1,9 +1,8 @@
 # 15 — Pass v0 quality checklist
 
 Quality regression checklist for the primary events-and-teams loop on `next`.
-Tracks web-side request coverage at the BFF→Go boundary. Cross-service status and
-payload integration remains deferred. Product status still lives in
-[10 — Delivery status](./10-delivery-status.md).
+Tracks request and response coverage across the BFF→Go boundary. Product status
+still lives in [10 — Delivery status](./10-delivery-status.md).
 
 **Owner:** Quality  
 **Branch baseline:** `next` @ post-#12 (`d47d243`)  
@@ -35,7 +34,8 @@ Failure cases to keep green: `rate_limited`, `event_full`, `invalid_private_pass
 - [x] Non-2xx parsing and user-message coverage for Pass v0 error codes
 - [x] Existing payload builders for event/RSVP/unlock/team join (`action-payloads.test.ts`)
 - [x] Existing client helpers incl. role indicators (`cgn-api.test.ts`)
-- [ ] Cross-service integration for exact Go status and payload shapes
+- [x] Cross-service contracts: production web requests plus exact Go statuses and
+  payload shapes (`apps/api/internal/httpapi/pass_v0_contracts_test.go`)
 - [x] Playwright/Next harness: private unlock cookie → login → RSVP
 - [x] Playwright: dashboard composition (`upcoming_rsvps` + followed-school + teams)
 - [x] Desktop/mobile Chromium projects with automated WCAG A/AA scans
