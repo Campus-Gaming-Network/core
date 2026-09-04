@@ -51,7 +51,7 @@ Failure cases to keep green: `rate_limited`, `event_full`, `invalid_private_pass
 
 #### Event create
 - [x] Public create; private unlock gate; capacity; paid off-site fields
-- [ ] Recurrence bounds (weekly/biweekly/monthly, ≤1 year)
+- [x] Recurrence bounds (weekly/biweekly/monthly, ≤1 year)
 - [ ] Soft cancel notifies active yes/maybe RSVPs (best-effort)
 
 #### RSVP

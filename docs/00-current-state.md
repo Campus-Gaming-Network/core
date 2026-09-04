@@ -82,6 +82,8 @@ revisited later.
   the user repository is called.
 - Completed event-create acceptance for public events, private unlock gating,
   capacity, and paid off-site registration details across API and browser tests.
+- Added handler-level recurrence acceptance for weekly, biweekly, and monthly
+  events and fixed the inclusive one-year calendar-date boundary.
 
 ## Resume checklist
 
