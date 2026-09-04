@@ -137,6 +137,8 @@ export type TeamsResponse = {
   offset: number;
 };
 
+export type MyTeamsResponse = Omit<TeamsResponse, "offset">;
+
 export type EventUnlockResponse = {
   event: Event;
   unlock_token: string;

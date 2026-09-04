@@ -59,6 +59,7 @@ npm run dev:web
 npm run lint:web
 npm run typecheck:web
 npm run test:web
+npm run test:e2e:web
 npm run fmt:check:api
 npm run vet:api
 npm run test:api
@@ -74,7 +75,12 @@ The web commands require installing dependencies first:
 ```bash
 nvm use
 npm install --prefix apps/web
+npm --prefix apps/web run test:e2e:install
 ```
+
+The browser suite starts an isolated API fixture and Next.js dev server, then
+runs the primary journeys in desktop and mobile Chromium. It does not require
+Docker or a populated development database.
 
 The API needs Go 1.25 or newer (set by the `go` directive in `apps/api/go.mod`)
 plus the PostgreSQL driver:

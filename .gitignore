@@ -37,6 +37,8 @@ out/
 npm-debug.log*
 *.tsbuildinfo
 .test-build/
+playwright-report/
+test-results/
 
 # Go build artifacts
 bin/

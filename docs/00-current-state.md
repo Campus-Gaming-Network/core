@@ -4,7 +4,7 @@ Quick re-entry point for Campus Gaming Network. Read this first after time away;
 the detailed product and engineering context remains in the other documents in
 this folder.
 
-**Last updated:** 2026-08-07
+**Last updated:** 2026-09-04
 
 ## Where we are
 
@@ -70,6 +70,16 @@ revisited later.
   occurrence records, per-occurrence RSVPs, and recurrence details on event
   pages. Recurrence is limited to one year and each occurrence can be cancelled
   separately.
+- Added desktop/mobile Playwright coverage for signup/resend, event
+  create/interest/cancel, private unlock through RSVP, team
+  join/captain/ownership transfer, and dashboard composition, including
+  automated WCAG A/AA checks.
+- Locked signup acceptance for required home-school selection and persisted 18+
+  confirmation with HTTP, service, and repository regression coverage.
+- Locked verification-email delivery and per-address/IP resend throttling with
+  service, Resend transport, and HTTP contract coverage.
+- Verified that blocked-language signup names return `invalid_request` before
+  the user repository is called.
 
 ## Resume checklist
 

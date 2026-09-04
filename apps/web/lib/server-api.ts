@@ -6,6 +6,7 @@ import {
   type EventsResponse,
   type FollowedSchoolsResponse,
   type GamesResponse,
+  type MyTeamsResponse,
   type Profile,
   type PublicProfile,
   type School,
@@ -201,7 +202,7 @@ export async function listTeams(params: {
 }
 
 export async function listMyTeams(limit = 10) {
-  const { data } = await apiRequest<TeamsResponse>(
+  const { data } = await apiRequest<MyTeamsResponse>(
     buildMyTeamsRequest(limit, await incomingCookieHeader())
   );
 

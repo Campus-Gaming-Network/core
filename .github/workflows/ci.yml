@@ -45,6 +45,12 @@ jobs:
       - name: Test
         working-directory: apps/web
         run: npm run test
+      - name: Install Playwright browser
+        working-directory: apps/web
+        run: npx playwright install --with-deps chromium
+      - name: Browser tests
+        working-directory: apps/web
+        run: npm run test:e2e
       - name: Build
         working-directory: apps/web
         run: npm run build
