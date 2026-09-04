@@ -51,6 +51,10 @@ user_school_follows
 
 user_school_affiliations
   user_id, school_id, role_context (student|alumni|faculty|...), ...
+
+school_admins
+  school_id, user_id, created_at, updated_at, deleted_at
+  -- school-scoped role grant; soft-revocable; future CRM/admin owns assignment
 ```
 
 ### Schools & clubs
@@ -68,10 +72,6 @@ schools
   -- unitid optional/unique when present; admin/CRM-created schools may omit
   -- one-time seed imports ALL rows as is_active=true (main + branch); branch campuses use same UI/UX
   -- logo_url is later CRM/admin-only (PNG/JPG ≤500 MB), not Scorecard; not uploadable from main site
-
-school_admins
-  school_id, user_id, created_at, ...
-  -- school admins cannot remove other school admins (enforce in app)
 
 clubs
   id, school_id (required), name, is_official, status (pending|approved|...), ...
@@ -115,7 +115,9 @@ events
                               -- organizer handles any payment off-site; no CGN checkout/payment records
   location_address, location_lat, location_lng,
   starts_at, ends_at, registration_closes_at,
-  recurrence_rule nullable,
+  recurrence_rule nullable,       -- weekly | biweekly | monthly
+  recurrence_until nullable,      -- inclusive UTC end date; max one year from start
+  recurrence_parent_id nullable,   -- generated occurrence's root event
   created_by_user_id, school_id nullable,
   badge_eligible boolean or derived,
   created_at, updated_at, deleted_at
@@ -225,7 +227,7 @@ Do not list `unlisted` or `private` events in discovery search. Unlisted is reac
 
 | Case | Behavior |
 |------|----------|
-| Event deleted | Soft delete; public URL shows “no longer exists” |
+| Event cancelled | Soft delete; public URL shows “no longer exists”; best-effort cancellation email to active yes/maybe RSVPs |
 | User deletes account | Scrub PII; `name = 'Deleted User'`; keep FKs for history |
 | Hard delete | Avoid for domain entities unless legally required |
 

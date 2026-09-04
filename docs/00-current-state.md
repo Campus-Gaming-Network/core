@@ -26,10 +26,9 @@ revisited later.
 1. Complete a quality pass on signup, event creation, RSVP, team joining, and
    dashboard flows, including frontend regression coverage, mobile/accessibility
    fixes, and replacement of placeholder legal content.
-2. Improve the event lifecycle with recurring events, cancellation notifications,
-   and stronger discovery filters.
-3. Add trust and identity features: `.edu` verification badges, school
-   admin/faculty indicators, organizer badges, and basic content filtering.
+2. Add lightweight moderation and operations tooling for reports, support,
+   audit history, and in-app notifications.
+3. Expand trust and safety beyond the first role and content-filtering pass.
 
 ## Blockers and decisions
 
@@ -51,7 +50,7 @@ revisited later.
 - Regenerated stale Next.js development route metadata that was breaking the
   web typecheck.
 - Added regression coverage for event, team, profile, RSVP, private-unlock, and
-  team-join form payloads; web tests now cover 20 cases.
+  team-join form payloads; web tests now cover 22 cases.
 - Completed the first mobile/accessibility pass: native labeled checkboxes now
   power age confirmation, paid-event status, and team game selection, and
   custom select controls have explicit accessible names.
@@ -59,6 +58,12 @@ revisited later.
   events.
 - Added readable verification badges to public profiles for community members,
   verified students, and staff/faculty.
+- Added school-admin grants and visible school-admin/staff-faculty role
+  indicators on profiles and event organizer summaries.
+- Added event organizer role badges for organizers connected to the host school
+  or verified as staff/faculty.
+- Added a server-side blocked-term filter for user-authored names, bios, event
+  and team text, reports, and support messages.
 - Added event cancellation notifications for active yes/maybe RSVPs, sent as
   best-effort email side effects after the event is cancelled.
 - Added weekly, biweekly, and monthly recurring event creation, with independent

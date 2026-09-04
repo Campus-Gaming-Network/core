@@ -14,6 +14,7 @@ import {
   parseSetCookie,
   publicProfileHomeSchool,
   recurrenceRuleLabel,
+  roleIndicatorLabel,
   schoolLocation,
   teamRoleLabel,
   userInitials,
@@ -282,6 +283,12 @@ test("verificationLabel turns internal levels into trust labels", () => {
   assert.equal(verificationLabel("verified"), "Verified student");
   assert.equal(verificationLabel("staff_faculty"), "Staff / faculty");
   assert.equal(verificationLabel("unknown"), "Community member");
+});
+
+test("roleIndicatorLabel turns internal roles into visible labels", () => {
+  assert.equal(roleIndicatorLabel("school_admin"), "School admin");
+  assert.equal(roleIndicatorLabel("staff_faculty"), "Staff / faculty");
+  assert.equal(roleIndicatorLabel("unknown"), "Community role");
 });
 
 test("recurrenceRuleLabel formats supported recurrence rules", () => {

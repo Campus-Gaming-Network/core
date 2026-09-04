@@ -46,7 +46,7 @@ SiteAnnouncement ── global banner                        (later)
 | Graduation | Expected graduation date; alumni still participate |
 | Degree level | Undergrad / graduate / etc. (open question) |
 | Role context | Student, alumni, faculty advisor, etc. |
-| Role indicators | School admin and faculty show a visible badge/indicator in UI |
+| Role indicators | School-admin grants and staff/faculty status produce visible role indicators |
 
 **Rules**
 
@@ -86,7 +86,7 @@ SiteAnnouncement ── global banner                        (later)
 | Official | Clubs are the official school org type |
 | Teams | Optional assigned teams (Varsity, JV, etc.) |
 | Games | One or more |
-| Officers | Can create badge-eligible events |
+| Officers | Club officer workflow is later; current event badges use school-admin and staff/faculty indicators |
 
 **Rules**
 
@@ -124,12 +124,12 @@ SiteAnnouncement ── global banner                        (later)
 | Visibility | `public` \| `unlisted` \| `private` (all supported) |
 | Password | Required when `visibility = private` (stored hashed); share URL + password manually |
 | Capacity | Optional max attendees; counts **RSVP yes only**; when full, block new yes (no waitlist yet) |
-| Format | `online` \| `in_person` |
+| Format | `online` \| `in_person` \| `hybrid` |
 | Pricing | Supports free vs paid/off-site-payment events; CGN does not process payment |
 | Location | Physical address; optional mini Google Map |
 | Banner | Default placeholder only; custom user uploads later (moderated) |
 | Description | Character-limited |
-| Recurrence | Supported |
+| Recurrence | `weekly`, `biweekly`, or `monthly`; up to one year; each occurrence is a normal independent event |
 | Games | One or more |
 | Registration | Closes automatically; blocked when ended or at capacity |
 | Soft delete | `deleted_at` only |
@@ -158,7 +158,11 @@ SiteAnnouncement ── global banner                        (later)
 - **Interested** = favorite/bookmark; independent of RSVP
 - On RSVP yes: send email with details + calendar (ICS)
 - Creating an event requires **no approval**
-- Soft-delete/cancel does **not** email RSVPs yet (notify later)
+- Cancelling soft-deletes the event and sends a best-effort email to active
+  `yes`/`maybe` RSVPs; cancellation does not fail if email delivery fails
+- Recurring event creation expands into normal event rows. The series root
+  stores the recurrence rule and end date; generated occurrences point to the
+  root and have independent RSVPs, URLs, and cancellation behavior
 - Slug is generated at create time and should remain stable (do not regenerate on title edit)
 
 **Event slug algorithm**
@@ -173,7 +177,9 @@ slug    = slugify(eventTitle) + "-" + short
 **Edit rules**
 
 - Past events: organizers may edit **minor corrections only** — not date or location
-- Badge: events created by school admin, club officer, or approved organizers
+- Event organizer summaries show school-admin and staff/faculty role indicators
+  when applicable to the host school; future club-officer/approved-organizer
+  grants can extend this model
 
 **Reports**
 
@@ -253,6 +259,7 @@ Used for: browse/filter events (and later tournaments) by game; popular games by
 | Profanity | Block bad words in user-entered text |
 | XSS / SQLi | Prevent via parameterized queries + output encoding / sanitization |
 | Rate limits | Signups, event creation, reports (and general API rate limiting) |
+| Content filtering | Basic blocked-term list with word boundaries; reject disallowed user-authored text before persistence |
 | Timezones | Store events in absolute time; display in user timezone |
 | US scope | No international school handling at launch |
 

@@ -78,9 +78,17 @@ export type Event = {
   payment_url?: string;
   host_school: SchoolSummary;
   games: GameSummary[];
+  organizers?: EventOrganizer[];
   viewer_rsvp?: EventRSVP;
   viewer_interested?: boolean;
   viewer_can_edit?: boolean;
+};
+
+export type EventOrganizer = {
+  id: string;
+  name: string;
+  role: "creator" | "organizer";
+  role_indicators?: string[];
 };
 
 export type LockedEvent = {
@@ -153,6 +161,7 @@ export type Profile = {
   home_school_id: string;
   home_school?: SchoolSummary;
   social_links?: SocialLink[];
+  role_indicators?: string[];
 };
 
 export type PublicProfile = {
@@ -164,6 +173,7 @@ export type PublicProfile = {
   home_school_id: string;
   home_school?: SchoolSummary;
   social_links?: SocialLink[];
+  role_indicators?: string[];
 };
 
 export type ApiResult<T> = {
@@ -522,6 +532,15 @@ export function verificationLabel(level: string) {
   };
 
   return labels[level] ?? "Community member";
+}
+
+export function roleIndicatorLabel(role: string) {
+  const labels: Record<string, string> = {
+    school_admin: "School admin",
+    staff_faculty: "Staff / faculty"
+  };
+
+  return labels[role] ?? "Community role";
 }
 
 export function recurrenceRuleLabel(rule: string) {

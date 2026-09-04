@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/safety"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -127,8 +128,14 @@ func ValidateCreateInput(input CreateInput) error {
 	if name := strings.TrimSpace(input.Name); name == "" || len(name) > 120 {
 		return errors.New("team name is required and must be 120 characters or fewer")
 	}
+	if err := safety.ValidateCleanText("team name", input.Name); err != nil {
+		return err
+	}
 	if len(input.Description) > 5000 {
 		return errors.New("description must be 5,000 characters or fewer")
+	}
+	if err := safety.ValidateCleanText("description", input.Description); err != nil {
+		return err
 	}
 	if strings.TrimSpace(input.OwnerUserID) == "" {
 		return errors.New("owner user is required")

@@ -13,6 +13,7 @@ import (
 	"time"
 	_ "time/tzdata"
 
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/safety"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -74,9 +75,17 @@ type Event struct {
 	PaymentURL       string        `json:"payment_url,omitempty"`
 	HostSchool       SchoolSummary `json:"host_school"`
 	Games            []GameSummary `json:"games"`
+	Organizers       []Organizer   `json:"organizers,omitempty"`
 	ViewerRSVP       *string       `json:"viewer_rsvp,omitempty"`
 	ViewerInterested bool          `json:"viewer_interested,omitempty"`
 	ViewerCanEdit    bool          `json:"viewer_can_edit,omitempty"`
+}
+
+type Organizer struct {
+	ID             string   `json:"id"`
+	Name           string   `json:"name"`
+	Role           string   `json:"role"`
+	RoleIndicators []string `json:"role_indicators,omitempty"`
 }
 
 type LockedEvent struct {
@@ -266,8 +275,14 @@ func validateEventFields(input CreateInput, requirePrivatePassword bool) error {
 	if title := strings.TrimSpace(input.Title); title == "" || len(title) > 120 {
 		return errors.New("title is required and must be 120 characters or fewer")
 	}
+	if err := safety.ValidateCleanText("title", input.Title); err != nil {
+		return err
+	}
 	if len(input.Description) > 5000 {
 		return errors.New("description must be 5,000 characters or fewer")
+	}
+	if err := safety.ValidateCleanText("description", input.Description); err != nil {
+		return err
 	}
 	if strings.TrimSpace(input.CreatorUserID) == "" {
 		return errors.New("creator user is required")
@@ -301,6 +316,9 @@ func validateEventFields(input CreateInput, requirePrivatePassword bool) error {
 	}
 	if len(input.LocationName) > 200 {
 		return errors.New("location name must be 200 characters or fewer")
+	}
+	if err := safety.ValidateCleanText("location name", input.LocationName); err != nil {
+		return err
 	}
 	if len(input.Address) > 1000 {
 		return errors.New("address must be 1,000 characters or fewer")
@@ -338,6 +356,9 @@ func validateEventFields(input CreateInput, requirePrivatePassword bool) error {
 	}
 	if len(input.PaymentNote) > 1000 {
 		return errors.New("payment note must be 1,000 characters or fewer")
+	}
+	if err := safety.ValidateCleanText("payment note", input.PaymentNote); err != nil {
+		return err
 	}
 	if strings.TrimSpace(input.PaymentURL) != "" {
 		if err := validateHTTPURL(input.PaymentURL); err != nil {
@@ -984,7 +1005,55 @@ func (r *PostgresRepository) GetBySlug(ctx context.Context, slug string) (Event,
 		e.deleted_at IS NULL
 		AND e.slug = $1
 	`, ``), strings.TrimSpace(slug))
-	return scanEvent(row, r.now())
+	event, err := scanEvent(row, r.now())
+	if err != nil {
+		return Event{}, err
+	}
+	if err := r.populateOrganizers(ctx, &event); err != nil {
+		return Event{}, err
+	}
+	return event, nil
+}
+
+func (r *PostgresRepository) populateOrganizers(ctx context.Context, event *Event) error {
+	rows, err := r.pool.Query(ctx, `
+		SELECT u.id::text,
+		       u.name,
+		       eo.role,
+		       ARRAY_REMOVE(ARRAY[
+		           CASE WHEN u.verification_level = 'staff_faculty' THEN 'staff_faculty'::text END,
+		           CASE WHEN sa.user_id IS NOT NULL THEN 'school_admin'::text END
+		       ], NULL::text)
+		FROM event_organizers eo
+		JOIN users u ON u.id = eo.user_id
+		LEFT JOIN school_admins sa
+		       ON sa.user_id = u.id
+		      AND sa.school_id = $2::uuid
+		      AND sa.deleted_at IS NULL
+		WHERE eo.event_id = $1::uuid
+		  AND eo.deleted_at IS NULL
+		  AND u.deleted_at IS NULL
+		  AND u.account_status = 'active'
+		ORDER BY CASE eo.role WHEN 'creator' THEN 0 ELSE 1 END, eo.created_at, u.id
+	`, event.ID, event.HostSchool.ID)
+	if err != nil {
+		return fmt.Errorf("list event organizers: %w", err)
+	}
+	defer rows.Close()
+
+	organizers := make([]Organizer, 0)
+	for rows.Next() {
+		var organizer Organizer
+		if err := rows.Scan(&organizer.ID, &organizer.Name, &organizer.Role, &organizer.RoleIndicators); err != nil {
+			return fmt.Errorf("scan event organizer: %w", err)
+		}
+		organizers = append(organizers, organizer)
+	}
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("iterate event organizers: %w", err)
+	}
+	event.Organizers = organizers
+	return nil
 }
 
 func (r *PostgresRepository) createWithSlug(ctx context.Context, params CreateParams, slug string) (string, error) {

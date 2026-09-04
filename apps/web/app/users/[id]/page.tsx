@@ -9,6 +9,7 @@ import { UserAvatar } from "../../../components/user-avatar";
 import {
   ApiError,
   publicProfileHomeSchool,
+  roleIndicatorLabel,
   verificationLabel
 } from "../../../lib/cgn-api";
 import { pageMetadata } from "../../../lib/metadata";
@@ -71,6 +72,9 @@ export default async function PublicProfilePage({ params }: PageProps) {
           </p>
           <div className="pill-list" aria-label="Profile verification">
             <Chip>{verificationLabel(profile.verification_level)}</Chip>
+            {profile.role_indicators?.map((role) => (
+              <Chip key={role}>{roleIndicatorLabel(role)}</Chip>
+            ))}
           </div>
         </div>
       </section>
@@ -80,6 +84,12 @@ export default async function PublicProfilePage({ params }: PageProps) {
           <span>Verification</span>
           <strong>{verificationLabel(profile.verification_level)}</strong>
         </div>
+        {profile.role_indicators && profile.role_indicators.length > 0 ? (
+          <div className="detail-row">
+            <span>Roles</span>
+            <strong>{profile.role_indicators.map(roleIndicatorLabel).join(", ")}</strong>
+          </div>
+        ) : null}
         <div className="detail-row">
           <span>Home school</span>
           <strong className="detail-value">
