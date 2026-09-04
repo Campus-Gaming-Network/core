@@ -1,7 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 
-const eventSlug = "private-scrim-abc123";
 const eventTitle = "Midnight Strategy Session";
 const managedTeamSlug = "long-beach-legends-abc123";
 
@@ -135,10 +134,11 @@ test("team server actions join, promote a captain, and transfer ownership", asyn
   await expectNoHorizontalOverflow(page);
 });
 
-test("private event unlock cookie survives login and authorizes RSVP", async ({
+test("private unlock survives login and RSVP choices keep interest and capacity separate", async ({
   context,
   page
-}) => {
+}, testInfo) => {
+  const eventSlug = `private-scrim-${testInfo.project.name.startsWith("mobile") ? "mobile-" : "desktop-"}abc123`;
   await page.goto(`/events/${eventSlug}`);
 
   await expect(
@@ -180,6 +180,30 @@ test("private event unlock cookie survives login and authorizes RSVP", async ({
   await page.getByRole("button", { name: "Log in" }).click();
 
   await expect(page).toHaveURL(new RegExp(`/events/${eventSlug}$`));
+  await expect(page.getByText(/Current RSVP:/)).toContainText("Not set");
+  await expect(eventDetailValue(page, "Capacity")).toHaveText("0 / 10");
+  await expect(eventDetailValue(page, "Interested")).toHaveText("0");
+
+  await page.getByRole("button", { name: "I'm interested" }).click();
+
+  await expect(page).toHaveURL(
+    new RegExp(`/events/${eventSlug}\\?event=interest-added$`)
+  );
+  await expect(page.getByText("Marked as interested.")).toBeVisible();
+  await expect(page.getByText(/Current RSVP:/)).toContainText("Not set");
+  await expect(eventDetailValue(page, "Capacity")).toHaveText("0 / 10");
+  await expect(eventDetailValue(page, "Interested")).toHaveText("1");
+
+  await page.getByRole("button", { name: "Maybe", exact: true }).click();
+
+  await expect(page).toHaveURL(
+    new RegExp(`/events/${eventSlug}\\?event=rsvp-updated$`)
+  );
+  await expect(page.getByText("RSVP saved.")).toBeVisible();
+  await expect(page.getByText(/Current RSVP:/)).toContainText("Maybe");
+  await expect(eventDetailValue(page, "Capacity")).toHaveText("0 / 10");
+  await expect(eventDetailValue(page, "Interested")).toHaveText("1");
+
   await page.getByRole("button", { name: "Yes", exact: true }).click();
 
   await expect(page).toHaveURL(
@@ -187,6 +211,20 @@ test("private event unlock cookie survives login and authorizes RSVP", async ({
   );
   await expect(page.getByText("RSVP saved.")).toBeVisible();
   await expect(page.getByText(/Current RSVP:/)).toContainText("Yes");
+  await expect(eventDetailValue(page, "Capacity")).toHaveText("1 / 10");
+  await expect(eventDetailValue(page, "Interested")).toHaveText("1");
+  await expect(
+    page.getByRole("button", { name: "Remove interested" })
+  ).toBeVisible();
+
+  await page.getByRole("button", { name: "No", exact: true }).click();
+
+  await expect(page).toHaveURL(
+    new RegExp(`/events/${eventSlug}\\?event=rsvp-updated$`)
+  );
+  await expect(page.getByText(/Current RSVP:/)).toContainText("No");
+  await expect(eventDetailValue(page, "Capacity")).toHaveText("0 / 10");
+  await expect(eventDetailValue(page, "Interested")).toHaveText("1");
   await expectAccessible(page);
   await expectNoHorizontalOverflow(page);
 });
@@ -248,6 +286,12 @@ async function expectNoHorizontalOverflow(page: Page) {
       )
     )
     .toBe(true);
+}
+
+function eventDetailValue(page: Page, label: string) {
+  return page
+    .locator(".detail-row", { has: page.getByText(label, { exact: true }) })
+    .locator("strong");
 }
 
 async function logIn(page: Page, email: string, next: string) {

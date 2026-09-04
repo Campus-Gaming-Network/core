@@ -75,6 +75,12 @@ type fakeEventMailer struct {
 	event                  eventstore.Event
 	err                    error
 	cancellationRecipients []string
+	cancellationCalls      chan cancellationNotification
+}
+
+type cancellationNotification struct {
+	recipient string
+	event     eventstore.Event
 }
 
 func (m *fakeEventMailer) SendRSVPConfirmation(_ context.Context, recipient string, event eventstore.Event) error {
@@ -87,6 +93,9 @@ func (m *fakeEventMailer) SendRSVPConfirmation(_ context.Context, recipient stri
 func (m *fakeEventMailer) SendCancellationNotification(_ context.Context, recipient string, event eventstore.Event) error {
 	m.cancellationRecipients = append(m.cancellationRecipients, recipient)
 	m.event = event
+	if m.cancellationCalls != nil {
+		m.cancellationCalls <- cancellationNotification{recipient: recipient, event: event}
+	}
 	return m.err
 }
 
@@ -321,6 +330,8 @@ type fakeEventRepository struct {
 	listFollowedSchoolEventsLimit  int
 	followedSchoolEvents           []eventstore.Event
 	cancellationRecipients         []string
+	listRSVPRecipientsCalled       bool
+	listRSVPRecipientsSlug         string
 	detail                         eventstore.Event
 	createCalled                   bool
 	createParams                   eventstore.CreateParams
@@ -444,7 +455,9 @@ func (r *fakeEventRepository) GetRSVP(_ context.Context, _ string, _ string) (st
 	return r.viewerRSVP, r.err
 }
 
-func (r *fakeEventRepository) ListRSVPRecipients(_ context.Context, _ string) ([]string, error) {
+func (r *fakeEventRepository) ListRSVPRecipients(_ context.Context, slug string) ([]string, error) {
+	r.listRSVPRecipientsCalled = true
+	r.listRSVPRecipientsSlug = slug
 	return r.cancellationRecipients, r.err
 }
 
@@ -1633,6 +1646,59 @@ func TestHandleDeleteEventSoftDeletesOrganizerEvent(t *testing.T) {
 	}
 	if repository.deleteSlug != "campus-scrim-night" || repository.deleteUserID != testUserID {
 		t.Fatalf("delete = slug %q user %q, want slug and session user", repository.deleteSlug, repository.deleteUserID)
+	}
+}
+
+// Cancellation is committed independently of notification delivery. The event
+// repository selects active yes/maybe recipients; every returned recipient must
+// be attempted even when the mail provider rejects each send.
+func TestHandleDeleteEventNotifiesActiveRSVPRecipientsBestEffort(t *testing.T) {
+	event := testEvent(eventstore.VisibilityPublic)
+	repository := &fakeEventRepository{
+		detail: event,
+		cancellationRecipients: []string{
+			"maybe@example.com",
+			"yes@example.com",
+		},
+	}
+	mailer := &fakeEventMailer{
+		err:               errors.New("send failed"),
+		cancellationCalls: make(chan cancellationNotification, 2),
+	}
+	handler := authenticatedEventPathHandlerWithMailer(repository, mailer)
+	request := authenticatedEventRequest(http.MethodDelete, "/events/campus-scrim-night", "")
+	response := httptest.NewRecorder()
+
+	handler.ServeHTTP(response, request)
+
+	if response.Code != http.StatusNoContent {
+		t.Fatalf("status = %d, want %d; body = %s", response.Code, http.StatusNoContent, response.Body.String())
+	}
+	if !repository.deleteCalled {
+		t.Fatal("Delete was not called when cancellation email delivery failed")
+	}
+	if !repository.listRSVPRecipientsCalled || repository.listRSVPRecipientsSlug != event.Slug {
+		t.Fatalf(
+			"ListRSVPRecipients called = %v slug = %q, want true and %q",
+			repository.listRSVPRecipientsCalled,
+			repository.listRSVPRecipientsSlug,
+			event.Slug,
+		)
+	}
+
+	wantRecipients := []string{"maybe@example.com", "yes@example.com"}
+	for _, wantRecipient := range wantRecipients {
+		select {
+		case call := <-mailer.cancellationCalls:
+			if call.recipient != wantRecipient {
+				t.Fatalf("notification recipient = %q, want %q", call.recipient, wantRecipient)
+			}
+			if call.event.Slug != event.Slug {
+				t.Fatalf("notification event slug = %q, want %q", call.event.Slug, event.Slug)
+			}
+		case <-time.After(time.Second):
+			t.Fatalf("timed out waiting for cancellation notification to %q", wantRecipient)
+		}
 	}
 }
 

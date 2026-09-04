@@ -115,6 +115,11 @@ nav form {
   margin: 0;
 }
 
+button.rsvp-choice[aria-pressed="true"] {
+  background: var(--accent);
+  color: #fff;
+}
+
 .site-footer {
   justify-content: center;
   padding-block: 2rem;

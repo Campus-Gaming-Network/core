@@ -52,10 +52,10 @@ Failure cases to keep green: `rate_limited`, `event_full`, `invalid_private_pass
 #### Event create
 - [x] Public create; private unlock gate; capacity; paid off-site fields
 - [x] Recurrence bounds (weekly/biweekly/monthly, ≤1 year)
-- [ ] Soft cancel notifies active yes/maybe RSVPs (best-effort)
+- [x] Soft cancel notifies active yes/maybe RSVPs (best-effort)
 
 #### RSVP
-- [ ] yes/no/maybe; ICS on yes; interested separate; capacity counts yes only
+- [x] yes/no/maybe; ICS on yes; interested separate; capacity counts yes only
 
 #### Team join
 - [x] Public page; password gate; captain/transfer smoke
@@ -64,14 +64,13 @@ Failure cases to keep green: `rate_limited`, `event_full`, `invalid_private_pass
 - [x] Upcoming RSVPs + followed-school events + team activity
 
 #### Post-#12 nits
-- [ ] Organizers on event detail; role indicators on profile
-- [ ] Blocked terms on event/team/user/support/report forms
+- [x] Organizers on event detail; role indicators on profile
+- [x] Blocked terms on event/team/user/support/report forms
 
 ### Still open after Pass v0 web slice
 - Manual mobile + assistive-technology pass on the same journeys
 - Real Terms/Privacy content
 - `school_admins` grant path (CRM later; indicators read-only today)
-- Thin Go tests for `populateOrganizers` / `listRoleIndicators` (API)
 
 ---
 

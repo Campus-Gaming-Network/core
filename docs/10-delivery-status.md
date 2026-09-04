@@ -151,7 +151,7 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 - [ ] Open Graph share image, favicon, `robots.txt`, and `sitemap.xml`
 
 ### Active product milestone
-- [ ] Complete frontend regression coverage for signup, event creation, RSVP, team joining, and dashboard flows
+- [x] Complete frontend regression coverage for signup, event creation, RSVP, team joining, and dashboard flows
 - [ ] Complete mobile and accessibility pass on the primary journeys
 - [ ] Replace placeholder Terms and Privacy content with reviewed content
 - [x] Add recurring events (weekly, biweekly, or monthly; max one year)

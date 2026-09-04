@@ -50,6 +50,7 @@ export function EventRSVPForm({ event }: EventRSVPFormProps) {
         {responses.map((response) => (
           <Button
             aria-pressed={event.viewer_rsvp === response}
+            className="rsvp-choice"
             variant={event.viewer_rsvp === response ? "primary" : "secondary"}
             isDisabled={
               pending ||
