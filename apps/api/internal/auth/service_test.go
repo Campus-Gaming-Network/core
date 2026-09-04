@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"testing"
@@ -17,6 +18,8 @@ type fakeUsers struct {
 	passwordHash string
 	deletedID    string
 	deleteErr    error
+	findEmail    string
+	findEmailErr error
 }
 
 func (f *fakeUsers) Create(_ context.Context, params users.CreateParams) (users.Profile, error) {
@@ -37,8 +40,9 @@ func (f *fakeUsers) FindByID(_ context.Context, _ string) (users.Profile, error)
 	return f.profile, nil
 }
 
-func (f *fakeUsers) FindByEmail(_ context.Context, _ string) (users.Profile, error) {
-	return f.profile, nil
+func (f *fakeUsers) FindByEmail(_ context.Context, email string) (users.Profile, error) {
+	f.findEmail = email
+	return f.profile, f.findEmailErr
 }
 
 func (f *fakeUsers) UpdateProfile(_ context.Context, _ string, update users.ProfileUpdate) (users.Profile, error) {
@@ -103,10 +107,15 @@ func (f *fakeSessions) RevokeSession(context.Context, []byte) error { return nil
 
 type fakeTokens struct {
 	verificationUserID string
+	verificationHash   []byte
+	verificationExpiry time.Time
 	resetPasswordHash  string
 }
 
-func (f *fakeTokens) CreateEmailVerificationToken(context.Context, string, []byte, time.Time) error {
+func (f *fakeTokens) CreateEmailVerificationToken(_ context.Context, userID string, tokenHash []byte, expiresAt time.Time) error {
+	f.verificationUserID = userID
+	f.verificationHash = tokenHash
+	f.verificationExpiry = expiresAt
 	return nil
 }
 func (f *fakeTokens) ConsumeEmailVerificationToken(context.Context, []byte, time.Time) (string, error) {
@@ -121,12 +130,14 @@ func (f *fakeTokens) UsePasswordResetToken(_ context.Context, _ []byte, _ time.T
 }
 
 type fakeMailer struct {
+	verificationEmail string
 	verificationToken string
 	resetToken        string
 	err               error
 }
 
-func (f *fakeMailer) SendVerification(_ context.Context, _ string, token string) error {
+func (f *fakeMailer) SendVerification(_ context.Context, recipient string, token string) error {
+	f.verificationEmail = recipient
 	f.verificationToken = token
 	return f.err
 }
@@ -218,6 +229,37 @@ func TestAccountServiceSignupAndLogin(t *testing.T) {
 	}
 	if result.Token == "" || sessions.userID != "user-id" || !sessions.expiresAt.After(time.Now()) {
 		t.Fatal("verified login did not create a live session")
+	}
+}
+
+func TestAccountServiceResendVerificationIssuesAndSendsFreshToken(t *testing.T) {
+	userStore := &fakeUsers{profile: users.Profile{
+		ID:    "user-id",
+		Email: "player@example.com",
+	}}
+	tokens := &fakeTokens{}
+	mailer := &fakeMailer{}
+	service := NewAccountService(userStore, fakeSchools{}, &fakeSessions{}, tokens, mailer, time.Hour, 24*time.Hour, time.Hour)
+	now := time.Date(2026, time.September, 4, 12, 0, 0, 0, time.UTC)
+	service.now = func() time.Time { return now }
+
+	if err := service.ResendVerification(context.Background(), " Player@Example.com "); err != nil {
+		t.Fatalf("ResendVerification() error = %v", err)
+	}
+	if userStore.findEmail != "player@example.com" {
+		t.Fatalf("FindByEmail() email = %q, want normalized email", userStore.findEmail)
+	}
+	if tokens.verificationUserID != "user-id" {
+		t.Fatalf("verification token user = %q, want user-id", tokens.verificationUserID)
+	}
+	if !tokens.verificationExpiry.Equal(now.Add(24 * time.Hour)) {
+		t.Fatalf("verification token expiry = %v, want %v", tokens.verificationExpiry, now.Add(24*time.Hour))
+	}
+	if mailer.verificationEmail != "player@example.com" || mailer.verificationToken == "" {
+		t.Fatalf("verification delivery = (%q, %q), want recipient and token", mailer.verificationEmail, mailer.verificationToken)
+	}
+	if !bytes.Equal(tokens.verificationHash, HashToken(mailer.verificationToken)) {
+		t.Fatal("stored verification-token hash does not match the delivered token")
 	}
 }
 

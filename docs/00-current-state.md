@@ -76,6 +76,8 @@ revisited later.
   automated WCAG A/AA checks.
 - Locked signup acceptance for required home-school selection and persisted 18+
   confirmation with HTTP, service, and repository regression coverage.
+- Locked verification-email delivery and per-address/IP resend throttling with
+  service, Resend transport, and HTTP contract coverage.
 
 ## Resume checklist
 

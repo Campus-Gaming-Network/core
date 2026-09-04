@@ -220,6 +220,29 @@ func TestPassV0ErrorResponseContracts(t *testing.T) {
 		}
 	})
 
+	t.Run("resend verification rate limited", func(t *testing.T) {
+		router := &Router{
+			cfg:     config.Config{AuthRateWindow: time.Minute},
+			account: newPassV0ContractAccountService(&passV0ContractUsers{}),
+			limiter: ratelimit.New(1, time.Minute),
+		}
+		handler := http.HandlerFunc(router.handleResendVerification)
+		first := serveContractRequest(
+			handler,
+			httptest.NewRequest(http.MethodPost, "/auth/resend-verification", strings.NewReader(`{"email":"Player@Example.com"}`)),
+		)
+		requireJSONContract(t, first, http.StatusAccepted, []string{"status"})
+		response := serveContractRequest(
+			handler,
+			httptest.NewRequest(http.MethodPost, "/auth/resend-verification", strings.NewReader(`{"email":" player@example.com "}`)),
+		)
+
+		requireErrorContract(t, response, http.StatusTooManyRequests, "rate_limited")
+		if retryAfter := response.Header().Get("Retry-After"); retryAfter != "60" {
+			t.Fatalf("Retry-After = %q, want 60", retryAfter)
+		}
+	})
+
 	for _, contract := range []struct {
 		name string
 		body string
