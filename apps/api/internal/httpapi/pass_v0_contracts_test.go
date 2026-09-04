@@ -220,6 +220,46 @@ func TestPassV0ErrorResponseContracts(t *testing.T) {
 		}
 	})
 
+	for _, contract := range []struct {
+		name string
+		body string
+	}{
+		{
+			name: "signup without home school",
+			body: `{
+				"email":"player@example.com",
+				"password":"Password12345!",
+				"name":"Player One",
+				"age_confirmed":true,
+				"timezone":"America/Los_Angeles"
+			}`,
+		},
+		{
+			name: "signup without age confirmation",
+			body: `{
+				"email":"player@example.com",
+				"password":"Password12345!",
+				"name":"Player One",
+				"home_school_id":"33333333-3333-3333-3333-333333333333",
+				"timezone":"America/Los_Angeles"
+			}`,
+		},
+	} {
+		t.Run(contract.name, func(t *testing.T) {
+			userStore := &passV0ContractUsers{}
+			router := &Router{account: newPassV0ContractAccountService(userStore)}
+			response := serveContractRequest(
+				http.HandlerFunc(router.handleSignup),
+				httptest.NewRequest(http.MethodPost, "/auth/signup", strings.NewReader(contract.body)),
+			)
+
+			requireErrorContract(t, response, http.StatusBadRequest, "invalid_request")
+			if userStore.createCalled {
+				t.Fatal("invalid signup reached the user repository")
+			}
+		})
+	}
+
 	t.Run("duplicate signup", func(t *testing.T) {
 		userStore := &passV0ContractUsers{createErr: &pgconn.PgError{Code: "23505", ConstraintName: "users_email_key"}}
 		router := &Router{account: newPassV0ContractAccountService(userStore)}
@@ -493,10 +533,12 @@ func validPassV0SignupJSON() string {
 }
 
 type passV0ContractUsers struct {
-	createErr error
+	createCalled bool
+	createErr    error
 }
 
 func (r *passV0ContractUsers) Create(_ context.Context, params users.CreateParams) (users.Profile, error) {
+	r.createCalled = true
 	if r.createErr != nil {
 		return users.Profile{}, r.createErr
 	}

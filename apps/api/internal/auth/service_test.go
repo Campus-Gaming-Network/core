@@ -221,6 +221,31 @@ func TestAccountServiceSignupAndLogin(t *testing.T) {
 	}
 }
 
+func TestAccountServiceSignupPersistsHomeSchoolAndAgeConfirmation(t *testing.T) {
+	userStore := &fakeUsers{}
+	service := NewAccountService(userStore, fakeSchools{}, &fakeSessions{}, &fakeTokens{}, &fakeMailer{}, time.Hour, time.Hour, time.Hour)
+	confirmedAt := time.Date(2026, time.September, 3, 19, 30, 0, 0, time.UTC)
+	service.now = func() time.Time { return confirmedAt }
+
+	_, err := service.Signup(context.Background(), users.SignupInput{
+		Email:        "player@example.com",
+		Password:     "a-long-enough-password",
+		Name:         "Player",
+		HomeSchoolID: "school-id",
+		AgeConfirmed: true,
+		Timezone:     "America/Los_Angeles",
+	})
+	if err != nil {
+		t.Fatalf("Signup() error = %v", err)
+	}
+	if userStore.created.HomeSchoolID != "school-id" {
+		t.Fatalf("Create() HomeSchoolID = %q, want school-id", userStore.created.HomeSchoolID)
+	}
+	if !userStore.created.AgeConfirmedAt.Equal(confirmedAt) {
+		t.Fatalf("Create() AgeConfirmedAt = %v, want %v", userStore.created.AgeConfirmedAt, confirmedAt)
+	}
+}
+
 func TestAccountServiceResetPasswordStoresHash(t *testing.T) {
 	userStore := &fakeUsers{}
 	tokens := &fakeTokens{}

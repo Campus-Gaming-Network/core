@@ -45,7 +45,7 @@ Failure cases to keep green: `rate_limited`, `event_full`, `invalid_private_pass
 ### Journey acceptance (manual / later E2E)
 
 #### Signup
-- [ ] Home school required; 18+ checkbox stored
+- [x] Home school required; 18+ checkbox stored
 - [ ] Verification email + resend rate limit
 - [ ] Blocked-language name rejected before persistence
 

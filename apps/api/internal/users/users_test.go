@@ -31,6 +31,47 @@ func TestValidateSignupRejectsPasswordBelowMinimumLength(t *testing.T) {
 	}
 }
 
+func TestValidateSignupRequiresHomeSchoolAndAgeConfirmation(t *testing.T) {
+	tests := []struct {
+		name      string
+		mutate    func(*SignupInput)
+		wantError string
+	}{
+		{
+			name: "home school",
+			mutate: func(input *SignupInput) {
+				input.HomeSchoolID = "  "
+			},
+			wantError: "home school is required",
+		},
+		{
+			name: "age confirmation",
+			mutate: func(input *SignupInput) {
+				input.AgeConfirmed = false
+			},
+			wantError: "18+ confirmation is required",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			input := SignupInput{
+				Email:        "player@example.com",
+				Password:     "12345678",
+				Name:         "Player",
+				HomeSchoolID: "school-id",
+				AgeConfirmed: true,
+			}
+			test.mutate(&input)
+
+			err := ValidateSignup(input)
+			if err == nil || err.Error() != test.wantError {
+				t.Fatalf("ValidateSignup() error = %v, want %q", err, test.wantError)
+			}
+		})
+	}
+}
+
 func TestValidateSignupRejectsBlockedLanguage(t *testing.T) {
 	err := ValidateSignup(SignupInput{
 		Email:        "player@example.com",

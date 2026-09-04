@@ -4,7 +4,7 @@ Quick re-entry point for Campus Gaming Network. Read this first after time away;
 the detailed product and engineering context remains in the other documents in
 this folder.
 
-**Last updated:** 2026-09-03
+**Last updated:** 2026-09-04
 
 ## Where we are
 
@@ -74,6 +74,8 @@ revisited later.
   create/interest/cancel, private unlock through RSVP, team
   join/captain/ownership transfer, and dashboard composition, including
   automated WCAG A/AA checks.
+- Locked signup acceptance for required home-school selection and persisted 18+
+  confirmation with HTTP, service, and repository regression coverage.
 
 ## Resume checklist
 
