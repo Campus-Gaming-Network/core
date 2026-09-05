@@ -74,7 +74,8 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 - [ ] Replace placeholder Terms/Privacy, obtain legal review, and require versioned Terms agreement/Privacy acknowledgement at signup
 - [ ] Confirm retention windows and legal-hold ownership; document the manual retention runbook before enabling purge automation
 - [ ] Decide and implement Gravatar disclosure/opt-out defaults
-- [ ] Resolve `.edu` verified-student assignment and trusted forwarded-IP rate limiting
+- [ ] Resolve `.edu` verified-student assignment
+- [x] Preserve authenticated visitor identity through Cloudflare/Railway and the BFF; scope rate limits by visitor, target, and account
 
 ### Auth & profiles
 - [x] Signup / login / logout

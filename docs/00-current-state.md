@@ -28,9 +28,9 @@ verification steps.
 
 ## Next three tasks
 
-1. Complete `CGN-001`: preserve trusted visitor identity through the BFF and
-   correct every rate-limit key before production traffic shares a proxy bucket.
-2. Complete `CGN-002` and `CGN-003`: make verification POST-only and implement
+1. Complete `CGN-002`: make email verification an explicit POST action so link
+   scanners cannot mutate account state.
+2. Complete `CGN-003`: implement
    the confirmed `.edu` verified-student transition.
 3. Complete `CGN-004`: make signup, verification, and profile updates atomic.
 
@@ -52,6 +52,10 @@ gates. CRM/admin UI work moves behind the review's P1 queue.
 
 ## Recently completed
 
+- Preserved trusted visitor identity through Cloudflare, the Railway web BFF,
+  and the private Go API using authenticated, normalized forwarding headers;
+  corrected anonymous, target, and account rate-limit keys and documented the
+  single-API-instance scaling boundary (`CGN-001`).
 - Added Zod-backed runtime contracts for every web-to-Go success response and
   server-side form validation with accessible field errors. Contract types are
   inferred from schemas, while Go remains authoritative for domain and security

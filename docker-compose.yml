@@ -71,6 +71,7 @@ services:
       API_EVENTS_EMAIL_FROM: ${API_EVENTS_EMAIL_FROM:-events@campusgamingnetwork.com}
       API_AUTH_RATE_LIMIT: ${API_AUTH_RATE_LIMIT:-5}
       API_AUTH_RATE_WINDOW: ${API_AUTH_RATE_WINDOW:-15m}
+      API_PROXY_SHARED_SECRET: ${API_PROXY_SHARED_SECRET:-local-bff-proxy-secret}
     ports:
       - "8080:8080"
     depends_on:
@@ -89,6 +90,8 @@ services:
       target: dev
     environment:
       API_INTERNAL_URL: ${WEB_API_INTERNAL_URL:-http://api:8080}
+      API_PROXY_SHARED_SECRET: ${API_PROXY_SHARED_SECRET:-local-bff-proxy-secret}
+      CLOUDFLARE_ORIGIN_SECRET: ${CLOUDFLARE_ORIGIN_SECRET:-}
       NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}
       NEXT_TELEMETRY_DISABLED: "1"
     ports:

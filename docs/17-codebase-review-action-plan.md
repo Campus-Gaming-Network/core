@@ -83,8 +83,8 @@ the engineering queue, but all P1 work must be complete before public access.
 | 19 | `CGN-016` | P2 | Multi-organizer scope matches the product promise. |
 | 20 | `CGN-018` | P3 | Large modules are split before product expansion. |
 
-The first implementable item is `CGN-001`. Resolve the `.edu` policy needed by
-`CGN-003` while `CGN-001` and `CGN-002` are underway. Before `CGN-008`, decide
+The first implementable item is `CGN-002`. Resolve the `.edu` policy needed by
+`CGN-003` while `CGN-002` is underway. Before `CGN-008`, decide
 how nonexistent/repeated DST times and event duration behave. Before `CGN-016`,
 decide whether multi-organizer management belongs in the first release.
 
@@ -92,7 +92,7 @@ decide whether multi-organizer management belongs in the first release.
 
 | Items | Primary starting points |
 |-------|-------------------------|
-| `CGN-001` | [`apps/web/lib/cgn-api.ts`](../apps/web/lib/cgn-api.ts), [`auth_handlers.go`](../apps/api/internal/httpapi/auth_handlers.go), [`router.go`](../apps/api/internal/httpapi/router.go), and [`limiter.go`](../apps/api/internal/ratelimit/limiter.go) |
+| `CGN-001` | [`apps/web/lib/bff-api.ts`](../apps/web/lib/bff-api.ts), [`auth_handlers.go`](../apps/api/internal/httpapi/auth_handlers.go), [`visitor_identity.go`](../apps/api/internal/httpapi/visitor_identity.go), and [`limiter.go`](../apps/api/internal/ratelimit/limiter.go) |
 | `CGN-002`–`CGN-004` | [`verify-email/page.tsx`](../apps/web/app/auth/verify-email/page.tsx), [`actions.ts`](../apps/web/app/actions.ts), [`auth/service.go`](../apps/api/internal/auth/service.go), [`auth/tokens.go`](../apps/api/internal/auth/tokens.go), and [`users.go`](../apps/api/internal/users/users.go) |
 | `CGN-005`–`CGN-006` | [`server-api.ts`](../apps/web/lib/server-api.ts), [`event-form.tsx`](../apps/web/components/event-form.tsx), [`team-form.tsx`](../apps/web/components/team-form.tsx), and the school/event/team browse pages and Go repositories |
 | `CGN-007`–`CGN-009` | [`action-payloads.ts`](../apps/web/lib/action-payloads.ts), [`form-validation.ts`](../apps/web/lib/form-validation.ts), [`event-form.tsx`](../apps/web/components/event-form.tsx), [`event_handlers.go`](../apps/api/internal/httpapi/event_handlers.go), and [`events.go`](../apps/api/internal/events/events.go) |
@@ -112,8 +112,17 @@ decide whether multi-organizer management belongs in the first release.
 
 **Priority:** P1  
 **Size:** M  
-**Status:** Ready  
+**Status:** Complete (2026-09-05)
+
 **Depends on:** Deployment trust boundary in [13 — Deployment plan](./13-deployment-plan.md)
+
+**Completed:** The BFF now selects a normalized visitor address from Railway's
+trusted `X-Real-IP`, or from Cloudflare's `CF-Connecting-IP` when an
+edge-overwritten origin secret authenticates it. A second shared secret
+authenticates the BFF assertion to the private API. Missing, malformed, and
+spoofed assertions fall back to the direct peer. Limiter keys now distinguish
+visitor, normalized email, opaque token, event, and authenticated account
+dimensions, and the one-replica constraint is documented.
 
 **Problem**
 

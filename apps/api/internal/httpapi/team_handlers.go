@@ -134,7 +134,7 @@ func (r *Router) handleCreateTeam(w http.ResponseWriter, req *http.Request) {
 		writeError(w, http.StatusUnauthorized, "authentication_required")
 		return
 	}
-	if !r.allow("team-create:"+userID, req) {
+	if !r.allowAccount("team-create", userID) {
 		rateLimitExceeded(w, r)
 		return
 	}
@@ -242,7 +242,7 @@ func (r *Router) handleJoinTeam(w http.ResponseWriter, req *http.Request, slug s
 		writeError(w, http.StatusUnauthorized, "authentication_required")
 		return
 	}
-	if !r.allow("team-join:"+slug+":"+userID, req) {
+	if !r.allowAccount("team-join:"+slug, userID) {
 		rateLimitExceeded(w, r)
 		return
 	}

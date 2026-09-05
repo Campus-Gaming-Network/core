@@ -74,6 +74,8 @@ Values belong in Railway variables, not in the repository. Seal the Resend key a
 |----------|------------------|
 | `API_INTERNAL_URL` | `http://${{api.RAILWAY_PRIVATE_DOMAIN}}:${{api.PORT}}` |
 | `API_SESSION_COOKIE` | `cgn_session` |
+| `API_PROXY_SHARED_SECRET` | Same sealed random value as the API service; generate at least 32 random bytes |
+| `CLOUDFLARE_ORIGIN_SECRET` | Sealed random value also configured as Cloudflare's `X-CGN-Cloudflare-Secret` request transform |
 | `NODE_ENV` | `production` |
 | `NEXT_TELEMETRY_DISABLED` | `1` |
 
@@ -92,8 +94,29 @@ The internal URL deliberately uses `http`, because Railway private-network traff
 | `API_EVENTS_EMAIL_FROM` | `events@campusgamingnetwork.com` |
 | `API_CATALOG_REFRESH_INTERVAL` | `24h` — how often the in-memory school catalog reloads. The catalog changes once or twice a year, so the manual refresh endpoint below is the path for a same-day change. |
 | `API_MAINTENANCE_TOKEN` | Optional. Set it to enable `POST /internal/schools/refresh`, which reloads the catalog immediately after a change; seal this variable. Leave unset and the endpoint stays a 404. |
+| `API_PROXY_SHARED_SECRET` | Same sealed random value as the web service; generate at least 32 random bytes |
 
 Do not set any `API_DEV_SEED_USER_*` variables outside local development. `RESEND_API_KEY` remains a temporary backwards-compatible alias in code, but `API_RESEND_API_KEY` is the canonical name.
+
+### Trusted visitor boundary
+
+The public Railway proxy overwrites `X-Real-IP` before a request reaches the
+Next.js service. Direct Railway traffic uses that address. For Cloudflare-
+proxied production traffic, a request-header transform must overwrite
+`X-CGN-Cloudflare-Secret`; only a matching `CLOUDFLARE_ORIGIN_SECRET` allows the
+BFF to use Cloudflare's single-value `CF-Connecting-IP`. This prevents direct
+requests to the Railway domain from spoofing Cloudflare's visitor header.
+
+Server Actions normalize the selected IP and send it to the private API in
+`X-CGN-Visitor-IP`, together with `X-CGN-Proxy-Secret`. The API trusts it only
+when the secret matches `API_PROXY_SHARED_SECRET`; otherwise it falls back to
+the direct peer address. Browser-provided internal headers are removed before
+forwarding.
+
+Keep the API and Postgres without public domains. Rotate the shared value on
+both services together if it is exposed. The current limiter is process-local,
+so run one API replica until a shared limiter is implemented; multiple replicas
+would each enforce an independent quota.
 
 ### Temporary `seed`
 
@@ -128,9 +151,10 @@ Railway’s current scheduled retention is six days for daily backups, one month
 
 1. After the production `web` service passes on its Railway domain, add `campusgamingnetwork.com` as its Railway custom domain.
 2. Add the CNAME/flattened record Railway supplies in Cloudflare. Keep `_acme-challenge` DNS-only if certificate validation requires it.
-3. Once Railway shows the certificate/domain as active, enable the normal Cloudflare proxy/protection setting.
-4. Add a Cloudflare redirect rule from `www.campusgamingnetwork.com/*` to `https://campusgamingnetwork.com/$1` with a permanent redirect.
-5. Confirm the API and Postgres still have no public domain or TCP proxy.
+3. Add a Cloudflare request-header transform for the apex hostname that sets (overwrites) `X-CGN-Cloudflare-Secret` to the sealed `CLOUDFLARE_ORIGIN_SECRET` value configured on the web service.
+4. Once Railway shows the certificate/domain as active, enable the normal Cloudflare proxy/protection setting.
+5. Add a Cloudflare redirect rule from `www.campusgamingnetwork.com/*` to `https://campusgamingnetwork.com/$1` with a permanent redirect.
+6. Confirm the API and Postgres still have no public domain or TCP proxy.
 
 ## Launch sequence
 

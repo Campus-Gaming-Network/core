@@ -9,25 +9,26 @@ import (
 )
 
 type Config struct {
-	HTTPAddr         string
-	DatabaseURL      string
-	DBHost           string
-	DBPort           string
-	DBConnectTimeout time.Duration
-	SessionCookie    string
-	SessionTTL       time.Duration
-	CookieSecure     bool
-	VerificationTTL  time.Duration
-	ResetTTL         time.Duration
-	SiteURL          string
-	ResendAPIKey     string
-	AccountEmailFrom string
-	EventsEmailFrom  string
-	AuthRateLimit    int
-	AuthRateWindow   time.Duration
-	DBMaxConns       int32
-	CatalogRefresh   time.Duration
-	MaintenanceToken string
+	HTTPAddr          string
+	DatabaseURL       string
+	DBHost            string
+	DBPort            string
+	DBConnectTimeout  time.Duration
+	SessionCookie     string
+	SessionTTL        time.Duration
+	CookieSecure      bool
+	VerificationTTL   time.Duration
+	ResetTTL          time.Duration
+	SiteURL           string
+	ResendAPIKey      string
+	AccountEmailFrom  string
+	EventsEmailFrom   string
+	AuthRateLimit     int
+	AuthRateWindow    time.Duration
+	DBMaxConns        int32
+	CatalogRefresh    time.Duration
+	MaintenanceToken  string
+	ProxySharedSecret string
 }
 
 // Load reads and validates API configuration from the environment.
@@ -85,25 +86,26 @@ func Load() (Config, error) {
 	}
 
 	return Config{
-		HTTPAddr:         httpAddr(),
-		DatabaseURL:      getenv("API_DATABASE_URL", "postgres://cgn:cgn@localhost:5432/cgn?sslmode=disable"),
-		DBHost:           getenv("API_DB_HOST", "localhost"),
-		DBPort:           port,
-		DBConnectTimeout: timeout,
-		SessionCookie:    getenv("API_SESSION_COOKIE", "cgn_session"),
-		SessionTTL:       sessionTTL,
-		CookieSecure:     cookieSecure,
-		VerificationTTL:  verificationTTL,
-		ResetTTL:         resetTTL,
-		SiteURL:          getenv("API_SITE_URL", "http://localhost:3000"),
-		ResendAPIKey:     firstNonEmptyEnv("API_RESEND_API_KEY", "RESEND_API_KEY"),
-		AccountEmailFrom: getenv("API_ACCOUNT_EMAIL_FROM", "account@campusgamingnetwork.com"),
-		EventsEmailFrom:  getenv("API_EVENTS_EMAIL_FROM", "events@campusgamingnetwork.com"),
-		AuthRateLimit:    authRateLimit,
-		AuthRateWindow:   authRateWindow,
-		DBMaxConns:       int32(dbMaxConns),
-		CatalogRefresh:   catalogRefresh,
-		MaintenanceToken: os.Getenv("API_MAINTENANCE_TOKEN"),
+		HTTPAddr:          httpAddr(),
+		DatabaseURL:       getenv("API_DATABASE_URL", "postgres://cgn:cgn@localhost:5432/cgn?sslmode=disable"),
+		DBHost:            getenv("API_DB_HOST", "localhost"),
+		DBPort:            port,
+		DBConnectTimeout:  timeout,
+		SessionCookie:     getenv("API_SESSION_COOKIE", "cgn_session"),
+		SessionTTL:        sessionTTL,
+		CookieSecure:      cookieSecure,
+		VerificationTTL:   verificationTTL,
+		ResetTTL:          resetTTL,
+		SiteURL:           getenv("API_SITE_URL", "http://localhost:3000"),
+		ResendAPIKey:      firstNonEmptyEnv("API_RESEND_API_KEY", "RESEND_API_KEY"),
+		AccountEmailFrom:  getenv("API_ACCOUNT_EMAIL_FROM", "account@campusgamingnetwork.com"),
+		EventsEmailFrom:   getenv("API_EVENTS_EMAIL_FROM", "events@campusgamingnetwork.com"),
+		AuthRateLimit:     authRateLimit,
+		AuthRateWindow:    authRateWindow,
+		DBMaxConns:        int32(dbMaxConns),
+		CatalogRefresh:    catalogRefresh,
+		MaintenanceToken:  os.Getenv("API_MAINTENANCE_TOKEN"),
+		ProxySharedSecret: os.Getenv("API_PROXY_SHARED_SECRET"),
 	}, nil
 }
 

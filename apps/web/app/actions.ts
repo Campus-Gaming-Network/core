@@ -6,12 +6,12 @@ import { redirect } from "next/navigation";
 import {
   ApiContractError,
   ApiError,
-  apiRequest,
   formString,
   getSetCookieHeader,
   parseSetCookie,
   userMessageForApiError
 } from "../lib/cgn-api";
+import { apiRequestFromBFF } from "../lib/bff-api";
 import {
   emptyResponseSchema,
   eventSchema,
@@ -77,7 +77,7 @@ export async function signupAction(
   }
 
   try {
-    await apiRequest({
+    await apiRequestFromBFF({
       ...request,
       body: validated.data,
       responseSchema: profileSchema
@@ -108,7 +108,7 @@ export async function loginAction(
   }
 
   try {
-    const result = await apiRequest({
+    const result = await apiRequestFromBFF({
       path: "/auth/login",
       method: "POST",
       body: {
@@ -128,7 +128,7 @@ export async function loginAction(
 
 export async function logoutAction() {
   try {
-    const result = await apiRequest({
+    const result = await apiRequestFromBFF({
       path: "/auth/logout",
       method: "POST",
       cookieHeader: await incomingCookieHeader(),
@@ -159,7 +159,7 @@ export async function forgotPasswordAction(
   }
 
   try {
-    await apiRequest({
+    await apiRequestFromBFF({
       path: "/auth/forgot-password",
       method: "POST",
       body: validated.data,
@@ -190,7 +190,7 @@ export async function resetPasswordAction(
   }
 
   try {
-    await apiRequest({
+    await apiRequestFromBFF({
       path: "/auth/reset-password",
       method: "POST",
       body: validated.data,
@@ -215,7 +215,7 @@ export async function resendVerificationAction(
   }
 
   try {
-    await apiRequest({
+    await apiRequestFromBFF({
       ...request,
       body: validated.data,
       responseSchema: statusResponseSchema
@@ -247,7 +247,7 @@ export async function updateProfileAction(
   }
 
   try {
-    await apiRequest({
+    await apiRequestFromBFF({
       path: "/me",
       method: "PATCH",
       cookieHeader: await incomingCookieHeader(),
@@ -282,7 +282,7 @@ export async function submitSupportTicketAction(
   }
 
   try {
-    await apiRequest({
+    await apiRequestFromBFF({
       path: "/support-tickets",
       method: "POST",
       cookieHeader: await incomingCookieHeader(),
@@ -317,7 +317,7 @@ export async function reportEventAction(
   }
 
   try {
-    await apiRequest({
+    await apiRequestFromBFF({
       path: `/events/${encodeURIComponent(slug)}/report`,
       method: "POST",
       cookieHeader: await incomingCookieHeader(),
@@ -352,7 +352,7 @@ export async function reportUserAction(
   }
 
   try {
-    await apiRequest({
+    await apiRequestFromBFF({
       path: `/users/${encodeURIComponent(userID)}/report`,
       method: "POST",
       cookieHeader: await incomingCookieHeader(),
@@ -382,7 +382,7 @@ export async function followSchoolAction(formData: FormData) {
     destination = "/schools?follow=failed";
   } else {
     try {
-      await apiRequest({
+      await apiRequestFromBFF({
         path: `/schools/${encodeURIComponent(schoolID)}/follow`,
         method: "POST",
         cookieHeader: await incomingCookieHeader(),
@@ -412,7 +412,7 @@ export async function unfollowSchoolAction(formData: FormData) {
     destination = "/schools?follow=failed";
   } else {
     try {
-      await apiRequest({
+      await apiRequestFromBFF({
         path: `/schools/${encodeURIComponent(schoolID)}/follow`,
         method: "DELETE",
         cookieHeader: await incomingCookieHeader(),
@@ -445,7 +445,7 @@ export async function createEventAction(
 
   let destination = "/events";
   try {
-    const { data } = await apiRequest({
+    const { data } = await apiRequestFromBFF({
       ...request,
       body: validated.data,
       responseSchema: eventSchema
@@ -479,7 +479,7 @@ export async function updateEventAction(
 
   let destination = `/events/${encodeURIComponent(slug)}`;
   try {
-    const { data } = await apiRequest({
+    const { data } = await apiRequestFromBFF({
       path: `/events/${encodeURIComponent(slug)}`,
       method: "PATCH",
       cookieHeader: await incomingCookieHeader(),
@@ -509,7 +509,7 @@ export async function deleteEventAction(formData: FormData) {
   const { slug } = validated.data;
 
   try {
-    await apiRequest({
+    await apiRequestFromBFF({
       ...buildDeleteEventRequest(slug, await incomingCookieHeader()),
       responseSchema: emptyResponseSchema
     });
@@ -534,7 +534,7 @@ export async function createTeamAction(
 
   let destination = "/teams";
   try {
-    const { data } = await apiRequest({
+    const { data } = await apiRequestFromBFF({
       path: "/teams",
       method: "POST",
       cookieHeader: await incomingCookieHeader(),
@@ -571,7 +571,7 @@ export async function joinTeamAction(
   let destination = `/teams/${encodeURIComponent(slug)}?team=joined`;
 
   try {
-    const { data } = await apiRequest({
+    const { data } = await apiRequestFromBFF({
       ...buildTeamJoinRequest(slug, formData, await incomingCookieHeader()),
       body: validated.data,
       responseSchema: teamSchema
@@ -600,7 +600,7 @@ export async function setTeamCaptainAction(formData: FormData) {
 
   if (validated.success) {
     try {
-      const { data } = await apiRequest({
+      const { data } = await apiRequestFromBFF({
         path: `/teams/${encodeURIComponent(slug)}/captains`,
         method: "POST",
         cookieHeader: await incomingCookieHeader(),
@@ -634,7 +634,7 @@ export async function transferTeamOwnershipAction(formData: FormData) {
 
   if (validated.success) {
     try {
-      const { data } = await apiRequest({
+      const { data } = await apiRequestFromBFF({
         ...buildTransferTeamOwnershipRequest(
           slug,
           validated.data.new_owner_user_id,
@@ -675,7 +675,7 @@ export async function unlockEventAction(
   let destination = `/events/${encodeURIComponent(slug)}?event=unlocked`;
 
   try {
-    const { data } = await apiRequest({
+    const { data } = await apiRequestFromBFF({
       ...buildUnlockEventRequest(slug, formData),
       body: validated.data,
       responseSchema: eventUnlockResponseSchema
@@ -714,7 +714,7 @@ export async function rsvpEventAction(
       await incomingCookieHeader(),
       await eventUnlockHeaders(slug)
     );
-    const { data } = await apiRequest({
+    const { data } = await apiRequestFromBFF({
       ...request,
       body: { response: validated.data.response },
       responseSchema: eventSchema
@@ -743,7 +743,7 @@ export async function eventInterestAction(formData: FormData) {
 
   if (validated.success) {
     try {
-      const { data } = await apiRequest({
+      const { data } = await apiRequestFromBFF({
         ...buildEventInterestRequest(
           slug,
           interested,
@@ -867,7 +867,7 @@ export async function deleteAccountAction(
   }
 
   try {
-    await apiRequest({
+    await apiRequestFromBFF({
       path: "/me",
       method: "DELETE",
       cookieHeader: await incomingCookieHeader(),

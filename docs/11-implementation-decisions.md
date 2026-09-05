@@ -33,6 +33,8 @@ Small, concrete engineering choices for Phase 0 and early early implementation. 
 | Database readiness | Phase 0 `/ready` checks Postgres network reachability; real SQL checks arrive with the DB driver |
 | Production hosting | Railway hosts Next.js web, Go API, and PostgreSQL; Cloudflare manages DNS/protection |
 | Railway topology | Services are named `web`, `api`, and `postgres`; staging rehearsal precedes production; API migrations run as pre-deploy; Cloudflare redirects `www` to the apex domain |
+| BFF visitor identity | Railway's public proxy overwrites `X-Real-IP`. Behind Cloudflare, the BFF accepts `CF-Connecting-IP` only with an edge-overwritten `X-CGN-Cloudflare-Secret` matching `CLOUDFLARE_ORIGIN_SECRET`; otherwise it uses Railway's address. It forwards the normalized result as `X-CGN-Visitor-IP`, authenticated to the private API by `API_PROXY_SHARED_SECRET`. The API ignores missing, malformed, or unauthenticated assertions and falls back to its peer address. |
+| Rate-limit dimensions | Anonymous account flows use visitor buckets plus normalized-email or opaque-token sub-buckets where applicable; private unlocks use event + visitor; authenticated creation, report, and team-join flows use stable account buckets (with the team target for joins). The limiter is process-local, so keep one API instance until a shared limiter replaces it. |
 | CRM | Not in the first release; the CRM/admin app comes later |
 | Branch campuses | Same UI/UX as other schools |
 | Paid events | Supports off-site-payment listings only; no CGN payment processing |

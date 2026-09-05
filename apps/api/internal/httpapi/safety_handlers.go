@@ -6,6 +6,7 @@ import (
 
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/auth"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/safety"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/users"
 )
 
 type supportTicketRequest struct {
@@ -32,13 +33,18 @@ func (r *Router) handleSupportTickets(w http.ResponseWriter, req *http.Request) 
 		writeError(w, http.StatusServiceUnavailable, "database_unavailable")
 		return
 	}
-	if !r.allow("support-ticket", req) {
+	if !r.allowVisitor("support-ticket", req) {
 		rateLimitExceeded(w, r)
 		return
 	}
 
 	var request supportTicketRequest
 	if !decodeJSON(w, req, &request) {
+		return
+	}
+	if normalizedEmail := users.NormalizeEmail(request.ContactEmail); normalizedEmail != "" &&
+		!r.allowVisitor("support-ticket-email:"+normalizedEmail, req) {
+		rateLimitExceeded(w, r)
 		return
 	}
 	userID, _ := auth.UserID(req.Context())
@@ -66,7 +72,7 @@ func (r *Router) handleReportEvent(w http.ResponseWriter, req *http.Request, slu
 		writeError(w, http.StatusUnauthorized, "authentication_required")
 		return
 	}
-	if !r.allow("report-event:"+userID, req) {
+	if !r.allowAccount("report-event", userID) {
 		rateLimitExceeded(w, r)
 		return
 	}
@@ -93,7 +99,7 @@ func (r *Router) handleReportUser(w http.ResponseWriter, req *http.Request, targ
 		writeError(w, http.StatusUnauthorized, "authentication_required")
 		return
 	}
-	if !r.allow("report-user:"+userID, req) {
+	if !r.allowAccount("report-user", userID) {
 		rateLimitExceeded(w, r)
 		return
 	}

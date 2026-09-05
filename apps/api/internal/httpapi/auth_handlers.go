@@ -1,10 +1,11 @@
 package httpapi
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"io"
-	"net"
 	"net/http"
 	"net/mail"
 	"strconv"
@@ -59,7 +60,7 @@ func (r *Router) handleSignup(w http.ResponseWriter, req *http.Request) {
 		writeError(w, http.StatusServiceUnavailable, "database_unavailable")
 		return
 	}
-	if !r.allow("signup", req) {
+	if !r.allowVisitor("signup", req) {
 		rateLimitExceeded(w, r)
 		return
 	}
@@ -69,7 +70,7 @@ func (r *Router) handleSignup(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	normalizedEmail := users.NormalizeEmail(input.Email)
-	if validEmail(normalizedEmail) && !r.allow("signup-email:"+normalizedEmail, req) {
+	if validEmail(normalizedEmail) && !r.allowVisitor("signup-email:"+normalizedEmail, req) {
 		rateLimitExceeded(w, r)
 		return
 	}
@@ -106,13 +107,18 @@ func (r *Router) handleLogin(w http.ResponseWriter, req *http.Request) {
 		writeError(w, http.StatusServiceUnavailable, "database_unavailable")
 		return
 	}
-	if !r.allow("login", req) {
+	if !r.allowVisitor("login", req) {
 		rateLimitExceeded(w, r)
 		return
 	}
 
 	var input loginRequest
 	if !decodeJSON(w, req, &input) {
+		return
+	}
+	if normalizedEmail := users.NormalizeEmail(input.Email); validEmail(normalizedEmail) &&
+		!r.allowVisitor("login-email:"+normalizedEmail, req) {
+		rateLimitExceeded(w, r)
 		return
 	}
 	result, err := r.account.Login(req.Context(), input.Email, input.Password)
@@ -191,6 +197,10 @@ func (r *Router) handleResendVerification(w http.ResponseWriter, req *http.Reque
 		writeError(w, http.StatusServiceUnavailable, "database_unavailable")
 		return
 	}
+	if !r.allowVisitor("resend-verification", req) {
+		rateLimitExceeded(w, r)
+		return
+	}
 	var input emailRequest
 	if !decodeJSON(w, req, &input) {
 		return
@@ -199,7 +209,7 @@ func (r *Router) handleResendVerification(w http.ResponseWriter, req *http.Reque
 		writeError(w, http.StatusBadRequest, "invalid_request")
 		return
 	}
-	if !r.allow("resend-verification:"+users.NormalizeEmail(input.Email), req) {
+	if !r.allowVisitor("resend-verification-email:"+users.NormalizeEmail(input.Email), req) {
 		rateLimitExceeded(w, r)
 		return
 	}
@@ -219,6 +229,10 @@ func (r *Router) handleForgotPassword(w http.ResponseWriter, req *http.Request) 
 		writeError(w, http.StatusServiceUnavailable, "database_unavailable")
 		return
 	}
+	if !r.allowVisitor("forgot-password", req) {
+		rateLimitExceeded(w, r)
+		return
+	}
 	var input emailRequest
 	if !decodeJSON(w, req, &input) {
 		return
@@ -227,7 +241,7 @@ func (r *Router) handleForgotPassword(w http.ResponseWriter, req *http.Request) 
 		writeError(w, http.StatusBadRequest, "invalid_request")
 		return
 	}
-	if !r.allow("forgot-password:"+users.NormalizeEmail(input.Email), req) {
+	if !r.allowVisitor("forgot-password-email:"+users.NormalizeEmail(input.Email), req) {
 		rateLimitExceeded(w, r)
 		return
 	}
@@ -247,12 +261,16 @@ func (r *Router) handleResetPassword(w http.ResponseWriter, req *http.Request) {
 		writeError(w, http.StatusServiceUnavailable, "database_unavailable")
 		return
 	}
-	if !r.allow("reset-password", req) {
+	if !r.allowVisitor("reset-password", req) {
 		rateLimitExceeded(w, r)
 		return
 	}
 	var input resetPasswordRequest
 	if !decodeJSON(w, req, &input) {
+		return
+	}
+	if !r.allowVisitor("reset-password-token:"+opaqueRateLimitTarget(input.Token), req) {
+		rateLimitExceeded(w, r)
 		return
 	}
 	if err := r.account.ResetPassword(req.Context(), strings.TrimSpace(input.Token), input.Password); err != nil {
@@ -395,11 +413,23 @@ func (r *Router) handleUserPath(w http.ResponseWriter, req *http.Request) {
 	writeJSON(w, http.StatusOK, profile)
 }
 
-func (r *Router) allow(action string, req *http.Request) bool {
+func (r *Router) allowVisitor(action string, req *http.Request) bool {
 	if r.limiter == nil {
 		return true
 	}
-	return r.limiter.Allow(action + ":" + clientKey(req))
+	return r.limiter.Allow(action + ":visitor:" + clientKey(req, r.cfg.ProxySharedSecret))
+}
+
+func (r *Router) allowAccount(action, userID string) bool {
+	if r.limiter == nil {
+		return true
+	}
+	return r.limiter.Allow(action + ":account:" + userID)
+}
+
+func opaqueRateLimitTarget(value string) string {
+	digest := sha256.Sum256([]byte(strings.TrimSpace(value)))
+	return hex.EncodeToString(digest[:16])
 }
 
 func (r *Router) setSessionCookie(w http.ResponseWriter, token string, expiresAt time.Time) {
@@ -436,17 +466,6 @@ func decodeJSON(w http.ResponseWriter, req *http.Request, destination any) bool 
 func validEmail(email string) bool {
 	_, err := mail.ParseAddress(users.NormalizeEmail(email))
 	return err == nil
-}
-
-func clientKey(req *http.Request) string {
-	host, _, err := net.SplitHostPort(req.RemoteAddr)
-	if err == nil && host != "" {
-		return host
-	}
-	if req.RemoteAddr == "" {
-		return "unknown"
-	}
-	return req.RemoteAddr
 }
 
 func rateLimitExceeded(w http.ResponseWriter, r *Router) {

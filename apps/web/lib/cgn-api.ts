@@ -52,7 +52,7 @@ export type Fetcher = (
   init?: RequestInit
 ) => Promise<Response>;
 
-type ApiRequestOptions<TSchema extends z.ZodType> = {
+export type ApiRequestOptions<TSchema extends z.ZodType> = {
   path: string;
   responseSchema: TSchema;
   method?: string;

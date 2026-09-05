@@ -117,7 +117,7 @@ func (r *Router) handleCreateEvent(w http.ResponseWriter, req *http.Request) {
 		writeError(w, http.StatusUnauthorized, "authentication_required")
 		return
 	}
-	if !r.allow("event-create:"+userID, req) {
+	if !r.allowAccount("event-create", userID) {
 		rateLimitExceeded(w, r)
 		return
 	}
@@ -230,7 +230,7 @@ func (r *Router) handleUnlockEvent(w http.ResponseWriter, req *http.Request, slu
 		writeError(w, http.StatusServiceUnavailable, "database_unavailable")
 		return
 	}
-	if !r.allow("event-unlock:"+slug, req) {
+	if !r.allowVisitor("event-unlock-event:"+slug, req) {
 		rateLimitExceeded(w, r)
 		return
 	}

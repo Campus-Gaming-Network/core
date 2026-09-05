@@ -133,6 +133,8 @@ The school and game catalogs are effectively static — roughly 6,200 schools gr
 
 - Email/password with forgot/reset flows
 - Frontend auth uses opaque server-side session cookies handled at the BFF; avoid JWTs for browser auth. Go validates the session/auth context for API calls.
+- Railway overwrites `X-Real-IP` at the public web boundary. When Cloudflare is in front, a request transform overwrites `X-CGN-Cloudflare-Secret`, allowing the BFF to trust Cloudflare's single-value `CF-Connecting-IP`; direct Railway traffic falls back to `X-Real-IP`. The BFF forwards the normalized result in `X-CGN-Visitor-IP` only when it can authenticate the assertion to the private API with `API_PROXY_SHARED_SECRET`; the API otherwise uses its direct peer address.
+- Keep one API instance while rate limits are process-local. Moving to multiple replicas requires a shared limiter so quotas cannot be multiplied across instances.
 - Impersonation for site admins (audit every impersonation)
 - XSS prevention (encode/sanitize output)
 - SQL injection prevention (parameterized queries)
