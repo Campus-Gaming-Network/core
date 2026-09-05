@@ -23,7 +23,7 @@ Small, concrete engineering choices for Phase 0 and early early implementation. 
 | Catalog HTTP caching | `/schools`, `/schools/:slug`, and `/games` send `Cache-Control: public, max-age=300, stale-while-revalidate=86400`, and the BFF passes `revalidate` instead of `no-store` for those three reads. Only responses with no viewer-specific fields may carry this. |
 | School search indexes | No trigram indexes. At ~6,200 rows across ~192 pages a sequential scan matches a forced index scan (5.3 ms vs 5.4 ms), and the two GIN indexes recorded zero scans while occupying four times the table's size. Migration `000007` drops them. Revisit only with a purpose-built similarity index if typo-tolerant search is added. |
 | API | Go REST/JSON HTTP service |
-| Go version | Go 1.25 minimum, set by the `go` directive in `apps/api/go.mod`. Go 1.21 reached end of life, and the current `pgx` and `golang.org/x/*` releases require 1.25 or newer. CI installs the version from `go.mod`; the API image builds on `golang:1.25-alpine`. |
+| Go version | Go 1.27.1 minimum, set by the `go` directive in `apps/api/go.mod`. Go 1.25 is no longer supported under the [Go release policy](https://go.dev/doc/devel/release). CI installs the version from `go.mod`; local formatting uses that selected toolchain's `gofmt`. The API image builds on `golang:1.27.1-alpine3.24` and runs on `alpine:3.24`. Update the module directive and builder image together when adopting a Go patch release. |
 | Go dependencies | Standard library first; add dependencies only when Phase 1 needs them |
 | Frontend auth | Opaque server-side session cookies; no browser JWT auth |
 | Auth session backing | Postgres-backed opaque server-side sessions |

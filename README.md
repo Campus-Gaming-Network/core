@@ -82,8 +82,11 @@ The browser suite starts an isolated API fixture and Next.js dev server, then
 runs the primary journeys in desktop and mobile Chromium. It does not require
 Docker or a populated development database.
 
-The API needs Go 1.25 or newer (set by the `go` directive in `apps/api/go.mod`)
-plus the PostgreSQL driver:
+The API needs Go 1.27.1 or newer (set by the `go` directive in `apps/api/go.mod`).
+CI and the API Docker build use Go 1.27.1. With Go 1.21 or newer and the default
+`GOTOOLCHAIN=auto`, commands inside `apps/api` select and download the required
+toolchain automatically. The npm formatting scripts use that toolchain's `gofmt`.
+Go module commands also download the PostgreSQL driver dependency as needed:
 
 ```bash
 cd apps/api

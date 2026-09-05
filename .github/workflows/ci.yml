@@ -29,10 +29,15 @@ jobs:
       API_DATABASE_URL: postgres://cgn:cgn@localhost:5432/cgn_test?sslmode=disable
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v7
         with:
           go-version-file: apps/api/go.mod
-          cache-dependency-path: apps/api/go.mod
+          cache-dependency-path: |
+            apps/api/go.mod
+            apps/api/go.sum
+      - name: Go version
+        working-directory: apps/api
+        run: go version
       - name: Format check
         run: npm run fmt:check:api
       - name: Vet

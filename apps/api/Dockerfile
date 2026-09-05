@@ -1,4 +1,4 @@
-FROM golang:1.25-alpine AS build
+FROM golang:1.27.1-alpine3.24 AS build
 
 WORKDIR /src
 
@@ -10,7 +10,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o /out/cgn-api ./cmd/api \
     && CGO_ENABLED=0 GOOS=linux go build -o /out/cgn-migrate ./cmd/migrate \
     && CGO_ENABLED=0 GOOS=linux go build -o /out/cgn-seed ./cmd/seed
 
-FROM alpine:3.20 AS runner
+FROM alpine:3.24 AS runner
 
 RUN apk add --no-cache ca-certificates \
     && addgroup -S cgn \

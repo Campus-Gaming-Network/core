@@ -53,6 +53,7 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 
 ### Pre-launch polish
 - [x] Dependency and advisory sweep: Go 1.25 with current `pgx`/`golang.org/x/*`, Next.js 16.3 clearing 9 high-severity advisories plus transitive `postcss`/`sharp`, oxlint 1.77
+- [x] Go toolchain refresh: Go 1.27.1 for the API module, CI, Docker build, and local formatting; API runtime image on Alpine 3.24
 - [x] Per-page metadata and social tags, with `noindex` on authenticated, token, private, and unlisted routes
 - [x] Error, loading, and not-found boundaries; browse pages in `(browse)` route groups so missing entities still return 404
 - [x] Transactional email failures no longer fail the committed write behind them (RSVP, signup, password reset)

@@ -15,8 +15,8 @@
     "typecheck:web": "npm --prefix apps/web run typecheck",
     "test:web": "npm --prefix apps/web run test",
     "test:e2e:web": "npm --prefix apps/web run test:e2e",
-    "fmt:api": "gofmt -w apps/api/cmd apps/api/internal",
-    "fmt:check:api": "test -z \"$(gofmt -l apps/api/cmd apps/api/internal)\"",
+    "fmt:api": "cd apps/api && api_goroot=$(go env GOROOT) && \"$api_goroot/bin/gofmt\" -w cmd internal",
+    "fmt:check:api": "cd apps/api && api_goroot=$(go env GOROOT) && api_unformatted=$(\"$api_goroot/bin/gofmt\" -l cmd internal) && test -z \"$api_unformatted\"",
     "vet:api": "cd apps/api && go vet ./...",
     "test:api": "cd apps/api && go test ./..."
   }
