@@ -2,6 +2,8 @@ import { Button } from "@heroui/react/button";
 import { EmptyState } from "@heroui/react/empty-state";
 import { Input } from "@heroui/react/input";
 import Link from "next/link";
+import { PaginationNav } from "../../../components/pagination-nav";
+import { browseHref, pageNumber } from "../../../lib/browse-pagination";
 import { listSchools } from "../../../lib/server-api";
 import { pageMetadata } from "../../../lib/metadata";
 
@@ -20,11 +22,30 @@ export default async function SchoolsPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const query = param(params.q);
   const state = param(params.state);
-  const result = await listSchools({ query, state, limit: 25 }).catch(() => ({
+  const page = pageNumber(param(params.page));
+  const limit = 25;
+  const result = await listSchools({
+    query,
+    state,
+    limit,
+    offset: (page - 1) * limit
+  }).catch(() => ({
     schools: [],
-    limit: 25,
-    offset: 0
+    limit,
+    offset: (page - 1) * limit,
+    has_more: false
   }));
+  const previousHref =
+    page > 1
+      ? browseHref("/schools", {
+          q: query,
+          state,
+          page: page > 2 ? page - 1 : undefined
+        })
+      : undefined;
+  const nextHref = result.has_more
+    ? browseHref("/schools", { q: query, state, page: page + 1 })
+    : undefined;
 
   return (
     <main className="narrow">
@@ -74,6 +95,11 @@ export default async function SchoolsPage({ searchParams }: PageProps) {
           </p>
         </EmptyState>
       )}
+      <PaginationNav
+        previousHref={previousHref}
+        nextHref={nextHref}
+        label={`Page ${page}`}
+      />
     </main>
   );
 }

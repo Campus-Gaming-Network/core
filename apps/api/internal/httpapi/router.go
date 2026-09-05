@@ -207,36 +207,38 @@ func (r *Router) handleSchools(w http.ResponseWriter, req *http.Request) {
 	params := schools.ListParams{
 		Query:  req.URL.Query().Get("q"),
 		State:  req.URL.Query().Get("state"),
-		Limit:  25,
 		Offset: 0,
 	}
-	var err error
-	if value := req.URL.Query().Get("limit"); value != "" {
-		params.Limit, err = strconv.Atoi(value)
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid_limit")
-			return
-		}
+	limit, err := parseListLimit(req.URL.Query())
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_limit")
+		return
 	}
 	if value := req.URL.Query().Get("offset"); value != "" {
 		params.Offset, err = strconv.Atoi(value)
-		if err != nil {
+		if err != nil || params.Offset < 0 {
 			writeError(w, http.StatusBadRequest, "invalid_offset")
 			return
 		}
 	}
+	params.Limit = limit + 1
 	params = schools.NormalizeListParams(params)
 	result, err := r.schools.List(req.Context(), params)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "schools_unavailable")
 		return
 	}
+	hasMore := len(result) > limit
+	if hasMore {
+		result = result[:limit]
+	}
 
 	setPublicCatalogCache(w)
 	writeJSON(w, http.StatusOK, map[string]any{
-		"schools": result,
-		"limit":   params.Limit,
-		"offset":  params.Offset,
+		"schools":  result,
+		"limit":    limit,
+		"offset":   params.Offset,
+		"has_more": hasMore,
 	})
 }
 
@@ -381,27 +383,23 @@ func (r *Router) handleEvents(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	limit, err := parseListLimit(req.URL.Query())
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_limit")
+		return
+	}
+	after, before, err := parseListCursors(req.URL.Query())
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_cursor")
+		return
+	}
 	params := eventstore.ListParams{
 		GameSlug:   req.URL.Query().Get("game"),
 		SchoolSlug: req.URL.Query().Get("school"),
 		Format:     req.URL.Query().Get("format"),
-		Limit:      25,
-		Offset:     0,
-	}
-	var err error
-	if value := req.URL.Query().Get("limit"); value != "" {
-		params.Limit, err = strconv.Atoi(value)
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid_limit")
-			return
-		}
-	}
-	if value := req.URL.Query().Get("offset"); value != "" {
-		params.Offset, err = strconv.Atoi(value)
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid_offset")
-			return
-		}
+		Limit:      limit + 1,
+		After:      after,
+		Before:     before,
 	}
 	params = eventstore.NormalizeListParams(params)
 	result, err := r.events.ListPublic(req.Context(), params)
@@ -409,12 +407,23 @@ func (r *Router) handleEvents(w http.ResponseWriter, req *http.Request) {
 		writeError(w, http.StatusInternalServerError, "events_unavailable")
 		return
 	}
-
-	writeJSON(w, http.StatusOK, map[string]any{
-		"events": result,
-		"limit":  params.Limit,
-		"offset": params.Offset,
+	page := makeCursorPage(result, limit, after, before, func(event eventstore.Event) (time.Time, string) {
+		return event.StartsAt, event.ID
 	})
+
+	payload := map[string]any{
+		"events":       page.Items,
+		"limit":        limit,
+		"has_more":     page.HasMore,
+		"has_previous": page.HasPrevious,
+	}
+	if page.NextCursor != "" {
+		payload["next_cursor"] = page.NextCursor
+	}
+	if page.PreviousCursor != "" {
+		payload["previous_cursor"] = page.PreviousCursor
+	}
+	writeJSON(w, http.StatusOK, payload)
 }
 
 func (r *Router) handleEventPath(w http.ResponseWriter, req *http.Request) {

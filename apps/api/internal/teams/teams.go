@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/pagecursor"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/safety"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -34,6 +35,7 @@ const (
 
 type Team struct {
 	ID          string          `json:"id"`
+	CreatedAt   time.Time       `json:"-"`
 	Name        string          `json:"name"`
 	Slug        string          `json:"slug"`
 	Description string          `json:"description"`
@@ -69,7 +71,8 @@ type ListParams struct {
 	GameSlug   string
 	SchoolSlug string
 	Limit      int
-	Offset     int
+	After      *pagecursor.Cursor
+	Before     *pagecursor.Cursor
 }
 
 type CreateInput struct {
@@ -115,11 +118,8 @@ func NewPostgresRepository(pool *pgxpool.Pool) *PostgresRepository {
 func NormalizeListParams(params ListParams) ListParams {
 	params.GameSlug = strings.TrimSpace(params.GameSlug)
 	params.SchoolSlug = strings.TrimSpace(params.SchoolSlug)
-	if params.Limit < 1 || params.Limit > 100 {
+	if params.Limit < 1 || params.Limit > 101 {
 		params.Limit = 25
-	}
-	if params.Offset < 0 {
-		params.Offset = 0
 	}
 	return params
 }
@@ -222,7 +222,11 @@ func (r *PostgresRepository) Create(ctx context.Context, params CreateParams) (T
 
 func (r *PostgresRepository) ListPublic(ctx context.Context, params ListParams) ([]Team, error) {
 	params = NormalizeListParams(params)
-	rows, err := r.pool.Query(ctx, teamSelectSQL(`
+	if params.After != nil && params.Before != nil {
+		return nil, pagecursor.ErrInvalid
+	}
+
+	whereClause := `
 		t.deleted_at IS NULL
 		AND ($1 = '' OR EXISTS (
 			SELECT 1
@@ -233,10 +237,22 @@ func (r *PostgresRepository) ListPublic(ctx context.Context, params ListParams) 
 			  AND filter_g.deleted_at IS NULL
 		))
 		AND ($2 = '' OR s.slug = $2)
-	`, `
-		ORDER BY t.created_at DESC, t.id
-		LIMIT $3 OFFSET $4
-	`), params.GameSlug, params.SchoolSlug, params.Limit, params.Offset)
+	`
+	arguments := []any{params.GameSlug, params.SchoolSlug}
+	order := "ORDER BY t.created_at DESC, t.id"
+	if params.After != nil {
+		whereClause += fmt.Sprintf(" AND (t.created_at < $%d OR (t.created_at = $%d AND t.id > $%d::uuid))", len(arguments)+1, len(arguments)+1, len(arguments)+2)
+		arguments = append(arguments, params.After.Timestamp, params.After.ID)
+	}
+	if params.Before != nil {
+		whereClause += fmt.Sprintf(" AND (t.created_at > $%d OR (t.created_at = $%d AND t.id < $%d::uuid))", len(arguments)+1, len(arguments)+1, len(arguments)+2)
+		arguments = append(arguments, params.Before.Timestamp, params.Before.ID)
+		order = "ORDER BY t.created_at, t.id DESC"
+	}
+	arguments = append(arguments, params.Limit)
+	tailClause := fmt.Sprintf(" %s LIMIT $%d", order, len(arguments))
+
+	rows, err := r.pool.Query(ctx, teamSelectSQL(whereClause, tailClause), arguments...)
 	if err != nil {
 		return nil, fmt.Errorf("list teams: %w", err)
 	}
@@ -253,7 +269,16 @@ func (r *PostgresRepository) ListPublic(ctx context.Context, params ListParams) 
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("iterate teams: %w", err)
 	}
+	if params.Before != nil {
+		reverseTeams(result)
+	}
 	return result, nil
+}
+
+func reverseTeams(teams []Team) {
+	for left, right := 0, len(teams)-1; left < right; left, right = left+1, right-1 {
+		teams[left], teams[right] = teams[right], teams[left]
+	}
 }
 
 func (r *PostgresRepository) GetBySlug(ctx context.Context, slug string) (Team, error) {
@@ -573,6 +598,7 @@ func scanTeam(scanner teamScanner) (Team, error) {
 
 	err := scanner.Scan(
 		&team.ID,
+		&team.CreatedAt,
 		&team.Name,
 		&team.Slug,
 		&team.Description,
@@ -627,6 +653,7 @@ func scanTeamWithRole(scanner teamScanner) (Team, error) {
 
 	err := scanner.Scan(
 		&team.ID,
+		&team.CreatedAt,
 		&team.Name,
 		&team.Slug,
 		&team.Description,
@@ -673,7 +700,7 @@ func scanTeamWithRole(scanner teamScanner) (Team, error) {
 
 func teamSelectSQL(whereClause string, tailClause string) string {
 	return `
-		SELECT t.id::text, t.name, t.slug, t.description, t.owner_user_id::text,
+		SELECT t.id::text, t.created_at, t.name, t.slug, t.description, t.owner_user_id::text,
 		       COALESCE(member_counts.member_count, 0)::int,
 		       s.id::text, s.name, s.slug, COALESCE(s.city, ''), COALESCE(s.state, ''),
 		       COALESCE(
@@ -699,14 +726,14 @@ func teamSelectSQL(whereClause string, tailClause string) string {
 			  AND m.deleted_at IS NULL
 		) member_counts ON TRUE
 		WHERE ` + whereClause + `
-		GROUP BY t.id, t.name, t.slug, t.description, t.owner_user_id,
+		GROUP BY t.id, t.created_at, t.name, t.slug, t.description, t.owner_user_id,
 		         s.id, s.name, s.slug, s.city, s.state, member_counts.member_count
 	` + tailClause
 }
 
 func teamSelectForUserSQL(whereClause string, tailClause string) string {
 	return `
-		SELECT t.id::text, t.name, t.slug, t.description, t.owner_user_id::text,
+		SELECT t.id::text, t.created_at, t.name, t.slug, t.description, t.owner_user_id::text,
 		       COALESCE(member_counts.member_count, 0)::int,
 		       s.id::text, s.name, s.slug, COALESCE(s.city, ''), COALESCE(s.state, ''),
 		       COALESCE(
@@ -734,7 +761,7 @@ func teamSelectForUserSQL(whereClause string, tailClause string) string {
 			  AND m.deleted_at IS NULL
 		) member_counts ON TRUE
 		WHERE ` + whereClause + `
-		GROUP BY t.id, t.name, t.slug, t.description, t.owner_user_id,
+		GROUP BY t.id, t.created_at, t.name, t.slug, t.description, t.owner_user_id,
 		         s.id, s.name, s.slug, s.city, s.state, member_counts.member_count,
 		         viewer_membership.role, viewer_membership.created_at
 	` + tailClause

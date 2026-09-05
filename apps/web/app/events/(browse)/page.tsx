@@ -6,6 +6,8 @@ import { ListBox } from "@heroui/react/list-box";
 import { Select } from "@heroui/react/select";
 import Link from "next/link";
 import { EventBanner } from "../../../components/event-banner";
+import { PaginationNav } from "../../../components/pagination-nav";
+import { browseHref } from "../../../lib/browse-pagination";
 import {
   eventLifecycleLabel,
   eventLocation,
@@ -31,15 +33,38 @@ export default async function EventsPage({ searchParams }: PageProps) {
   const school = param(params.school);
   const format = param(params.format);
   const notice = param(params.event);
+  const after = param(params.after);
+  const before = param(params.before);
   const [profile, games, result] = await Promise.all([
     currentProfile(),
     listGames().catch(() => []),
-    listEvents({ game, school, format, limit: 25 }).catch(() => ({
+    listEvents({ game, school, format, limit: 25, after, before }).catch(() => ({
       events: [],
       limit: 25,
-      offset: 0
+      has_more: false,
+      has_previous: false,
+      next_cursor: undefined,
+      previous_cursor: undefined
     }))
   ]);
+  const previousHref =
+    result.has_previous && result.previous_cursor
+      ? browseHref("/events", {
+          game,
+          school,
+          format,
+          before: result.previous_cursor
+        })
+      : undefined;
+  const nextHref =
+    result.has_more && result.next_cursor
+      ? browseHref("/events", {
+          game,
+          school,
+          format,
+          after: result.next_cursor
+        })
+      : undefined;
 
   return (
     <main className="narrow">
@@ -152,6 +177,7 @@ export default async function EventsPage({ searchParams }: PageProps) {
           </p>
         </EmptyState>
       )}
+      <PaginationNav previousHref={previousHref} nextHref={nextHref} />
     </main>
   );
 }

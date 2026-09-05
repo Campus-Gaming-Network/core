@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/auth"
 	teamstore "github.com/Campus-Gaming-Network/core/apps/api/internal/teams"
@@ -51,26 +52,22 @@ func (r *Router) handleTeams(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	limit, err := parseListLimit(req.URL.Query())
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_limit")
+		return
+	}
+	after, before, err := parseListCursors(req.URL.Query())
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_cursor")
+		return
+	}
 	params := teamstore.ListParams{
 		GameSlug:   req.URL.Query().Get("game"),
 		SchoolSlug: req.URL.Query().Get("school"),
-		Limit:      25,
-		Offset:     0,
-	}
-	var err error
-	if value := req.URL.Query().Get("limit"); value != "" {
-		params.Limit, err = strconv.Atoi(value)
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid_limit")
-			return
-		}
-	}
-	if value := req.URL.Query().Get("offset"); value != "" {
-		params.Offset, err = strconv.Atoi(value)
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid_offset")
-			return
-		}
+		Limit:      limit + 1,
+		After:      after,
+		Before:     before,
 	}
 	params = teamstore.NormalizeListParams(params)
 	result, err := r.teams.ListPublic(req.Context(), params)
@@ -78,12 +75,23 @@ func (r *Router) handleTeams(w http.ResponseWriter, req *http.Request) {
 		writeError(w, http.StatusInternalServerError, "teams_unavailable")
 		return
 	}
-
-	writeJSON(w, http.StatusOK, map[string]any{
-		"teams":  result,
-		"limit":  params.Limit,
-		"offset": params.Offset,
+	page := makeCursorPage(result, limit, after, before, func(team teamstore.Team) (time.Time, string) {
+		return team.CreatedAt, team.ID
 	})
+
+	payload := map[string]any{
+		"teams":        page.Items,
+		"limit":        limit,
+		"has_more":     page.HasMore,
+		"has_previous": page.HasPrevious,
+	}
+	if page.NextCursor != "" {
+		payload["next_cursor"] = page.NextCursor
+	}
+	if page.PreviousCursor != "" {
+		payload["previous_cursor"] = page.PreviousCursor
+	}
+	writeJSON(w, http.StatusOK, payload)
 }
 
 func (r *Router) handleMyTeams(w http.ResponseWriter, req *http.Request) {

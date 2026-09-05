@@ -92,6 +92,7 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 ### Schools
 - [x] One-time import of **all** seed schools as `is_active=true` (main + branch; same UI/UX)
 - [x] Public search/browse (Postgres), including logged out
+- [x] Filter-preserving previous/next browse navigation with explicit page metadata and no total-count query
 - [x] School detail by slug
 - [x] Follow / unfollow school
 - [x] Empty states for school list + school page
@@ -118,6 +119,7 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 - [x] RSVP confirmation email + ICS on yes (Resend)
 - [x] Interested (favorite) separate from RSVP
 - [x] Browse/filter public events by game (no near-you yet)
+- [x] Bidirectional cursor pagination that preserves game, school, and format filters
 - [x] Lifecycle UI: upcoming / happening now / ended / full
 - [x] Missing/deleted event page
 - [x] Rate limit event create + private unlock attempts
@@ -129,6 +131,7 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 ### Teams
 - [x] Create team
 - [x] **Public** team page
+- [x] Bidirectional cursor pagination that preserves game and school filters
 - [x] Password only required to **join / interact**
 - [x] Captains + ownership transfer
 - [x] Dashboard shows team activity

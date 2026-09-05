@@ -111,7 +111,8 @@ export async function listEvents(params: {
   school?: string;
   format?: string;
   limit?: number;
-  offset?: number;
+  after?: string;
+  before?: string;
 }) {
   const query = new URLSearchParams();
 
@@ -127,8 +128,11 @@ export async function listEvents(params: {
   if (params.limit) {
     query.set("limit", String(params.limit));
   }
-  if (params.offset) {
-    query.set("offset", String(params.offset));
+  if (params.after) {
+    query.set("after", params.after);
+  }
+  if (params.before) {
+    query.set("before", params.before);
   }
 
   const suffix = query.size > 0 ? `?${query.toString()}` : "";
@@ -182,7 +186,8 @@ export async function listTeams(params: {
   game?: string;
   school?: string;
   limit?: number;
-  offset?: number;
+  after?: string;
+  before?: string;
 }) {
   const query = new URLSearchParams();
 
@@ -195,8 +200,11 @@ export async function listTeams(params: {
   if (params.limit) {
     query.set("limit", String(params.limit));
   }
-  if (params.offset) {
-    query.set("offset", String(params.offset));
+  if (params.after) {
+    query.set("after", params.after);
+  }
+  if (params.before) {
+    query.set("before", params.before);
   }
 
   const suffix = query.size > 0 ? `?${query.toString()}` : "";

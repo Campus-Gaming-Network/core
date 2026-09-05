@@ -3,9 +3,12 @@ import test from "node:test";
 import {
   eventDetailSchema,
   eventSchema,
+  eventsResponseSchema,
   profileSchema,
   schoolSchema,
-  teamSchema
+  schoolsResponseSchema,
+  teamSchema,
+  teamsResponseSchema
 } from "../lib/api-contracts.js";
 
 const school = {
@@ -121,4 +124,43 @@ test("response schemas tolerate additive fields but remove them from parsed data
   const parsed = eventSchema.parse({ ...event, future_api_field: true });
 
   assert.equal("future_api_field" in parsed, false);
+});
+
+test("browse response schemas require explicit pagination metadata", () => {
+  assert.equal(
+    schoolsResponseSchema.parse({
+      schools: [school],
+      limit: 25,
+      offset: 25,
+      has_more: true
+    }).has_more,
+    true
+  );
+
+  const eventPage = eventsResponseSchema.parse({
+    events: [event],
+    limit: 25,
+    has_more: true,
+    has_previous: false,
+    next_cursor: "next-event"
+  });
+  assert.equal(eventPage.next_cursor, "next-event");
+
+  const team = {
+    id: "team-1",
+    name: "Falcons",
+    slug: "falcons",
+    description: "",
+    owner_user_id: "user-1",
+    member_count: 1,
+    games: [game]
+  };
+  assert.equal(
+    teamsResponseSchema.safeParse({
+      teams: [team],
+      limit: 25,
+      has_more: false
+    }).success,
+    false
+  );
 });

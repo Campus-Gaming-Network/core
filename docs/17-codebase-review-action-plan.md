@@ -331,7 +331,8 @@ user's home school. Most of the 6,243-school catalog cannot be selected.
 
 **Priority:** P1  
 **Size:** M  
-**Status:** Ready  
+**Status:** Complete (2026-09-05)
+
 **Depends on:** None
 
 **Problem**

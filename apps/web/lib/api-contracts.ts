@@ -31,7 +31,8 @@ export const schoolSummarySchema = schoolSchema.pick({
 export const schoolsResponseSchema = z.object({
   schools: z.array(schoolSchema),
   limit: nonNegativeIntegerSchema,
-  offset: nonNegativeIntegerSchema
+  offset: nonNegativeIntegerSchema,
+  has_more: z.boolean()
 });
 
 export const followedSchoolsResponseSchema = z.object({
@@ -131,7 +132,10 @@ export const eventDetailSchema = z.union([eventSchema, lockedEventSchema]);
 export const eventsResponseSchema = z.object({
   events: z.array(eventSchema),
   limit: nonNegativeIntegerSchema,
-  offset: nonNegativeIntegerSchema
+  has_more: z.boolean(),
+  has_previous: z.boolean(),
+  next_cursor: z.string().min(1).optional(),
+  previous_cursor: z.string().min(1).optional()
 });
 
 export const dashboardEventsResponseSchema = z.object({
@@ -163,7 +167,10 @@ export const teamSchema = z.object({
 export const teamsResponseSchema = z.object({
   teams: z.array(teamSchema),
   limit: nonNegativeIntegerSchema,
-  offset: nonNegativeIntegerSchema
+  has_more: z.boolean(),
+  has_previous: z.boolean(),
+  next_cursor: z.string().min(1).optional(),
+  previous_cursor: z.string().min(1).optional()
 });
 
 export const myTeamsResponseSchema = z.object({

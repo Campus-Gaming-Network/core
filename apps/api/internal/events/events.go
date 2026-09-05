@@ -13,6 +13,7 @@ import (
 	"time"
 	_ "time/tzdata"
 
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/pagecursor"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/safety"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -114,7 +115,8 @@ type ListParams struct {
 	SchoolSlug string
 	Format     string
 	Limit      int
-	Offset     int
+	After      *pagecursor.Cursor
+	Before     *pagecursor.Cursor
 }
 
 type CreateInput struct {
@@ -217,11 +219,8 @@ func NormalizeListParams(params ListParams) ListParams {
 	if params.Format != "" && params.Format != FormatOnline && params.Format != FormatInPerson && params.Format != FormatHybrid {
 		params.Format = ""
 	}
-	if params.Limit < 1 || params.Limit > 100 {
+	if params.Limit < 1 || params.Limit > 101 {
 		params.Limit = 25
-	}
-	if params.Offset < 0 {
-		params.Offset = 0
 	}
 	return params
 }
@@ -973,7 +972,11 @@ func (r *PostgresRepository) ListRSVPRecipients(ctx context.Context, slug string
 
 func (r *PostgresRepository) ListPublic(ctx context.Context, params ListParams) ([]Event, error) {
 	params = NormalizeListParams(params)
-	rows, err := r.pool.Query(ctx, eventSelectSQL(`
+	if params.After != nil && params.Before != nil {
+		return nil, pagecursor.ErrInvalid
+	}
+
+	whereClause := `
 		e.deleted_at IS NULL
 		AND e.visibility = 'public'
 		AND ($1 = '' OR EXISTS (
@@ -986,10 +989,22 @@ func (r *PostgresRepository) ListPublic(ctx context.Context, params ListParams) 
 		))
 		AND ($2 = '' OR s.slug = $2)
 		AND ($3 = '' OR e.format = $3)
-	`, `
-		ORDER BY e.starts_at, e.id
-		LIMIT $4 OFFSET $5
-	`), params.GameSlug, params.SchoolSlug, params.Format, params.Limit, params.Offset)
+	`
+	arguments := []any{params.GameSlug, params.SchoolSlug, params.Format}
+	order := "ORDER BY e.starts_at, e.id"
+	if params.After != nil {
+		whereClause += fmt.Sprintf(" AND (e.starts_at, e.id) > ($%d, $%d::uuid)", len(arguments)+1, len(arguments)+2)
+		arguments = append(arguments, params.After.Timestamp, params.After.ID)
+	}
+	if params.Before != nil {
+		whereClause += fmt.Sprintf(" AND (e.starts_at, e.id) < ($%d, $%d::uuid)", len(arguments)+1, len(arguments)+2)
+		arguments = append(arguments, params.Before.Timestamp, params.Before.ID)
+		order = "ORDER BY e.starts_at DESC, e.id DESC"
+	}
+	arguments = append(arguments, params.Limit)
+	tailClause := fmt.Sprintf(" %s LIMIT $%d", order, len(arguments))
+
+	rows, err := r.pool.Query(ctx, eventSelectSQL(whereClause, tailClause), arguments...)
 	if err != nil {
 		return nil, fmt.Errorf("list events: %w", err)
 	}
@@ -1006,7 +1021,16 @@ func (r *PostgresRepository) ListPublic(ctx context.Context, params ListParams) 
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("iterate events: %w", err)
 	}
+	if params.Before != nil {
+		reverseEvents(result)
+	}
 	return result, nil
+}
+
+func reverseEvents(events []Event) {
+	for left, right := 0, len(events)-1; left < right; left, right = left+1, right-1 {
+		events[left], events[right] = events[right], events[left]
+	}
 }
 
 func (r *PostgresRepository) GetBySlug(ctx context.Context, slug string) (Event, error) {

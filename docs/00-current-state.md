@@ -30,9 +30,9 @@ verification steps.
 
 1. Complete `CGN-013`: fail startup when production deployment settings are
    unsafe.
-2. Complete `CGN-006`: add pagination to the school, event, and team browse
-   experiences.
-3. Complete `CGN-007`: correct event lifecycle derivation at query time.
+2. Complete `CGN-007`: make recurrence editing honest and explicit.
+3. Decide the DST rules needed for `CGN-008`, then generate recurrences in the
+   event's IANA timezone.
 
 After those, follow the ordered queue in doc 17. Legal, Gravatar,
 account-deletion notifications, and external launch rehearsal remain P1 launch
@@ -52,6 +52,10 @@ gates. CRM/admin UI work moves behind the review's P1 queue.
 
 ## Recently completed
 
+- Added filter-preserving previous/next navigation to school, event, and team
+  browse pages. Event and team lists use opaque bidirectional keyset cursors;
+  schools use offset pages plus explicit `has_more` metadata without a total
+  count query (`CGN-006`).
 - Promoted verified `.edu` inboxes to the verified-student trust tier using an
   exact normalized-domain rule, while preserving staff/faculty grants and
   exposing the resulting level consistently on profiles and organizer summaries

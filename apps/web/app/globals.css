@@ -173,6 +173,20 @@ button.rsvp-choice[aria-pressed="true"] {
   margin-top: 1.25rem;
 }
 
+.pagination {
+  justify-content: space-between;
+  margin-top: 1.5rem;
+}
+
+.pagination__disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.pagination__label {
+  color: var(--muted);
+}
+
 .card-grid,
 .list,
 .detail-grid,

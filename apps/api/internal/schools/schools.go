@@ -52,7 +52,9 @@ var ErrSchoolNotFound = errors.New("school not found")
 
 // NormalizeListParams applies the catalog's pagination and filter defaults.
 func NormalizeListParams(params ListParams) ListParams {
-	if params.Limit < 1 || params.Limit > 100 {
+	// HTTP list handlers may request one lookahead row beyond the public
+	// 100-record maximum to calculate has_more without a count query.
+	if params.Limit < 1 || params.Limit > 101 {
 		params.Limit = 25
 	}
 	if params.Offset < 0 {

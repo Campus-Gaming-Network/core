@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -40,6 +41,31 @@ type fakeFollowRepository struct {
 	listFollowedCalled bool
 	followed           []schools.School
 	err                error
+}
+
+type fakeSchoolRepository struct {
+	listCalled bool
+	listParams schools.ListParams
+	listed     []schools.School
+	err        error
+}
+
+func (r *fakeSchoolRepository) List(_ context.Context, params schools.ListParams) ([]schools.School, error) {
+	r.listCalled = true
+	r.listParams = params
+	return r.listed, r.err
+}
+
+func (r *fakeSchoolRepository) GetByID(context.Context, string) (schools.School, error) {
+	return schools.School{}, schools.ErrSchoolNotFound
+}
+
+func (r *fakeSchoolRepository) GetBySlug(context.Context, string) (schools.School, error) {
+	return schools.School{}, schools.ErrSchoolNotFound
+}
+
+func (r *fakeSchoolRepository) ExistsActive(context.Context, string) (bool, error) {
+	return false, nil
 }
 
 type fakeUserRepository struct {
@@ -589,12 +615,68 @@ func TestHandleMySchoolsReturnsFollowedSchools(t *testing.T) {
 	}
 }
 
+func TestHandleSchoolsReturnsExplicitPageMetadata(t *testing.T) {
+	listed := make([]schools.School, 0, 26)
+	for index := 0; index < 26; index++ {
+		listed = append(listed, schools.School{
+			ID:    fmt.Sprintf("33333333-3333-3333-3333-%012d", index+1),
+			Name:  fmt.Sprintf("Example University %02d", index+1),
+			Slug:  fmt.Sprintf("example-university-%02d", index+1),
+			State: "CA",
+		})
+	}
+	repository := &fakeSchoolRepository{listed: listed}
+	router := &Router{schools: repository}
+	request := httptest.NewRequest(http.MethodGet, "/schools?q=example&state=ca&limit=25&offset=25", nil)
+	response := httptest.NewRecorder()
+
+	router.handleSchools(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d; body = %s", response.Code, http.StatusOK, response.Body.String())
+	}
+	if !repository.listCalled || repository.listParams.Query != "example" || repository.listParams.State != "CA" {
+		t.Fatalf("list params = %#v, want normalized filters", repository.listParams)
+	}
+	if repository.listParams.Limit != 26 || repository.listParams.Offset != 25 {
+		t.Fatalf("list params = %#v, want a lookahead page at offset 25", repository.listParams)
+	}
+	var payload struct {
+		Schools []schools.School `json:"schools"`
+		Limit   int              `json:"limit"`
+		Offset  int              `json:"offset"`
+		HasMore bool             `json:"has_more"`
+	}
+	if err := json.NewDecoder(response.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if len(payload.Schools) != 25 || payload.Limit != 25 || payload.Offset != 25 || !payload.HasMore {
+		t.Fatalf("page = %#v, want 25 schools with another page", payload)
+	}
+}
+
+func TestHandleSchoolsRejectsNegativeOffset(t *testing.T) {
+	repository := &fakeSchoolRepository{}
+	router := &Router{schools: repository}
+	request := httptest.NewRequest(http.MethodGet, "/schools?offset=-1", nil)
+	response := httptest.NewRecorder()
+
+	router.handleSchools(response, request)
+
+	if response.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want %d", response.Code, http.StatusBadRequest)
+	}
+	if repository.listCalled {
+		t.Fatal("List was called for a negative offset")
+	}
+}
+
 func TestHandleEventsReturnsPublicEventsWithFilters(t *testing.T) {
 	repository := &fakeEventRepository{listed: []eventstore.Event{
 		testEvent(eventstore.VisibilityPublic),
 	}}
 	router := &Router{events: repository}
-	request := httptest.NewRequest(http.MethodGet, "/events?game=rocket-league&school=example-university&format=online&limit=5&offset=10", nil)
+	request := httptest.NewRequest(http.MethodGet, "/events?game=rocket-league&school=example-university&format=online&limit=5", nil)
 	response := httptest.NewRecorder()
 
 	router.handleEvents(response, request)
@@ -611,19 +693,23 @@ func TestHandleEventsReturnsPublicEventsWithFilters(t *testing.T) {
 	if repository.listParams.Format != eventstore.FormatOnline {
 		t.Fatalf("format = %q, want %q", repository.listParams.Format, eventstore.FormatOnline)
 	}
-	if repository.listParams.Limit != 5 || repository.listParams.Offset != 10 {
-		t.Fatalf("list params = %#v, want pagination filters", repository.listParams)
+	if repository.listParams.Limit != 6 || repository.listParams.After != nil || repository.listParams.Before != nil {
+		t.Fatalf("list params = %#v, want a six-row first-page fetch", repository.listParams)
 	}
 	var payload struct {
-		Events []eventstore.Event `json:"events"`
-		Limit  int                `json:"limit"`
-		Offset int                `json:"offset"`
+		Events      []eventstore.Event `json:"events"`
+		Limit       int                `json:"limit"`
+		HasMore     bool               `json:"has_more"`
+		HasPrevious bool               `json:"has_previous"`
 	}
 	if err := json.NewDecoder(response.Body).Decode(&payload); err != nil {
 		t.Fatalf("decode response: %v", err)
 	}
 	if len(payload.Events) != 1 || payload.Events[0].Slug != "campus-scrim-night" {
 		t.Fatalf("events = %#v, want public event payload", payload.Events)
+	}
+	if payload.Limit != 5 || payload.HasMore || payload.HasPrevious {
+		t.Fatalf("pagination = %#v, want a single first page", payload)
 	}
 }
 
@@ -639,10 +725,73 @@ func TestHandleEventsRejectsInvalidPagination(t *testing.T) {
 	}
 }
 
+func TestHandleEventsProvidesStableNextAndPreviousCursors(t *testing.T) {
+	events := make([]eventstore.Event, 0, 6)
+	for index := 0; index < 6; index++ {
+		event := testEvent(eventstore.VisibilityPublic)
+		event.ID = fmt.Sprintf("22222222-2222-2222-2222-%012d", index+1)
+		event.StartsAt = event.StartsAt.Add(time.Duration(index) * time.Hour)
+		events = append(events, event)
+	}
+	repository := &fakeEventRepository{listed: events}
+	router := &Router{events: repository}
+	firstResponse := httptest.NewRecorder()
+
+	router.handleEvents(firstResponse, httptest.NewRequest(http.MethodGet, "/events?limit=5", nil))
+
+	var firstPage struct {
+		Events     []eventstore.Event `json:"events"`
+		HasMore    bool               `json:"has_more"`
+		NextCursor string             `json:"next_cursor"`
+	}
+	if err := json.NewDecoder(firstResponse.Body).Decode(&firstPage); err != nil {
+		t.Fatalf("decode first page: %v", err)
+	}
+	if len(firstPage.Events) != 5 || !firstPage.HasMore || firstPage.NextCursor == "" {
+		t.Fatalf("first page = %#v, want five events and a next cursor", firstPage)
+	}
+
+	repository.listed = events[5:]
+	secondResponse := httptest.NewRecorder()
+	router.handleEvents(secondResponse, httptest.NewRequest(http.MethodGet, "/events?limit=5&after="+firstPage.NextCursor, nil))
+
+	if repository.listParams.After == nil || repository.listParams.After.ID != events[4].ID || !repository.listParams.After.Timestamp.Equal(events[4].StartsAt) {
+		t.Fatalf("after cursor = %#v, want the first page boundary", repository.listParams.After)
+	}
+	var secondPage struct {
+		Events         []eventstore.Event `json:"events"`
+		HasMore        bool               `json:"has_more"`
+		HasPrevious    bool               `json:"has_previous"`
+		PreviousCursor string             `json:"previous_cursor"`
+	}
+	if err := json.NewDecoder(secondResponse.Body).Decode(&secondPage); err != nil {
+		t.Fatalf("decode second page: %v", err)
+	}
+	if len(secondPage.Events) != 1 || secondPage.HasMore || !secondPage.HasPrevious || secondPage.PreviousCursor == "" {
+		t.Fatalf("second page = %#v, want the final event and a previous cursor", secondPage)
+	}
+}
+
+func TestHandleEventsRejectsMalformedCursor(t *testing.T) {
+	repository := &fakeEventRepository{}
+	router := &Router{events: repository}
+	request := httptest.NewRequest(http.MethodGet, "/events?after=not-a-cursor", nil)
+	response := httptest.NewRecorder()
+
+	router.handleEvents(response, request)
+
+	if response.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want %d", response.Code, http.StatusBadRequest)
+	}
+	if repository.listPublicCalled {
+		t.Fatal("ListPublic was called for a malformed cursor")
+	}
+}
+
 func TestHandleTeamsReturnsPublicTeamsWithFilters(t *testing.T) {
 	repository := &fakeTeamRepository{listed: []teamstore.Team{testTeam()}}
 	router := &Router{teams: repository}
-	request := httptest.NewRequest(http.MethodGet, "/teams?game=rocket-league&school=example-university&limit=5&offset=10", nil)
+	request := httptest.NewRequest(http.MethodGet, "/teams?game=rocket-league&school=example-university&limit=5", nil)
 	response := httptest.NewRecorder()
 
 	router.handleTeams(response, request)
@@ -656,19 +805,70 @@ func TestHandleTeamsReturnsPublicTeamsWithFilters(t *testing.T) {
 	if repository.listParams.GameSlug != "rocket-league" || repository.listParams.SchoolSlug != "example-university" {
 		t.Fatalf("list params = %#v, want game and school filters", repository.listParams)
 	}
-	if repository.listParams.Limit != 5 || repository.listParams.Offset != 10 {
-		t.Fatalf("list params = %#v, want pagination filters", repository.listParams)
+	if repository.listParams.Limit != 6 || repository.listParams.After != nil || repository.listParams.Before != nil {
+		t.Fatalf("list params = %#v, want a six-row first-page fetch", repository.listParams)
 	}
 	var payload struct {
-		Teams  []teamstore.Team `json:"teams"`
-		Limit  int              `json:"limit"`
-		Offset int              `json:"offset"`
+		Teams       []teamstore.Team `json:"teams"`
+		Limit       int              `json:"limit"`
+		HasMore     bool             `json:"has_more"`
+		HasPrevious bool             `json:"has_previous"`
 	}
 	if err := json.NewDecoder(response.Body).Decode(&payload); err != nil {
 		t.Fatalf("decode response: %v", err)
 	}
 	if len(payload.Teams) != 1 || payload.Teams[0].Slug != "varsity-rocket-league" {
 		t.Fatalf("teams = %#v, want public team payload", payload.Teams)
+	}
+	if payload.Limit != 5 || payload.HasMore || payload.HasPrevious {
+		t.Fatalf("pagination = %#v, want a single first page", payload)
+	}
+}
+
+func TestHandleTeamsProvidesStableNextAndPreviousCursors(t *testing.T) {
+	teams := make([]teamstore.Team, 0, 6)
+	for index := 0; index < 6; index++ {
+		team := testTeam()
+		team.ID = fmt.Sprintf("55555555-5555-5555-5555-%012d", index+1)
+		team.CreatedAt = time.Date(2026, time.September, 5, 12-index, 0, 0, 0, time.UTC)
+		teams = append(teams, team)
+	}
+	repository := &fakeTeamRepository{listed: teams}
+	router := &Router{teams: repository}
+	firstResponse := httptest.NewRecorder()
+
+	router.handleTeams(firstResponse, httptest.NewRequest(http.MethodGet, "/teams?limit=5", nil))
+
+	var firstPage struct {
+		Teams      []teamstore.Team `json:"teams"`
+		HasMore    bool             `json:"has_more"`
+		NextCursor string           `json:"next_cursor"`
+	}
+	if err := json.NewDecoder(firstResponse.Body).Decode(&firstPage); err != nil {
+		t.Fatalf("decode first page: %v", err)
+	}
+	if len(firstPage.Teams) != 5 || !firstPage.HasMore || firstPage.NextCursor == "" {
+		t.Fatalf("first page = %#v, want five teams and a next cursor", firstPage)
+	}
+
+	repository.listed = teams[5:]
+	secondResponse := httptest.NewRecorder()
+	router.handleTeams(secondResponse, httptest.NewRequest(http.MethodGet, "/teams?limit=5&after="+firstPage.NextCursor, nil))
+
+	if repository.listParams.After == nil || repository.listParams.After.ID != teams[4].ID || !repository.listParams.After.Timestamp.Equal(teams[4].CreatedAt) {
+		t.Fatalf("after cursor = %#v, want the first page boundary", repository.listParams.After)
+	}
+	var secondPage struct {
+		Teams          []teamstore.Team `json:"teams"`
+		HasMore        bool             `json:"has_more"`
+		HasPrevious    bool             `json:"has_previous"`
+		PreviousCursor string           `json:"previous_cursor"`
+	}
+	if err := json.NewDecoder(secondResponse.Body).Decode(&secondPage); err != nil {
+		t.Fatalf("decode second page: %v", err)
+	}
+	if len(secondPage.Teams) != 1 || secondPage.HasMore || !secondPage.HasPrevious || secondPage.PreviousCursor == "" {
+		t.Fatalf("second page = %#v, want the final team and a previous cursor", secondPage)
 	}
 }
 

@@ -42,6 +42,16 @@ const distantSchool = {
   num_branches: 0
 };
 
+const paginationSchools = Array.from({ length: 30 }, (_, index) => ({
+  id: `school-pagination-${index + 1}`,
+  name: `Pagination University ${String(index + 1).padStart(2, "0")}`,
+  slug: `pagination-university-${index + 1}`,
+  city: "Irvine",
+  state: "CA",
+  is_main_campus: true,
+  num_branches: 0
+}));
+
 const game = {
   id: "game-valorant",
   name: "Valorant",
@@ -227,6 +237,8 @@ const server = createServer(async (request, response) => {
 
     if (request.method === "GET" && url.pathname === "/schools") {
       const query = (url.searchParams.get("q") ?? "").toLowerCase();
+      const limit = Number.parseInt(url.searchParams.get("limit") ?? "25", 10);
+      const offset = Number.parseInt(url.searchParams.get("offset") ?? "0", 10);
       if (query.includes("slow")) {
         await new Promise((resolve) => setTimeout(resolve, 750));
       }
@@ -234,15 +246,18 @@ const server = createServer(async (request, response) => {
         json(response, 503, { error: "schools_unavailable" });
         return;
       }
+      const matchingSchools = query.includes("pagination")
+        ? paginationSchools
+        : query.includes("zzyzx") || query.includes("technology")
+          ? [distantSchool]
+          : query.includes("slow") || query.includes("none")
+            ? []
+            : [catalogHomeSchool, followedSchool];
       json(response, 200, {
-        schools:
-          query.includes("zzyzx") || query.includes("technology")
-            ? [distantSchool]
-            : query.includes("slow") || query.includes("none")
-              ? []
-            : [catalogHomeSchool, followedSchool],
-        limit: Number.parseInt(url.searchParams.get("limit") ?? "25", 10),
-        offset: 0
+        schools: matchingSchools.slice(offset, offset + limit),
+        limit,
+        offset,
+        has_more: offset + limit < matchingSchools.length
       });
       return;
     }
@@ -420,7 +435,12 @@ const server = createServer(async (request, response) => {
       const events = Array.from(createdEvents.values())
         .filter((record) => !record.cancelled)
         .map((record) => createdEvent(record, sessionToken));
-      json(response, 200, { events, limit: 25, offset: 0 });
+      json(response, 200, {
+        events,
+        limit: 25,
+        has_more: false,
+        has_previous: false
+      });
       return;
     }
 
@@ -555,7 +575,8 @@ const server = createServer(async (request, response) => {
       json(response, 200, {
         teams: [managedTeam(sessionToken)],
         limit: 25,
-        offset: 0
+        has_more: false,
+        has_previous: false
       });
       return;
     }

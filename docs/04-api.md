@@ -83,7 +83,7 @@ Not every path must exist on day one — align with [05 — Roadmap](./05-roadma
 
 | Method | Path | Notes |
 |--------|------|-------|
-| GET | `/schools` | Search/browse (public, incl. logged out); `q`, state, sort |
+| GET | `/schools` | Search/browse (public, incl. logged out); `q`, `state`, `limit`, and `offset`; response includes `has_more` (no total count) |
 | GET | `/schools/:slug` | Public school page (clubs list when clubs ship) |
 | POST | `/schools/:id/follow` | Auth required |
 | DELETE | `/schools/:id/follow` | |
@@ -107,6 +107,7 @@ Not every path must exist on day one — align with [05 — Roadmap](./05-roadma
 | Method | Path | Notes |
 |--------|------|-------|
 | POST | `/teams` | Anyone authenticated |
+| GET | `/teams` | Public browse; `game`, `school`, `limit`, and opaque `after`/`before` cursors; response includes `has_more` and `has_previous` |
 | GET | `/teams/:slug` | **Public** team page |
 | POST | `/teams/:slug/join` | Password required to join/interact |
 | POST | `/teams/:slug/transfer-ownership` | Owner |
@@ -117,7 +118,7 @@ Not every path must exist on day one — align with [05 — Roadmap](./05-roadma
 
 | Method | Path | Notes |
 |--------|------|-------|
-| GET | `/events` | Search/browse **public only**; filters: game, school, format, … (no near-you yet) |
+| GET | `/events` | Search/browse **public only**; `game`, `school`, `format`, `limit`, and opaque `after`/`before` cursors; response includes `has_more` and `has_previous` |
 | GET | `/events/:slug` | Public & unlisted return full page; private returns gated shell until unlocked |
 | POST | `/events/:slug/unlock` | Password for private events; unlock session required before details/RSVP |
 | POST | `/events` | Auth; no approval; rate limited; 8-char slug hash; optional capacity; optional off-site payment fields; default banner only; optional `recurrence_rule` (`weekly`, `biweekly`, `monthly`) and `recurrence_until` (`YYYY-MM-DD`) |

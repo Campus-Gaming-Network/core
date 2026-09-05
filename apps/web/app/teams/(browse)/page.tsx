@@ -4,6 +4,8 @@ import { Input } from "@heroui/react/input";
 import { ListBox } from "@heroui/react/list-box";
 import { Select } from "@heroui/react/select";
 import Link from "next/link";
+import { PaginationNav } from "../../../components/pagination-nav";
+import { browseHref } from "../../../lib/browse-pagination";
 import { currentProfile, listGames, listTeams } from "../../../lib/server-api";
 import { pageMetadata } from "../../../lib/metadata";
 
@@ -22,15 +24,36 @@ export default async function TeamsPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const game = param(params.game);
   const school = param(params.school);
+  const after = param(params.after);
+  const before = param(params.before);
   const [profile, games, result] = await Promise.all([
     currentProfile(),
     listGames().catch(() => []),
-    listTeams({ game, school, limit: 25 }).catch(() => ({
+    listTeams({ game, school, limit: 25, after, before }).catch(() => ({
       teams: [],
       limit: 25,
-      offset: 0
+      has_more: false,
+      has_previous: false,
+      next_cursor: undefined,
+      previous_cursor: undefined
     }))
   ]);
+  const previousHref =
+    result.has_previous && result.previous_cursor
+      ? browseHref("/teams", {
+          game,
+          school,
+          before: result.previous_cursor
+        })
+      : undefined;
+  const nextHref =
+    result.has_more && result.next_cursor
+      ? browseHref("/teams", {
+          game,
+          school,
+          after: result.next_cursor
+        })
+      : undefined;
 
   return (
     <main className="narrow">
@@ -115,6 +138,7 @@ export default async function TeamsPage({ searchParams }: PageProps) {
           </p>
         </EmptyState>
       )}
+      <PaginationNav previousHref={previousHref} nextHref={nextHref} />
     </main>
   );
 }
