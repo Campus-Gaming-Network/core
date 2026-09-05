@@ -25,13 +25,19 @@ type PostgresRepository struct {
 	pool *pgxpool.Pool
 }
 
+const gameColumns = `id::text, name, slug, COALESCE(cover_url, '')`
+
+type gameScanner interface {
+	Scan(dest ...any) error
+}
+
 func NewPostgresRepository(pool *pgxpool.Pool) *PostgresRepository {
 	return &PostgresRepository{pool: pool}
 }
 
 func (r *PostgresRepository) List(ctx context.Context) ([]Game, error) {
 	rows, err := r.pool.Query(ctx, `
-		SELECT id::text, name, slug, COALESCE(cover_url, '')
+		SELECT `+gameColumns+`
 		FROM games
 		WHERE deleted_at IS NULL
 		ORDER BY name, id
@@ -43,8 +49,8 @@ func (r *PostgresRepository) List(ctx context.Context) ([]Game, error) {
 
 	result := make([]Game, 0)
 	for rows.Next() {
-		var game Game
-		if err := rows.Scan(&game.ID, &game.Name, &game.Slug, &game.CoverURL); err != nil {
+		game, err := scanGame(rows)
+		if err != nil {
 			return nil, fmt.Errorf("scan game: %w", err)
 		}
 		result = append(result, game)
@@ -56,12 +62,16 @@ func (r *PostgresRepository) List(ctx context.Context) ([]Game, error) {
 }
 
 func (r *PostgresRepository) GetBySlug(ctx context.Context, slug string) (Game, error) {
-	var game Game
-	err := r.pool.QueryRow(ctx, `
-		SELECT id::text, name, slug, COALESCE(cover_url, '')
+	return scanGame(r.pool.QueryRow(ctx, `
+		SELECT `+gameColumns+`
 		FROM games
 		WHERE slug = $1 AND deleted_at IS NULL
-	`, strings.TrimSpace(slug)).Scan(&game.ID, &game.Name, &game.Slug, &game.CoverURL)
+	`, strings.TrimSpace(slug)))
+}
+
+func scanGame(scanner gameScanner) (Game, error) {
+	var game Game
+	err := scanner.Scan(&game.ID, &game.Name, &game.Slug, &game.CoverURL)
 	if err != nil {
 		return Game{}, err
 	}

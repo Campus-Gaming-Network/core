@@ -67,6 +67,17 @@ type PostgresRepository struct {
 	pool *pgxpool.Pool
 }
 
+const schoolColumns = `
+	s.id::text, s.unitid, s.name, COALESCE(s.alias, ''), s.slug,
+	COALESCE(s.city, ''), COALESCE(s.state, ''), COALESCE(s.zip, ''),
+	COALESCE(s.website_url, ''), s.latitude, s.longitude,
+	s.is_main_campus, s.num_branches
+`
+
+type schoolScanner interface {
+	Scan(dest ...any) error
+}
+
 func NewPostgresRepository(pool *pgxpool.Pool) *PostgresRepository {
 	return &PostgresRepository{pool: pool}
 }
@@ -74,15 +85,12 @@ func NewPostgresRepository(pool *pgxpool.Pool) *PostgresRepository {
 func (r *PostgresRepository) List(ctx context.Context, params ListParams) ([]School, error) {
 	params = NormalizeListParams(params)
 	rows, err := r.pool.Query(ctx, `
-		SELECT id::text, unitid, name, COALESCE(alias, ''), slug,
-		       COALESCE(city, ''), COALESCE(state, ''), COALESCE(zip, ''),
-		       COALESCE(website_url, ''), latitude, longitude,
-		       is_main_campus, num_branches
-		FROM schools
-		WHERE deleted_at IS NULL AND is_active = TRUE
-		  AND ($1 = '' OR name ILIKE '%' || $1 || '%' OR COALESCE(alias, '') ILIKE '%' || $1 || '%')
-		  AND ($2 = '' OR state = $2)
-		ORDER BY name, city, id
+		SELECT `+schoolColumns+`
+		FROM schools s
+		WHERE s.deleted_at IS NULL AND s.is_active = TRUE
+		  AND ($1 = '' OR s.name ILIKE '%' || $1 || '%' OR COALESCE(s.alias, '') ILIKE '%' || $1 || '%')
+		  AND ($2 = '' OR s.state = $2)
+		ORDER BY s.name, s.city, s.id
 		LIMIT $3 OFFSET $4
 	`, params.Query, params.State, params.Limit, params.Offset)
 	if err != nil {
@@ -92,12 +100,8 @@ func (r *PostgresRepository) List(ctx context.Context, params ListParams) ([]Sch
 
 	result := make([]School, 0, params.Limit)
 	for rows.Next() {
-		var school School
-		if err := rows.Scan(
-			&school.ID, &school.UnitID, &school.Name, &school.Alias, &school.Slug,
-			&school.City, &school.State, &school.Zip, &school.WebsiteURL,
-			&school.Latitude, &school.Longitude, &school.IsMainCampus, &school.NumBranches,
-		); err != nil {
+		school, err := scanSchool(rows)
+		if err != nil {
 			return nil, fmt.Errorf("scan school: %w", err)
 		}
 		result = append(result, school)
@@ -109,31 +113,19 @@ func (r *PostgresRepository) List(ctx context.Context, params ListParams) ([]Sch
 }
 
 func (r *PostgresRepository) GetByID(ctx context.Context, id string) (School, error) {
-	return r.find(ctx, "id = $1::uuid", id)
+	return r.find(ctx, "s.id = $1::uuid", id)
 }
 
 func (r *PostgresRepository) GetBySlug(ctx context.Context, slug string) (School, error) {
-	return r.find(ctx, "slug = $1", strings.TrimSpace(slug))
+	return r.find(ctx, "s.slug = $1", strings.TrimSpace(slug))
 }
 
 func (r *PostgresRepository) find(ctx context.Context, predicate string, arg any) (School, error) {
-	var school School
-	err := r.pool.QueryRow(ctx, `
-		SELECT id::text, unitid, name, COALESCE(alias, ''), slug,
-		       COALESCE(city, ''), COALESCE(state, ''), COALESCE(zip, ''),
-		       COALESCE(website_url, ''), latitude, longitude,
-		       is_main_campus, num_branches
-		FROM schools
-		WHERE `+predicate+` AND deleted_at IS NULL AND is_active = TRUE
-	`, arg).Scan(
-		&school.ID, &school.UnitID, &school.Name, &school.Alias, &school.Slug,
-		&school.City, &school.State, &school.Zip, &school.WebsiteURL,
-		&school.Latitude, &school.Longitude, &school.IsMainCampus, &school.NumBranches,
-	)
-	if err != nil {
-		return School{}, err
-	}
-	return school, nil
+	return scanSchool(r.pool.QueryRow(ctx, `
+		SELECT `+schoolColumns+`
+		FROM schools s
+		WHERE `+predicate+` AND s.deleted_at IS NULL AND s.is_active = TRUE
+	`, arg))
 }
 
 func (r *PostgresRepository) ExistsActive(ctx context.Context, id string) (bool, error) {
@@ -187,10 +179,7 @@ func (r *PostgresRepository) IsFollowing(ctx context.Context, userID string, sch
 
 func (r *PostgresRepository) ListFollowed(ctx context.Context, userID string) ([]School, error) {
 	rows, err := r.pool.Query(ctx, `
-		SELECT s.id::text, s.unitid, s.name, COALESCE(s.alias, ''), s.slug,
-		       COALESCE(s.city, ''), COALESCE(s.state, ''), COALESCE(s.zip, ''),
-		       COALESCE(s.website_url, ''), s.latitude, s.longitude,
-		       s.is_main_campus, s.num_branches
+		SELECT `+schoolColumns+`
 		FROM user_school_follows f
 		JOIN schools s ON s.id = f.school_id
 		WHERE f.user_id = $1::uuid
@@ -206,12 +195,8 @@ func (r *PostgresRepository) ListFollowed(ctx context.Context, userID string) ([
 
 	result := make([]School, 0)
 	for rows.Next() {
-		var school School
-		if err := rows.Scan(
-			&school.ID, &school.UnitID, &school.Name, &school.Alias, &school.Slug,
-			&school.City, &school.State, &school.Zip, &school.WebsiteURL,
-			&school.Latitude, &school.Longitude, &school.IsMainCampus, &school.NumBranches,
-		); err != nil {
+		school, err := scanSchool(rows)
+		if err != nil {
 			return nil, fmt.Errorf("scan followed school: %w", err)
 		}
 		result = append(result, school)
@@ -220,4 +205,17 @@ func (r *PostgresRepository) ListFollowed(ctx context.Context, userID string) ([
 		return nil, fmt.Errorf("iterate followed schools: %w", err)
 	}
 	return result, nil
+}
+
+func scanSchool(scanner schoolScanner) (School, error) {
+	var school School
+	err := scanner.Scan(
+		&school.ID, &school.UnitID, &school.Name, &school.Alias, &school.Slug,
+		&school.City, &school.State, &school.Zip, &school.WebsiteURL,
+		&school.Latitude, &school.Longitude, &school.IsMainCampus, &school.NumBranches,
+	)
+	if err != nil {
+		return School{}, err
+	}
+	return school, nil
 }

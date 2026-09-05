@@ -38,6 +38,24 @@ const (
 	maximumPageLimit = 200
 )
 
+const reportColumns = `
+	id::text, reporter_user_id::text, target_type, target_id::text,
+	reason, status, assigned_to_user_id::text, resolution_note,
+	retention_started_at, created_at, updated_at
+`
+
+const supportTicketColumns = `
+	id::text, submitter_user_id::text, submitter_deleted_at,
+	contact_email, name, subject, message, status,
+	assigned_to_user_id::text, resolution_note,
+	retention_started_at, created_at, updated_at
+`
+
+const notificationColumns = `
+	id::text, user_id::text, type, title, body, entity_type,
+	entity_id::text, payload, read_at, created_at
+`
+
 type QueueFilter struct {
 	Status QueueStatus
 	Limit  int
@@ -198,10 +216,7 @@ func (r *PostgresRepository) ListReports(ctx context.Context, filter QueueFilter
 	}
 
 	rows, err := r.pool.Query(ctx, `
-		SELECT id::text, reporter_user_id::text, target_type, target_id::text,
-		       reason, status, assigned_to_user_id::text, resolution_note,
-		       retention_started_at,
-		       created_at, updated_at
+		SELECT `+reportColumns+`
 		FROM reports
 		WHERE deleted_at IS NULL
 		  AND ($1 = '' OR status = $1)
@@ -244,10 +259,7 @@ func (r *PostgresRepository) PatchReport(ctx context.Context, id string, patch Q
 	defer func() { _ = tx.Rollback(ctx) }()
 
 	current, err := scanReport(tx.QueryRow(ctx, `
-		SELECT id::text, reporter_user_id::text, target_type, target_id::text,
-		       reason, status, assigned_to_user_id::text, resolution_note,
-		       retention_started_at,
-		       created_at, updated_at
+		SELECT `+reportColumns+`
 		FROM reports
 		WHERE id = $1::uuid AND deleted_at IS NULL
 		FOR UPDATE
@@ -274,10 +286,7 @@ func (r *PostgresRepository) PatchReport(ctx context.Context, id string, patch Q
 		    resolution_note = $4,
 		    retention_started_at = $5
 		WHERE id = $1::uuid
-		RETURNING id::text, reporter_user_id::text, target_type, target_id::text,
-		          reason, status, assigned_to_user_id::text, resolution_note,
-		          retention_started_at,
-		          created_at, updated_at
+		RETURNING `+reportColumns+`
 	`, id, nextStatus, nullableValue(nextAssignee), nextNote, nextRetentionStartedAt))
 	if err != nil {
 		return Report{}, fmt.Errorf("patch report: %w", err)
@@ -299,11 +308,7 @@ func (r *PostgresRepository) ListSupportTickets(ctx context.Context, filter Queu
 	}
 
 	rows, err := r.pool.Query(ctx, `
-		SELECT id::text, submitter_user_id::text, submitter_deleted_at,
-		       contact_email, name, subject,
-		       message, status, assigned_to_user_id::text, resolution_note,
-		       retention_started_at,
-		       created_at, updated_at
+		SELECT `+supportTicketColumns+`
 		FROM support_tickets
 		WHERE deleted_at IS NULL
 		  AND ($1 = '' OR status = $1)
@@ -346,11 +351,7 @@ func (r *PostgresRepository) PatchSupportTicket(ctx context.Context, id string, 
 	defer func() { _ = tx.Rollback(ctx) }()
 
 	current, err := scanSupportTicket(tx.QueryRow(ctx, `
-		SELECT id::text, submitter_user_id::text, submitter_deleted_at,
-		       contact_email, name, subject,
-		       message, status, assigned_to_user_id::text, resolution_note,
-		       retention_started_at,
-		       created_at, updated_at
+		SELECT `+supportTicketColumns+`
 		FROM support_tickets
 		WHERE id = $1::uuid AND deleted_at IS NULL
 		FOR UPDATE
@@ -387,11 +388,7 @@ func (r *PostgresRepository) PatchSupportTicket(ctx context.Context, id string, 
 		    END,
 		    retention_started_at = $5
 		WHERE id = $1::uuid
-		RETURNING id::text, submitter_user_id::text, submitter_deleted_at,
-		          contact_email, name, subject,
-		          message, status, assigned_to_user_id::text, resolution_note,
-		          retention_started_at,
-		          created_at, updated_at
+		RETURNING `+supportTicketColumns+`
 	`, id, nextStatus, nullableValue(nextAssignee), nextNote, nextRetentionStartedAt))
 	if err != nil {
 		return SupportTicket{}, fmt.Errorf("patch support ticket: %w", err)
@@ -483,8 +480,7 @@ func (r *PostgresRepository) CreateNotification(ctx context.Context, input Notif
 			user_id, type, title, body, entity_type, entity_id, payload
 		)
 		VALUES ($1::uuid, $2, $3, $4, NULLIF($5, ''), NULLIF($6, '')::uuid, $7::jsonb)
-		RETURNING id::text, user_id::text, type, title, body, entity_type,
-		          entity_id::text, payload, read_at, created_at
+		RETURNING `+notificationColumns+`
 	`, input.UserID, input.Type, input.Title, input.Body, input.EntityType, input.EntityID, payload))
 	if err != nil {
 		return Notification{}, fmt.Errorf("create notification: %w", err)
@@ -505,8 +501,7 @@ func (r *PostgresRepository) ListNotifications(ctx context.Context, userID strin
 	}
 
 	rows, err := r.pool.Query(ctx, `
-		SELECT id::text, user_id::text, type, title, body, entity_type,
-		       entity_id::text, payload, read_at, created_at
+		SELECT `+notificationColumns+`
 		FROM notifications
 		WHERE user_id = $1::uuid
 		  AND (NOT $2 OR read_at IS NULL)
@@ -543,8 +538,7 @@ func (r *PostgresRepository) MarkNotificationRead(ctx context.Context, userID st
 		UPDATE notifications
 		SET read_at = COALESCE(read_at, NOW())
 		WHERE id = $1::uuid AND user_id = $2::uuid
-		RETURNING id::text, user_id::text, type, title, body, entity_type,
-		          entity_id::text, payload, read_at, created_at
+		RETURNING `+notificationColumns+`
 	`, notificationID, userID))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Notification{}, ErrNotificationNotFound
