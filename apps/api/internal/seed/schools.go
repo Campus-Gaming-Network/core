@@ -17,9 +17,11 @@ var schoolHeaders = []string{
 	"latitude", "longitude", "is_main_campus", "num_branches",
 }
 
-// ImportSchools is intentionally a bootstrap operation. It refuses to run
-// against a non-empty catalog so a later recurring sync cannot silently mutate
-// the national seed from a changed CSV.
+// ImportSchools is intentionally a bootstrap operation. It imports only into an
+// empty catalog so a later recurring sync cannot silently mutate the national
+// seed from a changed CSV. Importing into a populated catalog is a no-op that
+// reports zero rows rather than an error, so re-running the seed step against an
+// existing database succeeds.
 func ImportSchools(ctx context.Context, pool *pgxpool.Pool, input io.Reader) (int, error) {
 	reader := csv.NewReader(input)
 	reader.FieldsPerRecord = len(schoolHeaders)
@@ -64,11 +66,13 @@ func ImportSchools(ctx context.Context, pool *pgxpool.Pool, input io.Reader) (in
 	if err := tx.QueryRow(ctx, `SELECT COUNT(*) FROM schools`).Scan(&existing); err != nil {
 		return 0, fmt.Errorf("check existing schools: %w", err)
 	}
+	// Any populated catalog is left alone. Matching the CSV row count exactly is
+	// not a usable signal that the seed already ran: the recurring catalog
+	// refresh adds schools, and development and test data accumulate, so a
+	// catalog seeded from this same CSV routinely holds a different number of
+	// rows.
 	if existing != 0 {
-		if existing == len(rows) {
-			return 0, nil
-		}
-		return 0, fmt.Errorf("refusing one-time school seed: schools table already contains %d rows", existing)
+		return 0, nil
 	}
 
 	columns := []string{

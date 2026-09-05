@@ -49,7 +49,11 @@ func main() {
 		slog.Error("import schools", "error", err)
 		os.Exit(1)
 	}
-	slog.Info("school seed imported", "rows", count)
+	if count == 0 {
+		slog.Info("school seed skipped", "reason", "catalog already populated")
+	} else {
+		slog.Info("school seed imported", "rows", count)
+	}
 
 	devUser, enabled, err := seed.EnsureDevUser(ctx, database, seed.DevUserInput{
 		Email:          os.Getenv("API_DEV_SEED_USER_EMAIL"),
