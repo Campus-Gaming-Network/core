@@ -4,6 +4,7 @@ import { EmptyState } from "@heroui/react/empty-state";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { DeleteAccountForm } from "../../components/delete-account-form";
+import { Icon, appIcon } from "../../components/icon";
 import { ProfileForm } from "../../components/profile-form";
 import { UserAvatar } from "../../components/user-avatar";
 import {
@@ -61,15 +62,27 @@ export default async function AccountPage() {
 
       <section className="summary-strip" aria-label="Account summary">
         <Card>
-          <strong>Email</strong>
+          <strong className="icon-text">
+            <Icon icon={appIcon.account} size="sm" />
+            Email
+          </strong>
           {profile.email}
         </Card>
         <Card>
-          <strong>Verification</strong>
+          <strong className="icon-text">
+            <Icon
+              icon={profile.email_verified_at ? appIcon.verified : appIcon.error}
+              size="sm"
+            />
+            Verification
+          </strong>
           {profile.email_verified_at ? "Email verified" : "Email pending"}
         </Card>
         <Card>
-          <strong>Public profile</strong>
+          <strong className="icon-text">
+            <Icon icon={appIcon.account} size="sm" />
+            Public profile
+          </strong>
           <Link className="link" href={`/users/${profile.id}`}>View profile</Link>
         </Card>
       </section>
@@ -128,7 +141,10 @@ export default async function AccountPage() {
               >
                 <span>
                   <strong>{school.name}</strong>
-                  <small>{schoolLocation(school)}</small>
+                  <small className="icon-text">
+                    <Icon icon={appIcon.place} size="sm" />
+                    {schoolLocation(school)}
+                  </small>
                 </span>
               </Link>
             ))}
@@ -164,8 +180,14 @@ export default async function AccountPage() {
                     {team.member_count} member{team.member_count === 1 ? "" : "s"}
                   </small>
                 </span>
-                <small>{team.games.map((game) => game.name).join(", ")}</small>
-                <small>{team.school?.name ?? "Independent team"}</small>
+                <small className="icon-text">
+                  <Icon icon={appIcon.game} size="sm" />
+                  {team.games.map((game) => game.name).join(", ")}
+                </small>
+                <small className="icon-text">
+                  <Icon icon={appIcon.school} size="sm" />
+                  {team.school?.name ?? "Independent team"}
+                </small>
               </Link>
             ))}
           </div>
@@ -203,14 +225,18 @@ function EventList({
         <Link className="card card--default list-item" href={`/events/${event.slug}`} key={event.id}>
           <span className="event-card-heading">
             <strong>{event.title}</strong>
-            <small>{eventTimeRange(event)}</small>
+            <small className="icon-text">
+              <Icon icon={appIcon.time} size="sm" />
+              {eventTimeRange(event)}
+            </small>
           </span>
           <small>
             {variant === "rsvp" && event.viewer_rsvp
               ? `RSVP: ${eventRSVPLabel(event.viewer_rsvp)}`
               : eventLifecycleLabel(event.lifecycle)}
           </small>
-          <small>
+          <small className="icon-text">
+            <Icon icon={appIcon.school} size="sm" />
             {event.host_school.name}
             {" · "}
             {event.games.map((game) => game.name).join(", ")}

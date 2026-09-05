@@ -283,6 +283,34 @@ test("account dashboard composes RSVP, followed-school, and team activity", asyn
   await expectNoHorizontalOverflow(page);
 });
 
+test("decorative icons stay out of the accessibility tree", async ({
+  page
+}) => {
+  await page.goto("/events");
+
+  // An icon paired with visible text must not reach the accessibility tree, or
+  // screen readers announce the label twice. components/icon.tsx enforces this
+  // by defaulting to aria-hidden; this guards the pages that use it.
+  await expect(
+    page.getByRole("link", { name: "Events", exact: true })
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Filter", exact: true })
+  ).toBeVisible();
+
+  const exposedIcons = await page
+    .locator("svg.icon:not([aria-hidden='true'])")
+    .evaluateAll((nodes) =>
+      nodes
+        .filter((node) => !node.getAttribute("aria-label"))
+        .map((node) => node.getAttribute("class"))
+    );
+
+  expect(exposedIcons).toEqual([]);
+  await expectAccessible(page);
+  await expectNoHorizontalOverflow(page);
+});
+
 async function expectAccessible(page: Page) {
   const results = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa"])

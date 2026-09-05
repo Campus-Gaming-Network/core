@@ -2,6 +2,7 @@ import { Button } from "@heroui/react/button";
 import { EmptyState } from "@heroui/react/empty-state";
 import { Input } from "@heroui/react/input";
 import Link from "next/link";
+import { Icon, appIcon } from "../../../components/icon";
 import { listSchools } from "../../../lib/server-api";
 import { pageMetadata } from "../../../lib/metadata";
 
@@ -50,7 +51,10 @@ export default async function SchoolsPage({ searchParams }: PageProps) {
           State
           <Input name="state" defaultValue={state} placeholder="CA" maxLength={2} />
         </label>
-        <Button type="submit">Search</Button>
+        <Button type="submit">
+          <Icon icon={appIcon.search} />
+          Search
+        </Button>
       </form>
 
       {result.schools.length > 0 ? (
@@ -61,12 +65,18 @@ export default async function SchoolsPage({ searchParams }: PageProps) {
                 <strong>{school.name}</strong>
                 {school.alias ? <small>{school.alias}</small> : null}
               </span>
-              <span>{schoolLocation(school.city, school.state)}</span>
+              <span className="icon-text">
+                <Icon icon={appIcon.place} size="sm" />
+                {schoolLocation(school.city, school.state)}
+              </span>
             </Link>
           ))}
         </div>
       ) : (
         <EmptyState>
+          <span className="icon-badge">
+            <Icon icon={appIcon.notFound} size="xl" />
+          </span>
           <h2>No schools found</h2>
           <p>
             Try a broader school name or clear the state filter. If this keeps

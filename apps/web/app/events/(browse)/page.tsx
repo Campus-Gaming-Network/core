@@ -6,6 +6,7 @@ import { ListBox } from "@heroui/react/list-box";
 import { Select } from "@heroui/react/select";
 import Link from "next/link";
 import { EventBanner } from "../../../components/event-banner";
+import { Icon, appIcon } from "../../../components/icon";
 import {
   eventLifecycleLabel,
   eventLocation,
@@ -53,10 +54,12 @@ export default async function EventsPage({ searchParams }: PageProps) {
         <div className="actions">
           {profile ? (
             <Link className="button button--primary" href="/events/new">
+              <Icon icon={appIcon.create} />
               Create event
             </Link>
           ) : (
             <Link className="button button--primary" href="/login?next=/events/new">
+              <Icon icon={appIcon.logIn} />
               Log in to create
             </Link>
           )}
@@ -124,7 +127,10 @@ export default async function EventsPage({ searchParams }: PageProps) {
             </Select.Popover>
           </Select>
         </label>
-        <Button type="submit">Filter</Button>
+        <Button type="submit">
+          <Icon icon={appIcon.filter} />
+          Filter
+        </Button>
       </form>
 
       {result.events.length > 0 ? (
@@ -136,16 +142,26 @@ export default async function EventsPage({ searchParams }: PageProps) {
                 <strong>{event.title}</strong>
                 <small>{eventLifecycleLabel(event.lifecycle)}</small>
               </span>
-              <small>{eventTimeRange(event)}</small>
-              <small>
+              <small className="icon-text">
+                <Icon icon={appIcon.time} size="sm" />
+                {eventTimeRange(event)}
+              </small>
+              <small className="icon-text">
+                <Icon icon={appIcon.school} size="sm" />
                 {event.host_school.name} · {event.games.map((eventGame) => eventGame.name).join(", ")}
               </small>
-              <small>{eventLocation(event)}</small>
+              <small className="icon-text">
+                <Icon icon={appIcon.place} size="sm" />
+                {eventLocation(event)}
+              </small>
             </Link>
           ))}
         </div>
       ) : (
         <EmptyState>
+          <span className="icon-badge">
+            <Icon icon={appIcon.notFound} size="xl" />
+          </span>
           <h2>No public events found</h2>
           <p>
             Try clearing filters or create the first event for your campus.

@@ -1,3 +1,4 @@
+import { Icon, appIcon } from "./icon";
 import { type Event } from "../lib/cgn-api";
 
 type EventBannerProps = {
@@ -20,7 +21,10 @@ export function EventBanner({
       className={`event-banner ${size}`}
       role="img"
     >
-      <span className="event-banner-mark">CGN</span>
+      <span className="event-banner-mark">
+        <Icon icon={locked ? appIcon.locked : appIcon.game} />
+        CGN
+      </span>
       <span className="event-banner-copy">
         <small>{label}</small>
         <strong>{locked ? "Details locked" : primaryGame}</strong>

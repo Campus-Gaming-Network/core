@@ -34,3 +34,35 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - Add regression coverage in `tests/api-contracts.test.ts` or
   `tests/form-validation.test.ts`, plus Playwright coverage when validation
   changes visible behavior.
+
+## Icons
+
+- Icons come from `lucide-react` through `components/icon.tsx`. Import `Icon`
+  and `appIcon` from that module; never import a glyph from `lucide-react`
+  directly in a page or component. The registry maps a concept (`event`,
+  `school`, `place`) to a glyph so a swap is one edit rather than a search.
+- Add a registry entry before using a new glyph, and verify the export name
+  against the installed version. Lucide v1 renamed a number of icons
+  (`CircleHelp` is now `CircleQuestionMark`, `Home` is now `House`).
+- An icon paired with visible text is decoration: leave `label` unset so `Icon`
+  marks it `aria-hidden` and keeps it out of accessible names. Pass `label`
+  only when the icon is the sole carrier of meaning, and remember that a
+  labelled icon inside a button becomes part of that button's accessible name.
+  `tests/e2e/pass-v0.spec.ts` asserts this convention holds.
+- Never use an icon as the only signal for state. Pair it with text, as the
+  RSVP, verification, and form-error surfaces do.
+- Size icons with the `size` prop, which selects a CSS class in `globals.css`.
+  `sm`/`md` are em-based so inline glyphs track the surrounding text; `lg`/`xl`
+  are fixed for standalone marks. Do not pass Lucide's own `size` prop.
+- Wrap an icon and its text in `.icon-text` for alignment. Elements carrying
+  HeroUI's `button` class already flex with a gap, so do not add `.icon-text`
+  there.
+- HeroUI `Alert` renders its own status indicator. Do not add a Lucide icon
+  inside one.
+- `app/global-error.tsx` stays free of the icon module on purpose: it is the
+  last-resort boundary and should not depend on more than it must.
+- Lucide components carry `"use client"`, so each icon is a leaf client
+  component even on a server-rendered page. Next.js tree-shakes the package by
+  default (it ships in the `optimizePackageImports` list), so no config is
+  needed, but keep an eye on the count: the current set costs roughly 19 KB
+  gzipped across the app's client chunks.

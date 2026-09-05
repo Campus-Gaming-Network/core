@@ -1,3 +1,4 @@
+import { Icon, appIcon } from "./icon";
 import { type FormState } from "../lib/form-state";
 
 export function FieldError({
@@ -13,8 +14,12 @@ export function FieldError({
     return null;
   }
 
+  // The icon is decorative: aria-describedby already routes this text to the
+  // field, and the red is reinforced by the glyph for anyone who cannot rely on
+  // color alone.
   return (
-    <p className="form-error" id={fieldErrorID(name)}>
+    <p className="form-error icon-text icon-text--top" id={fieldErrorID(name)}>
+      <Icon icon={appIcon.error} size="sm" />
       {messages.join(" ")}
     </p>
   );

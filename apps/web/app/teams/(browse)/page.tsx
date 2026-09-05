@@ -4,6 +4,7 @@ import { Input } from "@heroui/react/input";
 import { ListBox } from "@heroui/react/list-box";
 import { Select } from "@heroui/react/select";
 import Link from "next/link";
+import { Icon, appIcon } from "../../../components/icon";
 import { currentProfile, listGames, listTeams } from "../../../lib/server-api";
 import { pageMetadata } from "../../../lib/metadata";
 
@@ -44,10 +45,12 @@ export default async function TeamsPage({ searchParams }: PageProps) {
         <div className="actions">
           {profile ? (
             <Link className="button button--primary" href="/teams/new">
+              <Icon icon={appIcon.create} />
               Create team
             </Link>
           ) : (
             <Link className="button button--primary" href="/login?next=/teams/new">
+              <Icon icon={appIcon.logIn} />
               Log in to create
             </Link>
           )}
@@ -91,7 +94,10 @@ export default async function TeamsPage({ searchParams }: PageProps) {
             placeholder="university-of-california-irvine"
           />
         </label>
-        <Button type="submit">Filter</Button>
+        <Button type="submit">
+          <Icon icon={appIcon.filter} />
+          Filter
+        </Button>
       </form>
 
       {result.teams.length > 0 ? (
@@ -102,13 +108,22 @@ export default async function TeamsPage({ searchParams }: PageProps) {
                 <strong>{team.name}</strong>
                 <small>{team.member_count} member{team.member_count === 1 ? "" : "s"}</small>
               </span>
-              <small>{team.games.map((teamGame) => teamGame.name).join(", ")}</small>
-              <small>{team.school?.name ?? "Independent team"}</small>
+              <small className="icon-text">
+                <Icon icon={appIcon.game} size="sm" />
+                {team.games.map((teamGame) => teamGame.name).join(", ")}
+              </small>
+              <small className="icon-text">
+                <Icon icon={appIcon.school} size="sm" />
+                {team.school?.name ?? "Independent team"}
+              </small>
             </Link>
           ))}
         </div>
       ) : (
         <EmptyState>
+          <span className="icon-badge">
+            <Icon icon={appIcon.notFound} size="xl" />
+          </span>
           <h2>No teams found</h2>
           <p>
             Try clearing filters or create the first team for your campus.

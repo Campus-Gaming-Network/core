@@ -91,9 +91,16 @@ main {
 }
 
 .brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
   color: var(--foreground);
   font-weight: 700;
   text-decoration: none;
+}
+
+.brand .icon {
+  color: var(--accent);
 }
 
 nav,
@@ -338,6 +345,89 @@ code {
   background: var(--surface-secondary);
 }
 
+/*
+  Icons (components/icon.tsx). Sizes are set here rather than through Lucide's
+  size prop so an inline glyph tracks the font size of whatever it sits next to,
+  and so the whole scale can be retuned in one place. currentColor keeps every
+  icon on the color of its surrounding text, including the muted small copy and
+  the inverted button labels.
+*/
+.icon {
+  flex: 0 0 auto;
+  color: currentColor;
+  vertical-align: -0.125em;
+}
+
+.icon--sm {
+  width: 0.875em;
+  height: 0.875em;
+}
+
+.icon--md {
+  width: 1em;
+  height: 1em;
+}
+
+.icon--lg {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.icon--xl {
+  width: 2.5rem;
+  height: 2.5rem;
+}
+
+/*
+  Text paired with a leading icon. The gap is in em so it scales with the label,
+  and align-items: center keeps the glyph on the text's optical center for
+  single-line labels.
+*/
+.icon-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  min-width: 0;
+}
+
+/* Multi-line values (an address, a long game list) hang under their own icon. */
+.icon-text--top {
+  align-items: start;
+}
+
+.icon-text--top .icon {
+  margin-top: 0.15em;
+}
+
+/* Standalone icons above empty-state and status headings. */
+.icon-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  margin-bottom: 0.75rem;
+  border-radius: 999px;
+  background: var(--surface-secondary);
+  color: var(--muted);
+}
+
+.icon-badge.danger {
+  color: var(--danger);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .icon--spin {
+    animation: icon-spin 1.2s linear infinite;
+  }
+}
+
+@keyframes icon-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .event-banner {
   display: grid;
   gap: 0.75rem;
@@ -355,6 +445,9 @@ code {
 }
 
 .event-banner-mark {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
   width: fit-content;
   color: var(--muted);
   font-size: 0.8125rem;

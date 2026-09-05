@@ -3,6 +3,7 @@ import { Chip } from "@heroui/react/chip";
 import { EmptyState } from "@heroui/react/empty-state";
 import Link from "next/link";
 import type { Metadata } from "next";
+import { Icon, appIcon } from "../components/icon";
 import { schoolLocation } from "../lib/cgn-api";
 import { siteName } from "../lib/metadata";
 import { listGames, listSchools } from "../lib/server-api";
@@ -46,18 +47,24 @@ export default async function HomePage() {
           </p>
           <div className="actions">
             <Link className="button button--primary" href="/schools">
+              <Icon icon={appIcon.school} />
               Browse schools
             </Link>
             <Link className="button button--secondary" href="/events">
+              <Icon icon={appIcon.event} />
               Browse events
             </Link>
             <Link className="button button--secondary" href="/signup">
+              <Icon icon={appIcon.signUp} />
               Create account
             </Link>
           </div>
         </div>
         <Card className="feature-board" aria-label="Launch games">
-          <p className="board-kicker">Launch games</p>
+          <p className="board-kicker icon-text">
+            <Icon icon={appIcon.game} />
+            Launch games
+          </p>
           <div className="game-grid">
             {games.length > 0 ? (
               games.map((game) => <Chip key={game.id}>{game.name}</Chip>)
@@ -79,7 +86,10 @@ export default async function HomePage() {
             {schools.schools.map((school) => (
               <Link className="card card--default school-card" href={`/schools/${school.slug}`} key={school.id}>
                 <span>{school.name}</span>
-                <small>{schoolLocation(school)}</small>
+                <small className="icon-text">
+                  <Icon icon={appIcon.place} size="sm" />
+                  {schoolLocation(school)}
+                </small>
               </Link>
             ))}
           </div>
@@ -101,12 +111,15 @@ export default async function HomePage() {
         </p>
         <div className="actions">
           <Link className="button button--primary" href="/events/new">
+            <Icon icon={appIcon.create} />
             Create first event
           </Link>
           <Link className="button button--secondary" href="/teams/new">
+            <Icon icon={appIcon.team} />
             Start a team
           </Link>
           <Link className="button button--secondary" href="/schools">
+            <Icon icon={appIcon.school} />
             Follow a school
           </Link>
         </div>

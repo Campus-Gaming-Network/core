@@ -1,3 +1,5 @@
+import { Icon, appIcon } from "./icon";
+
 type PageLoadingProps = {
   /** Short label describing what is loading, e.g. "events". */
   label: string;
@@ -19,7 +21,10 @@ export function PageLoading({ label }: PageLoadingProps) {
   return (
     <main className="narrow">
       <section className="page-heading" aria-busy="true" aria-live="polite">
-        <p className="eyebrow">Loading</p>
+        <p className="eyebrow icon-text">
+          <Icon className="icon--spin" icon={appIcon.loading} size="sm" />
+          Loading
+        </p>
         <h1>Loading {label}…</h1>
         <p className="lede">One moment while we fetch the latest.</p>
       </section>

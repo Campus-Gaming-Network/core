@@ -7,6 +7,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { deleteEventAction, eventInterestAction } from "../../actions";
 import { EventBanner } from "../../../components/event-banner";
+import { Icon, appIcon } from "../../../components/icon";
 import { EventRSVPForm } from "../../../components/event-rsvp-form";
 import { PrivateEventUnlockForm } from "../../../components/private-event-unlock-form";
 import { ReportForm } from "../../../components/report-form";
@@ -94,7 +95,10 @@ export default async function EventDetailPage({
       <main className="narrow">
         <EventBanner locked size="hero" />
         <section className="page-heading">
-          <p className="eyebrow">Private event</p>
+          <p className="eyebrow icon-text">
+            <Icon icon={appIcon.locked} size="sm" />
+            Private event
+          </p>
           <h1>This event is private.</h1>
           <p className="lede">
             Enter the event password to reveal the details. Nothing private is
@@ -104,10 +108,12 @@ export default async function EventDetailPage({
         <PrivateEventUnlockForm slug={slug} />
         <div className="actions">
           <Link className="button button--secondary" href="/events">
+            <Icon icon={appIcon.event} />
             Browse public events
           </Link>
           {profile ? null : (
             <Link className="button button--primary" href={`/login?next=/events/${slug}`}>
+              <Icon icon={appIcon.logIn} />
               Log in
             </Link>
           )}
@@ -134,15 +140,24 @@ export default async function EventDetailPage({
 
       <section className="detail-grid" aria-label="Event details">
         <div className="detail-row">
-          <span>When</span>
+          <span className="icon-text">
+            <Icon icon={appIcon.time} size="sm" />
+            When
+          </span>
           <strong>{eventTimeRange(event)}</strong>
         </div>
         <div className="detail-row">
-          <span>Where</span>
+          <span className="icon-text">
+            <Icon icon={appIcon.place} size="sm" />
+            Where
+          </span>
           <strong>{eventLocation(event)}</strong>
         </div>
         <div className="detail-row">
-          <span>Host school</span>
+          <span className="icon-text">
+            <Icon icon={appIcon.school} size="sm" />
+            Host school
+          </span>
           <strong>
             <Link className="link" href={`/schools/${event.host_school.slug}`}>
               {event.host_school.name}
@@ -150,12 +165,18 @@ export default async function EventDetailPage({
           </strong>
         </div>
         <div className="detail-row">
-          <span>Games</span>
+          <span className="icon-text">
+            <Icon icon={appIcon.game} size="sm" />
+            Games
+          </span>
           <strong>{event.games.map((game) => game.name).join(", ")}</strong>
         </div>
         {event.recurrence_rule && event.recurrence_until ? (
           <div className="detail-row">
-            <span>Repeats</span>
+            <span className="icon-text">
+              <Icon icon={appIcon.repeats} size="sm" />
+              Repeats
+            </span>
             <strong>
               {recurrenceRuleLabel(event.recurrence_rule)} until {new Date(event.recurrence_until).toLocaleDateString()}
             </strong>
@@ -163,22 +184,36 @@ export default async function EventDetailPage({
         ) : null}
         {event.capacity ? (
           <div className="detail-row">
-            <span>Capacity</span>
+            <span className="icon-text">
+              <Icon icon={appIcon.capacity} size="sm" />
+              Capacity
+            </span>
             <strong>
               {event.rsvp_yes_count} / {event.capacity}
             </strong>
           </div>
         ) : null}
         <div className="detail-row">
-          <span>Interested</span>
+          <span className="icon-text">
+            <Icon icon={appIcon.interested} size="sm" />
+            Interested
+          </span>
           <strong>{event.interest_count}</strong>
         </div>
         {event.is_paid ? (
           <div className="detail-row">
-            <span>Payment</span>
+            <span className="icon-text">
+              <Icon icon={appIcon.payment} size="sm" />
+              Payment
+            </span>
             <strong className="detail-value">
               {event.payment_note || "Payment happens off CGN."}
-              {event.payment_url ? <a href={event.payment_url}>Payment link</a> : null}
+              {event.payment_url ? (
+                <a className="icon-text" href={event.payment_url}>
+                  Payment link
+                  <Icon icon={appIcon.external} size="sm" />
+                </a>
+              ) : null}
             </strong>
           </div>
         ) : null}
@@ -217,6 +252,7 @@ export default async function EventDetailPage({
                 variant={event.viewer_interested ? "secondary" : "primary"}
                 type="submit"
               >
+                <Icon icon={appIcon.interested} />
                 {event.viewer_interested ? "Remove interested" : "I'm interested"}
               </Button>
             </form>
@@ -224,6 +260,7 @@ export default async function EventDetailPage({
             {event.viewer_can_edit ? (
               <div className="actions">
                 <Link className="button button--secondary" href={`/events/${event.slug}/edit`}>
+                  <Icon icon={appIcon.event} />
                   Edit event
                 </Link>
                 <form action={deleteEventAction}>
@@ -245,6 +282,7 @@ export default async function EventDetailPage({
         ) : (
           <div className="actions">
             <Link className="button button--primary" href={`/login?next=/events/${event.slug}`}>
+              <Icon icon={appIcon.logIn} />
               Log in to RSVP or mark interested
             </Link>
           </div>
