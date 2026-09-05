@@ -8,6 +8,7 @@ import { ListBox } from "@heroui/react/list-box";
 import { Select } from "@heroui/react/select";
 import { TextArea } from "@heroui/react/textarea";
 import { useActionState } from "react";
+import { FieldError, fieldErrorProps } from "./form-field-error";
 import {
   createEventAction,
   updateEventAction
@@ -60,7 +61,9 @@ export function EventForm({
           defaultValue={event?.title ?? ""}
           required
           maxLength={120}
+          {...fieldErrorProps(state, "title")}
         />
+        <FieldError name="title" state={state} />
       </label>
 
       <label>
@@ -70,7 +73,9 @@ export function EventForm({
           defaultValue={event?.description ?? ""}
           maxLength={5000}
           rows={6}
+          {...fieldErrorProps(state, "description")}
         />
+        <FieldError name="description" state={state} />
       </label>
 
       <div className="split-fields">
@@ -82,6 +87,7 @@ export function EventForm({
             defaultSelectedKey={event?.visibility ?? "public"}
             aria-label="Visibility"
             isRequired
+            {...fieldErrorProps(state, "visibility")}
           >
             <Select.Trigger>
               <Select.Value />
@@ -95,6 +101,7 @@ export function EventForm({
               </ListBox>
             </Select.Popover>
           </Select>
+          <FieldError name="visibility" state={state} />
         </label>
         <label>
           Format
@@ -104,6 +111,7 @@ export function EventForm({
             defaultSelectedKey={event?.format ?? "in_person"}
             aria-label="Format"
             isRequired
+            {...fieldErrorProps(state, "format")}
           >
             <Select.Trigger>
               <Select.Value />
@@ -117,6 +125,7 @@ export function EventForm({
               </ListBox>
             </Select.Popover>
           </Select>
+          <FieldError name="format" state={state} />
         </label>
       </div>
 
@@ -134,7 +143,9 @@ export function EventForm({
               defaultValue={event?.starts_at ?? ""}
               placeholder="2026-08-15T20:00:00Z"
               required
+              {...fieldErrorProps(state, "starts_at")}
             />
+            <FieldError name="starts_at" state={state} />
           </label>
           <label>
             Ends at
@@ -143,7 +154,9 @@ export function EventForm({
               defaultValue={event?.ends_at ?? ""}
               placeholder="2026-08-15T22:00:00Z"
               required
+              {...fieldErrorProps(state, "ends_at")}
             />
+            <FieldError name="ends_at" state={state} />
           </label>
         </div>
         <label>
@@ -152,7 +165,9 @@ export function EventForm({
             name="timezone"
             defaultValue={event?.timezone ?? "America/Los_Angeles"}
             required
+            {...fieldErrorProps(state, "timezone")}
           />
+          <FieldError name="timezone" state={state} />
         </label>
         <div className="split-fields">
           <label>
@@ -162,6 +177,7 @@ export function EventForm({
               name="recurrence_rule"
               defaultSelectedKey={event?.recurrence_rule ?? ""}
               aria-label="Repeat event"
+              {...fieldErrorProps(state, "recurrence_rule")}
             >
               <Select.Trigger>
                 <Select.Value />
@@ -176,6 +192,7 @@ export function EventForm({
                 </ListBox>
               </Select.Popover>
             </Select>
+            <FieldError name="recurrence_rule" state={state} />
           </label>
           <label>
             Repeat until
@@ -183,7 +200,9 @@ export function EventForm({
               name="recurrence_until"
               defaultValue={event?.recurrence_until?.slice(0, 10) ?? ""}
               type="date"
+              {...fieldErrorProps(state, "recurrence_until")}
             />
+            <FieldError name="recurrence_until" state={state} />
           </label>
         </div>
         <p className="form-help">
@@ -202,6 +221,7 @@ export function EventForm({
             defaultSelectedKey={selectedSchoolID}
             aria-label="Host school"
             isRequired
+            {...fieldErrorProps(state, "host_school_id")}
           >
             <Select.Trigger>
               <Select.Value />
@@ -228,6 +248,7 @@ export function EventForm({
               </ListBox>
             </Select.Popover>
           </Select>
+          <FieldError name="host_school_id" state={state} />
         </label>
         <div className="split-fields">
           <label>
@@ -237,7 +258,9 @@ export function EventForm({
               defaultValue={event?.location_name ?? ""}
               maxLength={200}
               placeholder="Student Union"
+              {...fieldErrorProps(state, "location_name")}
             />
+            <FieldError name="location_name" state={state} />
           </label>
           <label>
             Online URL
@@ -247,7 +270,9 @@ export function EventForm({
               maxLength={500}
               placeholder="https://..."
               type="url"
+              {...fieldErrorProps(state, "online_url")}
             />
+            <FieldError name="online_url" state={state} />
           </label>
         </div>
         <label>
@@ -257,7 +282,9 @@ export function EventForm({
             defaultValue={event?.address ?? ""}
             maxLength={1000}
             placeholder="Optional for in-person or hybrid events"
+            {...fieldErrorProps(state, "address")}
           />
+          <FieldError name="address" state={state} />
         </label>
       </Fieldset>
 
@@ -272,6 +299,7 @@ export function EventForm({
             }
             multiple
             required
+            {...fieldErrorProps(state, "game_ids")}
           >
             {games.map((game) => (
               <option key={game.id} value={game.id}>
@@ -279,6 +307,7 @@ export function EventForm({
               </option>
             ))}
           </select>
+          <FieldError name="game_ids" state={state} />
         </label>
         <label>
           Capacity
@@ -288,7 +317,9 @@ export function EventForm({
             min={1}
             placeholder="Optional"
             type="number"
+            {...fieldErrorProps(state, "capacity")}
           />
+          <FieldError name="capacity" state={state} />
         </label>
       </Fieldset>
 
@@ -305,7 +336,9 @@ export function EventForm({
                 ? "Leave blank to keep current password"
                 : "Required for private events"
             }
+            {...fieldErrorProps(state, "private_password")}
           />
+          <FieldError name="private_password" state={state} />
         </label>
         <label className="checkbox-field">
           <input
@@ -323,7 +356,9 @@ export function EventForm({
             maxLength={1000}
             rows={3}
             placeholder="Tell attendees how payment works outside CGN."
+            {...fieldErrorProps(state, "payment_note")}
           />
+          <FieldError name="payment_note" state={state} />
         </label>
         <label>
           Payment URL
@@ -333,7 +368,9 @@ export function EventForm({
             maxLength={500}
             placeholder="https://..."
             type="url"
+            {...fieldErrorProps(state, "payment_url")}
           />
+          <FieldError name="payment_url" state={state} />
         </label>
       </Fieldset>
 

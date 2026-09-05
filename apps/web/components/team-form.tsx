@@ -8,6 +8,7 @@ import { ListBox } from "@heroui/react/list-box";
 import { Select } from "@heroui/react/select";
 import { TextArea } from "@heroui/react/textarea";
 import { useActionState } from "react";
+import { FieldError, fieldErrorProps } from "./form-field-error";
 import { createTeamAction } from "../app/actions";
 import {
   type Game,
@@ -43,12 +44,24 @@ export function TeamForm({
 
       <label>
         Team name
-        <Input name="name" required maxLength={120} />
+        <Input
+          name="name"
+          required
+          maxLength={120}
+          {...fieldErrorProps(state, "name")}
+        />
+        <FieldError name="name" state={state} />
       </label>
 
       <label>
         Description
-        <TextArea name="description" maxLength={5000} rows={6} />
+        <TextArea
+          name="description"
+          maxLength={5000}
+          rows={6}
+          {...fieldErrorProps(state, "description")}
+        />
+        <FieldError name="description" state={state} />
       </label>
 
       <label>
@@ -90,10 +103,16 @@ export function TeamForm({
         <Fieldset.Legend>Games</Fieldset.Legend>
         {games.map((game) => (
           <label className="checkbox-field" key={game.id}>
-            <input type="checkbox" name="game_ids" value={game.id} />
+            <input
+              type="checkbox"
+              name="game_ids"
+              value={game.id}
+              {...fieldErrorProps(state, "game_ids")}
+            />
             {game.name}
           </label>
         ))}
+        <FieldError name="game_ids" state={state} />
       </Fieldset>
 
       <label>
@@ -104,7 +123,9 @@ export function TeamForm({
           autoComplete="new-password"
           minLength={8}
           required
+          {...fieldErrorProps(state, "password")}
         />
+        <FieldError name="password" state={state} />
       </label>
       <p className="form-help">
         Team pages are public. This password is only for joining or interacting

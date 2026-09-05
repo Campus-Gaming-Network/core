@@ -4,6 +4,7 @@ import { Alert } from "@heroui/react/alert";
 import { Button } from "@heroui/react/button";
 import { Input } from "@heroui/react/input";
 import { useActionState } from "react";
+import { FieldError, fieldErrorProps } from "./form-field-error";
 import { joinTeamAction } from "../app/actions";
 import { initialFormState } from "../lib/form-state";
 
@@ -37,7 +38,9 @@ export function TeamJoinForm({ slug }: TeamJoinFormProps) {
           autoComplete="current-password"
           minLength={8}
           required
+          {...fieldErrorProps(state, "password")}
         />
+        <FieldError name="password" state={state} />
       </label>
       <p className="form-help">
         Team pages are public. The password is only checked when you join or

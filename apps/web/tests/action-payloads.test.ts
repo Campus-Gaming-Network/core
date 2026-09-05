@@ -56,6 +56,13 @@ test("eventBodyFromForm leaves optional capacity unset and unchecked payment fal
   assert.equal(eventBodyFromForm(form).is_paid, false);
 });
 
+test("eventBodyFromForm preserves invalid capacity as a rejected number", () => {
+  const form = new FormData();
+  form.set("capacity", "32 players");
+
+  assert.equal(Number.isNaN(eventBodyFromForm(form).capacity), true);
+});
+
 test("teamBodyFromForm trims fields and repeated game IDs", () => {
   const form = new FormData();
   form.set("name", "  Falcons ");

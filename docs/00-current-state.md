@@ -47,6 +47,10 @@ revisited later.
 
 ## Recently completed
 
+- Added Zod-backed runtime contracts for every web-to-Go success response and
+  server-side form validation with accessible field errors. Contract types are
+  inferred from schemas, while Go remains authoritative for domain and security
+  rules.
 - Changed the school catalog refresh from every 15 minutes to daily.
 - Served the school catalog from memory with HTTP caching.
 - Removed unused school search indexes.
@@ -56,8 +60,8 @@ revisited later.
   web typecheck all pass.
 - Regenerated stale Next.js development route metadata that was breaking the
   web typecheck.
-- Added regression coverage for event, team, profile, RSVP, private-unlock, and
-  team-join form payloads; web tests now cover 22 cases.
+- Added regression coverage for event, team, profile, RSVP, private-unlock,
+  team-join, API response contracts, and cross-field form validation.
 - Completed the first mobile/accessibility pass: native labeled checkboxes now
   power age confirmation, paid-event status, and team game selection, and
   custom select controls have explicit accessible names.

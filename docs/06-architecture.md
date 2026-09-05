@@ -43,6 +43,7 @@ See [14 — Architecture diagrams](./14-architecture-diagrams.md) for Mermaid vi
 |-------|--------|-------|
 | Frontend | Next.js + TypeScript | Server rendering important; code-split routes |
 | UI kit | HeroUI | Primary component library |
+| BFF validation | Zod | Runtime Go-response contracts and Server Action input errors; server-side imports only |
 | A11y / patterns | GOV.UK Design System (reference) | Prefer accessible, clear components |
 | Server / API | Go | All server domain code in Go |
 | Database | Railway PostgreSQL | Backups required before public launch |
@@ -84,6 +85,23 @@ See [14 — Architecture diagrams](./14-architecture-diagrams.md) for Mermaid vi
 
 - Per-request getters in `apps/web/lib/server-api.ts` are wrapped in React `cache()`. `apiRequest` defaults to `cache: "no-store"`, which Next.js does **not** deduplicate, so without this a route's `generateMetadata` and its page body would each issue the same API call.
 - `cache()` compares arguments by reference, so wrapped functions take primitives rather than options objects. `getEvent` and `getTeam` flatten their options before calling the cached inner function.
+
+### Runtime validation
+
+- `apps/web/lib/api-contracts.ts` is the source of truth for web-facing response
+  schemas and inferred DTO types. Every `apiRequest` supplies a schema, including
+  `emptyResponseSchema` for a 204.
+- `apps/web/lib/form-validation.ts` validates normalized Server Action input and
+  maps expected failures into accessible per-field form state. Browser-native
+  constraints stay in place for immediate and progressive-enhancement feedback.
+- Client components use type-only contract imports. They must not import Zod
+  schemas at runtime.
+- Zod validates the BFF boundary, not the domain. Go still owns authorization,
+  state transitions, content policy, database-backed checks, and final input
+  validation.
+- API contract error logs include the request path and schema issues only. Never
+  log the rejected payload because profile data, session-adjacent data, or event
+  unlock tokens may be present.
 
 ## Backend guidelines
 

@@ -1,21 +1,21 @@
 import { cookies, headers } from "next/headers";
 import { cache } from "react";
+import { ApiError, apiRequest } from "./cgn-api";
 import {
-  type DashboardEventsResponse,
-  type EventDetail,
-  type EventsResponse,
-  type FollowedSchoolsResponse,
-  type GamesResponse,
-  type MyTeamsResponse,
-  type Profile,
-  type PublicProfile,
-  type School,
-  type SchoolsResponse,
-  type Team,
-  type TeamsResponse,
-  ApiError,
-  apiRequest
-} from "./cgn-api";
+  dashboardEventsResponseSchema,
+  eventDetailSchema,
+  eventsResponseSchema,
+  followedSchoolsResponseSchema,
+  gamesResponseSchema,
+  myTeamsResponseSchema,
+  profileSchema,
+  publicProfileSchema,
+  schoolSchema,
+  schoolsResponseSchema,
+  statusResponseSchema,
+  teamSchema,
+  teamsResponseSchema
+} from "./api-contracts";
 import {
   buildDashboardEventsRequest,
   buildMyTeamsRequest
@@ -40,9 +40,10 @@ export async function incomingCookieHeader() {
 // wrapped functions take primitives rather than options objects.
 export const currentProfile = cache(async () => {
   try {
-    const { data } = await apiRequest<Profile>({
+    const { data } = await apiRequest({
       path: "/me",
-      cookieHeader: await incomingCookieHeader()
+      cookieHeader: await incomingCookieHeader(),
+      responseSchema: profileSchema
     });
 
     return data;
@@ -51,7 +52,7 @@ export const currentProfile = cache(async () => {
       return null;
     }
 
-    return null;
+    throw error;
   }
 });
 
@@ -77,27 +78,30 @@ export async function listSchools(params: {
   }
 
   const suffix = query.size > 0 ? `?${query.toString()}` : "";
-  const { data } = await apiRequest<SchoolsResponse>({
+  const { data } = await apiRequest({
     path: `/schools${suffix}`,
-    revalidate: catalogRevalidateSeconds
+    revalidate: catalogRevalidateSeconds,
+    responseSchema: schoolsResponseSchema
   });
 
   return data;
 }
 
 export const getSchool = cache(async (slug: string) => {
-  const { data } = await apiRequest<School>({
+  const { data } = await apiRequest({
     path: `/schools/${encodeURIComponent(slug)}`,
-    revalidate: catalogRevalidateSeconds
+    revalidate: catalogRevalidateSeconds,
+    responseSchema: schoolSchema
   });
 
   return data;
 });
 
 export async function listGames() {
-  const { data } = await apiRequest<GamesResponse>({
+  const { data } = await apiRequest({
     path: "/games",
-    revalidate: catalogRevalidateSeconds
+    revalidate: catalogRevalidateSeconds,
+    responseSchema: gamesResponseSchema
   });
 
   return data.games;
@@ -129,8 +133,9 @@ export async function listEvents(params: {
   }
 
   const suffix = query.size > 0 ? `?${query.toString()}` : "";
-  const { data } = await apiRequest<EventsResponse>({
-    path: `/events${suffix}`
+  const { data } = await apiRequest({
+    path: `/events${suffix}`,
+    responseSchema: eventsResponseSchema
   });
 
   return data;
@@ -146,10 +151,11 @@ const fetchEvent = cache(
     const unlockHeaders = includeUnlock
       ? await eventUnlockHeaders(slug)
       : undefined;
-    const { data } = await apiRequest<EventDetail>({
+    const { data } = await apiRequest({
       path: `/events/${encodeURIComponent(slug)}`,
       cookieHeader: includeCookie ? await incomingCookieHeader() : undefined,
-      headers: unlockHeaders
+      headers: unlockHeaders,
+      responseSchema: eventDetailSchema
     });
 
     return data;
@@ -165,9 +171,10 @@ export async function getEvent(slug: string, options: GetEventOptions = {}) {
 }
 
 export async function getDashboardEvents(limit = 5) {
-  const { data } = await apiRequest<DashboardEventsResponse>(
-    buildDashboardEventsRequest(limit, await incomingCookieHeader())
-  );
+  const { data } = await apiRequest({
+    ...buildDashboardEventsRequest(limit, await incomingCookieHeader()),
+    responseSchema: dashboardEventsResponseSchema
+  });
 
   return data;
 }
@@ -194,17 +201,19 @@ export async function listTeams(params: {
   }
 
   const suffix = query.size > 0 ? `?${query.toString()}` : "";
-  const { data } = await apiRequest<TeamsResponse>({
-    path: `/teams${suffix}`
+  const { data } = await apiRequest({
+    path: `/teams${suffix}`,
+    responseSchema: teamsResponseSchema
   });
 
   return data;
 }
 
 export async function listMyTeams(limit = 10) {
-  const { data } = await apiRequest<MyTeamsResponse>(
-    buildMyTeamsRequest(limit, await incomingCookieHeader())
-  );
+  const { data } = await apiRequest({
+    ...buildMyTeamsRequest(limit, await incomingCookieHeader()),
+    responseSchema: myTeamsResponseSchema
+  });
 
   return data.teams;
 }
@@ -214,9 +223,10 @@ type GetTeamOptions = {
 };
 
 const fetchTeam = cache(async (slug: string, includeCookie: boolean) => {
-  const { data } = await apiRequest<Team>({
+  const { data } = await apiRequest({
     path: `/teams/${encodeURIComponent(slug)}`,
-    cookieHeader: includeCookie ? await incomingCookieHeader() : undefined
+    cookieHeader: includeCookie ? await incomingCookieHeader() : undefined,
+    responseSchema: teamSchema
   });
 
   return data;
@@ -241,24 +251,27 @@ export async function eventUnlockHeaders(slug: string) {
 }
 
 export async function listFollowedSchools() {
-  const { data } = await apiRequest<FollowedSchoolsResponse>({
+  const { data } = await apiRequest({
     path: "/me/schools",
-    cookieHeader: await incomingCookieHeader()
+    cookieHeader: await incomingCookieHeader(),
+    responseSchema: followedSchoolsResponseSchema
   });
 
   return data.schools;
 }
 
 export const getPublicProfile = cache(async (id: string) => {
-  const { data } = await apiRequest<PublicProfile>({
-    path: `/users/${encodeURIComponent(id)}`
+  const { data } = await apiRequest({
+    path: `/users/${encodeURIComponent(id)}`,
+    responseSchema: publicProfileSchema
   });
 
   return data;
 });
 
 export async function verifyEmailToken(token: string) {
-  await apiRequest<{ status: string }>({
-    path: `/auth/verify-email?token=${encodeURIComponent(token)}`
+  await apiRequest({
+    path: `/auth/verify-email?token=${encodeURIComponent(token)}`,
+    responseSchema: statusResponseSchema
   });
 }

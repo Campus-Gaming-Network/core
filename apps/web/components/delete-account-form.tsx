@@ -4,6 +4,7 @@ import { Alert } from "@heroui/react/alert";
 import { Button } from "@heroui/react/button";
 import { Input } from "@heroui/react/input";
 import { useActionState } from "react";
+import { FieldError, fieldErrorProps } from "./form-field-error";
 import { deleteAccountAction } from "../app/actions";
 import { initialFormState } from "../lib/form-state";
 
@@ -35,8 +36,9 @@ export function DeleteAccountForm() {
             name="confirm"
             autoComplete="off"
             required
-            aria-describedby="delete-account-help"
+            {...fieldErrorProps(state, "confirm", "delete-account-help")}
           />
+          <FieldError name="confirm" state={state} />
         </label>
         <p className="form-help" id="delete-account-help">
           Your email address becomes available for a new account afterwards.

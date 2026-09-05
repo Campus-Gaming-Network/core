@@ -5,6 +5,7 @@ import { Button } from "@heroui/react/button";
 import { Input } from "@heroui/react/input";
 import { TextArea } from "@heroui/react/textarea";
 import { useActionState } from "react";
+import { FieldError, fieldErrorProps } from "./form-field-error";
 import { submitSupportTicketAction } from "../app/actions";
 import { initialFormState } from "../lib/form-state";
 
@@ -27,19 +28,45 @@ export function SupportTicketForm() {
 
       <label>
         Email
-        <Input name="contact_email" type="email" autoComplete="email" required />
+        <Input
+          name="contact_email"
+          type="email"
+          autoComplete="email"
+          required
+          {...fieldErrorProps(state, "contact_email")}
+        />
+        <FieldError name="contact_email" state={state} />
       </label>
       <label>
         Name
-        <Input name="name" autoComplete="name" maxLength={120} />
+        <Input
+          name="name"
+          autoComplete="name"
+          maxLength={120}
+          {...fieldErrorProps(state, "name")}
+        />
+        <FieldError name="name" state={state} />
       </label>
       <label>
         Subject
-        <Input name="subject" required maxLength={160} />
+        <Input
+          name="subject"
+          required
+          maxLength={160}
+          {...fieldErrorProps(state, "subject")}
+        />
+        <FieldError name="subject" state={state} />
       </label>
       <label>
         Message
-        <TextArea name="message" required maxLength={5000} rows={7} />
+        <TextArea
+          name="message"
+          required
+          maxLength={5000}
+          rows={7}
+          {...fieldErrorProps(state, "message")}
+        />
+        <FieldError name="message" state={state} />
       </label>
       <p className="form-help">
         Support tickets are queued for review. Do not include passwords,

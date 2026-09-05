@@ -17,6 +17,27 @@ Later CRM screens      →  (CRM BFF or direct) →  Go Admin API  →  Postgres
 
 Prefer server-rendered pages and server actions over exposing a wide public JSON surface. Where JSON is needed (mobile later, CRM, TanStack Query), version it (`/api/v1/...`).
 
+### BFF validation boundaries
+
+The web BFF uses Zod for two trust boundaries:
+
+- Every successful Go API response passed through `apiRequest` is parsed by a
+  schema in `apps/web/lib/api-contracts.ts`. Frontend DTO types are inferred
+  from those schemas so runtime checks and TypeScript cannot drift apart.
+- Every Server Action validates its normalized `FormData` with a schema in
+  `apps/web/lib/form-validation.ts` before calling Go. Expected input failures
+  return serializable field errors through `useActionState`.
+
+Response schemas accept additive unknown fields but validate all fields the web
+app consumes. Contract errors record only the endpoint path and schema issues,
+never the response payload. Zod is kept out of client runtime imports; native
+HTML constraints remain the first feedback layer and preserve progressive
+enhancement.
+
+This BFF validation does not move domain ownership out of Go. The API remains
+authoritative for authentication, authorization, resource existence and state,
+transactions, rate limits, content policy, and persistence validation.
+
 ## Cross-cutting API requirements
 
 - **AuthN** — frontend auth uses opaque server-side session cookies (not JWTs); every mutating call validates the session or an explicit non-frontend service credential
@@ -181,6 +202,8 @@ and applicable `role_indicators` (`school_admin` and/or `staff_faculty`).
 
 ## Validation & safety
 
+- BFF request and response shapes validated with Zod; Go remains authoritative
+  for domain, security, and persistence rules
 - Character limits enforced server-side (event description, bio, etc.)
 - Basic blocked-language filter on names, bios, event/team text, reports, and
   support messages; reject matches before persistence

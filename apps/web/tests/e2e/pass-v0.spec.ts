@@ -102,6 +102,30 @@ test("event server actions create, toggle interest, and cancel", async ({
   await expectNoHorizontalOverflow(page);
 });
 
+test("event validation returns accessible field errors before calling the API", async ({
+  page
+}) => {
+  await logIn(page, "player@example.test", "/events/new");
+  await page.getByLabel("Title").fill("Invalid schedule example");
+  await page.getByLabel("Starts at").fill("2037-03-10T05:00:00Z");
+  await page.getByLabel("Ends at").fill("2037-03-10T02:00:00Z");
+  await page.getByLabel("Games").selectOption("game-valorant");
+  await page.getByRole("button", { name: "Create event" }).click();
+
+  await expect(page).toHaveURL(/\/events\/new$/);
+  await expect(page.getByText("End time must be after start time.")).toBeVisible();
+  await expect(page.getByLabel("Ends at")).toHaveAttribute(
+    "aria-invalid",
+    "true"
+  );
+  await expect(page.getByLabel("Ends at")).toHaveAttribute(
+    "aria-describedby",
+    "ends_at-error"
+  );
+  await page.mouse.move(0, 0);
+  await expectAccessible(page);
+});
+
 test("team server actions join, promote a captain, and transfer ownership", async ({
   context,
   page

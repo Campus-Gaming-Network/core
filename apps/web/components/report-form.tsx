@@ -4,6 +4,7 @@ import { Alert } from "@heroui/react/alert";
 import { Button } from "@heroui/react/button";
 import { TextArea } from "@heroui/react/textarea";
 import { useActionState } from "react";
+import { FieldError, fieldErrorProps } from "./form-field-error";
 import {
   reportEventAction,
   reportUserAction
@@ -44,7 +45,9 @@ export function ReportForm({ targetID, targetType }: ReportFormProps) {
           maxLength={2000}
           rows={4}
           placeholder="Tell us what looks unsafe, abusive, spammy, or misleading."
+          {...fieldErrorProps(state, "reason")}
         />
+        <FieldError name="reason" state={state} />
       </label>
       <Button variant="secondary" type="submit" isDisabled={pending}>
         {pending ? "Submitting..." : "Submit report"}

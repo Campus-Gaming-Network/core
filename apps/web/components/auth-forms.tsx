@@ -6,6 +6,7 @@ import { Input } from "@heroui/react/input";
 import { ListBox } from "@heroui/react/list-box";
 import { Select } from "@heroui/react/select";
 import { useActionState } from "react";
+import { FieldError, fieldErrorProps } from "./form-field-error";
 import {
   forgotPasswordAction,
   loginAction,
@@ -32,11 +33,25 @@ export function SignupForm({ schools, selectedSchoolId }: SignupFormProps) {
       <FormNotice state={state} />
       <label>
         Name
-        <Input name="name" autoComplete="name" required maxLength={120} />
+        <Input
+          name="name"
+          autoComplete="name"
+          required
+          maxLength={120}
+          {...fieldErrorProps(state, "name")}
+        />
+        <FieldError name="name" state={state} />
       </label>
       <label>
         Email
-        <Input name="email" type="email" autoComplete="email" required />
+        <Input
+          name="email"
+          type="email"
+          autoComplete="email"
+          required
+          {...fieldErrorProps(state, "email")}
+        />
+        <FieldError name="email" state={state} />
       </label>
       <label>
         Password
@@ -46,7 +61,9 @@ export function SignupForm({ schools, selectedSchoolId }: SignupFormProps) {
           autoComplete="new-password"
           minLength={8}
           required
+          {...fieldErrorProps(state, "password")}
         />
+        <FieldError name="password" state={state} />
       </label>
       <label>
         Time zone
@@ -55,7 +72,9 @@ export function SignupForm({ schools, selectedSchoolId }: SignupFormProps) {
           defaultValue="America/Los_Angeles"
           autoComplete="off"
           required
+          {...fieldErrorProps(state, "timezone")}
         />
+        <FieldError name="timezone" state={state} />
       </label>
       <label>
         Home school
@@ -65,6 +84,7 @@ export function SignupForm({ schools, selectedSchoolId }: SignupFormProps) {
           defaultSelectedKey={selectedSchoolId || ""}
           aria-label="Home school"
           isRequired
+          {...fieldErrorProps(state, "home_school_id")}
         >
           <Select.Trigger>
             <Select.Value />
@@ -91,11 +111,18 @@ export function SignupForm({ schools, selectedSchoolId }: SignupFormProps) {
             </ListBox>
           </Select.Popover>
         </Select>
+        <FieldError name="home_school_id" state={state} />
       </label>
       <label className="checkbox-field">
-        <input type="checkbox" name="age_confirmed" required />
+        <input
+          type="checkbox"
+          name="age_confirmed"
+          required
+          {...fieldErrorProps(state, "age_confirmed")}
+        />
         <span>I confirm I am 18 or older.</span>
       </label>
+      <FieldError name="age_confirmed" state={state} />
       <Button type="submit" isDisabled={pending}>
         {pending ? "Creating account..." : "Create account"}
       </Button>
@@ -126,7 +153,14 @@ export function LoginForm({
       <FormNotice state={state} />
       <label>
         Email
-        <Input name="email" type="email" autoComplete="email" required />
+        <Input
+          name="email"
+          type="email"
+          autoComplete="email"
+          required
+          {...fieldErrorProps(state, "email")}
+        />
+        <FieldError name="email" state={state} />
       </label>
       <label>
         Password
@@ -135,7 +169,9 @@ export function LoginForm({
           type="password"
           autoComplete="current-password"
           required
+          {...fieldErrorProps(state, "password")}
         />
+        <FieldError name="password" state={state} />
       </label>
       <Button type="submit" isDisabled={pending}>
         {pending ? "Logging in..." : "Log in"}
@@ -155,7 +191,14 @@ export function ForgotPasswordForm() {
       <FormNotice state={state} />
       <label>
         Email
-        <Input name="email" type="email" autoComplete="email" required />
+        <Input
+          name="email"
+          type="email"
+          autoComplete="email"
+          required
+          {...fieldErrorProps(state, "email")}
+        />
+        <FieldError name="email" state={state} />
       </label>
       <Button type="submit" isDisabled={pending}>
         {pending ? "Sending..." : "Send reset link"}
@@ -174,6 +217,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
     <form action={action} className="form-stack">
       <input type="hidden" name="token" value={token} />
       <FormNotice state={state} />
+      <FieldError name="token" state={state} />
       <label>
         New password
         <Input
@@ -182,7 +226,9 @@ export function ResetPasswordForm({ token }: { token: string }) {
           autoComplete="new-password"
           minLength={8}
           required
+          {...fieldErrorProps(state, "password")}
         />
+        <FieldError name="password" state={state} />
       </label>
       <Button type="submit" isDisabled={pending}>
         {pending ? "Resetting..." : "Reset password"}
@@ -202,7 +248,14 @@ export function ResendVerificationForm() {
       <FormNotice state={state} />
       <label>
         Email
-        <Input name="email" type="email" autoComplete="email" required />
+        <Input
+          name="email"
+          type="email"
+          autoComplete="email"
+          required
+          {...fieldErrorProps(state, "email")}
+        />
+        <FieldError name="email" state={state} />
       </label>
       <Button type="submit" isDisabled={pending}>
         {pending ? "Sending..." : "Resend verification"}

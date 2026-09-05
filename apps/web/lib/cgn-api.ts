@@ -1,182 +1,46 @@
-export type School = {
-  id: string;
-  unitid?: number;
-  name: string;
-  alias?: string;
-  slug: string;
-  city?: string;
-  state?: string;
-  zip?: string;
-  website_url?: string;
-  latitude?: number;
-  longitude?: number;
-  is_main_campus: boolean;
-  num_branches: number;
-};
-
-export type SchoolSummary = Pick<
+import type * as z from "zod";
+import type {
+  Event,
+  EventDetail,
+  EventFormat,
+  EventLifecycle,
+  EventRSVP,
+  EventVisibility,
+  LockedEvent,
+  PublicProfile,
   School,
-  "id" | "name" | "slug" | "city" | "state"
->;
+  SchoolSummary,
+  TeamRole
+} from "./api-contracts";
 
-export type SchoolsResponse = {
-  schools: School[];
-  limit: number;
-  offset: number;
-};
-
-export type FollowedSchoolsResponse = {
-  schools: School[];
-};
-
-export type Game = {
-  id: string;
-  name: string;
-  slug: string;
-  cover_url?: string;
-};
-
-export type GamesResponse = {
-  games: Game[];
-};
-
-export type GameSummary = Pick<Game, "id" | "name" | "slug">;
-
-export type EventVisibility = "public" | "unlisted" | "private";
-
-export type EventFormat = "online" | "in_person" | "hybrid";
-
-export type EventLifecycle =
-  | "upcoming"
-  | "happening_now"
-  | "ended"
-  | "full";
-
-export type EventRSVP = "yes" | "maybe" | "no";
-
-export type Event = {
-  id: string;
-  title: string;
-  slug: string;
-  description: string;
-  visibility: EventVisibility;
-  format: EventFormat;
-  starts_at: string;
-  ends_at: string;
-  timezone: string;
-  location_name?: string;
-  address?: string;
-  online_url?: string;
-  capacity?: number;
-  rsvp_yes_count: number;
-  interest_count: number;
-  lifecycle: EventLifecycle;
-  recurrence_rule?: "weekly" | "biweekly" | "monthly";
-  recurrence_until?: string;
-  is_paid: boolean;
-  payment_note?: string;
-  payment_url?: string;
-  host_school: SchoolSummary;
-  games: GameSummary[];
-  organizers?: EventOrganizer[];
-  viewer_rsvp?: EventRSVP;
-  viewer_interested?: boolean;
-  viewer_can_edit?: boolean;
-};
-
-export type EventOrganizer = {
-  id: string;
-  name: string;
-  role: "creator" | "organizer";
-  role_indicators?: string[];
-};
-
-export type LockedEvent = {
-  slug: string;
-  visibility: "private";
-  locked: true;
-};
-
-export type EventDetail = Event | LockedEvent;
-
-export type EventsResponse = {
-  events: Event[];
-  limit: number;
-  offset: number;
-};
-
-export type DashboardEventsResponse = {
-  upcoming_rsvps: Event[];
-  followed_school_events: Event[];
-};
-
-export type TeamRole = "owner" | "captain" | "member";
-
-export type TeamMember = {
-  user_id: string;
-  name: string;
-  role: TeamRole;
-};
-
-export type Team = {
-  id: string;
-  name: string;
-  slug: string;
-  description: string;
-  owner_user_id: string;
-  member_count: number;
-  school?: SchoolSummary;
-  games: GameSummary[];
-  viewer_role?: TeamRole;
-  members?: TeamMember[];
-};
-
-export type TeamsResponse = {
-  teams: Team[];
-  limit: number;
-  offset: number;
-};
-
-export type MyTeamsResponse = Omit<TeamsResponse, "offset">;
-
-export type EventUnlockResponse = {
-  event: Event;
-  unlock_token: string;
-  expires_at: string;
-};
-
-export type SocialLink = {
-  id?: string;
-  label: string;
-  url: string;
-};
-
-export type Profile = {
-  id: string;
-  email: string;
-  email_verified_at?: string;
-  verification_level: string;
-  name: string;
-  avatar_url?: string;
-  bio?: string;
-  timezone: string;
-  home_school_id: string;
-  home_school?: SchoolSummary;
-  social_links?: SocialLink[];
-  role_indicators?: string[];
-};
-
-export type PublicProfile = {
-  id: string;
-  name: string;
-  avatar_url?: string;
-  bio?: string;
-  verification_level: string;
-  home_school_id: string;
-  home_school?: SchoolSummary;
-  social_links?: SocialLink[];
-  role_indicators?: string[];
-};
+export type {
+  DashboardEventsResponse,
+  Event,
+  EventDetail,
+  EventFormat,
+  EventLifecycle,
+  EventOrganizer,
+  EventRSVP,
+  EventUnlockResponse,
+  EventVisibility,
+  EventsResponse,
+  FollowedSchoolsResponse,
+  Game,
+  GamesResponse,
+  GameSummary,
+  LockedEvent,
+  MyTeamsResponse,
+  Profile,
+  PublicProfile,
+  School,
+  SchoolSummary,
+  SchoolsResponse,
+  SocialLink,
+  Team,
+  TeamMember,
+  TeamRole,
+  TeamsResponse
+} from "./api-contracts";
 
 export type ApiResult<T> = {
   data: T;
@@ -188,8 +52,9 @@ export type Fetcher = (
   init?: RequestInit
 ) => Promise<Response>;
 
-type ApiRequestOptions = {
+type ApiRequestOptions<TSchema extends z.ZodType> = {
   path: string;
+  responseSchema: TSchema;
   method?: string;
   body?: unknown;
   cookieHeader?: string;
@@ -217,6 +82,24 @@ export class ApiError extends Error {
   }
 }
 
+export type ApiContractIssue = {
+  code: string;
+  message: string;
+  path: PropertyKey[];
+};
+
+export class ApiContractError extends Error {
+  readonly path: string;
+  readonly issues: ApiContractIssue[];
+
+  constructor(path: string, issues: ApiContractIssue[]) {
+    super(`API response did not match its contract for ${path}`);
+    this.name = "ApiContractError";
+    this.path = path;
+    this.issues = issues;
+  }
+}
+
 type ErrorPayload = {
   error?: unknown;
 };
@@ -232,8 +115,9 @@ export function buildApiUrl(baseUrl: string, path: string) {
   return `${base}${suffix}`;
 }
 
-export async function apiRequest<T>({
+export async function apiRequest<TSchema extends z.ZodType>({
   path,
+  responseSchema,
   method = "GET",
   body,
   cookieHeader,
@@ -242,7 +126,7 @@ export async function apiRequest<T>({
   headers,
   fetcher = fetch,
   baseUrl = apiBaseUrl()
-}: ApiRequestOptions): Promise<ApiResult<T>> {
+}: ApiRequestOptions<TSchema>): Promise<ApiResult<z.output<TSchema>>> {
   const requestHeaders = new Headers(headers);
 
   if (body !== undefined && !requestHeaders.has("content-type")) {
@@ -273,10 +157,20 @@ export async function apiRequest<T>({
     throw new ApiError(response.status, errorCode(payload, response.status));
   }
 
-  return {
-    data: payload as T,
-    response
-  };
+  const parsed = responseSchema.safeParse(payload);
+
+  if (!parsed.success) {
+    throw new ApiContractError(
+      path,
+      parsed.error.issues.map(({ code, message, path: issuePath }) => ({
+        code,
+        message,
+        path: issuePath
+      }))
+    );
+  }
+
+  return { data: parsed.data, response };
 }
 
 async function readPayload(response: Response) {

@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import * as z from "zod";
 import {
   ApiError,
+  ApiContractError,
   apiRequest,
   buildApiUrl,
   eventFormatLabel,
@@ -51,13 +53,14 @@ test("apiRequest sends JSON and forwards the incoming cookie header", async () =
     });
   };
 
-  const result = await apiRequest<{ ok: boolean }>({
+  const result = await apiRequest({
     path: "/auth/login",
     method: "POST",
     body: { email: "player@example.com" },
     cookieHeader: "cgn_session=abc",
     baseUrl: "http://api:8080",
-    fetcher
+    fetcher,
+    responseSchema: z.object({ ok: z.boolean() })
   });
 
   assert.deepEqual(result.data, { ok: true });
@@ -82,12 +85,44 @@ test("apiRequest throws ApiError with backend error code", async () => {
       apiRequest({
         path: "/auth/login",
         baseUrl: "http://api:8080",
-        fetcher: invalidCredentialsFetcher
+        fetcher: invalidCredentialsFetcher,
+        responseSchema: z.never()
       }),
     (error) =>
       error instanceof ApiError &&
       error.status === 401 &&
       error.code === "invalid_credentials"
+  );
+});
+
+test("apiRequest rejects a successful response that violates its schema", async () => {
+  await assert.rejects(
+    () =>
+      apiRequest({
+        path: "/profile",
+        baseUrl: "http://api:8080",
+        fetcher: async () =>
+          new Response(JSON.stringify({ ok: "yes" }), { status: 200 }),
+        responseSchema: z.object({ ok: z.boolean() })
+      }),
+    (error) =>
+      error instanceof ApiContractError &&
+      error.path === "/profile" &&
+      error.issues[0]?.path[0] === "ok"
+  );
+});
+
+test("apiRequest reports malformed successful JSON as a contract error", async () => {
+  await assert.rejects(
+    () =>
+      apiRequest({
+        path: "/profile",
+        baseUrl: "http://api:8080",
+        fetcher: async () => new Response("not-json", { status: 200 }),
+        responseSchema: z.object({ id: z.string() })
+      }),
+    (error) =>
+      error instanceof ApiContractError && error.path === "/profile"
   );
 });
 

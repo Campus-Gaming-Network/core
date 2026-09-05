@@ -77,8 +77,7 @@ function capacityFromForm(formData: FormData) {
     return undefined;
   }
 
-  const parsed = Number.parseInt(raw, 10);
-  return Number.isFinite(parsed) ? parsed : 0;
+  return Number(raw);
 }
 
 function isString(value: FormDataEntryValue): value is string {

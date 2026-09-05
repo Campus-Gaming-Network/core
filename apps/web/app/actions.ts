@@ -4,10 +4,7 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import {
-  type Event,
-  type EventUnlockResponse,
-  type Profile,
-  type Team,
+  ApiContractError,
   ApiError,
   apiRequest,
   formString,
@@ -16,11 +13,41 @@ import {
   userMessageForApiError
 } from "../lib/cgn-api";
 import {
+  emptyResponseSchema,
+  eventSchema,
+  eventUnlockResponseSchema,
+  idResponseSchema,
+  profileSchema,
+  statusResponseSchema,
+  teamSchema
+} from "../lib/api-contracts";
+import {
   eventBodyFromForm,
   socialLinksFromForm,
   teamBodyFromForm
 } from "../lib/action-payloads";
 import { type FormState } from "../lib/form-state";
+import {
+  createEventFormSchema,
+  createTeamFormSchema,
+  deleteAccountFormSchema,
+  emailFormSchema,
+  eventInterestFormSchema,
+  formValidationFailure,
+  loginFormSchema,
+  passwordFormSchema,
+  profileFormSchema,
+  reportFormSchema,
+  resetPasswordFormSchema,
+  rsvpFormSchema,
+  schoolFollowFormSchema,
+  signupFormSchema,
+  slugFormSchema,
+  supportTicketFormSchema,
+  teamCaptainFormSchema,
+  teamOwnershipFormSchema,
+  updateEventFormSchema
+} from "../lib/form-validation";
 import {
   buildCreateEventRequest,
   buildDeleteEventRequest,
@@ -42,8 +69,19 @@ export async function signupAction(
   _previousState: FormState,
   formData: FormData
 ): Promise<FormState> {
+  const request = buildSignupRequest(formData);
+  const validated = signupFormSchema.safeParse(request.body);
+
+  if (!validated.success) {
+    return formValidationFailure(validated.error);
+  }
+
   try {
-    await apiRequest<Profile>(buildSignupRequest(formData));
+    await apiRequest({
+      ...request,
+      body: validated.data,
+      responseSchema: profileSchema
+    });
 
     return {
       status: "success",
@@ -59,14 +97,25 @@ export async function loginAction(
   _previousState: FormState,
   formData: FormData
 ): Promise<FormState> {
+  const validated = loginFormSchema.safeParse({
+    email: formString(formData, "email"),
+    password: formString(formData, "password"),
+    next: formString(formData, "next") || undefined
+  });
+
+  if (!validated.success) {
+    return formValidationFailure(validated.error);
+  }
+
   try {
-    const result = await apiRequest<Profile>({
+    const result = await apiRequest({
       path: "/auth/login",
       method: "POST",
       body: {
-        email: formString(formData, "email"),
-        password: formString(formData, "password")
-      }
+        email: validated.data.email,
+        password: validated.data.password
+      },
+      responseSchema: profileSchema
     });
 
     await mirrorSessionCookie(result.response);
@@ -74,19 +123,21 @@ export async function loginAction(
     return failure(error);
   }
 
-  redirect(safeRedirect(formString(formData, "next")) ?? "/account");
+  redirect(safeRedirect(validated.data.next ?? "") ?? "/account");
 }
 
 export async function logoutAction() {
   try {
-    const result = await apiRequest<void>({
+    const result = await apiRequest({
       path: "/auth/logout",
       method: "POST",
-      cookieHeader: await incomingCookieHeader()
+      cookieHeader: await incomingCookieHeader(),
+      responseSchema: emptyResponseSchema
     });
 
     await mirrorSessionCookie(result.response);
-  } catch {
+  } catch (error) {
+    reportApiContractError(error);
     const cookieStore = await cookies();
     cookieStore.delete(sessionCookieName());
   }
@@ -99,13 +150,20 @@ export async function forgotPasswordAction(
   _previousState: FormState,
   formData: FormData
 ): Promise<FormState> {
+  const validated = emailFormSchema.safeParse({
+    email: formString(formData, "email")
+  });
+
+  if (!validated.success) {
+    return formValidationFailure(validated.error);
+  }
+
   try {
-    await apiRequest<{ status: string }>({
+    await apiRequest({
       path: "/auth/forgot-password",
       method: "POST",
-      body: {
-        email: formString(formData, "email")
-      }
+      body: validated.data,
+      responseSchema: statusResponseSchema
     });
 
     return {
@@ -122,14 +180,21 @@ export async function resetPasswordAction(
   _previousState: FormState,
   formData: FormData
 ): Promise<FormState> {
+  const validated = resetPasswordFormSchema.safeParse({
+    token: formString(formData, "token"),
+    password: formString(formData, "password")
+  });
+
+  if (!validated.success) {
+    return formValidationFailure(validated.error);
+  }
+
   try {
-    await apiRequest<void>({
+    await apiRequest({
       path: "/auth/reset-password",
       method: "POST",
-      body: {
-        token: formString(formData, "token"),
-        password: formString(formData, "password")
-      }
+      body: validated.data,
+      responseSchema: emptyResponseSchema
     });
   } catch (error) {
     return failure(error);
@@ -142,10 +207,19 @@ export async function resendVerificationAction(
   _previousState: FormState,
   formData: FormData
 ): Promise<FormState> {
+  const request = buildResendVerificationRequest(formData);
+  const validated = emailFormSchema.safeParse(request.body);
+
+  if (!validated.success) {
+    return formValidationFailure(validated.error);
+  }
+
   try {
-    await apiRequest<{ status: string }>(
-      buildResendVerificationRequest(formData)
-    );
+    await apiRequest({
+      ...request,
+      body: validated.data,
+      responseSchema: statusResponseSchema
+    });
 
     return {
       status: "success",
@@ -161,17 +235,24 @@ export async function updateProfileAction(
   _previousState: FormState,
   formData: FormData
 ): Promise<FormState> {
+  const validated = profileFormSchema.safeParse({
+    name: formString(formData, "name"),
+    bio: formString(formData, "bio"),
+    timezone: formString(formData, "timezone"),
+    social_links: socialLinksFromForm(formData)
+  });
+
+  if (!validated.success) {
+    return formValidationFailure(validated.error);
+  }
+
   try {
-    await apiRequest<Profile>({
+    await apiRequest({
       path: "/me",
       method: "PATCH",
       cookieHeader: await incomingCookieHeader(),
-      body: {
-        name: formString(formData, "name"),
-        bio: formString(formData, "bio"),
-        timezone: formString(formData, "timezone"),
-        social_links: socialLinksFromForm(formData)
-      }
+      body: validated.data,
+      responseSchema: profileSchema
     });
 
     revalidatePath("/account");
@@ -189,17 +270,24 @@ export async function submitSupportTicketAction(
   _previousState: FormState,
   formData: FormData
 ): Promise<FormState> {
+  const validated = supportTicketFormSchema.safeParse({
+    contact_email: formString(formData, "contact_email"),
+    name: formString(formData, "name"),
+    subject: formString(formData, "subject"),
+    message: formString(formData, "message")
+  });
+
+  if (!validated.success) {
+    return formValidationFailure(validated.error);
+  }
+
   try {
-    await apiRequest<{ id: string }>({
+    await apiRequest({
       path: "/support-tickets",
       method: "POST",
       cookieHeader: await incomingCookieHeader(),
-      body: {
-        contact_email: formString(formData, "contact_email"),
-        name: formString(formData, "name"),
-        subject: formString(formData, "subject"),
-        message: formString(formData, "message")
-      }
+      body: validated.data,
+      responseSchema: idResponseSchema
     });
 
     return {
@@ -216,15 +304,25 @@ export async function reportEventAction(
   formData: FormData
 ): Promise<FormState> {
   const slug = formString(formData, "slug");
+  const validatedTarget = slugFormSchema.safeParse({ slug });
+  const validated = reportFormSchema.safeParse({
+    reason: formString(formData, "reason")
+  });
+
+  if (!validatedTarget.success) {
+    return formValidationFailure(validatedTarget.error);
+  }
+  if (!validated.success) {
+    return formValidationFailure(validated.error);
+  }
 
   try {
-    await apiRequest<{ id: string }>({
+    await apiRequest({
       path: `/events/${encodeURIComponent(slug)}/report`,
       method: "POST",
       cookieHeader: await incomingCookieHeader(),
-      body: {
-        reason: formString(formData, "reason")
-      }
+      body: validated.data,
+      responseSchema: idResponseSchema
     });
 
     return {
@@ -241,15 +339,25 @@ export async function reportUserAction(
   formData: FormData
 ): Promise<FormState> {
   const userID = formString(formData, "user_id");
+  const validatedTarget = slugFormSchema.safeParse({ slug: userID });
+  const validated = reportFormSchema.safeParse({
+    reason: formString(formData, "reason")
+  });
+
+  if (!validatedTarget.success) {
+    return formValidationFailure(validatedTarget.error);
+  }
+  if (!validated.success) {
+    return formValidationFailure(validated.error);
+  }
 
   try {
-    await apiRequest<{ id: string }>({
+    await apiRequest({
       path: `/users/${encodeURIComponent(userID)}/report`,
       method: "POST",
       cookieHeader: await incomingCookieHeader(),
-      body: {
-        reason: formString(formData, "reason")
-      }
+      body: validated.data,
+      responseSchema: idResponseSchema
     });
 
     return {
@@ -262,40 +370,62 @@ export async function reportUserAction(
 }
 
 export async function followSchoolAction(formData: FormData) {
-  const schoolID = formString(formData, "school_id");
-  const slug = formString(formData, "slug");
+  const validated = schoolFollowFormSchema.safeParse({
+    school_id: formString(formData, "school_id"),
+    slug: formString(formData, "slug")
+  });
+  const schoolID = validated.success ? validated.data.school_id : "";
+  const slug = validated.success ? validated.data.slug : "";
   let destination = `/schools/${encodeURIComponent(slug)}?follow=added`;
 
-  try {
-    await apiRequest<void>({
-      path: `/schools/${encodeURIComponent(schoolID)}/follow`,
-      method: "POST",
-      cookieHeader: await incomingCookieHeader()
-    });
-  } catch (error) {
-    destination = followErrorDestination(error, slug);
+  if (!validated.success) {
+    destination = "/schools?follow=failed";
+  } else {
+    try {
+      await apiRequest({
+        path: `/schools/${encodeURIComponent(schoolID)}/follow`,
+        method: "POST",
+        cookieHeader: await incomingCookieHeader(),
+        responseSchema: emptyResponseSchema
+      });
+    } catch (error) {
+      destination = followErrorDestination(error, slug);
+    }
   }
 
-  revalidatePath(`/schools/${slug}`);
+  if (validated.success) {
+    revalidatePath(`/schools/${slug}`);
+  }
   redirect(destination);
 }
 
 export async function unfollowSchoolAction(formData: FormData) {
-  const schoolID = formString(formData, "school_id");
-  const slug = formString(formData, "slug");
+  const validated = schoolFollowFormSchema.safeParse({
+    school_id: formString(formData, "school_id"),
+    slug: formString(formData, "slug")
+  });
+  const schoolID = validated.success ? validated.data.school_id : "";
+  const slug = validated.success ? validated.data.slug : "";
   let destination = `/schools/${encodeURIComponent(slug)}?follow=removed`;
 
-  try {
-    await apiRequest<void>({
-      path: `/schools/${encodeURIComponent(schoolID)}/follow`,
-      method: "DELETE",
-      cookieHeader: await incomingCookieHeader()
-    });
-  } catch (error) {
-    destination = followErrorDestination(error, slug);
+  if (!validated.success) {
+    destination = "/schools?follow=failed";
+  } else {
+    try {
+      await apiRequest({
+        path: `/schools/${encodeURIComponent(schoolID)}/follow`,
+        method: "DELETE",
+        cookieHeader: await incomingCookieHeader(),
+        responseSchema: emptyResponseSchema
+      });
+    } catch (error) {
+      destination = followErrorDestination(error, slug);
+    }
   }
 
-  revalidatePath(`/schools/${slug}`);
+  if (validated.success) {
+    revalidatePath(`/schools/${slug}`);
+  }
   redirect(destination);
 }
 
@@ -303,11 +433,23 @@ export async function createEventAction(
   _previousState: FormState,
   formData: FormData
 ): Promise<FormState> {
+  const request = buildCreateEventRequest(
+    formData,
+    await incomingCookieHeader()
+  );
+  const validated = createEventFormSchema.safeParse(request.body);
+
+  if (!validated.success) {
+    return formValidationFailure(validated.error);
+  }
+
   let destination = "/events";
   try {
-    const { data } = await apiRequest<Event>(
-      buildCreateEventRequest(formData, await incomingCookieHeader())
-    );
+    const { data } = await apiRequest({
+      ...request,
+      body: validated.data,
+      responseSchema: eventSchema
+    });
 
     revalidatePath("/events");
     destination = `/events/${data.slug}?event=created`;
@@ -323,13 +465,26 @@ export async function updateEventAction(
   formData: FormData
 ): Promise<FormState> {
   const slug = formString(formData, "slug");
+  const validatedSlug = slugFormSchema.safeParse({ slug });
+  const validated = updateEventFormSchema.safeParse(
+    eventBodyFromForm(formData)
+  );
+
+  if (!validatedSlug.success) {
+    return formValidationFailure(validatedSlug.error);
+  }
+  if (!validated.success) {
+    return formValidationFailure(validated.error);
+  }
+
   let destination = `/events/${encodeURIComponent(slug)}`;
   try {
-    const { data } = await apiRequest<Event>({
+    const { data } = await apiRequest({
       path: `/events/${encodeURIComponent(slug)}`,
       method: "PATCH",
       cookieHeader: await incomingCookieHeader(),
-      body: eventBodyFromForm(formData)
+      body: validated.data,
+      responseSchema: eventSchema
     });
 
     revalidatePath("/events");
@@ -343,13 +498,23 @@ export async function updateEventAction(
 }
 
 export async function deleteEventAction(formData: FormData) {
-  const slug = formString(formData, "slug");
+  const validated = slugFormSchema.safeParse({
+    slug: formString(formData, "slug")
+  });
+
+  if (!validated.success) {
+    redirect("/events?event=cancel-failed");
+  }
+
+  const { slug } = validated.data;
 
   try {
-    await apiRequest<void>(
-      buildDeleteEventRequest(slug, await incomingCookieHeader())
-    );
-  } catch {
+    await apiRequest({
+      ...buildDeleteEventRequest(slug, await incomingCookieHeader()),
+      responseSchema: emptyResponseSchema
+    });
+  } catch (error) {
+    reportApiContractError(error);
     redirect(`/events/${encodeURIComponent(slug)}?event=cancel-failed`);
   }
 
@@ -361,13 +526,20 @@ export async function createTeamAction(
   _previousState: FormState,
   formData: FormData
 ): Promise<FormState> {
+  const validated = createTeamFormSchema.safeParse(teamBodyFromForm(formData));
+
+  if (!validated.success) {
+    return formValidationFailure(validated.error);
+  }
+
   let destination = "/teams";
   try {
-    const { data } = await apiRequest<Team>({
+    const { data } = await apiRequest({
       path: "/teams",
       method: "POST",
       cookieHeader: await incomingCookieHeader(),
-      body: teamBodyFromForm(formData)
+      body: validated.data,
+      responseSchema: teamSchema
     });
 
     revalidatePath("/teams");
@@ -384,12 +556,26 @@ export async function joinTeamAction(
   formData: FormData
 ): Promise<FormState> {
   const slug = formString(formData, "slug");
+  const validatedSlug = slugFormSchema.safeParse({ slug });
+  const validated = passwordFormSchema.safeParse({
+    password: formString(formData, "password")
+  });
+
+  if (!validatedSlug.success) {
+    return formValidationFailure(validatedSlug.error);
+  }
+  if (!validated.success) {
+    return formValidationFailure(validated.error);
+  }
+
   let destination = `/teams/${encodeURIComponent(slug)}?team=joined`;
 
   try {
-    const { data } = await apiRequest<Team>(
-      buildTeamJoinRequest(slug, formData, await incomingCookieHeader())
-    );
+    const { data } = await apiRequest({
+      ...buildTeamJoinRequest(slug, formData, await incomingCookieHeader()),
+      body: validated.data,
+      responseSchema: teamSchema
+    });
 
     revalidatePath("/teams");
     revalidatePath(`/teams/${data.slug}`);
@@ -402,50 +588,68 @@ export async function joinTeamAction(
 }
 
 export async function setTeamCaptainAction(formData: FormData) {
-  const slug = formString(formData, "slug");
-  const userID = formString(formData, "user_id");
-  const captain = formString(formData, "captain") === "true";
-  let destination = `/teams/${encodeURIComponent(slug)}?team=manage-failed`;
+  const validated = teamCaptainFormSchema.safeParse({
+    slug: formString(formData, "slug"),
+    user_id: formString(formData, "user_id"),
+    captain: formString(formData, "captain")
+  });
+  const slug = validated.success ? validated.data.slug : "";
+  let destination = validated.success
+    ? `/teams/${encodeURIComponent(slug)}?team=manage-failed`
+    : "/teams?team=manage-failed";
 
-  try {
-    const { data } = await apiRequest<Team>({
-      path: `/teams/${encodeURIComponent(slug)}/captains`,
-      method: "POST",
-      cookieHeader: await incomingCookieHeader(),
-      body: {
-        user_id: userID,
-        captain
-      }
-    });
+  if (validated.success) {
+    try {
+      const { data } = await apiRequest({
+        path: `/teams/${encodeURIComponent(slug)}/captains`,
+        method: "POST",
+        cookieHeader: await incomingCookieHeader(),
+        body: {
+          user_id: validated.data.user_id,
+          captain: validated.data.captain
+        },
+        responseSchema: teamSchema
+      });
 
-    revalidatePath(`/teams/${data.slug}`);
-    destination = `/teams/${data.slug}?team=captain-updated`;
-  } catch {
-    // Keep this as a no-JS management action with a simple redirect notice.
+      revalidatePath(`/teams/${data.slug}`);
+      destination = `/teams/${data.slug}?team=captain-updated`;
+    } catch (error) {
+      reportApiContractError(error);
+      // Keep this as a no-JS management action with a simple redirect notice.
+    }
   }
 
   redirect(destination);
 }
 
 export async function transferTeamOwnershipAction(formData: FormData) {
-  const slug = formString(formData, "slug");
-  const newOwnerUserID = formString(formData, "new_owner_user_id");
-  let destination = `/teams/${encodeURIComponent(slug)}?team=manage-failed`;
+  const validated = teamOwnershipFormSchema.safeParse({
+    slug: formString(formData, "slug"),
+    new_owner_user_id: formString(formData, "new_owner_user_id")
+  });
+  const slug = validated.success ? validated.data.slug : "";
+  let destination = validated.success
+    ? `/teams/${encodeURIComponent(slug)}?team=manage-failed`
+    : "/teams?team=manage-failed";
 
-  try {
-    const { data } = await apiRequest<Team>(
-      buildTransferTeamOwnershipRequest(
-        slug,
-        newOwnerUserID,
-        await incomingCookieHeader()
-      )
-    );
+  if (validated.success) {
+    try {
+      const { data } = await apiRequest({
+        ...buildTransferTeamOwnershipRequest(
+          slug,
+          validated.data.new_owner_user_id,
+          await incomingCookieHeader()
+        ),
+        responseSchema: teamSchema
+      });
 
-    revalidatePath("/teams");
-    revalidatePath(`/teams/${data.slug}`);
-    destination = `/teams/${data.slug}?team=ownership-transferred`;
-  } catch {
-    // Keep this as a no-JS management action with a simple redirect notice.
+      revalidatePath("/teams");
+      revalidatePath(`/teams/${data.slug}`);
+      destination = `/teams/${data.slug}?team=ownership-transferred`;
+    } catch (error) {
+      reportApiContractError(error);
+      // Keep this as a no-JS management action with a simple redirect notice.
+    }
   }
 
   redirect(destination);
@@ -456,12 +660,26 @@ export async function unlockEventAction(
   formData: FormData
 ): Promise<FormState> {
   const slug = formString(formData, "slug");
+  const validatedSlug = slugFormSchema.safeParse({ slug });
+  const validated = passwordFormSchema.safeParse({
+    password: formString(formData, "password")
+  });
+
+  if (!validatedSlug.success) {
+    return formValidationFailure(validatedSlug.error);
+  }
+  if (!validated.success) {
+    return formValidationFailure(validated.error);
+  }
+
   let destination = `/events/${encodeURIComponent(slug)}?event=unlocked`;
 
   try {
-    const { data } = await apiRequest<EventUnlockResponse>(
-      buildUnlockEventRequest(slug, formData)
-    );
+    const { data } = await apiRequest({
+      ...buildUnlockEventRequest(slug, formData),
+      body: validated.data,
+      responseSchema: eventUnlockResponseSchema
+    });
 
     await storeEventUnlockCookie(slug, data.unlock_token, data.expires_at);
     revalidatePath(`/events/${slug}`);
@@ -477,18 +695,30 @@ export async function rsvpEventAction(
   _previousState: FormState,
   formData: FormData
 ): Promise<FormState> {
-  const slug = formString(formData, "slug");
+  const validated = rsvpFormSchema.safeParse({
+    slug: formString(formData, "slug"),
+    response: formString(formData, "response")
+  });
+
+  if (!validated.success) {
+    return formValidationFailure(validated.error);
+  }
+
+  const { slug } = validated.data;
   let destination = `/events/${encodeURIComponent(slug)}?event=rsvp-updated`;
 
   try {
-    const { data } = await apiRequest<Event>(
-      buildRsvpEventRequest(
-        slug,
-        formData,
-        await incomingCookieHeader(),
-        await eventUnlockHeaders(slug)
-      )
+    const request = buildRsvpEventRequest(
+      slug,
+      formData,
+      await incomingCookieHeader(),
+      await eventUnlockHeaders(slug)
     );
+    const { data } = await apiRequest({
+      ...request,
+      body: { response: validated.data.response },
+      responseSchema: eventSchema
+    });
 
     revalidatePath("/events");
     revalidatePath(`/events/${data.slug}`);
@@ -501,35 +731,56 @@ export async function rsvpEventAction(
 }
 
 export async function eventInterestAction(formData: FormData) {
-  const slug = formString(formData, "slug");
-  const interested = formString(formData, "interested") === "true";
-  let destination = `/events/${encodeURIComponent(slug)}?event=interest-failed`;
+  const validated = eventInterestFormSchema.safeParse({
+    slug: formString(formData, "slug"),
+    interested: formString(formData, "interested")
+  });
+  const slug = validated.success ? validated.data.slug : "";
+  const interested = validated.success ? validated.data.interested : false;
+  let destination = validated.success
+    ? `/events/${encodeURIComponent(slug)}?event=interest-failed`
+    : "/events?event=interest-failed";
 
-  try {
-    const { data } = await apiRequest<Event>(
-      buildEventInterestRequest(
-        slug,
-        interested,
-        await incomingCookieHeader(),
-        await eventUnlockHeaders(slug)
-      )
-    );
+  if (validated.success) {
+    try {
+      const { data } = await apiRequest({
+        ...buildEventInterestRequest(
+          slug,
+          interested,
+          await incomingCookieHeader(),
+          await eventUnlockHeaders(slug)
+        ),
+        responseSchema: eventSchema
+      });
 
-    revalidatePath("/events");
-    revalidatePath(`/events/${data.slug}`);
-    destination = `/events/${data.slug}?event=${interested ? "interest-added" : "interest-removed"}`;
-  } catch {
-    // Keep this form as a no-JS redirect toggle for now.
+      revalidatePath("/events");
+      revalidatePath(`/events/${data.slug}`);
+      destination = `/events/${data.slug}?event=${interested ? "interest-added" : "interest-removed"}`;
+    } catch (error) {
+      reportApiContractError(error);
+      // Keep this form as a no-JS redirect toggle for now.
+    }
   }
 
   redirect(destination);
 }
 
 function failure(error: unknown): FormState {
+  reportApiContractError(error);
+
   return {
     status: "error",
     message: userMessageForApiError(error)
   };
+}
+
+function reportApiContractError(error: unknown) {
+  if (error instanceof ApiContractError) {
+    console.error("API response contract violation", {
+      path: error.path,
+      issues: error.issues
+    });
+  }
 }
 
 async function storeEventUnlockCookie(slug: string, token: string, expiresAt: string) {
@@ -593,6 +844,8 @@ function safeRedirect(value: string) {
 }
 
 function followErrorDestination(error: unknown, slug: string) {
+  reportApiContractError(error);
+
   if (error instanceof ApiError && error.status === 401) {
     return `/login?next=${encodeURIComponent(`/schools/${slug}`)}`;
   }
@@ -604,19 +857,21 @@ export async function deleteAccountAction(
   _previousState: FormState,
   formData: FormData
 ): Promise<FormState> {
+  const validated = deleteAccountFormSchema.safeParse({
+    confirm: formString(formData, "confirm")
+  });
+
   // Typed confirmation, so an irreversible action cannot be a stray click.
-  if (formString(formData, "confirm").trim().toUpperCase() !== "DELETE") {
-    return {
-      status: "error",
-      message: "Type DELETE to confirm removing your account."
-    };
+  if (!validated.success) {
+    return formValidationFailure(validated.error);
   }
 
   try {
-    await apiRequest<void>({
+    await apiRequest({
       path: "/me",
       method: "DELETE",
-      cookieHeader: await incomingCookieHeader()
+      cookieHeader: await incomingCookieHeader(),
+      responseSchema: emptyResponseSchema
     });
   } catch (error) {
     return failure(error);

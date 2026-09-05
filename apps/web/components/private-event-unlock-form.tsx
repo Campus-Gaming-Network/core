@@ -4,6 +4,7 @@ import { Alert } from "@heroui/react/alert";
 import { Button } from "@heroui/react/button";
 import { Input } from "@heroui/react/input";
 import { useActionState } from "react";
+import { FieldError, fieldErrorProps } from "./form-field-error";
 import { unlockEventAction } from "../app/actions";
 import { initialFormState } from "../lib/form-state";
 
@@ -36,7 +37,9 @@ export function PrivateEventUnlockForm({ slug }: PrivateEventUnlockFormProps) {
           autoComplete="off"
           required
           minLength={8}
+          {...fieldErrorProps(state, "password")}
         />
+        <FieldError name="password" state={state} />
       </label>
       <Button type="submit" isDisabled={pending}>
         {pending ? "Unlocking…" : "Unlock event"}

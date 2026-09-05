@@ -3,6 +3,7 @@
 import { Alert } from "@heroui/react/alert";
 import { Button } from "@heroui/react/button";
 import { useActionState } from "react";
+import { FieldError, fieldErrorProps } from "./form-field-error";
 import { rsvpEventAction } from "../app/actions";
 import {
   type Event,
@@ -61,11 +62,13 @@ export function EventRSVPForm({ event }: EventRSVPFormProps) {
             name="response"
             type="submit"
             value={response}
+            {...fieldErrorProps(state, "response")}
           >
             {eventRSVPLabel(response)}
           </Button>
         ))}
       </div>
+      <FieldError name="response" state={state} />
     </form>
   );
 }

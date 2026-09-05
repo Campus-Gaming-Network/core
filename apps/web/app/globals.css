@@ -303,6 +303,13 @@ button.rsvp-choice[aria-pressed="true"] {
   margin-bottom: 0;
 }
 
+.form-error {
+  margin: 0;
+  color: color-mix(in srgb, var(--danger) 65%, var(--foreground));
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
 .split-fields {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import * as z from "zod";
 import { eventBodyFromForm } from "../lib/action-payloads.js";
 import {
   ApiError,
@@ -187,7 +188,8 @@ test("Pass v0 non-2xx responses preserve status, code, and user message", async 
           apiRequest({
             path: "/contract-error",
             baseUrl,
-            fetcher: errorFetcher(status, code)
+            fetcher: errorFetcher(status, code),
+            responseSchema: z.never()
           }),
         (error) => {
           assert.ok(error instanceof ApiError);
