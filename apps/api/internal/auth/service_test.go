@@ -9,17 +9,27 @@ import (
 
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/schools"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/users"
+	"github.com/jackc/pgx/v5"
 )
 
 type fakeUsers struct {
-	profile      users.Profile
-	credentials  users.Credentials
-	created      users.CreateParams
-	passwordHash string
-	deletedID    string
-	deleteErr    error
-	findEmail    string
-	findEmailErr error
+	profile                     users.Profile
+	credentials                 users.Credentials
+	created                     users.CreateParams
+	verificationHash            []byte
+	verificationExpiry          time.Time
+	createWithVerificationErr   error
+	verifyEmailErr              error
+	verifiedTokenHash           []byte
+	verifiedAt                  time.Time
+	verifyEmailCalls            int
+	updateProfileWithLinksErr   error
+	updateProfileWithLinksCalls int
+	passwordHash                string
+	deletedID                   string
+	deleteErr                   error
+	findEmail                   string
+	findEmailErr                error
 }
 
 func (f *fakeUsers) Create(_ context.Context, params users.CreateParams) (users.Profile, error) {
@@ -54,6 +64,44 @@ func (f *fakeUsers) UpdateProfile(_ context.Context, _ string, update users.Prof
 
 func (f *fakeUsers) FindCredentialsByEmail(_ context.Context, _ string) (users.Credentials, error) {
 	return f.credentials, nil
+}
+
+func (f *fakeUsers) CreateWithVerificationToken(ctx context.Context, params users.CreateParams, tokenHash []byte, expiresAt time.Time) (users.Profile, error) {
+	if f.createWithVerificationErr != nil {
+		return users.Profile{}, f.createWithVerificationErr
+	}
+	profile, err := f.Create(ctx, params)
+	if err != nil {
+		return users.Profile{}, err
+	}
+	f.verificationHash = append([]byte(nil), tokenHash...)
+	f.verificationExpiry = expiresAt
+	return profile, nil
+}
+
+func (f *fakeUsers) VerifyEmailByToken(_ context.Context, tokenHash []byte, now time.Time) error {
+	f.verifyEmailCalls++
+	f.verifiedTokenHash = append([]byte(nil), tokenHash...)
+	f.verifiedAt = now
+	if f.verifyEmailErr != nil {
+		return f.verifyEmailErr
+	}
+	return f.MarkEmailVerified(context.Background(), f.profile.ID)
+}
+
+func (f *fakeUsers) UpdateProfileWithSocialLinks(ctx context.Context, id string, update users.ProfileUpdate, links []users.SocialLink) (users.Profile, error) {
+	f.updateProfileWithLinksCalls++
+	if f.updateProfileWithLinksErr != nil {
+		return users.Profile{}, f.updateProfileWithLinksErr
+	}
+	_, err := f.UpdateProfile(ctx, id, update)
+	if err != nil {
+		return users.Profile{}, err
+	}
+	if err := f.ReplaceSocialLinks(ctx, id, links); err != nil {
+		return users.Profile{}, err
+	}
+	return f.profile, nil
 }
 
 func (f *fakeUsers) MarkEmailVerified(_ context.Context, _ string) error {
@@ -173,6 +221,31 @@ func TestAccountServiceSignupSucceedsWhenVerificationEmailFails(t *testing.T) {
 	}
 }
 
+func TestAccountServiceSignupDatabaseFailureDoesNotSendEmail(t *testing.T) {
+	databaseErr := errors.New("database unavailable")
+	userStore := &fakeUsers{createWithVerificationErr: databaseErr}
+	mailer := &fakeMailer{}
+	service := NewAccountService(userStore, fakeSchools{}, &fakeSessions{}, &fakeTokens{}, mailer, time.Hour, time.Hour, time.Hour)
+
+	_, err := service.Signup(context.Background(), users.SignupInput{
+		Email:        "player@example.com",
+		Password:     "a-long-enough-password",
+		Name:         "Player",
+		HomeSchoolID: "school-id",
+		AgeConfirmed: true,
+		Timezone:     "UTC",
+	})
+	if !errors.Is(err, databaseErr) {
+		t.Fatalf("Signup() error = %v, want %v", err, databaseErr)
+	}
+	if userStore.created.Email != "" {
+		t.Fatal("failed atomic signup exposed a partially created user")
+	}
+	if mailer.verificationToken != "" {
+		t.Fatal("failed atomic signup attempted verification delivery")
+	}
+}
+
 func TestAccountServicePasswordResetSucceedsWhenEmailFails(t *testing.T) {
 	userStore := &fakeUsers{}
 	now := time.Now()
@@ -263,6 +336,60 @@ func TestAccountServiceResendVerificationIssuesAndSendsFreshToken(t *testing.T) 
 	}
 }
 
+func TestAccountServiceVerifyEmailUsesAtomicRepositoryTransition(t *testing.T) {
+	userStore := &fakeUsers{profile: users.Profile{ID: "user-id"}}
+	service := NewAccountService(userStore, fakeSchools{}, &fakeSessions{}, &fakeTokens{}, &fakeMailer{}, time.Hour, time.Hour, time.Hour)
+	now := time.Date(2026, time.September, 5, 12, 0, 0, 0, time.UTC)
+	service.now = func() time.Time { return now }
+
+	if err := service.VerifyEmail(context.Background(), "verification-token"); err != nil {
+		t.Fatalf("VerifyEmail() error = %v", err)
+	}
+	if userStore.verifyEmailCalls != 1 {
+		t.Fatalf("VerifyEmailByToken() calls = %d, want 1", userStore.verifyEmailCalls)
+	}
+	if !bytes.Equal(userStore.verifiedTokenHash, HashToken("verification-token")) {
+		t.Fatal("VerifyEmail() did not pass the token hash to the atomic repository transition")
+	}
+	if !userStore.verifiedAt.Equal(now) {
+		t.Fatalf("verification time = %v, want %v", userStore.verifiedAt, now)
+	}
+}
+
+func TestAccountServiceVerifyEmailMapsMissingReplayAndDeletedUser(t *testing.T) {
+	for _, scenario := range []string{"missing token", "replayed token", "deleted user"} {
+		t.Run(scenario, func(t *testing.T) {
+			userStore := &fakeUsers{verifyEmailErr: pgx.ErrNoRows}
+			service := NewAccountService(userStore, fakeSchools{}, &fakeSessions{}, &fakeTokens{}, &fakeMailer{}, time.Hour, time.Hour, time.Hour)
+
+			if err := service.VerifyEmail(context.Background(), "verification-token"); !errors.Is(err, ErrInvalidToken) {
+				t.Fatalf("VerifyEmail() error = %v, want ErrInvalidToken", err)
+			}
+		})
+	}
+}
+
+func TestAccountServiceUpdateProfileUsesAtomicRepositoryTransition(t *testing.T) {
+	userStore := &fakeUsers{profile: users.Profile{ID: "user-id", Name: "Old Name", Timezone: "UTC"}}
+	service := NewAccountService(userStore, fakeSchools{}, &fakeSessions{}, &fakeTokens{}, &fakeMailer{}, time.Hour, time.Hour, time.Hour)
+	update := users.ProfileUpdate{Name: "New Name", Bio: "New bio", Timezone: "America/Los_Angeles"}
+	links := []users.SocialLink{{Label: "Discord", URL: "https://discord.com/users/player"}}
+
+	profile, err := service.UpdateProfile(context.Background(), "user-id", update, links)
+	if err != nil {
+		t.Fatalf("UpdateProfile() error = %v", err)
+	}
+	if userStore.updateProfileWithLinksCalls != 1 {
+		t.Fatalf("UpdateProfileWithSocialLinks() calls = %d, want 1", userStore.updateProfileWithLinksCalls)
+	}
+	if profile.Name != update.Name || profile.Bio != update.Bio || profile.Timezone != update.Timezone {
+		t.Fatalf("updated profile = %#v, want fields from %#v", profile, update)
+	}
+	if len(profile.SocialLinks) != 1 || profile.SocialLinks[0].Label != "Discord" {
+		t.Fatalf("updated social links = %#v, want submitted links", profile.SocialLinks)
+	}
+}
+
 func TestAccountServiceSignupPersistsHomeSchoolAndAgeConfirmation(t *testing.T) {
 	userStore := &fakeUsers{}
 	service := NewAccountService(userStore, fakeSchools{}, &fakeSessions{}, &fakeTokens{}, &fakeMailer{}, time.Hour, time.Hour, time.Hour)
@@ -285,6 +412,9 @@ func TestAccountServiceSignupPersistsHomeSchoolAndAgeConfirmation(t *testing.T) 
 	}
 	if !userStore.created.AgeConfirmedAt.Equal(confirmedAt) {
 		t.Fatalf("Create() AgeConfirmedAt = %v, want %v", userStore.created.AgeConfirmedAt, confirmedAt)
+	}
+	if userStore.verificationExpiry != confirmedAt.Add(time.Hour) || len(userStore.verificationHash) == 0 {
+		t.Fatalf("atomic signup token = (%x, %v), want a hash expiring at %v", userStore.verificationHash, userStore.verificationExpiry, confirmedAt.Add(time.Hour))
 	}
 }
 

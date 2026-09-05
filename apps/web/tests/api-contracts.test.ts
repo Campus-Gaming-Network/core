@@ -37,7 +37,15 @@ const event = {
   lifecycle: "upcoming",
   is_paid: false,
   host_school: school,
-  games: [game]
+  games: [game],
+  organizers: [
+    {
+      id: "user-1",
+      name: "Player One",
+      role: "creator",
+      verification_level: "verified"
+    }
+  ]
 };
 
 test("catalog and profile schemas accept representative API responses", () => {
@@ -59,6 +67,10 @@ test("catalog and profile schemas accept representative API responses", () => {
 
 test("event schemas validate enums, timestamps, and locked shells", () => {
   assert.equal(eventSchema.parse(event).lifecycle, "upcoming");
+  assert.equal(
+    eventSchema.parse(event).organizers?.[0]?.verification_level,
+    "verified"
+  );
   assert.deepEqual(
     eventDetailSchema.parse({
       slug: "invite-only",

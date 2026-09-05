@@ -82,10 +82,11 @@ type Event struct {
 }
 
 type Organizer struct {
-	ID             string   `json:"id"`
-	Name           string   `json:"name"`
-	Role           string   `json:"role"`
-	RoleIndicators []string `json:"role_indicators,omitempty"`
+	ID                string   `json:"id"`
+	Name              string   `json:"name"`
+	Role              string   `json:"role"`
+	VerificationLevel string   `json:"verification_level"`
+	RoleIndicators    []string `json:"role_indicators,omitempty"`
 }
 
 type LockedEvent struct {
@@ -1028,6 +1029,7 @@ func (r *PostgresRepository) populateOrganizers(ctx context.Context, event *Even
 		SELECT u.id::text,
 		       u.name,
 		       eo.role,
+		       u.verification_level,
 		       ARRAY_REMOVE(ARRAY[
 		           CASE WHEN u.verification_level = 'staff_faculty' THEN 'staff_faculty'::text END,
 		           CASE WHEN sa.user_id IS NOT NULL THEN 'school_admin'::text END
@@ -1052,7 +1054,7 @@ func (r *PostgresRepository) populateOrganizers(ctx context.Context, event *Even
 	organizers := make([]Organizer, 0)
 	for rows.Next() {
 		var organizer Organizer
-		if err := rows.Scan(&organizer.ID, &organizer.Name, &organizer.Role, &organizer.RoleIndicators); err != nil {
+		if err := rows.Scan(&organizer.ID, &organizer.Name, &organizer.Role, &organizer.VerificationLevel, &organizer.RoleIndicators); err != nil {
 			return fmt.Errorf("scan event organizer: %w", err)
 		}
 		organizers = append(organizers, organizer)

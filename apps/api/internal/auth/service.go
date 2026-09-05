@@ -74,21 +74,28 @@ func (s *AccountService) Signup(ctx context.Context, input users.SignupInput) (u
 	if err != nil {
 		return users.Profile{}, err
 	}
+	token, tokenHash, err := NewToken()
+	if err != nil {
+		return users.Profile{}, err
+	}
 	now := s.now()
-	profile, err := s.Users.Create(ctx, users.CreateParams{
+	profile, err := s.Users.CreateWithVerificationToken(ctx, users.CreateParams{
 		Email:          users.NormalizeEmail(input.Email),
 		PasswordHash:   passwordHash,
 		Name:           strings.TrimSpace(input.Name),
 		HomeSchoolID:   input.HomeSchoolID,
 		AgeConfirmedAt: now,
 		Timezone:       input.Timezone,
-	})
+	}, tokenHash, now.Add(s.VerificationTTL))
 	if err != nil {
 		return users.Profile{}, err
 	}
 
-	if err := s.sendVerification(ctx, profile); err != nil {
-		return users.Profile{}, err
+	// Provider delivery is deliberately outside the database transaction. The
+	// user and token are already durable, so delivery failure is recoverable via
+	// /auth/resend-verification and must not turn a committed signup into a 500.
+	if err := s.Mailer.SendVerification(ctx, profile.Email, token); err != nil {
+		slog.Error("verification email failed", "error", err, "user_id", profile.ID)
 	}
 	return profile, nil
 }
@@ -124,14 +131,11 @@ func (s *AccountService) VerifyEmail(ctx context.Context, rawToken string) error
 	if strings.TrimSpace(rawToken) == "" {
 		return ErrInvalidToken
 	}
-	userID, err := s.Tokens.ConsumeEmailVerificationToken(ctx, HashToken(rawToken), s.now())
+	err := s.Users.VerifyEmailByToken(ctx, HashToken(rawToken), s.now())
 	if errors.Is(err, pgx.ErrNoRows) {
 		return ErrInvalidToken
 	}
 	if err != nil {
-		return err
-	}
-	if err := s.Users.MarkEmailVerified(ctx, userID); err != nil {
 		return err
 	}
 	return nil
@@ -214,10 +218,7 @@ func (s *AccountService) UpdateProfile(ctx context.Context, userID string, updat
 	if err := users.ValidateProfileUpdate(update, links); err != nil {
 		return users.Profile{}, err
 	}
-	if err := s.Users.ReplaceSocialLinks(ctx, userID, links); err != nil {
-		return users.Profile{}, err
-	}
-	return s.Users.UpdateProfile(ctx, userID, update)
+	return s.Users.UpdateProfileWithSocialLinks(ctx, userID, update, links)
 }
 
 // sendVerification issues a verification token and emails it.

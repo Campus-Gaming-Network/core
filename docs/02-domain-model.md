@@ -177,9 +177,9 @@ slug    = slugify(eventTitle) + "-" + short
 **Edit rules**
 
 - Past events: organizers may edit **minor corrections only** — not date or location
-- Event organizer summaries show school-admin and staff/faculty role indicators
-  when applicable to the host school; future club-officer/approved-organizer
-  grants can extend this model
+- Event organizer summaries show the account verification level plus
+  school-admin and staff/faculty role indicators when applicable to the host
+  school; future club-officer/approved-organizer grants can extend this model
 
 **Reports**
 

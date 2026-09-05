@@ -222,12 +222,11 @@ Items marked **pre-launch** should not wait until after a public release.
 
 ### Known trust and infrastructure mismatches — pre-launch
 
-- [ ] **`.edu` verification:** product docs and UI define the `verified` level
-  as “Verified student,” but email verification currently leaves every `basic`
-  account at `basic`. Decide whether verified `.edu` inboxes promote to
-  `verified`, implement exact domain parsing and transition rules, and test
-  `.edu`, non-`.edu`, mixed-case, subdomain, and lookalike domains. Until then,
-  do not imply the badge is automatically awarded.
+- [x] **`.edu` verification:** verified inboxes whose normalized domain ends
+  exactly in `.edu` promote `basic` accounts to `verified`; valid subdomains
+  and mixed case qualify, lookalike suffixes do not, and staff/faculty grants
+  are preserved. The product copy treats this as a limited domain trust signal,
+  not proof of enrollment, current affiliation, or identity.
 - [ ] **Forwarded-IP rate limits:** deployment routes traffic through the web
   service/proxies, while the API limiter keys only on `RemoteAddr`. In that
   topology unrelated users may share one limiter bucket. Define the trusted

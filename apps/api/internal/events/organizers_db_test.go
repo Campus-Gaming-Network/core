@@ -63,7 +63,7 @@ func TestPostgresRepositoryGetBySlugPopulatesOrganizersAndHostScopedRoles(t *tes
 	}
 	creatorID := insertUser("Creator", hostSchoolID, "staff_faculty")
 	hostAdminID := insertUser("Host Admin", hostSchoolID, "basic")
-	otherAdminID := insertUser("Other Admin", otherSchoolID, "basic")
+	otherAdminID := insertUser("Other Admin", otherSchoolID, "verified")
 
 	for _, grant := range []struct {
 		schoolID string
@@ -124,9 +124,9 @@ func TestPostgresRepositoryGetBySlugPopulatesOrganizersAndHostScopedRoles(t *tes
 	}
 
 	want := []Organizer{
-		{ID: creatorID, Name: "Creator", Role: "creator", RoleIndicators: []string{"staff_faculty"}},
-		{ID: hostAdminID, Name: "Host Admin", Role: "organizer", RoleIndicators: []string{"school_admin"}},
-		{ID: otherAdminID, Name: "Other Admin", Role: "organizer", RoleIndicators: []string{}},
+		{ID: creatorID, Name: "Creator", Role: "creator", VerificationLevel: "staff_faculty", RoleIndicators: []string{"staff_faculty"}},
+		{ID: hostAdminID, Name: "Host Admin", Role: "organizer", VerificationLevel: "basic", RoleIndicators: []string{"school_admin"}},
+		{ID: otherAdminID, Name: "Other Admin", Role: "organizer", VerificationLevel: "verified", RoleIndicators: []string{}},
 	}
 	if !reflect.DeepEqual(event.Organizers, want) {
 		t.Fatalf("GetBySlug() organizers = %#v, want %#v", event.Organizers, want)

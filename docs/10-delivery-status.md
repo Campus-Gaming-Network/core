@@ -74,13 +74,14 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 - [ ] Replace placeholder Terms/Privacy, obtain legal review, and require versioned Terms agreement/Privacy acknowledgement at signup
 - [ ] Confirm retention windows and legal-hold ownership; document the manual retention runbook before enabling purge automation
 - [ ] Decide and implement Gravatar disclosure/opt-out defaults
-- [ ] Resolve `.edu` verified-student assignment
+- [x] Promote verified `.edu` inboxes to the limited verified-student trust tier without downgrading staff/faculty grants
 - [x] Preserve authenticated visitor identity through Cloudflare/Railway and the BFF; scope rate limits by visitor, target, and account
 - [x] Require explicit POST confirmation before consuming an email-verification token; scanner-style GET requests cannot verify accounts
 
 ### Auth & profiles
 - [x] Signup / login / logout
 - [x] Signup requires selecting a home school
+- [x] Search the full active school catalog from signup, event create/edit, and team create without a fixed first-page picker
 - [x] Verification email + explicit confirmation + resend (rate limited)
 - [x] 18+ checkbox (store timestamp)
 - [x] Forgot / reset password

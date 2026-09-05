@@ -32,6 +32,16 @@ const followedSchool = {
   num_branches: 0
 };
 
+const distantSchool = {
+  id: "school-zzyzx",
+  name: "Zzyzx Institute of Technology",
+  slug: "zzyzx-institute-of-technology",
+  city: "Zzyzx",
+  state: "CA",
+  is_main_campus: true,
+  num_branches: 0
+};
+
 const game = {
   id: "game-valorant",
   name: "Valorant",
@@ -175,6 +185,7 @@ function privateEvent(slug, sessionToken) {
         id: "user-organizer",
         name: "Event Organizer",
         role: "creator",
+        verification_level: "basic",
         role_indicators: ["school_admin"]
       }
     ],
@@ -215,8 +226,21 @@ const server = createServer(async (request, response) => {
     }
 
     if (request.method === "GET" && url.pathname === "/schools") {
+      const query = (url.searchParams.get("q") ?? "").toLowerCase();
+      if (query.includes("slow")) {
+        await new Promise((resolve) => setTimeout(resolve, 750));
+      }
+      if (query.includes("failure")) {
+        json(response, 503, { error: "schools_unavailable" });
+        return;
+      }
       json(response, 200, {
-        schools: [catalogHomeSchool, followedSchool],
+        schools:
+          query.includes("zzyzx") || query.includes("technology")
+            ? [distantSchool]
+            : query.includes("slow") || query.includes("none")
+              ? []
+            : [catalogHomeSchool, followedSchool],
         limit: Number.parseInt(url.searchParams.get("limit") ?? "25", 10),
         offset: 0
       });
@@ -234,7 +258,7 @@ const server = createServer(async (request, response) => {
         body.name !== "New Campus Player" ||
         body.email !== "new-player@example.test" ||
         body.password !== "NewPassword123!" ||
-        body.home_school_id !== followedSchool.id ||
+        body.home_school_id !== distantSchool.id ||
         body.age_confirmed !== true ||
         body.timezone !== "America/Los_Angeles"
       ) {
@@ -249,7 +273,7 @@ const server = createServer(async (request, response) => {
         email_verified_at: undefined,
         name: body.name,
         home_school_id: body.home_school_id,
-        home_school: followedSchool
+        home_school: distantSchool
       });
       return;
     }
@@ -316,6 +340,14 @@ const server = createServer(async (request, response) => {
       return;
     }
 
+    if (
+      request.method === "GET" &&
+      url.pathname === `/users/${profile.id}`
+    ) {
+      json(response, 200, profile);
+      return;
+    }
+
     if (request.method === "POST" && url.pathname === "/events") {
       if (!authenticated) {
         json(response, 401, { error: "authentication_required" });
@@ -373,7 +405,8 @@ const server = createServer(async (request, response) => {
             {
               id: sessionProfile.id,
               name: sessionProfile.name,
-              role: "creator"
+              role: "creator",
+              verification_level: sessionProfile.verification_level
             }
           ]
         }

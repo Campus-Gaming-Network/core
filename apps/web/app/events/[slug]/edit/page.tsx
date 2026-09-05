@@ -1,11 +1,10 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { EventForm } from "../../../../components/event-form";
+import { NoScriptSchoolSearch } from "../../../../components/school-picker";
 import {
   ApiError,
-  isLockedEvent,
-  type School,
-  type SchoolSummary
+  isLockedEvent
 } from "../../../../lib/cgn-api";
 import { pageMetadata } from "../../../../lib/metadata";
 import {
@@ -25,9 +24,10 @@ export const metadata = pageMetadata({
 
 type PageProps = {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
-export default async function EditEventPage({ params }: PageProps) {
+export default async function EditEventPage({ params, searchParams }: PageProps) {
   const { slug } = await params;
   const profile = await currentProfile();
 
@@ -75,11 +75,16 @@ export default async function EditEventPage({ params }: PageProps) {
     );
   }
 
+  const query = param((await searchParams).school_q);
+  const schoolsPromise = query.trim().length >= 2
+    ? listSchools({ query, limit: 50 })
+        .then(({ schools }) => ({ schools, failed: false }))
+        .catch(() => ({ schools: [], failed: true }))
+    : Promise.resolve({ schools: [], failed: false });
   const [games, schoolsResult] = await Promise.all([
     listGames(),
-    listSchools({ limit: 100 })
+    schoolsPromise
   ]);
-  const schools = withSchoolSummary(schoolsResult.schools, event.host_school);
 
   return (
     <main className="narrow">
@@ -92,26 +97,22 @@ export default async function EditEventPage({ params }: PageProps) {
         </p>
       </section>
 
-      <EventForm event={event} games={games} mode="edit" schools={schools} />
+      <NoScriptSchoolSearch
+        action={`/events/${slug}/edit`}
+        query={query}
+      />
+      <EventForm
+        event={event}
+        games={games}
+        initialSchoolQuery={query}
+        initialSchoolSearchFailed={schoolsResult.failed}
+        mode="edit"
+        schools={schoolsResult.schools}
+      />
     </main>
   );
 }
 
-function withSchoolSummary(schools: School[], summary: SchoolSummary) {
-  if (schools.some((school) => school.id === summary.id)) {
-    return schools;
-  }
-
-  return [
-    {
-      id: summary.id,
-      name: summary.name,
-      slug: summary.slug,
-      city: summary.city,
-      state: summary.state,
-      is_main_campus: true,
-      num_branches: 0
-    },
-    ...schools
-  ];
+function param(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] ?? "" : value ?? "";
 }

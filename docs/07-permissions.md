@@ -28,7 +28,8 @@ signed up → email verified (link) → verified student (.edu) → staff_facult
 ```
 
 - Inbox verification (click link) is required for normal authenticated use.
-- `.edu` is an additional trust tier, not a substitute for clicking the verification email.
+- `.edu` is an additional trust tier, not a substitute for clicking the verification email. The normalized domain must end exactly in `.edu`; valid subdomains qualify, while lookalikes such as `school.edu.com` do not.
+- The verified-student badge is a limited inbox-domain trust signal. It does not prove enrollment, current school affiliation, or identity.
 - Signup must include an **18+** confirmation checkbox (store timestamp).
 
 Verification is not a substitute for school admin or site admin.

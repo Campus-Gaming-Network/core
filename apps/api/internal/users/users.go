@@ -97,8 +97,17 @@ type Repository interface {
 	UpdateProfile(ctx context.Context, id string, update ProfileUpdate) (Profile, error)
 }
 
+// AccountLifecycleRepository is the narrow unit-of-work boundary for account
+// use cases that must commit several related rows together.
+type AccountLifecycleRepository interface {
+	CreateWithVerificationToken(ctx context.Context, params CreateParams, tokenHash []byte, expiresAt time.Time) (Profile, error)
+	VerifyEmailByToken(ctx context.Context, tokenHash []byte, now time.Time) error
+	UpdateProfileWithSocialLinks(ctx context.Context, id string, update ProfileUpdate, links []SocialLink) (Profile, error)
+}
+
 type AccountRepository interface {
 	Repository
+	AccountLifecycleRepository
 	FindCredentialsByEmail(ctx context.Context, email string) (Credentials, error)
 	MarkEmailVerified(ctx context.Context, id string) error
 	UpdatePassword(ctx context.Context, id string, passwordHash string) error
@@ -230,7 +239,7 @@ func (r *PostgresRepository) Create(ctx context.Context, params CreateParams) (P
 	if err != nil {
 		return Profile{}, fmt.Errorf("create user: %w", err)
 	}
-	return profileWithAssociations(ctx, r, profile)
+	return profileWithAssociations(ctx, r.pool, profile)
 }
 
 func (r *PostgresRepository) FindByID(ctx context.Context, id string) (Profile, error) {
@@ -263,7 +272,7 @@ func (r *PostgresRepository) find(ctx context.Context, predicate string, arg any
 	if err != nil {
 		return Profile{}, err
 	}
-	return profileWithAssociations(ctx, r, profile)
+	return profileWithAssociations(ctx, r.pool, profile)
 }
 
 func (r *PostgresRepository) UpdateProfile(ctx context.Context, id string, update ProfileUpdate) (Profile, error) {
@@ -290,7 +299,7 @@ func (r *PostgresRepository) UpdateProfile(ctx context.Context, id string, updat
 		}
 		return Profile{}, fmt.Errorf("update profile: %w", err)
 	}
-	return profileWithAssociations(ctx, r, profile)
+	return profileWithAssociations(ctx, r.pool, profile)
 }
 
 func (r *PostgresRepository) FindCredentialsByEmail(ctx context.Context, email string) (Credentials, error) {
@@ -317,7 +326,7 @@ func (r *PostgresRepository) FindCredentialsByEmail(ctx context.Context, email s
 	if err != nil {
 		return Credentials{}, err
 	}
-	profile, err := profileWithAssociations(ctx, r, credentials.Profile)
+	profile, err := profileWithAssociations(ctx, r.pool, credentials.Profile)
 	if err != nil {
 		return Credentials{}, err
 	}
@@ -377,22 +386,27 @@ func (r *PostgresRepository) ReplaceSocialLinks(ctx context.Context, id string, 
 	return nil
 }
 
-func profileWithAssociations(ctx context.Context, repository *PostgresRepository, profile Profile) (Profile, error) {
+type profileQueryer interface {
+	Query(context.Context, string, ...any) (pgx.Rows, error)
+	QueryRow(context.Context, string, ...any) pgx.Row
+}
+
+func profileWithAssociations(ctx context.Context, queryer profileQueryer, profile Profile) (Profile, error) {
 	profile.AvatarURL = GravatarURL(profile.Email)
 
-	homeSchool, err := repository.getHomeSchool(ctx, profile.HomeSchoolID)
+	homeSchool, err := getHomeSchool(ctx, queryer, profile.HomeSchoolID)
 	if err != nil {
 		return Profile{}, err
 	}
 	profile.HomeSchool = homeSchool
 
-	links, err := repository.listSocialLinks(ctx, profile.ID)
+	links, err := listSocialLinks(ctx, queryer, profile.ID)
 	if err != nil {
 		return Profile{}, err
 	}
 	profile.SocialLinks = links
 
-	profile.RoleIndicators, err = repository.listRoleIndicators(ctx, profile.ID, profile.VerificationLevel)
+	profile.RoleIndicators, err = listRoleIndicators(ctx, queryer, profile.ID, profile.VerificationLevel)
 	if err != nil {
 		return Profile{}, err
 	}
@@ -400,7 +414,11 @@ func profileWithAssociations(ctx context.Context, repository *PostgresRepository
 }
 
 func (r *PostgresRepository) listRoleIndicators(ctx context.Context, userID string, verificationLevel string) ([]string, error) {
-	rows, err := r.pool.Query(ctx, `
+	return listRoleIndicators(ctx, r.pool, userID, verificationLevel)
+}
+
+func listRoleIndicators(ctx context.Context, queryer profileQueryer, userID string, verificationLevel string) ([]string, error) {
+	rows, err := queryer.Query(ctx, `
 		SELECT 'school_admin'
 		WHERE EXISTS (
 			SELECT 1
@@ -432,8 +450,12 @@ func (r *PostgresRepository) listRoleIndicators(ctx context.Context, userID stri
 }
 
 func (r *PostgresRepository) getHomeSchool(ctx context.Context, id string) (*HomeSchool, error) {
+	return getHomeSchool(ctx, r.pool, id)
+}
+
+func getHomeSchool(ctx context.Context, queryer profileQueryer, id string) (*HomeSchool, error) {
 	var school HomeSchool
-	err := r.pool.QueryRow(ctx, `
+	err := queryer.QueryRow(ctx, `
 		SELECT id::text, name, slug, COALESCE(city, ''), COALESCE(state, '')
 		FROM schools
 		WHERE id = $1::uuid AND deleted_at IS NULL
@@ -448,7 +470,11 @@ func (r *PostgresRepository) getHomeSchool(ctx context.Context, id string) (*Hom
 }
 
 func (r *PostgresRepository) listSocialLinks(ctx context.Context, id string) ([]SocialLink, error) {
-	rows, err := r.pool.Query(ctx, `
+	return listSocialLinks(ctx, r.pool, id)
+}
+
+func listSocialLinks(ctx context.Context, queryer profileQueryer, id string) ([]SocialLink, error) {
+	rows, err := queryer.Query(ctx, `
 		SELECT id::text, label, url
 		FROM user_social_links
 		WHERE user_id = $1::uuid AND deleted_at IS NULL

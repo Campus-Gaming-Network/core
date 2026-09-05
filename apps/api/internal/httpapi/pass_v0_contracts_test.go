@@ -606,6 +606,18 @@ func (r *passV0ContractUsers) FindCredentialsByEmail(context.Context, string) (u
 	return users.Credentials{}, pgx.ErrNoRows
 }
 
+func (r *passV0ContractUsers) CreateWithVerificationToken(ctx context.Context, params users.CreateParams, _ []byte, _ time.Time) (users.Profile, error) {
+	return r.Create(ctx, params)
+}
+
+func (r *passV0ContractUsers) VerifyEmailByToken(context.Context, []byte, time.Time) error {
+	return pgx.ErrNoRows
+}
+
+func (r *passV0ContractUsers) UpdateProfileWithSocialLinks(ctx context.Context, id string, update users.ProfileUpdate, _ []users.SocialLink) (users.Profile, error) {
+	return r.UpdateProfile(ctx, id, update)
+}
+
 func (r *passV0ContractUsers) MarkEmailVerified(context.Context, string) error {
 	return nil
 }

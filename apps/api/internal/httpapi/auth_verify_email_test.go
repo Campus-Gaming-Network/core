@@ -20,12 +20,21 @@ type verificationUsers struct {
 	*passV0ContractUsers
 	verifiedCalls int
 	verifiedID    string
+	tokens        *verificationTokens
 }
 
 func (u *verificationUsers) MarkEmailVerified(_ context.Context, userID string) error {
 	u.verifiedCalls++
 	u.verifiedID = userID
 	return nil
+}
+
+func (u *verificationUsers) VerifyEmailByToken(ctx context.Context, tokenHash []byte, now time.Time) error {
+	userID, err := u.tokens.ConsumeEmailVerificationToken(ctx, tokenHash, now)
+	if err != nil {
+		return err
+	}
+	return u.MarkEmailVerified(ctx, userID)
 }
 
 type verificationTokens struct {
@@ -153,8 +162,8 @@ func TestVerifyEmailRejectsMissingAndAlteredTokens(t *testing.T) {
 }
 
 func newVerificationRouter(rawToken string) (*Router, *verificationUsers, *verificationTokens) {
-	userStore := &verificationUsers{passV0ContractUsers: &passV0ContractUsers{}}
 	tokenStore := &verificationTokens{validHash: auth.HashToken(rawToken)}
+	userStore := &verificationUsers{passV0ContractUsers: &passV0ContractUsers{}, tokens: tokenStore}
 	account := auth.NewAccountService(
 		userStore,
 		passV0ContractSchools{},

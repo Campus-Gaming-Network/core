@@ -9,6 +9,7 @@ import { Select } from "@heroui/react/select";
 import { TextArea } from "@heroui/react/textarea";
 import { useActionState } from "react";
 import { FieldError, fieldErrorProps } from "./form-field-error";
+import { SchoolPicker } from "./school-picker";
 import {
   createEventAction,
   updateEventAction
@@ -16,7 +17,8 @@ import {
 import {
   type Event,
   type Game,
-  type School
+  type School,
+  type SchoolSummary
 } from "../lib/cgn-api";
 import { initialFormState } from "../lib/form-state";
 
@@ -26,6 +28,9 @@ type EventFormProps = {
   games: Game[];
   schools: School[];
   defaultSchoolID?: string;
+  defaultSchool?: SchoolSummary;
+  initialSchoolQuery?: string;
+  initialSchoolSearchFailed?: boolean;
 };
 
 export function EventForm({
@@ -33,7 +38,10 @@ export function EventForm({
   event,
   games,
   schools,
-  defaultSchoolID
+  defaultSchoolID,
+  defaultSchool,
+  initialSchoolQuery,
+  initialSchoolSearchFailed
 }: EventFormProps) {
   const actionHandler = mode === "create" ? createEventAction : updateEventAction;
   const [state, action, pending] = useActionState(
@@ -213,43 +221,20 @@ export function EventForm({
 
       <Fieldset>
         <Fieldset.Legend>Where</Fieldset.Legend>
-        <label>
-          Host school
-          <Select
-            fullWidth
+        <div>
+          <SchoolPicker
             name="host_school_id"
-            defaultSelectedKey={selectedSchoolID}
-            aria-label="Host school"
+            label="Host school"
+            initialSchools={schools}
+            initialQuery={initialSchoolQuery}
+            initialSearchFailed={initialSchoolSearchFailed}
+            selectedSchool={event?.host_school ?? defaultSchool}
+            selectedSchoolID={selectedSchoolID}
             isRequired
             {...fieldErrorProps(state, "host_school_id")}
-          >
-            <Select.Trigger>
-              <Select.Value />
-              <Select.Indicator />
-            </Select.Trigger>
-            <Select.Popover>
-              <ListBox>
-                <ListBox.Item id="" textValue="Choose a school">
-                  Choose a school
-                </ListBox.Item>
-                {schools.map((school) => {
-                  const label = `${school.name}${
-                    school.city || school.state
-                      ? ` (${[school.city, school.state].filter(Boolean).join(", ")})`
-                      : ""
-                  }`;
-
-                  return (
-                    <ListBox.Item id={school.id} key={school.id} textValue={label}>
-                      {label}
-                    </ListBox.Item>
-                  );
-                })}
-              </ListBox>
-            </Select.Popover>
-          </Select>
+          />
           <FieldError name="host_school_id" state={state} />
-        </label>
+        </div>
         <div className="split-fields">
           <label>
             Location name

@@ -19,7 +19,8 @@ import {
   eventVisibilityLabel,
   isLockedEvent,
   roleIndicatorLabel,
-  recurrenceRuleLabel
+  recurrenceRuleLabel,
+  verificationLabel
 } from "../../../lib/cgn-api";
 import { pageMetadata } from "../../../lib/metadata";
 import { currentProfile, getEvent } from "../../../lib/server-api";
@@ -193,9 +194,14 @@ export default async function EventDetailPage({
                 <Link className="link" href={`/users/${organizer.id}`}>
                   {organizer.name}
                 </Link>
-                {organizer.role_indicators?.map((role) => (
-                  <Chip key={`${organizer.id}-${role}`}>{roleIndicatorLabel(role)}</Chip>
-                ))}
+                <Chip>{verificationLabel(organizer.verification_level)}</Chip>
+                {organizer.role_indicators
+                  ?.filter((role) => role !== organizer.verification_level)
+                  .map((role) => (
+                    <Chip key={`${organizer.id}-${role}`}>
+                      {roleIndicatorLabel(role)}
+                    </Chip>
+                  ))}
               </span>
             ))}
           </div>

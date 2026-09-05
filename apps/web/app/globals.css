@@ -303,6 +303,24 @@ button.rsvp-choice[aria-pressed="true"] {
   margin-bottom: 0;
 }
 
+.school-picker,
+.school-picker__fallback,
+.school-picker__option {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.school-picker__status {
+  margin: 0;
+  padding: 0.35rem 0.65rem;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.school-picker__option small {
+  color: var(--muted);
+}
+
 .form-error {
   margin: 0;
   color: color-mix(in srgb, var(--danger) 65%, var(--foreground));

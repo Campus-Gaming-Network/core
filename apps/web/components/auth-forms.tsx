@@ -3,11 +3,10 @@
 import { Alert } from "@heroui/react/alert";
 import { Button } from "@heroui/react/button";
 import { Input } from "@heroui/react/input";
-import { ListBox } from "@heroui/react/list-box";
-import { Select } from "@heroui/react/select";
 import Link from "next/link";
 import { useActionState } from "react";
 import { FieldError, fieldErrorProps } from "./form-field-error";
+import { SchoolPicker } from "./school-picker";
 import {
   forgotPasswordAction,
   loginAction,
@@ -16,15 +15,22 @@ import {
   signupAction,
   verifyEmailAction
 } from "../app/actions";
-import { schoolLocation, type School } from "../lib/cgn-api";
+import { type School } from "../lib/cgn-api";
 import { initialFormState } from "../lib/form-state";
 
 type SignupFormProps = {
   schools: School[];
   selectedSchoolId?: string;
+  initialSchoolQuery?: string;
+  initialSchoolSearchFailed?: boolean;
 };
 
-export function SignupForm({ schools, selectedSchoolId }: SignupFormProps) {
+export function SignupForm({
+  schools,
+  selectedSchoolId,
+  initialSchoolQuery,
+  initialSchoolSearchFailed
+}: SignupFormProps) {
   const [state, action, pending] = useActionState(
     signupAction,
     initialFormState
@@ -78,43 +84,19 @@ export function SignupForm({ schools, selectedSchoolId }: SignupFormProps) {
         />
         <FieldError name="timezone" state={state} />
       </label>
-      <label>
-        Home school
-        <Select
-          fullWidth
+      <div>
+        <SchoolPicker
           name="home_school_id"
-          defaultSelectedKey={selectedSchoolId || ""}
-          aria-label="Home school"
+          label="Home school"
+          initialSchools={schools}
+          initialQuery={initialSchoolQuery}
+          initialSearchFailed={initialSchoolSearchFailed}
+          selectedSchoolID={selectedSchoolId}
           isRequired
           {...fieldErrorProps(state, "home_school_id")}
-        >
-          <Select.Trigger>
-            <Select.Value />
-            <Select.Indicator />
-          </Select.Trigger>
-          <Select.Popover>
-            <ListBox>
-              <ListBox.Item id="" textValue="Choose a school">
-                Choose a school
-              </ListBox.Item>
-              {schools.map((school) => {
-                const label = `${school.name}${
-                  school.city || school.state
-                    ? ` (${schoolLocation(school, "")})`
-                    : ""
-                }`;
-
-                return (
-                  <ListBox.Item id={school.id} key={school.id} textValue={label}>
-                    {label}
-                  </ListBox.Item>
-                );
-              })}
-            </ListBox>
-          </Select.Popover>
-        </Select>
+        />
         <FieldError name="home_school_id" state={state} />
-      </label>
+      </div>
       <label className="checkbox-field">
         <input
           type="checkbox"

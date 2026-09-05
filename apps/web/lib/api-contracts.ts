@@ -86,6 +86,7 @@ export const eventOrganizerSchema = z.object({
   id: identifierSchema,
   name: z.string(),
   role: z.enum(["creator", "organizer"]),
+  verification_level: z.string().min(1),
   role_indicators: z.array(z.string()).optional()
 });
 

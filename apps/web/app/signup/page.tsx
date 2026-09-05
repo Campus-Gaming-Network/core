@@ -1,7 +1,6 @@
-import { Button } from "@heroui/react/button";
-import { Input } from "@heroui/react/input";
 import Link from "next/link";
 import { SignupForm } from "../../components/auth-forms";
+import { NoScriptSchoolSearch } from "../../components/school-picker";
 import { listSchools } from "../../lib/server-api";
 import { pageMetadata } from "../../lib/metadata";
 
@@ -20,9 +19,11 @@ export default async function SignupPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const query = param(params.q);
   const selectedSchoolId = param(params.school_id);
-  const result = await listSchools({ query, limit: 50 }).catch(() => ({
-    schools: []
-  }));
+  const result = query.trim().length >= 2
+    ? await listSchools({ query, limit: 50 })
+        .then(({ schools }) => ({ schools, failed: false }))
+        .catch(() => ({ schools: [], failed: true }))
+    : { schools: [], failed: false };
 
   return (
     <main className="auth-page">
@@ -35,21 +36,13 @@ export default async function SignupPage({ searchParams }: PageProps) {
         </p>
       </section>
 
-      <form action="/signup" className="search-bar compact">
-        <label>
-          Find home school
-          <Input
-            name="q"
-            defaultValue={query}
-            placeholder="Search schools before signing up"
-          />
-        </label>
-        <Button type="submit">Search</Button>
-      </form>
+      <NoScriptSchoolSearch action="/signup" query={query} queryParam="q" />
 
       <SignupForm
         schools={result.schools}
         selectedSchoolId={selectedSchoolId}
+        initialSchoolQuery={query}
+        initialSchoolSearchFailed={result.failed}
       />
       <p className="form-footer">
         Already verified? <Link className="link" href="/login">Log in</Link>

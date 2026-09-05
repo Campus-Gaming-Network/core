@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { TeamForm } from "../../../components/team-form";
-import { type School, type SchoolSummary } from "../../../lib/cgn-api";
+import { NoScriptSchoolSearch } from "../../../components/school-picker";
 import { currentProfile, listGames, listSchools } from "../../../lib/server-api";
 import { pageMetadata } from "../../../lib/metadata";
 
@@ -12,18 +12,27 @@ export const metadata = pageMetadata({
   noIndex: true
 });
 
-export default async function NewTeamPage() {
+type PageProps = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
+
+export default async function NewTeamPage({ searchParams }: PageProps) {
   const profile = await currentProfile();
 
   if (!profile) {
     redirect("/login?next=/teams/new");
   }
 
+  const query = param((await searchParams).school_q);
+  const schoolsPromise = query.trim().length >= 2
+    ? listSchools({ query, limit: 50 })
+        .then(({ schools }) => ({ schools, failed: false }))
+        .catch(() => ({ schools: [], failed: true }))
+    : Promise.resolve({ schools: [], failed: false });
   const [games, schoolsResult] = await Promise.all([
     listGames(),
-    listSchools({ limit: 100 })
+    schoolsPromise
   ]);
-  const schools = withHomeSchool(schoolsResult.schools, profile.home_school);
 
   return (
     <main className="narrow">
@@ -36,33 +45,19 @@ export default async function NewTeamPage() {
         </p>
       </section>
 
+      <NoScriptSchoolSearch action="/teams/new" query={query} />
       <TeamForm
         defaultSchoolID={profile.home_school_id}
+        defaultSchool={profile.home_school}
         games={games}
-        schools={schools}
+        initialSchoolQuery={query}
+        initialSchoolSearchFailed={schoolsResult.failed}
+        schools={schoolsResult.schools}
       />
     </main>
   );
 }
 
-function withHomeSchool(schools: School[], homeSchool?: SchoolSummary) {
-  if (!homeSchool) {
-    return schools;
-  }
-  if (schools.some((school) => school.id === homeSchool.id)) {
-    return schools;
-  }
-
-  return [
-    {
-      id: homeSchool.id,
-      name: homeSchool.name,
-      slug: homeSchool.slug,
-      city: homeSchool.city,
-      state: homeSchool.state,
-      is_main_campus: true,
-      num_branches: 0
-    },
-    ...schools
-  ];
+function param(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] ?? "" : value ?? "";
 }

@@ -56,6 +56,7 @@ Small, concrete engineering choices for Phase 0 and early early implementation. 
 | School-admin role | Store school-scoped grants in `school_admins`; grants are soft-revocable and future CRM/admin tooling owns assignment. Public profiles expose `school_admin` when a user has an active grant. |
 | Staff/faculty role | Use the existing `staff_faculty` verification level as the visible staff/faculty role indicator. |
 | Event organizer badges | Event detail responses include organizer summaries. Show `school_admin` for an active grant at the event's host school and `staff_faculty` for verified staff/faculty. |
+| Verified-student email rule | When inbox verification succeeds, promote a `basic` account only when the normalized email domain is a syntactically valid domain ending exactly in `.edu`. Subdomains qualify; mixed case is normalized; lookalikes such as `school.edu.com` do not qualify. There is no exclusion list yet. Existing `verified`, `staff_faculty`, and future higher levels are never downgraded. The badge is a limited inbox-domain trust signal, not proof of enrollment, current affiliation, or identity. A future email-change feature must re-evaluate and explicitly define downgrade behavior before launch. |
 | Basic content filtering | Reject a small word-boundary blocked-term list in names, bios, event titles/descriptions/location/payment notes, team names/descriptions, reports, and support messages. This is an intake guard, not a replacement for moderation. |
 
 ## Initial folder responsibilities

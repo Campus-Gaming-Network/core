@@ -7,10 +7,11 @@ const managedTeamSlug = "long-beach-legends-abc123";
 test("signup and resend verification use their server actions", async ({
   page
 }) => {
-  await page.goto("/signup?school_id=school-csulb");
+  await page.goto("/signup");
   await page.getByLabel("Name").fill("New Campus Player");
   await page.getByLabel("Email").fill("new-player@example.test");
   await page.getByLabel("Password").fill("NewPassword123!");
+  await selectDistantSchool(page, "Home school", "home_school_id", true);
   await page
     .getByRole("checkbox", { name: "I confirm I am 18 or older." })
     .check();
@@ -33,6 +34,46 @@ test("signup and resend verification use their server actions", async ({
       "If that account needs verification, another email is on the way."
     )
   ).toBeVisible();
+  await expectAccessible(page);
+  await expectNoHorizontalOverflow(page);
+});
+
+test("school search is shared by event and team forms", async ({ page }) => {
+  await logIn(page, "player@example.test", "/events/new");
+
+  await expect(page.getByRole("combobox", { name: "Host school" })).toHaveValue(
+    /University of California, Irvine/
+  );
+  await selectDistantSchool(page, "Host school", "host_school_id");
+
+  await page.goto("/teams/new");
+  await expect(page.getByRole("combobox", { name: "School link" })).toHaveValue(
+    /University of California, Irvine/
+  );
+  await selectDistantSchool(page, "School link", "school_id");
+
+  await expectAccessible(page);
+  await expectNoHorizontalOverflow(page);
+});
+
+test("school search announces loading, empty, and failure states", async ({
+  page
+}) => {
+  await page.goto("/signup");
+  const picker = page.getByRole("combobox", { name: "Home school" });
+
+  await picker.fill("Slow query");
+  await expect(page.getByText("Searching schools…")).toBeVisible();
+  await expect(page.getByText("No schools found for “Slow query”.")).toBeVisible();
+
+  await picker.fill("Failure query");
+  await expect(
+    page.getByText("We couldn’t load schools. Check your connection and try again.")
+  ).toBeVisible();
+  const retryButton = page.getByRole("button", { name: "Try again" });
+  await expect(retryButton).toBeVisible();
+  await selectDistantSchool(page, "Home school", "home_school_id");
+  await expect(retryButton).toBeHidden();
   await expectAccessible(page);
   await expectNoHorizontalOverflow(page);
 });
@@ -88,6 +129,26 @@ test("email verification waits for confirmation and safely handles used links", 
   await expectNoHorizontalOverflow(page);
 });
 
+test("public profiles display the verified-student trust level", async ({
+  page
+}) => {
+  await page.goto("/users/user-e2e");
+
+  await expect(
+    page.getByRole("heading", { name: "E2E Player", level: 1 })
+  ).toBeVisible();
+  await expect(page.getByText("Verified student")).toHaveCount(2);
+  await expect(
+    page
+      .locator(".detail-row", {
+        has: page.getByText("Verification", { exact: true })
+      })
+      .locator("strong")
+  ).toHaveText("Verified student");
+  await expectAccessible(page);
+  await expectNoHorizontalOverflow(page);
+});
+
 test("event server actions create, toggle interest, and cancel", async ({
   page
 }) => {
@@ -122,6 +183,11 @@ test("event server actions create, toggle interest, and cancel", async ({
   );
   await expect(
     page.getByRole("heading", { name: "Campus Fall Brawl", level: 1 })
+  ).toBeVisible();
+  await expect(
+    page
+      .getByRole("region", { name: "Organizers" })
+      .getByText("Verified student")
   ).toBeVisible();
   await expect(page.getByText("Event created.")).toBeVisible();
   await expect(page.getByText("0 / 24")).toBeVisible();
@@ -361,6 +427,29 @@ async function expectNoHorizontalOverflow(page: Page) {
       )
     )
     .toBe(true);
+}
+
+async function selectDistantSchool(
+  page: Page,
+  label: string,
+  fieldName: string,
+  withKeyboard = false
+) {
+  const picker = page.getByRole("combobox", { name: label });
+  await picker.fill("Zzyzx");
+  const option = page.getByRole("option", {
+    name: /Zzyzx Institute of Technology/
+  });
+  await expect(option).toBeVisible();
+  if (withKeyboard) {
+    await picker.press("ArrowDown");
+    await picker.press("Enter");
+  } else {
+    await option.click();
+  }
+  await expect(page.locator(`input[name="${fieldName}"]`)).toHaveValue(
+    "school-zzyzx"
+  );
 }
 
 function eventDetailValue(page: Page, label: string) {

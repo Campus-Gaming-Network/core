@@ -4,15 +4,15 @@ import { Alert } from "@heroui/react/alert";
 import { Button } from "@heroui/react/button";
 import { Fieldset } from "@heroui/react/fieldset";
 import { Input } from "@heroui/react/input";
-import { ListBox } from "@heroui/react/list-box";
-import { Select } from "@heroui/react/select";
 import { TextArea } from "@heroui/react/textarea";
 import { useActionState } from "react";
 import { FieldError, fieldErrorProps } from "./form-field-error";
+import { SchoolPicker } from "./school-picker";
 import { createTeamAction } from "../app/actions";
 import {
   type Game,
-  type School
+  type School,
+  type SchoolSummary
 } from "../lib/cgn-api";
 import { initialFormState } from "../lib/form-state";
 
@@ -20,12 +20,18 @@ type TeamFormProps = {
   games: Game[];
   schools: School[];
   defaultSchoolID?: string;
+  defaultSchool?: SchoolSummary;
+  initialSchoolQuery?: string;
+  initialSchoolSearchFailed?: boolean;
 };
 
 export function TeamForm({
   games,
   schools,
-  defaultSchoolID
+  defaultSchoolID,
+  defaultSchool,
+  initialSchoolQuery,
+  initialSchoolSearchFailed
 }: TeamFormProps) {
   const [state, action, pending] = useActionState(
     createTeamAction,
@@ -64,40 +70,16 @@ export function TeamForm({
         <FieldError name="description" state={state} />
       </label>
 
-      <label>
-        School link
-        <Select
-          fullWidth
-          name="school_id"
-          defaultSelectedKey={defaultSchoolID ?? ""}
-          aria-label="School link"
-        >
-          <Select.Trigger>
-            <Select.Value />
-            <Select.Indicator />
-          </Select.Trigger>
-          <Select.Popover>
-            <ListBox>
-              <ListBox.Item id="" textValue="No school link yet">
-                No school link yet
-              </ListBox.Item>
-              {schools.map((school) => {
-                const label = `${school.name}${
-                  school.city || school.state
-                    ? ` (${[school.city, school.state].filter(Boolean).join(", ")})`
-                    : ""
-                }`;
-
-                return (
-                  <ListBox.Item id={school.id} key={school.id} textValue={label}>
-                    {label}
-                  </ListBox.Item>
-                );
-              })}
-            </ListBox>
-          </Select.Popover>
-        </Select>
-      </label>
+      <SchoolPicker
+        name="school_id"
+        label="School link"
+        initialSchools={schools}
+        initialQuery={initialSchoolQuery}
+        initialSearchFailed={initialSchoolSearchFailed}
+        selectedSchool={defaultSchool}
+        selectedSchoolID={defaultSchoolID}
+        emptyLabel="No school link yet"
+      />
 
       <Fieldset>
         <Fieldset.Legend>Games</Fieldset.Legend>

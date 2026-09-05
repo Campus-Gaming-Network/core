@@ -212,7 +212,7 @@ person's address and benefit from an automated scanner verifying it.
 
 **Priority:** P1  
 **Size:** M  
-**Status:** Needs product rule confirmation  
+**Status:** Complete (2026-09-05)
 **Depends on:** `CGN-002`
 
 **Problem**
@@ -251,7 +251,7 @@ therefore advertises a trust signal that users cannot earn through the product.
 
 **Priority:** P1  
 **Size:** L  
-**Status:** Ready  
+**Status:** Complete (2026-09-05)
 **Depends on:** `CGN-002`, `CGN-003`
 
 **Problem**
@@ -294,7 +294,7 @@ only part of the requested operation committed.
 
 **Priority:** P1  
 **Size:** M  
-**Status:** Ready  
+**Status:** Complete (2026-09-05)
 **Depends on:** None
 
 **Problem**

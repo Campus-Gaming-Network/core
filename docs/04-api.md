@@ -137,7 +137,8 @@ than one year after the first occurrence. Each occurrence has its own slug,
 RSVPs, and cancellation lifecycle.
 
 Event detail responses include `organizers`, with each organizer's name, role,
-and applicable `role_indicators` (`school_admin` and/or `staff_faculty`).
+`verification_level`, and applicable `role_indicators` (`school_admin` and/or
+`staff_faculty`).
 
 ### Tournaments (later)
 

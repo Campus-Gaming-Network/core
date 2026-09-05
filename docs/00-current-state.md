@@ -28,11 +28,11 @@ verification steps.
 
 ## Next three tasks
 
-1. Confirm the product rule for `CGN-003`, then implement the `.edu`
-   verified-student transition.
-2. Complete `CGN-004`: make signup, verification, and profile updates atomic.
-3. Complete `CGN-013`: fail startup when production deployment settings are
+1. Complete `CGN-013`: fail startup when production deployment settings are
    unsafe.
+2. Complete `CGN-006`: add pagination to the school, event, and team browse
+   experiences.
+3. Complete `CGN-007`: correct event lifecycle derivation at query time.
 
 After those, follow the ordered queue in doc 17. Legal, Gravatar,
 account-deletion notifications, and external launch rehearsal remain P1 launch
@@ -52,6 +52,14 @@ gates. CRM/admin UI work moves behind the review's P1 queue.
 
 ## Recently completed
 
+- Promoted verified `.edu` inboxes to the verified-student trust tier using an
+  exact normalized-domain rule, while preserving staff/faculty grants and
+  exposing the resulting level consistently on profiles and organizer summaries
+  (`CGN-003`).
+- Made signup plus token creation, token consumption plus account verification,
+  and profile fields plus social-link replacement transactional (`CGN-004`).
+- Replaced fixed first-page school selects with one accessible, searchable
+  picker across signup, event creation/editing, and team creation (`CGN-005`).
 - Changed email verification so opening an emailed link only shows a
   confirmation page. The API now accepts the token through POST only, consumes
   it exactly once after explicit confirmation, and preserves resend recovery
