@@ -7,6 +7,10 @@ adds the identity and read-catalog foundation in `000002_phase1_identity_catalog
 Phase 3.5 adds recurring event fields and occurrence indexing in
 `000008_recurring_events.up.sql`; occurrences remain normal event rows.
 The same phase adds school-scoped role grants in `000009_trust_roles.up.sql`.
+The operations foundation in `000010_operations_foundation.up.sql` adds queue
+assignment and terminal-retention fields, domain audit history, and per-user
+notifications; site-admin authorization, purge/hold jobs, and CRM HTTP/UI
+surfaces remain separate work.
 Do not add clubs, tournaments, feature flags, site announcements, on-site
 payment tables, IGDB sync tables, or CRM/admin-only workflow tables until those
 phases are active.

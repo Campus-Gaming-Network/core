@@ -23,16 +23,23 @@ revisited later.
 
 ## Next three tasks
 
-1. Complete a quality pass on signup, event creation, RSVP, team joining, and
-   dashboard flows, including frontend regression coverage, mobile/accessibility
-   fixes, and replacement of placeholder legal content.
-2. Add lightweight moderation and operations tooling for reports, support,
-   audit history, and in-app notifications.
-3. Expand trust and safety beyond the first role and content-filtering pass.
+1. Replace the placeholder Terms and Privacy pages after operator identity,
+   jurisdiction, and provider decisions are confirmed; then add versioned
+   signup acceptance.
+2. Close the remaining pre-launch lifecycle gaps: notify attendees when account
+   deletion cancels an event, decide Gravatar defaults/opt-out, and fix the
+   `.edu` verification and forwarded-IP rate-limit mismatches.
+3. Build the authenticated surfaces on the new operations foundation: bootstrap
+   a site-admin role, expose guarded reports/support/audit endpoints, and add the
+   CRM queue and user-notification UIs.
 
 ## Blockers and decisions
 
 - Deployment work is intentionally deferred and is not currently a blocker.
+- Production legal copy is waiting on operator identity/address, governing law,
+  launch geography, provider, and sale/share decisions. Engineering retention
+  targets are recorded in [16 — Legal and data-lifecycle plan](./16-legal-and-data-lifecycle-plan.md)
+  pending legal review.
 - Clubs and tournaments remain later expansion work until the current event loop
   is polished and exercised by real users.
 - Product and technical questions that are intentionally unresolved are tracked
@@ -91,6 +98,15 @@ revisited later.
   selected-button contrast to meet WCAG AA.
 - Added coverage for host-scoped organizer/profile role indicators and blocked
   terms across the remaining event, team, profile, support, and report fields.
+- Added the moderation/operations data foundation: assignable report and support
+  queues with terminal retention clocks, transactional before/after audit
+  history, and user-scoped in-app notification storage and repository
+  primitives. PostgreSQL-backed tests now run in CI. These remain internal
+  until site-admin authorization and user-facing endpoints are implemented.
+- Strengthened account deletion: event ownership transfers to the longest-tenured
+  active co-organizer or the event is soft-cancelled; support tickets are
+  detached and terminal-ticket contact fields are scrubbed; personal
+  notifications are removed; and operations queues are unassigned.
 
 ## Resume checklist
 
@@ -107,3 +123,4 @@ revisited later.
 - [10 — Delivery status](./10-delivery-status.md) — detailed Now / Next / Later tracker
 - [13 — Deployment plan](./13-deployment-plan.md) — launch setup and smoke test
 - [08 — Open questions](./08-open-questions.md) — unresolved decisions
+- [16 — Legal and data-lifecycle plan](./16-legal-and-data-lifecycle-plan.md) — legal blockers, retention targets, and pre-launch lifecycle checklist

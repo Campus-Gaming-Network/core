@@ -11,6 +11,22 @@ jobs:
   api:
     name: Go API
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: cgn_test
+          POSTGRES_PASSWORD: cgn
+          POSTGRES_USER: cgn
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U cgn -d cgn_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      API_DATABASE_URL: postgres://cgn:cgn@localhost:5432/cgn_test?sslmode=disable
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -22,6 +38,9 @@ jobs:
       - name: Vet
         working-directory: apps/api
         run: go vet ./...
+      - name: Migrate test database
+        working-directory: apps/api
+        run: go run ./cmd/migrate -dir ../../db/migrations
       - name: Test
         working-directory: apps/api
         run: go test ./...
