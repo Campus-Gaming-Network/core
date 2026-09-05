@@ -18,6 +18,12 @@ Work is grouped **Now** (building toward the first public release), **Next** (pl
 
 **First release slice:** auth → home school on signup → schools search/follow → events + curated games → teams → dashboard.
 
+**Active engineering backlog:** [17 — Codebase review action plan](./17-codebase-review-action-plan.md)
+is the ordered queue for production-boundary, discovery, recurrence,
+reliability, integration, and maintainability findings from the 2026-09-05
+codebase review. Complete its P1 items before beginning the CRM UI or another
+major product area.
+
 **School seed:** 6,243 operating schools (4,943 main · **1,300 branch**). Import all, `is_active=true`; branch campuses use the same UI/UX; review later in CRM/admin tooling.
 
 **Launch games:** Rocket League · Valorant · League of Legends · Overwatch 2 · Super Smash Bros. Ultimate · CSGO.

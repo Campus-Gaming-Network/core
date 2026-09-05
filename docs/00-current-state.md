@@ -4,7 +4,7 @@ Quick re-entry point for Campus Gaming Network. Read this first after time away;
 the detailed product and engineering context remains in the other documents in
 this folder.
 
-**Last updated:** 2026-09-04
+**Last updated:** 2026-09-05
 
 ## Where we are
 
@@ -21,17 +21,22 @@ Make the existing events-and-teams product polished and reliable enough for
 real users. Deployment planning and external environment setup will be
 revisited later.
 
+The active engineering execution queue is now
+[17 — Codebase review action plan](./17-codebase-review-action-plan.md). It turns
+the latest repository review into prioritized work with acceptance criteria and
+verification steps.
+
 ## Next three tasks
 
-1. Replace the placeholder Terms and Privacy pages after operator identity,
-   jurisdiction, and provider decisions are confirmed; then add versioned
-   signup acceptance.
-2. Close the remaining pre-launch lifecycle gaps: notify attendees when account
-   deletion cancels an event, decide Gravatar defaults/opt-out, and fix the
-   `.edu` verification and forwarded-IP rate-limit mismatches.
-3. Build the authenticated surfaces on the new operations foundation: bootstrap
-   a site-admin role, expose guarded reports/support/audit endpoints, and add the
-   CRM queue and user-notification UIs.
+1. Complete `CGN-001`: preserve trusted visitor identity through the BFF and
+   correct every rate-limit key before production traffic shares a proxy bucket.
+2. Complete `CGN-002` and `CGN-003`: make verification POST-only and implement
+   the confirmed `.edu` verified-student transition.
+3. Complete `CGN-004`: make signup, verification, and profile updates atomic.
+
+After those, follow the ordered queue in doc 17. Legal, Gravatar,
+account-deletion notifications, and external launch rehearsal remain P1 launch
+gates. CRM/admin UI work moves behind the review's P1 queue.
 
 ## Blockers and decisions
 
@@ -117,7 +122,8 @@ revisited later.
 1. Read this file.
 2. Check the latest commits with `git log -5`.
 3. Review [10 — Delivery status](./10-delivery-status.md) for detailed checklists.
-4. Start with the first unchecked task under **Next three tasks**.
+4. Review [17 — Codebase review action plan](./17-codebase-review-action-plan.md)
+   and start with the first ready item in execution order.
 5. Before stopping, update this file’s milestone, next tasks, blockers, and
    recently completed items.
 
@@ -128,3 +134,4 @@ revisited later.
 - [13 — Deployment plan](./13-deployment-plan.md) — launch setup and smoke test
 - [08 — Open questions](./08-open-questions.md) — unresolved decisions
 - [16 — Legal and data-lifecycle plan](./16-legal-and-data-lifecycle-plan.md) — legal blockers, retention targets, and pre-launch lifecycle checklist
+- [17 — Codebase review action plan](./17-codebase-review-action-plan.md) — prioritized review findings, acceptance criteria, and work order
