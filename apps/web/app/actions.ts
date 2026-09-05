@@ -46,7 +46,8 @@ import {
   supportTicketFormSchema,
   teamCaptainFormSchema,
   teamOwnershipFormSchema,
-  updateEventFormSchema
+  updateEventFormSchema,
+  verificationTokenFormSchema
 } from "../lib/form-validation";
 import {
   buildCreateEventRequest,
@@ -225,6 +226,38 @@ export async function resendVerificationAction(
       status: "success",
       message:
         "If that account needs verification, another email is on the way."
+    };
+  } catch (error) {
+    return failure(error);
+  }
+}
+
+export async function verifyEmailAction(
+  _previousState: FormState,
+  formData: FormData
+): Promise<FormState> {
+  const validated = verificationTokenFormSchema.safeParse({
+    token: formString(formData, "token")
+  });
+
+  if (!validated.success) {
+    return {
+      ...formValidationFailure(validated.error),
+      message: "That link is invalid or has expired."
+    };
+  }
+
+  try {
+    await apiRequestFromBFF({
+      path: "/auth/verify-email",
+      method: "POST",
+      body: validated.data,
+      responseSchema: statusResponseSchema
+    });
+
+    return {
+      status: "success",
+      message: "Your email is verified."
     };
   } catch (error) {
     return failure(error);

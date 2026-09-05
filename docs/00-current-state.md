@@ -28,11 +28,11 @@ verification steps.
 
 ## Next three tasks
 
-1. Complete `CGN-002`: make email verification an explicit POST action so link
-   scanners cannot mutate account state.
-2. Complete `CGN-003`: implement
-   the confirmed `.edu` verified-student transition.
-3. Complete `CGN-004`: make signup, verification, and profile updates atomic.
+1. Confirm the product rule for `CGN-003`, then implement the `.edu`
+   verified-student transition.
+2. Complete `CGN-004`: make signup, verification, and profile updates atomic.
+3. Complete `CGN-013`: fail startup when production deployment settings are
+   unsafe.
 
 After those, follow the ordered queue in doc 17. Legal, Gravatar,
 account-deletion notifications, and external launch rehearsal remain P1 launch
@@ -52,6 +52,10 @@ gates. CRM/admin UI work moves behind the review's P1 queue.
 
 ## Recently completed
 
+- Changed email verification so opening an emailed link only shows a
+  confirmation page. The API now accepts the token through POST only, consumes
+  it exactly once after explicit confirmation, and preserves resend recovery
+  for expired or already-used links (`CGN-002`).
 - Preserved trusted visitor identity through Cloudflare, the Railway web BFF,
   and the private Go API using authenticated, normalized forwarding headers;
   corrected anonymous, target, and account rate-limit keys and documented the

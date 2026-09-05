@@ -62,7 +62,7 @@ Not every path must exist on day one — align with [05 — Roadmap](./05-roadma
 | POST | `/auth/logout` | |
 | POST | `/auth/forgot-password` | |
 | POST | `/auth/reset-password` | |
-| GET/POST | `/auth/verify-email` | Click link from verification email |
+| POST | `/auth/verify-email` | Consumes the token after explicit confirmation on the web verification page; direct GET returns 405 |
 | POST | `/auth/resend-verification` | Rate limited |
 
 ### Users / profile

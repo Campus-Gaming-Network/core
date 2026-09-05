@@ -12,7 +12,6 @@ import {
   publicProfileSchema,
   schoolSchema,
   schoolsResponseSchema,
-  statusResponseSchema,
   teamSchema,
   teamsResponseSchema
 } from "./api-contracts";
@@ -268,10 +267,3 @@ export const getPublicProfile = cache(async (id: string) => {
 
   return data;
 });
-
-export async function verifyEmailToken(token: string) {
-  await apiRequest({
-    path: `/auth/verify-email?token=${encodeURIComponent(token)}`,
-    responseSchema: statusResponseSchema
-  });
-}

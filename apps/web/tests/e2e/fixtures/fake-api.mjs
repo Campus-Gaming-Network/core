@@ -12,6 +12,7 @@ const createdEvents = new Map();
 const teamRoles = new Map();
 const promotedCaptainSessions = new Set();
 const transferredOwnerSessions = new Set();
+const consumedVerificationTokens = new Set();
 
 const homeSchool = {
   id: "school-uci",
@@ -263,6 +264,22 @@ const server = createServer(async (request, response) => {
         return;
       }
       json(response, 202, { status: "if_account_exists_email_sent" });
+      return;
+    }
+
+    if (request.method === "POST" && url.pathname === "/auth/verify-email") {
+      const body = await readJSON(request);
+      if (
+        typeof body.token !== "string" ||
+        !body.token.startsWith("valid-verification-") ||
+        consumedVerificationTokens.has(body.token)
+      ) {
+        json(response, 400, { error: "invalid_or_expired_token" });
+        return;
+      }
+
+      consumedVerificationTokens.add(body.token);
+      json(response, 200, { status: "verified" });
       return;
     }
 

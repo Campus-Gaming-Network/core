@@ -76,11 +76,12 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 - [ ] Decide and implement Gravatar disclosure/opt-out defaults
 - [ ] Resolve `.edu` verified-student assignment
 - [x] Preserve authenticated visitor identity through Cloudflare/Railway and the BFF; scope rate limits by visitor, target, and account
+- [x] Require explicit POST confirmation before consuming an email-verification token; scanner-style GET requests cannot verify accounts
 
 ### Auth & profiles
 - [x] Signup / login / logout
 - [x] Signup requires selecting a home school
-- [x] Verification email + resend (rate limited)
+- [x] Verification email + explicit confirmation + resend (rate limited)
 - [x] 18+ checkbox (store timestamp)
 - [x] Forgot / reset password
 - [x] Profile: single **name** field, bio, socials, timezone

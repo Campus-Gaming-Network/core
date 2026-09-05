@@ -9,7 +9,8 @@ import {
   profileFormSchema,
   signupFormSchema,
   teamCaptainFormSchema,
-  updateEventFormSchema
+  updateEventFormSchema,
+  verificationTokenFormSchema
 } from "../lib/form-validation.js";
 
 function validEvent() {
@@ -59,6 +60,17 @@ test("signup schema normalizes fields and validates age confirmation", () => {
       ["Confirm that you are 18 or older."]
     );
   }
+});
+
+test("verification token schema rejects omission and trims valid tokens", () => {
+  assert.equal(
+    verificationTokenFormSchema.safeParse({ token: "" }).success,
+    false
+  );
+  assert.equal(
+    verificationTokenFormSchema.parse({ token: "  valid-token  " }).token,
+    "valid-token"
+  );
 });
 
 test("event schema enforces time order and private-event passwords", () => {

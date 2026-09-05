@@ -37,6 +37,57 @@ test("signup and resend verification use their server actions", async ({
   await expectNoHorizontalOverflow(page);
 });
 
+test("email verification waits for confirmation and safely handles used links", async ({
+  page
+}, testInfo) => {
+  const device = testInfo.project.name.startsWith("mobile")
+    ? "mobile"
+    : "desktop";
+  const token = `valid-verification-${device}`;
+  const verificationURL = `/auth/verify-email?token=${encodeURIComponent(token)}`;
+
+  await page.goto(verificationURL);
+  await expect(
+    page.getByRole("heading", { name: "Confirm your email." })
+  ).toBeVisible();
+  await expect(page.getByText("Your email is verified.")).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Verify email" })
+  ).toBeVisible();
+  await expect(page.locator('input[name="token"][type="hidden"]')).toHaveValue(
+    token
+  );
+  await expect(page.locator("body")).not.toContainText(token);
+  await expectAccessible(page);
+
+  await page.getByRole("button", { name: "Verify email" }).click();
+  await expect(page.getByText("Your email is verified.")).toBeVisible();
+  await expect(
+    page.getByRole("main").getByRole("link", { name: "Log in" })
+  ).toBeVisible();
+
+  await page.goto(verificationURL);
+  await page.getByRole("button", { name: "Verify email" }).click();
+  await expect(
+    page.getByText("That link is invalid or has expired.")
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Need a new link?" })
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Resend verification" })
+  ).toBeVisible();
+
+  await page.goto(`/auth/verify-email?token=expired-verification-${device}`);
+  await page.getByRole("button", { name: "Verify email" }).click();
+  await expect(
+    page.getByText("That link is invalid or has expired.")
+  ).toBeVisible();
+  await expect(page.getByLabel("Email")).toBeVisible();
+  await expectAccessible(page);
+  await expectNoHorizontalOverflow(page);
+});
+
 test("event server actions create, toggle interest, and cancel", async ({
   page
 }) => {

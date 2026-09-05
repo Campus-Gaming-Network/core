@@ -5,6 +5,7 @@ import { Button } from "@heroui/react/button";
 import { Input } from "@heroui/react/input";
 import { ListBox } from "@heroui/react/list-box";
 import { Select } from "@heroui/react/select";
+import Link from "next/link";
 import { useActionState } from "react";
 import { FieldError, fieldErrorProps } from "./form-field-error";
 import {
@@ -12,7 +13,8 @@ import {
   loginAction,
   resendVerificationAction,
   resetPasswordAction,
-  signupAction
+  signupAction,
+  verifyEmailAction
 } from "../app/actions";
 import { schoolLocation, type School } from "../lib/cgn-api";
 import { initialFormState } from "../lib/form-state";
@@ -261,6 +263,47 @@ export function ResendVerificationForm() {
         {pending ? "Sending..." : "Resend verification"}
       </Button>
     </form>
+  );
+}
+
+export function VerifyEmailForm({ token }: { token: string }) {
+  const [state, action, pending] = useActionState(
+    verifyEmailAction,
+    initialFormState
+  );
+
+  if (state.status === "success") {
+    return (
+      <Alert status="success">
+        {state.message}{" "}
+        <Link className="link" href="/login">
+          Log in
+        </Link>{" "}
+        to continue.
+      </Alert>
+    );
+  }
+
+  return (
+    <>
+      <form action={action} className="form-stack">
+        <input type="hidden" name="token" value={token} />
+        <FormNotice state={state} />
+        <FieldError name="token" state={state} />
+        <Button type="submit" isDisabled={pending}>
+          {pending ? "Verifying..." : "Verify email"}
+        </Button>
+      </form>
+      {state.status === "error" ? (
+        <section
+          className="form-stack"
+          aria-labelledby="resend-heading"
+        >
+          <h2 id="resend-heading">Need a new link?</h2>
+          <ResendVerificationForm />
+        </section>
+      ) : null}
+    </>
   );
 }
 

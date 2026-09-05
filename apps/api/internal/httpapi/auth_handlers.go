@@ -161,23 +161,19 @@ func (r *Router) handleLogout(w http.ResponseWriter, req *http.Request) {
 }
 
 func (r *Router) handleVerifyEmail(w http.ResponseWriter, req *http.Request) {
-	if req.Method != http.MethodGet && req.Method != http.MethodPost {
-		methodNotAllowed(w, http.MethodGet+", "+http.MethodPost)
+	if req.Method != http.MethodPost {
+		methodNotAllowed(w, http.MethodPost)
 		return
 	}
 	if r.account == nil {
 		writeError(w, http.StatusServiceUnavailable, "database_unavailable")
 		return
 	}
-	token := strings.TrimSpace(req.URL.Query().Get("token"))
-	if req.Method == http.MethodPost {
-		var input tokenRequest
-		if !decodeJSON(w, req, &input) {
-			return
-		}
-		token = strings.TrimSpace(input.Token)
+	var input tokenRequest
+	if !decodeJSON(w, req, &input) {
+		return
 	}
-	if err := r.account.VerifyEmail(req.Context(), token); err != nil {
+	if err := r.account.VerifyEmail(req.Context(), strings.TrimSpace(input.Token)); err != nil {
 		if errors.Is(err, auth.ErrInvalidToken) {
 			writeError(w, http.StatusBadRequest, "invalid_or_expired_token")
 			return

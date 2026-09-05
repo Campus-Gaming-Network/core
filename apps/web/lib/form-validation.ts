@@ -80,6 +80,13 @@ export const emailFormSchema = z.object({
   email: emailSchema
 });
 
+export const verificationTokenFormSchema = z.object({
+  token: z
+    .string()
+    .trim()
+    .min(1, "That link is invalid or has expired.")
+});
+
 export const resetPasswordFormSchema = z.object({
   token: identifierSchema,
   password: passwordSchema

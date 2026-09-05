@@ -83,10 +83,12 @@ the engineering queue, but all P1 work must be complete before public access.
 | 19 | `CGN-016` | P2 | Multi-organizer scope matches the product promise. |
 | 20 | `CGN-018` | P3 | Large modules are split before product expansion. |
 
-The first implementable item is `CGN-002`. Resolve the `.edu` policy needed by
-`CGN-003` while `CGN-002` is underway. Before `CGN-008`, decide
-how nonexistent/repeated DST times and event duration behave. Before `CGN-016`,
-decide whether multi-organizer management belongs in the first release.
+`CGN-003` is next and requires confirmation of the `.edu` product rule before
+implementation. `CGN-004` follows it. If that decision is not ready, `CGN-013`
+is the first independent implementation item that can advance safely. Before
+`CGN-008`, decide how nonexistent/repeated DST times and event duration behave.
+Before `CGN-016`, decide whether multi-organizer management belongs in the
+first release.
 
 ### Implementation map
 
@@ -167,8 +169,15 @@ deny access to a flow for everyone behind that BFF instance.
 
 **Priority:** P1  
 **Size:** M  
-**Status:** Ready  
+**Status:** Complete (2026-09-05)
 **Depends on:** None
+
+**Completion note:** The emailed GET now renders a confirmation screen without
+calling the API. A validated Server Action sends the token in a POST body; the
+Go handler rejects GET with 405 and consumes valid tokens only once. Missing,
+altered, expired, and replayed tokens return the existing safe error and reveal
+the resend flow. Handler, validation, and desktop/mobile browser coverage lock
+the behavior.
 
 **Problem**
 
