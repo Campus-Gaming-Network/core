@@ -26,6 +26,7 @@ These docs are the source of truth for product intent, domain rules, architectur
 | [13 — Deployment plan](./13-deployment-plan.md) | Railway deploy target, env vars, migrations, backups, DNS, and launch smoke test |
 | [14 — Architecture diagrams](./14-architecture-diagrams.md) | Mermaid overviews of the frontend, backend, and complete system |
 | [15 — Pass v0 quality checklist](./15-pass-v0-checklist.md) | Regression checklist for signup → event → RSVP → team → dashboard |
+| [16 — Legal and data-lifecycle plan](./16-legal-and-data-lifecycle-plan.md) | Pre-launch policy blockers, retention targets, account deletion, and operations follow-up |
 
 ## How to use with AI / LLMs
 

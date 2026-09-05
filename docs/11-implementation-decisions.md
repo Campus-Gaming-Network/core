@@ -34,7 +34,8 @@ Small, concrete engineering choices for Phase 0 and early early implementation. 
 | CRM | Not in the first release; the CRM/admin app comes later |
 | Branch campuses | Same UI/UX as other schools |
 | Paid events | Supports off-site-payment listings only; no CGN payment processing |
-| Audit/activity/notifications | Database-backed domain audit history, user activity history, and in-app notifications are later. Uses structured operational logs plus account and RSVP transactional email. |
+| Audit/activity/notifications | Migration `000010` adds append-oriented domain audit history and per-user in-app notifications. Moderation queue patches write audits transactionally; notification reads are user-scoped. User activity history, authenticated notification endpoints/UI, and the site-admin CRM remain later. System/ops logs stay separate. |
+| Queue retention | Reports and support tickets start `retention_started_at` when they enter `resolved` or `closed`; terminal-to-terminal changes preserve it, reopening clears it, and a later terminal transition starts a new clock. Target windows and the legal-hold/purge work are tracked in doc 16. |
 
 ## Current event lifecycle decisions
 
@@ -87,4 +88,4 @@ ratcheting upward rather than treating coverage as a one-time report.
 - Sentry SDK integration (later)
 - CRM/admin app
 - TypeScript 7 adoption; revisit when Next.js officially supports it
-- Database-backed audit/activity history and in-app notifications
+- User-visible activity history and the notification UI/API

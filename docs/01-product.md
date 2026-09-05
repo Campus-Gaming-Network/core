@@ -208,7 +208,8 @@ Signup also requires confirming **age 18+**. Alumni can participate. Faculty who
 
 ### Notifications & email
 
-- In-app notifications table (later)
+- In-app notification storage and repository foundation exists; authenticated
+  API and inbox UI are later
 - Email after event RSVP yes (details + calendar add) from `events@campusgamingnetwork.com`
 - Email active yes/maybe RSVPs after an event is cancelled from
   `events@campusgamingnetwork.com` (best effort; no ICS attachment)

@@ -61,6 +61,13 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 - [x] Bounded rate-limiter memory and an hourly sweeper for expired sessions, tokens, and event unlocks
 - [x] Panic recovery middleware, HTTP server timeouts, configurable database pool ceiling
 - [x] School catalog served from memory with HTTP caching; dead trigram indexes dropped (search 9.4 ms → 1.0 ms)
+- [x] Operations foundation: assignable report/support queues with retention clocks, transactional audit history, user-scoped notifications, and PostgreSQL-backed CI tests
+- [x] Account deletion transfers future events to an active co-organizer or archives them, archives orphan/past events and their child records, detaches support cases, scrubs terminal contact fields, removes personal notifications/roles, and unassigns operations queues
+- [ ] Notify active yes/maybe attendees when account deletion archives an orphaned future event
+- [ ] Replace placeholder Terms/Privacy, obtain legal review, and require versioned Terms agreement/Privacy acknowledgement at signup
+- [ ] Confirm retention windows and legal-hold ownership; document the manual retention runbook before enabling purge automation
+- [ ] Decide and implement Gravatar disclosure/opt-out defaults
+- [ ] Resolve `.edu` verified-student assignment and trusted forwarded-IP rate limiting
 
 ### Auth & profiles
 - [x] Signup / login / logout
@@ -120,7 +127,7 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 - [x] Simple dashboard: upcoming RSVPs + followed-school events + team activity
 - [x] Homepage (works with little/no UGC)
 - [x] Cold-start plan (demo seed and/or “create first event” CTA)
-- [x] FAQ, About, Terms, Privacy
+- [x] FAQ and About; Terms and Privacy routes exist pending reviewed copy
 - [x] Support ticket form — **anyone** can submit (logged out OK)
 
 ### Safety (baseline)
@@ -133,7 +140,9 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 ## Next — immediately after the first release
 
 ### CRM/admin app (`crm.campusgamingnetwork.com` — TanStack Start)
+- [x] Add operations data/repository foundation for assignable reports/support queues with terminal retention clocks, transactional audit history, and user-scoped notifications
 - [ ] Bootstrap first site admin (CLI / env seed)
+- [ ] Add site-admin-authorized reports, support, and audit API endpoints
 - [ ] TanStack Start CRM app (separate deploy, shared Go API)
 - [ ] Schools: create / edit / soft-delete, logos (**CRM/admin-only** R2 PNG/JPG ≤500 MB), activation (`unitid` optional)
 - [ ] Review/deactivate bad seed schools
@@ -141,6 +150,7 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 - [ ] Games catalog management (start from the six launch games; IGDB later)
 - [ ] Reports queue
 - [ ] Support tickets queue
+- [ ] User notification API and in-app inbox
 - [ ] Placeholder school logos until CRM upload
 
 ### Product polish
@@ -153,7 +163,8 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 ### Active product milestone
 - [x] Complete frontend regression coverage for signup, event creation, RSVP, team joining, and dashboard flows
 - [ ] Complete mobile and accessibility pass on the primary journeys
-- [ ] Replace placeholder Terms and Privacy content with reviewed content
+- [x] Define initial support/report/audit retention targets and track legal-hold/purge follow-up
+- [x] Transfer or soft-cancel organizer-owned events during account deletion; detach support records and scrub terminal contact fields
 - [x] Add recurring events (weekly, biweekly, or monthly; max one year)
 - [x] Add cancellation notifications to active yes/maybe RSVPs
 - [x] Improve event discovery filters (game, school, and format)
@@ -169,7 +180,8 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 ### Near-term candidates
 - [ ] Google Maps embed (address text is enough first)
 - [ ] Richer profile fields (majors, graduation automation, faculty extras)
-- [ ] Database-backed activity/audit history and corresponding UIs
+- [x] Database-backed audit-history foundation (broader domain adoption and UIs remain)
+- [ ] User-visible activity history and notification inbox
 - [ ] Site-wide announcements
 - [ ] Impersonation
 - [ ] Broader IGDB game import

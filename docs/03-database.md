@@ -13,14 +13,14 @@ PostgreSQL is the system of record. Conventions first; then core tables. Exact c
 | Money | May list paid/off-site-payment events, but CGN does not process payment. Store only lightweight display fields such as `is_paid`, `payment_note`, and optional `payment_url`; use integer cents + currency only if on-site payments ship later. |
 | Slugs | Unique URL keys: `schools.slug`; `events.slug` — events use `slugify(title)-` + **8** Base64URL chars of SHA-256(creatorId\|date\|title) |
 | Images | Event banners use default placeholder for now; school `logo_url` comes later via CRM/admin upload (PNG/JPG only; max 500 MB) |
-| Audit vs system | Uses system/ops logs. A future `audit_logs` table will hold domain history and remain separate. |
+| Audit vs system | `audit_logs` holds domain change history and remains separate from system/ops logs. |
 | Nightly backups | Required in production |
 
 ## Initial migration scope
 
 Keep the first migration set scoped to shipped features. Create only the tables needed for auth/profile, home school and follows, schools seed, launch games, events, teams, reports/support tickets, and operational needs.
 
-Do **not** create first-pass tables for clubs, tournaments, notifications, audit/activity history, feature flags, site announcements, on-site payments, IGDB sync, or CRM/admin-only workflows until those phases are actively being built.
+Do **not** create first-pass tables for clubs, tournaments, user activity history, feature flags, site announcements, on-site payments, IGDB sync, or broader CRM/admin-only workflows until those phases are actively being built. The operations foundation now includes audit history and per-user notifications; their HTTP and UI surfaces remain gated on site-admin authorization and the later CRM.
 
 ## Core tables (logical)
 
@@ -166,14 +166,19 @@ games
 
 ```text
 reports
-  id, reporter_user_id, target_type, target_id, reason, status, ...
+  id, reporter_user_id, target_type, target_id, reason, status,
+  assigned_to_user_id nullable, resolution_note, retention_started_at nullable, ...
 
 support_tickets
-  id, submitter_user_id nullable, contact_email, name, subject, message, status, ...
+  id, submitter_user_id nullable, contact_email, name, subject, message, status,
+  assigned_to_user_id nullable, resolution_note, submitter_deleted_at nullable,
+  retention_started_at nullable, ...
   -- anyone can submit (logged out OK); viewed/managed in later CRM/admin tooling
 
-notifications  (later)
-  id, user_id, type, payload jsonb, read_at, ...
+notifications
+  id, user_id, type, title, body,
+  entity_type nullable, entity_id nullable, payload jsonb, read_at, created_at
+  -- repository primitives exist; authenticated HTTP/UI surfaces are later
 
 feature_flags  (later)
   id, key, description, enabled_globally, ...
@@ -185,7 +190,7 @@ site_announcements  (later)
   id, message, starts_at, ends_at, is_active, ...
 ```
 
-### Audit & activity (later)
+### Audit & activity
 
 ```text
 audit_logs
@@ -193,7 +198,8 @@ audit_logs
   entity_type, entity_id,
   before_json, after_json, metadata jsonb,
   created_at
-  -- shared by school, event, team, club, etc.
+  -- append-oriented domain history; queue mutations write before/after state
+  -- shared by school, event, team, club, etc. as those workflows adopt it
 
 activity_logs  (optional separate from audit)
   id, user_id, action, metadata jsonb, created_at
@@ -209,7 +215,7 @@ If activity and audit can share one table with a clear `kind` discriminator, pre
 - Interest uniqueness: `(event_id, user_id)`
 - Follow uniqueness: `(user_id, school_id)`
 - Common filters: `events.starts_at`, `events.visibility`, `events.deleted_at`, game FKs, geo later if needed
-- Future audit history: `(entity_type, entity_id, created_at DESC)`
+- Audit history: `(entity_type, entity_id, created_at DESC)`
 
 ## Search (Postgres first)
 
@@ -228,7 +234,7 @@ Do not list `unlisted` or `private` events in discovery search. Unlisted is reac
 | Case | Behavior |
 |------|----------|
 | Event cancelled | Soft delete; public URL shows “no longer exists”; best-effort cancellation email to active yes/maybe RSVPs |
-| User deletes account | Scrub PII; `name = 'Deleted User'`; keep FKs for history |
+| User deletes account | Scrub the account row; delete personal follows, memberships, RSVPs, interests, tokens, and notifications; unassign moderation/support work; detach submitted support tickets and scrub direct contact fields on terminal tickets; transfer created events to the longest-tenured active co-organizer or soft-cancel them; keep required domain FKs and audit history. Free-text retention and final purge policy remain tracked in doc 16. |
 | Hard delete | Avoid for domain entities unless legally required |
 
 ## Backups

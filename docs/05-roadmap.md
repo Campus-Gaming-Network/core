@@ -148,7 +148,8 @@ feeling unfinished.
 
 - Expanded backup retention / point-in-time recovery beyond the launch baseline
 - Sentry/error monitoring
-- Database-backed audit/activity history and in-app notifications
+- Extend the database-backed audit foundation across more domains; add
+  user-visible activity history and the notification API/inbox
 - Broader rate limiting
 - Impersonation for site admins (audited)
 - Account deletion anonymization path tested
