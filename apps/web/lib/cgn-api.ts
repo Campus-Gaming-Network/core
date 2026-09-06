@@ -477,6 +477,8 @@ export function userMessageForApiError(error: unknown) {
     event_full: "That event is full.",
     event_interest_failed: "We could not update your interest in that event.",
     event_not_found: "That event could not be found.",
+    event_recurrence_immutable:
+      "Repeat settings cannot be changed after an event is created.",
     event_rsvp_closed: "RSVPs are closed for that event.",
     event_rsvp_email_failed: "Your RSVP was saved, but we could not send the confirmation email.",
     event_rsvp_failed: "We could not save your RSVP. Please try again.",

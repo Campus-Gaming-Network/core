@@ -46,7 +46,8 @@ Small, concrete engineering choices for Phase 0 and early early implementation. 
 | Area | Decision |
 |------|----------|
 | Recurrence | Creation supports weekly, biweekly, and monthly schedules through an inclusive end date no more than one year after the first occurrence. Each occurrence is a normal event row with its own slug, RSVPs, and cancellation lifecycle. |
-| Series editing | No edit-series workflow yet. Occurrences are edited and cancelled independently. |
+| Series editing | No edit-series workflow yet. Occurrences are edited and cancelled independently. Edit forms do not expose recurrence controls, and the Server Action plus API reject supplied recurrence fields. |
+| Event time entry | Create/edit forms accept local wall-clock values through native `datetime-local` controls and use a curated US timezone selector defaulted from the profile. The Server Action converts valid local values to UTC instants before calling Go. Nonexistent spring-forward times and ambiguous fall-back times are rejected rather than guessed; `CGN-008` still owns recurrence generation and its duration rule across DST. |
 | Cancellation email | After soft cancellation, send a best-effort email from `events@campusgamingnetwork.com` to active `yes`/`maybe` RSVPs. Email failure is logged and does not roll back cancellation; no ICS is attached. |
 
 ## Trust and safety decisions

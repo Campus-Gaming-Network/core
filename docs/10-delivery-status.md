@@ -125,6 +125,8 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 - [x] Rate limit event create + private unlock attempts
 - [x] Default event banner/background placeholder (no custom uploads yet)
 - [x] Recurring events (weekly, biweekly, or monthly; max one year; independent occurrences)
+- [x] Occurrence-only editing with immutable recurrence fields at the web and API boundaries
+- [x] Native local event date/time entry with profile-defaulted timezone selection and explicit DST-edge validation
 - [x] Cancellation notifications to active yes/maybe RSVPs (best-effort email)
 - [x] Empty states for events browse
 

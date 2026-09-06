@@ -52,6 +52,7 @@ export default async function NewEventPage({ searchParams }: PageProps) {
       <EventForm
         defaultSchoolID={profile.home_school_id}
         defaultSchool={profile.home_school}
+        defaultTimeZone={profile.timezone}
         games={games}
         initialSchoolQuery={query}
         initialSchoolSearchFailed={schoolsResult.failed}

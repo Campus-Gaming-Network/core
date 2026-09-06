@@ -156,6 +156,12 @@ test("userMessageForApiError maps known backend errors", () => {
     "Only event organizers can change that event."
   );
   assert.equal(
+    userMessageForApiError(
+      new ApiError(400, "event_recurrence_immutable")
+    ),
+    "Repeat settings cannot be changed after an event is created."
+  );
+  assert.equal(
     userMessageForApiError(new ApiError(401, "invalid_private_password")),
     "That event password did not match."
   );

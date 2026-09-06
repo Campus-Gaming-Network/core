@@ -30,9 +30,9 @@ verification steps.
 
 1. Complete `CGN-013`: fail startup when production deployment settings are
    unsafe.
-2. Complete `CGN-007`: make recurrence editing honest and explicit.
-3. Decide the DST rules needed for `CGN-008`, then generate recurrences in the
+2. Decide the DST rules needed for `CGN-008`, then generate recurrences in the
    event's IANA timezone.
+3. Complete `CGN-010`: bound email requests and persist delivery intent.
 
 After those, follow the ordered queue in doc 17. Legal, Gravatar,
 account-deletion notifications, and external launch rehearsal remain P1 launch
@@ -52,6 +52,13 @@ gates. CRM/admin UI work moves behind the review's P1 queue.
 
 ## Recently completed
 
+- Replaced raw ISO/IANA event entry with native local date/time controls and a
+  profile-defaulted curated timezone selector. Server Actions convert to
+  instants and reject nonexistent or ambiguous DST wall times with accessible
+  field errors (`CGN-009`).
+- Removed recurrence controls from event edits, explained independent
+  occurrence editing, and made both the Server Action and API reject recurrence
+  mutations instead of silently discarding them (`CGN-007`).
 - Added filter-preserving previous/next navigation to school, event, and team
   browse pages. Event and team lists use opaque bidirectional keyset cursors;
   schools use offset pages plus explicit `has_more` metadata without a total

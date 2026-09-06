@@ -38,8 +38,14 @@ export function eventBodyFromForm(formData: FormData) {
     is_paid: formCheckbox(formData, "is_paid"),
     payment_note: formString(formData, "payment_note"),
     payment_url: formString(formData, "payment_url"),
-    recurrence_rule: formString(formData, "recurrence_rule"),
-    recurrence_until: formString(formData, "recurrence_until") || undefined
+    ...(formData.has("recurrence_rule")
+      ? { recurrence_rule: formString(formData, "recurrence_rule") }
+      : {}),
+    ...(formData.has("recurrence_until")
+      ? {
+          recurrence_until: formString(formData, "recurrence_until")
+        }
+      : {})
   };
 }
 

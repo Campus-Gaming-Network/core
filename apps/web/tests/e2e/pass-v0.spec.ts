@@ -159,8 +159,17 @@ test("event server actions create, toggle interest, and cancel", async ({
   await page
     .getByLabel("Description")
     .fill("An evening tournament for campus players.");
-  await page.getByLabel("Starts at").fill("2037-03-10T02:00:00Z");
-  await page.getByLabel("Ends at").fill("2037-03-10T05:00:00Z");
+  const timeZone = page.getByRole("button", {
+    name: "Pacific Time Time zone"
+  });
+  await expect(timeZone).toBeVisible();
+  await timeZone.click();
+  await page.getByRole("option", { name: "Eastern Time" }).click();
+  await expect(
+    page.getByRole("button", { name: "Eastern Time Time zone" })
+  ).toBeVisible();
+  await page.getByLabel("Starts at").fill("2037-08-15T13:00");
+  await page.getByLabel("Ends at").fill("2037-08-15T16:00");
   await page.getByLabel("Location name").fill("Student Union Arena");
   await page.getByLabel("Games").selectOption("game-valorant");
   await page.getByLabel("Capacity").fill("24");
@@ -219,13 +228,54 @@ test("event server actions create, toggle interest, and cancel", async ({
   await expectNoHorizontalOverflow(page);
 });
 
+test("editing a recurring occurrence keeps its recurrence immutable", async ({
+  page
+}) => {
+  await logIn(
+    page,
+    "player@example.test",
+    "/events/recurring-occurrence-e2e/edit"
+  );
+
+  await expect(
+    page.getByText(
+      "This is one occurrence in a weekly series. Changes apply only to this occurrence. Repeat settings cannot be changed after an event is created."
+    )
+  ).toBeVisible();
+  await expect(page.getByLabel("Repeat event")).toHaveCount(0);
+  await expect(page.getByLabel("Repeat until")).toHaveCount(0);
+  await expect(page.getByLabel("Starts at")).toHaveAttribute(
+    "type",
+    "datetime-local"
+  );
+  await expect(page.getByLabel("Starts at")).toHaveValue(
+    "2037-08-22T13:00"
+  );
+
+  await page.getByLabel("Title").fill("Updated Weekly Scrim");
+  await page.getByLabel("Starts at").fill("2037-08-22T14:00");
+  await page.getByLabel("Ends at").fill("2037-08-22T17:00");
+  await page.getByRole("button", { name: "Save event" }).click();
+
+  await expect(page).toHaveURL(
+    /\/events\/recurring-occurrence-e2e\?event=updated$/
+  );
+  await expect(
+    page.getByRole("heading", { name: "Updated Weekly Scrim", level: 1 })
+  ).toBeVisible();
+  await expect(page.getByText("Event updated.")).toBeVisible();
+  await expect(page.getByText("Weekly until")).toBeVisible();
+  await expectAccessible(page);
+  await expectNoHorizontalOverflow(page);
+});
+
 test("event validation returns accessible field errors before calling the API", async ({
   page
 }) => {
   await logIn(page, "player@example.test", "/events/new");
   await page.getByLabel("Title").fill("Invalid schedule example");
-  await page.getByLabel("Starts at").fill("2037-03-10T05:00:00Z");
-  await page.getByLabel("Ends at").fill("2037-03-10T02:00:00Z");
+  await page.getByLabel("Starts at").fill("2037-08-15T16:00");
+  await page.getByLabel("Ends at").fill("2037-08-15T13:00");
   await page.getByLabel("Games").selectOption("game-valorant");
   await page.getByRole("button", { name: "Create event" }).click();
 
@@ -239,6 +289,17 @@ test("event validation returns accessible field errors before calling the API", 
     "aria-describedby",
     "ends_at-error"
   );
+
+  await page.getByLabel("Starts at").fill("2026-03-08T02:30");
+  await page.getByLabel("Ends at").fill("2026-03-08T04:00");
+  await page.getByLabel("Title").fill("DST gap example");
+  await page.getByLabel("Games").selectOption("game-valorant");
+  await page.getByRole("button", { name: "Create event" }).click();
+  await expect(
+    page.getByText(
+      "Start time does not exist because clocks move forward. Choose another time."
+    )
+  ).toBeVisible();
   await page.mouse.move(0, 0);
   await expectAccessible(page);
 });

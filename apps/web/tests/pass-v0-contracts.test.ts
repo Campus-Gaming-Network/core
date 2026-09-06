@@ -66,8 +66,8 @@ test("Pass v0 event-create request uses the production builder", () => {
   formData.append("game_ids", "game-1");
   formData.set("visibility", "public");
   formData.set("format", "in_person");
-  formData.set("starts_at", "2026-08-15T20:00:00Z");
-  formData.set("ends_at", "2026-08-15T22:00:00Z");
+  formData.set("starts_at", "2026-08-15T13:00");
+  formData.set("ends_at", "2026-08-15T15:00");
 
   assert.deepEqual(buildCreateEventRequest(formData, cookieHeader), {
     path: "/events",

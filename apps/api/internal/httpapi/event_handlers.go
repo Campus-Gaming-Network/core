@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -23,25 +24,35 @@ const rsvpEmailTimeout = 10 * time.Second
 const cancellationEmailTimeout = 10 * time.Second
 
 type createEventRequest struct {
-	Title           string    `json:"title"`
-	Description     string    `json:"description"`
-	HostSchoolID    string    `json:"host_school_id"`
-	GameIDs         []string  `json:"game_ids"`
-	Visibility      string    `json:"visibility"`
-	Format          string    `json:"format"`
-	StartsAt        time.Time `json:"starts_at"`
-	EndsAt          time.Time `json:"ends_at"`
-	Timezone        string    `json:"timezone"`
-	LocationName    string    `json:"location_name"`
-	Address         string    `json:"address"`
-	OnlineURL       string    `json:"online_url"`
-	PrivatePassword string    `json:"private_password"`
-	Capacity        *int      `json:"capacity"`
-	IsPaid          bool      `json:"is_paid"`
-	PaymentNote     string    `json:"payment_note"`
-	PaymentURL      string    `json:"payment_url"`
-	RecurrenceRule  string    `json:"recurrence_rule"`
-	RecurrenceUntil string    `json:"recurrence_until"`
+	Title           string             `json:"title"`
+	Description     string             `json:"description"`
+	HostSchoolID    string             `json:"host_school_id"`
+	GameIDs         []string           `json:"game_ids"`
+	Visibility      string             `json:"visibility"`
+	Format          string             `json:"format"`
+	StartsAt        time.Time          `json:"starts_at"`
+	EndsAt          time.Time          `json:"ends_at"`
+	Timezone        string             `json:"timezone"`
+	LocationName    string             `json:"location_name"`
+	Address         string             `json:"address"`
+	OnlineURL       string             `json:"online_url"`
+	PrivatePassword string             `json:"private_password"`
+	Capacity        *int               `json:"capacity"`
+	IsPaid          bool               `json:"is_paid"`
+	PaymentNote     string             `json:"payment_note"`
+	PaymentURL      string             `json:"payment_url"`
+	RecurrenceRule  optionalJSONString `json:"recurrence_rule"`
+	RecurrenceUntil optionalJSONString `json:"recurrence_until"`
+}
+
+type optionalJSONString struct {
+	present bool
+	value   string
+}
+
+func (value *optionalJSONString) UnmarshalJSON(data []byte) error {
+	value.present = true
+	return json.Unmarshal(data, &value.value)
 }
 
 type unlockPrivateEventRequest struct {
@@ -128,8 +139,8 @@ func (r *Router) handleCreateEvent(w http.ResponseWriter, req *http.Request) {
 	}
 
 	input := createEventInputFromRequest(request, userID)
-	if request.RecurrenceUntil != "" {
-		parsed, err := time.Parse(time.DateOnly, request.RecurrenceUntil)
+	if request.RecurrenceUntil.present && strings.TrimSpace(request.RecurrenceUntil.value) != "" {
+		parsed, err := time.Parse(time.DateOnly, strings.TrimSpace(request.RecurrenceUntil.value))
 		if err != nil {
 			writeError(w, http.StatusBadRequest, "invalid_request")
 			return
@@ -174,6 +185,10 @@ func (r *Router) handleUpdateEvent(w http.ResponseWriter, req *http.Request, slu
 
 	var request createEventRequest
 	if !decodeJSON(w, req, &request) {
+		return
+	}
+	if request.RecurrenceRule.present || request.RecurrenceUntil.present {
+		writeError(w, http.StatusBadRequest, "event_recurrence_immutable")
 		return
 	}
 
@@ -434,7 +449,7 @@ func createEventInputFromRequest(request createEventRequest, userID string) even
 		IsPaid:          request.IsPaid,
 		PaymentNote:     request.PaymentNote,
 		PaymentURL:      request.PaymentURL,
-		RecurrenceRule:  strings.TrimSpace(request.RecurrenceRule),
+		RecurrenceRule:  strings.TrimSpace(request.RecurrenceRule.value),
 	}
 }
 

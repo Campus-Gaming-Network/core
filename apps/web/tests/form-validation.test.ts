@@ -21,8 +21,8 @@ function validEvent() {
     game_ids: ["game-1"],
     visibility: "public" as const,
     format: "in_person" as const,
-    starts_at: "2037-02-20T02:00:00Z",
-    ends_at: "2037-02-20T05:00:00Z",
+    starts_at: "2037-02-19T18:00",
+    ends_at: "2037-02-19T21:00",
     timezone: "America/Los_Angeles",
     location_name: "Student Union",
     address: "",
@@ -35,6 +35,12 @@ function validEvent() {
     recurrence_rule: "" as const,
     recurrence_until: undefined
   };
+}
+
+function validUpdateEvent() {
+  const { recurrence_rule: _rule, recurrence_until: _until, ...event } =
+    validEvent();
+  return event;
 }
 
 test("signup schema normalizes fields and validates age confirmation", () => {
@@ -74,11 +80,13 @@ test("verification token schema rejects omission and trims valid tokens", () => 
 });
 
 test("event schema enforces time order and private-event passwords", () => {
-  assert.equal(createEventFormSchema.safeParse(validEvent()).success, true);
+  const valid = createEventFormSchema.parse(validEvent());
+  assert.equal(valid.starts_at, "2037-02-20T02:00:00.000Z");
+  assert.equal(valid.ends_at, "2037-02-20T05:00:00.000Z");
 
   const reversed = createEventFormSchema.safeParse({
     ...validEvent(),
-    ends_at: "2037-02-19T05:00:00Z"
+    ends_at: "2037-02-19T17:00"
   });
   assert.equal(reversed.success, false);
   if (!reversed.success) {
@@ -96,7 +104,7 @@ test("event schema enforces time order and private-event passwords", () => {
 
   assert.equal(
     updateEventFormSchema.safeParse({
-      ...validEvent(),
+      ...validUpdateEvent(),
       visibility: "private"
     }).success,
     true
@@ -123,7 +131,7 @@ test("event schema validates recurrence and capacity relationships", () => {
     createEventFormSchema.safeParse({
       ...validEvent(),
       recurrence_rule: "weekly",
-      recurrence_until: "2038-02-20"
+      recurrence_until: "2038-02-19"
     }).success,
     true
   );
@@ -131,6 +139,67 @@ test("event schema validates recurrence and capacity relationships", () => {
     createEventFormSchema.safeParse({ ...validEvent(), capacity: 0 }).success,
     false
   );
+});
+
+test("event update schema rejects recurrence fields instead of silently dropping them", () => {
+  assert.equal(updateEventFormSchema.safeParse(validUpdateEvent()).success, true);
+  const recurrenceRule = updateEventFormSchema.safeParse({
+    ...validUpdateEvent(),
+    recurrence_rule: "weekly"
+  });
+  assert.equal(recurrenceRule.success, false);
+  if (!recurrenceRule.success) {
+    assert.deepEqual(
+      formValidationFailure(recurrenceRule.error).fieldErrors?.recurrence_rule,
+      ["Recurrence settings cannot be changed after an event is created."]
+    );
+  }
+  assert.equal(
+    updateEventFormSchema.safeParse({
+      ...validUpdateEvent(),
+      recurrence_until: "2037-03-19"
+    }).success,
+    false
+  );
+  assert.equal(
+    updateEventFormSchema.safeParse({
+      ...validUpdateEvent(),
+      recurrence_until: ""
+    }).success,
+    false
+  );
+});
+
+test("event schema rejects DST gaps and overlaps that do not identify one instant", () => {
+  const nonexistent = createEventFormSchema.safeParse({
+    ...validEvent(),
+    starts_at: "2026-03-08T02:30",
+    ends_at: "2026-03-08T04:00"
+  });
+  assert.equal(nonexistent.success, false);
+  if (!nonexistent.success) {
+    assert.deepEqual(
+      formValidationFailure(nonexistent.error).fieldErrors?.starts_at,
+      [
+        "Start time does not exist because clocks move forward. Choose another time."
+      ]
+    );
+  }
+
+  const ambiguous = createEventFormSchema.safeParse({
+    ...validEvent(),
+    starts_at: "2026-11-01T01:30",
+    ends_at: "2026-11-01T03:00"
+  });
+  assert.equal(ambiguous.success, false);
+  if (!ambiguous.success) {
+    assert.deepEqual(
+      formValidationFailure(ambiguous.error).fieldErrors?.starts_at,
+      [
+        "Start time occurs twice because clocks move back. Choose another time."
+      ]
+    );
+  }
 });
 
 test("profile validation maps nested social-link errors to form field names", () => {

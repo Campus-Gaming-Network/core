@@ -1795,6 +1795,34 @@ func TestHandleUpdateEventUpdatesOrganizerEvent(t *testing.T) {
 	}
 }
 
+func TestHandleUpdateEventRejectsRecurrenceFields(t *testing.T) {
+	for _, field := range []string{
+		`"recurrence_rule":"weekly"`,
+		`"recurrence_until":"2026-10-15"`,
+		`"recurrence_rule":null`,
+	} {
+		t.Run(field, func(t *testing.T) {
+			repository := &fakeEventRepository{}
+			handler := authenticatedEventPathHandler(repository)
+			body := strings.TrimSuffix(strings.TrimSpace(validCreateEventJSON(eventstore.VisibilityPublic, "")), "}")
+			request := authenticatedEventRequest(http.MethodPatch, "/events/campus-scrim-night", body+","+field+"}")
+			response := httptest.NewRecorder()
+
+			handler.ServeHTTP(response, request)
+
+			if response.Code != http.StatusBadRequest {
+				t.Fatalf("status = %d, want %d; body = %s", response.Code, http.StatusBadRequest, response.Body.String())
+			}
+			if !strings.Contains(response.Body.String(), "event_recurrence_immutable") {
+				t.Fatalf("body = %s, want event_recurrence_immutable", response.Body.String())
+			}
+			if repository.updateCalled {
+				t.Fatal("Update was called with immutable recurrence fields")
+			}
+		})
+	}
+}
+
 func TestHandleUpdateEventHashesNewPrivatePassword(t *testing.T) {
 	repository := &fakeEventRepository{}
 	handler := authenticatedEventPathHandler(repository)

@@ -9,6 +9,7 @@ const unlockToken = "e2e-private-event-unlock";
 const sessions = new Map();
 const privateEventRecords = new Map();
 const createdEvents = new Map();
+const recurringEventRecords = new Map();
 const teamRoles = new Map();
 const promotedCaptainSessions = new Set();
 const transferredOwnerSessions = new Set();
@@ -163,6 +164,50 @@ function createdEvent(record, sessionToken) {
     ...record.event,
     interest_count: record.interestedSessions.size,
     viewer_interested: record.interestedSessions.has(sessionToken),
+    viewer_can_edit: record.ownerSession === sessionToken
+  };
+}
+
+function recurringEvent(sessionToken) {
+  let record = recurringEventRecords.get(sessionToken);
+  if (!record) {
+    record = {
+      ownerSession: sessionToken,
+      event: {
+        id: `event-recurring-${sessionToken.slice(-8)}`,
+        title: "Weekly Campus Scrim",
+        slug: "recurring-occurrence-e2e",
+        description: "One independently editable occurrence.",
+        visibility: "public",
+        format: "in_person",
+        starts_at: "2037-08-22T20:00:00Z",
+        ends_at: "2037-08-22T23:00:00Z",
+        timezone: "America/Los_Angeles",
+        location_name: "Student Union Arena",
+        capacity: 24,
+        rsvp_yes_count: 0,
+        interest_count: 0,
+        lifecycle: "upcoming",
+        is_paid: false,
+        recurrence_rule: "weekly",
+        recurrence_until: "2037-10-01T06:59:59Z",
+        host_school: homeSchool,
+        games: [game],
+        organizers: [
+          {
+            id: profile.id,
+            name: profile.name,
+            role: "creator",
+            verification_level: profile.verification_level
+          }
+        ]
+      }
+    };
+    recurringEventRecords.set(sessionToken, record);
+  }
+
+  return {
+    ...record.event,
     viewer_can_edit: record.ownerSession === sessionToken
   };
 }
@@ -375,9 +420,9 @@ const server = createServer(async (request, response) => {
         body.host_school_id !== homeSchool.id ||
         body.visibility !== "public" ||
         body.format !== "in_person" ||
-        body.starts_at !== "2037-03-10T02:00:00Z" ||
-        body.ends_at !== "2037-03-10T05:00:00Z" ||
-        body.timezone !== "America/Los_Angeles" ||
+        body.starts_at !== "2037-08-15T17:00:00.000Z" ||
+        body.ends_at !== "2037-08-15T20:00:00.000Z" ||
+        body.timezone !== "America/New_York" ||
         body.location_name !== "Student Union Arena" ||
         body.capacity !== 24 ||
         body.is_paid !== true ||
@@ -487,9 +532,44 @@ const server = createServer(async (request, response) => {
     const createdEventMatch = url.pathname.match(/^\/events\/([^/]+)$/);
     if (
       createdEventMatch &&
-      (request.method === "GET" || request.method === "DELETE")
+      (request.method === "GET" ||
+        request.method === "PATCH" ||
+        request.method === "DELETE")
     ) {
       const slug = decodeURIComponent(createdEventMatch[1]);
+      if (slug === "recurring-occurrence-e2e") {
+        if (!authenticated) {
+          json(response, 401, { error: "authentication_required" });
+          return;
+        }
+        if (request.method === "DELETE") {
+          json(response, 405, { error: "method_not_allowed" });
+          return;
+        }
+        const record = recurringEventRecords.get(sessionToken);
+        if (request.method === "PATCH") {
+          const body = await readJSON(request);
+          if (
+            Object.hasOwn(body, "recurrence_rule") ||
+            Object.hasOwn(body, "recurrence_until") ||
+            body.title !== "Updated Weekly Scrim" ||
+            body.starts_at !== "2037-08-22T21:00:00.000Z" ||
+            body.ends_at !== "2037-08-23T00:00:00.000Z"
+          ) {
+            json(response, 400, { error: "invalid_request" });
+            return;
+          }
+          const event = recurringEvent(sessionToken);
+          recurringEventRecords.set(sessionToken, {
+            ownerSession: sessionToken,
+            event: { ...event, ...body }
+          });
+        } else if (!record) {
+          recurringEvent(sessionToken);
+        }
+        json(response, 200, recurringEvent(sessionToken));
+        return;
+      }
       const record = createdEvents.get(slug);
       if (record) {
         if (request.method === "DELETE") {

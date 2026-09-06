@@ -367,8 +367,14 @@ page and render no navigation. Records after the first 25 are undiscoverable.
 
 **Priority:** P1  
 **Size:** M  
-**Status:** Ready  
+**Status:** Complete (2026-09-05)
 **Depends on:** Product decision already recorded: occurrences edit independently
+
+**Completion note:** Recurrence controls now appear only during creation. The
+edit form explains that an occurrence is changed independently, its Server
+Action validator rejects recurrence keys, and `PATCH /events/:slug` returns
+`event_recurrence_immutable` whenever either recurrence field is supplied.
+Handler and desktop/mobile recurring-occurrence regressions cover the boundary.
 
 **Problem**
 
@@ -441,8 +447,16 @@ to a short month, such as January 31 → February 28 → March 28.
 
 **Priority:** P1  
 **Size:** M  
-**Status:** Ready  
+**Status:** Complete (2026-09-05)
 **Depends on:** `CGN-008`
+
+**Completion note:** Event forms now use native local date/time controls and a
+curated timezone selector defaulted from the profile. Server Action validation
+converts each wall-clock value to an offset-bearing instant. Until `CGN-008`
+defines recurrence-specific DST behavior, nonexistent spring-forward times and
+ambiguous fall-back times are rejected with field-level guidance rather than
+silently choosing an instant. Unit and desktop/mobile browser coverage verifies
+creation, editing, round trips, and both DST edges.
 
 **Problem**
 

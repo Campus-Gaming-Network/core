@@ -18,8 +18,8 @@ test("eventBodyFromForm builds a normalized event payload", () => {
   form.append("game_ids", "game-2");
   form.set("visibility", "public");
   form.set("format", "in_person");
-  form.set("starts_at", "2026-08-15T20:00:00Z");
-  form.set("ends_at", "2026-08-15T22:00:00Z");
+  form.set("starts_at", "2026-08-15T13:00");
+  form.set("ends_at", "2026-08-15T15:00");
   form.set("location_name", "Student Union");
   form.set("capacity", "32");
   form.set("is_paid", "on");
@@ -33,8 +33,8 @@ test("eventBodyFromForm builds a normalized event payload", () => {
     game_ids: ["game-1", "game-2"],
     visibility: "public",
     format: "in_person",
-    starts_at: "2026-08-15T20:00:00Z",
-    ends_at: "2026-08-15T22:00:00Z",
+    starts_at: "2026-08-15T13:00",
+    ends_at: "2026-08-15T15:00",
     timezone: "America/Los_Angeles",
     location_name: "Student Union",
     address: "",
@@ -47,6 +47,20 @@ test("eventBodyFromForm builds a normalized event payload", () => {
     recurrence_rule: "weekly",
     recurrence_until: "2026-09-15"
   });
+});
+
+test("eventBodyFromForm omits recurrence fields that are absent on edit", () => {
+  const payload = eventBodyFromForm(new FormData());
+
+  assert.equal("recurrence_rule" in payload, false);
+  assert.equal("recurrence_until" in payload, false);
+});
+
+test("eventBodyFromForm preserves an explicitly submitted blank recurrence date", () => {
+  const form = new FormData();
+  form.set("recurrence_until", "");
+
+  assert.equal(eventBodyFromForm(form).recurrence_until, "");
 });
 
 test("eventBodyFromForm leaves optional capacity unset and unchecked payment false", () => {

@@ -17,9 +17,15 @@ import {
 import {
   type Event,
   type Game,
+  recurrenceRuleLabel,
   type School,
   type SchoolSummary
 } from "../lib/cgn-api";
+import {
+  eventTimeZoneLabel,
+  eventTimeZones,
+  instantToLocalDateTime
+} from "../lib/event-time";
 import { initialFormState } from "../lib/form-state";
 
 type EventFormProps = {
@@ -29,6 +35,7 @@ type EventFormProps = {
   schools: School[];
   defaultSchoolID?: string;
   defaultSchool?: SchoolSummary;
+  defaultTimeZone?: string;
   initialSchoolQuery?: string;
   initialSchoolSearchFailed?: boolean;
 };
@@ -40,6 +47,7 @@ export function EventForm({
   schools,
   defaultSchoolID,
   defaultSchool,
+  defaultTimeZone,
   initialSchoolQuery,
   initialSchoolSearchFailed
 }: EventFormProps) {
@@ -50,14 +58,18 @@ export function EventForm({
   );
   const selectedGameIDs = new Set(event?.games.map((game) => game.id) ?? []);
   const selectedSchoolID = event?.host_school.id ?? defaultSchoolID ?? "";
+  const timeZone = event?.timezone ?? defaultTimeZone ?? "America/Los_Angeles";
+  const timeZoneOptions = eventTimeZones.some(
+    (option) => option.id === timeZone
+  )
+    ? eventTimeZones
+    : [{ id: timeZone, label: timeZone }, ...eventTimeZones];
 
   return (
     <form action={action} className="form-stack">
       {event ? <input type="hidden" name="slug" value={event.slug} /> : null}
       {state.message ? (
-        <Alert
-      status={state.status === "error" ? "danger" : "success"}
-        >
+        <Alert status={state.status === "error" ? "danger" : "success"}>
           {state.message}
         </Alert>
       ) : null}
@@ -140,17 +152,51 @@ export function EventForm({
       <Fieldset>
         <Fieldset.Legend>When</Fieldset.Legend>
         <p className="form-help">
-          Use ISO timestamps, for example
-          <code>2026-08-15T20:00:00Z</code>.
+          Enter the local date and time for the selected time zone.
         </p>
+        <label>
+          Time zone
+          <Select
+            fullWidth
+            name="timezone"
+            defaultSelectedKey={timeZone}
+            aria-label="Time zone"
+            isRequired
+            {...fieldErrorProps(state, "timezone")}
+          >
+            <Select.Trigger>
+              <Select.Value />
+              <Select.Indicator />
+            </Select.Trigger>
+            <Select.Popover>
+              <ListBox>
+                {timeZoneOptions.map((option) => (
+                  <ListBox.Item
+                    id={option.id}
+                    key={option.id}
+                    textValue={eventTimeZoneLabel(option.id)}
+                  >
+                    {option.label}
+                  </ListBox.Item>
+                ))}
+              </ListBox>
+            </Select.Popover>
+          </Select>
+          <FieldError name="timezone" state={state} />
+        </label>
         <div className="split-fields">
           <label>
             Starts at
             <Input
               name="starts_at"
-              defaultValue={event?.starts_at ?? ""}
-              placeholder="2026-08-15T20:00:00Z"
+              defaultValue={
+                event
+                  ? instantToLocalDateTime(event.starts_at, timeZone)
+                  : ""
+              }
               required
+              step={60}
+              type="datetime-local"
               {...fieldErrorProps(state, "starts_at")}
             />
             <FieldError name="starts_at" state={state} />
@@ -159,64 +205,78 @@ export function EventForm({
             Ends at
             <Input
               name="ends_at"
-              defaultValue={event?.ends_at ?? ""}
-              placeholder="2026-08-15T22:00:00Z"
+              defaultValue={
+                event ? instantToLocalDateTime(event.ends_at, timeZone) : ""
+              }
               required
+              step={60}
+              type="datetime-local"
               {...fieldErrorProps(state, "ends_at")}
             />
             <FieldError name="ends_at" state={state} />
           </label>
         </div>
-        <label>
-          Time zone
-          <Input
-            name="timezone"
-            defaultValue={event?.timezone ?? "America/Los_Angeles"}
-            required
-            {...fieldErrorProps(state, "timezone")}
-          />
-          <FieldError name="timezone" state={state} />
-        </label>
-        <div className="split-fields">
-          <label>
-            Repeat
-            <Select
-              fullWidth
-              name="recurrence_rule"
-              defaultSelectedKey={event?.recurrence_rule ?? ""}
-              aria-label="Repeat event"
-              {...fieldErrorProps(state, "recurrence_rule")}
-            >
-              <Select.Trigger>
-                <Select.Value />
-                <Select.Indicator />
-              </Select.Trigger>
-              <Select.Popover>
-                <ListBox>
-                  <ListBox.Item id="" textValue="Does not repeat">Does not repeat</ListBox.Item>
-                  <ListBox.Item id="weekly" textValue="Weekly">Weekly</ListBox.Item>
-                  <ListBox.Item id="biweekly" textValue="Every two weeks">Every two weeks</ListBox.Item>
-                  <ListBox.Item id="monthly" textValue="Monthly">Monthly</ListBox.Item>
-                </ListBox>
-              </Select.Popover>
-            </Select>
-            <FieldError name="recurrence_rule" state={state} />
-          </label>
-          <label>
-            Repeat until
-            <Input
-              name="recurrence_until"
-              defaultValue={event?.recurrence_until?.slice(0, 10) ?? ""}
-              type="date"
-              {...fieldErrorProps(state, "recurrence_until")}
-            />
-            <FieldError name="recurrence_until" state={state} />
-          </label>
-        </div>
-        <p className="form-help">
-          Recurring events create independent occurrences. Each occurrence can
-          be RSVP’d to or cancelled separately.
-        </p>
+        {mode === "create" ? (
+          <>
+            <div className="split-fields">
+              <label>
+                Repeat
+                <Select
+                  fullWidth
+                  name="recurrence_rule"
+                  defaultSelectedKey=""
+                  aria-label="Repeat event"
+                  {...fieldErrorProps(state, "recurrence_rule")}
+                >
+                  <Select.Trigger>
+                    <Select.Value />
+                    <Select.Indicator />
+                  </Select.Trigger>
+                  <Select.Popover>
+                    <ListBox>
+                      <ListBox.Item id="" textValue="Does not repeat">
+                        Does not repeat
+                      </ListBox.Item>
+                      <ListBox.Item id="weekly" textValue="Weekly">
+                        Weekly
+                      </ListBox.Item>
+                      <ListBox.Item
+                        id="biweekly"
+                        textValue="Every two weeks"
+                      >
+                        Every two weeks
+                      </ListBox.Item>
+                      <ListBox.Item id="monthly" textValue="Monthly">
+                        Monthly
+                      </ListBox.Item>
+                    </ListBox>
+                  </Select.Popover>
+                </Select>
+                <FieldError name="recurrence_rule" state={state} />
+              </label>
+              <label>
+                Repeat until
+                <Input
+                  name="recurrence_until"
+                  type="date"
+                  {...fieldErrorProps(state, "recurrence_until")}
+                />
+                <FieldError name="recurrence_until" state={state} />
+              </label>
+            </div>
+            <p className="form-help">
+              Recurring events create independent occurrences. Each occurrence
+              can be RSVP’d to or cancelled separately.
+            </p>
+          </>
+        ) : (
+          <p className="form-help">
+            {event?.recurrence_rule
+              ? `This is one occurrence in a ${recurrenceRuleLabel(event.recurrence_rule).toLowerCase()} series. Changes apply only to this occurrence.`
+              : "Changes apply only to this event."}{" "}
+            Repeat settings cannot be changed after an event is created.
+          </p>
+        )}
       </Fieldset>
 
       <Fieldset>

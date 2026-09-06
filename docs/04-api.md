@@ -122,7 +122,7 @@ Not every path must exist on day one — align with [05 — Roadmap](./05-roadma
 | GET | `/events/:slug` | Public & unlisted return full page; private returns gated shell until unlocked |
 | POST | `/events/:slug/unlock` | Password for private events; unlock session required before details/RSVP |
 | POST | `/events` | Auth; no approval; rate limited; 8-char slug hash; optional capacity; optional off-site payment fields; default banner only; optional `recurrence_rule` (`weekly`, `biweekly`, `monthly`) and `recurrence_until` (`YYYY-MM-DD`) |
-| PATCH | `/events/:slug` | Organizers; past-event field restrictions; recurrence is configured at creation and occurrences are edited independently (no edit-series workflow yet) |
+| PATCH | `/events/:slug` | Organizers; past-event field restrictions; recurrence is configured at creation and occurrences are edited independently (no edit-series workflow yet). Supplying either recurrence field returns `400 event_recurrence_immutable`. |
 | DELETE | `/events/:slug` | Soft-cancel; best-effort email to active yes/maybe RSVPs after cancellation |
 | POST | `/events/:slug/rsvp` | yes/no/maybe; capacity counts **yes only**; reject yes if full; email+ICS on yes |
 | POST | `/events/:slug/interest` | Favorite/bookmark; independent of RSVP |
@@ -136,6 +136,11 @@ Recurring creation expands into independent event occurrences. The supported
 rules are weekly, biweekly, and monthly, with an inclusive end date no more
 than one year after the first occurrence. Each occurrence has its own slug,
 RSVPs, and cancellation lifecycle.
+
+The web form accepts local wall-clock values and a curated IANA timezone, then
+converts them to offset-bearing timestamps before calling the API. It rejects
+nonexistent and ambiguous DST wall times rather than guessing which instant the
+user intended.
 
 Event detail responses include `organizers`, with each organizer's name, role,
 `verification_level`, and applicable `role_indicators` (`school_admin` and/or
