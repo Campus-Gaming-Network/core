@@ -58,6 +58,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
+      - name: Validate application containers
+        run: npm run check:apps-compose
       - name: Install
         run: npm ci
       - name: Typecheck
@@ -72,6 +74,9 @@ jobs:
       - name: Install Playwright browser
         working-directory: apps/web
         run: npx playwright install --with-deps chromium
+      - name: Documentation browser tests
+        working-directory: apps/docs
+        run: npm run test:e2e
       - name: Browser tests
         working-directory: apps/web
         run: npm run test:e2e

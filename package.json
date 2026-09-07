@@ -4,11 +4,20 @@
   "engines": {
     "node": "24.x"
   },
+  "devDependencies": {
+    "@playwright/test": "1.62.1"
+  },
   "workspaces": [
-    "apps/web"
+    "apps/web",
+    "apps/docs"
   ],
   "scripts": {
+    "check:apps-compose": "node scripts/check_apps_compose.mjs",
     "compose:up": "docker compose up --build",
+    "dev:docs": "npm --prefix apps/docs run start",
+    "build:docs": "npm --prefix apps/docs run build",
+    "serve:docs": "npm --prefix apps/docs run serve",
+    "test:e2e:docs": "npm --prefix apps/docs run test:e2e",
     "dev:web": "npm --prefix apps/web run dev",
     "build:web": "npm --prefix apps/web run build",
     "lint:web": "npm --prefix apps/web run lint",

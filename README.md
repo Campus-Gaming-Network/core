@@ -13,6 +13,7 @@ safety intake are implemented locally:
 
 - `apps/web` — Next.js main site with public pages, auth forms, profiles, schools, events, teams, dashboard, support, and report UI, plus per-page metadata/social tags and error, loading, and not-found boundaries
 - `apps/api` — Go API with health, auth/session middleware, schools/games, events, teams, dashboard helpers, support tickets, and reports
+- `apps/docs` — VitePress viewer for the Markdown product and engineering documentation
 - `db/migrations` — versioned SQL migrations
 - `docker-compose.yml` — web + API + Postgres
 - `.github/workflows/ci.yml` — initial CI checks
@@ -41,6 +42,36 @@ Then open:
 - API health: http://localhost:8080/health
 - API readiness: http://localhost:8080/ready
 
+### Local documentation
+
+The Markdown files in `docs/` are also available through a local documentation
+viewer with navigation, tables of contents, code highlighting, dark mode, and
+rendered Mermaid diagrams:
+
+```bash
+nvm use
+npm install
+npm run dev:docs
+```
+
+Then open http://localhost:3001. The command renders the current Markdown and
+serves it on localhost only with live reload. Use `npm run build:docs` to verify
+the production documentation bundle.
+
+To run the viewer through Docker Desktop instead, create its optional Compose
+service once from Terminal while Docker Desktop is running:
+
+```bash
+docker compose up --build -d docs
+```
+
+Then open http://localhost:3001. The service appears under the `core` Compose
+application in Docker Desktop, where it can be stopped and started with the
+standard controls. Local changes in `docs/` and `apps/docs/.vitepress/` reload
+automatically. Because the service uses the `docs` profile, it is not started by
+the repository's normal `docker compose up` command unless it is targeted
+explicitly.
+
 Local Docker Compose also seeds a verified development user:
 
 - Email: `dev@campusgamingnetwork.test`
@@ -56,6 +87,7 @@ When adding or updating npm packages, pin exact versions in `package.json` so in
 
 ```bash
 npm run dev:web
+npm run check:apps-compose
 npm run lint:web
 npm run typecheck:web
 npm run test:web
@@ -116,6 +148,7 @@ Docker Compose provides sensible local defaults.
 ```text
 apps/
   api/      Go API
+  docs/     Local documentation viewer
   web/      Next.js main site
 data/       School seed data
 db/         SQL migrations and database notes

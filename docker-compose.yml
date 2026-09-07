@@ -105,5 +105,25 @@ services:
       timeout: 5s
       retries: 10
 
+  docs:
+    profiles: ["docs"]
+    build:
+      context: .
+      dockerfile: apps/docs/Dockerfile
+    environment:
+      DOCS_GIT_LAST_UPDATED: "false"
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./docs:/app/docs:ro
+      - ./apps/docs/.vitepress/config.mts:/app/apps/docs/.vitepress/config.mts:ro
+      - ./apps/docs/.vitepress/theme:/app/apps/docs/.vitepress/theme:ro
+      - ./apps/docs/public:/app/apps/docs/public:ro
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3001"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
 volumes:
   cgn-postgres-data:

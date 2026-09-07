@@ -6,7 +6,8 @@ Small, concrete engineering choices for Phase 0 and early early implementation. 
 
 | Area | Decision |
 |------|----------|
-| Repo layout | Monorepo with `apps/web`, `apps/api`, `db/migrations`, `docs`, `data`, and `scripts` |
+| Repo layout | Monorepo with `apps/web`, `apps/api`, `apps/docs`, `db/migrations`, `docs`, `data`, and `scripts` |
+| Application containers | Every direct child of `apps/` is a runnable application and must have an `apps/<name>/Dockerfile` plus a same-named service in `docker-compose.yml` that builds it. Optional applications may use Compose profiles. `npm run check:apps-compose` enforces the convention locally and in CI. |
 | Node.js | Node 24 for local development, CI, and Docker web runtime |
 | Main site | Next.js 16 + TypeScript App Router |
 | Web linting | Oxlint for fast JavaScript/TypeScript linting; TypeScript remains the type-safety gate. Package versions are pinned exactly and upgraded intentionally. |
@@ -65,6 +66,7 @@ Small, concrete engineering choices for Phase 0 and early early implementation. 
 ```text
 apps/web       Main user-facing site and BFF route handlers
 apps/api       Go API that owns validation, authorization, side effects, and persistence
+apps/docs      Local viewer for the Markdown product and engineering documentation
 db/migrations  Versioned SQL migrations
 docs           Product, architecture, API, permissions, and delivery docs
 data           Tracked slim seed data only

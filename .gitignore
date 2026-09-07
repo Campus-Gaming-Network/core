@@ -39,6 +39,9 @@ npm-debug.log*
 .test-build/
 playwright-report/
 test-results/
+apps/docs/.cache/
+apps/docs/.vitepress/.temp/
+apps/docs/build/
 
 # Go build artifacts
 bin/
