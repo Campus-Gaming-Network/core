@@ -10,9 +10,14 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/auth"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/config"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/db"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/emaildelivery"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/emailoutbox"
+	eventstore "github.com/Campus-Gaming-Network/core/apps/api/internal/events"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/httpapi"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/mailhttp"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/maintenance"
 )
 
@@ -47,6 +52,23 @@ func main() {
 
 	go maintenance.NewSweeper(database, slog.Default()).
 		Start(ctx, maintenance.DefaultInterval)
+
+	mailClient := mailhttp.NewClient()
+	emailWorker := emailoutbox.NewWorker(
+		emailoutbox.NewPostgresStore(database),
+		&emaildelivery.Dispatcher{
+			Account: &auth.ResendMailer{
+				APIKey: cfg.ResendAPIKey, From: cfg.AccountEmailFrom,
+				SiteURL: cfg.SiteURL, Client: mailClient, Logger: slog.Default(),
+			},
+			Events: &eventstore.ResendMailer{
+				APIKey: cfg.ResendAPIKey, From: cfg.EventsEmailFrom,
+				SiteURL: cfg.SiteURL, Client: mailClient, Logger: slog.Default(),
+			},
+		},
+		slog.Default(),
+	)
+	go emailWorker.Start(ctx)
 
 	go func() {
 		slog.Info("api listening", "addr", cfg.HTTPAddr)

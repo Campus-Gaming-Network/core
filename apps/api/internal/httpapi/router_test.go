@@ -95,36 +95,6 @@ func (r *fakeUserRepository) UpdateProfile(context.Context, string, users.Profil
 	return users.Profile{}, nil
 }
 
-type fakeEventMailer struct {
-	called                 bool
-	recipient              string
-	event                  eventstore.Event
-	err                    error
-	cancellationRecipients []string
-	cancellationCalls      chan cancellationNotification
-}
-
-type cancellationNotification struct {
-	recipient string
-	event     eventstore.Event
-}
-
-func (m *fakeEventMailer) SendRSVPConfirmation(_ context.Context, recipient string, event eventstore.Event) error {
-	m.called = true
-	m.recipient = recipient
-	m.event = event
-	return m.err
-}
-
-func (m *fakeEventMailer) SendCancellationNotification(_ context.Context, recipient string, event eventstore.Event) error {
-	m.cancellationRecipients = append(m.cancellationRecipients, recipient)
-	m.event = event
-	if m.cancellationCalls != nil {
-		m.cancellationCalls <- cancellationNotification{recipient: recipient, event: event}
-	}
-	return m.err
-}
-
 type fakeSafetyRepository struct {
 	supportCalled      bool
 	supportInput       safety.SupportTicketInput
@@ -355,9 +325,6 @@ type fakeEventRepository struct {
 	listFollowedSchoolEventsUserID string
 	listFollowedSchoolEventsLimit  int
 	followedSchoolEvents           []eventstore.Event
-	cancellationRecipients         []string
-	listRSVPRecipientsCalled       bool
-	listRSVPRecipientsSlug         string
 	detail                         eventstore.Event
 	createCalled                   bool
 	createParams                   eventstore.CreateParams
@@ -479,12 +446,6 @@ func (r *fakeEventRepository) SetRSVP(_ context.Context, input eventstore.RSVPIn
 
 func (r *fakeEventRepository) GetRSVP(_ context.Context, _ string, _ string) (string, error) {
 	return r.viewerRSVP, r.err
-}
-
-func (r *fakeEventRepository) ListRSVPRecipients(_ context.Context, slug string) ([]string, error) {
-	r.listRSVPRecipientsCalled = true
-	r.listRSVPRecipientsSlug = slug
-	return r.cancellationRecipients, r.err
 }
 
 func (r *fakeEventRepository) SetInterest(_ context.Context, slug string, userID string, interested bool) (eventstore.Event, error) {
@@ -1877,59 +1838,6 @@ func TestHandleDeleteEventSoftDeletesOrganizerEvent(t *testing.T) {
 	}
 }
 
-// Cancellation is committed independently of notification delivery. The event
-// repository selects active yes/maybe recipients; every returned recipient must
-// be attempted even when the mail provider rejects each send.
-func TestHandleDeleteEventNotifiesActiveRSVPRecipientsBestEffort(t *testing.T) {
-	event := testEvent(eventstore.VisibilityPublic)
-	repository := &fakeEventRepository{
-		detail: event,
-		cancellationRecipients: []string{
-			"maybe@example.com",
-			"yes@example.com",
-		},
-	}
-	mailer := &fakeEventMailer{
-		err:               errors.New("send failed"),
-		cancellationCalls: make(chan cancellationNotification, 2),
-	}
-	handler := authenticatedEventPathHandlerWithMailer(repository, mailer)
-	request := authenticatedEventRequest(http.MethodDelete, "/events/campus-scrim-night", "")
-	response := httptest.NewRecorder()
-
-	handler.ServeHTTP(response, request)
-
-	if response.Code != http.StatusNoContent {
-		t.Fatalf("status = %d, want %d; body = %s", response.Code, http.StatusNoContent, response.Body.String())
-	}
-	if !repository.deleteCalled {
-		t.Fatal("Delete was not called when cancellation email delivery failed")
-	}
-	if !repository.listRSVPRecipientsCalled || repository.listRSVPRecipientsSlug != event.Slug {
-		t.Fatalf(
-			"ListRSVPRecipients called = %v slug = %q, want true and %q",
-			repository.listRSVPRecipientsCalled,
-			repository.listRSVPRecipientsSlug,
-			event.Slug,
-		)
-	}
-
-	wantRecipients := []string{"maybe@example.com", "yes@example.com"}
-	for _, wantRecipient := range wantRecipients {
-		select {
-		case call := <-mailer.cancellationCalls:
-			if call.recipient != wantRecipient {
-				t.Fatalf("notification recipient = %q, want %q", call.recipient, wantRecipient)
-			}
-			if call.event.Slug != event.Slug {
-				t.Fatalf("notification event slug = %q, want %q", call.event.Slug, event.Slug)
-			}
-		case <-time.After(time.Second):
-			t.Fatalf("timed out waiting for cancellation notification to %q", wantRecipient)
-		}
-	}
-}
-
 func TestHandleDeleteEventMapsMissingEvent(t *testing.T) {
 	repository := &fakeEventRepository{err: eventstore.ErrEventNotFound}
 	handler := authenticatedEventPathHandler(repository)
@@ -1940,22 +1848,6 @@ func TestHandleDeleteEventMapsMissingEvent(t *testing.T) {
 
 	if response.Code != http.StatusNotFound {
 		t.Fatalf("status = %d, want %d; body = %s", response.Code, http.StatusNotFound, response.Body.String())
-	}
-}
-
-func TestSendCancellationNotificationsSendsToEveryRSVPRecipient(t *testing.T) {
-	mailer := &fakeEventMailer{}
-	router := &Router{eventMailer: mailer}
-	request := httptest.NewRequest(http.MethodDelete, "/events/campus-scrim-night", nil)
-	event := testEvent(eventstore.VisibilityPublic)
-
-	router.sendCancellationNotifications(request, []string{"maybe@example.com", "yes@example.com"}, event)
-
-	if len(mailer.cancellationRecipients) != 2 {
-		t.Fatalf("cancellation recipients = %#v, want two emails", mailer.cancellationRecipients)
-	}
-	if mailer.event.Slug != event.Slug {
-		t.Fatalf("cancelled event slug = %q, want %q", mailer.event.Slug, event.Slug)
 	}
 }
 
@@ -2142,67 +2034,6 @@ func TestHandleRSVPEventSetsViewerResponse(t *testing.T) {
 	}
 	if payload.ViewerRSVP == nil || *payload.ViewerRSVP != eventstore.RSVPYes {
 		t.Fatalf("ViewerRSVP = %#v, want yes", payload.ViewerRSVP)
-	}
-}
-
-func TestHandleRSVPEventSendsConfirmationEmailOnYes(t *testing.T) {
-	repository := &fakeEventRepository{detail: testEvent(eventstore.VisibilityPublic)}
-	mailer := &fakeEventMailer{}
-	handler := authenticatedEventPathHandlerWithMailer(repository, mailer)
-	request := authenticatedEventRequest(http.MethodPost, "/events/campus-scrim-night/rsvp", `{"response":"yes"}`)
-	response := httptest.NewRecorder()
-
-	handler.ServeHTTP(response, request)
-
-	if response.Code != http.StatusOK {
-		t.Fatalf("status = %d, want %d; body = %s", response.Code, http.StatusOK, response.Body.String())
-	}
-	if !mailer.called {
-		t.Fatal("SendRSVPConfirmation was not called")
-	}
-	if mailer.recipient != "player@example.com" || mailer.event.Slug != "campus-scrim-night" {
-		t.Fatalf("mailer recipient = %q event = %#v, want player email and event", mailer.recipient, mailer.event)
-	}
-}
-
-func TestHandleRSVPEventSkipsConfirmationEmailForMaybe(t *testing.T) {
-	repository := &fakeEventRepository{detail: testEvent(eventstore.VisibilityPublic)}
-	mailer := &fakeEventMailer{}
-	handler := authenticatedEventPathHandlerWithMailer(repository, mailer)
-	request := authenticatedEventRequest(http.MethodPost, "/events/campus-scrim-night/rsvp", `{"response":"maybe"}`)
-	response := httptest.NewRecorder()
-
-	handler.ServeHTTP(response, request)
-
-	if response.Code != http.StatusOK {
-		t.Fatalf("status = %d, want %d; body = %s", response.Code, http.StatusOK, response.Body.String())
-	}
-	if mailer.called {
-		t.Fatal("SendRSVPConfirmation was called for maybe RSVP")
-	}
-}
-
-// The RSVP transaction commits before the confirmation email is attempted, so a
-// delivery failure must still report success. Returning 500 here told the user
-// their RSVP had failed while the row was already saved, and sent them into a
-// retry loop against a committed write.
-func TestHandleRSVPEventSucceedsWhenConfirmationEmailFails(t *testing.T) {
-	repository := &fakeEventRepository{detail: testEvent(eventstore.VisibilityPublic)}
-	mailer := &fakeEventMailer{err: errors.New("send failed")}
-	handler := authenticatedEventPathHandlerWithMailer(repository, mailer)
-	request := authenticatedEventRequest(http.MethodPost, "/events/campus-scrim-night/rsvp", `{"response":"yes"}`)
-	response := httptest.NewRecorder()
-
-	handler.ServeHTTP(response, request)
-
-	if response.Code != http.StatusOK {
-		t.Fatalf("status = %d, want %d; body = %s", response.Code, http.StatusOK, response.Body.String())
-	}
-	if strings.Contains(response.Body.String(), "event_rsvp_email_failed") {
-		t.Fatalf("body = %s, want the saved event rather than a mail error", response.Body.String())
-	}
-	if !strings.Contains(response.Body.String(), `"viewer_rsvp":"yes"`) {
-		t.Fatalf("body = %s, want the persisted RSVP reflected back", response.Body.String())
 	}
 }
 
@@ -2506,31 +2337,6 @@ func authenticatedEventPathHandler(repository *fakeEventRepository) http.Handler
 			SessionTTL:    time.Hour,
 		},
 		events: repository,
-	}
-	store := fakeSessionStore{session: auth.Session{
-		ID:        "session-id",
-		UserID:    testUserID,
-		ExpiresAt: time.Now().Add(time.Hour),
-	}}
-
-	return auth.WithSession(store, auth.SessionCookieConfig{
-		Name: "session",
-		TTL:  time.Hour,
-	})(http.HandlerFunc(router.handleEventPath))
-}
-
-func authenticatedEventPathHandlerWithMailer(repository *fakeEventRepository, mailer *fakeEventMailer) http.Handler {
-	router := &Router{
-		cfg: config.Config{
-			SessionCookie: "session",
-			SessionTTL:    time.Hour,
-		},
-		events: repository,
-		users: &fakeUserRepository{profile: users.Profile{
-			ID:    testUserID,
-			Email: "player@example.com",
-		}},
-		eventMailer: mailer,
 	}
 	store := fakeSessionStore{session: auth.Session{
 		ID:        "session-id",

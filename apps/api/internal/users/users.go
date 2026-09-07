@@ -100,7 +100,7 @@ type Repository interface {
 // AccountLifecycleRepository is the narrow unit-of-work boundary for account
 // use cases that must commit several related rows together.
 type AccountLifecycleRepository interface {
-	CreateWithVerificationToken(ctx context.Context, params CreateParams, tokenHash []byte, expiresAt time.Time) (Profile, error)
+	CreateWithVerificationToken(ctx context.Context, params CreateParams, rawToken string, tokenHash []byte, expiresAt time.Time) (Profile, error)
 	VerifyEmailByToken(ctx context.Context, tokenHash []byte, now time.Time) error
 	UpdateProfileWithSocialLinks(ctx context.Context, id string, update ProfileUpdate, links []SocialLink) (Profile, error)
 }

@@ -1,10 +1,8 @@
 package httpapi
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
-	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
@@ -16,12 +14,6 @@ import (
 )
 
 const privateEventUnlockTTL = 24 * time.Hour
-
-// rsvpEmailTimeout bounds the confirmation send so a slow mail provider cannot
-// hold the RSVP handler open.
-const rsvpEmailTimeout = 10 * time.Second
-
-const cancellationEmailTimeout = 10 * time.Second
 
 type createEventRequest struct {
 	Title           string             `json:"title"`
@@ -228,14 +220,9 @@ func (r *Router) handleDeleteEvent(w http.ResponseWriter, req *http.Request, slu
 		writeError(w, http.StatusUnauthorized, "authentication_required")
 		return
 	}
-	event, eventErr := r.events.GetBySlug(req.Context(), slug)
-	recipients, recipientsErr := r.events.ListRSVPRecipients(req.Context(), slug)
 	if err := r.events.Delete(req.Context(), slug, userID); err != nil {
 		writeEventMutationError(w, err, "event_delete_failed")
 		return
-	}
-	if eventErr == nil && recipientsErr == nil && len(recipients) > 0 {
-		go r.sendCancellationNotifications(req, recipients, event)
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
@@ -341,18 +328,6 @@ func (r *Router) handleRSVPEvent(w http.ResponseWriter, req *http.Request, slug 
 		writeEventMutationError(w, err, "event_rsvp_failed")
 		return
 	}
-	if event.ViewerRSVP != nil && *event.ViewerRSVP == eventstore.RSVPYes {
-		// The RSVP is already committed, so a mail failure must not fail the
-		// request. Reporting 500 here would tell the user their RSVP did not
-		// take when it did, and they would retry against a saved row.
-		if err := r.sendRSVPConfirmation(req, userID, event); err != nil {
-			slog.Error("rsvp confirmation email failed",
-				"error", err,
-				"event_slug", slug,
-				"user_id", userID,
-			)
-		}
-	}
 	writeJSON(w, http.StatusOK, event)
 }
 
@@ -393,40 +368,6 @@ func (r *Router) handleEventInterest(w http.ResponseWriter, req *http.Request, s
 		return
 	}
 	writeJSON(w, http.StatusOK, event)
-}
-
-func (r *Router) sendRSVPConfirmation(req *http.Request, userID string, event eventstore.Event) error {
-	if r.eventMailer == nil || r.users == nil {
-		return nil
-	}
-	profile, err := r.users.FindByID(req.Context(), userID)
-	if err != nil {
-		return err
-	}
-	// Detached from the request context, which is cancelled as soon as the
-	// response is written. The deadline keeps a slow provider from holding the
-	// handler open indefinitely.
-	ctx, cancel := context.WithTimeout(context.WithoutCancel(req.Context()), rsvpEmailTimeout)
-	defer cancel()
-
-	return r.eventMailer.SendRSVPConfirmation(ctx, profile.Email, event)
-}
-
-func (r *Router) sendCancellationNotifications(req *http.Request, recipients []string, event eventstore.Event) {
-	if r.eventMailer == nil {
-		return
-	}
-	ctx, cancel := context.WithTimeout(context.WithoutCancel(req.Context()), cancellationEmailTimeout)
-	defer cancel()
-	for _, recipient := range recipients {
-		if err := r.eventMailer.SendCancellationNotification(ctx, recipient, event); err != nil {
-			slog.Error("event cancellation email failed",
-				"error", err,
-				"event_slug", event.Slug,
-				"recipient", recipient,
-			)
-		}
-	}
 }
 
 func createEventInputFromRequest(request createEventRequest, userID string) eventstore.CreateInput {

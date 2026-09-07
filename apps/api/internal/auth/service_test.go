@@ -17,6 +17,7 @@ type fakeUsers struct {
 	credentials                 users.Credentials
 	created                     users.CreateParams
 	verificationHash            []byte
+	verificationToken           string
 	verificationExpiry          time.Time
 	createWithVerificationErr   error
 	verifyEmailErr              error
@@ -66,7 +67,7 @@ func (f *fakeUsers) FindCredentialsByEmail(_ context.Context, _ string) (users.C
 	return f.credentials, nil
 }
 
-func (f *fakeUsers) CreateWithVerificationToken(ctx context.Context, params users.CreateParams, tokenHash []byte, expiresAt time.Time) (users.Profile, error) {
+func (f *fakeUsers) CreateWithVerificationToken(ctx context.Context, params users.CreateParams, rawToken string, tokenHash []byte, expiresAt time.Time) (users.Profile, error) {
 	if f.createWithVerificationErr != nil {
 		return users.Profile{}, f.createWithVerificationErr
 	}
@@ -75,6 +76,7 @@ func (f *fakeUsers) CreateWithVerificationToken(ctx context.Context, params user
 		return users.Profile{}, err
 	}
 	f.verificationHash = append([]byte(nil), tokenHash...)
+	f.verificationToken = rawToken
 	f.verificationExpiry = expiresAt
 	return profile, nil
 }
@@ -154,14 +156,20 @@ func (f *fakeSessions) CreateSession(_ context.Context, userID string, tokenHash
 func (f *fakeSessions) RevokeSession(context.Context, []byte) error { return nil }
 
 type fakeTokens struct {
-	verificationUserID string
-	verificationHash   []byte
-	verificationExpiry time.Time
-	resetPasswordHash  string
+	verificationUserID    string
+	verificationRecipient string
+	verificationToken     string
+	verificationHash      []byte
+	verificationExpiry    time.Time
+	resetPasswordHash     string
+	resetRecipient        string
+	resetToken            string
 }
 
-func (f *fakeTokens) CreateEmailVerificationToken(_ context.Context, userID string, tokenHash []byte, expiresAt time.Time) error {
+func (f *fakeTokens) CreateEmailVerificationToken(_ context.Context, userID string, recipient string, rawToken string, tokenHash []byte, expiresAt time.Time) error {
 	f.verificationUserID = userID
+	f.verificationRecipient = recipient
+	f.verificationToken = rawToken
 	f.verificationHash = tokenHash
 	f.verificationExpiry = expiresAt
 	return nil
@@ -169,7 +177,9 @@ func (f *fakeTokens) CreateEmailVerificationToken(_ context.Context, userID stri
 func (f *fakeTokens) ConsumeEmailVerificationToken(context.Context, []byte, time.Time) (string, error) {
 	return f.verificationUserID, nil
 }
-func (f *fakeTokens) CreatePasswordResetToken(context.Context, string, []byte, time.Time) error {
+func (f *fakeTokens) CreatePasswordResetToken(_ context.Context, _ string, recipient string, rawToken string, _ []byte, _ time.Time) error {
+	f.resetRecipient = recipient
+	f.resetToken = rawToken
 	return nil
 }
 func (f *fakeTokens) UsePasswordResetToken(_ context.Context, _ []byte, _ time.Time, passwordHash string) error {
@@ -177,30 +187,11 @@ func (f *fakeTokens) UsePasswordResetToken(_ context.Context, _ []byte, _ time.T
 	return nil
 }
 
-type fakeMailer struct {
-	verificationEmail string
-	verificationToken string
-	resetToken        string
-	err               error
-}
-
-func (f *fakeMailer) SendVerification(_ context.Context, recipient string, token string) error {
-	f.verificationEmail = recipient
-	f.verificationToken = token
-	return f.err
-}
-func (f *fakeMailer) SendPasswordReset(_ context.Context, _ string, token string) error {
-	f.resetToken = token
-	return f.err
-}
-
-// A delivery failure must not fail the account change that already happened.
-// Failing signup here would leave the address taken by a committed user row
-// while telling the caller signup failed, so they could never retry.
-func TestAccountServiceSignupSucceedsWhenVerificationEmailFails(t *testing.T) {
+// The account service persists the token and outbox intent as one repository
+// operation and never invokes the provider on the request path.
+func TestAccountServiceSignupPersistsDeliveryIntentWithoutCallingProvider(t *testing.T) {
 	userStore := &fakeUsers{}
-	mailer := &fakeMailer{err: errors.New("resend unavailable")}
-	service := NewAccountService(userStore, fakeSchools{}, &fakeSessions{}, &fakeTokens{}, mailer, time.Hour, time.Hour, time.Hour)
+	service := NewAccountService(userStore, fakeSchools{}, &fakeSessions{}, &fakeTokens{}, time.Hour, time.Hour, time.Hour)
 
 	profile, err := service.Signup(context.Background(), users.SignupInput{
 		Email:        "player@example.com",
@@ -211,7 +202,7 @@ func TestAccountServiceSignupSucceedsWhenVerificationEmailFails(t *testing.T) {
 		Timezone:     "UTC",
 	})
 	if err != nil {
-		t.Fatalf("Signup() error = %v, want nil when only delivery failed", err)
+		t.Fatalf("Signup() error = %v", err)
 	}
 	if profile.Email != "player@example.com" {
 		t.Fatalf("profile email = %q, want the created account", profile.Email)
@@ -219,13 +210,15 @@ func TestAccountServiceSignupSucceedsWhenVerificationEmailFails(t *testing.T) {
 	if userStore.created.Email == "" {
 		t.Fatal("signup did not persist the account")
 	}
+	if userStore.verificationToken == "" {
+		t.Fatal("signup did not persist delivery intent")
+	}
 }
 
-func TestAccountServiceSignupDatabaseFailureDoesNotSendEmail(t *testing.T) {
+func TestAccountServiceSignupDatabaseFailureDoesNotExposePartialAccount(t *testing.T) {
 	databaseErr := errors.New("database unavailable")
 	userStore := &fakeUsers{createWithVerificationErr: databaseErr}
-	mailer := &fakeMailer{}
-	service := NewAccountService(userStore, fakeSchools{}, &fakeSessions{}, &fakeTokens{}, mailer, time.Hour, time.Hour, time.Hour)
+	service := NewAccountService(userStore, fakeSchools{}, &fakeSessions{}, &fakeTokens{}, time.Hour, time.Hour, time.Hour)
 
 	_, err := service.Signup(context.Background(), users.SignupInput{
 		Email:        "player@example.com",
@@ -241,34 +234,29 @@ func TestAccountServiceSignupDatabaseFailureDoesNotSendEmail(t *testing.T) {
 	if userStore.created.Email != "" {
 		t.Fatal("failed atomic signup exposed a partially created user")
 	}
-	if mailer.verificationToken != "" {
-		t.Fatal("failed atomic signup attempted verification delivery")
-	}
 }
 
-func TestAccountServicePasswordResetSucceedsWhenEmailFails(t *testing.T) {
+func TestAccountServicePasswordResetPersistsDeliveryIntentWithoutCallingProvider(t *testing.T) {
 	userStore := &fakeUsers{}
 	now := time.Now()
-	userStore.credentials.Profile.ID = "user-id"
-	userStore.credentials.Profile.Email = "player@example.com"
-	userStore.credentials.Profile.EmailVerifiedAt = &now
-	mailer := &fakeMailer{err: errors.New("resend unavailable")}
+	userStore.profile.ID = "user-id"
+	userStore.profile.Email = "player@example.com"
+	userStore.profile.EmailVerifiedAt = &now
 	tokens := &fakeTokens{}
-	service := NewAccountService(userStore, fakeSchools{}, &fakeSessions{}, tokens, mailer, time.Hour, time.Hour, time.Hour)
+	service := NewAccountService(userStore, fakeSchools{}, &fakeSessions{}, tokens, time.Hour, time.Hour, time.Hour)
 
 	if err := service.RequestPasswordReset(context.Background(), "player@example.com"); err != nil {
-		t.Fatalf("RequestPasswordReset() error = %v, want nil when only delivery failed", err)
+		t.Fatalf("RequestPasswordReset() error = %v", err)
 	}
-	if mailer.resetToken == "" {
-		t.Fatal("reset token was never issued")
+	if tokens.resetToken == "" || tokens.resetRecipient != "player@example.com" {
+		t.Fatal("reset delivery intent was not persisted")
 	}
 }
 
 func TestAccountServiceSignupAndLogin(t *testing.T) {
 	userStore := &fakeUsers{}
 	sessions := &fakeSessions{}
-	mailer := &fakeMailer{}
-	service := NewAccountService(userStore, fakeSchools{}, sessions, &fakeTokens{}, mailer, time.Hour, time.Hour, time.Hour)
+	service := NewAccountService(userStore, fakeSchools{}, sessions, &fakeTokens{}, time.Hour, time.Hour, time.Hour)
 
 	profile, err := service.Signup(context.Background(), users.SignupInput{
 		Email:        "Player@Example.com",
@@ -287,8 +275,8 @@ func TestAccountServiceSignupAndLogin(t *testing.T) {
 	if userStore.created.PasswordHash == "a-long-enough-password" || !ComparePassword(userStore.created.PasswordHash, "a-long-enough-password") {
 		t.Fatal("signup did not store a verifiable password hash")
 	}
-	if mailer.verificationToken == "" {
-		t.Fatal("signup did not send a verification token")
+	if userStore.verificationToken == "" {
+		t.Fatal("signup did not persist a verification token delivery intent")
 	}
 
 	if _, err := service.Login(context.Background(), profile.Email, "a-long-enough-password"); err != ErrEmailUnverified {
@@ -311,8 +299,7 @@ func TestAccountServiceResendVerificationIssuesAndSendsFreshToken(t *testing.T) 
 		Email: "player@example.com",
 	}}
 	tokens := &fakeTokens{}
-	mailer := &fakeMailer{}
-	service := NewAccountService(userStore, fakeSchools{}, &fakeSessions{}, tokens, mailer, time.Hour, 24*time.Hour, time.Hour)
+	service := NewAccountService(userStore, fakeSchools{}, &fakeSessions{}, tokens, time.Hour, 24*time.Hour, time.Hour)
 	now := time.Date(2026, time.September, 4, 12, 0, 0, 0, time.UTC)
 	service.now = func() time.Time { return now }
 
@@ -328,17 +315,17 @@ func TestAccountServiceResendVerificationIssuesAndSendsFreshToken(t *testing.T) 
 	if !tokens.verificationExpiry.Equal(now.Add(24 * time.Hour)) {
 		t.Fatalf("verification token expiry = %v, want %v", tokens.verificationExpiry, now.Add(24*time.Hour))
 	}
-	if mailer.verificationEmail != "player@example.com" || mailer.verificationToken == "" {
-		t.Fatalf("verification delivery = (%q, %q), want recipient and token", mailer.verificationEmail, mailer.verificationToken)
+	if tokens.verificationRecipient != "player@example.com" || tokens.verificationToken == "" {
+		t.Fatalf("verification intent = (%q, %q), want recipient and token", tokens.verificationRecipient, tokens.verificationToken)
 	}
-	if !bytes.Equal(tokens.verificationHash, HashToken(mailer.verificationToken)) {
+	if string(tokens.verificationHash) != string(HashToken(tokens.verificationToken)) {
 		t.Fatal("stored verification-token hash does not match the delivered token")
 	}
 }
 
 func TestAccountServiceVerifyEmailUsesAtomicRepositoryTransition(t *testing.T) {
 	userStore := &fakeUsers{profile: users.Profile{ID: "user-id"}}
-	service := NewAccountService(userStore, fakeSchools{}, &fakeSessions{}, &fakeTokens{}, &fakeMailer{}, time.Hour, time.Hour, time.Hour)
+	service := NewAccountService(userStore, fakeSchools{}, &fakeSessions{}, &fakeTokens{}, time.Hour, time.Hour, time.Hour)
 	now := time.Date(2026, time.September, 5, 12, 0, 0, 0, time.UTC)
 	service.now = func() time.Time { return now }
 
@@ -360,7 +347,7 @@ func TestAccountServiceVerifyEmailMapsMissingReplayAndDeletedUser(t *testing.T) 
 	for _, scenario := range []string{"missing token", "replayed token", "deleted user"} {
 		t.Run(scenario, func(t *testing.T) {
 			userStore := &fakeUsers{verifyEmailErr: pgx.ErrNoRows}
-			service := NewAccountService(userStore, fakeSchools{}, &fakeSessions{}, &fakeTokens{}, &fakeMailer{}, time.Hour, time.Hour, time.Hour)
+			service := NewAccountService(userStore, fakeSchools{}, &fakeSessions{}, &fakeTokens{}, time.Hour, time.Hour, time.Hour)
 
 			if err := service.VerifyEmail(context.Background(), "verification-token"); !errors.Is(err, ErrInvalidToken) {
 				t.Fatalf("VerifyEmail() error = %v, want ErrInvalidToken", err)
@@ -371,7 +358,7 @@ func TestAccountServiceVerifyEmailMapsMissingReplayAndDeletedUser(t *testing.T) 
 
 func TestAccountServiceUpdateProfileUsesAtomicRepositoryTransition(t *testing.T) {
 	userStore := &fakeUsers{profile: users.Profile{ID: "user-id", Name: "Old Name", Timezone: "UTC"}}
-	service := NewAccountService(userStore, fakeSchools{}, &fakeSessions{}, &fakeTokens{}, &fakeMailer{}, time.Hour, time.Hour, time.Hour)
+	service := NewAccountService(userStore, fakeSchools{}, &fakeSessions{}, &fakeTokens{}, time.Hour, time.Hour, time.Hour)
 	update := users.ProfileUpdate{Name: "New Name", Bio: "New bio", Timezone: "America/Los_Angeles"}
 	links := []users.SocialLink{{Label: "Discord", URL: "https://discord.com/users/player"}}
 
@@ -392,7 +379,7 @@ func TestAccountServiceUpdateProfileUsesAtomicRepositoryTransition(t *testing.T)
 
 func TestAccountServiceSignupPersistsHomeSchoolAndAgeConfirmation(t *testing.T) {
 	userStore := &fakeUsers{}
-	service := NewAccountService(userStore, fakeSchools{}, &fakeSessions{}, &fakeTokens{}, &fakeMailer{}, time.Hour, time.Hour, time.Hour)
+	service := NewAccountService(userStore, fakeSchools{}, &fakeSessions{}, &fakeTokens{}, time.Hour, time.Hour, time.Hour)
 	confirmedAt := time.Date(2026, time.September, 3, 19, 30, 0, 0, time.UTC)
 	service.now = func() time.Time { return confirmedAt }
 
@@ -421,7 +408,7 @@ func TestAccountServiceSignupPersistsHomeSchoolAndAgeConfirmation(t *testing.T) 
 func TestAccountServiceResetPasswordStoresHash(t *testing.T) {
 	userStore := &fakeUsers{}
 	tokens := &fakeTokens{}
-	service := NewAccountService(userStore, fakeSchools{}, &fakeSessions{}, tokens, &fakeMailer{}, time.Hour, time.Hour, time.Hour)
+	service := NewAccountService(userStore, fakeSchools{}, &fakeSessions{}, tokens, time.Hour, time.Hour, time.Hour)
 
 	if err := service.ResetPassword(context.Background(), "reset-token", "12345678"); err != nil {
 		t.Fatalf("ResetPassword() error = %v", err)
@@ -433,7 +420,7 @@ func TestAccountServiceResetPasswordStoresHash(t *testing.T) {
 
 func TestAccountServiceResetPasswordRejectsShortPassword(t *testing.T) {
 	tokens := &fakeTokens{}
-	service := NewAccountService(&fakeUsers{}, fakeSchools{}, &fakeSessions{}, tokens, &fakeMailer{}, time.Hour, time.Hour, time.Hour)
+	service := NewAccountService(&fakeUsers{}, fakeSchools{}, &fakeSessions{}, tokens, time.Hour, time.Hour, time.Hour)
 
 	if err := service.ResetPassword(context.Background(), "reset-token", "1234567"); err == nil {
 		t.Fatal("ResetPassword() error = nil, want short password validation")
@@ -459,7 +446,7 @@ func TestAccountServiceGetPublicProfileIncludesHomeSchoolSummary(t *testing.T) {
 			},
 		},
 	}
-	service := NewAccountService(userStore, fakeSchools{}, &fakeSessions{}, &fakeTokens{}, &fakeMailer{}, time.Hour, time.Hour, time.Hour)
+	service := NewAccountService(userStore, fakeSchools{}, &fakeSessions{}, &fakeTokens{}, time.Hour, time.Hour, time.Hour)
 
 	profile, err := service.GetPublicProfile(context.Background(), "user-id")
 	if err != nil {

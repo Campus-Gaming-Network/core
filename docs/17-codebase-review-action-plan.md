@@ -493,8 +493,17 @@ creation journey.
 
 **Priority:** P1  
 **Size:** L  
-**Status:** Ready  
+**Status:** Complete (2026-09-06)
 **Depends on:** `CGN-004`
+
+**Completion note:** Verification, password-reset, RSVP-confirmation, direct
+event-cancellation, and account-deletion cancellation mail now use a
+PostgreSQL transactional outbox. A bounded worker leases messages with
+`SKIP LOCKED`, sends each with a deadline and durable provider idempotency key,
+and records attempts, retry timing, terminal failure, and provider message ID.
+Delivered and terminal payloads are scrubbed, and failure logs expose only safe
+counts and identifiers. Unit, race, mailer timeout/non-2xx, restart, poison
+message, and PostgreSQL commit/rollback/idempotency tests cover the flow.
 
 **Problem**
 
@@ -536,8 +545,18 @@ to a state transition.
 
 **Priority:** P2  
 **Size:** M  
-**Status:** Ready  
+**Status:** Complete (2026-09-06)
 **Depends on:** None
+
+**Completion note:** The root layout is static and delegates account controls
+to a small client-side navigation boundary backed by a no-store session route.
+Requests without the configured session cookie skip `/me`; public navigation
+falls back to logged-out controls during an API outage, while authenticated
+pages still surface upstream failures. The Next.js 16.3.0 production build
+reports `/`, `/about`, `/faq`, `/forgot-password`, `/privacy`, `/support`, and
+`/terms` as static, with account and personalized routes remaining dynamic.
+The complete desktop/mobile Playwright suite verifies both request counts and
+authenticated navigation behavior.
 
 **Problem**
 

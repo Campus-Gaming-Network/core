@@ -4,17 +4,64 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/mailhttp"
 )
 
 type eventRoundTripFunc func(*http.Request) (*http.Response, error)
 
 func (f eventRoundTripFunc) RoundTrip(request *http.Request) (*http.Response, error) {
 	return f(request)
+}
+
+func TestEventResendMailerHonorsContextDeadline(t *testing.T) {
+	mailer := &ResendMailer{
+		APIKey: "resend-api-key",
+		Client: &http.Client{Transport: eventRoundTripFunc(func(request *http.Request) (*http.Response, error) {
+			<-request.Context().Done()
+			return nil, request.Context().Err()
+		})},
+	}
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Millisecond)
+	defer cancel()
+
+	_, err := mailer.SendCancellationNotification(ctx, "player@example.com", Event{
+		ID: "event-1", Title: "Event", Slug: "event",
+	}, "cancellation-key")
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("SendCancellationNotification() error = %v, want context deadline exceeded", err)
+	}
+}
+
+func TestEventResendMailerReturnsTypedNonSuccessResponse(t *testing.T) {
+	mailer := &ResendMailer{
+		APIKey: "resend-api-key",
+		Client: &http.Client{Transport: eventRoundTripFunc(func(*http.Request) (*http.Response, error) {
+			return &http.Response{
+				StatusCode: http.StatusTooManyRequests,
+				Status:     "429 Too Many Requests",
+				Header:     make(http.Header),
+				Body:       io.NopCloser(strings.NewReader(`{"message":"retry later"}`)),
+			}, nil
+		})},
+	}
+
+	_, err := mailer.SendRSVPConfirmation(t.Context(), "player@example.com", Event{
+		ID: "event-1", Title: "Event", Slug: "event",
+	}, "rsvp-key")
+	var responseError *mailhttp.ResponseError
+	if !errors.As(err, &responseError) {
+		t.Fatalf("SendRSVPConfirmation() error = %v, want *mailhttp.ResponseError", err)
+	}
+	if responseError.Permanent() {
+		t.Fatalf("response error status = %d, want transient rate limit", responseError.StatusCode)
+	}
 }
 
 func TestEventICSIncludesEscapedEventDetails(t *testing.T) {
@@ -74,6 +121,7 @@ func TestResendMailerSendsRSVPConfirmationWithCalendarAttachment(t *testing.T) {
 	}
 
 	var payload resendPayload
+	var idempotencyKey string
 	mailer := &ResendMailer{
 		APIKey:  "resend-api-key",
 		From:    "events@campusgamingnetwork.com",
@@ -89,6 +137,7 @@ func TestResendMailerSendsRSVPConfirmationWithCalendarAttachment(t *testing.T) {
 			if authorization := request.Header.Get("Authorization"); authorization != "Bearer resend-api-key" {
 				t.Fatalf("Authorization = %q, want bearer API key", authorization)
 			}
+			idempotencyKey = request.Header.Get("Idempotency-Key")
 			if err := json.NewDecoder(request.Body).Decode(&payload); err != nil {
 				t.Fatalf("decode Resend payload: %v", err)
 			}
@@ -96,13 +145,20 @@ func TestResendMailerSendsRSVPConfirmationWithCalendarAttachment(t *testing.T) {
 				StatusCode: http.StatusAccepted,
 				Status:     "202 Accepted",
 				Header:     make(http.Header),
-				Body:       io.NopCloser(strings.NewReader(`{}`)),
+				Body:       io.NopCloser(strings.NewReader(`{"id":"provider-message-1"}`)),
 			}, nil
 		})},
 	}
 
-	if err := mailer.SendRSVPConfirmation(context.Background(), "player@example.com", event); err != nil {
+	providerID, err := mailer.SendRSVPConfirmation(context.Background(), "player@example.com", event, "rsvp-idempotency-key")
+	if err != nil {
 		t.Fatalf("SendRSVPConfirmation() error = %v", err)
+	}
+	if providerID != "provider-message-1" {
+		t.Fatalf("provider ID = %q, want provider-message-1", providerID)
+	}
+	if idempotencyKey != "rsvp-idempotency-key" {
+		t.Fatalf("Idempotency-Key = %q, want rsvp-idempotency-key", idempotencyKey)
 	}
 	if payload.From != "events@campusgamingnetwork.com" {
 		t.Fatalf("from = %q, want configured event sender", payload.From)

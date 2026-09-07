@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/emailoutbox"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -18,6 +19,7 @@ func TestPostgresRepositoryCreateWithVerificationTokenCommitsAndRollsBack(t *tes
 	repository := NewPostgresRepository(pool)
 	now := time.Date(2026, time.September, 5, 12, 0, 0, 0, time.UTC)
 	email := "atomic-signup-" + suffix + "@example.test"
+	rawToken := "atomic-signup-raw-token-" + suffix
 	tokenHash := []byte("atomic-signup-token-" + suffix)
 
 	profile, err := repository.CreateWithVerificationToken(ctx, CreateParams{
@@ -27,7 +29,7 @@ func TestPostgresRepositoryCreateWithVerificationTokenCommitsAndRollsBack(t *tes
 		HomeSchoolID:   schoolID,
 		AgeConfirmedAt: now,
 		Timezone:       "UTC",
-	}, tokenHash, now.Add(time.Hour))
+	}, rawToken, tokenHash, now.Add(time.Hour))
 	if err != nil {
 		t.Fatalf("CreateWithVerificationToken() error = %v", err)
 	}
@@ -36,6 +38,7 @@ func TestPostgresRepositoryCreateWithVerificationTokenCommitsAndRollsBack(t *tes
 	}
 	assertLifecycleRowCount(t, pool, `SELECT COUNT(*) FROM users WHERE email = $1`, email, 1)
 	assertLifecycleRowCount(t, pool, `SELECT COUNT(*) FROM email_verification_tokens WHERE token_hash = $1`, tokenHash, 1)
+	assertLifecycleRowCount(t, pool, `SELECT COUNT(*) FROM email_outbox WHERE idempotency_key = $1`, emailoutbox.TokenKey(emailoutbox.KindAccountVerification, tokenHash), 1)
 
 	t.Run("duplicate email preserves the existing account and token", func(t *testing.T) {
 		_, err := repository.CreateWithVerificationToken(ctx, CreateParams{
@@ -45,7 +48,7 @@ func TestPostgresRepositoryCreateWithVerificationTokenCommitsAndRollsBack(t *tes
 			HomeSchoolID:   schoolID,
 			AgeConfirmedAt: now,
 			Timezone:       "UTC",
-		}, []byte("duplicate-email-token-"+suffix), now.Add(time.Hour))
+		}, "duplicate-email-raw-token-"+suffix, []byte("duplicate-email-token-"+suffix), now.Add(time.Hour))
 		if !IsDuplicateEmail(err) {
 			t.Fatalf("duplicate signup error = %v, want duplicate-email error", err)
 		}
@@ -62,11 +65,12 @@ func TestPostgresRepositoryCreateWithVerificationTokenCommitsAndRollsBack(t *tes
 			HomeSchoolID:   schoolID,
 			AgeConfirmedAt: now,
 			Timezone:       "UTC",
-		}, tokenHash, now.Add(time.Hour))
+		}, "rollback-raw-token-"+suffix, tokenHash, now.Add(time.Hour))
 		if err == nil {
 			t.Fatal("CreateWithVerificationToken() error = nil, want duplicate token hash failure")
 		}
 		assertLifecycleRowCount(t, pool, `SELECT COUNT(*) FROM users WHERE email = $1`, rollbackEmail, 0)
+		assertLifecycleRowCount(t, pool, `SELECT COUNT(*) FROM email_outbox WHERE recipient = $1`, rollbackEmail, 0)
 	})
 }
 
@@ -241,7 +245,7 @@ func createLifecycleAccount(t *testing.T, ctx context.Context, repository *Postg
 		HomeSchoolID:   schoolID,
 		AgeConfirmedAt: now,
 		Timezone:       "UTC",
-	}, tokenHash, now.Add(time.Hour))
+	}, "raw-"+string(tokenHash), tokenHash, now.Add(time.Hour))
 	if err != nil {
 		t.Fatalf("create lifecycle account: %v", err)
 	}

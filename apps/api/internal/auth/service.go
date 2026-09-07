@@ -3,7 +3,6 @@ package auth
 import (
 	"context"
 	"errors"
-	"log/slog"
 	"strings"
 	"time"
 
@@ -31,7 +30,6 @@ type AccountService struct {
 	}
 	Sessions        SessionManager
 	Tokens          TokenStore
-	Mailer          Mailer
 	SessionTTL      time.Duration
 	VerificationTTL time.Duration
 	ResetTTL        time.Duration
@@ -44,13 +42,12 @@ type LoginResult struct {
 	ExpiresAt time.Time
 }
 
-func NewAccountService(userStore users.AccountRepository, schoolStore schools.Repository, sessions SessionManager, tokens TokenStore, mailer Mailer, sessionTTL, verificationTTL, resetTTL time.Duration) *AccountService {
+func NewAccountService(userStore users.AccountRepository, schoolStore schools.Repository, sessions SessionManager, tokens TokenStore, sessionTTL, verificationTTL, resetTTL time.Duration) *AccountService {
 	return &AccountService{
 		Users:           userStore,
 		Schools:         schoolStore,
 		Sessions:        sessions,
 		Tokens:          tokens,
-		Mailer:          mailer,
 		SessionTTL:      sessionTTL,
 		VerificationTTL: verificationTTL,
 		ResetTTL:        resetTTL,
@@ -86,17 +83,11 @@ func (s *AccountService) Signup(ctx context.Context, input users.SignupInput) (u
 		HomeSchoolID:   input.HomeSchoolID,
 		AgeConfirmedAt: now,
 		Timezone:       input.Timezone,
-	}, tokenHash, now.Add(s.VerificationTTL))
+	}, token, tokenHash, now.Add(s.VerificationTTL))
 	if err != nil {
 		return users.Profile{}, err
 	}
 
-	// Provider delivery is deliberately outside the database transaction. The
-	// user and token are already durable, so delivery failure is recoverable via
-	// /auth/resend-verification and must not turn a committed signup into a 500.
-	if err := s.Mailer.SendVerification(ctx, profile.Email, token); err != nil {
-		slog.Error("verification email failed", "error", err, "user_id", profile.ID)
-	}
 	return profile, nil
 }
 
@@ -167,14 +158,8 @@ func (s *AccountService) RequestPasswordReset(ctx context.Context, email string)
 	if err != nil {
 		return err
 	}
-	if err := s.Tokens.CreatePasswordResetToken(ctx, profile.ID, tokenHash, s.now().Add(s.ResetTTL)); err != nil {
+	if err := s.Tokens.CreatePasswordResetToken(ctx, profile.ID, profile.Email, token, tokenHash, s.now().Add(s.ResetTTL)); err != nil {
 		return err
-	}
-	// Swallowed for the same reason as verification delivery, and because this
-	// endpoint deliberately reports success for unknown addresses; surfacing a
-	// mail error here would make it behave differently for real accounts.
-	if err := s.Mailer.SendPasswordReset(ctx, profile.Email, token); err != nil {
-		slog.Error("password reset email failed", "error", err, "user_id", profile.ID)
 	}
 	return nil
 }
@@ -224,20 +209,14 @@ func (s *AccountService) UpdateProfile(ctx context.Context, userID string, updat
 // sendVerification issues a verification token and emails it.
 //
 // Token creation failures are returned, because nothing usable was persisted.
-// Delivery failures are logged and swallowed: by the time we get here the
-// account already exists, and failing the caller would report a signup that
-// actually succeeded — leaving the address taken and the user unable to retry.
-// /auth/resend-verification is the recovery path.
+// Token creation and durable delivery intent are committed together.
 func (s *AccountService) sendVerification(ctx context.Context, profile users.Profile) error {
 	token, tokenHash, err := NewToken()
 	if err != nil {
 		return err
 	}
-	if err := s.Tokens.CreateEmailVerificationToken(ctx, profile.ID, tokenHash, s.now().Add(s.VerificationTTL)); err != nil {
+	if err := s.Tokens.CreateEmailVerificationToken(ctx, profile.ID, profile.Email, token, tokenHash, s.now().Add(s.VerificationTTL)); err != nil {
 		return err
-	}
-	if err := s.Mailer.SendVerification(ctx, profile.Email, token); err != nil {
-		slog.Error("verification email failed", "error", err, "user_id", profile.ID)
 	}
 	return nil
 }

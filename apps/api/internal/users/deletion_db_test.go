@@ -137,6 +137,14 @@ func TestDeleteAccountScrubsIdentifyingData(t *testing.T) {
 		VALUES ($1::uuid, 'account.test', 'Test', 'Personal notification')`, userID); err != nil {
 		t.Fatalf("insert notification: %v", err)
 	}
+	if _, err := pool.Exec(ctx, `
+		INSERT INTO email_outbox (kind, recipient, payload, idempotency_key, delivered_at)
+		VALUES
+			('account_verification', 'scrub@example.test', jsonb_build_object('user_id', $1::text, 'token', 'pending-secret'), $2, NULL),
+			('password_reset', 'scrub@example.test', '{}'::jsonb, $3, NOW())
+	`, userID, "account-delete-pending-"+userID, "account-delete-delivered-"+userID); err != nil {
+		t.Fatalf("insert account email history: %v", err)
+	}
 	var assignedReportID, assignedTicketID string
 	if err := pool.QueryRow(ctx, `
 		INSERT INTO reports (
@@ -171,6 +179,13 @@ func TestDeleteAccountScrubsIdentifyingData(t *testing.T) {
 
 	if err := NewPostgresRepository(pool).DeleteAccount(ctx, userID); err != nil {
 		t.Fatalf("DeleteAccount() error = %v", err)
+	}
+	var retainedEmails int
+	if err := pool.QueryRow(ctx, `SELECT COUNT(*) FROM email_outbox WHERE recipient = 'scrub@example.test'`).Scan(&retainedEmails); err != nil {
+		t.Fatalf("count retained account emails: %v", err)
+	}
+	if retainedEmails != 0 {
+		t.Fatalf("retained account emails = %d, want 0", retainedEmails)
 	}
 
 	var email, name, status string
@@ -303,13 +318,24 @@ func TestDeleteAccountSoftDeletesEventWithoutActiveSuccessor(t *testing.T) {
 	ctx := context.Background()
 	creatorID := insertUser(t, pool, schoolID, "orphan-event-creator@example.test")
 	inactiveOrganizerID := insertUser(t, pool, schoolID, "inactive-event-organizer@example.test")
+	yesAttendeeID := insertUser(t, pool, schoolID, "orphan-event-yes@example.test")
+	maybeAttendeeID := insertUser(t, pool, schoolID, "orphan-event-maybe@example.test")
 	eventID := insertDeletionEvent(t, pool, creatorID, schoolID, "deletion-event-orphan")
+	t.Cleanup(func() {
+		_, _ = pool.Exec(context.Background(), `DELETE FROM email_outbox WHERE payload -> 'event' ->> 'id' = $1`, eventID)
+	})
 	addEventOrganizer(t, pool, eventID, inactiveOrganizerID, time.Now().Add(-time.Hour).UTC())
 	if _, err := pool.Exec(ctx, `
 		UPDATE users
 		SET account_status = 'suspended'
 		WHERE id = $1::uuid`, inactiveOrganizerID); err != nil {
 		t.Fatalf("suspend organizer: %v", err)
+	}
+	if _, err := pool.Exec(ctx, `
+		INSERT INTO event_rsvps (event_id, user_id, response)
+		VALUES ($1::uuid, $2::uuid, 'yes'), ($1::uuid, $3::uuid, 'maybe')
+	`, eventID, yesAttendeeID, maybeAttendeeID); err != nil {
+		t.Fatalf("insert cancellation recipients: %v", err)
 	}
 
 	if err := NewPostgresRepository(pool).DeleteAccount(ctx, creatorID); err != nil {
@@ -324,6 +350,16 @@ func TestDeleteAccountSoftDeletesEventWithoutActiveSuccessor(t *testing.T) {
 	}
 	if deletedAt == nil {
 		t.Fatal("event without an active successor was not soft deleted")
+	}
+	var cancellationMessages int
+	if err := pool.QueryRow(ctx, `
+		SELECT COUNT(*) FROM email_outbox
+		WHERE kind = 'event_cancellation' AND payload -> 'event' ->> 'id' = $1
+	`, eventID).Scan(&cancellationMessages); err != nil {
+		t.Fatalf("count account-deletion cancellation messages: %v", err)
+	}
+	if cancellationMessages != 2 {
+		t.Fatalf("account-deletion cancellation messages = %d, want 2", cancellationMessages)
 	}
 }
 

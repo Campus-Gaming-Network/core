@@ -606,7 +606,7 @@ func (r *passV0ContractUsers) FindCredentialsByEmail(context.Context, string) (u
 	return users.Credentials{}, pgx.ErrNoRows
 }
 
-func (r *passV0ContractUsers) CreateWithVerificationToken(ctx context.Context, params users.CreateParams, _ []byte, _ time.Time) (users.Profile, error) {
+func (r *passV0ContractUsers) CreateWithVerificationToken(ctx context.Context, params users.CreateParams, _ string, _ []byte, _ time.Time) (users.Profile, error) {
 	return r.Create(ctx, params)
 }
 
@@ -664,7 +664,7 @@ func (passV0ContractSessions) RevokeSession(context.Context, []byte) error {
 
 type passV0ContractTokens struct{}
 
-func (passV0ContractTokens) CreateEmailVerificationToken(context.Context, string, []byte, time.Time) error {
+func (passV0ContractTokens) CreateEmailVerificationToken(context.Context, string, string, string, []byte, time.Time) error {
 	return nil
 }
 
@@ -672,21 +672,11 @@ func (passV0ContractTokens) ConsumeEmailVerificationToken(context.Context, []byt
 	return "", pgx.ErrNoRows
 }
 
-func (passV0ContractTokens) CreatePasswordResetToken(context.Context, string, []byte, time.Time) error {
+func (passV0ContractTokens) CreatePasswordResetToken(context.Context, string, string, string, []byte, time.Time) error {
 	return nil
 }
 
 func (passV0ContractTokens) UsePasswordResetToken(context.Context, []byte, time.Time, string) error {
-	return nil
-}
-
-type passV0ContractMailer struct{}
-
-func (passV0ContractMailer) SendVerification(context.Context, string, string) error {
-	return nil
-}
-
-func (passV0ContractMailer) SendPasswordReset(context.Context, string, string) error {
 	return nil
 }
 
@@ -696,7 +686,6 @@ func newPassV0ContractAccountService(userStore *passV0ContractUsers) *auth.Accou
 		passV0ContractSchools{},
 		passV0ContractSessions{},
 		passV0ContractTokens{},
-		passV0ContractMailer{},
 		time.Hour,
 		time.Hour,
 		time.Hour,

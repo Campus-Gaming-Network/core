@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"html"
 	"io"
@@ -11,16 +12,18 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/mailhttp"
 )
 
 type Mailer interface {
-	SendVerification(ctx context.Context, recipient string, token string) error
-	SendPasswordReset(ctx context.Context, recipient string, token string) error
+	SendVerification(ctx context.Context, recipient string, token string, idempotencyKey string) (string, error)
+	SendPasswordReset(ctx context.Context, recipient string, token string, idempotencyKey string) (string, error)
 }
 
-// ResendMailer uses Resend in configured environments and logs a local link
-// when no API key is configured, making the flow testable in Docker without
-// pretending an email was delivered.
+// ResendMailer uses Resend in configured environments. Without an API key it
+// records a local delivery result and logs safe metadata only; token-bearing
+// links are never written to application logs.
 type ResendMailer struct {
 	APIKey  string
 	From    string
@@ -29,12 +32,12 @@ type ResendMailer struct {
 	Logger  *slog.Logger
 }
 
-func (m *ResendMailer) SendVerification(ctx context.Context, recipient string, token string) error {
-	return m.send(ctx, recipient, "Verify your Campus Gaming Network email", verificationLink(m.SiteURL, token), "verification")
+func (m *ResendMailer) SendVerification(ctx context.Context, recipient string, token string, idempotencyKey string) (string, error) {
+	return m.send(ctx, recipient, "Verify your Campus Gaming Network email", verificationLink(m.SiteURL, token), "verification", idempotencyKey)
 }
 
-func (m *ResendMailer) SendPasswordReset(ctx context.Context, recipient string, token string) error {
-	return m.send(ctx, recipient, "Reset your Campus Gaming Network password", passwordResetLink(m.SiteURL, token), "password_reset")
+func (m *ResendMailer) SendPasswordReset(ctx context.Context, recipient string, token string, idempotencyKey string) (string, error) {
+	return m.send(ctx, recipient, "Reset your Campus Gaming Network password", passwordResetLink(m.SiteURL, token), "password_reset", idempotencyKey)
 }
 
 func verificationLink(siteURL string, token string) string {
@@ -49,12 +52,13 @@ func accountLink(siteURL string, path string, token string) string {
 	return strings.TrimRight(siteURL, "/") + path + "?token=" + url.QueryEscape(token)
 }
 
-func (m *ResendMailer) send(ctx context.Context, recipient, subject, link, kind string) error {
+func (m *ResendMailer) send(ctx context.Context, recipient, subject, link, kind, idempotencyKey string) (string, error) {
 	if m.APIKey == "" {
 		if m.Logger != nil {
-			m.Logger.Info("local account email link", "kind", kind, "recipient", recipient, "link", link)
+			// Tokens live in links, so local delivery logs only safe metadata.
+			m.Logger.Info("local account email", "kind", kind, "recipient", recipient)
 		}
-		return nil
+		return "local-" + idempotencyKey, nil
 	}
 
 	payload := struct {
@@ -70,28 +74,42 @@ func (m *ResendMailer) send(ctx context.Context, recipient, subject, link, kind 
 	}
 	body, err := json.Marshal(payload)
 	if err != nil {
-		return fmt.Errorf("encode account email: %w", err)
+		return "", fmt.Errorf("encode account email: %w", err)
 	}
 
 	request, err := http.NewRequestWithContext(ctx, http.MethodPost, "https://api.resend.com/emails", bytes.NewReader(body))
 	if err != nil {
-		return fmt.Errorf("create account email request: %w", err)
+		return "", fmt.Errorf("create account email request: %w", err)
 	}
 	request.Header.Set("Authorization", "Bearer "+m.APIKey)
 	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("Idempotency-Key", idempotencyKey)
 
 	client := m.Client
 	if client == nil {
-		client = http.DefaultClient
+		client = mailhttp.NewClient()
 	}
 	response, err := client.Do(request)
 	if err != nil {
-		return fmt.Errorf("send account email: %w", err)
+		return "", fmt.Errorf("send account email: %w", err)
 	}
 	defer response.Body.Close()
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
 		detail, _ := io.ReadAll(io.LimitReader(response.Body, 2048))
-		return fmt.Errorf("resend returned %s: %s", response.Status, strings.TrimSpace(string(detail)))
+		return "", &mailhttp.ResponseError{
+			StatusCode: response.StatusCode,
+			Status:     response.Status,
+			Detail:     strings.TrimSpace(string(detail)),
+		}
 	}
-	return nil
+	var result struct {
+		ID string `json:"id"`
+	}
+	if err := json.NewDecoder(io.LimitReader(response.Body, 2048)).Decode(&result); err != nil {
+		return "", fmt.Errorf("decode account email response: %w", err)
+	}
+	if strings.TrimSpace(result.ID) == "" {
+		return "", errors.New("resend account email response missing id")
+	}
+	return result.ID, nil
 }

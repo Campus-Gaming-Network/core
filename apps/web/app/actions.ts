@@ -144,7 +144,6 @@ export async function logoutAction() {
   }
 
   revalidatePath("/", "layout");
-  redirect("/");
 }
 
 export async function forgotPasswordAction(

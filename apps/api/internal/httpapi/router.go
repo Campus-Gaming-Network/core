@@ -40,7 +40,6 @@ type Router struct {
 	teams        teamstore.Repository
 	safety       safety.Repository
 	users        users.Repository
-	eventMailer  eventstore.RSVPMailer
 	account      *auth.AccountService
 	limiter      *ratelimit.Limiter
 	sessionStore *auth.SessionRepository
@@ -70,23 +69,11 @@ func NewRouter(cfg config.Config, pools ...*pgxpool.Pool) http.Handler {
 		router.teams = teamstore.NewPostgresRepository(router.db)
 		router.safety = safety.NewPostgresRepository(router.db)
 		router.users = userRepository
-		router.eventMailer = &eventstore.ResendMailer{
-			APIKey:  cfg.ResendAPIKey,
-			From:    cfg.EventsEmailFrom,
-			SiteURL: cfg.SiteURL,
-			Logger:  slog.Default(),
-		}
 		router.account = auth.NewAccountService(
 			userRepository,
 			schoolRepository,
 			sessionRepository,
 			auth.NewTokenRepository(router.db),
-			&auth.ResendMailer{
-				APIKey:  cfg.ResendAPIKey,
-				From:    cfg.AccountEmailFrom,
-				SiteURL: cfg.SiteURL,
-				Logger:  slog.Default(),
-			},
 			cfg.SessionTTL,
 			cfg.VerificationTTL,
 			cfg.ResetTTL,

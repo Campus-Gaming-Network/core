@@ -132,6 +132,34 @@ func (r *PostgresRepository) DeleteAccount(ctx context.Context, userID string) e
 		return fmt.Errorf("transfer created events: %w", err)
 	}
 
+	// Events still owned by this account have no eligible successor and are
+	// cancelled below. Persist one independent notification per active attendee
+	// before RSVP rows and the owner's identity are scrubbed.
+	if _, err := tx.Exec(ctx, `
+		INSERT INTO email_outbox (kind, recipient, payload, idempotency_key)
+		SELECT 'event_cancellation',
+		       attendee.email::text,
+		       jsonb_build_object('event', jsonb_build_object(
+		           'id', e.id::text,
+		           'title', e.title,
+		           'slug', e.slug
+		       )),
+		       'event-cancellation:' || e.id::text || ':' || attendee.id::text
+		FROM events e
+		JOIN event_rsvps r ON r.event_id = e.id
+		JOIN users attendee ON attendee.id = r.user_id
+		WHERE e.creator_user_id = $1::uuid
+		  AND e.deleted_at IS NULL
+		  AND r.deleted_at IS NULL
+		  AND r.response IN ('yes', 'maybe')
+		  AND attendee.id <> $1::uuid
+		  AND attendee.deleted_at IS NULL
+		  AND attendee.account_status = 'active'
+		ON CONFLICT (idempotency_key) DO NOTHING
+	`, userID); err != nil {
+		return fmt.Errorf("enqueue deleted-account event cancellations: %w", err)
+	}
+
 	if _, err := tx.Exec(ctx, `
 		WITH archived_events AS (
 		    UPDATE events
@@ -192,6 +220,9 @@ func (r *PostgresRepository) DeleteAccount(ctx context.Context, userID string) e
 		`DELETE FROM event_rsvps WHERE user_id = $1::uuid`,
 		`DELETE FROM event_interests WHERE user_id = $1::uuid`,
 		`DELETE FROM notifications WHERE user_id = $1::uuid`,
+		`DELETE FROM email_outbox
+		 WHERE recipient = (SELECT email::text FROM users WHERE id = $1::uuid)
+		    OR payload ->> 'user_id' = ($1::uuid)::text`,
 		`DELETE FROM email_verification_tokens WHERE user_id = $1::uuid`,
 		`DELETE FROM password_reset_tokens WHERE user_id = $1::uuid`,
 		`UPDATE auth_sessions SET revoked_at = NOW() WHERE user_id = $1::uuid AND revoked_at IS NULL`,

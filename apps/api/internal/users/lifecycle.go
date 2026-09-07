@@ -6,13 +6,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/emailoutbox"
 	"github.com/jackc/pgx/v5"
 )
 
 // CreateWithVerificationToken creates an account and its first email
 // verification token as one unit. The profile is hydrated before commit so a
 // returned error never hides a committed account.
-func (r *PostgresRepository) CreateWithVerificationToken(ctx context.Context, params CreateParams, tokenHash []byte, expiresAt time.Time) (Profile, error) {
+func (r *PostgresRepository) CreateWithVerificationToken(ctx context.Context, params CreateParams, rawToken string, tokenHash []byte, expiresAt time.Time) (Profile, error) {
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
 		return Profile{}, fmt.Errorf("begin signup: %w", err)
@@ -49,6 +50,14 @@ func (r *PostgresRepository) CreateWithVerificationToken(ctx context.Context, pa
 		VALUES ($1::uuid, $2, $3)
 	`, profile.ID, tokenHash, expiresAt); err != nil {
 		return Profile{}, fmt.Errorf("create signup verification token: %w", err)
+	}
+	if err := emailoutbox.Enqueue(ctx, tx, emailoutbox.Intent{
+		Kind:           emailoutbox.KindAccountVerification,
+		Recipient:      profile.Email,
+		Payload:        map[string]string{"token": rawToken, "user_id": profile.ID},
+		IdempotencyKey: emailoutbox.TokenKey(emailoutbox.KindAccountVerification, tokenHash),
+	}); err != nil {
+		return Profile{}, fmt.Errorf("enqueue signup verification email: %w", err)
 	}
 
 	profile, err = profileWithAssociations(ctx, tx, profile)

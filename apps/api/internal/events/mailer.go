@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"html"
 	"io"
@@ -12,11 +13,13 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/mailhttp"
 )
 
 type RSVPMailer interface {
-	SendRSVPConfirmation(ctx context.Context, recipient string, event Event) error
-	SendCancellationNotification(ctx context.Context, recipient string, event Event) error
+	SendRSVPConfirmation(ctx context.Context, recipient string, event Event, idempotencyKey string) (string, error)
+	SendCancellationNotification(ctx context.Context, recipient string, event Event, idempotencyKey string) (string, error)
 }
 
 type ResendMailer struct {
@@ -28,19 +31,17 @@ type ResendMailer struct {
 	Now     func() time.Time
 }
 
-func (m *ResendMailer) SendRSVPConfirmation(ctx context.Context, recipient string, event Event) error {
+func (m *ResendMailer) SendRSVPConfirmation(ctx context.Context, recipient string, event Event, idempotencyKey string) (string, error) {
 	eventLink := eventURL(m.SiteURL, event.Slug)
 	ics := EventICS(event, eventLink, m.now())
 	if m.APIKey == "" {
 		if m.Logger != nil {
 			m.Logger.Info("local event rsvp confirmation",
 				"recipient", recipient,
-				"event", event.Title,
-				"url", eventLink,
-				"ics", ics,
+				"event_id", event.ID,
 			)
 		}
-		return nil
+		return "local-" + idempotencyKey, nil
 	}
 
 	payload := struct {
@@ -64,43 +65,47 @@ func (m *ResendMailer) SendRSVPConfirmation(ctx context.Context, recipient strin
 	}
 	body, err := json.Marshal(payload)
 	if err != nil {
-		return fmt.Errorf("encode event rsvp email: %w", err)
+		return "", fmt.Errorf("encode event rsvp email: %w", err)
 	}
 
 	request, err := http.NewRequestWithContext(ctx, http.MethodPost, "https://api.resend.com/emails", bytes.NewReader(body))
 	if err != nil {
-		return fmt.Errorf("create event rsvp email request: %w", err)
+		return "", fmt.Errorf("create event rsvp email request: %w", err)
 	}
 	request.Header.Set("Authorization", "Bearer "+m.APIKey)
 	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("Idempotency-Key", idempotencyKey)
 
 	client := m.Client
 	if client == nil {
-		client = http.DefaultClient
+		client = mailhttp.NewClient()
 	}
 	response, err := client.Do(request)
 	if err != nil {
-		return fmt.Errorf("send event rsvp email: %w", err)
+		return "", fmt.Errorf("send event rsvp email: %w", err)
 	}
 	defer response.Body.Close()
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
 		detail, _ := io.ReadAll(io.LimitReader(response.Body, 2048))
-		return fmt.Errorf("resend returned %s: %s", response.Status, strings.TrimSpace(string(detail)))
+		return "", &mailhttp.ResponseError{
+			StatusCode: response.StatusCode,
+			Status:     response.Status,
+			Detail:     strings.TrimSpace(string(detail)),
+		}
 	}
-	return nil
+	return decodeProviderID(response.Body)
 }
 
-func (m *ResendMailer) SendCancellationNotification(ctx context.Context, recipient string, event Event) error {
+func (m *ResendMailer) SendCancellationNotification(ctx context.Context, recipient string, event Event, idempotencyKey string) (string, error) {
 	eventLink := eventURL(m.SiteURL, event.Slug)
 	if m.APIKey == "" {
 		if m.Logger != nil {
 			m.Logger.Info("local event cancellation notification",
 				"recipient", recipient,
-				"event", event.Title,
-				"url", eventLink,
+				"event_id", event.ID,
 			)
 		}
-		return nil
+		return "local-" + idempotencyKey, nil
 	}
 
 	payload := struct {
@@ -116,28 +121,46 @@ func (m *ResendMailer) SendCancellationNotification(ctx context.Context, recipie
 	}
 	body, err := json.Marshal(payload)
 	if err != nil {
-		return fmt.Errorf("encode event cancellation email: %w", err)
+		return "", fmt.Errorf("encode event cancellation email: %w", err)
 	}
 	request, err := http.NewRequestWithContext(ctx, http.MethodPost, "https://api.resend.com/emails", bytes.NewReader(body))
 	if err != nil {
-		return fmt.Errorf("create event cancellation email request: %w", err)
+		return "", fmt.Errorf("create event cancellation email request: %w", err)
 	}
 	request.Header.Set("Authorization", "Bearer "+m.APIKey)
 	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("Idempotency-Key", idempotencyKey)
 	client := m.Client
 	if client == nil {
-		client = http.DefaultClient
+		client = mailhttp.NewClient()
 	}
 	response, err := client.Do(request)
 	if err != nil {
-		return fmt.Errorf("send event cancellation email: %w", err)
+		return "", fmt.Errorf("send event cancellation email: %w", err)
 	}
 	defer response.Body.Close()
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
 		detail, _ := io.ReadAll(io.LimitReader(response.Body, 2048))
-		return fmt.Errorf("resend returned %s: %s", response.Status, strings.TrimSpace(string(detail)))
+		return "", &mailhttp.ResponseError{
+			StatusCode: response.StatusCode,
+			Status:     response.Status,
+			Detail:     strings.TrimSpace(string(detail)),
+		}
 	}
-	return nil
+	return decodeProviderID(response.Body)
+}
+
+func decodeProviderID(body io.Reader) (string, error) {
+	var result struct {
+		ID string `json:"id"`
+	}
+	if err := json.NewDecoder(io.LimitReader(body, 2048)).Decode(&result); err != nil {
+		return "", fmt.Errorf("decode event email response: %w", err)
+	}
+	if strings.TrimSpace(result.ID) == "" {
+		return "", errors.New("resend event email response missing id")
+	}
+	return result.ID, nil
 }
 
 type attachment struct {

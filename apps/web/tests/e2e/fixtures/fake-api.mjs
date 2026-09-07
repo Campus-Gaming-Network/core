@@ -14,6 +14,7 @@ const teamRoles = new Map();
 const promotedCaptainSessions = new Set();
 const transferredOwnerSessions = new Set();
 const consumedVerificationTokens = new Set();
+let anonymousMeRequestCount = 0;
 
 const homeSchool = {
   id: "school-uci",
@@ -280,6 +281,23 @@ const server = createServer(async (request, response) => {
       return;
     }
 
+    if (
+      request.method === "POST" &&
+      url.pathname === "/__test/anonymous-me-count/reset"
+    ) {
+      anonymousMeRequestCount = 0;
+      json(response, 200, { count: anonymousMeRequestCount });
+      return;
+    }
+
+    if (
+      request.method === "GET" &&
+      url.pathname === "/__test/anonymous-me-count"
+    ) {
+      json(response, 200, { count: anonymousMeRequestCount });
+      return;
+    }
+
     if (request.method === "GET" && url.pathname === "/schools") {
       const query = (url.searchParams.get("q") ?? "").toLowerCase();
       const limit = Number.parseInt(url.searchParams.get("limit") ?? "25", 10);
@@ -392,6 +410,13 @@ const server = createServer(async (request, response) => {
     }
 
     if (request.method === "GET" && url.pathname === "/me") {
+      if (sessionToken === "api-outage") {
+        json(response, 503, { error: "service_unavailable" });
+        return;
+      }
+      if (sessionToken === "") {
+        anonymousMeRequestCount += 1;
+      }
       json(
         response,
         authenticated ? 200 : 401,

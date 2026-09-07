@@ -5,14 +5,15 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/emailoutbox"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type TokenStore interface {
-	CreateEmailVerificationToken(ctx context.Context, userID string, tokenHash []byte, expiresAt time.Time) error
+	CreateEmailVerificationToken(ctx context.Context, userID string, recipient string, rawToken string, tokenHash []byte, expiresAt time.Time) error
 	ConsumeEmailVerificationToken(ctx context.Context, tokenHash []byte, now time.Time) (string, error)
-	CreatePasswordResetToken(ctx context.Context, userID string, tokenHash []byte, expiresAt time.Time) error
+	CreatePasswordResetToken(ctx context.Context, userID string, recipient string, rawToken string, tokenHash []byte, expiresAt time.Time) error
 	UsePasswordResetToken(ctx context.Context, tokenHash []byte, now time.Time, passwordHash string) error
 }
 
@@ -24,7 +25,7 @@ func NewTokenRepository(pool *pgxpool.Pool) *TokenRepository {
 	return &TokenRepository{pool: pool}
 }
 
-func (r *TokenRepository) CreateEmailVerificationToken(ctx context.Context, userID string, tokenHash []byte, expiresAt time.Time) error {
+func (r *TokenRepository) CreateEmailVerificationToken(ctx context.Context, userID string, recipient string, rawToken string, tokenHash []byte, expiresAt time.Time) error {
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("begin verification token: %w", err)
@@ -43,6 +44,13 @@ func (r *TokenRepository) CreateEmailVerificationToken(ctx context.Context, user
 		VALUES ($1::uuid, $2, $3)
 	`, userID, tokenHash, expiresAt); err != nil {
 		return fmt.Errorf("insert verification token: %w", err)
+	}
+	if err := emailoutbox.Enqueue(ctx, tx, emailoutbox.Intent{
+		Kind: emailoutbox.KindAccountVerification, Recipient: recipient,
+		Payload:        map[string]string{"token": rawToken, "user_id": userID},
+		IdempotencyKey: emailoutbox.TokenKey(emailoutbox.KindAccountVerification, tokenHash),
+	}); err != nil {
+		return fmt.Errorf("enqueue verification email: %w", err)
 	}
 	if err := tx.Commit(ctx); err != nil {
 		return fmt.Errorf("commit verification token: %w", err)
@@ -64,7 +72,7 @@ func (r *TokenRepository) ConsumeEmailVerificationToken(ctx context.Context, tok
 	return userID, err
 }
 
-func (r *TokenRepository) CreatePasswordResetToken(ctx context.Context, userID string, tokenHash []byte, expiresAt time.Time) error {
+func (r *TokenRepository) CreatePasswordResetToken(ctx context.Context, userID string, recipient string, rawToken string, tokenHash []byte, expiresAt time.Time) error {
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("begin password reset token: %w", err)
@@ -83,6 +91,13 @@ func (r *TokenRepository) CreatePasswordResetToken(ctx context.Context, userID s
 		VALUES ($1::uuid, $2, $3)
 	`, userID, tokenHash, expiresAt); err != nil {
 		return fmt.Errorf("insert password reset token: %w", err)
+	}
+	if err := emailoutbox.Enqueue(ctx, tx, emailoutbox.Intent{
+		Kind: emailoutbox.KindPasswordReset, Recipient: recipient,
+		Payload:        map[string]string{"token": rawToken, "user_id": userID},
+		IdempotencyKey: emailoutbox.TokenKey(emailoutbox.KindPasswordReset, tokenHash),
+	}); err != nil {
+		return fmt.Errorf("enqueue password reset email: %w", err)
 	}
 	if err := tx.Commit(ctx); err != nil {
 		return fmt.Errorf("commit password reset token: %w", err)

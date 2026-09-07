@@ -19,6 +19,7 @@ import {
   buildDashboardEventsRequest,
   buildMyTeamsRequest
 } from "./pass-v0-requests";
+import { hasSessionCookie } from "./session";
 
 // The school and game catalogs change on the order of once or twice a year and
 // carry no viewer-specific fields, so Next.js can hold them across requests.
@@ -38,10 +39,15 @@ export async function incomingCookieHeader() {
 // doubling every request. cache() compares arguments by reference, so the
 // wrapped functions take primitives rather than options objects.
 export const currentProfile = cache(async () => {
+  const cookieHeader = await incomingCookieHeader();
+  if (!hasSessionCookie(cookieHeader)) {
+    return null;
+  }
+
   try {
     const { data } = await apiRequest({
       path: "/me",
-      cookieHeader: await incomingCookieHeader(),
+      cookieHeader,
       responseSchema: profileSchema
     });
 

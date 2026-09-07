@@ -43,7 +43,7 @@ type verificationTokens struct {
 	consumeCalls int
 }
 
-func (*verificationTokens) CreateEmailVerificationToken(context.Context, string, []byte, time.Time) error {
+func (*verificationTokens) CreateEmailVerificationToken(context.Context, string, string, string, []byte, time.Time) error {
 	return nil
 }
 
@@ -57,7 +57,7 @@ func (t *verificationTokens) ConsumeEmailVerificationToken(_ context.Context, to
 	return verificationTestUserID, nil
 }
 
-func (*verificationTokens) CreatePasswordResetToken(context.Context, string, []byte, time.Time) error {
+func (*verificationTokens) CreatePasswordResetToken(context.Context, string, string, string, []byte, time.Time) error {
 	return nil
 }
 
@@ -169,7 +169,6 @@ func newVerificationRouter(rawToken string) (*Router, *verificationUsers, *verif
 		passV0ContractSchools{},
 		passV0ContractSessions{},
 		tokenStore,
-		passV0ContractMailer{},
 		time.Hour,
 		time.Hour,
 		time.Hour,

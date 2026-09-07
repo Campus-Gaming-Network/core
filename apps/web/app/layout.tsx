@@ -1,10 +1,8 @@
-import { Button } from "@heroui/react/button";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { logoutAction } from "./actions";
+import { AuthNavigation } from "../components/auth-navigation";
 import "./globals.css";
-import { currentProfile } from "../lib/server-api";
 
 const siteName = "Campus Gaming Network";
 const siteDescription =
@@ -33,13 +31,11 @@ export const metadata: Metadata = {
   }
 };
 
-export default async function RootLayout({
+export default function RootLayout({
 	children
 }: Readonly<{
 	children: ReactNode;
 }>) {
-  const profile = await currentProfile();
-
   return (
     <html lang="en">
       <body>
@@ -52,23 +48,7 @@ export default async function RootLayout({
             <Link className="link" href="/events">Events</Link>
             <Link className="link" href="/teams">Teams</Link>
             <Link className="link" href="/faq">FAQ</Link>
-            {profile ? (
-              <>
-                <Link className="link" href="/account">Account</Link>
-                <form action={logoutAction}>
-                  <Button variant="secondary" type="submit">
-                    Log out
-                  </Button>
-                </form>
-              </>
-            ) : (
-              <>
-                <Link className="link" href="/login">Log in</Link>
-                <Link className="button button--primary" href="/signup">
-                  Sign up
-                </Link>
-              </>
-            )}
+            <AuthNavigation />
           </nav>
         </header>
         {children}

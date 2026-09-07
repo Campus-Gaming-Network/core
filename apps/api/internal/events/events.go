@@ -13,6 +13,7 @@ import (
 	"time"
 	_ "time/tzdata"
 
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/emailoutbox"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/pagecursor"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/safety"
 	"github.com/jackc/pgx/v5"
@@ -194,7 +195,6 @@ type Repository interface {
 	IsInterested(ctx context.Context, slug string, userID string) (bool, error)
 	ListUpcomingRSVPs(ctx context.Context, userID string, limit int) ([]Event, error)
 	ListFollowedSchoolEvents(ctx context.Context, userID string, limit int) ([]Event, error)
-	ListRSVPRecipients(ctx context.Context, slug string) ([]string, error)
 	ListPublic(ctx context.Context, params ListParams) ([]Event, error)
 	GetBySlug(ctx context.Context, slug string) (Event, error)
 }
@@ -578,6 +578,24 @@ func (r *PostgresRepository) Delete(ctx context.Context, slug string, userID str
 	if err != nil {
 		return err
 	}
+	event, err := scanEvent(tx.QueryRow(ctx, eventSelectSQL(`e.id = $1::uuid`, ``), eventID), r.now())
+	if err != nil {
+		return fmt.Errorf("load event cancellation email: %w", err)
+	}
+	recipients, err := cancellationRecipients(ctx, tx, eventID)
+	if err != nil {
+		return err
+	}
+	for _, recipient := range recipients {
+		if err := emailoutbox.Enqueue(ctx, tx, emailoutbox.Intent{
+			Kind:           emailoutbox.KindEventCancellation,
+			Recipient:      recipient.Email,
+			Payload:        map[string]any{"event": event, "user_id": recipient.UserID},
+			IdempotencyKey: "event-cancellation:" + eventID + ":" + recipient.UserID,
+		}); err != nil {
+			return fmt.Errorf("enqueue event cancellation email: %w", err)
+		}
+	}
 
 	if _, err := tx.Exec(ctx, `
 		UPDATE events
@@ -753,26 +771,81 @@ func (r *PostgresRepository) SetRSVP(ctx context.Context, input RSVPInput) (Even
 		return Event{}, ErrEventFull
 	}
 
-	if _, err := tx.Exec(ctx, `
+	var transitionID string
+	if err := tx.QueryRow(ctx, `
 		INSERT INTO event_rsvps (event_id, user_id, response)
 		VALUES ($1::uuid, $2::uuid, $3)
 		ON CONFLICT (event_id, user_id)
 		DO UPDATE SET response = EXCLUDED.response,
 		              deleted_at = NULL
-	`, eventID, input.UserID, input.Response); err != nil {
+		RETURNING gen_random_uuid()::text
+	`, eventID, input.UserID, input.Response).Scan(&transitionID); err != nil {
 		return Event{}, fmt.Errorf("upsert event rsvp: %w", err)
+	}
+
+	event, err := scanEvent(tx.QueryRow(ctx, eventSelectSQL(`e.id = $1::uuid`, ``), eventID), r.now())
+	if err != nil {
+		return Event{}, fmt.Errorf("load event after rsvp: %w", err)
+	}
+	if input.Response == RSVPYes && (!currentResponse.Valid || currentResponse.String != RSVPYes) {
+		var recipient string
+		if err := tx.QueryRow(ctx, `
+			SELECT email::text FROM users
+			WHERE id = $1::uuid AND deleted_at IS NULL AND account_status = 'active'
+		`, input.UserID).Scan(&recipient); err != nil {
+			return Event{}, fmt.Errorf("load rsvp email recipient: %w", err)
+		}
+		if err := emailoutbox.Enqueue(ctx, tx, emailoutbox.Intent{
+			Kind:           emailoutbox.KindRSVPConfirmation,
+			Recipient:      recipient,
+			Payload:        map[string]any{"event": event, "user_id": input.UserID},
+			IdempotencyKey: fmt.Sprintf("event-rsvp-yes:%s:%s:%s", eventID, input.UserID, transitionID),
+		}); err != nil {
+			return Event{}, fmt.Errorf("enqueue rsvp confirmation email: %w", err)
+		}
 	}
 
 	if err := tx.Commit(ctx); err != nil {
 		return Event{}, fmt.Errorf("commit event rsvp: %w", err)
 	}
 
-	event, err := r.GetBySlug(ctx, input.Slug)
-	if err != nil {
-		return Event{}, err
-	}
 	event.ViewerRSVP = &input.Response
 	return event, nil
+}
+
+type cancellationRecipient struct {
+	UserID string
+	Email  string
+}
+
+func cancellationRecipients(ctx context.Context, tx pgx.Tx, eventID string) ([]cancellationRecipient, error) {
+	rows, err := tx.Query(ctx, `
+		SELECT u.id::text, u.email::text
+		FROM event_rsvps r
+		JOIN users u ON u.id = r.user_id
+		WHERE r.event_id = $1::uuid
+		  AND r.deleted_at IS NULL
+		  AND r.response IN ('yes', 'maybe')
+		  AND u.deleted_at IS NULL
+		  AND u.account_status = 'active'
+		ORDER BY u.id
+	`, eventID)
+	if err != nil {
+		return nil, fmt.Errorf("list event cancellation recipients: %w", err)
+	}
+	defer rows.Close()
+	var recipients []cancellationRecipient
+	for rows.Next() {
+		var recipient cancellationRecipient
+		if err := rows.Scan(&recipient.UserID, &recipient.Email); err != nil {
+			return nil, fmt.Errorf("scan event cancellation recipient: %w", err)
+		}
+		recipients = append(recipients, recipient)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate event cancellation recipients: %w", err)
+	}
+	return recipients, nil
 }
 
 func (r *PostgresRepository) GetRSVP(ctx context.Context, slug string, userID string) (string, error) {
@@ -935,39 +1008,6 @@ func (r *PostgresRepository) ListFollowedSchoolEvents(ctx context.Context, userI
 		return nil, fmt.Errorf("iterate followed school events: %w", err)
 	}
 	return events, nil
-}
-
-func (r *PostgresRepository) ListRSVPRecipients(ctx context.Context, slug string) ([]string, error) {
-	rows, err := r.pool.Query(ctx, `
-		SELECT u.email::text
-		FROM events e
-		JOIN event_rsvps r ON r.event_id = e.id
-		JOIN users u ON u.id = r.user_id
-		WHERE e.slug = $1
-		  AND e.deleted_at IS NULL
-		  AND r.deleted_at IS NULL
-		  AND r.response IN ('yes', 'maybe')
-		  AND u.deleted_at IS NULL
-		  AND u.account_status = 'active'
-		ORDER BY u.email
-	`, strings.TrimSpace(slug))
-	if err != nil {
-		return nil, fmt.Errorf("list event cancellation recipients: %w", err)
-	}
-	defer rows.Close()
-
-	recipients := []string{}
-	for rows.Next() {
-		var email string
-		if err := rows.Scan(&email); err != nil {
-			return nil, fmt.Errorf("scan event cancellation recipient: %w", err)
-		}
-		recipients = append(recipients, email)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("iterate event cancellation recipients: %w", err)
-	}
-	return recipients, nil
 }
 
 func (r *PostgresRepository) ListPublic(ctx context.Context, params ListParams) ([]Event, error) {
