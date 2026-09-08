@@ -3,7 +3,6 @@ package users
 
 import (
 	"context"
-	"crypto/md5"
 	"errors"
 	"fmt"
 	"net/mail"
@@ -134,14 +133,14 @@ func NormalizeEmail(email string) string {
 	return strings.ToLower(strings.TrimSpace(email))
 }
 
-// GravatarURL returns the stable Gravatar URL for email.
-func GravatarURL(email string) string {
-	normalized := NormalizeEmail(email)
-	if normalized == "" {
+// DiceBearURL returns the stable DiceBear Critters URL for seed using the
+// style's default preset.
+func DiceBearURL(seed string) string {
+	seed = strings.TrimSpace(seed)
+	if seed == "" {
 		return ""
 	}
-	hash := md5.Sum([]byte(normalized))
-	return fmt.Sprintf("https://www.gravatar.com/avatar/%x?s=160&d=404", hash)
+	return "https://api.dicebear.com/10.x/critters/svg?seed=" + url.QueryEscape(seed)
 }
 
 func ValidateSignup(input SignupInput) error {
@@ -392,7 +391,7 @@ type profileQueryer interface {
 }
 
 func profileWithAssociations(ctx context.Context, queryer profileQueryer, profile Profile) (Profile, error) {
-	profile.AvatarURL = GravatarURL(profile.Email)
+	profile.AvatarURL = DiceBearURL(profile.ID)
 
 	homeSchool, err := getHomeSchool(ctx, queryer, profile.HomeSchoolID)
 	if err != nil {

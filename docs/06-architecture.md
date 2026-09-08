@@ -54,7 +54,7 @@ See [14 — Architecture diagrams](./14-architecture-diagrams.md) for Mermaid vi
 | Email | Resend | Verification, password reset, RSVP+ICS, etc. |
 | Object storage | Cloudflare R2 | School logos via CRM/admin app (PNG/JPG ≤500 MB), then custom event banners — both later |
 | Errors | Sentry | Later bug reporting; not required for launch |
-| Avatars | Gravatar with initials fallback | Custom avatars later |
+| Avatars | DiceBear Critters default preset with initials fallback | Custom avatars later |
 | Maps | Google Maps embed (mini) | Later nicety; address text first |
 | Games data | Curated seed; IGDB later | Not user-editable; CRM/admin app takes over management |
 | Analytics | Non-GA tool (TBD) | No Google Analytics (perf) |

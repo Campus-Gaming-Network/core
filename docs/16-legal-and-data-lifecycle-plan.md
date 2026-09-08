@@ -92,7 +92,7 @@ supplies and confirms:
 - [ ] Initial launch geography and whether access will be limited to the United
   States and adults age 18 or older.
 - [ ] Final provider list and purposes, including Railway, Cloudflare, Resend,
-  Gravatar/Automattic, and any analytics or error-monitoring provider added
+  DiceBear, and any analytics or error-monitoring provider added
   before launch.
 - [ ] Whether personal information is sold or shared for cross-context
   behavioral advertising, and whether targeted advertising is planned.
@@ -181,14 +181,13 @@ Items marked **pre-launch** should not wait until after a public release.
 - [ ] Add handler/service tests for attendee selection and mail failure once
   deletion returns the cancelled-event notification work.
 
-### Gravatar disclosure and opt-out — pre-launch
+### DiceBear disclosure and opt-out — pre-launch
 
-- [ ] Disclose that the service derives a Gravatar lookup from the normalized
-  email and that the browser’s image request contacts Gravatar/Automattic. Do not
-  describe an MD5 email hash as anonymous.
-- [ ] Add an account-level “use Gravatar” choice with an initials-only option.
-  When disabled, neither the API nor the page should emit a Gravatar URL, so the
-  browser makes no Gravatar request.
+- [ ] Disclose that the service derives a DiceBear Critters avatar from the
+  public user id and that the browser's image request contacts DiceBear.
+- [ ] Add an account-level “use DiceBear” choice with an initials-only option.
+  When disabled, neither the API nor the page should emit a DiceBear URL, so the
+  browser makes no DiceBear request.
 - [ ] Define the default for new and existing users, persist it, include it in
   export/correction behavior, and test both rendering paths.
 
@@ -239,7 +238,7 @@ Items marked **pre-launch** should not wait until after a public release.
 Before public launch, re-check this tracker against the deployed configuration,
 not just source code. At minimum: reviewed Terms/Privacy are published;
 versioned signup acceptance is proven end to end; deletion-triggered event email
-is complete; `.edu` and client-IP mismatches are resolved; Gravatar behavior is
+is complete; `.edu` and client-IP mismatches are resolved; DiceBear behavior is
 disclosed and controllable; retention/hold ownership and the backup window are
 confirmed; and privacy requests have a usable operating path. These checks are
 release criteria, not a claim of compliance.

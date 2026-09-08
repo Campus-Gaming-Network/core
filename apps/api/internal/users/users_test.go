@@ -89,7 +89,7 @@ func TestProfilePublicIncludesHomeSchoolSummary(t *testing.T) {
 	profile := Profile{
 		ID:                "user-id",
 		Name:              "Player",
-		AvatarURL:         "https://www.gravatar.com/avatar/example?s=160&d=404",
+		AvatarURL:         "https://api.dicebear.com/10.x/critters/svg?seed=user-id",
 		VerificationLevel: "basic",
 		HomeSchoolID:      "school-id",
 		HomeSchool: &HomeSchool{
@@ -121,13 +121,13 @@ func TestProfilePublicIncludesHomeSchoolSummary(t *testing.T) {
 	}
 }
 
-func TestGravatarURL(t *testing.T) {
-	got := GravatarURL(" Player@Example.COM ")
-	want := "https://www.gravatar.com/avatar/b946f2a0c0264d3d46b7d332c9f0b7c7?s=160&d=404"
+func TestDiceBearURL(t *testing.T) {
+	got := DiceBearURL(" Player ID/1 ")
+	want := "https://api.dicebear.com/10.x/critters/svg?seed=Player+ID%2F1"
 	if got != want {
-		t.Fatalf("GravatarURL() = %q, want %q", got, want)
+		t.Fatalf("DiceBearURL() = %q, want %q", got, want)
 	}
-	if GravatarURL("") != "" {
-		t.Fatal("GravatarURL(\"\") returned a URL, want empty string")
+	if DiceBearURL("") != "" {
+		t.Fatal("DiceBearURL(\"\") returned a URL, want empty string")
 	}
 }

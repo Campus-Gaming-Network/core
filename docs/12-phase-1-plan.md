@@ -123,7 +123,7 @@ Build only the surface needed for auth, profiles, schools, and launch games.
   - bio
   - timezone
   - social links
-  - Gravatar-derived avatar fallback
+  - DiceBear Critters avatar using the default preset, with initials fallback
 - Public profile page data at `/users/:id`.
 
 **Review focus**

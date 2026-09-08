@@ -4,7 +4,7 @@ Quick re-entry point for Campus Gaming Network. Read this first after time away;
 the detailed product and engineering context remains in the other documents in
 this folder.
 
-**Last updated:** 2026-09-05
+**Last updated:** 2026-09-08
 
 ## Where we are
 
@@ -34,7 +34,7 @@ verification steps.
    event's IANA timezone.
 3. Complete `CGN-010`: bound email requests and persist delivery intent.
 
-After those, follow the ordered queue in doc 17. Legal, Gravatar,
+After those, follow the ordered queue in doc 17. Legal, DiceBear,
 account-deletion notifications, and external launch rehearsal remain P1 launch
 gates. CRM/admin UI work moves behind the review's P1 queue.
 
@@ -52,6 +52,8 @@ gates. CRM/admin UI work moves behind the review's P1 queue.
 
 ## Recently completed
 
+- Replaced email-derived avatar URLs with DiceBear Critters avatars using the
+  public user id as the stable seed and the style's default preset.
 - Replaced raw ISO/IANA event entry with native local date/time controls and a
   profile-defaulted curated timezone selector. Server Actions convert to
   instants and reject nonexistent or ambiguous DST wall times with accessible

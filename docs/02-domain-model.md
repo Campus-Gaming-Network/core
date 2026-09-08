@@ -38,7 +38,7 @@ SiteAnnouncement ── global banner                        (later)
 | Name | Single public name field (no usernames; no first/last/display split) |
 | Profile URL | `/users/:id` (database id) |
 | Verification level | `basic` (email verified) \| `verified` (`.edu`) \| `staff_faculty` |
-| Avatar | Gravatar at launch; fallback to initials when no Gravatar image exists |
+| Avatar | DiceBear Critters at launch using the default preset; fallback to initials when unavailable |
 | Bio, social links | Profile |
 | Timezone | Default from system; used to display event times |
 | School affiliations | Selects one home school during signup; can follow additional schools afterward |
