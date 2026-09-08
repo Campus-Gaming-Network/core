@@ -60,7 +60,7 @@ Railway config-as-code is service-specific. All source services use repository r
 3. Create empty source services named exactly `api` and `web`, connect both to this repository and the intended branch, keep root directory `/`, and assign the config paths above.
 4. Set the variables below. Do not generate a public domain for `api` or `postgres`.
 5. Deploy `api` first. Its pre-deploy command applies every pending migration; `/ready` must reach Postgres before Railway activates the deployment.
-6. Create a temporary service named `seed`, connect the same repository with `/railway/seed.toml`, set only its database variable, and deploy it once. Verify the logs report 6,243 imported rows, then disconnect or delete the service.
+6. Create a temporary service named `seed`, connect the same repository with `/railway/seed.toml`, set its database variable and `DEPLOYMENT_ENV=local`, and deploy it once. Verify the logs report 6,243 imported rows, then disconnect or delete the service.
 7. Deploy `web`, generate a Railway domain for the staging rehearsal, and complete all smoke tests.
 8. Reproduce the same topology in `production`, using production-only Postgres, secrets, Resend credentials, and URLs.
 
@@ -72,10 +72,12 @@ Values belong in Railway variables, not in the repository. Seal the Resend key a
 
 | Variable | Production value |
 |----------|------------------|
+| `DEPLOYMENT_ENV` | `production` (`staging` in the rehearsal environment) |
 | `API_INTERNAL_URL` | `http://${{api.RAILWAY_PRIVATE_DOMAIN}}:${{api.PORT}}` |
 | `API_SESSION_COOKIE` | `cgn_session` |
 | `API_PROXY_SHARED_SECRET` | Same sealed random value as the API service; generate at least 32 random bytes |
 | `CLOUDFLARE_ORIGIN_SECRET` | Sealed random value also configured as Cloudflare's `X-CGN-Cloudflare-Secret` request transform |
+| `NEXT_PUBLIC_SITE_URL` | `https://campusgamingnetwork.com` (use the public HTTPS rehearsal origin in staging) |
 | `NODE_ENV` | `production` |
 | `NEXT_TELEMETRY_DISABLED` | `1` |
 
@@ -85,6 +87,7 @@ The internal URL deliberately uses `http`, because Railway private-network traff
 
 | Variable | Production value |
 |----------|------------------|
+| `DEPLOYMENT_ENV` | `production` (`staging` in the rehearsal environment) |
 | `API_DATABASE_URL` | `${{postgres.DATABASE_URL}}` |
 | `API_SITE_URL` | `https://campusgamingnetwork.com` |
 | `API_SESSION_COOKIE` | `cgn_session` |
@@ -97,6 +100,27 @@ The internal URL deliberately uses `http`, because Railway private-network traff
 | `API_PROXY_SHARED_SECRET` | Same sealed random value as the web service; generate at least 32 random bytes |
 
 Do not set any `API_DEV_SEED_USER_*` variables outside local development. `RESEND_API_KEY` remains a temporary backwards-compatible alias in code, but `API_RESEND_API_KEY` is the canonical name.
+
+### Startup validation
+
+`DEPLOYMENT_ENV=staging` and `DEPLOYMENT_ENV=production` enable the same
+production-strength checks before either service accepts traffic. The web
+service requires valid public/private origins, an explicit cookie name, and
+32-character-or-longer BFF and Cloudflare secrets. The API requires a remote
+Postgres URL, an HTTPS public origin, secure cookies, Resend credentials,
+explicit valid sender addresses, and the matching 32-character-or-longer BFF
+secret. Both services report variable names and requirements without printing
+configured values.
+
+Invalid strict-mode configuration stops startup and therefore fails the
+Railway deployment health path. Local mode remains the default for direct
+development and Docker Compose, where localhost URLs, an insecure cookie, and
+missing Resend/Cloudflare credentials are deliberate. Do not use `NODE_ENV` as
+the safety switch: Next.js sets it to `production` for normal local builds and
+starts as well as hosted deployments. Both production container images default
+`DEPLOYMENT_ENV` to `production`, so omitting the Railway variable remains
+fail-closed; set it explicitly to `staging` in the rehearsal environment for
+accurate diagnostics.
 
 ### Trusted visitor boundary
 
@@ -122,9 +146,10 @@ would each enforce an independent quota.
 
 | Variable | Value |
 |----------|-------|
+| `DEPLOYMENT_ENV` | `local` — overrides the production image default for this database-only command |
 | `API_DATABASE_URL` | `${{postgres.DATABASE_URL}}` |
 
-The seed command is intentionally not part of every deployment. It refuses a partially populated catalog, and routine catalog management moves to the later CRM.
+The seed command is intentionally not part of every deployment. It refuses a partially populated catalog, and routine catalog management moves to the later CRM. Set `DEPLOYMENT_ENV=local` for this database-only one-shot service to override the production image default; strict startup validation belongs to the long-running `api` and `web` services (and the API pre-deploy migration, which receives the API service variables).
 
 ## Migrations
 

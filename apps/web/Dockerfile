@@ -23,7 +23,8 @@ FROM deps AS production-deps
 RUN npm prune --omit=dev
 
 FROM base AS runner
-ENV NODE_ENV=production
+ENV NODE_ENV=production \
+    DEPLOYMENT_ENV=production
 COPY --from=production-deps --chown=node:node /app/node_modules ./node_modules
 COPY --from=build --chown=node:node /app/apps/web/package.json ./apps/web/package.json
 COPY --from=build --chown=node:node /app/apps/web/next.config.mjs ./apps/web/next.config.mjs

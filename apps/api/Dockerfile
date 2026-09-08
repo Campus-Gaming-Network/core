@@ -12,6 +12,8 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o /out/cgn-api ./cmd/api \
 
 FROM alpine:3.24 AS runner
 
+ENV DEPLOYMENT_ENV=production
+
 RUN apk add --no-cache ca-certificates \
     && addgroup -S cgn \
     && adduser -S cgn -G cgn

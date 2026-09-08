@@ -77,6 +77,7 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 - [x] Promote verified `.edu` inboxes to the limited verified-student trust tier without downgrading staff/faculty grants
 - [x] Preserve authenticated visitor identity through Cloudflare/Railway and the BFF; scope rate limits by visitor, target, and account
 - [x] Require explicit POST confirmation before consuming an email-verification token; scanner-style GET requests cannot verify accounts
+- [x] Fail web and API startup on unsafe staging/production configuration while preserving deliberate local Compose defaults
 
 ### Auth & profiles
 - [x] Signup / login / logout

@@ -83,12 +83,10 @@ the engineering queue, but all P1 work must be complete before public access.
 | 19 | `CGN-016` | P2 | Multi-organizer scope matches the product promise. |
 | 20 | `CGN-018` | P3 | Large modules are split before product expansion. |
 
-`CGN-003` is next and requires confirmation of the `.edu` product rule before
-implementation. `CGN-004` follows it. If that decision is not ready, `CGN-013`
-is the first independent implementation item that can advance safely. Before
-`CGN-008`, decide how nonexistent/repeated DST times and event duration behave.
-Before `CGN-016`, decide whether multi-organizer management belongs in the
-first release.
+`CGN-008` is next and requires decisions about nonexistent/repeated DST times
+and event duration. `CGN-015` can advance independently if that product rule is
+not ready, followed by `CGN-012`. Before `CGN-016`, decide whether
+multi-organizer management belongs in the first release.
 
 ### Implementation map
 
@@ -623,7 +621,7 @@ The timestamp does not currently control the fixed session expiry.
 
 **Priority:** P1  
 **Size:** S  
-**Status:** Ready  
+**Status:** Complete (2026-09-08)
 **Depends on:** None
 
 **Problem**
@@ -652,6 +650,13 @@ while only logging a local link.
 
 - Table-driven configuration tests for local, staging, valid production, and
   every invalid production setting.
+
+**Completed:** Both services now validate `DEPLOYMENT_ENV` during startup.
+`staging` and `production` fail closed on unsafe origins, cookie settings,
+provider credentials, sender addresses, shared secrets, and API runtime
+values; `local` preserves deliberate Compose defaults. Errors name the setting
+and requirement without exposing configured values, and focused Go/Node tests
+cover the strict-mode matrix.
 
 ### CGN-014 — Distinguish empty results from upstream failure
 

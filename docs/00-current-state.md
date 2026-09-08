@@ -28,11 +28,10 @@ verification steps.
 
 ## Next three tasks
 
-1. Complete `CGN-013`: fail startup when production deployment settings are
-   unsafe.
-2. Decide the DST rules needed for `CGN-008`, then generate recurrences in the
+1. Decide the DST rules needed for `CGN-008`, then generate recurrences in the
    event's IANA timezone.
-3. Complete `CGN-010`: bound email requests and persist delivery intent.
+2. Complete `CGN-015`: exercise the deployed BFF/API/database boundary in CI.
+3. Complete `CGN-012`: stop writing `last_seen_at` on every authenticated read.
 
 After those, follow the ordered queue in doc 17. Legal, DiceBear,
 account-deletion notifications, and external launch rehearsal remain P1 launch
@@ -52,6 +51,10 @@ gates. CRM/admin UI work moves behind the review's P1 queue.
 
 ## Recently completed
 
+- Added explicit `local`, `staging`, and `production` deployment modes. Web and
+  API startup now reject unsafe strict-mode URLs, cookies, credentials,
+  senders, secrets, and runtime values before accepting traffic while local
+  Docker Compose retains its provider-free defaults (`CGN-013`).
 - Replaced email-derived avatar URLs with DiceBear Critters avatars using the
   public user id as the stable seed and the style's default preset.
 - Replaced raw ISO/IANA event entry with native local date/time controls and a
