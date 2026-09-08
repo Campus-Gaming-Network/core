@@ -28,6 +28,7 @@ These docs are the source of truth for product intent, domain rules, architectur
 | [15 — Pass v0 quality checklist](./15-pass-v0-checklist.md) | Regression checklist for signup → event → RSVP → team → dashboard |
 | [16 — Legal and data-lifecycle plan](./16-legal-and-data-lifecycle-plan.md) | Pre-launch policy blockers, retention targets, account deletion, and operations follow-up |
 | [17 — Codebase review action plan](./17-codebase-review-action-plan.md) | Prioritized engineering backlog from the 2026-09-05 architecture, correctness, reliability, and product-readiness review |
+| [18 — TanStack Start main-frontend migration guide](./18-tanstack-start-main-frontend-migration-guide.md) | Proposal and multi-agent execution plan for evaluating, porting, validating, staging, cutting over, and rolling back a main-site migration from Next.js |
 
 ## How to use with AI / LLMs
 
