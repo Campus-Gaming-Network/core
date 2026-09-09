@@ -32,6 +32,8 @@ data/Schools_*.csv
 # Node / Next.js
 node_modules/
 .next/
+.output/
+.vite/
 .pnpm-store/
 out/
 npm-debug.log*
