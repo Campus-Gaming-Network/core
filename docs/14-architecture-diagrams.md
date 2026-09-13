@@ -7,49 +7,49 @@ These diagrams reflect the current first release and its Railway deployment plan
 ```mermaid
 flowchart TB
     subgraph Browser["Browser"]
-        Pages["Rendered pages<br/>HeroUI + application CSS"]
+        Pages["Rendered pages<br/>semantic React + application CSS"]
         Forms["Interactive forms<br/>progressive enhancement"]
         Cookies["HTTP-only cookies<br/>opaque session + private event unlock"]
     end
 
-    subgraph Web["Railway web service — Next.js 16 + TypeScript"]
-        AppRouter["App Router<br/>layouts, pages, SSR server components"]
-        Boundaries["Error, loading, and not-found boundaries<br/>error.tsx, global-error.tsx, not-found.tsx"]
-        ServerActions["Server Actions<br/>app/actions.ts"]
-        HealthRoute["Route Handler<br/>GET /api/health"]
-        Metadata["Page metadata and social tags<br/>lib/metadata.ts"]
-        ServerAPI["Server-side data helpers<br/>lib/server-api.ts (React cache)"]
-        APIClient["Typed API client and DTOs<br/>lib/cgn-api.ts"]
+    subgraph Web["Railway web service — TanStack Start + TypeScript"]
+        Router["TanStack Router<br/>file routes, loaders, SSR"]
+        Boundaries["Route boundaries<br/>pending, error, and not found"]
+        Operations["Feature operations + server functions<br/>src/features/*"]
+        HealthRoute["Server route<br/>GET /api/health"]
+        Metadata["Route head metadata<br/>src/routes + public-page-head"]
+        RequestBoundary["Request and cache boundary<br/>src/server/request-boundary.server.ts"]
+        APIClient["Typed Go API client and contracts<br/>src/server + feature slices"]
     end
 
     GoAPI["Private Go API<br/>API_INTERNAL_URL"]
 
-    Pages -->|"navigation and page requests"| AppRouter
-    Forms -->|"form submissions"| ServerActions
-    Cookies -->|"sent with web requests"| AppRouter
-    Cookies -->|"sent with mutations"| ServerActions
+    Pages -->|"navigation and page requests"| Router
+    Forms -->|"enhanced or native submissions"| Operations
+    Cookies -->|"sent with web requests"| Router
+    Cookies -->|"sent with mutations"| Operations
 
-    AppRouter --> Boundaries
-    AppRouter --> Metadata
-    Metadata --> ServerAPI
-    AppRouter --> ServerAPI
-    ServerAPI --> APIClient
-    ServerActions --> APIClient
+    Router --> Boundaries
+    Router --> Metadata
+    Metadata --> RequestBoundary
+    Router --> RequestBoundary
+    RequestBoundary --> APIClient
+    Operations --> APIClient
     HealthRoute --> APIClient
 
     APIClient -->|"server-only HTTP over Railway private networking"| GoAPI
     GoAPI -->|"JSON, errors, and Set-Cookie responses"| APIClient
-    AppRouter -->|"SSR HTML"| Pages
-    ServerActions -->|"redirects and cookie updates"| Forms
+    Router -->|"SSR HTML and route data"| Pages
+    Operations -->|"303 redirects, notices, and cookie updates"| Forms
 ```
 
-Key boundary: the browser talks to Next.js, while Next.js acts as the BFF and calls the Go API. The private API URL and private-event unlock tokens are not exposed to browser JavaScript. Browser authentication uses opaque cookies, not JWTs.
+Key boundary: the browser talks to TanStack Start, while the Start server acts as the BFF and calls the Go API. The private API URL and private-event unlock tokens are not exposed to browser JavaScript. Browser authentication uses opaque cookies, not JWTs.
 
 ## 2. Backend architecture overview
 
 ```mermaid
 flowchart TB
-    Request["Next.js BFF request"]
+    Request["TanStack Start BFF request"]
 
     subgraph Runtime["Go API runtime — cmd/api"]
         Config["Environment configuration"]
@@ -147,7 +147,7 @@ flowchart LR
     Resend["Resend<br/>account + event email"]
 
     subgraph Railway["Railway environment — staging or production"]
-        Web["Public web service<br/>Next.js BFF"]
+        Web["Public web service<br/>TanStack Start BFF"]
         API["Private API service<br/>Go"]
         Migrations["API pre-deploy<br/>versioned migrations"]
         Seed["Temporary one-time<br/>school seed service"]
@@ -186,4 +186,4 @@ flowchart LR
     class CRM,R2,IGDB,Sentry deferred;
 ```
 
-Production exposes only the Next.js web service. The Go API and PostgreSQL remain on Railway private networking. Migrations run before a new API deployment is activated, the national school seed runs once per fresh environment, and database backups are a launch gate.
+Production exposes only the TanStack Start web service. The Go API and PostgreSQL remain on Railway private networking. Migrations run before a new API deployment is activated, the national school seed runs once per fresh environment, and database backups are a launch gate.

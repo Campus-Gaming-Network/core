@@ -4,7 +4,10 @@ Status tracker for Campus Gaming Network. Locked product decisions live in the o
 
 Work is grouped **Now** (building toward the first public release), **Next** (planned immediately after), and **Later** (planned, not yet scheduled). Nothing here is written off — Later means "not scheduled yet", not "out of scope".
 
-**Current focus:** continue feature development, product refinement, regression coverage, and production-readiness hardening. Deployment and external environment setup are intentionally deferred until the product plan is refreshed.
+**Current focus:** continue product refinement and production-readiness
+hardening on the TanStack Start main frontend. The local repository cutover is
+complete; Railway staging, Cloudflare validation, and production deployment
+remain deferred until those external environments are provisioned.
 
 **Active milestone:** make the existing events-and-teams product polished and reliable enough for real users.
 
@@ -42,26 +45,28 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 | School logos | Placeholder for now; CRM/admin upload via R2 later |
 | Email From | Now: `events@` / `account@`; later workflows: `notifications@` / `support@campusgamingnetwork.com` |
 | Paid events | Off-site-payment listings only; no CGN checkout/payments |
-| Deploy path | Railway hosts Next.js, Go API, and PostgreSQL; Cloudflare manages DNS/protection |
+| Deploy path | Railway hosts TanStack Start, Go API, and PostgreSQL; Cloudflare manages DNS/protection |
 
 ---
 
 ## Now — first public release
 
 ### Foundation
-- [x] Docker Compose: Next.js, Go API, Postgres (M1-friendly)
+- [x] Docker Compose: TanStack Start, Go API, Postgres (M1-friendly)
 - [x] Project skeletons + BFF wiring
 - [x] Health checks
 - [x] Resend wired for transactional email
 - [x] Deploy path selected: Railway for web, API, and Postgres
 - [x] Add Railway web/API/seed config, production Docker builds, migration pre-deploy, health checks, and smoke script
+- [x] Replace the main Next.js frontend with the locally validated TanStack Start application in `apps/web`; remove the temporary `apps/web-start` service and source tree
 - [ ] Provision Railway staging/production + DNS + backups and execute the documented launch/smoke-test flow
 
 ### Pre-launch polish
-- [x] Dependency and advisory sweep: Go 1.25 with current `pgx`/`golang.org/x/*`, Next.js 16.3 clearing 9 high-severity advisories plus transitive `postcss`/`sharp`, oxlint 1.77
+- [x] Historical Next.js dependency sweep: Next.js 16.3 cleared 9 high-severity advisories plus transitive `postcss`/`sharp`; Go and oxlint were refreshed in the same readiness pass
+- [x] Run a fresh online production-runtime dependency audit for TanStack Start; the current registry reports zero vulnerabilities after excluding development-optional build tooling that is not copied into the runtime image
 - [x] Go toolchain refresh: Go 1.27.1 for the API module, CI, Docker build, and local formatting; API runtime image on Alpine 3.24
 - [x] Per-page metadata and social tags, with `noindex` on authenticated, token, private, and unlisted routes
-- [x] Error, loading, and not-found boundaries; browse pages in `(browse)` route groups so missing entities still return 404
+- [x] TanStack Router pending, error, and not-found boundaries with direct HTTP coverage proving missing entities return 404
 - [x] Transactional email failures no longer fail the committed write behind them (RSVP, signup, password reset)
 - [x] Argon2id password hashing with parameters stored per hash
 - [x] Account deletion and anonymization via `DELETE /me`, with team ownership succession
@@ -173,7 +178,7 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 - [ ] Sentry/error monitoring
 - [ ] Analytics (non-GA: Plausible or Cloudflare Web Analytics)
 - [x] Define and apply basic blocked-language filtering
-- [ ] Frontend regression test coverage for pages, components, and server actions
+- [x] Frontend regression coverage for routes, components, server functions, native forms, and the built Nitro runtime
 - [ ] Open Graph share image, favicon, `robots.txt`, and `sitemap.xml`
 
 ### Active product milestone

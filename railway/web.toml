@@ -1,10 +1,10 @@
 [build]
 builder = "DOCKERFILE"
 dockerfilePath = "apps/web/Dockerfile"
-watchPatterns = ["apps/web/**", "package.json", "package-lock.json", "railway/web.toml"]
+watchPatterns = [".dockerignore", "apps/docs/package.json", "apps/web/**", "package.json", "package-lock.json", "railway/web.toml"]
 
 [deploy]
-startCommand = "npm run start"
+startCommand = "node src/production-preflight.ts"
 healthcheckPath = "/api/health"
 healthcheckTimeout = 120
 restartPolicyType = "ON_FAILURE"

@@ -4,16 +4,19 @@ Quick re-entry point for Campus Gaming Network. Read this first after time away;
 the detailed product and engineering context remains in the other documents in
 this folder.
 
-**Last updated:** 2026-09-08
+**Last updated:** 2026-09-12
 
 ## Where we are
 
 The first-release product is implemented locally: authentication, profiles,
 schools, launch games, events, teams, dashboard, support, and baseline safety
-intake are in place.
+intake are in place. TanStack Start is now the canonical main frontend in
+`apps/web`; the temporary parity application has been folded into that path and
+the Next.js source has been removed.
 
-Repository deployment configuration is implemented, but deployment and external
-environment setup are intentionally deferred while product work continues.
+Repository deployment configuration is implemented, but Railway has not been
+provisioned. Staging, Cloudflare-path validation, and production deployment are
+therefore intentionally deferred while product work continues.
 
 ## Current milestone
 
@@ -51,6 +54,11 @@ gates. CRM/admin UI work moves behind the review's P1 queue.
 
 ## Recently completed
 
+- Completed the local main-frontend cutover from Next.js to TanStack Start.
+  `apps/web` now owns the TanStack Router route tree, server functions, Vite
+  build, Nitro production process, Docker image, and browser tests. The
+  temporary `apps/web-start` application was removed after full local parity,
+  privacy, accessibility, HTTP, and container gates passed.
 - Added explicit `local`, `staging`, and `production` deployment modes. Web and
   API startup now reject unsafe strict-mode URLs, cookies, credentials,
   senders, secrets, and runtime values before accepting traffic while local
@@ -58,11 +66,11 @@ gates. CRM/admin UI work moves behind the review's P1 queue.
 - Replaced email-derived avatar URLs with DiceBear Critters avatars using the
   public user id as the stable seed and the style's default preset.
 - Replaced raw ISO/IANA event entry with native local date/time controls and a
-  profile-defaulted curated timezone selector. Server Actions convert to
+  profile-defaulted curated timezone selector. Server-side operations convert to
   instants and reject nonexistent or ambiguous DST wall times with accessible
   field errors (`CGN-009`).
 - Removed recurrence controls from event edits, explained independent
-  occurrence editing, and made both the Server Action and API reject recurrence
+  occurrence editing, and made both the web operation and API reject recurrence
   mutations instead of silently discarding them (`CGN-007`).
 - Added filter-preserving previous/next navigation to school, event, and team
   browse pages. Event and team lists use opaque bidirectional keyset cursors;
@@ -95,8 +103,8 @@ gates. CRM/admin UI work moves behind the review's P1 queue.
   password hashing, rate-limit bounds, and HTTP timeouts.
 - Established a green verification baseline: API tests, web tests, web lint, and
   web typecheck all pass.
-- Regenerated stale Next.js development route metadata that was breaking the
-  web typecheck.
+- Before the frontend migration, regenerated stale Next.js development route
+  metadata that was breaking the web typecheck.
 - Added regression coverage for event, team, profile, RSVP, private-unlock,
   team-join, API response contracts, and cross-field form validation.
 - Completed the first mobile/accessibility pass: native labeled checkboxes now

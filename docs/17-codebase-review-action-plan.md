@@ -92,16 +92,16 @@ multi-organizer management belongs in the first release.
 
 | Items | Primary starting points |
 |-------|-------------------------|
-| `CGN-001` | [`apps/web/lib/bff-api.ts`](../apps/web/lib/bff-api.ts), [`auth_handlers.go`](../apps/api/internal/httpapi/auth_handlers.go), [`visitor_identity.go`](../apps/api/internal/httpapi/visitor_identity.go), and [`limiter.go`](../apps/api/internal/ratelimit/limiter.go) |
-| `CGN-002`–`CGN-004` | [`verify-email/page.tsx`](../apps/web/app/auth/verify-email/page.tsx), [`actions.ts`](../apps/web/app/actions.ts), [`auth/service.go`](../apps/api/internal/auth/service.go), [`auth/tokens.go`](../apps/api/internal/auth/tokens.go), and [`users.go`](../apps/api/internal/users/users.go) |
-| `CGN-005`–`CGN-006` | [`server-api.ts`](../apps/web/lib/server-api.ts), [`event-form.tsx`](../apps/web/components/event-form.tsx), [`team-form.tsx`](../apps/web/components/team-form.tsx), and the school/event/team browse pages and Go repositories |
-| `CGN-007`–`CGN-009` | [`action-payloads.ts`](../apps/web/lib/action-payloads.ts), [`form-validation.ts`](../apps/web/lib/form-validation.ts), [`event-form.tsx`](../apps/web/components/event-form.tsx), [`event_handlers.go`](../apps/api/internal/httpapi/event_handlers.go), and [`events.go`](../apps/api/internal/events/events.go) |
+| `CGN-001` | [`request-boundary.server.ts`](../apps/web/src/server/request-boundary.server.ts), [`visitor-identity.server.ts`](../apps/web/src/server/visitor-identity.server.ts), [`auth_handlers.go`](../apps/api/internal/httpapi/auth_handlers.go), [`visitor_identity.go`](../apps/api/internal/httpapi/visitor_identity.go), and [`limiter.go`](../apps/api/internal/ratelimit/limiter.go) |
+| `CGN-002`–`CGN-004` | [`auth-flow-operations.server.ts`](../apps/web/src/features/auth-flow-slice/auth-flow-operations.server.ts), [`auth-flow.functions.ts`](../apps/web/src/features/auth-flow-slice/auth-flow.functions.ts), [`auth/service.go`](../apps/api/internal/auth/service.go), [`auth/tokens.go`](../apps/api/internal/auth/tokens.go), and [`users.go`](../apps/api/internal/users/users.go) |
+| `CGN-005`–`CGN-006` | [`catalog-operations.server.ts`](../apps/web/src/features/school-slice/catalog-operations.server.ts), [`event-form.tsx`](../apps/web/src/features/event-slice/event-form.tsx), [`team.functions.ts`](../apps/web/src/features/team-slice/team.functions.ts), the school/event/team routes, and Go repositories |
+| `CGN-007`–`CGN-009` | [`event-operations.server.ts`](../apps/web/src/features/event-slice/event-operations.server.ts), [`contracts.ts`](../apps/web/src/features/event-slice/contracts.ts), [`event-form.tsx`](../apps/web/src/features/event-slice/event-form.tsx), [`event_handlers.go`](../apps/api/internal/httpapi/event_handlers.go), and [`events.go`](../apps/api/internal/events/events.go) |
 | `CGN-010` | [`auth/mailer.go`](../apps/api/internal/auth/mailer.go), [`events/mailer.go`](../apps/api/internal/events/mailer.go), account/event services, and [`db/migrations`](../db/migrations/) |
-| `CGN-011`–`CGN-012` | [`app/layout.tsx`](../apps/web/app/layout.tsx), [`server-api.ts`](../apps/web/lib/server-api.ts), and [`auth/postgres.go`](../apps/api/internal/auth/postgres.go) |
+| `CGN-011`–`CGN-012` | [`__root.tsx`](../apps/web/src/routes/__root.tsx), [`viewer.server.ts`](../apps/web/src/server/viewer.server.ts), [`bff.server.ts`](../apps/web/src/server/bff.server.ts), and [`auth/postgres.go`](../apps/api/internal/auth/postgres.go) |
 | `CGN-013` | [`config.go`](../apps/api/internal/config/config.go), [`main.go`](../apps/api/cmd/api/main.go), and deployment configuration under [`railway`](../railway/) |
-| `CGN-014`, `CGN-020` | Public route pages, [`cgn-api.ts`](../apps/web/lib/cgn-api.ts), and shared notice/error components |
-| `CGN-015` | [`playwright.config.ts`](../apps/web/playwright.config.ts), [`pass-v0.spec.ts`](../apps/web/tests/e2e/pass-v0.spec.ts), [`docker-compose.yml`](../docker-compose.yml), and [`ci.yml`](../.github/workflows/ci.yml) |
-| `CGN-016`–`CGN-018` | [`events.go`](../apps/api/internal/events/events.go), [`users/deletion.go`](../apps/api/internal/users/deletion.go), HTTP handlers, [`actions.ts`](../apps/web/app/actions.ts), and [`router_test.go`](../apps/api/internal/httpapi/router_test.go) |
+| `CGN-014`, `CGN-020` | Public routes, feature `presentation.ts` modules, [`api.server.ts`](../apps/web/src/server/api.server.ts), and shared route-boundary components |
+| `CGN-015` | [`playwright.config.ts`](../apps/web/playwright.config.ts), [`phase4.spec.ts`](../apps/web/tests/e2e/phase4.spec.ts), [`docker-compose.yml`](../docker-compose.yml), and [`ci.yml`](../.github/workflows/ci.yml) |
+| `CGN-016`–`CGN-018` | [`events.go`](../apps/api/internal/events/events.go), [`users/deletion.go`](../apps/api/internal/users/deletion.go), HTTP handlers, feature-local Start operations/functions, and [`router_test.go`](../apps/api/internal/httpapi/router_test.go) |
 | `CGN-019` | [`docs`](./), starting with [`04 — API`](./04-api.md) and [`10 — Delivery status`](./10-delivery-status.md) |
 
 ---
@@ -127,7 +127,7 @@ dimensions, and the one-replica constraint is documented.
 **Problem**
 
 The Go API keys rate limits from `req.RemoteAddr`, but production requests reach
-it from the Next.js BFF over Railway private networking. The BFF does not forward
+it from the web BFF over Railway private networking. At review time, the BFF did not forward
 a trusted visitor identifier. Unauthenticated signup, login, password-reset,
 support, and private-event-unlock traffic can therefore share the web service's
 private address. One user may consume another user's quota, and an attacker may
@@ -171,7 +171,7 @@ deny access to a flow for everyone behind that BFF instance.
 **Depends on:** None
 
 **Completion note:** The emailed GET now renders a confirmation screen without
-calling the API. A validated Server Action sends the token in a POST body; the
+calling the API. A validated server-side form operation sends the token in a POST body; the
 Go handler rejects GET with 405 and consumes valid tokens only once. Missing,
 altered, expired, and replayed tokens return the existing safe error and reveal
 the resend flow. Handler, validation, and desktop/mobile browser coverage lock
@@ -188,7 +188,7 @@ person's address and benefit from an automated scanner verifying it.
 
 1. Make the token-bearing GET render a generic confirmation screen without
    consuming the token.
-2. Submit verification through a Server Action to the API's POST endpoint.
+2. Submit verification through a server-side form operation to the API's POST endpoint.
 3. Remove state-changing GET support from the Go API and return 405 for it.
 4. Keep tokens out of logs and avoid rendering them anywhere except the hidden
    POST field required for the action.
@@ -398,7 +398,7 @@ updated,” and see that the recurrence did not change.
 
 **Verification**
 
-- Server Action and handler tests for recurrence fields on update.
+- Server-operation and handler tests for recurrence fields on update.
 - Browser regression test for editing a recurring occurrence.
 
 ### CGN-008 — Generate recurrences in the event's IANA timezone
@@ -449,7 +449,7 @@ to a short month, such as January 31 → February 28 → March 28.
 **Depends on:** `CGN-008`
 
 **Completion note:** Event forms now use native local date/time controls and a
-curated timezone selector defaulted from the profile. Server Action validation
+curated timezone selector defaulted from the profile. Server-side validation
 converts each wall-clock value to an offset-bearing instant. Until `CGN-008`
 defines recurrence-specific DST behavior, nonexistent spring-forward times and
 ambiguous fall-back times are rejected with field-level guidance rather than
@@ -550,7 +550,7 @@ to a state transition.
 to a small client-side navigation boundary backed by a no-store session route.
 Requests without the configured session cookie skip `/me`; public navigation
 falls back to logged-out controls during an API outage, while authenticated
-pages still surface upstream failures. The Next.js 16.3.0 production build
+pages still surface upstream failures. The pre-migration Next.js 16.3.0 production build
 reports `/`, `/about`, `/faq`, `/forgot-password`, `/privacy`, `/support`, and
 `/terms` as static, with account and personalized routes remaining dynamic.
 The complete desktop/mobile Playwright suite verifies both request counts and
@@ -702,7 +702,7 @@ violations become invisible outside server logs.
 
 **Problem**
 
-The browser suite exercises Next.js against a fake API. Go has strong handler
+The browser suite exercises TanStack Start against a fake API. Go has strong handler
 and repository coverage, and CI runs PostgreSQL-backed tests, but no automated
 test proves the complete browser/BFF/API/database integration. Proxy identity,
 cookie mirroring, migrations, transactions, and real serialization can regress
@@ -711,7 +711,7 @@ between otherwise green suites.
 **Action**
 
 1. Add a CI job that starts disposable Postgres, applies migrations, seeds a
-   small deterministic fixture, and starts the real Go API and Next.js app.
+   small deterministic fixture, and starts the real Go API and TanStack Start app.
 2. Reuse a focused subset of the current Playwright journeys rather than
    duplicating every fake-API test.
 3. Cover signup → POST verification → login, school selection, event creation,
@@ -822,7 +822,7 @@ status and error code, and internal errors can be misclassified.
 
 **Problem**
 
-`events.go`, `app/actions.ts`, and `router_test.go` have become large mixed-
+`events.go`, the former monolithic action layer, and `router_test.go` became large mixed-
 responsibility files. Adding CRM/admin or another major domain will increase
 merge risk and make ownership and review harder.
 
@@ -830,7 +830,7 @@ merge risk and make ownership and review harder.
 
 1. Split event validation/types, commands, queries, scanning, recurrence, and
    persistence helpers while keeping the package boundary stable.
-2. Split Server Actions by account, schools, events, teams, and safety.
+2. Keep Start mutations split by account, schools, events, teams, and safety feature slices.
 3. Split router tests by route family and shared fixture helpers.
 4. Avoid introducing abstract framework layers; organize around current use
    cases and keep narrow interfaces.
@@ -840,7 +840,7 @@ merge risk and make ownership and review harder.
 - No behavior or public contract changes in the refactor.
 - Focused tests can be located by domain without searching a multi-thousand-line
   file.
-- Package dependency direction remains Go domain/API and Next BFF/UI.
+- Package dependency direction remains Go domain/API and TanStack Start BFF/UI.
 
 **Verification**
 
@@ -921,7 +921,7 @@ is not covered by the primary happy-path browser suite.
 These are not backlog items. Future changes should not weaken them.
 
 - Go owns authorization, persistence, state transitions, and domain validation.
-- The Next.js BFF validates successful Go responses with Zod.
+- The TanStack Start BFF validates successful Go responses with Zod.
 - Browser auth uses opaque, hashed, server-side sessions rather than JWTs.
 - Passwords and shared event/team secrets use parameterized Argon2id hashes.
 - SQL is parameterized, request bodies are bounded, and private-event details
