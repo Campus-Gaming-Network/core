@@ -1,4 +1,5 @@
 import * as z from "zod";
+import { safeLocalPath } from "../../safe-local-path.js";
 import {
   ApiContractError,
   ApiError,
@@ -10,25 +11,16 @@ import {
   mirroredSessionCookieMutation,
   type CookieMutation
 } from "../../server/cookies.server.js";
+import {
+  optionalViewerProfile,
+  profileDtoSchema
+} from "../../server/viewer.server.js";
 import type {
   EventViewerSessionResult,
   LoginInput,
   LoginResult,
   NavigationSessionDTO
 } from "./contracts.js";
-
-const profileResponseSchema = z.object({
-  id: z.string().min(1),
-  email: z.email(),
-  email_verified_at: z.iso.datetime({ offset: true }).optional(),
-  verification_level: z.string().min(1),
-  name: z.string(),
-  avatar_url: z.string().optional(),
-  bio: z.string().optional(),
-  timezone: z.string().min(1),
-  home_school_id: z.string().min(1),
-  role_indicators: z.array(z.string()).optional()
-});
 
 type Dependencies = {
   api: ApiClient;
@@ -57,13 +49,12 @@ export async function getNavigationSessionOperation({
   }
 
   try {
-    await api({
-      path: "/me",
+    const profile = await optionalViewerProfile({
+      api,
       cookieHeader,
-      cache: "no-store",
-      responseSchema: profileResponseSchema
+      sessionCookieValue
     });
-    return { authenticated: true };
+    return { authenticated: profile !== null };
   } catch {
     // Navigation is decorative. Authenticated loaders can surface outages, but
     // the public shell must remain usable when /me is unavailable.
@@ -85,18 +76,15 @@ export async function getEventViewerSessionOperation({
   }
 
   try {
-    await api({
-      path: "/me",
+    const profile = await optionalViewerProfile({
+      api,
       cookieHeader,
-      cache: "no-store",
-      responseSchema: profileResponseSchema
+      sessionCookieValue
     });
-    return { status: "authenticated", authenticated: true };
+    return profile
+      ? { status: "authenticated", authenticated: true }
+      : { status: "unauthenticated", authenticated: false };
   } catch (error) {
-    if (error instanceof ApiError && error.status === 401) {
-      return { status: "unauthenticated", authenticated: false };
-    }
-
     reportError(error);
     return {
       status: "unavailable",
@@ -119,15 +107,20 @@ export async function loginOperation(
       path: "/auth/login",
       method: "POST",
       body: { email: input.email, password: input.password },
-      responseSchema: profileResponseSchema
+      responseSchema: profileDtoSchema
     });
     const cookie = mirroredSessionCookieMutation(
       response.headers,
       sessionCookieName
     );
-    if (cookie) {
-      applyCookie(cookie);
+    if (!cookie || cookie.kind !== "set") {
+      reportError(new Error("Login response did not establish a session"));
+      return {
+        status: "error",
+        message: "We could not complete login. Please try again."
+      };
     }
+    applyCookie(cookie);
 
     return {
       status: "success",
@@ -180,12 +173,7 @@ export async function logoutOperation({
 }
 
 export function safeLocalNext(value: string | undefined): string | null {
-  const candidate = value?.trim() ?? "";
-  return candidate.startsWith("/") &&
-    !candidate.startsWith("//") &&
-    !candidate.includes("\\")
-    ? candidate
-    : null;
+  return safeLocalPath(value);
 }
 
 function defaultErrorReporter(error: unknown): void {

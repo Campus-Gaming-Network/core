@@ -1,18 +1,12 @@
 import { redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import {
-  deleteCookie,
-  getCookie,
-  getRequestHeader,
-  getRequestHeaders,
-  setCookie,
-  setResponseHeader
-} from "@tanstack/react-start/server";
-import { createApiClient } from "../../server/api.server.js";
-import {
-  sessionCookieName,
-  type CookieMutation
-} from "../../server/cookies.server.js";
+  applyCookieMutation,
+  currentSessionRequest,
+  isNativeFormPost,
+  setPrivateNoStoreResponse,
+  setViewerResponseCache
+} from "../../server/request-boundary.server.js";
 import {
   getEventViewerSessionOperation,
   loginOperation,
@@ -25,26 +19,18 @@ import {
 
 export const getEventViewerSession = createServerFn({ method: "GET" }).handler(
   async () => {
-    const requestHeaders = getRequestHeaders();
-    const configuredSessionCookie = sessionCookieName();
-    const sessionCookieValue = getCookie(configuredSessionCookie);
-    setResponseHeader("vary", "Cookie");
-    setResponseHeader(
-      "cache-control",
-      sessionCookieValue
-        ? "private, no-store"
-        : "public, max-age=0, must-revalidate"
-    );
+    const request = currentSessionRequest();
+    setViewerResponseCache(Boolean(request.sessionCookieValue));
 
     const viewerSession = await getEventViewerSessionOperation({
-      api: createApiClient({ incomingHeaders: requestHeaders }),
-      cookieHeader: requestHeaders.get("cookie") ?? "",
-      sessionCookieValue
+      api: request.api,
+      cookieHeader: request.cookieHeader,
+      sessionCookieValue: request.sessionCookieValue
     });
 
     return {
       ...viewerSession,
-      hasSessionCookie: Boolean(sessionCookieValue)
+      hasSessionCookie: Boolean(request.sessionCookieValue)
     };
   }
 );
@@ -55,6 +41,7 @@ export const login = createServerFn({
 })
   .validator((input: LoginInput | FormData) => validateLoginServerInput(input))
   .handler(async ({ data }) => {
+    setPrivateNoStoreResponse();
     const nativeForm = isNativeFormPost();
     if (!data.valid) {
       if (nativeForm) {
@@ -62,15 +49,16 @@ export const login = createServerFn({
       }
       return {
         status: "error" as const,
-        message: "Check the form fields and try again."
+        message: data.message,
+        fieldErrors: data.fieldErrors
       };
     }
 
-    const requestHeaders = getRequestHeaders();
+    const request = currentSessionRequest();
     const result = await loginOperation(data.value, {
-      api: createApiClient({ incomingHeaders: requestHeaders }),
-      sessionCookieName: sessionCookieName(),
-      applyCookie
+      api: request.api,
+      sessionCookieName: request.sessionCookieName,
+      applyCookie: applyCookieMutation
     });
 
     if (nativeForm) {
@@ -83,12 +71,13 @@ export const login = createServerFn({
   });
 
 export const logout = createServerFn({ method: "POST" }).handler(async () => {
-  const requestHeaders = getRequestHeaders();
+  setPrivateNoStoreResponse();
+  const request = currentSessionRequest();
   const result = await logoutOperation({
-    api: createApiClient({ incomingHeaders: requestHeaders }),
-    cookieHeader: requestHeaders.get("cookie") ?? "",
-    sessionCookieName: sessionCookieName(),
-    applyCookie
+    api: request.api,
+    cookieHeader: request.cookieHeader,
+    sessionCookieName: request.sessionCookieName,
+    applyCookie: applyCookieMutation
   });
 
   if (isNativeFormPost()) {
@@ -96,17 +85,3 @@ export const logout = createServerFn({ method: "POST" }).handler(async () => {
   }
   return result;
 });
-
-function applyCookie(mutation: CookieMutation): void {
-  if (mutation.kind === "delete") {
-    deleteCookie(mutation.name, mutation.options);
-  } else {
-    setCookie(mutation.name, mutation.value, mutation.options);
-  }
-}
-
-function isNativeFormPost(): boolean {
-  const contentType = getRequestHeader("content-type") ?? "";
-  return contentType.includes("application/x-www-form-urlencoded") ||
-    contentType.includes("multipart/form-data");
-}

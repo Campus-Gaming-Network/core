@@ -22,8 +22,6 @@ const profile = {
 
 function client(fetcher: Fetcher) {
   return createApiClient({
-    incomingHeaders: new Headers({ "x-real-ip": "203.0.113.42" }),
-    proxySecret: "proxy-secret",
     baseUrl: "http://api:8080",
     fetcher
   });
@@ -197,9 +195,13 @@ test("login sends only credentials and mirrors the named upstream session cookie
 
 test("login accepts only local next paths", async () => {
   assert.equal(safeLocalNext("/account?tab=events"), "/account?tab=events");
+  assert.equal(safeLocalNext(" /account "), "/account");
   assert.equal(safeLocalNext("//attacker.example/path"), null);
   assert.equal(safeLocalNext("https://attacker.example/path"), null);
   assert.equal(safeLocalNext("/\\attacker.example/path"), null);
+  assert.equal(safeLocalNext("/\t/attacker.example/path"), null);
+  assert.equal(safeLocalNext("/\n/attacker.example/path"), null);
+  assert.equal(safeLocalNext("/\u007f/attacker.example/path"), null);
   assert.equal(safeLocalNext("account"), null);
 
   const result = await loginOperation(
@@ -209,12 +211,73 @@ test("login accepts only local next paths", async () => {
       next: "https://attacker.example/path"
     },
     {
-      api: client(async () => Response.json(profile)),
+      api: client(async () => Response.json(profile, {
+        headers: {
+          "set-cookie":
+            "cgn_session=session-token; Path=/; HttpOnly; Secure; SameSite=Lax"
+        }
+      })),
       sessionCookieName: "cgn_session",
       applyCookie: () => undefined
     }
   );
   assert.equal(result.status === "success" && result.redirectTo, "/account");
+});
+
+test("login fails closed without a session cookie and hardens weak flags", async () => {
+  const incompleteResults = await Promise.all([
+    Response.json(profile),
+    Response.json(profile, {
+      headers: { "set-cookie": "unrelated=value; Path=/" }
+    })
+  ].map(async (response) => {
+    const mutations: CookieMutation[] = [];
+    const result = await loginOperation(
+      { email: "player@example.com", password: "Password12345!" },
+      {
+        api: client(async () => response.clone()),
+        sessionCookieName: "cgn_session",
+        applyCookie: (mutation) => mutations.push(mutation),
+        reportError: () => undefined
+      }
+    );
+
+    assert.deepEqual(result, {
+      status: "error",
+      message: "We could not complete login. Please try again."
+    });
+    assert.deepEqual(mutations, []);
+    return result;
+  }));
+  assert.equal(incompleteResults.length, 2);
+
+  const mutations: CookieMutation[] = [];
+  const hardened = await loginOperation(
+    { email: "player@example.com", password: "Password12345!" },
+    {
+      api: client(async () => Response.json(profile, {
+        headers: {
+          "set-cookie": "cgn_session=session-token; Path=/app; SameSite=None"
+        }
+      })),
+      sessionCookieName: "cgn_session",
+      applyCookie: (mutation) => mutations.push(mutation)
+    }
+  );
+  assert.equal(hardened.status, "success");
+  assert.deepEqual(mutations, [{
+    kind: "set",
+    name: "cgn_session",
+    value: "session-token",
+    options: {
+      path: "/",
+      expires: undefined,
+      maxAge: undefined,
+      httpOnly: true,
+      secure: false,
+      sameSite: "lax"
+    }
+  }]);
 });
 
 test("login input validation accepts typed RPC data and native FormData", () => {
@@ -231,13 +294,30 @@ test("login input validation accepts typed RPC data and native FormData", () => 
       next: "/account"
     }
   });
-  assert.equal(
+  assert.deepEqual(
     validateLoginServerInput({
-      email: "player@example.com",
-      password: "Password12345!"
-    }).valid,
-    true
+      email: " player@example.com ",
+      password: " Password12345! ",
+      next: " /account "
+    }),
+    validateLoginServerInput(native)
   );
+});
+
+test("login validation returns bounded accessible field errors", () => {
+  const result = validateLoginServerInput({
+    email: "not-an-email",
+    password: ""
+  });
+
+  assert.equal(result.valid, false);
+  if (result.valid) {
+    assert.fail("invalid login unexpectedly passed validation");
+  }
+  assert.equal(result.message, "Check the highlighted fields and try again.");
+  assert.deepEqual(result.fieldErrors.email, ["Enter a valid email address."]);
+  assert.deepEqual(result.fieldErrors.password, ["Password is required."]);
+  assert.equal(JSON.stringify(result).includes("not-an-email"), false);
 });
 
 test("login maps API failures without exposing upstream details", async () => {
@@ -273,7 +353,7 @@ test("logout posts the incoming session and mirrors upstream deletion", async ()
         }
       });
     }),
-    cookieHeader: "cgn_session=private-session-value; analytics=value",
+    cookieHeader: "cgn_session=private-session-value",
     sessionCookieName: "cgn_session",
     applyCookie: (mutation) => mutations.push(mutation)
   });
@@ -282,7 +362,7 @@ test("logout posts the incoming session and mirrors upstream deletion", async ()
   assert.equal(init?.method, "POST");
   assert.equal(
     new Headers(init?.headers).get("cookie"),
-    "cgn_session=private-session-value; analytics=value"
+    "cgn_session=private-session-value"
   );
   assert.deepEqual(mutations, [
     { kind: "delete", name: "cgn_session", options: { path: "/" } }

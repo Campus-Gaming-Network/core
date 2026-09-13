@@ -1,0 +1,36 @@
+.team-school-search {
+  margin-block: 1.5rem;
+}
+
+.team-school-search h2 {
+  margin-block-end: 0.75rem;
+}
+
+.team-create-form,
+.team-management-panel {
+  margin-block-start: 1.5rem;
+}
+
+.team-option-list {
+  display: grid;
+  gap: 0.65rem;
+  margin-block-start: 0.65rem;
+}
+
+.team-management-section + .team-management-section {
+  border-block-start: 1px solid #33333d;
+  margin-block-start: 1.5rem;
+  padding-block-start: 1.5rem;
+}
+
+.team-management-row {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: space-between;
+}
+
+.team-management-row form {
+  margin: 0;
+}

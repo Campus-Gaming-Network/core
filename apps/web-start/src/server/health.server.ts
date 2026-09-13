@@ -23,14 +23,19 @@ export async function apiHealthResponse(
       cache: "no-store"
     });
     const api: unknown = await response.json();
+    const publicAPIHealth = publicAPIHealthDTO(api);
+    const healthy = response.ok && publicAPIHealth.status === "ok";
 
     return Response.json(
       {
         service: "campus-gaming-network-web",
-        status: response.ok ? "ok" : "degraded",
-        api
+        status: healthy ? "ok" : "degraded",
+        api: publicAPIHealth
       },
-      { status: response.ok ? 200 : 503 }
+      {
+        status: healthy ? 200 : 503,
+        headers: { "cache-control": "no-store" }
+      }
     );
   } catch {
     return Response.json(
@@ -39,7 +44,24 @@ export async function apiHealthResponse(
         status: "degraded",
         reason: "api_unreachable"
       },
-      { status: 503 }
+      { status: 503, headers: { "cache-control": "no-store" } }
     );
   }
+}
+
+function publicAPIHealthDTO(value: unknown): {
+  service?: string;
+  status: string;
+} {
+  if (!value || typeof value !== "object") return { status: "unknown" };
+  const record = value as Record<string, unknown>;
+  const status = boundedString(record.status, 50) ?? "unknown";
+  const service = boundedString(record.service, 100);
+  return { ...(service ? { service } : {}), status };
+}
+
+function boundedString(value: unknown, maximum: number): string | undefined {
+  return typeof value === "string" && value.length > 0 && value.length <= maximum
+    ? value
+    : undefined;
 }

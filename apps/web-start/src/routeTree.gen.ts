@@ -10,19 +10,103 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AboutRouteImport } from './routes/about'
+import { Route as AccountRouteImport } from './routes/account'
+import { Route as EventsRouteImport } from './routes/events'
+import { Route as FaqRouteImport } from './routes/faq'
+import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as SchoolsRouteImport } from './routes/schools'
+import { Route as SignupRouteImport } from './routes/signup'
+import { Route as SupportRouteImport } from './routes/support'
+import { Route as TeamsRouteImport } from './routes/teams'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as ApiHealthRouteImport } from './routes/api.health'
 import { Route as ApiNavigationSessionRouteImport } from './routes/api.navigation-session'
+import { Route as ApiSchoolsRouteImport } from './routes/api.schools'
+import { Route as AuthResetPasswordRouteImport } from './routes/auth.reset-password'
+import { Route as AuthVerifyEmailRouteImport } from './routes/auth.verify-email'
+import { Route as EventsIndexRouteImport } from './routes/events.index'
 import { Route as EventsSlugRouteImport } from './routes/events.$slug'
+import { Route as EventsNewRouteImport } from './routes/events.new'
+import { Route as SchoolsIndexRouteImport } from './routes/schools.index'
+import { Route as SchoolsSlugRouteImport } from './routes/schools.$slug'
+import { Route as TeamsIndexRouteImport } from './routes/teams.index'
+import { Route as TeamsSlugRouteImport } from './routes/teams.$slug'
+import { Route as TeamsNewRouteImport } from './routes/teams.new'
+import { Route as UsersIdRouteImport } from './routes/users.$id'
+import { Route as EventsSlugEditRouteImport } from './routes/events.$slug_.edit'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AboutRoute = AboutRouteImport.update({
+  id: '/about',
+  path: '/about',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AccountRoute = AccountRouteImport.update({
+  id: '/account',
+  path: '/account',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EventsRoute = EventsRouteImport.update({
+  id: '/events',
+  path: '/events',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FaqRoute = FaqRouteImport.update({
+  id: '/faq',
+  path: '/faq',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SchoolsRoute = SchoolsRouteImport.update({
+  id: '/schools',
+  path: '/schools',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignupRoute = SignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SupportRoute = SupportRouteImport.update({
+  id: '/support',
+  path: '/support',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TeamsRoute = TeamsRouteImport.update({
+  id: '/teams',
+  path: '/teams',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiHealthRoute = ApiHealthRouteImport.update({
@@ -35,56 +119,277 @@ const ApiNavigationSessionRoute = ApiNavigationSessionRouteImport.update({
   path: '/api/navigation-session',
   getParentRoute: () => rootRouteImport,
 } as any)
-const EventsSlugRoute = EventsSlugRouteImport.update({
-  id: '/events/$slug',
-  path: '/events/$slug',
+const ApiSchoolsRoute = ApiSchoolsRouteImport.update({
+  id: '/api/schools',
+  path: '/api/schools',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthResetPasswordRoute = AuthResetPasswordRouteImport.update({
+  id: '/auth/reset-password',
+  path: '/auth/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthVerifyEmailRoute = AuthVerifyEmailRouteImport.update({
+  id: '/auth/verify-email',
+  path: '/auth/verify-email',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EventsIndexRoute = EventsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => EventsRoute,
+} as any)
+const EventsSlugRoute = EventsSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => EventsRoute,
+} as any)
+const EventsNewRoute = EventsNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => EventsRoute,
+} as any)
+const SchoolsIndexRoute = SchoolsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => SchoolsRoute,
+} as any)
+const SchoolsSlugRoute = SchoolsSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => SchoolsRoute,
+} as any)
+const TeamsIndexRoute = TeamsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => TeamsRoute,
+} as any)
+const TeamsSlugRoute = TeamsSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => TeamsRoute,
+} as any)
+const TeamsNewRoute = TeamsNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => TeamsRoute,
+} as any)
+const UsersIdRoute = UsersIdRouteImport.update({
+  id: '/users/$id',
+  path: '/users/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EventsSlugEditRoute = EventsSlugEditRouteImport.update({
+  id: '/$slug_/edit',
+  path: '/$slug/edit',
+  getParentRoute: () => EventsRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/account': typeof AccountRoute
+  '/events': typeof EventsRouteWithChildren
+  '/faq': typeof FaqRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/privacy': typeof PrivacyRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/schools': typeof SchoolsRouteWithChildren
+  '/signup': typeof SignupRoute
+  '/support': typeof SupportRoute
+  '/teams': typeof TeamsRouteWithChildren
+  '/terms': typeof TermsRoute
   '/api/health': typeof ApiHealthRoute
   '/api/navigation-session': typeof ApiNavigationSessionRoute
+  '/api/schools': typeof ApiSchoolsRoute
+  '/auth/reset-password': typeof AuthResetPasswordRoute
+  '/auth/verify-email': typeof AuthVerifyEmailRoute
   '/events/$slug': typeof EventsSlugRoute
+  '/events/new': typeof EventsNewRoute
+  '/schools/$slug': typeof SchoolsSlugRoute
+  '/teams/$slug': typeof TeamsSlugRoute
+  '/teams/new': typeof TeamsNewRoute
+  '/users/$id': typeof UsersIdRoute
+  '/events/': typeof EventsIndexRoute
+  '/schools/': typeof SchoolsIndexRoute
+  '/teams/': typeof TeamsIndexRoute
+  '/events/$slug/edit': typeof EventsSlugEditRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/account': typeof AccountRoute
+  '/faq': typeof FaqRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/privacy': typeof PrivacyRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/signup': typeof SignupRoute
+  '/support': typeof SupportRoute
+  '/terms': typeof TermsRoute
   '/api/health': typeof ApiHealthRoute
   '/api/navigation-session': typeof ApiNavigationSessionRoute
+  '/api/schools': typeof ApiSchoolsRoute
+  '/auth/reset-password': typeof AuthResetPasswordRoute
+  '/auth/verify-email': typeof AuthVerifyEmailRoute
   '/events/$slug': typeof EventsSlugRoute
+  '/events/new': typeof EventsNewRoute
+  '/schools/$slug': typeof SchoolsSlugRoute
+  '/teams/$slug': typeof TeamsSlugRoute
+  '/teams/new': typeof TeamsNewRoute
+  '/users/$id': typeof UsersIdRoute
+  '/events': typeof EventsIndexRoute
+  '/schools': typeof SchoolsIndexRoute
+  '/teams': typeof TeamsIndexRoute
+  '/events/$slug/edit': typeof EventsSlugEditRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/account': typeof AccountRoute
+  '/events': typeof EventsRouteWithChildren
+  '/faq': typeof FaqRoute
+  '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/privacy': typeof PrivacyRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/schools': typeof SchoolsRouteWithChildren
+  '/signup': typeof SignupRoute
+  '/support': typeof SupportRoute
+  '/teams': typeof TeamsRouteWithChildren
+  '/terms': typeof TermsRoute
   '/api/health': typeof ApiHealthRoute
   '/api/navigation-session': typeof ApiNavigationSessionRoute
+  '/api/schools': typeof ApiSchoolsRoute
+  '/auth/reset-password': typeof AuthResetPasswordRoute
+  '/auth/verify-email': typeof AuthVerifyEmailRoute
   '/events/$slug': typeof EventsSlugRoute
+  '/events/new': typeof EventsNewRoute
+  '/schools/$slug': typeof SchoolsSlugRoute
+  '/teams/$slug': typeof TeamsSlugRoute
+  '/teams/new': typeof TeamsNewRoute
+  '/users/$id': typeof UsersIdRoute
+  '/events/': typeof EventsIndexRoute
+  '/schools/': typeof SchoolsIndexRoute
+  '/teams/': typeof TeamsIndexRoute
+  '/events/$slug_/edit': typeof EventsSlugEditRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/login' | '/api/health' | '/api/navigation-session' | '/events/$slug'
+    | '/'
+    | '/about'
+    | '/account'
+    | '/events'
+    | '/faq'
+    | '/forgot-password'
+    | '/login'
+    | '/privacy'
+    | '/reset-password'
+    | '/schools'
+    | '/signup'
+    | '/support'
+    | '/teams'
+    | '/terms'
+    | '/api/health'
+    | '/api/navigation-session'
+    | '/api/schools'
+    | '/auth/reset-password'
+    | '/auth/verify-email'
+    | '/events/$slug'
+    | '/events/new'
+    | '/schools/$slug'
+    | '/teams/$slug'
+    | '/teams/new'
+    | '/users/$id'
+    | '/events/'
+    | '/schools/'
+    | '/teams/'
+    | '/events/$slug/edit'
   fileRoutesByTo: FileRoutesByTo
   to:
-    '/' | '/login' | '/api/health' | '/api/navigation-session' | '/events/$slug'
+    | '/'
+    | '/about'
+    | '/account'
+    | '/faq'
+    | '/forgot-password'
+    | '/login'
+    | '/privacy'
+    | '/reset-password'
+    | '/signup'
+    | '/support'
+    | '/terms'
+    | '/api/health'
+    | '/api/navigation-session'
+    | '/api/schools'
+    | '/auth/reset-password'
+    | '/auth/verify-email'
+    | '/events/$slug'
+    | '/events/new'
+    | '/schools/$slug'
+    | '/teams/$slug'
+    | '/teams/new'
+    | '/users/$id'
+    | '/events'
+    | '/schools'
+    | '/teams'
+    | '/events/$slug/edit'
   id:
     | '__root__'
     | '/'
+    | '/about'
+    | '/account'
+    | '/events'
+    | '/faq'
+    | '/forgot-password'
     | '/login'
+    | '/privacy'
+    | '/reset-password'
+    | '/schools'
+    | '/signup'
+    | '/support'
+    | '/teams'
+    | '/terms'
     | '/api/health'
     | '/api/navigation-session'
+    | '/api/schools'
+    | '/auth/reset-password'
+    | '/auth/verify-email'
     | '/events/$slug'
+    | '/events/new'
+    | '/schools/$slug'
+    | '/teams/$slug'
+    | '/teams/new'
+    | '/users/$id'
+    | '/events/'
+    | '/schools/'
+    | '/teams/'
+    | '/events/$slug_/edit'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AboutRoute: typeof AboutRoute
+  AccountRoute: typeof AccountRoute
+  EventsRoute: typeof EventsRouteWithChildren
+  FaqRoute: typeof FaqRoute
+  ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
+  PrivacyRoute: typeof PrivacyRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
+  SchoolsRoute: typeof SchoolsRouteWithChildren
+  SignupRoute: typeof SignupRoute
+  SupportRoute: typeof SupportRoute
+  TeamsRoute: typeof TeamsRouteWithChildren
+  TermsRoute: typeof TermsRoute
   ApiHealthRoute: typeof ApiHealthRoute
   ApiNavigationSessionRoute: typeof ApiNavigationSessionRoute
-  EventsSlugRoute: typeof EventsSlugRoute
+  ApiSchoolsRoute: typeof ApiSchoolsRoute
+  AuthResetPasswordRoute: typeof AuthResetPasswordRoute
+  AuthVerifyEmailRoute: typeof AuthVerifyEmailRoute
+  UsersIdRoute: typeof UsersIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -96,11 +401,95 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/about': {
+      id: '/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof AboutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/account': {
+      id: '/account'
+      path: '/account'
+      fullPath: '/account'
+      preLoaderRoute: typeof AccountRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/events': {
+      id: '/events'
+      path: '/events'
+      fullPath: '/events'
+      preLoaderRoute: typeof EventsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/faq': {
+      id: '/faq'
+      path: '/faq'
+      fullPath: '/faq'
+      preLoaderRoute: typeof FaqRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/schools': {
+      id: '/schools'
+      path: '/schools'
+      fullPath: '/schools'
+      preLoaderRoute: typeof SchoolsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/support': {
+      id: '/support'
+      path: '/support'
+      fullPath: '/support'
+      preLoaderRoute: typeof SupportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/teams': {
+      id: '/teams'
+      path: '/teams'
+      fullPath: '/teams'
+      preLoaderRoute: typeof TeamsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/health': {
@@ -117,22 +506,165 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiNavigationSessionRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/schools': {
+      id: '/api/schools'
+      path: '/api/schools'
+      fullPath: '/api/schools'
+      preLoaderRoute: typeof ApiSchoolsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/reset-password': {
+      id: '/auth/reset-password'
+      path: '/auth/reset-password'
+      fullPath: '/auth/reset-password'
+      preLoaderRoute: typeof AuthResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/verify-email': {
+      id: '/auth/verify-email'
+      path: '/auth/verify-email'
+      fullPath: '/auth/verify-email'
+      preLoaderRoute: typeof AuthVerifyEmailRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/events/': {
+      id: '/events/'
+      path: '/'
+      fullPath: '/events/'
+      preLoaderRoute: typeof EventsIndexRouteImport
+      parentRoute: typeof EventsRoute
+    }
     '/events/$slug': {
       id: '/events/$slug'
-      path: '/events/$slug'
+      path: '/$slug'
       fullPath: '/events/$slug'
       preLoaderRoute: typeof EventsSlugRouteImport
+      parentRoute: typeof EventsRoute
+    }
+    '/events/new': {
+      id: '/events/new'
+      path: '/new'
+      fullPath: '/events/new'
+      preLoaderRoute: typeof EventsNewRouteImport
+      parentRoute: typeof EventsRoute
+    }
+    '/schools/': {
+      id: '/schools/'
+      path: '/'
+      fullPath: '/schools/'
+      preLoaderRoute: typeof SchoolsIndexRouteImport
+      parentRoute: typeof SchoolsRoute
+    }
+    '/schools/$slug': {
+      id: '/schools/$slug'
+      path: '/$slug'
+      fullPath: '/schools/$slug'
+      preLoaderRoute: typeof SchoolsSlugRouteImport
+      parentRoute: typeof SchoolsRoute
+    }
+    '/teams/': {
+      id: '/teams/'
+      path: '/'
+      fullPath: '/teams/'
+      preLoaderRoute: typeof TeamsIndexRouteImport
+      parentRoute: typeof TeamsRoute
+    }
+    '/teams/$slug': {
+      id: '/teams/$slug'
+      path: '/$slug'
+      fullPath: '/teams/$slug'
+      preLoaderRoute: typeof TeamsSlugRouteImport
+      parentRoute: typeof TeamsRoute
+    }
+    '/teams/new': {
+      id: '/teams/new'
+      path: '/new'
+      fullPath: '/teams/new'
+      preLoaderRoute: typeof TeamsNewRouteImport
+      parentRoute: typeof TeamsRoute
+    }
+    '/users/$id': {
+      id: '/users/$id'
+      path: '/users/$id'
+      fullPath: '/users/$id'
+      preLoaderRoute: typeof UsersIdRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/events/$slug_/edit': {
+      id: '/events/$slug_/edit'
+      path: '/$slug/edit'
+      fullPath: '/events/$slug/edit'
+      preLoaderRoute: typeof EventsSlugEditRouteImport
+      parentRoute: typeof EventsRoute
     }
   }
 }
 
+interface EventsRouteChildren {
+  EventsSlugRoute: typeof EventsSlugRoute
+  EventsNewRoute: typeof EventsNewRoute
+  EventsIndexRoute: typeof EventsIndexRoute
+  EventsSlugEditRoute: typeof EventsSlugEditRoute
+}
+
+const EventsRouteChildren: EventsRouteChildren = {
+  EventsSlugRoute: EventsSlugRoute,
+  EventsNewRoute: EventsNewRoute,
+  EventsIndexRoute: EventsIndexRoute,
+  EventsSlugEditRoute: EventsSlugEditRoute,
+}
+
+const EventsRouteWithChildren =
+  EventsRoute._addFileChildren(EventsRouteChildren)
+
+interface SchoolsRouteChildren {
+  SchoolsSlugRoute: typeof SchoolsSlugRoute
+  SchoolsIndexRoute: typeof SchoolsIndexRoute
+}
+
+const SchoolsRouteChildren: SchoolsRouteChildren = {
+  SchoolsSlugRoute: SchoolsSlugRoute,
+  SchoolsIndexRoute: SchoolsIndexRoute,
+}
+
+const SchoolsRouteWithChildren =
+  SchoolsRoute._addFileChildren(SchoolsRouteChildren)
+
+interface TeamsRouteChildren {
+  TeamsSlugRoute: typeof TeamsSlugRoute
+  TeamsNewRoute: typeof TeamsNewRoute
+  TeamsIndexRoute: typeof TeamsIndexRoute
+}
+
+const TeamsRouteChildren: TeamsRouteChildren = {
+  TeamsSlugRoute: TeamsSlugRoute,
+  TeamsNewRoute: TeamsNewRoute,
+  TeamsIndexRoute: TeamsIndexRoute,
+}
+
+const TeamsRouteWithChildren = TeamsRoute._addFileChildren(TeamsRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AboutRoute: AboutRoute,
+  AccountRoute: AccountRoute,
+  EventsRoute: EventsRouteWithChildren,
+  FaqRoute: FaqRoute,
+  ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
+  PrivacyRoute: PrivacyRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
+  SchoolsRoute: SchoolsRouteWithChildren,
+  SignupRoute: SignupRoute,
+  SupportRoute: SupportRoute,
+  TeamsRoute: TeamsRouteWithChildren,
+  TermsRoute: TermsRoute,
   ApiHealthRoute: ApiHealthRoute,
   ApiNavigationSessionRoute: ApiNavigationSessionRoute,
-  EventsSlugRoute: EventsSlugRoute,
+  ApiSchoolsRoute: ApiSchoolsRoute,
+  AuthResetPasswordRoute: AuthResetPasswordRoute,
+  AuthVerifyEmailRoute: AuthVerifyEmailRoute,
+  UsersIdRoute: UsersIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

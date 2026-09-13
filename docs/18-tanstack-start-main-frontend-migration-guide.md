@@ -1,8 +1,10 @@
 # 18 — TanStack Start main-frontend migration guide
 
-> **Status: Phase 1 evaluation active.** The reversible `apps/web-start` spike
-> is being built alongside the current Next.js production application. No
-> cutover decision has been made; adoption still requires the Phase 1 gate.
+> **Status: Phase 1 accepted; Gates 2–4 passed; Phase 5 local hardening passed;
+> Railway staging is deferred until the service is provisioned.** The
+> reversible `apps/web-start` application remains alongside the current
+> Next.js production application. This accepts Start as the parity target, not
+> as a production cutover.
 
 ## Outcome
 
@@ -97,7 +99,7 @@ apps/web/
       schools.$slug.tsx
       events.index.tsx
       events.$slug.tsx
-      events.$slug.edit.tsx
+      events.$slug_.edit.tsx
       teams.index.tsx
       teams.$slug.tsx
       account.tsx

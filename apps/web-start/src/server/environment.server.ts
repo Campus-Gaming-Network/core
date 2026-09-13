@@ -30,6 +30,14 @@ export function environmentValidationIssues(environment: Environment): string[] 
       issues.push("API_INTERNAL_URL must be an absolute HTTP(S) origin");
     } else if (strict && isLocalHostname(internalURL.hostname)) {
       issues.push("API_INTERNAL_URL must not use a local hostname");
+    } else if (
+      strict &&
+      internalURL.protocol !== "https:" &&
+      !isRailwayPrivateHostname(internalURL.hostname)
+    ) {
+      issues.push(
+        "API_INTERNAL_URL must use HTTPS unless it is a Railway private-network origin"
+      );
     }
   }
 
@@ -173,4 +181,9 @@ function isLocalHostname(value: string): boolean {
     hostname === "0.0.0.0" ||
     hostname.startsWith("127.")
   );
+}
+
+function isRailwayPrivateHostname(value: string): boolean {
+  const hostname = value.toLowerCase().replace(/\.$/, "");
+  return hostname.endsWith(".railway.internal");
 }

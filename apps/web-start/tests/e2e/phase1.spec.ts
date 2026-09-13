@@ -3,6 +3,8 @@ import { expect, test } from "@playwright/test";
 const apiURL = "http://127.0.0.1:18081";
 const eventPassword = "E2EEventPassword123!";
 const password = "E2EPassword123!";
+const unlockCookieSecure =
+  process.env.START_BROWSER_RUNTIME !== "development";
 const privateMarkers = [
   "Invitation-Only Strategy Session",
   "Private plans shared only after the event is unlocked.",
@@ -10,7 +12,7 @@ const privateMarkers = [
   "123 Hidden Campus Way"
 ];
 
-test("private event auth, RSVP, and logout survive production navigation", async ({
+test("private event auth, RSVP, and logout survive runtime navigation", async ({
   context,
   page,
   request
@@ -55,7 +57,7 @@ test("private event auth, RSVP, and logout survive production navigation", async
       present: true,
       hasValue: true,
       httpOnly: true,
-      secure: true,
+      secure: unlockCookieSecure,
       sameSite: "Lax",
       path: "/"
     });

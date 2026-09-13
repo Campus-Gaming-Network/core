@@ -1,0 +1,9 @@
+.school-picker {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.school-picker__fallback {
+  display: grid;
+  gap: 0.5rem;
+}

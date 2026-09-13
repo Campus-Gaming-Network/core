@@ -4,103 +4,142 @@ import {
   Outlet,
   Scripts,
   useRouter,
-  createRootRoute,
-  type ErrorComponentProps
+  useRouterState,
+  createRootRoute
 } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useState, type FormEvent, type ReactNode } from "react";
 import {
-  getEventViewerSession,
-  logout
-} from "../features/event-slice/auth.functions";
+  useEffect,
+  useState,
+  type FormEvent,
+  type ReactNode
+} from "react";
+import {
+  DefaultError,
+  DefaultNotFound,
+  DefaultPending
+} from "../components/route-boundaries";
+import { logout } from "../features/event-slice/auth.functions";
 import { getPublicSiteOrigin } from "../server/public-origin.functions";
 import appCSS from "../styles.css?url";
 
 const siteName = "Campus Gaming Network";
-const siteDescription =
-  "Find campus gaming events, teams, and school activity.";
 
 export const Route = createRootRoute({
-  beforeLoad: async () => {
-    const [viewerSession, publicOrigin] = await Promise.all([
-      getEventViewerSession(),
-      getPublicSiteOrigin()
-    ]);
-
-    return { viewerSession, publicOrigin };
-  },
+  beforeLoad: async () => ({ publicOrigin: await getPublicSiteOrigin() }),
   loader: ({ context }) => ({
-    navigation: {
-      authenticated: context.viewerSession.status === "authenticated",
-      hasSessionCookie: context.viewerSession.hasSessionCookie
-    },
     publicOrigin: context.publicOrigin
   }),
-  headers: ({ loaderData }) => ({
-    "cache-control": loaderData?.navigation.hasSessionCookie
-      ? "private, no-store"
-      : "public, max-age=0, must-revalidate",
+  headers: () => ({
+    "cache-control": "public, max-age=0, must-revalidate",
     vary: "Cookie"
   }),
-  head: ({ loaderData }) => ({
+  head: () => ({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: siteName },
-      { name: "description", content: siteDescription },
-      { name: "application-name", content: siteName },
-      { property: "og:type", content: "website" },
-      { property: "og:site_name", content: siteName },
-      { property: "og:title", content: siteName },
-      { property: "og:description", content: siteDescription },
-      {
-        property: "og:url",
-        content: loaderData?.publicOrigin ?? "http://localhost:3100"
-      },
-      { name: "twitter:card", content: "summary" },
-      { name: "twitter:title", content: siteName },
-      { name: "twitter:description", content: siteDescription }
+      { name: "application-name", content: siteName }
     ],
     links: [{ rel: "stylesheet", href: appCSS }]
   }),
   component: RootComponent,
-  errorComponent: RootError,
-  notFoundComponent: RootNotFound,
+  pendingComponent: DefaultPending,
+  errorComponent: DefaultError,
+  notFoundComponent: DefaultNotFound,
   shellComponent: RootDocument
 });
 
 function RootComponent() {
-  const { navigation } = Route.useLoaderData();
-
   return (
     <>
+      <a className="skip-link" href="#main-content">
+        Skip to main content
+      </a>
       <header className="site-header">
         <Link className="brand" to="/">
           Campus Gaming Network
         </Link>
         <nav aria-label="Main navigation">
-          <a href="/schools">Schools</a>
-          <a href="/events">Events</a>
-          <a href="/teams">Teams</a>
-          <a href="/faq">FAQ</a>
-          <AuthNavigation authenticated={navigation.authenticated} />
+          <Link to="/schools">Schools</Link>
+          <Link to="/events">Events</Link>
+          <Link to="/teams">Teams</Link>
+          <Link to="/faq">FAQ</Link>
+          <AuthNavigation />
         </nav>
       </header>
-      <Outlet />
+      <MainContent />
       <footer className="site-footer">
-        <a href="/about">About</a>
-        <a href="/support">Support</a>
-        <a href="/terms">Terms</a>
-        <a href="/privacy">Privacy</a>
+        <Link to="/about">About</Link>
+        <Link to="/support">Support</Link>
+        <Link to="/terms">Terms</Link>
+        <Link to="/privacy">Privacy</Link>
       </footer>
     </>
   );
 }
 
-function AuthNavigation({ authenticated }: { authenticated: boolean }) {
+function MainContent() {
+  const router = useRouter();
+
+  useEffect(
+    () =>
+      router.subscribe("onRendered", ({ pathChanged }) => {
+        if (!pathChanged) return;
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            const heading = document.querySelector<HTMLElement>(
+              "#main-content h1"
+            );
+            heading?.setAttribute("tabindex", "-1");
+            heading?.focus();
+          });
+        });
+      }),
+    [router]
+  );
+
+  return (
+    <div id="main-content" tabIndex={-1}>
+      <Outlet />
+    </div>
+  );
+}
+
+function AuthNavigation() {
   const runLogout = useServerFn(logout);
   const router = useRouter();
+  const pathname = useRouterState({
+    select: (state) => state.location.pathname
+  });
+  const [authenticated, setAuthenticated] = useState(false);
   const [pending, setPending] = useState(false);
+
+  useEffect(() => {
+    if (authenticated) return;
+    const controller = new AbortController();
+
+    async function refreshAuthentication() {
+      try {
+        const response = await fetch("/api/navigation-session", {
+          cache: "no-store",
+          signal: controller.signal
+        });
+        if (!response.ok) return;
+        const session: unknown = await response.json();
+        setAuthenticated(
+          typeof session === "object" &&
+            session !== null &&
+            "authenticated" in session &&
+            session.authenticated === true
+        );
+      } catch {
+        // Public navigation stays logged out if session discovery is unavailable.
+      }
+    }
+
+    void refreshAuthentication();
+    return () => controller.abort();
+  }, [authenticated, pathname]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -108,8 +147,9 @@ function AuthNavigation({ authenticated }: { authenticated: boolean }) {
 
     try {
       await runLogout();
+      setAuthenticated(false);
       await router.invalidate();
-      await router.navigate({ href: "/", replace: true });
+      await router.navigate({ to: "/", replace: true });
     } finally {
       setPending(false);
     }
@@ -119,73 +159,27 @@ function AuthNavigation({ authenticated }: { authenticated: boolean }) {
     return (
       <>
         <Link to="/login">Log in</Link>
-        <a className="button button--primary" href="/signup">
+        <Link className="button button--primary" to="/signup">
           Sign up
-        </a>
+        </Link>
       </>
     );
   }
 
   return (
     <>
-      <a href="/account">Account</a>
-      <form action={logout.url} method="post" onSubmit={submit}>
+      <Link to="/account">Account</Link>
+      <form
+        action={logout.url}
+        className="logout-form"
+        method="post"
+        onSubmit={submit}
+      >
         <button type="submit" disabled={pending}>
           {pending ? "Logging out…" : "Log out"}
         </button>
       </form>
     </>
-  );
-}
-
-function RootError({ reset }: ErrorComponentProps) {
-  const router = useRouter();
-
-  async function retry() {
-    try {
-      await router.invalidate();
-    } finally {
-      reset();
-    }
-  }
-
-  return (
-    <main className="narrow">
-      <p className="eyebrow">Something went wrong</p>
-      <h1>We could not load this page.</h1>
-      <p className="lede">
-        This is usually temporary. Try again, and contact support if it keeps
-        happening.
-      </p>
-      <div className="actions">
-        <button type="button" onClick={() => void retry()}>
-          Try again
-        </button>
-        <Link to="/">Go home</Link>
-        <a href="/support">Contact support</a>
-      </div>
-    </main>
-  );
-}
-
-function RootNotFound() {
-  return (
-    <main className="narrow">
-      <title>Page not found | Campus Gaming Network</title>
-      <meta name="robots" content="noindex,nofollow" />
-      <p className="eyebrow">404</p>
-      <h1>We could not find that page.</h1>
-      <p className="lede">
-        The link may be broken, or the event, team, or school may have been
-        removed.
-      </p>
-      <div className="actions">
-        <Link to="/">Go home</Link>
-        <a href="/events">Browse events</a>
-        <a href="/schools">Browse schools</a>
-        <a href="/teams">Browse teams</a>
-      </div>
-    </main>
   );
 }
 

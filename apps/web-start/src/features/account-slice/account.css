@@ -1,0 +1,68 @@
+.profile-hero {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  margin-bottom: 2rem;
+}
+
+.profile-hero h1 {
+  margin-block: 0.25rem 0.75rem;
+}
+
+.avatar {
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid #4b4b59;
+  border-radius: 999px;
+  color: #fff;
+  background: #1d4b70;
+  object-fit: cover;
+}
+
+.avatar--large {
+  width: 5rem;
+  height: 5rem;
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.summary-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.summary-strip .card {
+  display: grid;
+  gap: 0.35rem;
+  overflow-wrap: anywhere;
+}
+
+.split-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 0.35fr) minmax(0, 1fr);
+  gap: 0.75rem;
+}
+
+.form-stack fieldset {
+  display: grid;
+  gap: 0.75rem;
+  min-width: 0;
+  margin: 0;
+  border: 1px solid #33333d;
+  border-radius: 0.5rem;
+  padding: 1rem;
+}
+
+@media (max-width: 42rem) {
+  .profile-hero {
+    align-items: flex-start;
+  }
+
+  .summary-strip,
+  .split-fields {
+    grid-template-columns: 1fr;
+  }
+}

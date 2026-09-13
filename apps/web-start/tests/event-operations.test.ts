@@ -35,8 +35,6 @@ const event = {
 
 function client(fetcher: Fetcher) {
   return createApiClient({
-    incomingHeaders: new Headers({ "x-real-ip": "203.0.113.42" }),
-    proxySecret: "proxy-secret",
     baseUrl: "http://api:8080",
     fetcher
   });
@@ -59,7 +57,7 @@ test("event detail forwards viewer credentials and preserves a redacted locked s
         });
       }),
       cookieHeader: "cgn_session=session-value",
-      unlockToken: "unlock-value"
+      unlockHeaders: { "X-CGN-Event-Unlock": "unlock-value" }
     }
   );
 
@@ -137,7 +135,7 @@ test("RSVP forwards session/unlock state, exact payload, and strips additive res
         return Response.json({ ...event, unlock_token: "leak", session: "leak" });
       }),
       cookieHeader: "cgn_session=session-value",
-      unlockToken: "unlock-value"
+      unlockHeaders: { "X-CGN-Event-Unlock": "unlock-value" }
     }
   );
 
@@ -183,8 +181,42 @@ test("event mutations validate typed RPC data and native FormData", () => {
     valid: true,
     value: { slug: "private/event", response: "yes" }
   });
-  assert.equal(
-    validateRSVPServerInput({ slug: "private/event", response: "maybe" }).valid,
-    true
+  assert.deepEqual(
+    validateUnlockServerInput({
+      slug: " private/event ",
+      password: " open sesame "
+    }),
+    validateUnlockServerInput(unlock)
   );
+  assert.deepEqual(
+    validateRSVPServerInput({ slug: " private/event ", response: " yes " as "yes" }),
+    validateRSVPServerInput(rsvp)
+  );
+});
+
+test("event validation enforces password parity and returns field errors", () => {
+  const shortPassword = validateUnlockServerInput({
+    slug: "private/event",
+    password: "short"
+  });
+  const invalidRSVP = new FormData();
+  invalidRSVP.set("slug", "private/event");
+  invalidRSVP.set("response", "unknown");
+  const response = validateRSVPServerInput(invalidRSVP);
+
+  assert.equal(shortPassword.valid, false);
+  if (shortPassword.valid) {
+    assert.fail("short event password unexpectedly passed validation");
+  }
+  assert.deepEqual(shortPassword.fieldErrors.password, [
+    "Password must be at least 8 characters."
+  ]);
+
+  assert.equal(response.valid, false);
+  if (response.valid) {
+    assert.fail("invalid RSVP unexpectedly passed validation");
+  }
+  assert.deepEqual(response.fieldErrors.response, [
+    "Invalid option: expected one of \"yes\"|\"maybe\"|\"no\""
+  ]);
 });

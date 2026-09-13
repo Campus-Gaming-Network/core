@@ -1,7 +1,13 @@
-import { createFileRoute, useRouter } from "@tanstack/react-router";
+import { Link, createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useState, type FormEvent } from "react";
+import { type FormEvent } from "react";
+import {
+  FieldError,
+  fieldErrorProps,
+  useEnhancedMutation
+} from "../components/enhanced-mutation";
 import { login } from "../features/event-slice/auth.functions";
+import { safeLocalPath } from "../safe-local-path";
 
 type LoginSearch = {
   error?: "login-failed";
@@ -56,7 +62,7 @@ export function validateLoginSearch(search: Record<string, unknown>): LoginSearc
   const errorValue = firstString(search.error);
   const resetValue = firstString(search.reset);
   const signupValue = firstString(search.signup);
-  const next = safeRedirect(nextValue);
+  const next = safeLocalPath(nextValue);
 
   return {
     ...(errorValue === "login-failed"
@@ -95,9 +101,9 @@ function LoginPage() {
         initialFailure={search.error === "login-failed"}
       />
       <p className="form-footer">
-        Need an account? <a href="/signup">Sign up</a>
+        Need an account? <Link to="/signup">Sign up</Link>
         {" | "}
-        <a href="/forgot-password">Forgot password?</a>
+        <Link to="/forgot-password">Forgot password?</Link>
       </p>
     </main>
   );
@@ -113,38 +119,27 @@ function LoginForm({
   initialFailure: boolean;
 }) {
   const runLogin = useServerFn(login);
-  const router = useRouter();
-  const [pending, setPending] = useState(false);
-  const [failed, setFailed] = useState(false);
+  const mutation = useEnhancedMutation(
+    "We could not log you in. Check your details and try again."
+  );
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setPending(true);
-    setFailed(false);
+    const form = new FormData(event.currentTarget);
 
-    try {
-      const form = new FormData(event.currentTarget);
-      const result = await runLogin({
+    await mutation.execute(() =>
+      runLogin({
         data: {
           email: String(form.get("email") ?? ""),
           password: String(form.get("password") ?? ""),
           ...(next ? { next } : {})
         }
-      });
-
-      if (result.status !== "success") {
-        setFailed(true);
-        return;
-      }
-
-      await router.invalidate();
-      await router.navigate({ href: result.redirectTo, replace: true });
-    } catch {
-      setFailed(true);
-    } finally {
-      setPending(false);
-    }
+      })
+    );
   }
+
+  const emailErrors = mutation.fieldErrors.email;
+  const passwordErrors = mutation.fieldErrors.password;
 
   return (
     <form
@@ -159,9 +154,10 @@ function LoginForm({
           {notice}
         </p>
       ) : null}
-      {failed || initialFailure ? (
+      {mutation.message || initialFailure ? (
         <p role="alert" aria-live="polite">
-          We could not log you in. Check your details and try again.
+          {mutation.message ||
+            "We could not log you in. Check your details and try again."}
         </p>
       ) : null}
       <label>
@@ -170,9 +166,11 @@ function LoginForm({
           name="email"
           type="email"
           autoComplete="email"
+          maxLength={320}
           required
-          aria-invalid={failed || undefined}
+          {...fieldErrorProps(emailErrors, "login-email-error")}
         />
+        <FieldError id="login-email-error" messages={emailErrors} />
       </label>
       <label>
         Password
@@ -180,28 +178,17 @@ function LoginForm({
           name="password"
           type="password"
           autoComplete="current-password"
+          maxLength={256}
           required
-          aria-invalid={failed || undefined}
+          {...fieldErrorProps(passwordErrors, "login-password-error")}
         />
+        <FieldError id="login-password-error" messages={passwordErrors} />
       </label>
-      <button type="submit" disabled={pending}>
-        {pending ? "Logging in…" : "Log in"}
+      <button type="submit" disabled={mutation.pending}>
+        {mutation.pending ? "Logging in…" : "Log in"}
       </button>
     </form>
   );
-}
-
-function safeRedirect(value: string | undefined) {
-  if (
-    value &&
-    value.startsWith("/") &&
-    !value.startsWith("//") &&
-    !value.includes("\\")
-  ) {
-    return value;
-  }
-
-  return undefined;
 }
 
 function firstString(value: unknown) {

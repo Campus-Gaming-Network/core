@@ -29,7 +29,9 @@ test("uses Railway's single-value X-Real-IP at the direct hosting boundary", () 
         "x-real-ip": "203.0.113.9",
         "x-forwarded-for": "198.51.100.1, 198.51.100.2",
         "x-cgn-visitor-ip": "192.0.2.99"
-      })
+      }),
+      "",
+      true
     ),
     "203.0.113.9"
   );
@@ -54,9 +56,13 @@ test("trusts Cloudflare visitor identity only with the origin secret", () => {
   );
   assert.equal(
     visitorIPFromHostingHeaders(trustedHeaders, "wrong-secret"),
+    null
+  );
+  assert.equal(visitorIPFromHostingHeaders(trustedHeaders), null);
+  assert.equal(
+    visitorIPFromHostingHeaders(trustedHeaders, "wrong-secret", true),
     "192.0.2.10"
   );
-  assert.equal(visitorIPFromHostingHeaders(trustedHeaders), "192.0.2.10");
 });
 
 test("removes browser-supplied internal headers without mutating the input", () => {
@@ -82,7 +88,8 @@ test("adds normalized visitor identity only as an authenticated pair", () => {
       [proxySecretHeader]: "browser-value",
       [visitorIPHeader]: "192.0.2.99"
     },
-    proxySecret: "server-owned-secret"
+    proxySecret: "server-owned-secret",
+    trustRailwayHeaders: true
   });
 
   assert.equal(trusted.get(visitorIPHeader), "203.0.113.42");
@@ -95,7 +102,8 @@ test("adds normalized visitor identity only as an authenticated pair", () => {
         [proxySecretHeader]: "browser-value",
         [visitorIPHeader]: "192.0.2.99"
       },
-      proxySecret: "server-owned-secret"
+      proxySecret: "server-owned-secret",
+      trustRailwayHeaders: true
     }),
     headersWithTrustedVisitorIdentity({
       incomingHeaders: new Headers({ "x-real-ip": "203.0.113.42" }),
@@ -103,7 +111,8 @@ test("adds normalized visitor identity only as an authenticated pair", () => {
         [proxySecretHeader]: "browser-value",
         [visitorIPHeader]: "192.0.2.99"
       },
-      proxySecret: ""
+      proxySecret: "",
+      trustRailwayHeaders: true
     })
   ]) {
     assert.equal(headers.get(visitorIPHeader), null);

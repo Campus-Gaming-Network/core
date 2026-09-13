@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import test from "node:test";
 import {
   createMigrationInventory,
@@ -86,6 +88,94 @@ test("builds a deterministic migration inventory", async () => {
     await rm(fixtureRoot, { recursive: true, force: true });
   }
 });
+
+test("the generated Start surface exactly matches the frozen migration inventory", () => {
+  const repositoryRoot = path.resolve(
+    path.dirname(fileURLToPath(import.meta.url)),
+    ".."
+  );
+  const nextInventory = createMigrationInventory(repositoryRoot);
+  const generatedTree = readFileSync(
+    path.join(repositoryRoot, "apps/web-start/src/routeTree.gen.ts"),
+    "utf8"
+  );
+  const generatedPaths = new Set(
+    [...generatedTree.matchAll(/fullPath: '([^']+)'/g)].map((match) =>
+      normalizeStartPath(match[1])
+    )
+  );
+  const generatedAPIRoutes = [...generatedPaths]
+    .filter((route) => route.startsWith("/api/"))
+    .sort();
+  const generatedPages = [...generatedPaths]
+    .filter((route) => !route.startsWith("/api/"))
+    .sort();
+
+  assert.deepEqual(
+    generatedPages,
+    nextInventory.pages.map(({ urlPattern }) => urlPattern).sort()
+  );
+  assert.deepEqual(
+    generatedAPIRoutes,
+    nextInventory.routeHandlers.map(({ urlPattern }) => urlPattern).sort()
+  );
+
+  const mutationFiles = [
+    "account-slice/account.functions.ts",
+    "auth-flow-slice/auth-flow.functions.ts",
+    "event-slice/auth.functions.ts",
+    "event-slice/event.functions.ts",
+    "public-profile/public-profile.functions.ts",
+    "school-slice/school-follow.functions.ts",
+    "support-slice/support.functions.ts",
+    "team-slice/team.functions.ts"
+  ];
+  const startMutations = mutationFiles.flatMap((relativeFile) => {
+    const source = readFileSync(
+      path.join(repositoryRoot, "apps/web-start/src/features", relativeFile),
+      "utf8"
+    );
+    return [...source.matchAll(
+      /export const\s+(\w+)\s*=\s*createServerFn\(\{\s*method:\s*"POST"/g
+    )].map((match) => match[1]);
+  }).sort();
+  const expectedMutations = [
+    "cancelEvent",
+    "createEvent",
+    "createTeam",
+    "deleteAccount",
+    "followSchool",
+    "forgotPassword",
+    "joinTeam",
+    "login",
+    "logout",
+    "reportEvent",
+    "reportUser",
+    "resendVerification",
+    "resetPassword",
+    "rsvpEvent",
+    "setEventInterest",
+    "setTeamCaptain",
+    "signup",
+    "submitSupportTicket",
+    "transferTeamOwnership",
+    "unfollowSchool",
+    "unlockEvent",
+    "updateAccountProfile",
+    "updateEvent",
+    "verifyEmail"
+  ].sort();
+
+  assert.equal(nextInventory.counts.serverActions, 24);
+  assert.deepEqual(startMutations, expectedMutations);
+});
+
+function normalizeStartPath(value) {
+  const normalized = value
+    .replace(/\$([A-Za-z_][\w]*)/g, ":$1")
+    .replace(/\/$/, "");
+  return normalized || "/";
+}
 
 async function writeFixture(root, relativeFile, lines) {
   const absoluteFile = path.join(root, relativeFile);

@@ -3,6 +3,8 @@ import { defineConfig, devices } from "@playwright/test";
 const webURL = "http://127.0.0.1:3200";
 const apiURL = "http://127.0.0.1:18081";
 const nodeExecutable = JSON.stringify(process.execPath);
+const developmentRuntime =
+  process.env.START_BROWSER_RUNTIME === "development";
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -23,11 +25,21 @@ export default defineConfig({
   projects: [
     {
       name: "desktop-chromium",
+      testIgnore: "**/no-js.spec.ts",
       use: { ...devices["Desktop Chrome"] }
     },
     {
       name: "mobile-chromium",
+      testIgnore: "**/no-js.spec.ts",
       use: { ...devices["Pixel 5"] }
+    },
+    {
+      name: "no-javascript-chromium",
+      testMatch: "**/no-js.spec.ts",
+      use: {
+        ...devices["Desktop Chrome"],
+        javaScriptEnabled: false
+      }
     }
   ],
   webServer: [
@@ -39,10 +51,12 @@ export default defineConfig({
       timeout: 30_000
     },
     {
-      command: `${nodeExecutable} src/production-preflight.ts`,
+      command: developmentRuntime
+        ? `${nodeExecutable} node_modules/vite/bin/vite.js --host 127.0.0.1 --port 3200`
+        : `${nodeExecutable} src/production-preflight.ts`,
       url: `${webURL}/api/health`,
       env: {
-        NODE_ENV: "production",
+        ...(developmentRuntime ? {} : { NODE_ENV: "production" }),
         DEPLOYMENT_ENV: "local",
         API_INTERNAL_URL: apiURL,
         API_SESSION_COOKIE: "cgn_session",

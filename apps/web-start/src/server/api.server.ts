@@ -1,5 +1,4 @@
 import type * as z from "zod";
-import { headersWithTrustedVisitorIdentity } from "./visitor-identity.server.js";
 
 export type Fetcher = (
   input: string | URL | Request,
@@ -9,7 +8,7 @@ export type Fetcher = (
 export type ApiRequestOptions<TSchema extends z.ZodType> = {
   path: string;
   responseSchema: TSchema;
-  method?: "GET" | "POST";
+  method?: "GET" | "POST" | "PATCH" | "DELETE";
   body?: unknown;
   cookieHeader?: string;
   headers?: HeadersInit;
@@ -26,11 +25,9 @@ export type ApiClient = <TSchema extends z.ZodType>(
 ) => Promise<ApiResult<z.output<TSchema>>>;
 
 export type ApiClientDependencies = {
-  incomingHeaders: Pick<Headers, "get">;
-  proxySecret?: string;
-  cloudflareOriginSecret?: string;
-  baseUrl?: string;
+  baseUrl: string;
   fetcher?: Fetcher;
+  prepareHeaders?: (headers: Headers) => Headers;
 };
 
 export class ApiError extends Error {
@@ -69,11 +66,9 @@ export class ApiContractError extends Error {
 }
 
 export function createApiClient({
-  incomingHeaders,
-  proxySecret = process.env.API_PROXY_SHARED_SECRET ?? "",
-  cloudflareOriginSecret = process.env.CLOUDFLARE_ORIGIN_SECRET ?? "",
-  baseUrl = process.env.API_INTERNAL_URL ?? "http://localhost:8080",
-  fetcher = fetch
+  baseUrl,
+  fetcher = fetch,
+  prepareHeaders = (headers) => headers
 }: ApiClientDependencies): ApiClient {
   return async <TSchema extends z.ZodType>({
     path,
@@ -84,12 +79,7 @@ export function createApiClient({
     headers,
     cache = "no-store"
   }: ApiRequestOptions<TSchema>): Promise<ApiResult<z.output<TSchema>>> => {
-    const outgoingHeaders = headersWithTrustedVisitorIdentity({
-      incomingHeaders,
-      outgoingHeaders: headers,
-      proxySecret,
-      cloudflareOriginSecret
-    });
+    const outgoingHeaders = prepareHeaders(new Headers(headers));
 
     if (body !== undefined && !outgoingHeaders.has("content-type")) {
       outgoingHeaders.set("content-type", "application/json");

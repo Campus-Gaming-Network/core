@@ -1,0 +1,121 @@
+.event-banner {
+  display: grid;
+  gap: 0.75rem;
+  min-height: 7rem;
+  margin-bottom: 1rem;
+  padding: 1rem;
+  border: 1px solid #33333d;
+  border-radius: 0.75rem;
+  background: #19191f;
+}
+
+.event-banner--hero {
+  min-height: 11rem;
+  margin-bottom: 1.5rem;
+}
+
+.event-banner__mark {
+  width: fit-content;
+  color: #c9c9d2;
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.event-banner__copy {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.event-banner__copy small {
+  color: #c9c9d2;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.event-banner__copy strong {
+  color: #f7f7f8;
+  font-size: 1rem;
+}
+
+.event-list-item {
+  display: grid;
+  justify-content: stretch;
+  gap: 0.35rem;
+}
+
+.event-card-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.event-pill-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.event-pill {
+  border: 1px solid #4b4b59;
+  border-radius: 999px;
+  padding: 0.25rem 0.6rem;
+  background: #101014;
+}
+
+.event-form fieldset {
+  display: grid;
+  gap: 1rem;
+  margin: 0;
+  border: 1px solid #33333d;
+  border-radius: 0.6rem;
+  padding: 1rem;
+}
+
+.event-form legend {
+  padding-inline: 0.35rem;
+  font-weight: 750;
+}
+
+.event-form .split-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.event-form .checkbox-field {
+  display: flex;
+  align-items: center;
+  grid-template-columns: auto 1fr;
+}
+
+.event-form .checkbox-field input {
+  width: auto;
+}
+
+.event-school-picker {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.event-school-picker p {
+  margin: 0;
+}
+
+.interest-form {
+  margin-block: 1rem;
+}
+
+.report-form {
+  margin-top: 0.75rem;
+}
+
+@media (max-width: 42rem) {
+  .event-card-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .event-form .split-fields {
+    grid-template-columns: 1fr;
+  }
+}

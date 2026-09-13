@@ -18,6 +18,7 @@ test("health route preserves the healthy Next.js response contract", async () =>
 
   assert.equal(requestedURL, "http://api.internal/health");
   assert.equal(response.status, 200);
+  assert.equal(response.headers.get("cache-control"), "no-store");
   assert.deepEqual(await response.json(), {
     service: "campus-gaming-network-web",
     status: "ok",
@@ -32,6 +33,7 @@ test("health route maps an unhealthy API to a degraded response", async () => {
   });
 
   assert.equal(response.status, 503);
+  assert.equal(response.headers.get("cache-control"), "no-store");
   assert.deepEqual(await response.json(), {
     service: "campus-gaming-network-web",
     status: "degraded",
@@ -48,10 +50,38 @@ test("health route reports an unreachable API without leaking the error", async 
   });
 
   assert.equal(response.status, 503);
+  assert.equal(response.headers.get("cache-control"), "no-store");
   assert.deepEqual(await response.json(), {
     service: "campus-gaming-network-web",
     status: "degraded",
     reason: "api_unreachable"
+  });
+});
+
+test("health route strips additive upstream fields and rejects malformed success", async () => {
+  const additive = await apiHealthResponse({
+    apiBaseURL: "http://api.internal",
+    fetcher: async () => Response.json({
+      service: "campus-gaming-network-api",
+      status: "ok",
+      database_url: "postgres://private"
+    })
+  });
+  assert.deepEqual(await additive.json(), {
+    service: "campus-gaming-network-web",
+    status: "ok",
+    api: { service: "campus-gaming-network-api", status: "ok" }
+  });
+
+  const malformed = await apiHealthResponse({
+    apiBaseURL: "http://api.internal",
+    fetcher: async () => Response.json({ status: { private: true } })
+  });
+  assert.equal(malformed.status, 503);
+  assert.deepEqual(await malformed.json(), {
+    service: "campus-gaming-network-web",
+    status: "degraded",
+    api: { status: "unknown" }
   });
 });
 

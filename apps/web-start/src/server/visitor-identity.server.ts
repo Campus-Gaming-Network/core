@@ -12,18 +12,21 @@ type TrustedVisitorHeadersOptions = {
   outgoingHeaders?: HeadersInit;
   proxySecret: string;
   cloudflareOriginSecret?: string;
+  trustRailwayHeaders?: boolean;
 };
 
 export function headersWithTrustedVisitorIdentity({
   incomingHeaders,
   outgoingHeaders,
   proxySecret,
-  cloudflareOriginSecret = ""
+  cloudflareOriginSecret = "",
+  trustRailwayHeaders = Boolean(process.env.RAILWAY_ENVIRONMENT_ID)
 }: TrustedVisitorHeadersOptions): Headers {
   const headers = sanitizeInternalHeaders(outgoingHeaders);
   const visitorIP = visitorIPFromHostingHeaders(
     incomingHeaders,
-    cloudflareOriginSecret
+    cloudflareOriginSecret,
+    trustRailwayHeaders
   );
 
   if (visitorIP && proxySecret.trim()) {
@@ -46,7 +49,8 @@ export function sanitizeInternalHeaders(headers?: HeadersInit): Headers {
 
 export function visitorIPFromHostingHeaders(
   requestHeaders: HeaderReader,
-  cloudflareOriginSecret = ""
+  cloudflareOriginSecret = "",
+  trustRailwayHeaders = Boolean(process.env.RAILWAY_ENVIRONMENT_ID)
 ): string | null {
   if (
     cloudflareOriginSecret &&
@@ -63,7 +67,9 @@ export function visitorIPFromHostingHeaders(
     }
   }
 
-  return normalizeIPAddress(requestHeaders.get("x-real-ip"));
+  return trustRailwayHeaders
+    ? normalizeIPAddress(requestHeaders.get("x-real-ip"))
+    : null;
 }
 
 export function normalizeIPAddress(value: string | null): string | null {

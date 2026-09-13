@@ -27,6 +27,13 @@ const fakeAPIHealthPayload = {
 };
 const eventSlug = "private-smoke-event";
 const missingEventSlug = "missing-smoke-event";
+const publicEventSlug = "public-smoke-event";
+const schoolSlug = "smoke-test-university";
+const missingSchoolSlug = "missing-smoke-school";
+const teamSlug = "smoke-arena-team";
+const missingTeamSlug = "missing-smoke-team";
+const publicProfileID = "public-smoke-user";
+const missingPublicProfileID = "missing-smoke-user";
 const eventPassword = "SmokeEventPassword123!";
 const unlockToken = "smoke-private-event-unlock-token";
 const sessionToken = "smoke-session-token";
@@ -112,7 +119,22 @@ try {
     childOutput,
     overallController.signal
   );
-  await verifyHomePage(webOrigin, overallController.signal);
+  await verifyHomePage(webOrigin, fakeAPI.calls, overallController.signal);
+  await verifyAccountRoute(webOrigin, fakeAPI.calls, overallController.signal);
+  await verifyPhase4RouteBoundaries(
+    webOrigin,
+    fakeAPI.calls,
+    overallController.signal
+  );
+  await verifyEventBrowse(webOrigin, fakeAPI.calls, overallController.signal);
+  await verifyTeamRoutes(webOrigin, fakeAPI.calls, overallController.signal);
+  await verifySchoolRoutes(webOrigin, fakeAPI.calls, overallController.signal);
+  await verifyPublicProfileRoutes(
+    webOrigin,
+    fakeAPI.calls,
+    overallController.signal
+  );
+  await verifySchoolsAPI(webOrigin, overallController.signal);
   await verifyHealthRoute(webOrigin, overallController.signal);
   await verifyHealthMethodBoundary(webOrigin, overallController.signal);
   await verifyNavigationSessionRoute(
@@ -167,6 +189,12 @@ try {
     overallController.signal
   );
   const authenticatedCookies = `${sessionCookie}; ${unlockCookie}`;
+  await verifyAuthenticatedWritePages(
+    webOrigin,
+    authenticatedCookies,
+    fakeAPI.calls,
+    overallController.signal
+  );
   const visibleEventHTML = await verifyUnlockedEvent(
     webOrigin,
     authenticatedCookies,
@@ -185,18 +213,38 @@ try {
     fakeAPI.calls,
     overallController.signal
   );
+  const logoutAction = discoverFormAction(
+    visibleEventHTML,
+    "logout-form",
+    webOrigin
+  );
+  await verifyNativeLogout(
+    webOrigin,
+    logoutAction,
+    authenticatedCookies,
+    fakeAPI.calls,
+    overallController.signal
+  );
+  assertSensitiveValuesAbsentFromLogs(childOutput.format());
 
   process.stdout.write(
     `PASS TanStack Start production HTTP smoke (${nodeVersion(nodeBinary)})\n`
   );
-  process.stdout.write(`  GET /: 200 SSR shell and title\n`);
+  process.stdout.write(`  GET /: 200 SSR catalog parity shell and metadata\n`);
+  process.stdout.write(`  Account: auth redirect and private composed dashboard SSR\n`);
+  process.stdout.write(`  Phase 4 auth/write pages: SSR metadata, private token pages, and anonymous redirects\n`);
+  process.stdout.write(`  Event browse: filtered SSR catalog with safe public DTOs\n`);
+  process.stdout.write(`  Team browse/detail: dynamic SSR, safe DTOs, and true 404\n`);
+  process.stdout.write(`  School browse/detail and public profile: dynamic SSR + true 404s\n`);
+  process.stdout.write(`  /api/schools: validation, HEAD/cache contract, and all 405 boundaries\n`);
   process.stdout.write(`  GET /api/health: 200 exact healthy envelope\n`);
-  process.stdout.write(`  POST /api/health: 405 Allow: GET, HEAD\n`);
-  process.stdout.write(`  /api/navigation-session: anonymous/authenticated no-store + POST 405\n`);
+  process.stdout.write(`  /api/health: HEAD plus all unsupported-method 405 boundaries\n`);
+  process.stdout.write(`  /api/navigation-session: viewer states, HEAD/no-store, and all 405 boundaries\n`);
   process.stdout.write(`  GET unknown route: 404 noindex shell\n`);
   process.stdout.write(`  GET locked/missing events: private 200 shell and true 404\n`);
   process.stdout.write(`  Cross-origin native form POST: rejected before upstream\n`);
-  process.stdout.write(`  Native login/unlock/RSVP forms: 303 redirects, cookies, upstream calls\n`);
+  process.stdout.write(`  Native login/unlock/RSVP/logout forms: 303 redirects, cookies, upstream calls\n`);
+  process.stdout.write(`  Authenticated write pages: private SSR metadata and no-store boundaries\n`);
   process.stdout.write(`  Authenticated /me outage: safe event error\n`);
 } catch (error) {
   const detail = error instanceof Error ? error.stack ?? error.message : String(error);
@@ -211,7 +259,8 @@ try {
   await closeServer(fakeAPIServer);
 }
 
-async function verifyHomePage(origin, overallSignal) {
+async function verifyHomePage(origin, upstreamCalls, overallSignal) {
+  const callsBefore = upstreamCalls.length;
   const response = await smokeFetch(`${origin}/`, {}, overallSignal);
   assert.equal(response.status, 200, "GET / must return HTTP 200");
   assert.match(
@@ -239,8 +288,12 @@ async function verifyHomePage(origin, overallSignal) {
   assertSSRDocumentShell(html, "GET /");
   assert.match(
     html,
-    /<h1[^>]*>Campus Gaming Network on TanStack Start<\/h1>/i,
-    "GET / SSR output must include the migration home heading"
+    /<h1[^>]*>Find the campus gaming scene around you\.<\/h1>/i,
+    "GET / SSR output must include the parity home heading"
+  );
+  assert.ok(
+    html.includes("Smoke Arena") && html.includes("Smoke Test University"),
+    "GET / SSR output must include its independently loaded game and school catalogs"
   );
   assert.match(
     html,
@@ -250,6 +303,666 @@ async function verifyHomePage(origin, overallSignal) {
     ),
     "GET / must emit an absolute Open Graph URL from SITE_URL"
   );
+
+  const calls = upstreamCalls.slice(callsBefore);
+  oneUpstreamCall(calls, "GET", "/schools");
+  oneUpstreamCall(calls, "GET", "/games");
+}
+
+async function verifyAccountRoute(origin, upstreamCalls, overallSignal) {
+  const anonymous = await smokeFetch(
+    `${origin}/account`,
+    { redirect: "manual" },
+    overallSignal
+  );
+  assert.equal(
+    anonymous.status,
+    307,
+    "Anonymous account requests must retain the temporary redirect status"
+  );
+  const anonymousLocation = new URL(
+    anonymous.headers.get("location") ?? "",
+    origin
+  );
+  assert.equal(anonymousLocation.pathname, "/login");
+  assert.equal(
+    anonymousLocation.searchParams.get("next"),
+    "/account",
+    "Anonymous account redirects must retain the exact local return path"
+  );
+  await anonymous.body?.cancel();
+
+  const callsBefore = upstreamCalls.length;
+  const response = await smokeFetch(
+    `${origin}/account`,
+    { headers: { cookie: `cgn_session=${sessionToken}` } },
+    overallSignal
+  );
+  assert.equal(response.status, 200, "Authenticated GET /account must return 200");
+  assert.equal(
+    response.headers.get("cache-control"),
+    "private, no-store",
+    "Account responses must never be shared or cached"
+  );
+  const html = await response.text();
+  assertSSRDocumentShell(html, "Account dashboard");
+  assert.match(
+    html,
+    /<title>Account \| Campus Gaming Network<\/title>/i,
+    "Account must render its private noindex metadata"
+  );
+  assert.match(
+    html,
+    /<meta\s+name="robots"\s+content="noindex,nofollow"\s*\/?>/i,
+    "Account must remain noindex"
+  );
+  for (const expected of [
+    "Smoke Player",
+    "Smoke Dashboard RSVP",
+    "Smoke Followed Event",
+    "Smoke Arena Team",
+    "Smoke Test University"
+  ]) {
+    assert.ok(html.includes(expected), `Account SSR must include ${expected}`);
+  }
+  for (const privateValue of [
+    "account-password-hash",
+    "account-session-secret",
+    "private-account-member"
+  ]) {
+    assert.ok(
+      !html.includes(privateValue),
+      `Account loader DTO must strip ${privateValue}`
+    );
+  }
+
+  const calls = upstreamCalls.slice(callsBefore);
+  assert.equal(
+    matchingUpstreamCalls(calls, "GET", "/me").length,
+    1,
+    "Authenticated account SSR must perform only its account profile read"
+  );
+  oneUpstreamCall(calls, "GET", "/me/events");
+  oneUpstreamCall(calls, "GET", "/me/schools");
+  oneUpstreamCall(calls, "GET", "/me/teams");
+}
+
+async function verifyPhase4RouteBoundaries(
+  origin,
+  upstreamCalls,
+  overallSignal
+) {
+  const publicPages = [
+    {
+      path: "/signup?q=Smoke",
+      title: "Sign up",
+      heading: "Join with your home school."
+    },
+    {
+      path: "/forgot-password",
+      title: "Forgot password",
+      heading: "Get a reset link."
+    },
+    {
+      path: "/reset-password?token=smoke-reset-token",
+      title: "Reset password",
+      heading: "Choose a new password.",
+      private: true
+    },
+    {
+      path: "/auth/verify-email?token=smoke-verification-token",
+      title: "Verify email",
+      heading: "Confirm your email.",
+      private: true
+    }
+  ];
+
+  for (const page of publicPages) {
+    const response = await smokeFetch(`${origin}${page.path}`, {}, overallSignal);
+    assert.equal(response.status, 200, `GET ${page.path} must return 200`);
+    if (page.private) {
+      assert.equal(
+        response.headers.get("cache-control"),
+        "private, no-store",
+        `GET ${page.path} must not cache recovery tokens`
+      );
+    }
+    const html = await response.text();
+    assertSSRDocumentShell(html, `GET ${page.path}`);
+    assert.match(
+      html,
+      new RegExp(`<title>${escapeRegularExpression(page.title)} \\| Campus Gaming Network<\\/title>`, "i"),
+      `GET ${page.path} must render route metadata`
+    );
+    assert.ok(
+      html.includes(page.heading),
+      `GET ${page.path} must render its primary heading`
+    );
+  }
+
+  const legacyReset = await smokeFetch(
+    `${origin}/auth/reset-password?token=legacy-smoke-token`,
+    { redirect: "manual" },
+    overallSignal
+  );
+  assert.equal(legacyReset.status, 307, "Legacy reset route must retain a temporary redirect");
+  assert.equal(
+    new URL(legacyReset.headers.get("location") ?? "", origin).href,
+    `${origin}/reset-password?token=legacy-smoke-token`,
+    "Legacy reset route must preserve the validated token"
+  );
+  await legacyReset.body?.cancel();
+
+  const encodedLegacyReset = await smokeFetch(
+    `${origin}/auth/reset-password?token=${encodeURIComponent("encoded/token+value=")}`,
+    { redirect: "manual" },
+    overallSignal
+  );
+  assert.equal(encodedLegacyReset.status, 307);
+  const encodedDestination = new URL(
+    encodedLegacyReset.headers.get("location") ?? "",
+    origin
+  );
+  assert.equal(encodedDestination.pathname, "/reset-password");
+  assert.equal(encodedDestination.searchParams.get("token"), "encoded/token+value=");
+  await encodedLegacyReset.body?.cancel();
+
+  const missingLegacyReset = await smokeFetch(
+    `${origin}/auth/reset-password`,
+    { redirect: "manual" },
+    overallSignal
+  );
+  assert.equal(missingLegacyReset.status, 307);
+  assert.equal(
+    new URL(missingLegacyReset.headers.get("location") ?? "", origin).href,
+    `${origin}/reset-password`
+  );
+  await missingLegacyReset.body?.cancel();
+
+  for (const path of [
+    "/events/new",
+    `/events/${eventSlug}/edit`,
+    "/teams/new"
+  ]) {
+    const response = await smokeFetch(
+      `${origin}${path}`,
+      { redirect: "manual" },
+      overallSignal
+    );
+    assert.equal(
+      response.status,
+      307,
+      `Anonymous GET ${path} must retain the temporary redirect status`
+    );
+    const destination = new URL(response.headers.get("location") ?? "", origin);
+    assert.equal(destination.pathname, "/login", `GET ${path} must redirect to login`);
+    assert.equal(
+      destination.searchParams.get("next"),
+      path,
+      `GET ${path} must retain its exact local return path`
+    );
+    await response.body?.cancel();
+  }
+
+  const missingEdit = await smokeFetch(
+    `${origin}/events/${missingEventSlug}/edit`,
+    {
+      headers: { cookie: `cgn_session=${sessionToken}` },
+      redirect: "manual"
+    },
+    overallSignal
+  );
+  assert.equal(
+    missingEdit.status,
+    404,
+    "Authenticated editing of a missing event must return HTTP 404"
+  );
+  await missingEdit.body?.cancel();
+
+  assert.equal(
+    upstreamCalls.some((call) =>
+      call.method !== "GET" && [
+        "/auth/signup",
+        "/auth/forgot-password",
+        "/auth/reset-password",
+        "/auth/verify-email"
+      ].includes(call.pathname)
+    ),
+    false,
+    "Rendering Phase 4 pages must never trigger an authentication mutation"
+  );
+}
+
+async function verifyEventBrowse(origin, upstreamCalls, overallSignal) {
+  const callsBefore = upstreamCalls.length;
+  const response = await smokeFetch(
+    `${origin}/events?game=smoke-arena&school=${schoolSlug}&format=in_person`,
+    {},
+    overallSignal
+  );
+  assert.equal(response.status, 200, "GET /events must return HTTP 200");
+  assert.equal(
+    response.headers.get("cache-control"),
+    "public, max-age=0, must-revalidate",
+    "Anonymous event browse responses must remain viewer-safe"
+  );
+  const html = await response.text();
+  assertSSRDocumentShell(html, "Event browse");
+  assert.match(
+    html,
+    /<title>Events \| Campus Gaming Network<\/title>/i,
+    "Event browse must render its route metadata"
+  );
+  assert.match(
+    html,
+    /<h1[^>]*>Browse campus gaming events<\/h1>/i,
+    "Event browse must render its heading"
+  );
+  assert.ok(
+    html.includes("Public Smoke Tournament") &&
+      html.includes("Smoke Test University"),
+    "Event browse must render validated public event data"
+  );
+  assert.ok(
+    !html.includes("private-event-browse-note"),
+    "Event browse HTML must strip additive upstream fields"
+  );
+
+  const calls = upstreamCalls.slice(callsBefore);
+  const browseCall = oneUpstreamCall(calls, "GET", "/events");
+  assert.equal(
+    browseCall.search,
+    `?game=smoke-arena&school=${schoolSlug}&format=in_person&limit=25`,
+    "Event browse must forward normalized filters and its bounded page size"
+  );
+  oneUpstreamCall(calls, "GET", "/games");
+  assert.equal(
+    matchingUpstreamCalls(calls, "GET", "/me").length,
+    0,
+    "Anonymous event browse must not call /me"
+  );
+}
+
+async function verifyTeamRoutes(origin, upstreamCalls, overallSignal) {
+  const browseCallsBefore = upstreamCalls.length;
+  const browseResponse = await smokeFetch(
+    `${origin}/teams?game=smoke-arena&school=${schoolSlug}`,
+    {},
+    overallSignal
+  );
+  assert.equal(browseResponse.status, 200, "GET /teams must return HTTP 200");
+  assert.equal(
+    browseResponse.headers.get("cache-control"),
+    "public, max-age=0, must-revalidate",
+    "Anonymous team browse responses must remain viewer-safe"
+  );
+  const browseHTML = await browseResponse.text();
+  assertSSRDocumentShell(browseHTML, "Team browse");
+  assert.match(
+    browseHTML,
+    /<title>Teams \| Campus Gaming Network<\/title>/i,
+    "Team browse must render its route metadata"
+  );
+  assert.match(
+    browseHTML,
+    /<h1[^>]*>Find campus gaming teams<\/h1>/i,
+    "Team browse must render its heading"
+  );
+  assert.ok(
+    browseHTML.includes("Smoke Arena Team"),
+    "Team browse must render validated public team data"
+  );
+  assert.ok(
+    !browseHTML.includes("private-team-note"),
+    "Team browse HTML must strip additive upstream fields"
+  );
+  const browseCalls = upstreamCalls.slice(browseCallsBefore);
+  const browseCall = oneUpstreamCall(browseCalls, "GET", "/teams");
+  assert.equal(
+    browseCall.search,
+    `?game=smoke-arena&school=${schoolSlug}&limit=25`,
+    "Team browse must forward normalized filters and its bounded page size"
+  );
+  oneUpstreamCall(browseCalls, "GET", "/games");
+
+  const detailCallsBefore = upstreamCalls.length;
+  const detailResponse = await smokeFetch(
+    `${origin}/teams/${teamSlug}`,
+    {},
+    overallSignal
+  );
+  assert.equal(
+    detailResponse.status,
+    200,
+    "A known team detail must return HTTP 200"
+  );
+  assert.equal(
+    detailResponse.headers.get("cache-control"),
+    "public, max-age=0, must-revalidate",
+    "Anonymous team detail responses must remain viewer-safe"
+  );
+  const detailHTML = await detailResponse.text();
+  assert.match(
+    detailHTML,
+    /<title>Smoke Arena Team \| Campus Gaming Network<\/title>/i,
+    "Team detail must use metadata from the same safe DTO as its body"
+  );
+  assert.match(
+    detailHTML,
+    /<h1[^>]*>Smoke Arena Team<\/h1>/i,
+    "Team detail must render its team heading"
+  );
+  for (const privateValue of [
+    "private-team-note",
+    "private-owner-user-id",
+    "private-member@example.test"
+  ]) {
+    assert.ok(
+      !detailHTML.includes(privateValue),
+      `Team detail HTML must not serialize ${privateValue}`
+    );
+  }
+  const detailCalls = upstreamCalls.slice(detailCallsBefore);
+  oneUpstreamCall(detailCalls, "GET", `/teams/${teamSlug}`);
+  assert.equal(
+    matchingUpstreamCalls(detailCalls, "GET", "/me").length,
+    0,
+    "Anonymous team detail must not call /me"
+  );
+
+  const missingResponse = await smokeFetch(
+    `${origin}/teams/${missingTeamSlug}`,
+    {},
+    overallSignal
+  );
+  assert.equal(
+    missingResponse.status,
+    404,
+    "A missing team must return a true HTTP 404"
+  );
+  assert.match(
+    await missingResponse.text(),
+    /<title>Page not found \| Campus Gaming Network<\/title>/i,
+    "A missing team must render the shared safe not-found metadata"
+  );
+}
+
+async function verifySchoolRoutes(origin, upstreamCalls, overallSignal) {
+  const browseCallsBefore = upstreamCalls.length;
+  const browseResponse = await smokeFetch(
+    `${origin}/schools?q=Smoke&state=CA`,
+    {},
+    overallSignal
+  );
+  assert.equal(browseResponse.status, 200, "GET /schools must return HTTP 200");
+  assert.equal(
+    browseResponse.headers.get("cache-control"),
+    "public, max-age=0, must-revalidate",
+    "Anonymous school browse responses must remain viewer-safe"
+  );
+  const browseHTML = await browseResponse.text();
+  assertSSRDocumentShell(browseHTML, "School browse");
+  assert.match(
+    browseHTML,
+    /<title>Schools \| Campus Gaming Network<\/title>/i,
+    "School browse must render its route metadata"
+  );
+  assert.match(
+    browseHTML,
+    /<h1[^>]*>Browse schools<\/h1>/i,
+    "School browse must render its heading"
+  );
+  assert.ok(
+    browseHTML.includes("Smoke Test University"),
+    "School browse must render validated catalog data"
+  );
+  const browseCall = oneUpstreamCall(
+    upstreamCalls.slice(browseCallsBefore),
+    "GET",
+    "/schools"
+  );
+  assert.equal(
+    browseCall.search,
+    "?q=Smoke&state=CA&limit=25",
+    "School browse must forward the normalized query, state, and page size"
+  );
+
+  const detailCallsBefore = upstreamCalls.length;
+  const detailResponse = await smokeFetch(
+    `${origin}/schools/${schoolSlug}`,
+    {},
+    overallSignal
+  );
+  assert.equal(
+    detailResponse.status,
+    200,
+    "A known school detail must return HTTP 200"
+  );
+  assert.equal(
+    detailResponse.headers.get("cache-control"),
+    "private, no-store",
+    "Viewer-aware school detail responses must never be shared"
+  );
+  const detailHTML = await detailResponse.text();
+  assert.match(
+    detailHTML,
+    /<title>Smoke Test University \| Campus Gaming Network<\/title>/i,
+    "School detail must use metadata from the same safe DTO as its body"
+  );
+  assert.match(
+    detailHTML,
+    /<h1[^>]*>Smoke Test University<\/h1>/i,
+    "School detail must render the school heading"
+  );
+  assert.ok(
+    !detailHTML.includes("private-school-note"),
+    "School detail HTML must strip additive upstream fields"
+  );
+  const detailCalls = upstreamCalls.slice(detailCallsBefore);
+  oneUpstreamCall(detailCalls, "GET", `/schools/${schoolSlug}`);
+  assert.equal(
+    matchingUpstreamCalls(detailCalls, "GET", "/me").length,
+    0,
+    "Anonymous school detail must not call /me"
+  );
+
+  const missingResponse = await smokeFetch(
+    `${origin}/schools/${missingSchoolSlug}`,
+    {},
+    overallSignal
+  );
+  assert.equal(
+    missingResponse.status,
+    404,
+    "A missing school must return a true HTTP 404"
+  );
+  assert.match(
+    await missingResponse.text(),
+    /<title>Page not found \| Campus Gaming Network<\/title>/i,
+    "A missing school must render the shared safe not-found metadata"
+  );
+}
+
+async function verifyPublicProfileRoutes(
+  origin,
+  upstreamCalls,
+  overallSignal
+) {
+  const callsBefore = upstreamCalls.length;
+  const response = await smokeFetch(
+    `${origin}/users/${publicProfileID}`,
+    {},
+    overallSignal
+  );
+  assert.equal(response.status, 200, "A known public profile must return HTTP 200");
+  assert.equal(
+    response.headers.get("cache-control"),
+    "public, max-age=0, must-revalidate",
+    "Anonymous public-profile responses must remain viewer-safe"
+  );
+  const html = await response.text();
+  assert.match(
+    html,
+    /<title>Public Smoke Player \| Campus Gaming Network<\/title>/i,
+    "Public profile must render dynamic metadata"
+  );
+  assert.match(
+    html,
+    /<h1[^>]*>Public Smoke Player<\/h1>/i,
+    "Public profile must render its public name"
+  );
+  for (const privateValue of [
+    "private-profile@example.test",
+    "private-profile-session",
+    "private-profile-internal-header"
+  ]) {
+    assert.ok(
+      !html.includes(privateValue),
+      `Public-profile HTML must not serialize ${privateValue}`
+    );
+  }
+  const calls = upstreamCalls.slice(callsBefore);
+  oneUpstreamCall(calls, "GET", `/users/${publicProfileID}`);
+  assert.equal(
+    matchingUpstreamCalls(calls, "GET", "/me").length,
+    0,
+    "Anonymous public-profile rendering must not call /me"
+  );
+
+  const missingResponse = await smokeFetch(
+    `${origin}/users/${missingPublicProfileID}`,
+    {},
+    overallSignal
+  );
+  assert.equal(
+    missingResponse.status,
+    404,
+    "A missing public profile must return a true HTTP 404"
+  );
+}
+
+async function verifySchoolsAPI(origin, overallSignal) {
+  const valid = await smokeFetch(
+    `${origin}/api/schools?q=Smoke&limit=500`,
+    {},
+    overallSignal
+  );
+  assert.equal(valid.status, 200, "Valid school search API input must return 200");
+  assert.equal(
+    valid.headers.get("cache-control"),
+    "private, max-age=60",
+    "School search API responses must preserve the short private cache contract"
+  );
+  const body = await valid.json();
+  assert.equal(body.limit, 50, "School search API limits must clamp to 50");
+  assert.equal(body.schools[0]?.name, "Smoke Test University");
+  assert.equal(
+    JSON.stringify(body).includes("private-school-note"),
+    false,
+    "School search API responses must strip additive upstream fields"
+  );
+
+  const invalid = await smokeFetch(
+    `${origin}/api/schools?q=x`,
+    {},
+    overallSignal
+  );
+  assert.equal(invalid.status, 400, "Short school search API input must fail");
+  assert.deepEqual(await invalid.json(), { error: "invalid_school_query" });
+
+  const head = await smokeFetch(
+    `${origin}/api/schools?q=Smoke`,
+    { method: "HEAD" },
+    overallSignal
+  );
+  assert.equal(head.status, 200, "HEAD /api/schools must return 200");
+  assert.equal(
+    head.headers.get("cache-control"),
+    "private, max-age=60",
+    "HEAD /api/schools must preserve the school cache contract"
+  );
+  assert.equal(await head.text(), "", "HEAD /api/schools must not return a body");
+
+  await verifyUnsupportedAPIMethods(
+    origin,
+    "/api/schools?q=Smoke",
+    overallSignal
+  );
+}
+
+async function verifyAuthenticatedWritePages(
+  origin,
+  cookies,
+  upstreamCalls,
+  overallSignal
+) {
+  const callsBefore = upstreamCalls.length;
+  const pages = [
+    {
+      path: "/events/new",
+      title: "Create event",
+      heading: "Create a campus gaming event"
+    },
+    {
+      path: `/events/${eventSlug}/edit`,
+      title: "Edit event",
+      heading: privateEventSecrets.title
+    },
+    {
+      path: "/teams/new",
+      title: "Start a team",
+      heading: "Create a campus gaming team"
+    }
+  ];
+
+  for (const page of pages) {
+    const response = await smokeFetch(
+      `${origin}${page.path}`,
+      { headers: { cookie: cookies } },
+      overallSignal
+    );
+    assert.equal(
+      response.status,
+      200,
+      `Authenticated GET ${page.path} must return 200`
+    );
+    assert.equal(
+      response.headers.get("cache-control"),
+      "private, no-store",
+      `Authenticated GET ${page.path} must never be shared or cached`
+    );
+    assert.match(
+      response.headers.get("vary") ?? "",
+      /(?:^|,\s*)Cookie(?:,|$)/i,
+      `Authenticated GET ${page.path} must vary by Cookie`
+    );
+    const html = await response.text();
+    assertSSRDocumentShell(html, `Authenticated GET ${page.path}`);
+    assert.match(
+      html,
+      new RegExp(
+        `<title>${escapeRegularExpression(page.title)} \\| Campus Gaming Network<\\/title>`,
+        "i"
+      ),
+      `Authenticated GET ${page.path} must render private route metadata`
+    );
+    assert.match(
+      html,
+      /<meta\s+name="robots"\s+content="noindex,nofollow"\s*\/?>/i,
+      `Authenticated GET ${page.path} must remain noindex`
+    );
+    assert.ok(
+      html.includes(page.heading),
+      `Authenticated GET ${page.path} must render its primary heading`
+    );
+  }
+
+  const calls = upstreamCalls.slice(callsBefore);
+  assert.ok(
+    matchingUpstreamCalls(calls, "GET", "/me").length >= pages.length,
+    "Authenticated write pages must authorize from the request session"
+  );
+  oneUpstreamCall(calls, "GET", `/events/${eventSlug}`);
 }
 
 async function verifyHealthRoute(origin, overallSignal) {
@@ -269,24 +982,42 @@ async function verifyHealthRoute(origin, overallSignal) {
     {
       service: "campus-gaming-network-web",
       status: "ok",
-      api: fakeAPIHealthPayload
+      api: {
+        service: fakeAPIHealthPayload.service,
+        status: fakeAPIHealthPayload.status
+      }
     },
-    "GET /api/health must return the exact web envelope and fake API payload"
+    "GET /api/health must return the exact web envelope and allowlisted API payload"
   );
 }
 
 async function verifyHealthMethodBoundary(origin, overallSignal) {
-  const response = await smokeFetch(
+  const head = await smokeFetch(
     `${origin}/api/health`,
-    { method: "POST" },
+    { method: "HEAD" },
     overallSignal
   );
-  assert.equal(response.status, 405, "POST /api/health must return HTTP 405");
-  assert.equal(
-    response.headers.get("allow"),
-    "GET, HEAD",
-    "POST /api/health must advertise exactly Allow: GET, HEAD"
-  );
+  assert.equal(head.status, 200, "HEAD /api/health must return HTTP 200");
+  assert.equal(await head.text(), "", "HEAD /api/health must not return a body");
+
+  for (const method of ["POST", "PUT", "PATCH", "DELETE", "OPTIONS"]) {
+    const response = await smokeFetch(
+      `${origin}/api/health`,
+      { method },
+      overallSignal
+    );
+    assert.equal(
+      response.status,
+      405,
+      `${method} /api/health must return HTTP 405`
+    );
+    assert.equal(
+      response.headers.get("allow"),
+      "GET, HEAD",
+      `${method} /api/health must advertise exactly Allow: GET, HEAD`
+    );
+    await response.body?.cancel();
+  }
 }
 
 async function verifyNavigationSessionRoute(
@@ -357,22 +1088,53 @@ async function verifyNavigationSessionRoute(
     "Authenticated navigation-session lookup must forward the exact session cookie"
   );
 
-  const postResponse = await smokeFetch(
+  const headResponse = await smokeFetch(
     `${origin}/api/navigation-session`,
-    { method: "POST", redirect: "manual" },
+    { method: "HEAD" },
     overallSignal
   );
   assert.equal(
-    postResponse.status,
-    405,
-    "POST /api/navigation-session must return HTTP 405"
+    headResponse.status,
+    200,
+    "HEAD /api/navigation-session must return HTTP 200"
   );
   assert.equal(
-    postResponse.headers.get("allow"),
-    "GET, HEAD",
-    "POST /api/navigation-session must advertise exactly Allow: GET, HEAD"
+    headResponse.headers.get("cache-control"),
+    "private, no-store",
+    "HEAD /api/navigation-session must preserve the no-store contract"
   );
-  await postResponse.body?.cancel();
+  assert.equal(
+    await headResponse.text(),
+    "",
+    "HEAD /api/navigation-session must not return a body"
+  );
+
+  await verifyUnsupportedAPIMethods(
+    origin,
+    "/api/navigation-session",
+    overallSignal
+  );
+}
+
+async function verifyUnsupportedAPIMethods(origin, path, overallSignal) {
+  for (const method of ["POST", "PUT", "PATCH", "DELETE", "OPTIONS"]) {
+    const response = await smokeFetch(
+      `${origin}${path}`,
+      { method, redirect: "manual" },
+      overallSignal
+    );
+    assert.equal(
+      response.status,
+      405,
+      `${method} ${path} must return HTTP 405`
+    );
+    assert.equal(
+      response.headers.get("allow"),
+      "GET, HEAD",
+      `${method} ${path} must advertise exactly Allow: GET, HEAD`
+    );
+    await response.body?.cancel();
+  }
 }
 
 async function verifyNotFoundPage(origin, overallSignal) {
@@ -796,6 +1558,33 @@ async function verifyNativeRSVP(
   );
 }
 
+async function verifyNativeLogout(
+  origin,
+  logoutAction,
+  cookies,
+  upstreamCalls,
+  overallSignal
+) {
+  const callsBefore = upstreamCalls.length;
+  const response = await postNativeForm(
+    logoutAction,
+    {},
+    { cookie: cookies, originHeader: origin, overallSignal }
+  );
+  assertRedirect(response, origin, "/", "Native logout");
+  assertResponseCookieDeletion(response, "cgn_session", "Native logout");
+
+  const logoutCall = oneUpstreamCall(
+    upstreamCalls.slice(callsBefore),
+    "POST",
+    "/auth/logout"
+  );
+  assert.ok(
+    logoutCall.cookie?.includes(`cgn_session=${sessionToken}`),
+    "Native logout must forward the incoming session cookie upstream"
+  );
+}
+
 async function getHTML(url, overallSignal, label) {
   const response = await smokeFetch(url, {}, overallSignal);
   assert.equal(response.status, 200, `${label} must return HTTP 200`);
@@ -880,6 +1669,27 @@ function assertRedirect(response, origin, destination, label) {
   );
 }
 
+function assertSensitiveValuesAbsentFromLogs(logs) {
+  for (const sensitiveValue of [
+    "player@example.test",
+    "Password12345!",
+    eventPassword,
+    unlockToken,
+    sessionToken,
+    outageSessionToken,
+    "smoke-reset-token",
+    "smoke-verification-token",
+    "legacy-smoke-token",
+    "local-smoke-proxy-secret-not-for-production",
+    "local-smoke-cloudflare-secret-not-for-production"
+  ]) {
+    assert.ok(
+      !logs.includes(sensitiveValue),
+      "Production logs must not contain submitted PII, credentials, tokens, or deployment secrets"
+    );
+  }
+}
+
 function assertResponseCookie(response, name, value, label) {
   const cookie = response.headers
     .getSetCookie()
@@ -898,6 +1708,31 @@ function assertResponseCookie(response, name, value, label) {
     );
   }
   return `${name}=${value}`;
+}
+
+function assertResponseCookieDeletion(response, name, label) {
+  const cookie = response.headers
+    .getSetCookie()
+    .find((candidate) => candidate.startsWith(`${name}=`));
+  assert.ok(cookie, `${label} must delete ${name}`);
+  assert.equal(
+    cookie.split(";", 1)[0],
+    `${name}=`,
+    `${label} must clear the configured cookie value`
+  );
+  assert.match(
+    cookie,
+    /(?:^|;\s*)Path=\/(?:;|$)/i,
+    `${label} must delete the configured cookie at the root path`
+  );
+
+  const maxAge = cookie.match(/(?:^|;\s*)Max-Age=(-?\d+)(?:;|$)/i)?.[1];
+  const expires = cookie.match(/(?:^|;\s*)Expires=([^;]+)(?:;|$)/i)?.[1];
+  assert.ok(
+    (maxAge !== undefined && Number(maxAge) <= 0) ||
+      (expires !== undefined && new Date(expires).getTime() <= Date.now()),
+    `${label} must expire the configured local cookie`
+  );
 }
 
 function oneUpstreamCall(calls, method, pathname) {
@@ -1001,6 +1836,7 @@ async function handleFakeAPIRequest(request, response, calls) {
   const call = {
     method,
     pathname: requestURL.pathname,
+    search: requestURL.search,
     cookie: headerValue(request.headers.cookie),
     eventUnlock: headerValue(request.headers["x-cgn-event-unlock"]),
     body
@@ -1012,6 +1848,87 @@ async function handleFakeAPIRequest(request, response, calls) {
     return;
   }
 
+  if (method === "GET" && requestURL.pathname === "/games") {
+    writeJSON(response, 200, {
+      games: [{ id: "game-smoke", name: "Smoke Arena", slug: "smoke-arena" }]
+    });
+    return;
+  }
+
+  if (method === "GET" && requestURL.pathname === "/events") {
+    writeJSON(response, 200, {
+      events: [fakePublicEvent()],
+      limit: 25,
+      has_more: false,
+      has_previous: false
+    });
+    return;
+  }
+
+  if (method === "GET" && requestURL.pathname === "/teams") {
+    writeJSON(response, 200, {
+      teams: [fakeTeam()],
+      limit: 25,
+      has_more: false,
+      has_previous: false
+    });
+    return;
+  }
+
+  if (
+    method === "GET" &&
+    requestURL.pathname === `/teams/${missingTeamSlug}`
+  ) {
+    writeJSON(response, 404, { error: "team_not_found" });
+    return;
+  }
+
+  if (method === "GET" && requestURL.pathname === `/teams/${teamSlug}`) {
+    writeJSON(response, 200, fakeTeam());
+    return;
+  }
+
+  if (method === "GET" && requestURL.pathname === "/schools") {
+    const limit = Number.parseInt(requestURL.searchParams.get("limit") ?? "25", 10);
+    const offset = Number.parseInt(requestURL.searchParams.get("offset") ?? "0", 10);
+    writeJSON(response, 200, {
+      schools: [fakeSchool()],
+      limit,
+      offset,
+      has_more: false
+    });
+    return;
+  }
+
+  if (
+    method === "GET" &&
+    requestURL.pathname === `/schools/${missingSchoolSlug}`
+  ) {
+    writeJSON(response, 404, { error: "school_not_found" });
+    return;
+  }
+
+  if (method === "GET" && requestURL.pathname === `/schools/${schoolSlug}`) {
+    writeJSON(response, 200, fakeSchool());
+    return;
+  }
+
+  if (
+    method === "GET" &&
+    requestURL.pathname === `/users/${missingPublicProfileID}`
+  ) {
+    writeJSON(response, 404, { error: "user_not_found" });
+    return;
+  }
+
+  if (
+    method === "GET" &&
+    requestURL.pathname === `/users/${publicProfileID}`
+  ) {
+    writeJSON(response, 200, fakePublicProfile());
+    return;
+  }
+
   if (method === "GET" && requestURL.pathname === `/events/${missingEventSlug}`) {
     writeJSON(response, 404, { error: "event_not_found" });
     return;
@@ -1019,7 +1936,13 @@ async function handleFakeAPIRequest(request, response, calls) {
 
   if (method === "GET" && requestURL.pathname === `/events/${eventSlug}`) {
     if (call.eventUnlock === unlockToken) {
-      writeJSON(response, 200, visibleEvent());
+      writeJSON(
+        response,
+        200,
+        visibleEvent({
+          viewerCanEdit: call.cookie?.includes(`cgn_session=${sessionToken}`)
+        })
+      );
     } else {
       writeJSON(response, 200, {
         slug: eventSlug,
@@ -1027,6 +1950,31 @@ async function handleFakeAPIRequest(request, response, calls) {
         locked: true
       });
     }
+    return;
+  }
+
+  if (method === "GET" && requestURL.pathname === "/me/events") {
+    writeJSON(response, 200, {
+      upcoming_rsvps: [fakeAccountEvent("Smoke Dashboard RSVP", "yes")],
+      followed_school_events: [fakeAccountEvent("Smoke Followed Event")]
+    });
+    return;
+  }
+
+  if (method === "GET" && requestURL.pathname === "/me/schools") {
+    writeJSON(response, 200, { schools: [fakeSchool()] });
+    return;
+  }
+
+  if (method === "GET" && requestURL.pathname === "/me/teams") {
+    writeJSON(response, 200, {
+      teams: [{
+        ...fakeTeam(),
+        viewer_role: "member",
+        members: [{ name: "private-account-member" }]
+      }],
+      limit: 10
+    });
     return;
   }
 
@@ -1055,6 +2003,14 @@ async function handleFakeAPIRequest(request, response, calls) {
     } else {
       writeJSON(response, 401, { error: "invalid_credentials" });
     }
+    return;
+  }
+
+  if (method === "POST" && requestURL.pathname === "/auth/logout") {
+    // Deliberately omit Set-Cookie. The Start BFF must still delete its local
+    // configured session cookie before reporting logout success.
+    response.writeHead(204);
+    response.end();
     return;
   }
 
@@ -1091,7 +2047,7 @@ async function handleFakeAPIRequest(request, response, calls) {
   writeJSON(response, 404, { error: "not_found" });
 }
 
-function visibleEvent({ viewerRSVP } = {}) {
+function visibleEvent({ viewerRSVP, viewerCanEdit = false } = {}) {
   return {
     id: "event-smoke",
     slug: eventSlug,
@@ -1127,9 +2083,73 @@ function visibleEvent({ viewerRSVP } = {}) {
         verification_level: "verified_student"
       }
     ],
+    ...(viewerCanEdit ? { viewer_can_edit: true } : {}),
     ...(viewerRSVP === "yes" || viewerRSVP === "maybe" || viewerRSVP === "no"
       ? { viewer_rsvp: viewerRSVP }
       : {})
+  };
+}
+
+function fakePublicEvent() {
+  return {
+    id: "event-public-smoke",
+    title: "Public Smoke Tournament",
+    slug: publicEventSlug,
+    format: "in_person",
+    starts_at: "2037-08-20T17:00:00Z",
+    ends_at: "2037-08-20T20:00:00Z",
+    timezone: "America/Los_Angeles",
+    location_name: "Smoke Student Union",
+    address: "100 Public Campus Way",
+    lifecycle: "upcoming",
+    host_school: { name: "Smoke Test University" },
+    games: [{ name: "Smoke Arena" }],
+    private_note: "private-event-browse-note"
+  };
+}
+
+function fakeAccountEvent(title, viewerRSVP) {
+  return {
+    id: `account-${title.toLowerCase().replaceAll(" ", "-")}`,
+    title,
+    slug: title.toLowerCase().replaceAll(" ", "-"),
+    starts_at: "2037-08-18T17:00:00Z",
+    ends_at: "2037-08-18T19:00:00Z",
+    timezone: "America/Los_Angeles",
+    lifecycle: "upcoming",
+    host_school: fakeSchool(),
+    games: [{ id: "game-smoke", name: "Smoke Arena", slug: "smoke-arena" }],
+    ...(viewerRSVP ? { viewer_rsvp: viewerRSVP } : {}),
+    private_note: "account-event-private-note"
+  };
+}
+
+function fakeTeam() {
+  return {
+    id: "team-smoke",
+    name: "Smoke Arena Team",
+    slug: teamSlug,
+    description: "A public collegiate team used by the production smoke test.",
+    member_count: 7,
+    school: {
+      id: "school-smoke",
+      name: "Smoke Test University",
+      slug: schoolSlug,
+      city: "Irvine",
+      state: "CA"
+    },
+    games: [
+      { id: "game-smoke", name: "Smoke Arena", slug: "smoke-arena" }
+    ],
+    owner_user_id: "private-owner-user-id",
+    members: [
+      {
+        user_id: "private-owner-user-id",
+        name: "private-member@example.test",
+        role: "member"
+      }
+    ],
+    private_note: "private-team-note"
   };
 }
 
@@ -1142,7 +2162,59 @@ function fakeProfile() {
     name: "Smoke Player",
     timezone: "America/Los_Angeles",
     home_school_id: "school-smoke",
-    role_indicators: []
+    home_school: fakeSchool(),
+    social_links: [
+      {
+        id: "social-smoke",
+        label: "Community",
+        url: "https://community.example.test/smoke-player"
+      }
+    ],
+    role_indicators: [],
+    password_hash: "account-password-hash",
+    session: "account-session-secret"
+  };
+}
+
+function fakeSchool() {
+  return {
+    id: "school-smoke",
+    unitid: 12345,
+    name: "Smoke Test University",
+    alias: "STU",
+    slug: schoolSlug,
+    city: "Irvine",
+    state: "CA",
+    zip: "92617",
+    website_url: "https://smoke.example.test/gaming",
+    latitude: 33.64,
+    longitude: -117.84,
+    is_main_campus: true,
+    num_branches: 1,
+    private_note: "private-school-note"
+  };
+}
+
+function fakePublicProfile() {
+  return {
+    id: publicProfileID,
+    name: "Public Smoke Player",
+    avatar_url: "https://images.example.test/public-smoke-player.png",
+    bio: "Public campus competitor",
+    verification_level: "verified_student",
+    home_school_id: "school-smoke",
+    home_school: fakeSchool(),
+    social_links: [
+      {
+        id: "social-smoke",
+        label: "Community",
+        url: "https://community.example.test/public-smoke-player"
+      }
+    ],
+    role_indicators: ["school_admin"],
+    email: "private-profile@example.test",
+    session: "private-profile-session",
+    internal_header: "private-profile-internal-header"
   };
 }
 

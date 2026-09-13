@@ -1,21 +1,56 @@
 import {
+  Link,
   createFileRoute,
   notFound,
   type ErrorComponentProps
 } from "@tanstack/react-router";
-import { useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useState, type FormEvent } from "react";
+import { type FormEvent, useState } from "react";
 import {
+  FieldError,
+  fieldErrorProps,
+  useEnhancedMutation
+} from "../components/enhanced-mutation";
+import {
+  RouteErrorView,
+  RoutePending
+} from "../components/route-boundaries";
+import {
+  cancelEvent,
   getEventDetail,
+  reportEvent,
   rsvpEvent,
+  setEventInterest,
   unlockEvent
 } from "../features/event-slice/event.functions";
+import {
+  getEventViewerSession,
+  logout
+} from "../features/event-slice/auth.functions";
+import { EventBanner } from "../features/event-slice/event-banner";
 import type {
   EventDTO,
   EventDetailDTO,
+  EventNotice,
   LockedEventDTO
 } from "../features/event-slice/contracts";
+import { validateEventsSearch } from "../features/event-slice/contracts";
+import {
+  eventFormatLabel,
+  eventLifecycleLabel,
+  eventLocation,
+  eventNoticeMessage,
+  eventRSVPLabel,
+  eventTimeRange,
+  eventVisibilityLabel,
+  formatEventDate,
+  isFailureNotice,
+  recurrenceRuleLabel,
+  roleIndicatorLabel,
+  safeExternalEventUrl,
+  verificationLabel
+} from "../features/event-slice/presentation";
+import eventCSS from "../features/event-slice/events.css?url";
 
 const siteName = "Campus Gaming Network";
 const privateEventDescription =
@@ -28,11 +63,7 @@ export type EventRouteData = {
 };
 
 type EventSearch = {
-  event?:
-    | "rsvp-failed"
-    | "rsvp-updated"
-    | "unlock-failed"
-    | "unlocked";
+  event?: EventNotice;
 };
 
 export const Route = createFileRoute("/events/$slug")({
@@ -41,8 +72,12 @@ export const Route = createFileRoute("/events/$slug")({
     // Cookie forwarding, upstream validation, and private-event access checks
     // stay behind these server functions. The loader only consumes their safe
     // serializable DTOs.
+    // The detail read deliberately runs last because it applies the stricter
+    // private cache policy required for unlock-sensitive event responses.
+    // Running these server functions concurrently lets their response-header
+    // side effects race in the development runtime.
+    const session = await getEventViewerSession();
     const detail = await getEventDetail({ data: { slug: params.slug } });
-    const session = context.viewerSession;
 
     if (detail.status === "not_found") {
       throw notFound();
@@ -66,21 +101,18 @@ export const Route = createFileRoute("/events/$slug")({
     "cache-control": "private, no-store",
     vary: "Cookie"
   }),
-  head: ({ loaderData }) => eventHead(loaderData),
+  head: ({ loaderData }) => ({
+    ...eventHead(loaderData),
+    links: [{ rel: "stylesheet", href: eventCSS }]
+  }),
   pendingComponent: EventPending,
   errorComponent: EventError,
   component: EventPage
 });
 
 export function validateEventSearch(search: Record<string, unknown>): EventSearch {
-  const event = firstString(search.event);
-
-  return event === "rsvp-failed" ||
-    event === "rsvp-updated" ||
-    event === "unlock-failed" ||
-    event === "unlocked"
-    ? { event }
-    : {};
+  const event = validateEventsSearch(search).event;
+  return event ? { event } : {};
 }
 
 export function eventHead(loaderData?: EventRouteData) {
@@ -158,6 +190,7 @@ export function LockedEventView({
 }) {
   return (
     <main className="narrow">
+      <EventBanner locked size="hero" />
       <section className="page-heading">
         <p className="eyebrow">Private event</p>
         <h1>This event is private.</h1>
@@ -167,17 +200,19 @@ export function LockedEventView({
         </p>
       </section>
       <UnlockEventForm slug={slug} />
+      <NativeLogoutFallback authenticated={authenticated} />
       <div className="actions">
-        <a className="button button--secondary" href="/events">
+        <Link className="button button--secondary" to="/events">
           Browse public events
-        </a>
+        </Link>
         {authenticated ? null : (
-          <a
+          <Link
             className="button button--primary"
-            href={`/login?next=${encodeURIComponent(`/events/${slug}`)}`}
+            to="/login"
+            search={{ next: `/events/${slug}` }}
           >
             Log in
-          </a>
+          </Link>
         )}
       </div>
     </main>
@@ -193,25 +228,32 @@ function VisibleEventView({
   authenticated: boolean;
   notice?: EventSearch["event"];
 }) {
+  const paymentURL = safeExternalEventUrl(event.payment_url);
+
   return (
     <main className="narrow">
+      <EventBanner event={event} size="hero" />
       <section className="page-heading">
         <p className="eyebrow">Event</p>
         <h1>{event.title}</h1>
         <p className="lede">
           {event.description || "Event details are coming soon."}
         </p>
-        <p>
-          {label(event.lifecycle)} · {label(event.visibility)} · {label(event.format)}
-        </p>
+        <div className="event-pill-list">
+          <span className="event-pill">{eventLifecycleLabel(event.lifecycle)}</span>
+          <span className="event-pill">{eventVisibilityLabel(event.visibility)}</span>
+          <span className="event-pill">{eventFormatLabel(event.format)}</span>
+        </div>
       </section>
+
+      <NativeLogoutFallback authenticated={authenticated} />
 
       {notice ? (
         <p
-          role={notice.endsWith("-failed") ? "alert" : "status"}
+          role={isFailureNotice(notice) ? "alert" : "status"}
           aria-live="polite"
         >
-          {eventNotice(notice)}
+          {eventNoticeMessage(notice)}
         </p>
       ) : null}
 
@@ -227,9 +269,12 @@ function VisibleEventView({
         <div className="detail-row">
           <span>Host school</span>
           <strong>
-            <a href={`/schools/${event.host_school.slug}`}>
+            <Link
+              to="/schools/$slug"
+              params={{ slug: event.host_school.slug }}
+            >
               {event.host_school.name}
-            </a>
+            </Link>
           </strong>
         </div>
         <div className="detail-row">
@@ -252,8 +297,8 @@ function VisibleEventView({
           <div className="detail-row">
             <span>Repeats</span>
             <strong>
-              {recurrenceLabel(event.recurrence_rule)} until{" "}
-              {formatDate(event.recurrence_until, event.timezone)}
+              {recurrenceRuleLabel(event.recurrence_rule)} until{" "}
+              {formatEventDate(event.recurrence_until, event.timezone)}
             </strong>
           </div>
         ) : null}
@@ -266,10 +311,10 @@ function VisibleEventView({
             <span>Payment</span>
             <strong>
               {event.payment_note || "Payment happens off CGN."}
-              {event.payment_url ? (
+              {paymentURL ? (
                 <>
                   {" "}
-                  <a href={event.payment_url}>Payment link</a>
+                  <a href={paymentURL}>Payment link</a>
                 </>
               ) : null}
             </strong>
@@ -283,7 +328,9 @@ function VisibleEventView({
           <ul>
             {event.organizers.map((organizer) => (
               <li key={organizer.id}>
-                <a href={`/users/${organizer.id}`}>{organizer.name}</a>
+                <Link to="/users/$id" params={{ id: organizer.id }}>
+                  {organizer.name}
+                </Link>
                 {" · "}
                 {verificationLabel(organizer.verification_level)}
                 {organizer.role_indicators
@@ -303,53 +350,198 @@ function VisibleEventView({
       <section className="action-panel" aria-labelledby="event-actions">
         <h2 id="event-actions">Event actions</h2>
         {authenticated ? (
-          <RsvpEventForm event={event} />
+          <>
+            <InterestEventForm event={event} />
+            <RsvpEventForm event={event} />
+            {event.viewer_can_edit ? (
+              <div className="actions">
+                <Link
+                  className="button button--secondary"
+                  to="/events/$slug/edit"
+                  params={{ slug: event.slug }}
+                >
+                  Edit event
+                </Link>
+                <CancelEventForm slug={event.slug} />
+              </div>
+            ) : null}
+            <p className="form-footer">
+              Yes RSVPs send a confirmation email with a calendar file.
+            </p>
+            <section aria-labelledby="report-event">
+              <h3 id="report-event">Report this event</h3>
+              <ReportEventForm slug={event.slug} />
+            </section>
+          </>
         ) : (
-          <a
+          <Link
             className="button button--primary"
-            href={`/login?next=${encodeURIComponent(`/events/${event.slug}`)}`}
+            to="/login"
+            search={{ next: `/events/${event.slug}` }}
           >
-            Log in to RSVP
-          </a>
+            Log in to RSVP or mark interested
+          </Link>
         )}
       </section>
     </main>
   );
 }
 
-function UnlockEventForm({ slug }: { slug: string }) {
-  const runUnlockEvent = useServerFn(unlockEvent);
-  const router = useRouter();
+function NativeLogoutFallback({ authenticated }: { authenticated: boolean }) {
+  if (!authenticated) return null;
+
+  return (
+    <noscript>
+      <form action={logout.url} className="logout-form" method="post">
+        <button type="submit">Log out</button>
+      </form>
+    </noscript>
+  );
+}
+
+function InterestEventForm({ event }: { event: EventDTO }) {
+  const runSetEventInterest = useServerFn(setEventInterest);
+  const mutation = useEnhancedMutation(
+    "We could not update your interest. Please try again."
+  );
+  const interested = !event.viewer_interested;
+
+  async function submit(formEvent: FormEvent<HTMLFormElement>) {
+    formEvent.preventDefault();
+    await mutation.execute(() =>
+      runSetEventInterest({ data: { slug: event.slug, interested } })
+    );
+  }
+
+  return (
+    <form
+      action={setEventInterest.url}
+      className="interest-form"
+      method="post"
+      onSubmit={submit}
+    >
+      <input name="slug" type="hidden" value={event.slug} />
+      <input name="interested" type="hidden" value={String(interested)} />
+      {mutation.message ? <p role="alert">{mutation.message}</p> : null}
+      <button disabled={mutation.pending} type="submit">
+        {event.viewer_interested ? "Remove interested" : "I'm interested"}
+      </button>
+    </form>
+  );
+}
+
+function CancelEventForm({ slug }: { slug: string }) {
+  const runCancelEvent = useServerFn(cancelEvent);
+  const mutation = useEnhancedMutation(
+    "We could not cancel that event. Please try again."
+  );
+
+  async function submit(formEvent: FormEvent<HTMLFormElement>) {
+    formEvent.preventDefault();
+    await mutation.execute(() => runCancelEvent({ data: { slug } }));
+  }
+
+  return (
+    <form action={cancelEvent.url} method="post" onSubmit={submit}>
+      <input name="slug" type="hidden" value={slug} />
+      <button disabled={mutation.pending} type="submit">
+        {mutation.pending ? "Cancelling…" : "Cancel event"}
+      </button>
+    </form>
+  );
+}
+
+function ReportEventForm({ slug }: { slug: string }) {
+  const runReportEvent = useServerFn(reportEvent);
   const [pending, setPending] = useState(false);
+  const [message, setMessage] = useState("");
   const [failed, setFailed] = useState(false);
+  const [reasonErrors, setReasonErrors] = useState<string[] | undefined>();
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function submit(formEvent: FormEvent<HTMLFormElement>) {
+    formEvent.preventDefault();
+    const formElement = formEvent.currentTarget;
+    const form = new FormData(formElement);
     setPending(true);
+    setMessage("");
     setFailed(false);
-
+    setReasonErrors(undefined);
     try {
-      const form = new FormData(event.currentTarget);
-      const result = await runUnlockEvent({
-        data: {
-          slug,
-          password: String(form.get("password") ?? "")
-        }
+      const result = await runReportEvent({
+        data: { slug, reason: String(form.get("reason") ?? "") }
       });
-
-      if (result.status !== "success") {
+      if (result.status === "error") {
         setFailed(true);
-        return;
+        setMessage(
+          result.fieldErrors?.reason?.length
+            ? result.message
+            : "We could not submit that report. Please try again."
+        );
+        setReasonErrors(result.fieldErrors?.reason);
+      } else {
+        setMessage(result.message);
+        formElement.reset();
       }
-
-      await router.invalidate();
-      await router.navigate({ href: result.redirectTo, replace: true });
     } catch {
       setFailed(true);
+      setMessage("We could not submit that report. Please try again.");
     } finally {
       setPending(false);
     }
   }
+
+  return (
+    <form
+      action={reportEvent.url}
+      className="form-stack report-form"
+      method="post"
+      onSubmit={submit}
+    >
+      <input name="slug" type="hidden" value={slug} />
+      {message ? (
+        <p role={failed ? "alert" : "status"} aria-live="polite">
+          {message}
+        </p>
+      ) : null}
+      <label>
+        Reason
+        <textarea
+          maxLength={2000}
+          name="reason"
+          required
+          rows={3}
+          {...fieldErrorProps(reasonErrors, "event-report-reason-error")}
+        />
+        <FieldError id="event-report-reason-error" messages={reasonErrors} />
+      </label>
+      <button disabled={pending} type="submit">
+        {pending ? "Submitting…" : "Submit report"}
+      </button>
+    </form>
+  );
+}
+
+function UnlockEventForm({ slug }: { slug: string }) {
+  const runUnlockEvent = useServerFn(unlockEvent);
+  const mutation = useEnhancedMutation(
+    "We could not unlock that event. Please try again."
+  );
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+
+    await mutation.execute(() =>
+      runUnlockEvent({
+        data: {
+          slug,
+          password: String(form.get("password") ?? "")
+        }
+      })
+    );
+  }
+
+  const passwordErrors = mutation.fieldErrors.password;
 
   return (
     <form
@@ -359,9 +551,9 @@ function UnlockEventForm({ slug }: { slug: string }) {
       onSubmit={submit}
     >
       <input type="hidden" name="slug" value={slug} />
-      {failed ? (
+      {mutation.message ? (
         <p role="alert" aria-live="polite">
-          That password did not unlock the event. Try again.
+          {mutation.message}
         </p>
       ) : null}
       <label>
@@ -372,11 +564,13 @@ function UnlockEventForm({ slug }: { slug: string }) {
           autoComplete="off"
           required
           minLength={8}
-          aria-invalid={failed || undefined}
+          maxLength={256}
+          {...fieldErrorProps(passwordErrors, "event-password-error")}
         />
+        <FieldError id="event-password-error" messages={passwordErrors} />
       </label>
-      <button type="submit" disabled={pending}>
-        {pending ? "Unlocking…" : "Unlock event"}
+      <button type="submit" disabled={mutation.pending}>
+        {mutation.pending ? "Unlocking…" : "Unlock event"}
       </button>
     </form>
   );
@@ -384,9 +578,9 @@ function UnlockEventForm({ slug }: { slug: string }) {
 
 function RsvpEventForm({ event }: { event: EventDTO }) {
   const runRsvpEvent = useServerFn(rsvpEvent);
-  const router = useRouter();
-  const [pending, setPending] = useState(false);
-  const [failed, setFailed] = useState(false);
+  const mutation = useEnhancedMutation(
+    "We could not save your RSVP. Please try again."
+  );
   const isEnded = event.lifecycle === "ended";
   const isFullForViewer =
     event.lifecycle === "full" && event.viewer_rsvp !== "yes";
@@ -398,31 +592,22 @@ function RsvpEventForm({ event }: { event: EventDTO }) {
     const response = submitter?.value;
 
     if (response !== "yes" && response !== "maybe" && response !== "no") {
-      setFailed(true);
+      await mutation.execute(async () => ({
+        status: "error",
+        message: "Check the highlighted fields and try again.",
+        fieldErrors: { response: ["Choose yes, maybe, or no."] }
+      }));
       return;
     }
 
-    setPending(true);
-    setFailed(false);
-
-    try {
-      const result = await runRsvpEvent({
+    await mutation.execute(() =>
+      runRsvpEvent({
         data: { slug: event.slug, response }
-      });
-
-      if (result.status !== "success") {
-        setFailed(true);
-        return;
-      }
-
-      await router.invalidate();
-      await router.navigate({ href: result.redirectTo, replace: true });
-    } catch {
-      setFailed(true);
-    } finally {
-      setPending(false);
-    }
+      })
+    );
   }
+
+  const responseErrors = mutation.fieldErrors.response;
 
   return (
     <form
@@ -432,14 +617,16 @@ function RsvpEventForm({ event }: { event: EventDTO }) {
       onSubmit={submit}
     >
       <input type="hidden" name="slug" value={event.slug} />
-      {failed ? (
+      {mutation.message ? (
         <p role="alert" aria-live="polite">
-          We could not save your RSVP. Please try again.
+          {mutation.message}
         </p>
       ) : null}
       <p>
         Current RSVP:{" "}
-        <strong>{event.viewer_rsvp ? label(event.viewer_rsvp) : "Not set"}</strong>
+        <strong>
+          {event.viewer_rsvp ? eventRSVPLabel(event.viewer_rsvp) : "Not set"}
+        </strong>
       </p>
       {isEnded ? <p>RSVPs are closed for ended events.</p> : null}
       {isFullForViewer ? (
@@ -449,8 +636,9 @@ function RsvpEventForm({ event }: { event: EventDTO }) {
         {(["yes", "maybe", "no"] as const).map((response) => (
           <button
             aria-pressed={event.viewer_rsvp === response}
+            {...fieldErrorProps(responseErrors, "event-rsvp-error")}
             disabled={
-              pending ||
+              mutation.pending ||
               isEnded ||
               (response === "yes" && isFullForViewer)
             }
@@ -459,135 +647,31 @@ function RsvpEventForm({ event }: { event: EventDTO }) {
             type="submit"
             value={response}
           >
-            {label(response)}
+            {eventRSVPLabel(response)}
           </button>
         ))}
       </div>
+      <FieldError id="event-rsvp-error" messages={responseErrors} />
     </form>
   );
 }
 
 function EventPending() {
-  return (
-    <main className="narrow" aria-busy="true" aria-live="polite">
-      <p>Loading event…</p>
-    </main>
-  );
+  return <RoutePending message="Loading event…" />;
 }
 
 function EventError({ reset }: ErrorComponentProps) {
-  const router = useRouter();
-
-  async function retry() {
-    try {
-      await router.invalidate();
-    } finally {
-      reset();
-    }
-  }
-
   return (
-    <main className="narrow">
-      <p className="eyebrow">Event unavailable</p>
-      <h1>We could not load this event.</h1>
-      <p className="lede">Please try again in a moment.</p>
-      <button type="button" onClick={() => void retry()}>
-        Try again
-      </button>
-    </main>
+    <RouteErrorView
+      reset={reset}
+      eyebrow="Event unavailable"
+      heading="We could not load this event."
+      description="Please try again in a moment."
+      showNavigation={false}
+    />
   );
 }
 
 function isLockedEvent(event: EventDetailDTO): event is LockedEventDTO {
   return "locked" in event && event.locked === true;
-}
-
-function eventTimeRange(event: EventDTO) {
-  const options: Intl.DateTimeFormatOptions = {
-    dateStyle: "medium",
-    timeStyle: "short",
-    timeZone: event.timezone
-  };
-  const formatter = new Intl.DateTimeFormat("en-US", options);
-
-  return `${formatter.format(new Date(event.starts_at))} – ${formatter.format(new Date(event.ends_at))}`;
-}
-
-function eventLocation(event: EventDTO) {
-  if (event.format === "online") {
-    return event.online_url ? "Online" : "Online details pending";
-  }
-
-  const place = [event.location_name, event.address].filter(Boolean).join(" · ");
-
-  if (event.format === "hybrid") {
-    return place ? `${place} + online` : "Hybrid details pending";
-  }
-
-  return place || "Location pending";
-}
-
-function formatDate(value: string, timeZone: string) {
-  return new Intl.DateTimeFormat("en-US", {
-    dateStyle: "medium",
-    timeZone
-  }).format(new Date(value));
-}
-
-function recurrenceLabel(value: NonNullable<EventDTO["recurrence_rule"]>) {
-  const labels = {
-    biweekly: "Every two weeks",
-    monthly: "Monthly",
-    weekly: "Weekly"
-  } as const;
-
-  return labels[value];
-}
-
-function label(value: string) {
-  return value
-    .replaceAll("_", " ")
-    .replace(/^./, (first) => first.toUpperCase());
-}
-
-function verificationLabel(level: string) {
-  const labels: Record<string, string> = {
-    basic: "Community member",
-    verified: "Verified student",
-    staff_faculty: "Staff / faculty"
-  };
-
-  return labels[level] ?? "Community member";
-}
-
-function roleIndicatorLabel(role: string) {
-  const labels: Record<string, string> = {
-    school_admin: "School admin",
-    staff_faculty: "Staff / faculty"
-  };
-
-  return labels[role] ?? "Community role";
-}
-
-function eventNotice(notice: NonNullable<EventSearch["event"]>) {
-  const notices = {
-    "rsvp-failed": "We could not save your RSVP. Please try again.",
-    "rsvp-updated": "RSVP saved.",
-    "unlock-failed": "That password did not unlock the event. Try again.",
-    unlocked: "Event unlocked."
-  } as const;
-
-  return notices[notice];
-}
-
-function firstString(value: unknown) {
-  if (typeof value === "string") {
-    return value;
-  }
-
-  if (Array.isArray(value) && typeof value[0] === "string") {
-    return value[0];
-  }
-
-  return undefined;
 }

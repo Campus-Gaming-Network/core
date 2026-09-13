@@ -34,6 +34,22 @@ export function eventUnlockCookieName(slug: string): string {
   return `cgn_event_unlock_${slug.replace(/[^A-Za-z0-9_-]/g, "_")}`;
 }
 
+export function cookieHeaderValue(
+  cookieHeader: string,
+  name: string
+): string | undefined {
+  for (const part of cookieHeader.split(";")) {
+    const separator = part.indexOf("=");
+    if (separator < 0 || part.slice(0, separator).trim() !== name) {
+      continue;
+    }
+
+    return part.slice(separator + 1).trim() || undefined;
+  }
+
+  return undefined;
+}
+
 export function configuredCookieDeletion(name: string): CookieMutation {
   return { kind: "delete", name, options: { path: "/" } };
 }
@@ -77,18 +93,25 @@ export function mirroredSessionCookieMutation(
   ) {
     return { kind: "delete", name: parsed.name, options: { path: parsed.path ?? "/" } };
   }
+  if (!parsed.value) {
+    return null;
+  }
+
+  const strictDeployment =
+    process.env.DEPLOYMENT_ENV === "staging" ||
+    process.env.DEPLOYMENT_ENV === "production";
 
   return {
     kind: "set",
     name: parsed.name,
     value: parsed.value,
     options: {
-      path: parsed.path ?? "/",
+      path: "/",
       expires: parsed.expires,
       maxAge: parsed.maxAge,
-      httpOnly: parsed.httpOnly,
-      secure: parsed.secure,
-      sameSite: parsed.sameSite ?? "lax"
+      httpOnly: true,
+      secure: parsed.secure || strictDeployment,
+      sameSite: parsed.sameSite === "strict" ? "strict" : "lax"
     }
   };
 }

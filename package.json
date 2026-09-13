@@ -30,6 +30,8 @@
     "test:web": "npm --prefix apps/web run test",
     "test:web-start": "npm --prefix apps/web-start run test",
     "smoke:web-start": "node scripts/tanstack_start_smoke.mjs",
+    "privacy:web-start": "node scripts/tanstack_start_privacy_scan.mjs",
+    "performance:web-start": "node scripts/tanstack_start_performance.mjs",
     "migration:inventory": "node scripts/tanstack_migration_inventory.mjs",
     "test:migration-inventory": "node --test scripts/tanstack_migration_inventory.test.mjs",
     "test:e2e:web": "npm --prefix apps/web run test:e2e",
