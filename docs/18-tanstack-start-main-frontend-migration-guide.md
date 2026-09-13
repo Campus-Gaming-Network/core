@@ -1,10 +1,10 @@
 # 18 — TanStack Start main-frontend migration guide
 
-> **Status: proposal.** The current production decision remains Next.js for the
-> main site and TanStack Start for the later CRM. This guide describes how to
-> evaluate and execute a main-site migration without changing product scope,
-> API contracts, or the deployment trust boundary. Adoption requires the
-> decision gate in Phase 1.
+> **Status: Phase 1 accepted; Gates 2–4 passed; Phase 5 local hardening passed;
+> Railway staging is deferred until the service is provisioned.** The
+> reversible `apps/web-start` application remains alongside the current
+> Next.js production application. This accepts Start as the parity target, not
+> as a production cutover.
 
 ## Outcome
 
@@ -36,7 +36,7 @@ describe the repository when this guide was written:
 | Next.js route handlers | 3 |
 | Exported Server Actions | 24 |
 | Files importing a Next.js API | 29 |
-| TypeScript unit tests | 70 tests in 11 files |
+| TypeScript unit-test declaration sites | 73 in 11 files |
 | Playwright coverage | 17 tests in 4 specifications |
 
 Most code in `lib/api-contracts.ts`, `lib/form-validation.ts`,
@@ -99,7 +99,7 @@ apps/web/
       schools.$slug.tsx
       events.index.tsx
       events.$slug.tsx
-      events.$slug.edit.tsx
+      events.$slug_.edit.tsx
       teams.index.tsx
       teams.$slug.tsx
       account.tsx

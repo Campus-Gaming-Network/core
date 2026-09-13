@@ -83,3 +83,45 @@ jobs:
       - name: Build
         working-directory: apps/web
         run: npm run build
+
+  web-start:
+    name: TanStack Start migration spike
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Production container gate
+        run: node scripts/tanstack_start_docker_gate.mjs
+      - name: Install
+        run: npm ci
+      - name: Audit production dependencies
+        run: npm audit --workspace @campus-gaming-network/web-start --omit=dev --audit-level=high
+      - name: Verify migration inventory
+        run: npm run test:migration-inventory
+      - name: Typecheck
+        working-directory: apps/web-start
+        run: npm run typecheck
+      - name: Lint
+        working-directory: apps/web-start
+        run: npm run lint
+      - name: Test
+        working-directory: apps/web-start
+        run: npm run test
+      - name: Build
+        working-directory: apps/web-start
+        run: npm run build
+      - name: Client privacy and framework-boundary scan
+        run: npm run privacy:web-start
+      - name: Production HTTP smoke test
+        run: npm run smoke:web-start
+      - name: Install Playwright browser
+        working-directory: apps/web-start
+        run: npx playwright install --with-deps chromium
+      - name: Development browser tests
+        working-directory: apps/web-start
+        run: npm run test:e2e:dev
+      - name: Production browser tests
+        working-directory: apps/web-start
+        run: npm run test:e2e
