@@ -178,23 +178,179 @@ func TestValidateCreateInputRejectsInvalidRecurrence(t *testing.T) {
 	}
 }
 
-func TestNextOccurrenceSupportsWeeklyBiweeklyAndMonthly(t *testing.T) {
-	start := time.Date(2026, 1, 31, 20, 0, 0, 0, time.UTC)
-	end := start.Add(2 * time.Hour)
-	cases := []struct {
+func TestRecurrenceScheduleSupportsWeeklyAndBiweeklyIntervals(t *testing.T) {
+	start := time.Date(2026, 1, 10, 20, 0, 0, 0, time.UTC)
+	for _, test := range []struct {
 		rule string
 		want time.Time
 	}{
-		{rule: RecurrenceWeekly, want: time.Date(2026, 2, 7, 20, 0, 0, 0, time.UTC)},
-		{rule: RecurrenceBiweekly, want: time.Date(2026, 2, 14, 20, 0, 0, 0, time.UTC)},
-		{rule: RecurrenceMonthly, want: time.Date(2026, 2, 28, 20, 0, 0, 0, time.UTC)},
+		{rule: RecurrenceWeekly, want: time.Date(2026, 1, 17, 20, 0, 0, 0, time.UTC)},
+		{rule: RecurrenceBiweekly, want: time.Date(2026, 1, 24, 20, 0, 0, 0, time.UTC)},
+	} {
+		t.Run(test.rule, func(t *testing.T) {
+			schedule := mustRecurrenceSchedule(t, test.rule, start, start.Add(2*time.Hour), "UTC")
+			got, gotEnd, err := schedule.occurrence(1)
+			if err != nil {
+				t.Fatalf("occurrence() error = %v", err)
+			}
+			if !got.Equal(test.want) || !gotEnd.Equal(test.want.Add(2*time.Hour)) {
+				t.Fatalf("occurrence() = %s - %s, want %s - %s", got, gotEnd, test.want, test.want.Add(2*time.Hour))
+			}
+		})
 	}
-	for _, tt := range cases {
-		next, nextEnd := nextOccurrence(tt.rule, start, end)
-		if !next.Equal(tt.want) || !nextEnd.Equal(tt.want.Add(2*time.Hour)) {
-			t.Fatalf("nextOccurrence(%q) = %s - %s, want %s - %s", tt.rule, next, nextEnd, tt.want, tt.want.Add(2*time.Hour))
+}
+
+func TestRecurrenceSchedulePreservesWallClockAcrossDST(t *testing.T) {
+	for _, test := range []struct {
+		name       string
+		timezone   string
+		anchor     time.Time
+		wantDate   time.Time
+		wantOffset int
+	}{
+		{
+			name:       "Los Angeles spring forward",
+			timezone:   "America/Los_Angeles",
+			anchor:     time.Date(2027, time.March, 7, 19, 0, 0, 0, mustLocation(t, "America/Los_Angeles")),
+			wantDate:   time.Date(2027, time.March, 14, 19, 0, 0, 0, time.UTC),
+			wantOffset: -7 * 60 * 60,
+		},
+		{
+			name:       "Los Angeles fall back",
+			timezone:   "America/Los_Angeles",
+			anchor:     time.Date(2027, time.October, 31, 19, 0, 0, 0, mustLocation(t, "America/Los_Angeles")),
+			wantDate:   time.Date(2027, time.November, 7, 19, 0, 0, 0, time.UTC),
+			wantOffset: -8 * 60 * 60,
+		},
+		{
+			name:       "New York spring forward",
+			timezone:   "America/New_York",
+			anchor:     time.Date(2027, time.March, 7, 19, 0, 0, 0, mustLocation(t, "America/New_York")),
+			wantDate:   time.Date(2027, time.March, 14, 19, 0, 0, 0, time.UTC),
+			wantOffset: -4 * 60 * 60,
+		},
+		{
+			name:       "New York fall back",
+			timezone:   "America/New_York",
+			anchor:     time.Date(2027, time.October, 31, 19, 0, 0, 0, mustLocation(t, "America/New_York")),
+			wantDate:   time.Date(2027, time.November, 7, 19, 0, 0, 0, time.UTC),
+			wantOffset: -5 * 60 * 60,
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			schedule := mustRecurrenceSchedule(t, RecurrenceWeekly, test.anchor, test.anchor.Add(90*time.Minute), test.timezone)
+			got, gotEnd, err := schedule.occurrence(1)
+			if err != nil {
+				t.Fatalf("occurrence() error = %v", err)
+			}
+			local := got.In(mustLocation(t, test.timezone))
+			if local.Year() != test.wantDate.Year() || local.Month() != test.wantDate.Month() || local.Day() != test.wantDate.Day() || local.Hour() != 19 {
+				t.Fatalf("occurrence() local start = %s, want %s at 19:00", local, test.wantDate.Format(time.DateOnly))
+			}
+			_, offset := local.Zone()
+			if offset != test.wantOffset {
+				t.Fatalf("occurrence() offset = %d, want %d", offset, test.wantOffset)
+			}
+			if gotEnd.Sub(got) != 90*time.Minute {
+				t.Fatalf("occurrence() duration = %s, want 90m", gotEnd.Sub(got))
+			}
+		})
+	}
+}
+
+func TestRecurrenceScheduleMovesNonexistentStartForwardByDSTGap(t *testing.T) {
+	for _, test := range []struct {
+		timezone string
+		offset   int
+	}{
+		{timezone: "America/Los_Angeles", offset: -7 * 60 * 60},
+		{timezone: "America/New_York", offset: -4 * 60 * 60},
+	} {
+		t.Run(test.timezone, func(t *testing.T) {
+			location := mustLocation(t, test.timezone)
+			anchor := time.Date(2027, time.March, 7, 2, 30, 0, 0, location)
+			schedule := mustRecurrenceSchedule(t, RecurrenceWeekly, anchor, anchor.Add(90*time.Minute), test.timezone)
+			got, gotEnd, err := schedule.occurrence(1)
+			if err != nil {
+				t.Fatalf("occurrence() error = %v", err)
+			}
+			local := got.In(location)
+			if local.Year() != 2027 || local.Month() != time.March || local.Day() != 14 || local.Hour() != 3 || local.Minute() != 30 {
+				t.Fatalf("occurrence() local start = %s, want 2027-03-14 03:30", local)
+			}
+			_, offset := local.Zone()
+			if offset != test.offset {
+				t.Fatalf("occurrence() offset = %d, want %d", offset, test.offset)
+			}
+			if gotEnd.Sub(got) != 90*time.Minute {
+				t.Fatalf("occurrence() duration = %s, want 90m", gotEnd.Sub(got))
+			}
+		})
+	}
+}
+
+func TestRecurrenceScheduleUsesEarlierInstantForRepeatedStart(t *testing.T) {
+	for _, test := range []struct {
+		timezone string
+		wantUTC  time.Time
+	}{
+		{timezone: "America/Los_Angeles", wantUTC: time.Date(2027, time.November, 7, 8, 30, 0, 0, time.UTC)},
+		{timezone: "America/New_York", wantUTC: time.Date(2027, time.November, 7, 5, 30, 0, 0, time.UTC)},
+	} {
+		t.Run(test.timezone, func(t *testing.T) {
+			location := mustLocation(t, test.timezone)
+			anchor := time.Date(2027, time.October, 31, 1, 30, 0, 0, location)
+			schedule := mustRecurrenceSchedule(t, RecurrenceWeekly, anchor, anchor.Add(time.Hour), test.timezone)
+			got, _, err := schedule.occurrence(1)
+			if err != nil {
+				t.Fatalf("occurrence() error = %v", err)
+			}
+			if !got.Equal(test.wantUTC) {
+				t.Fatalf("occurrence() = %s, want earlier repeated instant %s", got, test.wantUTC)
+			}
+		})
+	}
+}
+
+func TestMonthlyRecurrenceKeepsOriginalDayAnchor(t *testing.T) {
+	location := mustLocation(t, "America/Los_Angeles")
+	anchor := time.Date(2028, time.January, 31, 19, 0, 0, 0, location)
+	schedule := mustRecurrenceSchedule(t, RecurrenceMonthly, anchor, anchor.Add(90*time.Minute), location.String())
+	wantDays := []int{31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31, 31}
+
+	for index, wantDay := range wantDays {
+		got, gotEnd, err := schedule.occurrence(index)
+		if err != nil {
+			t.Fatalf("occurrence(%d) error = %v", index, err)
+		}
+		local := got.In(location)
+		wantMonth := time.Month(index%12 + 1)
+		wantYear := 2028 + index/12
+		if local.Year() != wantYear || local.Month() != wantMonth || local.Day() != wantDay || local.Hour() != 19 {
+			t.Fatalf("occurrence(%d) local start = %s, want %04d-%02d-%02d 19:00", index, local, wantYear, wantMonth, wantDay)
+		}
+		if gotEnd.Sub(got) != 90*time.Minute {
+			t.Fatalf("occurrence(%d) duration = %s, want 90m", index, gotEnd.Sub(got))
 		}
 	}
+}
+
+func mustRecurrenceSchedule(t *testing.T, rule string, startsAt time.Time, endsAt time.Time, timezone string) recurrenceSchedule {
+	t.Helper()
+	schedule, err := newRecurrenceSchedule(rule, startsAt, endsAt, timezone)
+	if err != nil {
+		t.Fatalf("newRecurrenceSchedule() error = %v", err)
+	}
+	return schedule
+}
+
+func mustLocation(t *testing.T, name string) *time.Location {
+	t.Helper()
+	location, err := time.LoadLocation(name)
+	if err != nil {
+		t.Fatalf("time.LoadLocation(%q) error = %v", name, err)
+	}
+	return location
 }
 
 func TestValidateRSVPInput(t *testing.T) {

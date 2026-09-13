@@ -311,7 +311,8 @@ func validateEventFields(input CreateInput, requirePrivatePassword bool) error {
 	if timezone == "" {
 		return errors.New("timezone is required")
 	}
-	if _, err := time.LoadLocation(timezone); err != nil {
+	location, err := time.LoadLocation(timezone)
+	if err != nil {
 		return errors.New("timezone must be a valid IANA timezone")
 	}
 	if len(input.LocationName) > 200 {
@@ -348,7 +349,12 @@ func validateEventFields(input CreateInput, requirePrivatePassword bool) error {
 		if !validRecurrenceRule(input.RecurrenceRule) || input.RecurrenceUntil.IsZero() || !input.RecurrenceUntil.After(input.EndsAt) {
 			return errors.New("recurrence must have a valid rule and end date after the event")
 		}
-		if calendarDateAfter(input.RecurrenceUntil, input.StartsAt.AddDate(1, 0, 0)) {
+		startDate := input.StartsAt.In(location)
+		oneYearLater := time.Date(
+			startDate.Year(), startDate.Month(), startDate.Day(),
+			0, 0, 0, 0, location,
+		).AddDate(1, 0, 0)
+		if calendarDateAfter(input.RecurrenceUntil.In(location), oneYearLater) {
 			return errors.New("recurrence cannot extend more than one year")
 		}
 	} else if !input.RecurrenceUntil.IsZero() {
@@ -1189,6 +1195,16 @@ func (r *PostgresRepository) createWithSlug(ctx context.Context, params CreatePa
 }
 
 func (r *PostgresRepository) createSeriesWithSlug(ctx context.Context, params CreateParams, slug string) (string, error) {
+	schedule, err := newRecurrenceSchedule(
+		params.RecurrenceRule,
+		params.StartsAt,
+		params.EndsAt,
+		params.Timezone,
+	)
+	if err != nil {
+		return "", err
+	}
+
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
 		return "", fmt.Errorf("begin recurring event create: %w", err)
@@ -1206,11 +1222,12 @@ func (r *PostgresRepository) createSeriesWithSlug(ctx context.Context, params Cr
 		return "", err
 	}
 
-	start := params.StartsAt
-	end := params.EndsAt
 	occurrence := 2
 	for {
-		start, end = nextOccurrence(params.RecurrenceRule, start, end)
+		start, end, err := schedule.occurrence(occurrence - 1)
+		if err != nil {
+			return "", fmt.Errorf("generate recurring event occurrence: %w", err)
+		}
 		if start.After(params.RecurrenceUntil) {
 			break
 		}
@@ -1276,29 +1293,6 @@ func insertEventAssociations(ctx context.Context, tx pgx.Tx, eventID string, par
 		return ErrGameNotFound
 	}
 	return nil
-}
-
-func nextOccurrence(rule string, startsAt time.Time, endsAt time.Time) (time.Time, time.Time) {
-	var nextStart time.Time
-	switch rule {
-	case RecurrenceBiweekly:
-		nextStart = startsAt.AddDate(0, 0, 14)
-	case RecurrenceMonthly:
-		nextStart = addMonthClamped(startsAt)
-	default:
-		nextStart = startsAt.AddDate(0, 0, 7)
-	}
-	return nextStart, nextStart.Add(endsAt.Sub(startsAt))
-}
-
-func addMonthClamped(value time.Time) time.Time {
-	year, month, day := value.Date()
-	nextMonth := time.Date(year, month+1, 1, value.Hour(), value.Minute(), value.Second(), value.Nanosecond(), value.Location())
-	lastDay := nextMonth.AddDate(0, 1, -1).Day()
-	if day > lastDay {
-		day = lastDay
-	}
-	return time.Date(nextMonth.Year(), nextMonth.Month(), day, value.Hour(), value.Minute(), value.Second(), value.Nanosecond(), value.Location())
 }
 
 type eventScanner interface {

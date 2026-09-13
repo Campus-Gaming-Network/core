@@ -1513,7 +1513,15 @@ func TestHandleCreateEventHashesPrivatePassword(t *testing.T) {
 }
 
 func TestHandleCreateEventAcceptsSupportedRecurrenceRules(t *testing.T) {
-	wantUntil := time.Date(2026, time.October, 15, 23, 59, 59, int(time.Second-time.Nanosecond), time.UTC)
+	location, err := time.LoadLocation("America/Los_Angeles")
+	if err != nil {
+		t.Fatalf("load recurrence timezone: %v", err)
+	}
+	wantUntil := time.Date(
+		2026, time.October, 15, 23, 59, 59,
+		int(time.Second-time.Nanosecond),
+		location,
+	)
 	for _, rule := range []string{
 		eventstore.RecurrenceWeekly,
 		eventstore.RecurrenceBiweekly,

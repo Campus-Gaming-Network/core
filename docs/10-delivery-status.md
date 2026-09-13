@@ -130,7 +130,7 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 - [x] Missing/deleted event page
 - [x] Rate limit event create + private unlock attempts
 - [x] Default event banner/background placeholder (no custom uploads yet)
-- [x] Recurring events (weekly, biweekly, or monthly; max one year; independent occurrences)
+- [x] Timezone-aware recurring events (weekly, biweekly, or monthly; inclusive local end date; DST/month-end rules; max one year; independent occurrences)
 - [x] Occurrence-only editing with immutable recurrence fields at the web and API boundaries
 - [x] Native local event date/time entry with profile-defaulted timezone selection and explicit DST-edge validation
 - [x] Cancellation notifications to active yes/maybe RSVPs (best-effort email)
@@ -186,7 +186,7 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 - [ ] Complete mobile and accessibility pass on the primary journeys
 - [x] Define initial support/report/audit retention targets and track legal-hold/purge follow-up
 - [x] Transfer or soft-cancel organizer-owned events during account deletion; detach support records and scrub terminal contact fields
-- [x] Add recurring events (weekly, biweekly, or monthly; max one year)
+- [x] Add timezone-aware recurring events with defined DST and month-end behavior (weekly, biweekly, or monthly; max one year)
 - [x] Add cancellation notifications to active yes/maybe RSVPs
 - [x] Improve event discovery filters (game, school, and format)
 - [x] Add `.edu` verified-student badge UX

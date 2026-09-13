@@ -83,9 +83,7 @@ the engineering queue, but all P1 work must be complete before public access.
 | 19 | `CGN-016` | P2 | Multi-organizer scope matches the product promise. |
 | 20 | `CGN-018` | P3 | Large modules are split before product expansion. |
 
-`CGN-008` is next and requires decisions about nonexistent/repeated DST times
-and event duration. `CGN-015` can advance independently if that product rule is
-not ready, followed by `CGN-012`. Before `CGN-016`, decide whether
+`CGN-015` is next, followed by `CGN-012` and `CGN-014`. Before `CGN-016`, decide whether
 multi-organizer management belongs in the first release.
 
 ### Implementation map
@@ -405,8 +403,18 @@ updated,” and see that the recurrence did not change.
 
 **Priority:** P1  
 **Size:** L  
-**Status:** Needs product rule confirmation  
+**Status:** Complete (2026-09-13)
 **Depends on:** `CGN-007`
+
+**Completion note:** Recurrences are now generated from the original local
+wall-clock anchor in the selected IANA timezone. A nonexistent spring-forward
+start moves forward by the transition gap, a repeated fall-back start uses the
+earlier instant, and the original elapsed duration is preserved. Monthly
+schedules clamp each target month independently from the original day anchor.
+The recurrence end date is inclusive through the end of that local calendar
+day. Multi-zone DST, leap-year/month-end, handler, and PostgreSQL-backed series
+tests cover the rules. No backfill was needed because no production environment
+or recurring production data exists yet.
 
 **Problem**
 
@@ -450,11 +458,11 @@ to a short month, such as January 31 → February 28 → March 28.
 
 **Completion note:** Event forms now use native local date/time controls and a
 curated timezone selector defaulted from the profile. Server-side validation
-converts each wall-clock value to an offset-bearing instant. Until `CGN-008`
-defines recurrence-specific DST behavior, nonexistent spring-forward times and
-ambiguous fall-back times are rejected with field-level guidance rather than
-silently choosing an instant. Unit and desktop/mobile browser coverage verifies
-creation, editing, round trips, and both DST edges.
+converts each wall-clock value to an offset-bearing instant. Nonexistent
+spring-forward times and ambiguous fall-back times are rejected with field-level
+guidance rather than silently choosing an instant; `CGN-008` separately defines
+the policy for derived recurrence starts. Unit and desktop/mobile browser
+coverage verifies creation, editing, round trips, and both DST edges.
 
 **Problem**
 

@@ -143,12 +143,22 @@ Discovery lists only `visibility = public`. Unlisted is link/slug only. Private:
 Recurring creation expands into independent event occurrences. The supported
 rules are weekly, biweekly, and monthly, with an inclusive end date no more
 than one year after the first occurrence. Each occurrence has its own slug,
-RSVPs, and cancellation lifecycle.
+RSVPs, and cancellation lifecycle. The end date is interpreted through the end
+of that calendar day in the selected event timezone.
+
+Occurrence starts retain the first event's local wall-clock time in its IANA
+timezone. A start skipped by spring-forward moves ahead by the transition gap;
+a repeated fall-back start uses the earlier instant. Every occurrence preserves
+the first event's elapsed duration, even when its local end time therefore
+changes across a DST boundary. Monthly schedules always calculate from the
+original day: they clamp only in months that lack that day and return to it in
+the next month that supports it.
 
 The web form accepts local wall-clock values and a curated IANA timezone, then
 converts them to offset-bearing timestamps before calling the API. It rejects
 nonexistent and ambiguous DST wall times rather than guessing which instant the
-user intended.
+user intended for the first event; the recurrence rules above govern derived
+occurrences.
 
 Event detail responses include `organizers`, with each organizer's name, role,
 `verification_level`, and applicable `role_indicators` (`school_admin` and/or

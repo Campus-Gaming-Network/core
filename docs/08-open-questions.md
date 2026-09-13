@@ -55,7 +55,7 @@ Decisions to resolve before or during implementation. Until answered, implemente
 | Event create approval | None required |
 | Event visibility | public + unlisted + private |
 | Capacity | Optional; counts **RSVP yes only**; no waitlist yet |
-| Recurring events | **Decided:** weekly, biweekly, or monthly; max one year; each occurrence is an independent event with its own RSVP and cancellation; no edit-series workflow yet |
+| Recurring events | **Decided:** weekly, biweekly, or monthly through an inclusive local end date; max one year; each occurrence is an independent event with its own RSVP and cancellation; no edit-series workflow yet. Starts retain the original local wall-clock time in the selected IANA timezone. A nonexistent spring-forward start moves forward by the DST gap; a repeated fall-back start uses the earlier instant. Elapsed duration wins over preserving local end time. Monthly schedules clamp from the original day anchor and return to it when supported. |
 | Cancellation notifications | **Decided:** after soft cancellation, best-effort email active yes/maybe RSVPs from `events@`; delivery failure does not undo cancellation |
 | Role indicators | **Decided:** staff/faculty comes from verification level; school-admin grants are school-scoped in `school_admins`; event organizers expose applicable indicators |
 | Basic content filtering | **Decided:** reject a small word-boundary blocklist in names, bios, event/team text, reports, and support messages; richer moderation remains future work |
