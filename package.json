@@ -27,6 +27,7 @@
     "privacy:web": "node scripts/web_privacy_scan.mjs",
     "test:e2e:web": "npm --prefix apps/web run test:e2e",
     "test:e2e:web:dev": "npm --prefix apps/web run test:e2e:dev",
+    "test:e2e:real": "node scripts/run_real_stack_e2e.mjs",
     "fmt:api": "cd apps/api && api_goroot=$(go env GOROOT) && \"$api_goroot/bin/gofmt\" -w cmd internal",
     "fmt:check:api": "cd apps/api && api_goroot=$(go env GOROOT) && api_unformatted=$(\"$api_goroot/bin/gofmt\" -l cmd internal) && test -z \"$api_unformatted\"",
     "vet:api": "cd apps/api && go vet ./...",

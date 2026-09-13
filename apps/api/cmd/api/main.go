@@ -59,11 +59,13 @@ func main() {
 		&emaildelivery.Dispatcher{
 			Account: &auth.ResendMailer{
 				APIKey: cfg.ResendAPIKey, From: cfg.AccountEmailFrom,
-				SiteURL: cfg.SiteURL, Client: mailClient, Logger: slog.Default(),
+				Endpoint: cfg.ResendAPIURL, SiteURL: cfg.SiteURL,
+				Client: mailClient, Logger: slog.Default(),
 			},
 			Events: &eventstore.ResendMailer{
 				APIKey: cfg.ResendAPIKey, From: cfg.EventsEmailFrom,
-				SiteURL: cfg.SiteURL, Client: mailClient, Logger: slog.Default(),
+				Endpoint: cfg.ResendAPIURL, SiteURL: cfg.SiteURL,
+				Client: mailClient, Logger: slog.Default(),
 			},
 		},
 		slog.Default(),

@@ -97,15 +97,16 @@ func TestResendMailerSendsVerificationEmail(t *testing.T) {
 	var payload resendPayload
 	var idempotencyKey string
 	mailer := &ResendMailer{
-		APIKey:  "resend-api-key",
-		From:    "account@campusgamingnetwork.com",
-		SiteURL: "https://campusgamingnetwork.com/",
+		APIKey:   "resend-api-key",
+		From:     "account@campusgamingnetwork.com",
+		Endpoint: "https://mail.stub.test/emails",
+		SiteURL:  "https://campusgamingnetwork.com/",
 		Client: &http.Client{Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
 			if request.Method != http.MethodPost {
 				t.Fatalf("method = %s, want POST", request.Method)
 			}
-			if request.URL.String() != "https://api.resend.com/emails" {
-				t.Fatalf("URL = %q, want Resend email endpoint", request.URL)
+			if request.URL.String() != "https://mail.stub.test/emails" {
+				t.Fatalf("URL = %q, want configured email endpoint", request.URL)
 			}
 			if authorization := request.Header.Get("Authorization"); authorization != "Bearer resend-api-key" {
 				t.Fatalf("Authorization = %q, want bearer API key", authorization)

@@ -92,6 +92,7 @@ npm run lint:web
 npm run typecheck:web
 npm run test:web
 npm run test:e2e:web
+npm run test:e2e:real
 npm run fmt:check:api
 npm run vet:api
 npm run test:api
@@ -111,11 +112,20 @@ npm ci
 npx playwright install chromium
 ```
 
-The browser suite starts an isolated API fixture and the built Nitro production
+The fast browser suite starts an isolated API fixture and the built Nitro production
 server, then runs the primary journeys in desktop, mobile, and JavaScript-disabled
 Chromium. Use `npm run test:e2e:web:dev` to run the same suite
 against the Vite development server. Neither variant requires Docker or a
 populated development database.
+
+`npm run test:e2e:real` runs a focused launch-proof suite through the built Nitro
+BFF, real Go API, PostgreSQL, and an in-process Resend HTTP stub. By default it
+starts a dedicated `cgn_e2e` PostgreSQL container on port `55432`, applies all
+migrations, resets and seeds a small deterministic fixture, and always removes
+the container and its volume afterward, including after failures. The seed
+command refuses to reset a database whose name does not contain `e2e`. Set
+`REAL_E2E_DATABASE_URL` to use an already-provisioned disposable test database;
+in that mode the command does not manage that database's lifecycle.
 
 The API needs Go 1.27.1 or newer (set by the `go` directive in `apps/api/go.mod`).
 CI and the API Docker build use Go 1.27.1. With Go 1.21 or newer and the default

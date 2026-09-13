@@ -83,6 +83,7 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 - [x] Preserve authenticated visitor identity through Cloudflare/Railway and the BFF; scope rate limits by visitor, target, and account
 - [x] Require explicit POST confirmation before consuming an email-verification token; scanner-style GET requests cannot verify accounts
 - [x] Fail web and API startup on unsafe staging/production configuration while preserving deliberate local Compose defaults
+- [x] Run a focused real-stack browser suite through built TanStack Start, the Go API, disposable PostgreSQL, the email outbox, and a Resend HTTP stub; repeat every journey twice in CI while retaining the fast fake-API suite
 
 ### Auth & profiles
 - [x] Signup / login / logout

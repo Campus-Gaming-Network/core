@@ -83,7 +83,7 @@ the engineering queue, but all P1 work must be complete before public access.
 | 19 | `CGN-016` | P2 | Multi-organizer scope matches the product promise. |
 | 20 | `CGN-018` | P3 | Large modules are split before product expansion. |
 
-`CGN-015` is next, followed by `CGN-012` and `CGN-014`. Before `CGN-016`, decide whether
+`CGN-012` is next, followed by `CGN-014` and `CGN-020`. Before `CGN-016`, decide whether
 multi-organizer management belongs in the first release.
 
 ### Implementation map
@@ -705,8 +705,17 @@ violations become invisible outside server logs.
 
 **Priority:** P1  
 **Size:** L  
-**Status:** Ready  
+**Status:** Complete (2026-09-13)
 **Depends on:** `CGN-001` through `CGN-010`, plus `CGN-013`
+
+**Completion note:** CI now runs a focused Playwright suite twice against the
+built TanStack Start BFF, the real Go API, a migrated and deterministically
+seeded disposable PostgreSQL database, the email outbox, and an HTTP-level
+Resend stub. It exercises signup, explicit POST verification, login, school
+selection, private event creation and unlock, RSVP plus ICS delivery, team
+joining, account deletion and session cleanup, and trusted visitor rate-limit
+isolation. The local command owns and removes its dedicated database container
+and volume, while refusing to reset databases whose names do not contain `e2e`.
 
 **Problem**
 
@@ -742,7 +751,8 @@ between otherwise green suites.
 
 ### Existing launch gates that remain P1
 
-These were not created by the review and remain required alongside `CGN-015`:
+These were not created by the review and remain required even though `CGN-015`
+is complete:
 
 - Replace placeholder Terms and Privacy content and persist versioned signup
   acceptance.

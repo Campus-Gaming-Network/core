@@ -22,6 +22,7 @@ var configurationEnvironmentKeys = []string{
 	"API_SITE_URL",
 	"API_RESEND_API_KEY",
 	"RESEND_API_KEY",
+	"API_RESEND_API_URL",
 	"API_ACCOUNT_EMAIL_FROM",
 	"API_EVENTS_EMAIL_FROM",
 	"API_AUTH_RATE_LIMIT",
@@ -86,6 +87,9 @@ func TestLoadRejectsUnsafeProductionSettings(t *testing.T) {
 		{name: "invalid session cookie name", values: map[string]string{"API_SESSION_COOKIE": "bad cookie"}, wantErr: "API_SESSION_COOKIE must be a valid cookie name"},
 		{name: "insecure session cookie", values: map[string]string{"API_COOKIE_SECURE": "false"}, wantErr: "API_COOKIE_SECURE must be true"},
 		{name: "missing resend key", values: map[string]string{"API_RESEND_API_KEY": "", "RESEND_API_KEY": ""}, wantErr: "API_RESEND_API_KEY"},
+		{name: "malformed resend URL", values: map[string]string{"API_RESEND_API_URL": "://hidden-provider-value"}, wantErr: "API_RESEND_API_URL must be an absolute HTTP(S) URL"},
+		{name: "insecure resend URL", values: map[string]string{"API_RESEND_API_URL": "http://api.resend.com/emails"}, wantErr: "API_RESEND_API_URL must use HTTPS"},
+		{name: "local resend URL", values: map[string]string{"API_RESEND_API_URL": "https://localhost/emails"}, wantErr: "API_RESEND_API_URL must not use a local hostname"},
 		{name: "missing account sender", values: map[string]string{"API_ACCOUNT_EMAIL_FROM": ""}, wantErr: "API_ACCOUNT_EMAIL_FROM must be set"},
 		{name: "invalid account sender", values: map[string]string{"API_ACCOUNT_EMAIL_FROM": "not-an-address"}, wantErr: "API_ACCOUNT_EMAIL_FROM must be one valid sender address"},
 		{name: "missing events sender", values: map[string]string{"API_EVENTS_EMAIL_FROM": ""}, wantErr: "API_EVENTS_EMAIL_FROM must be set"},
@@ -158,6 +162,19 @@ func TestLoadPrefersNamespacedResendAPIKey(t *testing.T) {
 	}
 	if cfg.ResendAPIKey != "namespaced-key" {
 		t.Fatalf("ResendAPIKey = %q, want namespaced key", cfg.ResendAPIKey)
+	}
+}
+
+func TestLoadAllowsLocalResendStubURL(t *testing.T) {
+	clearConfigurationEnvironment(t)
+	t.Setenv("API_RESEND_API_URL", "http://127.0.0.1:18083/emails")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	if cfg.ResendAPIURL != "http://127.0.0.1:18083/emails" {
+		t.Fatalf("ResendAPIURL = %q, want local test stub", cfg.ResendAPIURL)
 	}
 }
 

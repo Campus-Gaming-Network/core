@@ -12,8 +12,9 @@ import (
 )
 
 const (
-	localDatabaseURL   = "postgres://cgn:cgn@localhost:5432/cgn?sslmode=disable"
-	composeDatabaseURL = "postgres://cgn:cgn@postgres:5432/cgn?sslmode=disable"
+	localDatabaseURL    = "postgres://cgn:cgn@localhost:5432/cgn?sslmode=disable"
+	composeDatabaseURL  = "postgres://cgn:cgn@postgres:5432/cgn?sslmode=disable"
+	defaultResendAPIURL = "https://api.resend.com/emails"
 )
 
 // DeploymentEnvironment controls whether local defaults are allowed.
@@ -44,6 +45,7 @@ type Config struct {
 	ResetTTL              time.Duration
 	SiteURL               string
 	ResendAPIKey          string
+	ResendAPIURL          string
 	AccountEmailFrom      string
 	EventsEmailFrom       string
 	AuthRateLimit         int
@@ -130,6 +132,7 @@ func Load() (Config, error) {
 		ResetTTL:              resetTTL,
 		SiteURL:               getenv("API_SITE_URL", "http://localhost:3000"),
 		ResendAPIKey:          firstNonEmptyEnv("API_RESEND_API_KEY", "RESEND_API_KEY"),
+		ResendAPIURL:          getenv("API_RESEND_API_URL", defaultResendAPIURL),
 		AccountEmailFrom:      getenv("API_ACCOUNT_EMAIL_FROM", "account@campusgamingnetwork.com"),
 		EventsEmailFrom:       getenv("API_EVENTS_EMAIL_FROM", "events@campusgamingnetwork.com"),
 		AuthRateLimit:         authRateLimit,
@@ -187,6 +190,10 @@ func (cfg Config) validate() error {
 	if !validSenderAddress(cfg.EventsEmailFrom) {
 		issues = append(issues, "API_EVENTS_EMAIL_FROM must be one valid sender address")
 	}
+	resendAPIURL, resendAPIURLValid := parseHTTPURL(cfg.ResendAPIURL)
+	if !resendAPIURLValid {
+		issues = append(issues, "API_RESEND_API_URL must be an absolute HTTP(S) URL")
+	}
 
 	if cfg.DeploymentEnvironment.Strict() {
 		if !configured("API_DATABASE_URL") {
@@ -214,6 +221,14 @@ func (cfg Config) validate() error {
 		}
 		if strings.TrimSpace(cfg.ResendAPIKey) == "" {
 			issues = append(issues, "API_RESEND_API_KEY (or RESEND_API_KEY) must be set")
+		}
+		if resendAPIURLValid {
+			if !strings.EqualFold(resendAPIURL.Scheme, "https") {
+				issues = append(issues, "API_RESEND_API_URL must use HTTPS")
+			}
+			if isLocalHostname(resendAPIURL.Hostname()) {
+				issues = append(issues, "API_RESEND_API_URL must not use a local hostname")
+			}
 		}
 		if !configured("API_ACCOUNT_EMAIL_FROM") {
 			issues = append(issues, "API_ACCOUNT_EMAIL_FROM must be set")
@@ -249,6 +264,17 @@ func parseSiteURL(raw string) (*url.URL, bool) {
 		return nil, false
 	}
 	if parsed.RawQuery != "" || parsed.Fragment != "" {
+		return nil, false
+	}
+	return parsed, true
+}
+
+func parseHTTPURL(raw string) (*url.URL, bool) {
+	parsed, err := url.Parse(raw)
+	if err != nil || parsed.Hostname() == "" || parsed.User != nil || parsed.Fragment != "" {
+		return nil, false
+	}
+	if parsed.Scheme != "http" && parsed.Scheme != "https" {
 		return nil, false
 	}
 	return parsed, true
