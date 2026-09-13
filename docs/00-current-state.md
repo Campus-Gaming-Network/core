@@ -4,7 +4,7 @@ Quick re-entry point for Campus Gaming Network. Read this first after time away;
 the detailed product and engineering context remains in the other documents in
 this folder.
 
-**Last updated:** 2026-09-12
+**Last updated:** 2026-09-13
 
 ## Where we are
 
@@ -31,10 +31,9 @@ verification steps.
 
 ## Next three tasks
 
-1. Decide the DST rules needed for `CGN-008`, then generate recurrences in the
-   event's IANA timezone.
-2. Complete `CGN-015`: exercise the deployed BFF/API/database boundary in CI.
-3. Complete `CGN-012`: stop writing `last_seen_at` on every authenticated read.
+1. Complete `CGN-012`: stop writing `last_seen_at` on every authenticated read.
+2. Complete `CGN-014`: distinguish an empty result from an upstream failure.
+3. Complete `CGN-020`: give redirect notices truthful, typed severity.
 
 After those, follow the ordered queue in doc 17. Legal, DiceBear,
 account-deletion notifications, and external launch rehearsal remain P1 launch
@@ -54,6 +53,18 @@ gates. CRM/admin UI work moves behind the review's P1 queue.
 
 ## Recently completed
 
+- Added a focused, repeatable browser suite through the built TanStack Start
+  BFF, real Go API, disposable PostgreSQL database, migrations, deterministic
+  fixture, email outbox, and Resend HTTP stub. It covers signup and POST
+  verification, login, school selection, private event creation/unlock, RSVP
+  email serialization, team joining, account deletion, cookie mirroring, and
+  trusted visitor rate-limit identity. CI repeats every journey twice, while the
+  fast fake-API browser suite remains in place (`CGN-015`).
+- Generated recurring event occurrences from the original local wall-clock
+  anchor in the event's IANA timezone. Weekly times now survive DST changes,
+  monthly dates return to their original day after short months, elapsed event
+  duration is preserved, and skipped/repeated clock times have explicit rules
+  backed by multi-zone and PostgreSQL regression coverage (`CGN-008`).
 - Completed the local main-frontend cutover from Next.js to TanStack Start.
   `apps/web` now owns the TanStack Router route tree, server functions, Vite
   build, Nitro production process, Docker image, and browser tests. The

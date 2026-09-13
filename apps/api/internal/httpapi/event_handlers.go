@@ -132,12 +132,15 @@ func (r *Router) handleCreateEvent(w http.ResponseWriter, req *http.Request) {
 
 	input := createEventInputFromRequest(request, userID)
 	if request.RecurrenceUntil.present && strings.TrimSpace(request.RecurrenceUntil.value) != "" {
-		parsed, err := time.Parse(time.DateOnly, strings.TrimSpace(request.RecurrenceUntil.value))
+		parsed, err := recurrenceEndOfDate(
+			strings.TrimSpace(request.RecurrenceUntil.value),
+			strings.TrimSpace(request.Timezone),
+		)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, "invalid_request")
 			return
 		}
-		input.RecurrenceUntil = parsed.Add(24*time.Hour - time.Nanosecond)
+		input.RecurrenceUntil = parsed
 	}
 	if err := eventstore.ValidateCreateInput(input); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid_request")
@@ -162,6 +165,22 @@ func (r *Router) handleCreateEvent(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusCreated, event)
+}
+
+func recurrenceEndOfDate(value string, timezone string) (time.Time, error) {
+	parsed, err := time.Parse(time.DateOnly, value)
+	if err != nil {
+		return time.Time{}, err
+	}
+	location, err := time.LoadLocation(timezone)
+	if err != nil {
+		return time.Time{}, err
+	}
+	return time.Date(
+		parsed.Year(), parsed.Month(), parsed.Day(),
+		23, 59, 59, int(time.Second-time.Nanosecond),
+		location,
+	), nil
 }
 
 func (r *Router) handleUpdateEvent(w http.ResponseWriter, req *http.Request, slug string) {

@@ -40,6 +40,7 @@ npm-debug.log*
 *.tsbuildinfo
 .test-build/
 playwright-report/
+playwright-report-real/
 test-results/
 apps/docs/.cache/
 apps/docs/.vitepress/.temp/

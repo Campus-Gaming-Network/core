@@ -25,11 +25,12 @@ type Mailer interface {
 // records a local delivery result and logs safe metadata only; token-bearing
 // links are never written to application logs.
 type ResendMailer struct {
-	APIKey  string
-	From    string
-	SiteURL string
-	Client  *http.Client
-	Logger  *slog.Logger
+	APIKey   string
+	From     string
+	Endpoint string
+	SiteURL  string
+	Client   *http.Client
+	Logger   *slog.Logger
 }
 
 func (m *ResendMailer) SendVerification(ctx context.Context, recipient string, token string, idempotencyKey string) (string, error) {
@@ -77,7 +78,7 @@ func (m *ResendMailer) send(ctx context.Context, recipient, subject, link, kind,
 		return "", fmt.Errorf("encode account email: %w", err)
 	}
 
-	request, err := http.NewRequestWithContext(ctx, http.MethodPost, "https://api.resend.com/emails", bytes.NewReader(body))
+	request, err := http.NewRequestWithContext(ctx, http.MethodPost, resendEndpoint(m.Endpoint), bytes.NewReader(body))
 	if err != nil {
 		return "", fmt.Errorf("create account email request: %w", err)
 	}
@@ -112,4 +113,11 @@ func (m *ResendMailer) send(ctx context.Context, recipient, subject, link, kind,
 		return "", errors.New("resend account email response missing id")
 	}
 	return result.ID, nil
+}
+
+func resendEndpoint(configured string) string {
+	if endpoint := strings.TrimSpace(configured); endpoint != "" {
+		return endpoint
+	}
+	return "https://api.resend.com/emails"
 }

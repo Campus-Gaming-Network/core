@@ -23,12 +23,13 @@ type RSVPMailer interface {
 }
 
 type ResendMailer struct {
-	APIKey  string
-	From    string
-	SiteURL string
-	Client  *http.Client
-	Logger  *slog.Logger
-	Now     func() time.Time
+	APIKey   string
+	From     string
+	Endpoint string
+	SiteURL  string
+	Client   *http.Client
+	Logger   *slog.Logger
+	Now      func() time.Time
 }
 
 func (m *ResendMailer) SendRSVPConfirmation(ctx context.Context, recipient string, event Event, idempotencyKey string) (string, error) {
@@ -68,7 +69,7 @@ func (m *ResendMailer) SendRSVPConfirmation(ctx context.Context, recipient strin
 		return "", fmt.Errorf("encode event rsvp email: %w", err)
 	}
 
-	request, err := http.NewRequestWithContext(ctx, http.MethodPost, "https://api.resend.com/emails", bytes.NewReader(body))
+	request, err := http.NewRequestWithContext(ctx, http.MethodPost, resendEndpoint(m.Endpoint), bytes.NewReader(body))
 	if err != nil {
 		return "", fmt.Errorf("create event rsvp email request: %w", err)
 	}
@@ -123,7 +124,7 @@ func (m *ResendMailer) SendCancellationNotification(ctx context.Context, recipie
 	if err != nil {
 		return "", fmt.Errorf("encode event cancellation email: %w", err)
 	}
-	request, err := http.NewRequestWithContext(ctx, http.MethodPost, "https://api.resend.com/emails", bytes.NewReader(body))
+	request, err := http.NewRequestWithContext(ctx, http.MethodPost, resendEndpoint(m.Endpoint), bytes.NewReader(body))
 	if err != nil {
 		return "", fmt.Errorf("create event cancellation email request: %w", err)
 	}
@@ -148,6 +149,13 @@ func (m *ResendMailer) SendCancellationNotification(ctx context.Context, recipie
 		}
 	}
 	return decodeProviderID(response.Body)
+}
+
+func resendEndpoint(configured string) string {
+	if endpoint := strings.TrimSpace(configured); endpoint != "" {
+		return endpoint
+	}
+	return "https://api.resend.com/emails"
 }
 
 func decodeProviderID(body io.Reader) (string, error) {
