@@ -11,7 +11,7 @@ This file also works well for lightweight integration smoke-test changes.
 The feature slices through events, teams, dashboard, and basic
 safety intake are implemented locally:
 
-- `apps/web` — Next.js main site with public pages, auth forms, profiles, schools, events, teams, dashboard, support, and report UI, plus per-page metadata/social tags and error, loading, and not-found boundaries
+- `apps/web` — TanStack Start main site with public pages, auth forms, profiles, schools, events, teams, dashboard, support, and report UI, plus route metadata and pending, error, and not-found boundaries
 - `apps/api` — Go API with health, auth/session middleware, schools/games, events, teams, dashboard helpers, support tickets, and reports
 - `apps/docs` — VitePress viewer for the Markdown product and engineering documentation
 - `db/migrations` — versioned SQL migrations
@@ -102,17 +102,20 @@ Run the relevant test suite, typecheck, and lint checks before considering the
 change complete; see the testing expectation in docs/11-implementation-decisions.md.
 Go style expectations are documented in [`docs/go-style.md`](./docs/go-style.md).
 
-The web commands require installing dependencies first:
+The web commands require installing the workspace dependencies and Playwright
+browser first:
 
 ```bash
 nvm use
-npm install --prefix apps/web
-npm --prefix apps/web run test:e2e:install
+npm ci
+npx playwright install chromium
 ```
 
-The browser suite starts an isolated API fixture and Next.js dev server, then
-runs the primary journeys in desktop and mobile Chromium. It does not require
-Docker or a populated development database.
+The browser suite starts an isolated API fixture and the built Nitro production
+server, then runs the primary journeys in desktop, mobile, and JavaScript-disabled
+Chromium. Use `npm run test:e2e:web:dev` to run the same suite
+against the Vite development server. Neither variant requires Docker or a
+populated development database.
 
 The API needs Go 1.27.1 or newer (set by the `go` directive in `apps/api/go.mod`).
 CI and the API Docker build use Go 1.27.1. With Go 1.21 or newer and the default
@@ -149,7 +152,7 @@ Docker Compose provides sensible local defaults.
 apps/
   api/      Go API
   docs/     Local documentation viewer
-  web/      Next.js main site
+  web/      TanStack Start main site and BFF
 data/       School seed data
 db/         SQL migrations and database notes
 docs/       Product, architecture, API, and roadmap docs

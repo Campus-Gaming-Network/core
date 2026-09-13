@@ -8,11 +8,11 @@ Stack, runtime, ops, and engineering constraints for a single-developer, cost-co
 Main site:  campusgamingnetwork.com
 CRM/admin app:  crm.campusgamingnetwork.com   (later separate app + separate release)
 
-Browser (Next.js UI, HeroUI, SSR)
+Browser (React UI, TanStack Router, SSR)
         │
         ▼
 Railway web service
-Next.js BFF (TypeScript)  ── opaque cookie sessions, page data, form actions
+TanStack Start BFF (TypeScript)  ── opaque cookies, loaders, server functions
         │
         ▼
 Railway private networking
@@ -33,7 +33,9 @@ Side paths:
   IGDB ──► later game enrichment (via CRM / cron); uses the curated seed list
 ```
 
-**Backend for Frontend (BFF):** the Next.js layer shapes data for UI routes; Go owns domain rules and persistence. Do not put core business logic only in the browser.
+**Backend for Frontend (BFF):** the TanStack Start layer shapes safe display
+DTOs for UI routes; Go owns domain rules and persistence. Do not put core
+business logic only in the browser.
 
 See [14 — Architecture diagrams](./14-architecture-diagrams.md) for Mermaid views of the frontend, backend, and complete production system.
 
@@ -41,14 +43,14 @@ See [14 — Architecture diagrams](./14-architecture-diagrams.md) for Mermaid vi
 
 | Layer | Choice | Notes |
 |-------|--------|-------|
-| Frontend | Next.js + TypeScript | Server rendering important; code-split routes |
-| UI kit | HeroUI | Primary component library |
-| BFF validation | Zod | Runtime Go-response contracts and Server Action input errors; server-side imports only |
+| Frontend | TanStack Start + React + TypeScript | TanStack Router, Vite, Nitro SSR, code-split routes |
+| UI | Semantic React + application CSS | Keep the runtime dependency surface small and accessible |
+| BFF validation | Zod | Runtime Go-response contracts and server-function/native-form input errors; server-only operations |
 | A11y / patterns | GOV.UK Design System (reference) | Prefer accessible, clear components |
 | Server / API | Go | All server domain code in Go |
 | Database | Railway PostgreSQL | Backups required before public launch |
 | Local dev | Docker | Works on all systems; develop on M1 MacBook |
-| App host | Railway | Hosts Next.js web and Go API for now |
+| App host | Railway | Hosts the TanStack Start web service and Go API |
 | DNS / edge | Cloudflare | DNS and edge protection for campusgamingnetwork.com |
 | CRM | TanStack Start | Later separate app/release at crm.campusgamingnetwork.com |
 | Email | Resend | Verification, password reset, RSVP+ICS, etc. |
@@ -58,11 +60,11 @@ See [14 — Architecture diagrams](./14-architecture-diagrams.md) for Mermaid vi
 | Maps | Google Maps embed (mini) | Later nicety; address text first |
 | Games data | Curated seed; IGDB later | Not user-editable; CRM/admin app takes over management |
 | Analytics | Non-GA tool (TBD) | No Google Analytics (perf) |
-| Client data libs | TanStack where justified | Later CRM uses TanStack Start; Query/Table as needed |
+| Client data libs | TanStack where justified | Main site uses Start/Router; Query/Table remain optional |
 
 ## Frontend guidelines
 
-- Prefer **server components / SSR** over client-heavy pages
+- Prefer **route loaders and SSR** over client-heavy pages
 - Prefer **CSS** over adding JavaScript when CSS can solve it
 - Mobile-friendly; no Internet Explorer
 - Simple homepage until UGC volume justifies more
@@ -71,29 +73,44 @@ See [14 — Architecture diagrams](./14-architecture-diagrams.md) for Mermaid vi
 
 ### Page metadata
 
-- Every route carries its own title, description, and Open Graph / Twitter tags through the `pageMetadata` helper in `apps/web/lib/metadata.ts`. The root layout owns the title template and `metadataBase`.
+- Every route carries its own title, description, and Open Graph / Twitter tags
+  through its TanStack Router `head` definition and the shared helpers in
+  `apps/web/src/components/public-page-head.ts` plus feature presentation
+  modules.
 - Authenticated pages, one-time-token flows, private events, and unlisted events set `noIndex`. See [07 — Permissions](./07-permissions.md) for the discovery rule this enforces.
 - A locked private event must expose only a generic title and description. Metadata is part of the gating guarantee, not an exception to it.
 
 ### Error and loading boundaries
 
-- `error.tsx`, `global-error.tsx`, and `not-found.tsx` live at the app root. Error UI shows `error.digest` only — never `error.message`, which can carry API internals.
-- **Never add a `loading.tsx` to a segment that contains a route calling `notFound()`.** A `loading.tsx` opens a Suspense boundary over its whole subtree, so the response begins streaming and commits a 200 before the page can set a 404. Every missing event, school, team, and profile then answers 200 with not-found content — a soft 404 that renders correctly and is invisible unless you check the status code.
-- Browse pages live in `(browse)` route groups for exactly this reason: the group scopes their loading boundary to the list page and keeps it off the sibling `[slug]` detail routes. URLs are unaffected by the group.
+- The root router supplies safe pending, error, and not-found components; routes
+  may provide tighter boundaries where their states differ.
+- Error UI never renders upstream messages or rejected payloads. Missing event,
+  school, team, profile, and unknown routes must return a real HTTP 404 with
+  noindex metadata; production HTTP and browser tests assert this directly.
+- Route definitions own status, head, and cache behavior together so streamed
+  rendering cannot silently turn a missing entity into a soft 404.
 
-### Request memoization
+### Request and cache boundaries
 
-- Per-request getters in `apps/web/lib/server-api.ts` are wrapped in React `cache()`. `apiRequest` defaults to `cache: "no-store"`, which Next.js does **not** deduplicate, so without this a route's `generateMetadata` and its page body would each issue the same API call.
-- `cache()` compares arguments by reference, so wrapped functions take primitives rather than options objects. `getEvent` and `getTeam` flatten their options before calling the cached inner function.
+- Route `head` functions consume the same validated loader DTO used by the
+  rendered page; they do not independently fetch the entity again.
+- The root SSR loader is viewer-neutral. Client navigation decoration uses the
+  private, no-store `/api/navigation-session` endpoint so public documents do
+  not serialize a profile or vary unnecessarily by session.
+- Viewer, session, account, private-event, and mutation responses are private or
+  no-store. Only explicitly public catalog data receives shared freshness
+  headers. TanStack Router client caching is not treated as cross-request or
+  CDN caching.
 
 ### Runtime validation
 
-- `apps/web/lib/api-contracts.ts` is the source of truth for web-facing response
-  schemas and inferred DTO types. Every `apiRequest` supplies a schema, including
-  `emptyResponseSchema` for a 204.
-- `apps/web/lib/form-validation.ts` validates normalized Server Action input and
-  maps expected failures into accessible per-field form state. Browser-native
-  constraints stay in place for immediate and progressive-enhancement feedback.
+- Feature-local `apps/web/src/features/*/contracts.ts` files are the source of
+  truth for web-facing response schemas, form inputs, and inferred DTO types.
+  Every Go success response is validated before a route can consume it.
+- Feature server functions validate typed and native form input, derive cookies
+  and visitor identity from the request boundary, and call server-only
+  operations. Enhanced failures map to accessible field state. Valid native
+  submissions use bounded post/redirect/get destinations and notices.
 - Client components use type-only contract imports. They must not import Zod
   schemas at runtime.
 - Zod validates the BFF boundary, not the domain. Go still owns authorization,
@@ -201,7 +218,8 @@ The school and game catalogs are effectively static — roughly 6,200 schools gr
 
 ## Deployment & data
 
-- First release deploys to Railway: one public Next.js service, one private Go API service, and Railway PostgreSQL.
+- First release deploys to Railway: one public TanStack Start service, one
+  private Go API service, and Railway PostgreSQL.
 - Cloudflare manages DNS/protection for `campusgamingnetwork.com`.
 - Railway PostgreSQL backups must be enabled/verified before public launch.
 - Run migrations through the existing Go migrator as a Railway pre-deploy command or dedicated migration service/job.
@@ -215,8 +233,9 @@ See [13 — Deployment plan](./13-deployment-plan.md) for the concrete Railway t
 
 1. Prefer platform features and a small core set of libraries
 2. Add a dependency only if it is clearly valuable, maintained, performant, and safe
-3. TanStack Start is the later CRM framework; other TanStack libs OK when justified
-4. HeroUI is the chosen component library for the main site
+3. TanStack Start and Router are the main-site framework; add Query/Table only
+   when their value is demonstrated
+4. Prefer semantic HTML and application CSS over a new client UI dependency
 
 ## Explicitly deferred
 

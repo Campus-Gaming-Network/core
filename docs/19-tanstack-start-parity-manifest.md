@@ -1,10 +1,11 @@
-# 19 — TanStack Start Phase 0 parity manifest
+# 19 — TanStack Start migration evidence record
 
-> **Status: Phase 0 baseline frozen; Phase 1 and Gates 2–4 accepted; Phase 5
-> local hardening passed; Railway staging is deferred until the service is
-> provisioned.** This manifest records the observable contract of the current
-> Next.js application and the evidence for the reversible TanStack Start slice.
-> It complements the
+> **Status: repository cutover complete; Railway staging and production
+> acceptance remain open.** TanStack Start is the canonical `apps/web`
+> application. This record preserves the observable contract of the former
+> Next.js implementation and the evidence used to accept and relocate the
+> TanStack Start candidate. Earlier `apps/web-start` paths are historical. It
+> complements the
 > execution plan in
 > [18 — TanStack Start main-frontend migration guide](./18-tanstack-start-main-frontend-migration-guide.md).
 > A migration task is not complete until its entries below pass against the
@@ -21,16 +22,17 @@
   authority for every authenticated or role-restricted operation.
 - Preserve the existing Zod response contracts, form schemas, native HTML
   constraints, and accessible `FormState` field errors.
-- For redirects, `next/navigation` currently produces temporary redirects from
-  page rendering and see-other redirects from Server Actions. Phase 0 HTTP
-  capture must record the actual status and `Location` before the old runtime is
-  removed.
+- In the frozen Next.js baseline, `next/navigation` produced temporary render
+  redirects and see-other redirects from Server Actions. The Start HTTP harness
+  now locks the accepted status and `Location` behavior.
 - `T0` through `T9` below are required migration gates. A table entry may add a
   narrower assertion but never removes a global gate.
 
 ## Source inventory
 
-Counts were rechecked from the current source on 2026-09-08:
+The following counts are the frozen Next.js baseline recorded on 2026-09-08.
+Its commands are historical and are not expected to run after repository
+cutover:
 
 | Surface | Count | Verification command |
 |---|---:|---|
@@ -124,14 +126,14 @@ observable URLs are the contract.
 | R09 | `/forgot-password` — `app/forgot-password/page.tsx` → `routes/forgot-password.tsx` | None. | Public and static; form uses A04. | 200; `Forgot password`, `noindex,nofollow`. | Assert head, native email constraint, enumeration-safe success copy, and error state. |
 | R10 | `/reset-password` — `app/reset-password/page.tsx` → `routes/reset-password.tsx` | `token`; first value wins. | Public; token is rendered only into A05's hidden form input. Missing token shows an alert. | 200 in both present/missing-token states; `Reset password`, `noindex,nofollow`. | Assert token is not visible in body text/logs, missing-token state remains 200, and successful A05 redirects correctly. |
 | R11 | `/auth/verify-email` — `app/auth/verify-email/page.tsx` → `routes/auth.verify-email.tsx` | `token`; first value wins. | Public. GET never consumes a token; explicit A07 submission verifies it. Missing token shows resend form A06. | 200; `Verify email`, `noindex,nofollow`. | Preserve explicit-confirmation, used/expired/missing-token flows; token must not appear in visible text or logs. |
-| R12 | `/auth/reset-password` — `app/auth/reset-password/page.tsx` → `routes/auth.reset-password.tsx` | Optional `token`; first value wins. | Public legacy compatibility route. No data. | Temporary render redirect to `/reset-password?token=<encoded>` or `/reset-password`; route metadata is `noindex` but the response should redirect before a body is used. | Direct HTTP assertion for status and exact encoded `Location`, with and without a token. |
+| R12 | `/auth/reset-password` — `app/auth/reset-password/page.tsx` → `routes/auth.reset-password.tsx` | Optional `token`; first value wins. | Public legacy compatibility route. No data. | Temporary render redirect to `/reset-password?token={encoded}` or `/reset-password`; route metadata is `noindex` but the response should redirect before a body is used. | Direct HTTP assertion for status and exact encoded `Location`, with and without a token. |
 | R13 | `/account` — `app/account/page.tsx` → `routes/account.tsx` | None. | Session required. Load current profile first; if present, load dashboard events (5), followed schools, and teams (10) in parallel. Secondary failures become empty sections; non-401 profile failures surface. | 200 authenticated; temporary redirect to `/login?next=/account` when anonymous; `Account`, `noindex,nofollow`; dedicated pending UI. | Assert redirect, authenticated SSR, secondary-data empty fallbacks, pending UI, API-outage safe error, and absence of private shared caching. |
 | R14 | `/schools` — `app/schools/(browse)/page.tsx` → `routes/schools.index.tsx` | `q`, `state`, `page`; invalid page safely becomes 1. Limit 25 and offset `(page-1)*25`. | Public. Failed catalog request becomes an empty result. Previous/next links preserve filters. | 200, indexable `Schools` metadata; exact browse pending UI. | Preserve filter GET form, empty fallback, pagination URLs/history, and client five-minute catalog freshness without applying it to follow state. |
 | R15 | `/schools/:slug` — `app/schools/[slug]/page.tsx` → `routes/schools.$slug.tsx` | Path `slug`; search notice `follow`. | Public school data plus optional current profile and, when authenticated, followed schools. | 200 for a school; true 404 for upstream 404; dynamic indexable school/location head. No ancestor browse pending boundary. | Direct 404/status/head test, authenticated/anonymous follow-state privacy test, and A12/A13 redirect/invalidation tests. |
 | R16 | `/events` — `app/events/(browse)/page.tsx` → `routes/events.index.tsx` | `game`, `school`, `format`, `after`, `before`; `event` is a display-only notice and must not be a loader dependency. | Public events (`limit=25`) plus optional profile and games in parallel. Event/game failures become empty results; an authenticated `/me` outage reaches the safe error boundary. | 200, indexable `Events` metadata; exact browse pending UI. | Preserve GET filters, opaque cursor links, notices, API-down empty state, authenticated-profile outage behavior, and authenticated create CTA without serializing a full profile. |
 | R17 | `/events/new` — `app/events/new/page.tsx` → `routes/events.new.tsx` | Search `school_q`. | Session required. After profile, load games and optional school search (`school_q` length >=2, limit 50); school failure is inline, game failure is a route error. | 200 authenticated; temporary redirect to `/login?next=/events/new` anonymous; `Create event`, `noindex,nofollow`. | Assert auth redirect, default school/timezone, shared school search/no-JS fallback, safe route error, and A14 validation/success. |
 | R18 | `/events/:slug` — `app/events/[slug]/page.tsx` → `routes/events.$slug.tsx` | Path `slug`; search notice `event`. | Public/unlisted detail; private detail uses session and per-event unlock cookie. Current profile is optional. | True 404 upstream. Public head is dynamic/indexable; unlisted is dynamic `noindex,nofollow`; locked private head is only “Private event” plus generic description and `noindex,nofollow`. No browse pending ancestor. | Assert HTTP 404 before streaming; scan head, HTML, hydration payload, logs, and JS for locked title/description/token; preserve A16/A21/A22/A23 notices and state. |
-| R19 | `/events/:slug/edit` — `app/events/[slug]/edit/page.tsx` → `routes/events.$slug_.edit.tsx` | Path `slug`; search `school_q`. | Session required. Viewer-aware event load; missing event 404. Locked or non-editor event returns generic denial UI; Go remains authorization authority. Then games + optional school search. | 200 editor or denial; anonymous temporary redirect to `/login?next=/events/<slug>/edit`; true 404 missing; generic `Edit event`, `noindex,nofollow`, never the event title in head. | Test anonymous, editor, non-editor, locked, missing, recurring-occurrence, school-search, and A15 validation/success cases. |
+| R19 | `/events/:slug/edit` — `app/events/[slug]/edit/page.tsx` → `routes/events.$slug_.edit.tsx` | Path `slug`; search `school_q`. | Session required. Viewer-aware event load; missing event 404. Locked or non-editor event returns generic denial UI; Go remains authorization authority. Then games + optional school search. | 200 editor or denial; anonymous temporary redirect to `/login?next=/events/{slug}/edit`; true 404 missing; generic `Edit event`, `noindex,nofollow`, never the event title in head. | Test anonymous, editor, non-editor, locked, missing, recurring-occurrence, school-search, and A15 validation/success cases. |
 | R20 | `/teams` — `app/teams/(browse)/page.tsx` → `routes/teams.index.tsx` | `game`, `school`, `after`, `before`. | Public teams (`limit=25`) plus optional profile and games in parallel. Team/game failures become empty results; an authenticated `/me` outage reaches the safe error boundary. | 200, indexable `Teams` metadata; exact browse pending UI. | Preserve GET filters/cursors, API-down empty state, authenticated-profile outage behavior, and auth-aware create CTA using only a minimal loader DTO. |
 | R21 | `/teams/new` — `app/teams/new/page.tsx` → `routes/teams.new.tsx` | Search `school_q`. | Session required. Profile, games, and optional school search mirror R17. | 200 authenticated; temporary redirect to `/login?next=/teams/new`; `Start a team`, `noindex,nofollow`. | Assert auth/defaults/search/error behavior and add missing A17 create-team browser coverage. |
 | R22 | `/teams/:slug` — `app/teams/[slug]/page.tsx` → `routes/teams.$slug.tsx` | Path `slug`; search notice `team`. | Public team data; session adds viewer role/member-management state. | 200; true 404 upstream; dynamic indexable team head. Metadata currently uses a public fetch while body can use a viewer-aware fetch; a Start composite loader may dedupe only if it returns an explicitly reviewed safe DTO. | Direct 404/head test plus anonymous/member/owner views and A18/A19/A20 redirects/invalidation. |
@@ -159,19 +161,19 @@ behavior.
 
 | Trigger | Required destination | Notes |
 |---|---|---|
-| `GET /auth/reset-password?token=T` | `/reset-password?token=<encoded T>` | Legacy temporary redirect; without `token`, omit the query entirely. |
+| `GET /auth/reset-password?token=T` | `/reset-password?token={encoded T}` | Legacy temporary redirect; without `token`, omit the query entirely. |
 | Anonymous `GET /account` | `/login?next=/account` | Profile 401/missing session redirects; upstream outage must show safe error instead. |
 | Anonymous `GET /events/new` | `/login?next=/events/new` | Preserve exact local return target. |
 | Anonymous `GET /teams/new` | `/login?next=/teams/new` | Preserve exact local return target. |
-| Anonymous `GET /events/:slug/edit` | `/login?next=/events/<slug>/edit` | Encode dynamic path data when building the Start redirect. |
+| Anonymous `GET /events/:slug/edit` | `/login?next=/events/{slug}/edit` | Encode dynamic path data when building the Start redirect. |
 | Successful login | Valid local `next`, otherwise `/account` | Only a string beginning `/` but not `//` is accepted. |
-| Follow/unfollow API 401 | `/login?next=<encoded /schools/slug>` | Other failures return to the school with `follow=failed`. |
+| Follow/unfollow API 401 | `/login?next={encoded /schools/slug}` | Other failures return to the school with `follow=failed`. |
 | Successful password reset | `/login?reset=complete` | Login renders the completion notice. |
-| Successful event create/update | `/events/<returned-slug>?event=created|updated` | Use the Go-returned slug. |
+| Successful event create/update | `/events/{returned-slug}?event=created|updated` | Use the Go-returned slug. |
 | Event cancellation | `/events?event=cancelled` | Invalid input goes to `/events?event=cancel-failed`; API failure returns to the detail route with the same notice. |
-| Event unlock/RSVP/interest | `/events/<returned-slug>?event=unlocked|rsvp-updated|interest-added|interest-removed` | Failures that return `FormState` stay in place; redirect-only interest failure uses `interest-failed`. |
-| Successful team create/join | `/teams/<returned-slug>?team=created|joined` | Use the Go-returned slug. |
-| Captain/ownership management | `/teams/<returned-slug>?team=captain-updated|ownership-transferred` | Validation/API failure uses `team=manage-failed`. |
+| Event unlock/RSVP/interest | `/events/{returned-slug}?event=unlocked|rsvp-updated|interest-added|interest-removed` | Failures that return `FormState` stay in place; redirect-only interest failure uses `interest-failed`. |
+| Successful team create/join | `/teams/{returned-slug}?team=created|joined` | Use the Go-returned slug. |
+| Captain/ownership management | `/teams/{returned-slug}?team=captain-updated|ownership-transferred` | Validation/API failure uses `team=manage-failed`. |
 | Successful account deletion | `/?account=deleted` | Delete local session cookie before redirect. |
 | Auth-navigation logout | `/` | Current enhanced client replaces history and refreshes after A03; the no-JS Start path must reach the same destination. |
 
@@ -193,20 +195,20 @@ but the Go API must enforce the requirement independently.
 | A07 | `verifyEmailAction` — explicit verification form | Public token flow; `verificationTokenFormSchema`. | `POST /auth/verify-email`; `statusResponseSchema`. | Success stays on page with “Your email is verified.” Invalid/expired/used token returns generic link-invalid message and resend UI. Preserve explicit POST and token privacy. |
 | A08 | `updateProfileAction` — account profile form | Session required; `profileFormSchema`: name, bio, timezone, up to three social links. | `PATCH /me`; `profileSchema`. | Returns `FormState`; success invalidates `/account`. Preserve nested accessible field mapping, auth enforcement, blocked-language errors, safe logs, and add missing browser/no-JS coverage. |
 | A09 | `submitSupportTicketAction` — support form | Anonymous allowed; optional session cookie; `supportTicketFormSchema`: contact email, name, subject, message. | `POST /support-tickets`; `idResponseSchema`. | Success/error `FormState`, no redirect. Preserve rate-limit identity and never log PII/message bodies. Add anonymous/authenticated/no-JS tests. |
-| A10 | `reportEventAction` — event report form | Basic user required by product/Go; `slugFormSchema` target plus `reportFormSchema` reason. | `POST /events/<encoded slug>/report`; `idResponseSchema`. | Success/error `FormState`, no redirect. Preserve rate-limit identity, target encoding, report privacy, and add missing unauthorized/success/no-JS tests. |
-| A11 | `reportUserAction` — public-profile report form | Basic user required; `slugFormSchema` user ID plus `reportFormSchema` reason. | `POST /users/<encoded id>/report`; `idResponseSchema`. | Same state/privacy rules as A10. Test self/anonymous UI plus server-side unauthorized and valid reports. |
-| A12 | `followSchoolAction` — school detail form | Session required; `schoolFollowFormSchema`: school ID and slug. | `POST /schools/<encoded id>/follow`; `emptyResponseSchema`. | Redirect-only action. Success invalidates school detail and adds `follow=added`; invalid input uses `/schools?follow=failed`; 401 goes to login return target; other failure uses detail `follow=failed`. Add browser/no-JS coverage. |
-| A13 | `unfollowSchoolAction` — school detail form | Session required; same schema as A12. | `DELETE /schools/<encoded id>/follow`; `emptyResponseSchema`. | Redirect-only. Success invalidates detail and adds `follow=removed`; validation/auth/error destinations mirror A12. Verify no stale follow state after client navigation. |
+| A10 | `reportEventAction` — event report form | Basic user required by product/Go; `slugFormSchema` target plus `reportFormSchema` reason. | `POST /events/{encoded slug}/report`; `idResponseSchema`. | Success/error `FormState`, no redirect. Preserve rate-limit identity, target encoding, report privacy, and add missing unauthorized/success/no-JS tests. |
+| A11 | `reportUserAction` — public-profile report form | Basic user required; `slugFormSchema` user ID plus `reportFormSchema` reason. | `POST /users/{encoded id}/report`; `idResponseSchema`. | Same state/privacy rules as A10. Test self/anonymous UI plus server-side unauthorized and valid reports. |
+| A12 | `followSchoolAction` — school detail form | Session required; `schoolFollowFormSchema`: school ID and slug. | `POST /schools/{encoded id}/follow`; `emptyResponseSchema`. | Redirect-only action. Success invalidates school detail and adds `follow=added`; invalid input uses `/schools?follow=failed`; 401 goes to login return target; other failure uses detail `follow=failed`. Add browser/no-JS coverage. |
+| A13 | `unfollowSchoolAction` — school detail form | Session required; same schema as A12. | `DELETE /schools/{encoded id}/follow`; `emptyResponseSchema`. | Redirect-only. Success invalidates detail and adds `follow=removed`; validation/auth/error destinations mirror A12. Verify no stale follow state after client navigation. |
 | A14 | `createEventAction` — event form create mode | Authenticated verified user; `createEventFormSchema` over normalized event payload. | `POST /events` with session; `eventSchema`. | Validation/API failure returns accessible state; success invalidates `/events` and redirects to returned slug with `event=created`. Existing create/validation tests plus valid no-JS submission must pass. |
-| A15 | `updateEventAction` — event form edit mode | Event organizer; `slugFormSchema` plus `updateEventFormSchema`. | `PATCH /events/<encoded slug>` with session; `eventSchema`. | Failure returns state; success invalidates list and returned detail, then redirects with `event=updated`. Preserve recurrence immutability, DST errors, permission enforcement, and no-JS behavior. |
-| A16 | `deleteEventAction` — event detail cancel form | Event organizer; `slugFormSchema`. | `DELETE /events/<encoded slug>` with session; `emptyResponseSchema`. | Redirect-only. Success invalidates list and redirects `event=cancelled`; invalid input/list and API/detail failures use `cancel-failed`. Do not expose backend errors; preserve no-JS operation. |
+| A15 | `updateEventAction` — event form edit mode | Event organizer; `slugFormSchema` plus `updateEventFormSchema`. | `PATCH /events/{encoded slug}` with session; `eventSchema`. | Failure returns state; success invalidates list and returned detail, then redirects with `event=updated`. Preserve recurrence immutability, DST errors, permission enforcement, and no-JS behavior. |
+| A16 | `deleteEventAction` — event detail cancel form | Event organizer; `slugFormSchema`. | `DELETE /events/{encoded slug}` with session; `emptyResponseSchema`. | Redirect-only. Success invalidates list and redirects `event=cancelled`; invalid input/list and API/detail failures use `cancel-failed`. Do not expose backend errors; preserve no-JS operation. |
 | A17 | `createTeamAction` — team form | Authenticated verified user; `createTeamFormSchema` over normalized team payload. | `POST /teams` with session; `teamSchema`. | Failure returns state; success invalidates `/teams` and redirects to returned slug with `team=created`. Add currently missing browser and no-JS coverage. |
-| A18 | `joinTeamAction` — team detail join form | Authenticated user plus team password; `slugFormSchema` and `passwordFormSchema`. | `POST /teams/<encoded slug>/join`; `teamSchema`. | Failure returns state; success invalidates list/detail and redirects `team=joined`. Preserve password minimization and existing member-view test; add no-JS coverage. |
-| A19 | `setTeamCaptainAction` — owner management form | Team owner; `teamCaptainFormSchema`: slug, user ID, captain boolean. | `POST /teams/<encoded slug>/captains`; `teamSchema`. | Redirect-only. Success invalidates detail and redirects `captain-updated`; invalid/API failure redirects `manage-failed`. Preserve owner authorization, tamper rejection, safe logs, and no-JS behavior. |
-| A20 | `transferTeamOwnershipAction` — owner management form | Team owner; `teamOwnershipFormSchema`: slug and new owner user ID. | `POST /teams/<encoded slug>/transfer-ownership`; `teamSchema`. | Redirect-only. Success invalidates list/detail and redirects `ownership-transferred`; invalid/API failure redirects `manage-failed`. Preserve Go authorization and add adversarial/no-JS coverage. |
-| A21 | `unlockEventAction` — locked-event form | Anonymous allowed; `slugFormSchema` and `passwordFormSchema`. | `POST /events/<encoded slug>/unlock`; `eventUnlockResponseSchema`. | Failure returns state. Success stores an event-specific unlock token in an HTTP-only, root-path, `SameSite=Lax`, production-`Secure` cookie with upstream expiry; invalidates detail and redirects `event=unlocked`. Token must never enter loader data, HTML, logs, or query state. |
-| A22 | `rsvpEventAction` — event RSVP form | Authenticated user; `rsvpFormSchema`: slug and yes/no/maybe. Private events also require the server-derived unlock header. | `POST /events/<encoded slug>/rsvp`; `eventSchema`. | Failure returns state; success invalidates list/detail and redirects `rsvp-updated`. Preserve capacity=yes-only behavior, RSVP/interest independence, cookie secrecy, confirmation-email contract, and no-JS submission. |
-| A23 | `eventInterestAction` — event detail toggle | Authenticated user; `eventInterestFormSchema`: slug and strict interested boolean. Private events use server-derived unlock header. | `POST` when adding or `DELETE` when removing `/events/<encoded slug>/interest`; `eventSchema`. | Redirect-only. Success invalidates list/detail and redirects added/removed notice; invalid/API failure uses `interest-failed`. Preserve tamper rejection, independence from RSVP, and no-JS toggle. |
+| A18 | `joinTeamAction` — team detail join form | Authenticated user plus team password; `slugFormSchema` and `passwordFormSchema`. | `POST /teams/{encoded slug}/join`; `teamSchema`. | Failure returns state; success invalidates list/detail and redirects `team=joined`. Preserve password minimization and existing member-view test; add no-JS coverage. |
+| A19 | `setTeamCaptainAction` — owner management form | Team owner; `teamCaptainFormSchema`: slug, user ID, captain boolean. | `POST /teams/{encoded slug}/captains`; `teamSchema`. | Redirect-only. Success invalidates detail and redirects `captain-updated`; invalid/API failure redirects `manage-failed`. Preserve owner authorization, tamper rejection, safe logs, and no-JS behavior. |
+| A20 | `transferTeamOwnershipAction` — owner management form | Team owner; `teamOwnershipFormSchema`: slug and new owner user ID. | `POST /teams/{encoded slug}/transfer-ownership`; `teamSchema`. | Redirect-only. Success invalidates list/detail and redirects `ownership-transferred`; invalid/API failure redirects `manage-failed`. Preserve Go authorization and add adversarial/no-JS coverage. |
+| A21 | `unlockEventAction` — locked-event form | Anonymous allowed; `slugFormSchema` and `passwordFormSchema`. | `POST /events/{encoded slug}/unlock`; `eventUnlockResponseSchema`. | Failure returns state. Success stores an event-specific unlock token in an HTTP-only, root-path, `SameSite=Lax`, production-`Secure` cookie with upstream expiry; invalidates detail and redirects `event=unlocked`. Token must never enter loader data, HTML, logs, or query state. |
+| A22 | `rsvpEventAction` — event RSVP form | Authenticated user; `rsvpFormSchema`: slug and yes/no/maybe. Private events also require the server-derived unlock header. | `POST /events/{encoded slug}/rsvp`; `eventSchema`. | Failure returns state; success invalidates list/detail and redirects `rsvp-updated`. Preserve capacity=yes-only behavior, RSVP/interest independence, cookie secrecy, confirmation-email contract, and no-JS submission. |
+| A23 | `eventInterestAction` — event detail toggle | Authenticated user; `eventInterestFormSchema`: slug and strict interested boolean. Private events use server-derived unlock header. | `POST` when adding or `DELETE` when removing `/events/{encoded slug}/interest`; `eventSchema`. | Redirect-only. Success invalidates list/detail and redirects added/removed notice; invalid/API failure uses `interest-failed`. Preserve tamper rejection, independence from RSVP, and no-JS toggle. |
 | A24 | `deleteAccountAction` — typed destructive form | Session required; `deleteAccountFormSchema` typed confirmation. | `DELETE /me`; `emptyResponseSchema`. | Failure returns state. Success deletes local session cookie, invalidates all session-derived data, and redirects `/?account=deleted`. Gate typed confirmation, session revocation, ownership fallback effects at Go boundary, safe logs, and valid no-JS submission. |
 
 ## Migration test gates
@@ -638,20 +640,17 @@ Railway rehearsal, observability, final performance-budget acceptance, and a
 documented rollback drill. Next.js removal belongs only after those gates and
 the production soak; no cutover decision is made here.
 
-## Phase 5 local hardening evidence — 2026-09-12
+## Phase 5 local hardening and repository cutover evidence — 2026-09-12
 
-The local cutover candidate now has a Railway service configuration at
-`railway/web-start.toml`. It builds `apps/web-start/Dockerfile`, starts the same
+The accepted application now owns the canonical Railway service configuration
+at `railway/web.toml`. It builds `apps/web/Dockerfile`, starts the same
 `src/production-preflight.ts` entry used by the container, probes
-`/api/health`, and uses the production restart policy. This preserves parity
-with the repository's existing Railway Config-as-Code services, but Railway
-now deprecates that format and does not allow new services to opt into it. The
-staging rehearsal must either reuse an existing legacy-configured staging
-service or import the project into `.railway/railway.ts` Infrastructure as Code
-before the 2026-12-01 cutoff. This is configuration parity, not evidence of an
-actual Railway deployment; staging still has to prove private Go networking,
-injected secrets and `PORT`, the direct Railway fallback identity path, and the
-Cloudflare origin-secret path.
+`/api/health`, and uses the production restart policy. The temporary
+`web-start` application, Compose service, and Railway file are gone. This is
+repository configuration evidence, not evidence of an actual Railway
+deployment; staging still has to prove private Go networking, injected secrets
+and `PORT`, the direct Railway fallback identity path, and the Cloudflare
+origin-secret path.
 
 The browser gate now runs the same suite against both the Vite development
 server and the built Nitro production process. It includes desktop, mobile,
@@ -683,8 +682,9 @@ CI now scans the complete `.output/public` tree for server environment names,
 test secrets, session/unlock values, and private markers after every production
 build. The same check rejects Next imports, `.next`, `"use server"`, and
 `NEXT_PUBLIC_SITE_URL` within the Start application boundary. CI also runs a
-production-only, high-severity dependency audit after the clean install. The
-privacy scan covered 52 emitted public files in this build.
+production-runtime, high-severity dependency audit after the clean install,
+excluding development-optional build tooling that is not copied into the
+runtime image. The privacy scan covered 52 emitted public files in this build.
 
 All local commands used Node 24.18.0. The integrated results are:
 
@@ -693,35 +693,36 @@ All local commands used Node 24.18.0. The integrated results are:
 | Inventory, typecheck, lint, and whitespace | Passed. The Start route tree still covers 23 page patterns and 3 API routes; the mutation inventory remains A01–A24. |
 | Unit and security suite | Passed: 173 tests. |
 | Nitro production build | Passed. The main browser entry is 302.66 kB raw / 95.36 kB offline-gzip; the main CSS asset is 3.97 kB / 1.38 kB. |
-| Development browser harness | Passed: 121 Chromium cases across desktop, mobile, and JavaScript-disabled projects. |
-| Production browser harness | Passed: the same 121 Chromium cases against the built Nitro server. |
+| Development browser harness | Passed: 125 Chromium cases across desktop, mobile, and JavaScript-disabled projects. Back/forward coverage preserves filtered catalog state and proves a mutation redirect does not replay its POST. |
+| Production browser harness | Passed: the same 125 Chromium cases against the built Nitro server. |
 | Production HTTP and privacy harnesses | Passed. The HTTP harness covers the complete route waves, authenticated writer pages, API `HEAD`/405 boundaries, CSRF/native forms, cookie and identity handling, private-event redaction, and log secrecy. The static scan found no server marker in 52 public files and no Next boundary in Start source. |
-| Compose and Docker | Passed. Compose covers all four applications. A fresh runner image built from the current source, started as UID/GID 1000, honored the runtime contract, and returned the exact API-unavailable 503 from its isolated health probe. |
+| Compose and Docker | Passed. Compose covers exactly the canonical `api`, `docs`, and `web` applications. A fresh runner image built from the current source, started as UID/GID 1000, honored the runtime contract, and returned the exact API-unavailable 503 from its isolated health probe. |
+| Documentation | Passed: VitePress production build and rendered Mermaid browser check. |
+| Production dependency audit | Passed against the current npm registry: zero vulnerabilities in the shipped runtime dependency set (`--omit=dev --omit=optional`). |
 | Representative performance rerun | Passed as a diagnostic comparison. Public Start TTFB was 17.87 ms median / 28.32 ms p95; locked Start was 17.12 / 23.88 ms. Both states loaded 14 JavaScript resources totaling 472,006 raw / 147,417 offline-gzip bytes. The corresponding webpack Next results were 20.54 / 28.35 ms and 20.57 / 58.21 ms with 733,541–739,701 raw / 223,958–226,240 gzip bytes. Loopback results do not establish a production speedup. |
 
-The container install still reports one high and one moderate advisory in the
-build tree. The older Vite 5/esbuild lineage is marked development-optional in
-the lockfile; the Start application itself builds with Vite 8.2.2 and esbuild
-0.28.2, and the minimal runtime image copies only `.output`. A cached offline
-production-only audit reports zero advisories, but that does not substitute for
-checking the current registry advisory database. A fresh online
-production-only audit and any required dependency remediation remain required
-before cutover.
+The container build install still reports one high and one moderate advisory in
+the development-optional Vite 5/esbuild lineage used by documentation/build
+tooling. The Start application itself builds with Vite 8.2.2 and esbuild
+0.28.2, and the minimal runtime image copies only `.output`. A fresh online
+audit against the current registry reports zero vulnerabilities after omitting
+development and optional build tooling, which matches the shipped runtime
+boundary.
 
-Two local behavior decisions remain recorded for the cutover review. Valid
+Two local behavior decisions are accepted for this cutover. Valid
 no-JavaScript submissions pass for A01–A24, but invalid or upstream-failed
 native submissions use bounded redirect notices instead of retaining every
-field value and exact enhanced `FormState`. Field schemas are bounded, while a
-global request-body limit still belongs at the hosting/edge boundary. Neither
-is being counted as completed parity evidence.
+field value and exact enhanced `FormState`. Field schemas are bounded; the
+global request-body cap is an external Railway/Cloudflare deployment control,
+not an application-migration blocker.
 
-**Phase 5 local status: passed; Gate 5 remains open.** Local build, startup,
+**Phase 5 local status: passed; external Gate 5 remains open.** Local build, startup,
 health, container, route, metadata, cache, privacy, accessibility, responsive,
 no-JavaScript, and performance evidence are green. The remaining work requires
 external deployment authority or an operational environment. Railway staging
 is intentionally deferred until that service is provisioned; then deploy the
 exact candidate, exercise it against the real Go/Postgres stack through both
 direct Railway and Cloudflare paths, validate observability and secret-safe
-logs during a soak/restart, rehearse rollback, and close the production
-dependency audit. The current Next deployment remains authoritative until
-those checks are complete and accepted.
+logs during a soak/restart, and rehearse rollback. The canonical repository frontend is now TanStack Start;
+Railway/Cloudflare deployment acceptance is still required before public
+traffic.

@@ -71,8 +71,8 @@ Decisions to resolve before or during implementation. Until answered, implemente
 | Event banners | **Decided:** default placeholder; custom uploads later with moderation |
 | Event slug hash | **Decided:** **8** Base64URL characters |
 | CRM | **TanStack Start** at `crm.campusgamingnetwork.com` (separate later release; skipped for first release) |
-| Main site | `campusgamingnetwork.com` (Next.js) |
-| Production hosting | **Railway** hosts Next.js web, Go API, and PostgreSQL; Cloudflare manages DNS/protection |
+| Main site | `campusgamingnetwork.com` (TanStack Start) |
+| Production hosting | **Railway** hosts TanStack Start web, Go API, and PostgreSQL; Cloudflare manages DNS/protection |
 | Production database | **Railway PostgreSQL** for now; enable/verify backups before public launch |
 | Railway environments | Rehearse launch in a separate `staging` environment, then deploy `production` with separate Postgres and secrets |
 | Railway migrations | API pre-deploy command runs the Go migrator before Railway activates the new API deployment |

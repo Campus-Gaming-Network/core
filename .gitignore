@@ -29,7 +29,7 @@ tmp/
 data/Schools_*.csv
 !data/schools_seed.csv
 
-# Node / Next.js
+# Node / frontend builds
 node_modules/
 .next/
 .output/

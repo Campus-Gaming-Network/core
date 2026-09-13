@@ -24,7 +24,7 @@ Cloudflare DNS / edge protection
         │
         ▼
 Railway public web service
-Next.js app / BFF / Server Actions
+TanStack Start / Vite / Nitro BFF
         │
         ▼  http over Railway private networking
 Railway private API service
@@ -77,11 +77,10 @@ Values belong in Railway variables, not in the repository. Seal the Resend key a
 | `API_SESSION_COOKIE` | `cgn_session` |
 | `API_PROXY_SHARED_SECRET` | Same sealed random value as the API service; generate at least 32 random bytes |
 | `CLOUDFLARE_ORIGIN_SECRET` | Sealed random value also configured as Cloudflare's `X-CGN-Cloudflare-Secret` request transform |
-| `NEXT_PUBLIC_SITE_URL` | `https://campusgamingnetwork.com` (use the public HTTPS rehearsal origin in staging) |
+| `SITE_URL` | `https://campusgamingnetwork.com` (use the public HTTPS rehearsal origin in staging) |
 | `NODE_ENV` | `production` |
-| `NEXT_TELEMETRY_DISABLED` | `1` |
 
-The internal URL deliberately uses `http`, because Railway private-network traffic remains inside the project environment. It is available to server components/actions only and is never a browser-facing URL.
+The internal URL deliberately uses `http`, because Railway private-network traffic remains inside the project environment. It is available only to the Start server boundary and is never a browser-facing URL.
 
 ### `api`
 
@@ -116,22 +115,24 @@ Invalid strict-mode configuration stops startup and therefore fails the
 Railway deployment health path. Local mode remains the default for direct
 development and Docker Compose, where localhost URLs, an insecure cookie, and
 missing Resend/Cloudflare credentials are deliberate. Do not use `NODE_ENV` as
-the safety switch: Next.js sets it to `production` for normal local builds and
-starts as well as hosted deployments. Both production container images default
-`DEPLOYMENT_ENV` to `production`, so omitting the Railway variable remains
-fail-closed; set it explicitly to `staging` in the rehearsal environment for
-accurate diagnostics.
+the safety switch: production bundlers and runtimes set it for local production
+builds as well as hosted deployments. The web container runs
+`src/production-preflight.ts` before importing the generated Nitro server, and
+both production container images default `DEPLOYMENT_ENV` to `production`.
+Omitting the Railway variable therefore remains fail-closed; set it explicitly
+to `staging` in the rehearsal environment for accurate diagnostics.
 
 ### Trusted visitor boundary
 
 The public Railway proxy overwrites `X-Real-IP` before a request reaches the
-Next.js service. Direct Railway traffic uses that address. For Cloudflare-
+TanStack Start service. Direct Railway traffic uses that address. For Cloudflare-
 proxied production traffic, a request-header transform must overwrite
 `X-CGN-Cloudflare-Secret`; only a matching `CLOUDFLARE_ORIGIN_SECRET` allows the
 BFF to use Cloudflare's single-value `CF-Connecting-IP`. This prevents direct
 requests to the Railway domain from spoofing Cloudflare's visitor header.
 
-Server Actions normalize the selected IP and send it to the private API in
+Start server functions and native form operations normalize the selected IP and
+send it to the private API in
 `X-CGN-Visitor-IP`, together with `X-CGN-Proxy-Secret`. The API trusts it only
 when the secret matches `API_PROXY_SHARED_SECRET`; otherwise it falls back to
 the direct peer address. Browser-provided internal headers are removed before
@@ -214,12 +215,13 @@ Then complete these manual checks:
 8. Dashboard shows upcoming RSVPs, followed-school events, and team activity.
 9. Support ticket submission works logged out; event/user reports work logged in.
 10. Private event responses do not expose details before unlock — check the page **head** as well as the body. A locked event must render only a generic "Private event" title with `noindex`, and its real title, description, location name, address, and password must appear nowhere in the source. The slug legitimately contains the slugified title by the documented `slugify(title)` + hash design; that is the URL itself and is not a leak.
-11. Missing events, schools, teams, and profiles return **HTTP 404, not 200**. Check the status code, not just the page: a soft 404 renders the correct not-found content while still answering 200, and search engines treat that as a real page. Adding a `loading.tsx` above a `notFound()` route reintroduces this — see the constraint in [06 — Architecture](./06-architecture.md).
+11. Missing events, schools, teams, and profiles return **HTTP 404, not 200**. Check the status code, not just the page: a soft 404 renders the correct not-found content while still answering 200, and search engines treat that as a real page. The production HTTP and metadata suites preserve this invariant; see [06 — Architecture](./06-architecture.md).
 12. Public event and school pages carry their own title, description, and Open Graph tags; unlisted events resolve normally but are `noindex`.
 
 ## Rollback posture
 
 - App regression: use Railway’s rollback/redeploy action for the previous successful `web` or `api` deployment.
+- First Start deployment regression: redeploy the pre-cutover Next.js commit or image while no accepted Start deployment exists; after Start is accepted, use the most recent known-good Start image.
 - Failed pre-deploy migration: Railway does not activate the new API image; fix forward with a new migration or corrected unapplied migration.
 - Applied bad migration/data change: stop writes if necessary and restore the verified Railway backup into the same project/environment, then redeploy the previous compatible app release.
 - Never edit a migration already applied to production and never rely on manual production SQL for routine schema changes.

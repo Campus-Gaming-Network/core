@@ -2,7 +2,7 @@
 
 Central hub for collegiate gamers: find events, teams, and school gaming info across the United States.
 
-**Sites:** [campusgamingnetwork.com](https://campusgamingnetwork.com) (ma yet) · [crm.campusgamingnetwork.com](https://crm.campusgamingnetwork.com) (later CRM/admin app)
+**Sites:** [campusgamingnetwork.com](https://campusgamingnetwork.com) (main site) · [crm.campusgamingnetwork.com](https://crm.campusgamingnetwork.com) (later CRM/admin app)
 
 These docs are the source of truth for product intent, domain rules, architecture, and delivery order. Use them when implementing features or asking an LLM to generate code.
 
@@ -28,7 +28,8 @@ These docs are the source of truth for product intent, domain rules, architectur
 | [15 — Pass v0 quality checklist](./15-pass-v0-checklist.md) | Regression checklist for signup → event → RSVP → team → dashboard |
 | [16 — Legal and data-lifecycle plan](./16-legal-and-data-lifecycle-plan.md) | Pre-launch policy blockers, retention targets, account deletion, and operations follow-up |
 | [17 — Codebase review action plan](./17-codebase-review-action-plan.md) | Prioritized engineering backlog from the 2026-09-05 architecture, correctness, reliability, and product-readiness review |
-| [18 — TanStack Start main-frontend migration guide](./18-tanstack-start-main-frontend-migration-guide.md) | Proposal and multi-agent execution plan for evaluating, porting, validating, staging, cutting over, and rolling back a main-site migration from Next.js |
+| [18 — TanStack Start main-frontend migration guide](./18-tanstack-start-main-frontend-migration-guide.md) | Completed repository migration plan, historical execution record, remaining deployment acceptance, and rollback posture |
+| [19 — TanStack Start parity manifest](./19-tanstack-start-parity-manifest.md) | Route, mutation, security, browser, and cutover evidence for the canonical Start frontend |
 
 ## How to use with AI / LLMs
 
@@ -58,7 +59,7 @@ These docs are the source of truth for product intent, domain rules, architectur
 - **Content filtering** — reject a small word-boundary blocked-term list in user-authored names, bios, event/team text, reports, and support messages before persistence.
 - **Page metadata** — every route sets its own title/description/Open Graph tags; authenticated, token, private, and unlisted routes are `noindex`. A locked private event exposes only a generic title.
 - **Not-found routes** — missing entities must return HTTP 404, never a soft 404; never put a `loading.tsx` above a `notFound()` route.
-- **Infra** — Railway hosts Next.js, Go API, and production Postgres for the ma for now; Cloudflare manages DNS/protection; Resend handles email; Cloudflare R2 and TanStack Start CRM are later/admin-app concerns.
+- **Infra** — Railway hosts TanStack Start, the Go API, and production Postgres for the main site; Cloudflare manages DNS/protection; Resend handles email; Cloudflare R2 and the separate TanStack Start CRM are later/admin-app concerns.
 - **Search** — Postgres full-text / trigram first; no Elasticsearch until proven necessary.
 - **Soft deletes** — use `deleted_at`; never hard-delete user-facing content without an explicit policy.
 - **Audit vs system logs** — audit = entity change history; system = operational/app logs.

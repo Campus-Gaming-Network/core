@@ -1,5 +1,10 @@
 # 12 — Phase 1 plan
 
+> **Historical implementation plan.** This document records the original
+> Phase 1 work against the former Next.js frontend. TanStack Start is now the
+> canonical main frontend in `apps/web`; current architecture and commands live
+> in docs 06, 11, and 13.
+
 Reviewable implementation plan for **Phase 1 — Auth, profiles, schools (read)**.
 
 Phase 1 turns the Phase 0 scaffold into the first usable product slice: a logged-out visitor can browse schools, and a new user can sign up, verify email, select a home school, and follow additional schools.

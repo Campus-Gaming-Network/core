@@ -1,10 +1,11 @@
 # 18 — TanStack Start main-frontend migration guide
 
-> **Status: Phase 1 accepted; Gates 2–4 passed; Phase 5 local hardening passed;
-> Railway staging is deferred until the service is provisioned.** The
-> reversible `apps/web-start` application remains alongside the current
-> Next.js production application. This accepts Start as the parity target, not
-> as a production cutover.
+> **Status: repository cutover complete; external staging and production
+> acceptance remain open.** TanStack Start is now the canonical `apps/web`
+> application. The former Next.js source and temporary `apps/web-start`
+> workspace have been removed; their earlier paths in this guide describe the
+> migration history. Railway staging remains deferred until the service is
+> provisioned.
 
 ## Outcome
 
@@ -13,7 +14,7 @@ while preserving:
 
 - Every public URL, redirect, query parameter, and important HTTP status.
 - Full-document SSR for public, indexable pages.
-- The existing React, HeroUI, Tailwind CSS, and accessible HTML experience.
+- The existing React, application CSS, and accessible HTML experience.
 - The web BFF as the only public caller of the private Go API.
 - Opaque HTTP-only session cookies and private-event unlock cookies.
 - Cloudflare/Railway visitor-identity forwarding and API proxy authentication.
@@ -643,6 +644,14 @@ about and roll back.
 6. Deploy staging from the exact candidate commit, then promote that commit to
    production.
 
+The repository portion of this checklist was completed on 2026-09-12. The
+accepted Start application moved to `apps/web`; the old Next.js application,
+packages, build configuration, and temporary Compose/Railway service were
+removed. Root commands, CI, Docker, Compose, and `railway/web.toml` now target
+the canonical Start application. Earlier `apps/web-start` and Next-specific
+commands in this guide remain as dated migration evidence and are not expected
+to run after the relocation.
+
 ### Production cutover
 
 - Keep the public hostname, API service, database, cookie names, and health path
@@ -668,9 +677,11 @@ Rollback immediately for:
 - Health-check instability or sustained 5xx errors.
 - Material unexplained performance regression.
 
-Use Railway's previous successful web deployment/image. Verify `/api/health`,
-login, a private event, RSVP, team join, and account access after rollback. Keep
-the Start commit and logs for diagnosis; fix forward in staging rather than
+Use the previous successful web deployment/image when one exists. Before the
+first Railway deployment, the pre-cutover Next.js commit remains recoverable
+from Git as the repository rollback point. Verify `/api/health`, login, a
+private event, RSVP, team join, and account access after any rollback. Keep the
+Start commit and logs for diagnosis; fix forward in staging rather than
 patching production interactively.
 
 ## Suggested agent waves
@@ -693,7 +704,8 @@ that lane with a large domain port.
 
 ## Definition of done
 
-The migration is complete only when:
+The repository migration is complete. Operational adoption is complete only
+when:
 
 - All 23 page routes, 3 server routes, and 24 mutations appear in the parity
   manifest and pass their gates.
@@ -705,9 +717,10 @@ The migration is complete only when:
   invariants pass independent review.
 - Production Docker, Compose, and Railway health checks are verified.
 - Performance comparison is recorded and accepted.
-- Next.js packages, files, runtime assumptions, and documentation are removed.
-- The previous Next.js deployment remains immediately recoverable through the
-  agreed rollback window.
+- Next.js packages, files, runtime assumptions, and current-state documentation
+  are removed.
+- The pre-cutover Next.js commit remains recoverable through the agreed
+  rollback window.
 - Architecture and implementation-decision docs reflect the adopted design.
 
 ## Effort estimate

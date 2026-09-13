@@ -1,38 +1,46 @@
 # 04 — API
 
-Public UI talks to a **Next.js BFF**; the BFF calls **Go** services that own domain logic and Postgres. The later CRM app also calls Go (directly or via an admin BFF).
+The public UI talks to a **TanStack Start BFF**; the BFF calls **Go** services
+that own domain logic and Postgres. The later CRM app also calls Go (directly
+or via an admin BFF).
 
 ## Pattern: Backend for Frontend (BFF)
 
 ```text
-UI route / Server Action  →  Next.js BFF  →  Go API  →  Postgres
-Later CRM screens      →  (CRM BFF or direct) →  Go Admin API  →  Postgres
+UI route / server function  →  TanStack Start BFF  →  Go API  →  Postgres
+Later CRM screens           →  (CRM BFF or direct) →  Go Admin API  →  Postgres
 ```
 
 | Layer | Responsibility |
 |-------|----------------|
-| Next.js BFF | Opaque server-side session cookies, CSRF, aggregating page props, mapping DTOs to UI, route handlers / server actions |
+| TanStack Start BFF | Opaque server-side session cookies, CSRF, route-loader data, DTO mapping, server routes, server functions, and native-form redirects |
 | Go API | AuthZ checks, validation, transactions, email triggers, rate limits, and future audit writes |
 | Browser | Progressive enhancement only; no core business rules |
 
-Prefer server-rendered pages and server actions over exposing a wide public JSON surface. Where JSON is needed (mobile later, CRM, TanStack Query), version it (`/api/v1/...`).
+Prefer server-rendered routes and server functions over exposing a wide public
+JSON surface. Core forms also retain native POST behavior for progressive
+enhancement. Where JSON is needed (mobile later, CRM, TanStack Query), version
+it (`/api/v1/...`).
 
 ### BFF validation boundaries
 
 The web BFF uses Zod for two trust boundaries:
 
-- Every successful Go API response passed through `apiRequest` is parsed by a
-  schema in `apps/web/lib/api-contracts.ts`. Frontend DTO types are inferred
-  from those schemas so runtime checks and TypeScript cannot drift apart.
-- Every Server Action validates its normalized `FormData` with a schema in
-  `apps/web/lib/form-validation.ts` before calling Go. Expected input failures
-  return serializable field errors through `useActionState`.
+- Every successful Go API response passed through the client in
+  `apps/web/src/server/api.server.ts` is parsed by a feature-local schema in
+  `apps/web/src/features/*/contracts.ts`. Frontend DTO types are inferred from
+  those schemas so runtime checks and TypeScript cannot drift apart.
+- Every mutating server function validates its typed input or normalized
+  `FormData` with its feature-local contract before calling Go. Enhanced
+  submissions return structured field errors; valid native submissions use
+  bounded 303 redirects and remain usable without JavaScript.
 
 Response schemas accept additive unknown fields but validate all fields the web
 app consumes. Contract errors record only the endpoint path and schema issues,
-never the response payload. Zod is kept out of client runtime imports; native
-HTML constraints remain the first feedback layer and preserve progressive
-enhancement.
+never the response payload. Server-only operations live in feature
+`*-operations.server.ts` modules, while the shared request, cookie, and visitor
+boundary lives under `apps/web/src/server`. Native HTML constraints remain the
+first feedback layer and preserve progressive enhancement.
 
 This BFF validation does not move domain ownership out of Go. The API remains
 authoritative for authentication, authorization, resource existence and state,
@@ -220,6 +228,9 @@ Event detail responses include `organizers`, with each organizer's name, role,
 
 ## TanStack usage
 
-- **TanStack Start** — later CRM app (`crm.campusgamingnetwork.com`)
-- **TanStack Query / Table / Form** — fine in later CRM and selective main-site islands
-- Do not add TanStack by default to main-site SSR pages that work with server props
+- **TanStack Start and TanStack Router** — main site in `apps/web`; the later CRM
+  may use the same framework in a separate deployment.
+- **TanStack Query / Table / Form** — fine in the later CRM or selective
+  main-site features when a measured need exists.
+- Do not add client data libraries by default to routes that work with loaders,
+  server functions, and normal HTML forms.

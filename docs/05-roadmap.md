@@ -4,7 +4,7 @@ Phased delivery for a single developer. Each phase should be shippable. Do not p
 
 **URLs:** first release = `campusgamingnetwork.com` · CRM/admin app = `crm.campusgamingnetwork.com` (later TanStack Start release).
 
-**Infra:** Railway (Next.js web, Go API, PostgreSQL) · Cloudflare DNS/protection · Resend email (`events@` / `account@`) · curated launch games (6 titles). `notifications@` and `support@` workflows, plus Cloudflare R2 for CRM/admin logo uploads, are later.
+**Infra:** Railway (TanStack Start web, Go API, PostgreSQL) · Cloudflare DNS/protection · Resend email (`events@` / `account@`) · curated launch games (6 titles). `notifications@` and `support@` workflows, plus Cloudflare R2 for CRM/admin logo uploads, are later.
 
 **Not yet scheduled:** Sentry/error monitoring, CRM/admin app, clubs, tournaments, on-site payments, usernames, waitlists, team invite links, feature flags, near-you, custom event banner uploads.
 
@@ -14,7 +14,7 @@ Phased delivery for a single developer. Each phase should be shippable. Do not p
 
 **Goal:** Empty app boots locally and deploys with health checks.
 
-- Docker Compose: Next.js, Go API, Postgres (M1-friendly)
+- Docker Compose: TanStack Start, Go API, Postgres (M1-friendly)
 - TypeScript + Go project skeletons; BFF pattern wired
 - HeroUI + base layout; accessibility baseline
 - `created_at` / `updated_at` / `deleted_at` conventions
@@ -25,7 +25,9 @@ Phased delivery for a single developer. Each phase should be shippable. Do not p
 
 **Exit:** `docker compose up` works; health green; blank accessible shell page.
 
-**Production deploy decision:** [13 — Deployment plan](./13-deployment-plan.md) locks the first release onto Railway for the Next.js web service, Go API service, and PostgreSQL database, with Cloudflare for DNS/protection.
+**Production deploy decision:** [13 — Deployment plan](./13-deployment-plan.md)
+locks the first release onto Railway for the TanStack Start web service, Go API
+service, and PostgreSQL database, with Cloudflare for DNS/protection.
 
 ## Phase 1 — Auth, profiles, schools (read)
 

@@ -1,5 +1,11 @@
 # 15 — Pass v0 quality checklist
 
+> **Historical quality record.** The branch baseline, Next.js terminology, and
+> source paths below describe the original Pass v0 implementation. The current
+> TanStack Start regression suites live under `apps/web/tests`; the migration
+> parity and hardening record is maintained in
+> [19 — TanStack Start parity manifest](./19-tanstack-start-parity-manifest.md).
+
 Quality regression checklist for the primary events-and-teams loop on `next`.
 Tracks request and response coverage across the BFF→Go boundary. Product status
 still lives in [10 — Delivery status](./10-delivery-status.md).

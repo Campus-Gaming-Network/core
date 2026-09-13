@@ -97,8 +97,9 @@ services:
       API_PROXY_SHARED_SECRET: ${API_PROXY_SHARED_SECRET:-local-bff-proxy-secret}
       API_SESSION_COOKIE: ${API_SESSION_COOKIE:-cgn_session}
       CLOUDFLARE_ORIGIN_SECRET: ${CLOUDFLARE_ORIGIN_SECRET:-}
-      NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}
-      NEXT_TELEMETRY_DISABLED: "1"
+      SITE_URL: ${SITE_URL:-http://localhost:3000}
+      HOST: 0.0.0.0
+      PORT: 3000
     ports:
       - "3000:3000"
     depends_on:
@@ -106,32 +107,6 @@ services:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-
-  web-start:
-    profiles: ["migration"]
-    build:
-      context: .
-      dockerfile: apps/web-start/Dockerfile
-      target: dev
-    environment:
-      DEPLOYMENT_ENV: ${DEPLOYMENT_ENV:-local}
-      API_INTERNAL_URL: ${WEB_API_INTERNAL_URL:-http://api:8080}
-      API_PROXY_SHARED_SECRET: ${API_PROXY_SHARED_SECRET:-local-bff-proxy-secret}
-      API_SESSION_COOKIE: ${API_SESSION_COOKIE:-cgn_session}
-      CLOUDFLARE_ORIGIN_SECRET: ${CLOUDFLARE_ORIGIN_SECRET:-}
-      SITE_URL: ${START_SITE_URL:-http://localhost:3100}
-      HOST: 0.0.0.0
-      PORT: 3100
-    ports:
-      - "3100:3100"
-    depends_on:
-      api:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3100/api/health"]
       interval: 10s
       timeout: 5s
       retries: 10

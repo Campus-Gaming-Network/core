@@ -5,5 +5,5 @@
     "suspicious": "warn",
     "perf": "warn"
   },
-  "ignorePatterns": [".next", "next-env.d.ts", "node_modules"]
+  "ignorePatterns": [".output", ".test-build", "node_modules", "src/routeTree.gen.ts"]
 }
