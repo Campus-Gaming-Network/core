@@ -680,7 +680,7 @@ func looksLikeUUID(value string) bool {
 
 // handleRefreshCatalog reloads the cached school catalog immediately, so an
 // edit does not have to wait out the refresh interval. Intended for the future
-// CRM and for operator use.
+// Admin Console and for operator use.
 //
 // Guarded by a shared secret rather than a session, because there is no admin
 // role yet. The endpoint stays disabled unless API_MAINTENANCE_TOKEN is set.

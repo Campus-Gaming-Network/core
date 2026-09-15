@@ -2,13 +2,13 @@
 
 Phased delivery for a single developer. Each phase should be shippable. Do not pull later-phase work forward without a clear need.
 
-**URLs:** first release = `campusgamingnetwork.com` · CRM/admin app = `crm.campusgamingnetwork.com` (later TanStack Start release).
+**URLs:** first release = `campusgamingnetwork.com` · Admin Console = `admin.campusgamingnetwork.com` (later TanStack Start release in `apps/admin`).
 
-**Infra:** Railway (TanStack Start web, Go API, PostgreSQL) · Cloudflare DNS/protection · Resend email (`events@` / `account@`) · curated launch games (6 titles). `notifications@` and `support@` workflows, plus Cloudflare R2 for CRM/admin logo uploads, are later.
+**Infra:** Railway (TanStack Start web, Go API, PostgreSQL) · Cloudflare DNS/protection · Resend email (`events@` / `account@`) · curated launch games (6 titles). `notifications@` and `support@` workflows, plus Cloudflare R2 for Admin Console logo uploads, are later.
 
-**Not yet scheduled:** Sentry/error monitoring, CRM/admin app, clubs, tournaments, on-site payments, usernames, waitlists, team invite links, feature flags, near-you, custom event banner uploads.
+**Not yet scheduled:** Sentry/error monitoring, Admin Console, clubs, tournaments, on-site payments, usernames, waitlists, team invite links, feature flags, near-you, custom event banner uploads.
 
-**School seed:** import all 6,243 operating schools (4,943 main · 1,300 branch) as `is_active=true`; branch campuses use the same UI/UX; review later in CRM/admin tooling.
+**School seed:** import all 6,243 operating schools (4,943 main · 1,300 branch) as `is_active=true`; branch campuses use the same UI/UX; review later in the Admin Console.
 
 ## Phase 0 — Foundation
 
@@ -42,7 +42,7 @@ service, and PostgreSQL database, with Cloudflare for DNS/protection.
 - Verification levels: email verified → verified student (`.edu`) → staff/faculty
 - Profile: single **name** field, bio, social links, timezone, DiceBear Critters with initials fallback; URL `/users/:id`
 - Home school selected on signup; follow additional schools afterward
-- One-time import of **all** `data/schools_seed.csv` rows as `is_active=true` (`unitid` optional on later admin/CRM creates)
+- One-time import of **all** `data/schools_seed.csv` rows as `is_active=true` (`unitid` optional on later Admin Console creates)
 - Public search/browse schools (Postgres `pg_trgm`); school detail by slug (no clubs list until later)
 - Rate limit signups + resend verification (Resend)
 - Seed launch games: Rocket League, Valorant, League of Legends, Overwatch 2, Super Smash Bros. Ultimate, CSGO
@@ -108,25 +108,25 @@ reliable enough for real users before expanding into clubs and tournaments.
 receive trustworthy product feedback and notifications without the main flows
 feeling unfinished.
 
-## Phase 4 — CRM/admin app (TanStack Start, separate later release)
+## Phase 4 — Admin Console (TanStack Start, separate later release)
 
-**Goal:** After the first release, operators manage the catalog without SQL. Deploy to `crm.campusgamingnetwork.com`.
+**Goal:** After the first release, operators manage the catalog without SQL. Deploy `apps/admin` to `admin.campusgamingnetwork.com`.
 
-- **TanStack Start** CRM/admin app (not shipped in the first release)
-- Schools: create/edit/soft-delete, logos (**CRM/admin-only** R2 PNG/JPG ≤500 MB), activation, school admins
-- Games: manage the curated set; IGDB enrichment later; CRM/admin-only edits
+- **TanStack Start** Admin Console in `apps/admin` (not shipped in the first release)
+- Schools: create/edit/soft-delete, logos (**Admin Console-only** R2 PNG/JPG ≤500 MB), activation, school admins
+- Games: manage the curated set; IGDB enrichment later; Admin Console-only edits
 - Users / ACL grants (school admin, staff/faculty)
 - **Reports** queue
 - **Support tickets** queue
 - Site admin bootstrap (CLI / env seed)
 
-**Exit:** Admin can edit a school, grant a school admin, triage a report and a support ticket in CRM.
+**Exit:** Admin can edit a school, grant a school admin, and triage a report and a support ticket in the Admin Console.
 
 ## Phase 5 — Games enrichment
 
 **Goal:** Expand beyond the six launch titles.
 
-- Broader game catalog / IGDB import via CRM
+- Broader game catalog / IGDB import via the Admin Console
 - Popular games by school
 - Events/teams keep game associations
 
@@ -179,7 +179,7 @@ feeling unfinished.
 - Near you / geo discovery
 - Custom event banner uploads (with strict moderation)
 - Feature flags
-- Impersonation / site announcements (unless pulled into CRM earlier)
+- Impersonation / site announcements (unless pulled into the Admin Console earlier)
 - WebSockets / live updates
 - Custom avatars
 - Friends graph
@@ -190,8 +190,8 @@ feeling unfinished.
 ## Suggested build order inside a phase
 
 1. Schema + Go domain API
-2. BFF + SSR page (main site) or CRM screens
+2. BFF + SSR page (main site) or Admin Console screens
 3. Email/side effects
 4. Audit/activity writes when that later slice is in scope
 5. Rate limits
-6. Deploy the app that owns the phase (main vs CRM)
+6. Deploy the app that owns the phase (main site vs Admin Console)

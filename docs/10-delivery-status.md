@@ -24,10 +24,10 @@ remain deferred until those external environments are provisioned.
 **Active engineering backlog:** [17 — Codebase review action plan](./17-codebase-review-action-plan.md)
 is the ordered queue for production-boundary, discovery, recurrence,
 reliability, integration, and maintainability findings from the 2026-09-05
-codebase review. Complete its P1 items before beginning the CRM UI or another
+codebase review. Complete its P1 items before beginning the Admin Console UI or another
 major product area.
 
-**School seed:** 6,243 operating schools (4,943 main · **1,300 branch**). Import all, `is_active=true`; branch campuses use the same UI/UX; review later in CRM/admin tooling.
+**School seed:** 6,243 operating schools (4,943 main · **1,300 branch**). Import all, `is_active=true`; branch campuses use the same UI/UX; review later in the Admin Console.
 
 **Launch games:** Rocket League · Valorant · League of Legends · Overwatch 2 · Super Smash Bros. Ultimate · CSGO.
 
@@ -42,7 +42,7 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 | Event slug hash | **8** Base64URL chars |
 | Images | **PNG or JPG only**; max **500 MB** |
 | Event banners | Default placeholder image/background — **no user uploads yet** |
-| School logos | Placeholder for now; CRM/admin upload via R2 later |
+| School logos | Placeholder for now; Admin Console upload via R2 later |
 | Email From | Now: `events@` / `account@`; later workflows: `notifications@` / `support@campusgamingnetwork.com` |
 | Paid events | Off-site-payment listings only; no CGN checkout/payments |
 | Deploy path | Railway hosts TanStack Start, Go API, and PostgreSQL; Cloudflare manages DNS/protection |
@@ -113,7 +113,7 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
   - Super Smash Bros. Ultimate
   - CSGO
 - [x] Browse/filter events by these games
-- [x] End users cannot edit games (admin seed; CRM later)
+- [x] End users cannot edit games (admin seed; Admin Console later)
 
 ### Events
 - [x] Create / edit / soft-cancel (no approval; cancellation email to active yes/maybe RSVPs)
@@ -154,26 +154,26 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 
 ### Safety (baseline)
 - [x] Rate limits: signup, resend verification, event create, reports, private unlock, support tickets
-- [x] Report event + report user (queued for CRM/admin review)
+- [x] Report event + report user (queued for Admin Console review)
 - [x] New-account abuse limits (basic)
 
 ---
 
 ## Next — immediately after the first release
 
-### CRM/admin app (`crm.campusgamingnetwork.com` — TanStack Start)
+### Admin Console (`admin.campusgamingnetwork.com` — TanStack Start in `apps/admin`)
 - [x] Add operations data/repository foundation for assignable reports/support queues with terminal retention clocks, transactional audit history, and user-scoped notifications
 - [ ] Bootstrap first site admin (CLI / env seed)
 - [ ] Add site-admin-authorized reports, support, and audit API endpoints
-- [ ] TanStack Start CRM app (separate deploy, shared Go API)
-- [ ] Schools: create / edit / soft-delete, logos (**CRM/admin-only** R2 PNG/JPG ≤500 MB), activation (`unitid` optional)
+- [ ] TanStack Start Admin Console (separate deploy, shared Go API)
+- [ ] Schools: create / edit / soft-delete, logos (**Admin Console-only** R2 PNG/JPG ≤500 MB), activation (`unitid` optional)
 - [ ] Review/deactivate bad seed schools
-- [ ] Manage/grant school admins in CRM (grant storage and indicators implemented)
+- [ ] Manage/grant school admins in the Admin Console (grant storage and indicators implemented)
 - [ ] Games catalog management (start from the six launch games; IGDB later)
 - [ ] Reports queue
 - [ ] Support tickets queue
 - [ ] User notification API and in-app inbox
-- [ ] Placeholder school logos until CRM upload
+- [ ] Placeholder school logos until Admin Console upload
 
 ### Product polish
 - [ ] Sentry/error monitoring
@@ -230,5 +230,5 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 
 1. Foundation + auth + schools + **six launch games**
 2. Events (default banners) + teams + dashboard + legal/support
-3. CRM/admin app (TanStack Start), separate release — school logos
+3. Admin Console (TanStack Start), separate release — school logos
 4. Work down the Later list by value

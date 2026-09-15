@@ -37,7 +37,7 @@ verification steps.
 
 After those, follow the ordered queue in doc 17. Legal, DiceBear,
 account-deletion notifications, and external launch rehearsal remain P1 launch
-gates. CRM/admin UI work moves behind the review's P1 queue.
+gates. Admin Console UI work moves behind the review's P1 queue.
 
 ## Blockers and decisions
 

@@ -161,7 +161,7 @@ flowchart LR
         Database --> Backups
     end
 
-    CRM["Later CRM<br/>TanStack Start"]
+    Admin["Later Admin Console<br/>TanStack Start"]
     R2["Later Cloudflare R2<br/>school logos"]
     IGDB["Later IGDB<br/>game enrichment"]
     Sentry["Later Sentry"]
@@ -176,14 +176,14 @@ flowchart LR
     GitHub -->|"Railway source build"| Web
     GitHub -->|"Railway source build"| API
 
-    CRM -.->|"shared admin API"| API
-    CRM -.-> R2
-    IGDB -.-> CRM
+    Admin -.->|"shared admin API"| API
+    Admin -.-> R2
+    IGDB -.-> Admin
     Web -.-> Sentry
     API -.-> Sentry
 
     classDef deferred stroke-dasharray: 6 4,fill:#f7f7f8,color:#52525b;
-    class CRM,R2,IGDB,Sentry deferred;
+    class Admin,R2,IGDB,Sentry deferred;
 ```
 
 Production exposes only the TanStack Start web service. The Go API and PostgreSQL remain on Railway private networking. Migrations run before a new API deployment is activated, the national school seed runs once per fresh environment, and database backups are a launch gate.

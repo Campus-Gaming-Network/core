@@ -38,10 +38,10 @@ Small, concrete engineering choices for Phase 0 and early early implementation. 
 | BFF visitor identity | Railway's public proxy overwrites `X-Real-IP`. Behind Cloudflare, the BFF accepts `CF-Connecting-IP` only with an edge-overwritten `X-CGN-Cloudflare-Secret` matching `CLOUDFLARE_ORIGIN_SECRET`; otherwise it uses Railway's address. It forwards the normalized result as `X-CGN-Visitor-IP`, authenticated to the private API by `API_PROXY_SHARED_SECRET`. The API ignores missing, malformed, or unauthenticated assertions and falls back to its peer address. |
 | Rate-limit dimensions | Anonymous account flows use visitor buckets plus normalized-email or opaque-token sub-buckets where applicable; private unlocks use event + visitor; authenticated creation, report, and team-join flows use stable account buckets (with the team target for joins). The limiter is process-local, so keep one API instance until a shared limiter replaces it. |
 | Real-stack browser testing | Keep the broad fake-API Playwright suite for fast UI and error-state coverage. A separate focused suite runs the built TanStack Start BFF, real Go API, migrations, deterministic `cgn_e2e` PostgreSQL fixture, outbox worker, and an in-process Resend HTTP stub. Its destructive seed refuses database names without `e2e`; local orchestration owns and removes its disposable container and volume, while CI supplies its own service database and repeats every journey twice. `API_RESEND_API_URL` exists as the HTTP-boundary test seam, defaults to Resend's official endpoint, and cannot target insecure or local endpoints in staging/production. |
-| CRM | Not in the first release; the CRM/admin app comes later |
+| Admin Console | Not in the first release; the separate `apps/admin` application comes later at `admin.campusgamingnetwork.com` |
 | Branch campuses | Same UI/UX as other schools |
 | Paid events | Supports off-site-payment listings only; no CGN payment processing |
-| Audit/activity/notifications | Migration `000010` adds append-oriented domain audit history and per-user in-app notifications. Moderation queue patches write audits transactionally; notification reads are user-scoped. User activity history, authenticated notification endpoints/UI, and the site-admin CRM remain later. System/ops logs stay separate. |
+| Audit/activity/notifications | Migration `000010` adds append-oriented domain audit history and per-user in-app notifications. Moderation queue patches write audits transactionally; notification reads are user-scoped. User activity history, authenticated notification endpoints/UI, and the site-admin-facing Admin Console remain later. System/ops logs stay separate. |
 | Queue retention | Reports and support tickets start `retention_started_at` when they enter `resolved` or `closed`; terminal-to-terminal changes preserve it, reopening clears it, and a later terminal transition starts a new clock. Target windows and the legal-hold/purge work are tracked in doc 16. |
 
 ## Current event lifecycle decisions
@@ -57,7 +57,7 @@ Small, concrete engineering choices for Phase 0 and early early implementation. 
 
 | Area | Decision |
 |------|----------|
-| School-admin role | Store school-scoped grants in `school_admins`; grants are soft-revocable and future CRM/admin tooling owns assignment. Public profiles expose `school_admin` when a user has an active grant. |
+| School-admin role | Store school-scoped grants in `school_admins`; grants are soft-revocable and the future Admin Console owns assignment. Public profiles expose `school_admin` when a user has an active grant. |
 | Staff/faculty role | Use the existing `staff_faculty` verification level as the visible staff/faculty role indicator. |
 | Event organizer badges | Event detail responses include organizer summaries. Show `school_admin` for an active grant at the event's host school and `staff_faculty` for verified staff/faculty. |
 | Verified-student email rule | When inbox verification succeeds, promote a `basic` account only when the normalized email domain is a syntactically valid domain ending exactly in `.edu`. Subdomains qualify; mixed case is normalized; lookalikes such as `school.edu.com` do not qualify. There is no exclusion list yet. Existing `verified`, `staff_faculty`, and future higher levels are never downgraded. The badge is a limited inbox-domain trust signal, not proof of enrollment, current affiliation, or identity. A future email-change feature must re-evaluate and explicitly define downgrade behavior before launch. |
@@ -96,7 +96,7 @@ ratcheting upward rather than treating coverage as a one-time report.
 ## Deferred to later hardening
 
 - Sentry SDK integration (later)
-- CRM/admin app
+- Admin Console
 - TypeScript 7 adoption; revisit when the pinned TanStack Start, Vite, Nitro,
   and related type tooling support it together
 - User-visible activity history and the notification UI/API

@@ -2,7 +2,7 @@
 
 Central hub for collegiate gamers: find events, teams, and school gaming info across the United States.
 
-**Sites:** [campusgamingnetwork.com](https://campusgamingnetwork.com) (main site) · [crm.campusgamingnetwork.com](https://crm.campusgamingnetwork.com) (later CRM/admin app)
+**Sites:** [campusgamingnetwork.com](https://campusgamingnetwork.com) (main site) · [admin.campusgamingnetwork.com](https://admin.campusgamingnetwork.com) (later Admin Console)
 
 These docs are the source of truth for product intent, domain rules, architecture, and delivery order. Use them when implementing features or asking an LLM to generate code.
 
@@ -17,9 +17,9 @@ These docs are the source of truth for product intent, domain rules, architectur
 | [04 — API](./04-api.md) | BFF pattern, Go services, endpoint surface |
 | [05 — Roadmap](./05-roadmap.md) | Phased delivery from first release → production → later |
 | [06 — Architecture](./06-architecture.md) | Stack, hosting, Docker, observability, security |
-| [07 — Permissions](./07-permissions.md) | Roles, ACLs, impersonation, CRM |
+| [07 — Permissions](./07-permissions.md) | Roles, ACLs, impersonation, and the Admin Console |
 | [08 — Open questions](./08-open-questions.md) | Unresolved product/tech decisions |
-| [09 — School data](./09-school-data.md) | One-time College Scorecard seed → later admin/CRM owns catalog after |
+| [09 — School data](./09-school-data.md) | One-time College Scorecard seed → later Admin Console owns catalog after |
 | [10 — Delivery status](./10-delivery-status.md) | Status tracker and remaining Now/Next/Later work |
 | [11 — Implementation decisions](./11-implementation-decisions.md) | Concrete engineering choices for Phase 0 and early implementation work |
 | [12 — Phase 1 plan](./12-phase-1-plan.md) | Reviewable Phase 1A–1D breakdown for auth, profiles, schools, and games |
@@ -41,7 +41,7 @@ These docs are the source of truth for product intent, domain rules, architectur
 ## Conventions
 
 - **US launch only** — international schools are out of scope at launch.
-- **Not yet scheduled** — Sentry/error monitoring, CRM/admin app, clubs, tournaments, on-site payments, usernames, waitlists, invite links, feature flags, near-you, custom event banners.
+- **Not yet scheduled** — Sentry/error monitoring, Admin Console, clubs, tournaments, on-site payments, usernames, waitlists, invite links, feature flags, near-you, custom event banners.
 - **Events ≠ tournaments** — events are things you attend; tournaments (later) are competitions you enter.
 - **Clubs ≠ teams** — clubs (later) belong to schools; teams are supported now (public pages; password to join).
 - **Event visibility** — `public` · `unlisted` · `private` (blurred/gated + password modal).
@@ -51,7 +51,7 @@ These docs are the source of truth for product intent, domain rules, architectur
 - **Schools** — user selects one home school on signup, may follow more schools later; import all 6,243 seed rows (1,300 branches) as active; branch campuses use the same UI/UX as other schools; `unitid` optional.
 - **Paid events** — allowed as informational/off-site payment only; organizers handle payment outside the product.
 - **Launch games** — Rocket League, Valorant, League of Legends, Overwatch 2, Super Smash Bros. Ultimate, CSGO.
-- **Images** — event banners = default placeholder for now; school logos come later via CRM/admin app uploads (PNG/JPG only, max 500 MB).
+- **Images** — event banners = default placeholder for now; school logos come later via Admin Console uploads (PNG/JPG only, max 500 MB).
 - **Event slugs** — `slugify(title)-` + 8-char Base64URL(SHA-256(…)).
 - **Recurring events** — weekly, biweekly, or monthly; max one year; occurrences are independent event rows with independent RSVPs and cancellation.
 - **Cancellation email** — best-effort email to active yes/maybe RSVPs after soft cancellation; delivery failure does not undo cancellation.
@@ -59,7 +59,7 @@ These docs are the source of truth for product intent, domain rules, architectur
 - **Content filtering** — reject a small word-boundary blocked-term list in user-authored names, bios, event/team text, reports, and support messages before persistence.
 - **Page metadata** — every route sets its own title/description/Open Graph tags; authenticated, token, private, and unlisted routes are `noindex`. A locked private event exposes only a generic title.
 - **Not-found routes** — missing entities must return HTTP 404, never a soft 404; never put a `loading.tsx` above a `notFound()` route.
-- **Infra** — Railway hosts TanStack Start, the Go API, and production Postgres for the main site; Cloudflare manages DNS/protection; Resend handles email; Cloudflare R2 and the separate TanStack Start CRM are later/admin-app concerns.
+- **Infra** — Railway hosts TanStack Start, the Go API, and production Postgres for the main site; Cloudflare manages DNS/protection; Resend handles email; Cloudflare R2 and the separate TanStack Start Admin Console are later concerns.
 - **Search** — Postgres full-text / trigram first; no Elasticsearch until proven necessary.
 - **Soft deletes** — use `deleted_at`; never hard-delete user-facing content without an explicit policy.
 - **Audit vs system logs** — audit = entity change history; system = operational/app logs.

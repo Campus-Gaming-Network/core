@@ -12,7 +12,7 @@ PostgreSQL is the system of record. Conventions first; then core tables. Exact c
 | Time storage | Store instants in UTC (`timestamptz`); display in user timezone in app layer |
 | Money | May list paid/off-site-payment events, but CGN does not process payment. Store only lightweight display fields such as `is_paid`, `payment_note`, and optional `payment_url`; use integer cents + currency only if on-site payments ship later. |
 | Slugs | Unique URL keys: `schools.slug`; `events.slug` — events use `slugify(title)-` + **8** Base64URL chars of SHA-256(creatorId\|date\|title) |
-| Images | Event banners use default placeholder for now; school `logo_url` comes later via CRM/admin upload (PNG/JPG only; max 500 MB) |
+| Images | Event banners use default placeholder for now; school `logo_url` comes later via Admin Console upload (PNG/JPG only; max 500 MB) |
 | Audit vs system | `audit_logs` holds domain change history and remains separate from system/ops logs. |
 | Nightly backups | Required in production |
 
@@ -20,7 +20,7 @@ PostgreSQL is the system of record. Conventions first; then core tables. Exact c
 
 Keep the first migration set scoped to shipped features. Create only the tables needed for auth/profile, home school and follows, schools seed, launch games, events, teams, reports/support tickets, and operational needs.
 
-Do **not** create first-pass tables for clubs, tournaments, user activity history, feature flags, site announcements, on-site payments, IGDB sync, or broader CRM/admin-only workflows until those phases are actively being built. The operations foundation now includes audit history and per-user notifications; their HTTP and UI surfaces remain gated on site-admin authorization and the later CRM.
+Do **not** create first-pass tables for clubs, tournaments, user activity history, feature flags, site announcements, on-site payments, IGDB sync, or broader Admin Console-only workflows until those phases are actively being built. The operations foundation now includes audit history and per-user notifications; their HTTP and UI surfaces remain gated on site-admin authorization and the later Admin Console.
 
 ## Core tables (logical)
 
@@ -54,7 +54,7 @@ user_school_affiliations
 
 school_admins
   school_id, user_id, created_at, updated_at, deleted_at
-  -- school-scoped role grant; soft-revocable; future CRM/admin owns assignment
+  -- school-scoped role grant; soft-revocable; future Admin Console owns assignment
 ```
 
 ### Schools & clubs
@@ -62,16 +62,16 @@ school_admins
 ```text
 schools
   id, unitid nullable (unique when present; College Scorecard/IPEDS),
-  name, alias, slug (unique), logo_url,  -- later CRM/admin upload (PNG/JPG ≤500 MB); placeholder until set
+  name, alias, slug (unique), logo_url,  -- later Admin Console upload (PNG/JPG ≤500 MB); placeholder until set
   city, state, zip, website_url,
   latitude, longitude,
   is_main_campus, num_branches, is_active,
   created_at, updated_at, deleted_at
   -- name NOT unique; slug unique with auto-increment suffix on collision
-  -- catalog bootstrapped once from data/schools_seed.csv; admin tooling / CRM owns create/edit/delete after that
-  -- unitid optional/unique when present; admin/CRM-created schools may omit
+  -- catalog bootstrapped once from data/schools_seed.csv; Admin Console owns create/edit/delete after that
+  -- unitid optional/unique when present; Admin Console-created schools may omit
   -- one-time seed imports ALL rows as is_active=true (main + branch); branch campuses use same UI/UX
-  -- logo_url is later CRM/admin-only (PNG/JPG ≤500 MB), not Scorecard; not uploadable from main site
+  -- logo_url is later Admin Console-only (PNG/JPG ≤500 MB), not Scorecard; not uploadable from main site
 
 clubs
   id, school_id (required), name, is_official, status (pending|approved|...), ...
@@ -157,7 +157,7 @@ tournament_registrations
 ```text
 games
   id, igdb_id nullable, name, slug, cover_url, raw_payload jsonb?, last_synced_at, ...
-  -- end users cannot edit; curated seeded with 6 launch games; IGDB/CRM enrichment later
+  -- end users cannot edit; curated seeded with 6 launch games; later enriched from IGDB through the Admin Console
 ```
 
 **Launch game seed:** Rocket League, Valorant, League of Legends, Overwatch 2, Super Smash Bros. Ultimate, CSGO.
@@ -173,7 +173,7 @@ support_tickets
   id, submitter_user_id nullable, contact_email, name, subject, message, status,
   assigned_to_user_id nullable, resolution_note, submitter_deleted_at nullable,
   retention_started_at nullable, ...
-  -- anyone can submit (logged out OK); viewed/managed in later CRM/admin tooling
+  -- anyone can submit (logged out OK); viewed/managed in the later Admin Console
 
 notifications
   id, user_id, type, title, body,
@@ -245,7 +245,7 @@ Do not list `unlisted` or `private` events in discovery search. Unlisted is reac
 ## Migrations
 
 - Versioned SQL migrations live in `db/migrations` and are applied by the Go migrator
-- First migrations stay scoped to shipped features; defer schema for clubs, tournaments, feature flags, site announcements, on-site payments, IGDB sync, and CRM/admin-only workflows.
+- First migrations stay scoped to shipped features; defer schema for clubs, tournaments, feature flags, site announcements, on-site payments, IGDB sync, and Admin Console-only workflows.
 - In Railway production, run the Go migrator as a pre-deploy command or dedicated migration service/job before the API serves traffic
 - Never rely on manual prod SQL for schema changes
-- CRM/admin tooling exists later so operators are not editing rows by hand for routine ACL/school work
+- The Admin Console exists later so operators are not editing rows by hand for routine ACL/school work

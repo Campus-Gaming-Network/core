@@ -67,10 +67,10 @@ Decisions to resolve before or during implementation. Until answered, implemente
 | Feature flags / near-you | Not scheduled yet |
 | Support tickets | Anyone can submit (logged out OK) |
 | Email | **Resend** — sends from `events@` and `account@`; `notifications@` and `support@` workflows are later |
-| Object storage | **Cloudflare R2** — later school logos via CRM/admin app only; PNG/JPG; max **500 MB** |
+| Object storage | **Cloudflare R2** — later school logos via Admin Console only; PNG/JPG; max **500 MB** |
 | Event banners | **Decided:** default placeholder; custom uploads later with moderation |
 | Event slug hash | **Decided:** **8** Base64URL characters |
-| CRM | **TanStack Start** at `crm.campusgamingnetwork.com` (separate later release; skipped for first release) |
+| Admin Console | **TanStack Start** in `apps/admin` at `admin.campusgamingnetwork.com` (separate later release; skipped for first release) |
 | Main site | `campusgamingnetwork.com` (TanStack Start) |
 | Production hosting | **Railway** hosts TanStack Start web, Go API, and PostgreSQL; Cloudflare manages DNS/protection |
 | Production database | **Railway PostgreSQL** for now; enable/verify backups before public launch |

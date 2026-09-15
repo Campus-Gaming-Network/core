@@ -29,7 +29,7 @@ Build only the surface needed for auth, profiles, schools, and launch games.
 
 **Out of scope**
 
-- CRM/admin app.
+- Admin Console.
 - Clubs and tournaments.
 - On-site payment processing.
 - Usernames.
@@ -37,7 +37,7 @@ Build only the surface needed for auth, profiles, schools, and launch games.
 - Feature flags.
 - Near-you/geo discovery.
 - Custom event banners or school logo uploads.
-- Routine school editing UI; later CRM/admin owns that.
+- Routine school editing UI; the later Admin Console owns that.
 
 ## Phase 1A — Schema + Go API foundation
 
@@ -63,7 +63,7 @@ Build only the surface needed for auth, profiles, schools, and launch games.
 
 **Review focus**
 
-- Schema stays scoped to shipped features and does not pull in CRM/admin, clubs, tournaments, on-site payments, IGDB sync, or feature flags.
+- Schema stays scoped to shipped features and does not pull in Admin Console-only workflows, clubs, tournaments, on-site payments, IGDB sync, or feature flags.
 - Session model is cookie-based and server-owned.
 - Tables can support the Phase 1 exit criteria without over-modeling later phases.
 
@@ -80,7 +80,7 @@ Build only the surface needed for auth, profiles, schools, and launch games.
 **Deliverables**
 
 - Normalize/import all school seed rows as `is_active=true`.
-- Preserve Scorecard identifiers where available; allow `unitid` to be optional for future CRM-created schools.
+- Preserve Scorecard identifiers where available; allow `unitid` to be optional for future Admin Console-created schools.
 - Treat main and branch campuses identically in browse/detail UX.
 - Add public school list/search endpoint.
 - Add public school detail endpoint by slug.

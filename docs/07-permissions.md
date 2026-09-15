@@ -1,6 +1,6 @@
 # 07 — Permissions
 
-Authorization rules for the public site and later CRM/admin app. Enforce in **Go** on every mutating API; the BFF must not be the only gate.
+Authorization rules for the public site and later Admin Console. Enforce in **Go** on every mutating API; the BFF must not be the only gate.
 
 ## Roles overview
 
@@ -11,13 +11,13 @@ Authorization rules for the public site and later CRM/admin app. Enforce in **Go
 | **Verified student** | `.edu` email | Same as basic + verified-student trust badge |
 | **Staff / faculty** | Site admin grant | Same as verified + faculty context; **visible faculty indicator** |
 | **Alumni** | Affiliation / graduation | Can participate (not locked out after grad) |
-| **School admin** | School-scoped grant; future CRM manages grants | Edit school; **manage clubs**; assign school teams; organizer badge; **visible admin indicator** |
+| **School admin** | School-scoped grant; future Admin Console manages grants | Edit school; **manage clubs**; assign school teams; organizer badge; **visible admin indicator** |
 | **Club officer** | Later club workflow | Manage club; future badge-eligible events |
 | **Team owner** | Creator or transfer | Manage team; transfer ownership; assign captains |
 | **Team captain** | Owner assigns | Register team for tournaments; limited team mgmt |
 | **Event organizer** | Creator or assigned | Edit event (with past-event limits); manage RSVPs as needed |
 | **Approved organizer** | Explicit grant | Badge-eligible events |
-| **Site admin** | Bootstrap, then CRM | Schools CRM/admin app; games CRM/admin app; reports; support tickets; staff grants; impersonation and feature flags later |
+| **Site admin** | Bootstrap, then Admin Console | Schools; games; reports; support tickets; staff grants; impersonation and feature flags later |
 
 A user may hold **multiple** roles (e.g. school admin at two schools, member of many teams).
 
@@ -61,8 +61,8 @@ Verification is not a substitute for school admin or site admin.
 | Create/approve/manage club | | | ✓ | | | | ✓ |
 | Assign team to club | | | ✓ | ✓? | | | ✓ |
 | Edit school details | | | ✓ | | | | ✓ |
-| Create/edit/delete school | | | | | | | ✓ (later CRM/admin tooling) |
-| Edit games | | | | | | | ✓ (later CRM/admin tooling) |
+| Create/edit/delete school | | | | | | | ✓ (later Admin Console) |
+| Edit games | | | | | | | ✓ (later Admin Console) |
 | Remove other school admin | | | ✗ | | | | ✓ only |
 | Edit past event date/location | | ✗ | ✗ | ✗ | ✗ | ✗ | break-glass TBD |
 | Minor edit past event | | | | | | ✓ | ✓ |
@@ -80,7 +80,7 @@ Verification is not a substitute for school admin or site admin.
 - A user may be admin of **multiple** schools
 - School admins **cannot remove** other school admins (site admin can)
 - School admins can edit school details, **manage clubs**, and assign school / sponsored teams
-- Only site admins **create** schools, via later CRM/admin tooling
+- Only site admins **create** schools, via the later Admin Console
 
 ## Team rules
 
@@ -117,7 +117,7 @@ Verification is not a substitute for school admin or site admin.
 ## Games
 
 - End users: read-only
-- Create/update/delete and IGDB sync: **later CRM/admin tooling / site admin only**
+- Create/update/delete and IGDB sync: **later Admin Console / site admin only**
 
 ## Impersonation (“mimic”)
 
@@ -126,9 +126,9 @@ Verification is not a substitute for school admin or site admin.
 - UI must clearly show impersonation is active
 - Impersonator must not silently gain password reset or email change on target without extra confirmation (recommended hardening)
 
-## CRM (later)
+## Admin Console (later)
 
-**TanStack Start** application at **crm.campusgamingnetwork.com**, released after the first public release:
+**TanStack Start** application in `apps/admin` at **admin.campusgamingnetwork.com**, released after the first public release:
 
 - Schools CRUD (create = site admin)
 - **Games** catalog (IGDB sync + edits)

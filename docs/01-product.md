@@ -27,7 +27,7 @@
 - Google Analytics
 - Internet Explorer support
 - Heavy user-generated content on the homepage (keep it simple until content exists)
-- Shipping the CRM/admin app in the first release (CRM is later)
+- Shipping the Admin Console in the first release (it comes later)
 - In-app notifications and user/entity audit-history views (later)
 
 ## Product principles
@@ -56,8 +56,8 @@
 | **Club officer** | Manages a club; can create badge-eligible events |
 | **Team owner / captain** | Owns or captains a team; can invite members and register for team tournaments |
 | **Event organizer** | Creates/hosts events; may be one of several organizers |
-| **Site admin** | Later: creates schools via CRM/admin app, manages users/ACLs, views reports, impersonates users |
-| **CRM operator** | Later: uses the admin CRM app (not raw DB) to manage schools, users, ACLs |
+| **Site admin** | Later: creates schools via the Admin Console, manages users/ACLs, views reports, impersonates users |
+| **Admin Console operator** | Later: uses the Admin Console (not raw DB) to manage schools, users, ACLs |
 
 ## User verification levels
 
@@ -111,10 +111,10 @@ Signup also requires confirming **age 18+**. Alumni can participate. Faculty who
 ### Schools
 
 - Search and browse schools (including while logged out); popular schools (high event volume)
-- School logo comes later via CRM/admin app only (PNG/JPG ≤500 MB); placeholder until set; slug URL (duplicate names get auto-increment suffix)
+- School logo comes later via the Admin Console only (PNG/JPG ≤500 MB); placeholder until set; slug URL (duplicate names get auto-increment suffix)
 - School names need not be unique
-- School catalog bootstrapped **once** from College Scorecard — import **all** seed rows (main + branch), `is_active=true`; branch campuses use the same UI/UX as other schools; review/deactivate later in CRM/admin tooling
-- Afterward only site admins create/edit/delete schools via admin tooling / CRM (users cannot create schools); `unitid` optional
+- School catalog bootstrapped **once** from College Scorecard — import **all** seed rows (main + branch), `is_active=true`; branch campuses use the same UI/UX as other schools; review/deactivate later in the Admin Console
+- Afterward only site admins create/edit/delete schools via the Admin Console (users cannot create schools); `unitid` optional
 - Multiple school admins; a user can admin multiple schools
 - School admins edit school details and assign school teams
 - School admins cannot remove other school admins
@@ -181,7 +181,7 @@ Signup also requires confirming **age 18+**. Alumni can participate. Faculty who
 
 ### Games
 
-- Not editable by end users — curated seed first; CRM / IGDB enrichment later
+- Not editable by end users — curated seed first; IGDB enrichment through the Admin Console later
 - Launch set: Rocket League, Valorant, League of Legends, Overwatch 2, Super Smash Bros. Ultimate, CSGO
 - Used to browse/filter events (and later tournaments) and show popularity by school
 
@@ -214,14 +214,14 @@ Signup also requires confirming **age 18+**. Alumni can participate. Faculty who
 - Email active yes/maybe RSVPs after an event is cancelled from
   `events@campusgamingnetwork.com` (best effort; no ICS attachment)
 - Basic notifications from `notifications@campusgamingnetwork.com` (later)
-- Support / report follow-up email from `support@campusgamingnetwork.com` (later CRM workflow)
+- Support / report follow-up email from `support@campusgamingnetwork.com` (later Admin Console workflow)
 - Account emails (verify, reset password) from `account@campusgamingnetwork.com`
-- Support tickets: **anyone** can submit (logged out OK); queued for later CRM/admin review
+- Support tickets: **anyone** can submit (logged out OK); queued for later Admin Console review
 - Site-wide announcement banner deployable to every page (later)
 
-### Admin / CRM (later)
+### Admin Console (later)
 
-- Separate **TanStack Start** app at **crm.campusgamingnetwork.com**, released after the first public release
+- Separate **TanStack Start** app in `apps/admin` at **admin.campusgamingnetwork.com**, released after the first public release
 - Manage schools, users, ACLs, games (no raw DB required)
 - Site admins create/edit schools (after one-time Scorecard seed)
 - View **reports** and **support tickets**
@@ -249,7 +249,7 @@ Signup also requires confirming **age 18+**. Alumni can participate. Faculty who
 | App | URL |
 |-----|-----|
 | Main website | [campusgamingnetwork.com](https://campusgamingnetwork.com) |
-| CRM / admin app | [crm.campusgamingnetwork.com](https://crm.campusgamingnetwork.com) (later) |
+| Admin Console | [admin.campusgamingnetwork.com](https://admin.campusgamingnetwork.com) (later) |
 
 ## Success criteria (first release)
 
@@ -261,4 +261,4 @@ An email-verified user (18+) can:
 4. Create or join a team (URL + password)
 5. See a simple dashboard of upcoming activity
 
-Later CRM/admin app: site admins manage schools, view reports and support tickets.
+Later Admin Console: site admins manage schools, view reports and support tickets.

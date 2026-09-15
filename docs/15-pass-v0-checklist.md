@@ -76,7 +76,7 @@ Failure cases to keep green: `rate_limited`, `event_full`, `invalid_private_pass
 ### Still open after Pass v0 web slice
 - Manual mobile + assistive-technology pass on the same journeys
 - Real Terms/Privacy content
-- `school_admins` grant path (CRM later; indicators read-only today)
+- `school_admins` grant path (Admin Console later; indicators read-only today)
 
 ---
 

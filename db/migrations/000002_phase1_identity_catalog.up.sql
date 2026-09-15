@@ -1,5 +1,5 @@
 -- Phase 1A: auth, profiles, schools, follows, and curated games foundation.
--- Events, teams, reports, support, notifications, and CRM/admin workflows are
+-- Events, teams, reports, support, notifications, and Admin Console workflows are
 -- intentionally deferred to the phases that own them.
 
 CREATE EXTENSION IF NOT EXISTS citext;

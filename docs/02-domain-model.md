@@ -17,7 +17,7 @@ Club   ── games
 Team   ── games, members (URL + password), owner, captains; optional club_id
 Event ── games, organizers, RSVPs, interests, location, capacity, visibility, slug
 Tournament ── games, optional Event, individual | team, capacity, slug
-Game ── curated seed first; later CRM/IGDB managed (not editable by end users)
+Game ── curated seed first; later managed through the Admin Console and IGDB (not editable by end users)
 
 Report ── target: Event | User | …
 Notification ── User                                      (later)
@@ -60,9 +60,9 @@ SiteAnnouncement ── global banner                        (later)
 |-----------------|-------|
 | Name | Not required to be unique |
 | Slug | URL identity; on collision append auto-increment (`-2`, `-3`, …) |
-| UNITID | Optional (set on Scorecard-seeded rows; admin/CRM-created schools may omit) |
-| Logo | Later CRM/admin upload only (PNG/JPG ≤500 MB); placeholder until set |
-| Location | City, state, zip, lat/lng (from seed or CRM) |
+| UNITID | Optional (set on Scorecard-seeded rows; Admin Console-created schools may omit) |
+| Logo | Later Admin Console upload only (PNG/JPG ≤500 MB); placeholder until set |
+| Location | City, state, zip, lat/lng (from seed or Admin Console) |
 | Admins | Many; a user may admin many schools |
 | Clubs | Listed on school page when clubs ship (later) |
 | Popularity | Derived (e.g. event volume) |
@@ -70,8 +70,8 @@ SiteAnnouncement ── global banner                        (later)
 **Rules**
 
 - National catalog **bootstrapped once** from College Scorecard (`data/schools_seed.csv`) — see [09 — School data](./09-school-data.md)
-- Import **all** seed schools (main + branch), `is_active=true`; branch campuses use the same UI/UX as other schools; review/deactivate later in CRM/admin tooling
-- After bootstrap, **later admin/CRM tooling** owns create / edit / soft-delete (users cannot create schools)
+- Import **all** seed schools (main + branch), `is_active=true`; branch campuses use the same UI/UX as other schools; review/deactivate later in the Admin Console
+- After bootstrap, the **later Admin Console** owns create / edit / soft-delete (users cannot create schools)
 - Anyone (including logged-out) can **search and browse** schools
 - School admins edit school details, **manage clubs** (when clubs ship), and assign school teams
 - School admins **cannot** remove other school admins
@@ -207,8 +207,8 @@ slug    = slugify(eventTitle) + "-" + short
 | Field / concept | Notes |
 |-----------------|-------|
 | Launch seed | Curated list (below); not user-editable |
-| Later | IGDB import / CRM enrichment |
-| Editable by end users | **No** — curated seed first; CRM/admin app later |
+| Later | IGDB import and enrichment through the Admin Console |
+| Editable by end users | **No** — curated seed first; Admin Console later |
 
 **launch games**
 
@@ -254,7 +254,7 @@ Used for: browse/filter events (and later tournaments) by game; popular games by
 | Timestamps | Every table: `created_at`, `updated_at`, `deleted_at` |
 | Soft deletes | Default for user-facing entities (esp. events) |
 | Slugs | Schools: name + numeric suffix on collision. Events: `slugify(title)-` + first **8** Base64URL chars of SHA-256(creatorId\|date\|title) |
-| Images | Event banners default placeholder for now; school logos later via CRM/admin upload (PNG or JPG only; max 500 MB) |
+| Images | Event banners default placeholder for now; school logos later via Admin Console upload (PNG or JPG only; max 500 MB) |
 | Search | Postgres (`tsvector` / `pg_trgm`) before any external search service |
 | Profanity | Block bad words in user-entered text |
 | XSS / SQLi | Prevent via parameterized queries + output encoding / sanitization |

@@ -210,7 +210,7 @@ Items marked **pre-launch** should not wait until after a public release.
 - [ ] Add site-admin-only report queue, support queue, and entity audit-history
   endpoints. Test unauthenticated, ordinary-user, revoked-admin, school-admin,
   and site-admin access, plus audit writes for every mutation.
-- [ ] Build the CRM report/support queue UI on those endpoints, including
+- [ ] Build the Admin Console report/support queue UI on those endpoints, including
   assignment, status, notes, hold visibility, retention status, and safe
   rendering of user-supplied text.
 - [ ] Add authenticated user notification list/unread/mark-read endpoints and an

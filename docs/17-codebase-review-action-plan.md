@@ -15,7 +15,7 @@ this stage. It is not ready for a broad public launch. The largest risks are at
 the boundaries between the browser, BFF, API, database, and email provider, and
 in user journeys that cannot yet reach all of the data the backend supports.
 
-Do not begin clubs, tournaments, the CRM UI, uploads, payments, or another large
+Do not begin clubs, tournaments, the Admin Console UI, uploads, payments, or another large
 foundation slice until the P1 queue below is complete and a real-stack staging
 rehearsal has passed.
 
@@ -841,7 +841,7 @@ status and error code, and internal errors can be misclassified.
 **Problem**
 
 `events.go`, the former monolithic action layer, and `router_test.go` became large mixed-
-responsibility files. Adding CRM/admin or another major domain will increase
+responsibility files. Adding the Admin Console or another major domain will increase
 merge risk and make ownership and review harder.
 
 **Action**

@@ -1,14 +1,14 @@
 # 04 — API
 
 The public UI talks to a **TanStack Start BFF**; the BFF calls **Go** services
-that own domain logic and Postgres. The later CRM app also calls Go (directly
+that own domain logic and Postgres. The later Admin Console also calls Go (directly
 or via an admin BFF).
 
 ## Pattern: Backend for Frontend (BFF)
 
 ```text
 UI route / server function  →  TanStack Start BFF  →  Go API  →  Postgres
-Later CRM screens           →  (CRM BFF or direct) →  Go Admin API  →  Postgres
+Later Admin Console screens →  (admin BFF or direct) →  Go Admin API  →  Postgres
 ```
 
 | Layer | Responsibility |
@@ -19,7 +19,7 @@ Later CRM screens           →  (CRM BFF or direct) →  Go Admin API  →  Pos
 
 Prefer server-rendered routes and server functions over exposing a wide public
 JSON surface. Core forms also retain native POST behavior for progressive
-enhancement. Where JSON is needed (mobile later, CRM, TanStack Query), version
+enhancement. Where JSON is needed (mobile later, Admin Console, TanStack Query), version
 it (`/api/v1/...`).
 
 ### BFF validation boundaries
@@ -97,7 +97,7 @@ Not every path must exist on day one — align with [05 — Roadmap](./05-roadma
 | DELETE | `/schools/:id/follow` | |
 | GET | `/schools/:id/games/popular` | |
 | PATCH | `/schools/:id` | School admin only |
-| POST | `/admin/schools` | Later site admin / CRM-admin only |
+| POST | `/admin/schools` | Later site admin / Admin Console only |
 
 ### Clubs (later)
 
@@ -180,8 +180,8 @@ Event detail responses include `organizers`, with each organizer's name, role,
 | GET | `/games` | Browse (public); currently the 6 curated launch games |
 | GET | `/games/:slug/events` | Public events for game + filters |
 | GET | `/games/:slug/tournaments` | Tournaments for game + filters (later) |
-| POST | `/admin/games/sync` | IGDB import (later; CRM / cron) |
-| PATCH | `/admin/games/:id` | Later CRM/admin only — end users cannot edit games |
+| POST | `/admin/games/sync` | IGDB import (later; Admin Console / cron) |
+| PATCH | `/admin/games/:id` | Later Admin Console only — end users cannot edit games |
 
 ### Notifications & announcements (later)
 
@@ -191,7 +191,7 @@ Event detail responses include `organizers`, with each organizer's name, role,
 | POST | `/me/notifications/:id/read` | |
 | GET | `/announcements/active` | Site-wide banner |
 
-### Moderation & admin (CRM, later — crm.campusgamingnetwork.com)
+### Moderation & admin (Admin Console, later — admin.campusgamingnetwork.com)
 
 | Method | Path | Notes |
 |--------|------|-------|
@@ -238,9 +238,9 @@ Event detail responses include `organizers`, with each organizer's name, role,
 
 ## TanStack usage
 
-- **TanStack Start and TanStack Router** — main site in `apps/web`; the later CRM
+- **TanStack Start and TanStack Router** — main site in `apps/web`; the later Admin Console in `apps/admin`
   may use the same framework in a separate deployment.
-- **TanStack Query / Table / Form** — fine in the later CRM or selective
+- **TanStack Query / Table / Form** — fine in the later Admin Console or selective
   main-site features when a measured need exists.
 - Do not add client data libraries by default to routes that work with loaders,
   server functions, and normal HTML forms.

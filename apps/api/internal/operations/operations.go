@@ -1,5 +1,5 @@
 // Package operations provides the database primitives used by the future
-// site-admin CRM and by authenticated in-app notification endpoints.
+// site-admin-facing Admin Console and by authenticated in-app notification endpoints.
 //
 // Queue and audit methods intentionally are not registered as public HTTP
 // routes here. A caller must enforce site-admin authorization before exposing

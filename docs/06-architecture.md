@@ -6,7 +6,7 @@ Stack, runtime, ops, and engineering constraints for a single-developer, cost-co
 
 ```text
 Main site:  campusgamingnetwork.com
-CRM/admin app:  crm.campusgamingnetwork.com   (later separate app + separate release)
+Admin Console:  admin.campusgamingnetwork.com   (later separate app + separate release)
 
 Browser (React UI, TanStack Router, SSR)
         │
@@ -25,12 +25,12 @@ Go API / services         ── domain logic, Postgres access
 Railway PostgreSQL
 
 Side paths:
-  Later CRM (TanStack Start, separate deploy) ──► Go API
+  Later Admin Console (TanStack Start, separate deploy) ──► Go API
   Resend ──► transactional mail + ICS
-  Cloudflare R2 ──► school logos (CRM/admin, later); other uploads after that
+  Cloudflare R2 ──► school logos (Admin Console, later); other uploads after that
   Sentry ──► errors (later)
   Cloudflare ──► DNS / edge protection
-  IGDB ──► later game enrichment (via CRM / cron); uses the curated seed list
+  IGDB ──► later game enrichment (via Admin Console / cron); uses the curated seed list
 ```
 
 **Backend for Frontend (BFF):** the TanStack Start layer shapes safe display
@@ -52,13 +52,13 @@ See [14 — Architecture diagrams](./14-architecture-diagrams.md) for Mermaid vi
 | Local dev | Docker | Works on all systems; develop on M1 MacBook |
 | App host | Railway | Hosts the TanStack Start web service and Go API |
 | DNS / edge | Cloudflare | DNS and edge protection for campusgamingnetwork.com |
-| CRM | TanStack Start | Later separate app/release at crm.campusgamingnetwork.com |
+| Admin Console | TanStack Start | Later `apps/admin` app/release at admin.campusgamingnetwork.com |
 | Email | Resend | Verification, password reset, RSVP+ICS, etc. |
-| Object storage | Cloudflare R2 | School logos via CRM/admin app (PNG/JPG ≤500 MB), then custom event banners — both later |
+| Object storage | Cloudflare R2 | School logos via Admin Console (PNG/JPG ≤500 MB), then custom event banners — both later |
 | Errors | Sentry | Later bug reporting; not required for launch |
 | Avatars | DiceBear Critters default preset with initials fallback | Custom avatars later |
 | Maps | Google Maps embed (mini) | Later nicety; address text first |
-| Games data | Curated seed; IGDB later | Not user-editable; CRM/admin app takes over management |
+| Games data | Curated seed; IGDB later | Not user-editable; Admin Console takes over management |
 | Analytics | Non-GA tool (TBD) | No Google Analytics (perf) |
 | Client data libs | TanStack where justified | Main site uses Start/Router; Query/Table remain optional |
 
@@ -143,7 +143,7 @@ The school and game catalogs are effectively static — roughly 6,200 schools gr
 ## Catalog mutations
 
 - Schools are bootstrapped once from the Scorecard seed; users cannot create schools.
-- Later CRM/admin app: schools create/edit/delete, logo uploads, school admins, games catalog, and IGDB enrichment.
+- Later Admin Console: schools create/edit/delete, logo uploads, school admins, games catalog, and IGDB enrichment.
 - Games: Uses the curated seed; **not** editable by end users.
 
 ## Auth & security
@@ -177,15 +177,15 @@ The school and game catalogs are effectively static — roughly 6,200 schools gr
 - Targeting: at least specific users and specific schools
 - Evaluated server-side when possible so UI and API stay consistent
 
-## CRM (admin application, later)
+## Admin Console (later)
 
-- **TanStack Start** app, separate deploy/release after the first release
-- URLs: main = `campusgamingnetwork.com`; CRM = `crm.campusgamingnetwork.com`
+- **TanStack Start** app in `apps/admin`, separate deploy/release after the first release
+- URLs: main = `campusgamingnetwork.com`; Admin Console = `admin.campusgamingnetwork.com`
 - Shared Go API with the main site
 - Manage schools, users, ACLs, games without touching the database directly
-- Only site admins create schools through CRM/admin tooling (after one-time Scorecard seed)
+- Only site admins create schools through the Admin Console (after one-time Scorecard seed)
 - Moderation: **reports** and **support tickets** visible to admins
-- Impersonation entry point (may ship after first CRM release)
+- Impersonation entry point (may ship after the first Admin Console release)
 
 ## Email (Resend)
 
@@ -204,7 +204,7 @@ The school and game catalogs are effectively static — roughly 6,200 schools gr
 
 - Provider: **Cloudflare R2**
 - **Now:** no user uploads; school logos use placeholders
-- **Later:** school logos uploaded via **CRM/admin app** (not the main site)
+- **Later:** school logos uploaded via the **Admin Console** (not the main site)
 - **Event banners:** use a default placeholder image/background — no user uploads yet (custom banners later with strict moderation)
 - Allowed types: **PNG or JPG only**
 - **Max size:** 500 MB per image

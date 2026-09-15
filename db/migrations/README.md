@@ -9,10 +9,10 @@ Phase 3.5 adds recurring event fields and occurrence indexing in
 The same phase adds school-scoped role grants in `000009_trust_roles.up.sql`.
 The operations foundation in `000010_operations_foundation.up.sql` adds queue
 assignment and terminal-retention fields, domain audit history, and per-user
-notifications; site-admin authorization, purge/hold jobs, and CRM HTTP/UI
+notifications; site-admin authorization, purge/hold jobs, and Admin Console HTTP/UI
 surfaces remain separate work.
 Do not add clubs, tournaments, feature flags, site announcements, on-site
-payment tables, IGDB sync tables, or CRM/admin-only workflow tables until those
+payment tables, IGDB sync tables, or Admin Console-only workflow tables until those
 phases are active.
 
 The Go migration runner is `apps/api/cmd/migrate`. It creates
