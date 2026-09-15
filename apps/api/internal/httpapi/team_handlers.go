@@ -161,7 +161,7 @@ func (r *Router) handleCreateTeam(w http.ResponseWriter, req *http.Request) {
 		Password:    request.Password,
 	}
 	if err := teamstore.ValidateCreateInput(input); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid_request")
+		writeApplicationError(w, err, "team_create_failed")
 		return
 	}
 
@@ -175,7 +175,7 @@ func (r *Router) handleCreateTeam(w http.ResponseWriter, req *http.Request) {
 		PasswordHash: passwordHash,
 	})
 	if err != nil {
-		writeTeamMutationError(w, err, "team_create_failed")
+		writeApplicationError(w, err, "team_create_failed")
 		return
 	}
 	writeJSON(w, http.StatusCreated, team)
@@ -274,7 +274,7 @@ func (r *Router) handleJoinTeam(w http.ResponseWriter, req *http.Request, slug s
 	}
 	team, err := r.teams.Join(req.Context(), slug, userID)
 	if err != nil {
-		writeTeamMutationError(w, err, "team_join_failed")
+		writeApplicationError(w, err, "team_join_failed")
 		return
 	}
 	writeJSON(w, http.StatusOK, team)
@@ -297,7 +297,7 @@ func (r *Router) handleSetTeamCaptain(w http.ResponseWriter, req *http.Request, 
 	}
 	team, err := r.teams.SetCaptain(req.Context(), slug, userID, request.UserID, request.Captain)
 	if err != nil {
-		writeTeamMutationError(w, err, "team_captain_failed")
+		writeApplicationError(w, err, "team_captain_failed")
 		return
 	}
 	writeJSON(w, http.StatusOK, team)
@@ -320,7 +320,7 @@ func (r *Router) handleTransferTeamOwnership(w http.ResponseWriter, req *http.Re
 	}
 	team, err := r.teams.TransferOwnership(req.Context(), slug, userID, request.NewOwnerUserID)
 	if err != nil {
-		writeTeamMutationError(w, err, "team_transfer_failed")
+		writeApplicationError(w, err, "team_transfer_failed")
 		return
 	}
 	writeJSON(w, http.StatusOK, team)
@@ -346,29 +346,6 @@ func (r *Router) decorateTeamForViewer(req *http.Request, slug string, team *tea
 		team.Members = members
 	}
 	return nil
-}
-
-func writeTeamMutationError(w http.ResponseWriter, err error, fallbackCode string) {
-	switch {
-	case errors.Is(err, teamstore.ErrTeamNotFound):
-		writeError(w, http.StatusNotFound, "team_not_found")
-	case errors.Is(err, teamstore.ErrSchoolNotFound):
-		writeError(w, http.StatusUnprocessableEntity, "team_school_not_found")
-	case errors.Is(err, teamstore.ErrGameNotFound):
-		writeError(w, http.StatusUnprocessableEntity, "team_game_not_found")
-	case errors.Is(err, teamstore.ErrSlugUnavailable):
-		writeError(w, http.StatusConflict, "team_slug_unavailable")
-	case errors.Is(err, teamstore.ErrNotTeamOwner):
-		writeError(w, http.StatusForbidden, "not_team_owner")
-	case errors.Is(err, teamstore.ErrTeamMemberNotFound):
-		writeError(w, http.StatusUnprocessableEntity, "team_member_not_found")
-	case errors.Is(err, teamstore.ErrInvalidTeamRole):
-		writeError(w, http.StatusBadRequest, "invalid_team_role")
-	case isValidationError(err):
-		writeError(w, http.StatusBadRequest, "invalid_request")
-	default:
-		writeError(w, http.StatusInternalServerError, fallbackCode)
-	}
 }
 
 func pathParts(path string, prefix string) ([]string, error) {

@@ -84,6 +84,8 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 - [x] Require explicit POST confirmation before consuming an email-verification token; scanner-style GET requests cannot verify accounts
 - [x] Fail web and API startup on unsafe staging/production configuration while preserving deliberate local Compose defaults
 - [x] Run a focused real-stack browser suite through built TanStack Start, the Go API, disposable PostgreSQL, the email outbox, and a Resend HTTP stub; repeat every journey twice in CI while retaining the fast fake-API suite
+- [x] Replace message-fragment HTTP error classification with typed, stable application errors and one centralized mapper (`CGN-017`)
+- [x] Split the event domain and HTTP router tests into capability and route-family files without changing public behavior (`CGN-018`)
 
 ### Auth & profiles
 - [x] Signup / login / logout

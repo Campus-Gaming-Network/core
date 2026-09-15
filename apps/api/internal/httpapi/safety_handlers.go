@@ -1,7 +1,6 @@
 package httpapi
 
 import (
-	"errors"
 	"net/http"
 
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/auth"
@@ -56,7 +55,7 @@ func (r *Router) handleSupportTickets(w http.ResponseWriter, req *http.Request) 
 		Message:         request.Message,
 	})
 	if err != nil {
-		writeSafetyMutationError(w, err, "support_ticket_failed")
+		writeApplicationError(w, err, "support_ticket_failed")
 		return
 	}
 	writeJSON(w, http.StatusCreated, ticket)
@@ -83,7 +82,7 @@ func (r *Router) handleReportEvent(w http.ResponseWriter, req *http.Request, slu
 	}
 	report, err := r.safety.ReportEvent(req.Context(), userID, slug, request.Reason)
 	if err != nil {
-		writeSafetyMutationError(w, err, "report_failed")
+		writeApplicationError(w, err, "report_failed")
 		return
 	}
 	writeJSON(w, http.StatusCreated, report)
@@ -110,21 +109,8 @@ func (r *Router) handleReportUser(w http.ResponseWriter, req *http.Request, targ
 	}
 	report, err := r.safety.ReportUser(req.Context(), userID, targetUserID, request.Reason)
 	if err != nil {
-		writeSafetyMutationError(w, err, "report_failed")
+		writeApplicationError(w, err, "report_failed")
 		return
 	}
 	writeJSON(w, http.StatusCreated, report)
-}
-
-func writeSafetyMutationError(w http.ResponseWriter, err error, fallbackCode string) {
-	switch {
-	case errors.Is(err, safety.ErrReportTargetNotFound):
-		writeError(w, http.StatusNotFound, "report_target_not_found")
-	case errors.Is(err, safety.ErrCannotReportSelf):
-		writeError(w, http.StatusBadRequest, "cannot_report_self")
-	case isValidationError(err):
-		writeError(w, http.StatusBadRequest, "invalid_request")
-	default:
-		writeError(w, http.StatusInternalServerError, fallbackCode)
-	}
 }

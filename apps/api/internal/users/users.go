@@ -11,6 +11,7 @@ import (
 	"time"
 	_ "time/tzdata"
 
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/apperror"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/safety"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -18,6 +19,12 @@ import (
 )
 
 const MinPasswordLength = 8
+
+var ErrDuplicateEmail = apperror.New(
+	apperror.KindConflict,
+	"email_already_registered",
+	"email is already registered",
+)
 
 type Profile struct {
 	ID                string       `json:"id"`
@@ -146,22 +153,22 @@ func DiceBearURL(seed string) string {
 func ValidateSignup(input SignupInput) error {
 	email := NormalizeEmail(input.Email)
 	if _, err := mail.ParseAddress(email); err != nil {
-		return errors.New("email must be valid")
+		return apperror.Validation("email must be valid")
 	}
 	if len(input.Password) < MinPasswordLength {
-		return errors.New("password must be at least 8 characters")
+		return apperror.Validation("password must be at least 8 characters")
 	}
 	if name := strings.TrimSpace(input.Name); name == "" || len(name) > 120 {
-		return errors.New("name is required and must be 120 characters or fewer")
+		return apperror.Validation("name is required and must be 120 characters or fewer")
 	}
 	if err := safety.ValidateCleanText("name", input.Name); err != nil {
 		return err
 	}
 	if strings.TrimSpace(input.HomeSchoolID) == "" {
-		return errors.New("home school is required")
+		return apperror.Validation("home school is required")
 	}
 	if !input.AgeConfirmed {
-		return errors.New("18+ confirmation is required")
+		return apperror.Validation("18+ confirmation is required")
 	}
 	return nil
 }
@@ -169,37 +176,37 @@ func ValidateSignup(input SignupInput) error {
 func ValidateProfileUpdate(update ProfileUpdate, links []SocialLink) error {
 	name := strings.TrimSpace(update.Name)
 	if name == "" || len(name) > 120 {
-		return errors.New("name is required and must be 120 characters or fewer")
+		return apperror.Validation("name is required and must be 120 characters or fewer")
 	}
 	if err := safety.ValidateCleanText("name", name); err != nil {
 		return err
 	}
 	if len(update.Bio) > 2000 {
-		return errors.New("bio must be 2,000 characters or fewer")
+		return apperror.Validation("bio must be 2,000 characters or fewer")
 	}
 	if err := safety.ValidateCleanText("bio", update.Bio); err != nil {
 		return err
 	}
 	timezone := strings.TrimSpace(update.Timezone)
 	if timezone == "" {
-		return errors.New("timezone is required")
+		return apperror.Validation("timezone is required")
 	}
 	if _, err := time.LoadLocation(timezone); err != nil {
-		return errors.New("timezone must be a valid IANA timezone")
+		return apperror.Validation("timezone must be a valid IANA timezone")
 	}
 	if len(links) > 8 {
-		return errors.New("no more than 8 social links are allowed")
+		return apperror.Validation("no more than 8 social links are allowed")
 	}
 	for _, link := range links {
 		if label := strings.TrimSpace(link.Label); label == "" || len(label) > 40 {
-			return errors.New("social link labels are required and must be 40 characters or fewer")
+			return apperror.Validation("social link labels are required and must be 40 characters or fewer")
 		}
 		if len(link.URL) > 500 {
-			return errors.New("social link URLs must be 500 characters or fewer")
+			return apperror.Validation("social link URLs must be 500 characters or fewer")
 		}
 		parsed, err := url.Parse(strings.TrimSpace(link.URL))
 		if err != nil || (parsed.Scheme != "https" && parsed.Scheme != "http") || parsed.Host == "" {
-			return errors.New("social link URLs must be valid HTTP or HTTPS URLs")
+			return apperror.Validation("social link URLs must be valid HTTP or HTTPS URLs")
 		}
 	}
 	return nil
@@ -236,6 +243,9 @@ func (r *PostgresRepository) Create(ctx context.Context, params CreateParams) (P
 		&profile.HomeSchoolID,
 	)
 	if err != nil {
+		if IsDuplicateEmail(err) {
+			return Profile{}, apperror.Wrap(apperror.KindConflict, "email_already_registered", err)
+		}
 		return Profile{}, fmt.Errorf("create user: %w", err)
 	}
 	return profileWithAssociations(ctx, r.pool, profile)
@@ -500,6 +510,9 @@ func listSocialLinks(ctx context.Context, queryer profileQueryer, id string) ([]
 
 // IsDuplicateEmail reports whether err is a unique-email constraint violation.
 func IsDuplicateEmail(err error) bool {
+	if errors.Is(err, ErrDuplicateEmail) {
+		return true
+	}
 	var pgErr *pgconn.PgError
 	return errors.As(err, &pgErr) && pgErr.Code == "23505" && pgErr.ConstraintName == "users_email_key"
 }

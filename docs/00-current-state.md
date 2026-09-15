@@ -4,7 +4,7 @@ Quick re-entry point for Campus Gaming Network. Read this first after time away;
 the detailed product and engineering context remains in the other documents in
 this folder.
 
-**Last updated:** 2026-09-13
+**Last updated:** 2026-09-15
 
 ## Where we are
 
@@ -53,6 +53,15 @@ gates. Admin Console UI work moves behind the review's P1 queue.
 
 ## Recently completed
 
+- Replaced HTTP error classification based on message fragments with typed,
+  code-bearing application errors and one centralized mapper. Validation,
+  missing-resource, conflict, authentication, and authorization behavior now
+  survives wording and wrapping changes, with regression coverage for every
+  domain mapping and the generic fallback (`CGN-017`).
+- Split the event domain into capability-focused Go files and the former
+  multi-thousand-line HTTP router test suite into route-family files with shared
+  fixtures. Exported contracts, SQL, all 53 event functions, and all 68 existing
+  router tests were retained (`CGN-018`).
 - Added a focused, repeatable browser suite through the built TanStack Start
   BFF, real Go API, disposable PostgreSQL database, migrations, deterministic
   fixture, email outbox, and Resend HTTP stub. It covers signup and POST

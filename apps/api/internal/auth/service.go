@@ -6,16 +6,17 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/apperror"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/schools"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/users"
 	"github.com/jackc/pgx/v5"
 )
 
 var (
-	ErrHomeSchoolNotFound = errors.New("home school not found")
-	ErrInvalidCredentials = errors.New("invalid credentials")
-	ErrEmailUnverified    = errors.New("email is not verified")
-	ErrInvalidToken       = errors.New("invalid or expired token")
+	ErrHomeSchoolNotFound = apperror.New(apperror.KindUnprocessable, "home_school_not_found", "home school not found")
+	ErrInvalidCredentials = apperror.New(apperror.KindAuthentication, "invalid_credentials", "invalid credentials")
+	ErrEmailUnverified    = apperror.New(apperror.KindAuthorization, "email_not_verified", "email is not verified")
+	ErrInvalidToken       = apperror.New(apperror.KindValidation, "invalid_or_expired_token", "invalid or expired token")
 )
 
 type SessionManager interface {
@@ -223,7 +224,7 @@ func (s *AccountService) sendVerification(ctx context.Context, profile users.Pro
 
 func validatePassword(password string) error {
 	if len(password) < users.MinPasswordLength {
-		return errors.New("password must be at least 8 characters")
+		return apperror.Validation("password must be at least 8 characters")
 	}
 	return nil
 }

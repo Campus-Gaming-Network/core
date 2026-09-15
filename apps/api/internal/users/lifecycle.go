@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/apperror"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/emailoutbox"
 	"github.com/jackc/pgx/v5"
 )
@@ -42,6 +43,9 @@ func (r *PostgresRepository) CreateWithVerificationToken(ctx context.Context, pa
 		&profile.HomeSchoolID,
 	)
 	if err != nil {
+		if IsDuplicateEmail(err) {
+			return Profile{}, apperror.Wrap(apperror.KindConflict, "email_already_registered", err)
+		}
 		return Profile{}, fmt.Errorf("create user: %w", err)
 	}
 

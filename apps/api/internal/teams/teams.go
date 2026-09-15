@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/apperror"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/pagecursor"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/safety"
 	"github.com/jackc/pgx/v5"
@@ -18,13 +19,13 @@ import (
 )
 
 var (
-	ErrTeamNotFound       = errors.New("team not found")
-	ErrSchoolNotFound     = errors.New("school not found")
-	ErrGameNotFound       = errors.New("game not found")
-	ErrSlugUnavailable    = errors.New("team slug unavailable")
-	ErrNotTeamOwner       = errors.New("not team owner")
-	ErrTeamMemberNotFound = errors.New("team member not found")
-	ErrInvalidTeamRole    = errors.New("invalid team role")
+	ErrTeamNotFound       = apperror.New(apperror.KindNotFound, "team_not_found", "team not found")
+	ErrSchoolNotFound     = apperror.New(apperror.KindUnprocessable, "team_school_not_found", "school not found")
+	ErrGameNotFound       = apperror.New(apperror.KindUnprocessable, "team_game_not_found", "game not found")
+	ErrSlugUnavailable    = apperror.New(apperror.KindConflict, "team_slug_unavailable", "team slug unavailable")
+	ErrNotTeamOwner       = apperror.New(apperror.KindAuthorization, "not_team_owner", "not team owner")
+	ErrTeamMemberNotFound = apperror.New(apperror.KindUnprocessable, "team_member_not_found", "team member not found")
+	ErrInvalidTeamRole    = apperror.New(apperror.KindValidation, "invalid_team_role", "invalid team role")
 )
 
 const (
@@ -126,30 +127,30 @@ func NormalizeListParams(params ListParams) ListParams {
 
 func ValidateCreateInput(input CreateInput) error {
 	if name := strings.TrimSpace(input.Name); name == "" || len(name) > 120 {
-		return errors.New("team name is required and must be 120 characters or fewer")
+		return apperror.Validation("team name is required and must be 120 characters or fewer")
 	}
 	if err := safety.ValidateCleanText("team name", input.Name); err != nil {
 		return err
 	}
 	if len(input.Description) > 5000 {
-		return errors.New("description must be 5,000 characters or fewer")
+		return apperror.Validation("description must be 5,000 characters or fewer")
 	}
 	if err := safety.ValidateCleanText("description", input.Description); err != nil {
 		return err
 	}
 	if strings.TrimSpace(input.OwnerUserID) == "" {
-		return errors.New("owner user is required")
+		return apperror.Validation("owner user is required")
 	}
 	if len(input.GameIDs) == 0 {
-		return errors.New("at least one game is required")
+		return apperror.Validation("at least one game is required")
 	}
 	for _, gameID := range input.GameIDs {
 		if strings.TrimSpace(gameID) == "" {
-			return errors.New("game IDs must be valid")
+			return apperror.Validation("game IDs must be valid")
 		}
 	}
 	if len(strings.TrimSpace(input.Password)) < 8 {
-		return errors.New("team join password must be at least 8 characters")
+		return apperror.Validation("team join password must be at least 8 characters")
 	}
 	return nil
 }
@@ -196,7 +197,7 @@ func (r *PostgresRepository) Create(ctx context.Context, params CreateParams) (T
 		return Team{}, err
 	}
 	if strings.TrimSpace(params.PasswordHash) == "" {
-		return Team{}, errors.New("team password hash is required")
+		return Team{}, apperror.Validation("team password hash is required")
 	}
 
 	params = normalizeCreateParams(params)
@@ -310,7 +311,7 @@ func (r *PostgresRepository) Join(ctx context.Context, slug string, userID strin
 	slug = strings.TrimSpace(slug)
 	userID = strings.TrimSpace(userID)
 	if slug == "" || userID == "" {
-		return Team{}, errors.New("team slug and user are required")
+		return Team{}, apperror.Validation("team slug and user are required")
 	}
 
 	teamID, err := r.teamIDBySlug(ctx, slug)
@@ -392,7 +393,7 @@ func (r *PostgresRepository) ListMembers(ctx context.Context, slug string) ([]Me
 func (r *PostgresRepository) ListForUser(ctx context.Context, userID string, limit int) ([]Team, error) {
 	userID = strings.TrimSpace(userID)
 	if userID == "" {
-		return nil, errors.New("user is required")
+		return nil, apperror.Validation("user is required")
 	}
 	if limit < 1 || limit > 25 {
 		limit = 10
@@ -437,7 +438,7 @@ func (r *PostgresRepository) SetCaptain(ctx context.Context, slug string, ownerU
 	ownerUserID = strings.TrimSpace(ownerUserID)
 	memberUserID = strings.TrimSpace(memberUserID)
 	if slug == "" || ownerUserID == "" || memberUserID == "" {
-		return Team{}, errors.New("team slug, owner, and member are required")
+		return Team{}, apperror.Validation("team slug, owner, and member are required")
 	}
 
 	tx, err := r.pool.Begin(ctx)
@@ -483,7 +484,7 @@ func (r *PostgresRepository) TransferOwnership(ctx context.Context, slug string,
 	ownerUserID = strings.TrimSpace(ownerUserID)
 	newOwnerUserID = strings.TrimSpace(newOwnerUserID)
 	if slug == "" || ownerUserID == "" || newOwnerUserID == "" {
-		return Team{}, errors.New("team slug, owner, and new owner are required")
+		return Team{}, apperror.Validation("team slug, owner, and new owner are required")
 	}
 	if ownerUserID == newOwnerUserID {
 		return Team{}, ErrInvalidTeamRole

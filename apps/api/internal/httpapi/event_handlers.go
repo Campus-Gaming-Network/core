@@ -143,7 +143,7 @@ func (r *Router) handleCreateEvent(w http.ResponseWriter, req *http.Request) {
 		input.RecurrenceUntil = parsed
 	}
 	if err := eventstore.ValidateCreateInput(input); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid_request")
+		writeApplicationError(w, err, "event_create_failed")
 		return
 	}
 
@@ -161,7 +161,7 @@ func (r *Router) handleCreateEvent(w http.ResponseWriter, req *http.Request) {
 		PrivatePasswordHash: privatePasswordHash,
 	})
 	if err != nil {
-		writeEventMutationError(w, err, "event_create_failed")
+		writeApplicationError(w, err, "event_create_failed")
 		return
 	}
 	writeJSON(w, http.StatusCreated, event)
@@ -205,7 +205,7 @@ func (r *Router) handleUpdateEvent(w http.ResponseWriter, req *http.Request, slu
 
 	input := updateEventInputFromRequest(request, slug, userID)
 	if err := eventstore.ValidateUpdateInput(input); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid_request")
+		writeApplicationError(w, err, "event_update_failed")
 		return
 	}
 
@@ -223,7 +223,7 @@ func (r *Router) handleUpdateEvent(w http.ResponseWriter, req *http.Request, slu
 		PrivatePasswordHash: privatePasswordHash,
 	})
 	if err != nil {
-		writeEventMutationError(w, err, "event_update_failed")
+		writeApplicationError(w, err, "event_update_failed")
 		return
 	}
 	writeJSON(w, http.StatusOK, event)
@@ -240,7 +240,7 @@ func (r *Router) handleDeleteEvent(w http.ResponseWriter, req *http.Request, slu
 		return
 	}
 	if err := r.events.Delete(req.Context(), slug, userID); err != nil {
-		writeEventMutationError(w, err, "event_delete_failed")
+		writeApplicationError(w, err, "event_delete_failed")
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -282,7 +282,7 @@ func (r *Router) handleUnlockEvent(w http.ResponseWriter, req *http.Request, slu
 	}
 	expiresAt := time.Now().Add(privateEventUnlockTTL)
 	if err := r.events.CreatePrivateUnlock(req.Context(), slug, tokenHash, expiresAt); err != nil {
-		writeEventMutationError(w, err, "event_unlock_failed")
+		writeApplicationError(w, err, "event_unlock_failed")
 		return
 	}
 	event, err := r.events.GetBySlug(req.Context(), slug)
@@ -344,7 +344,7 @@ func (r *Router) handleRSVPEvent(w http.ResponseWriter, req *http.Request, slug 
 		Response: request.Response,
 	})
 	if err != nil {
-		writeEventMutationError(w, err, "event_rsvp_failed")
+		writeApplicationError(w, err, "event_rsvp_failed")
 		return
 	}
 	writeJSON(w, http.StatusOK, event)
@@ -383,7 +383,7 @@ func (r *Router) handleEventInterest(w http.ResponseWriter, req *http.Request, s
 
 	event, err = r.events.SetInterest(req.Context(), slug, userID, req.Method == http.MethodPost)
 	if err != nil {
-		writeEventMutationError(w, err, "event_interest_failed")
+		writeApplicationError(w, err, "event_interest_failed")
 		return
 	}
 	writeJSON(w, http.StatusOK, event)
@@ -434,28 +434,5 @@ func updateEventInputFromRequest(request createEventRequest, slug string, userID
 		IsPaid:          request.IsPaid,
 		PaymentNote:     request.PaymentNote,
 		PaymentURL:      request.PaymentURL,
-	}
-}
-
-func writeEventMutationError(w http.ResponseWriter, err error, fallbackCode string) {
-	switch {
-	case errors.Is(err, eventstore.ErrEventNotFound):
-		writeError(w, http.StatusNotFound, "event_not_found")
-	case errors.Is(err, eventstore.ErrOrganizerRequired):
-		writeError(w, http.StatusForbidden, "not_event_organizer")
-	case errors.Is(err, eventstore.ErrHostSchoolNotFound):
-		writeError(w, http.StatusUnprocessableEntity, "host_school_not_found")
-	case errors.Is(err, eventstore.ErrGameNotFound):
-		writeError(w, http.StatusUnprocessableEntity, "game_not_found")
-	case errors.Is(err, eventstore.ErrSlugUnavailable):
-		writeError(w, http.StatusConflict, "event_slug_unavailable")
-	case errors.Is(err, eventstore.ErrEventFull):
-		writeError(w, http.StatusConflict, "event_full")
-	case errors.Is(err, eventstore.ErrRSVPClosed):
-		writeError(w, http.StatusConflict, "event_rsvp_closed")
-	case isValidationError(err):
-		writeError(w, http.StatusBadRequest, "invalid_request")
-	default:
-		writeError(w, http.StatusInternalServerError, fallbackCode)
 	}
 }

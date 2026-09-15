@@ -6,12 +6,17 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
-	"errors"
 	"net/http"
 	"time"
+
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/apperror"
 )
 
-var ErrUnauthenticated = errors.New("authentication required")
+var ErrUnauthenticated = apperror.New(
+	apperror.KindAuthentication,
+	"authentication_required",
+	"authentication required",
+)
 
 type contextKey string
 

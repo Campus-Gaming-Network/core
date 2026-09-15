@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/apperror"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/auth"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/users"
 	"github.com/jackc/pgx/v5"
@@ -83,16 +84,10 @@ func (r *Router) handleSignup(w http.ResponseWriter, req *http.Request) {
 		Timezone:     input.Timezone,
 	})
 	if err != nil {
-		switch {
-		case users.IsDuplicateEmail(err):
-			writeError(w, http.StatusConflict, "email_already_registered")
-		case errors.Is(err, auth.ErrHomeSchoolNotFound):
-			writeError(w, http.StatusUnprocessableEntity, "home_school_not_found")
-		case isValidationError(err):
-			writeError(w, http.StatusBadRequest, "invalid_request")
-		default:
-			writeError(w, http.StatusInternalServerError, "signup_failed")
+		if users.IsDuplicateEmail(err) {
+			err = apperror.Wrap(apperror.KindConflict, "email_already_registered", err)
 		}
+		writeApplicationError(w, err, "signup_failed")
 		return
 	}
 	writeJSON(w, http.StatusCreated, profile)
@@ -123,14 +118,7 @@ func (r *Router) handleLogin(w http.ResponseWriter, req *http.Request) {
 	}
 	result, err := r.account.Login(req.Context(), input.Email, input.Password)
 	if err != nil {
-		switch {
-		case errors.Is(err, auth.ErrEmailUnverified):
-			writeError(w, http.StatusForbidden, "email_not_verified")
-		case errors.Is(err, auth.ErrInvalidCredentials):
-			writeError(w, http.StatusUnauthorized, "invalid_credentials")
-		default:
-			writeError(w, http.StatusInternalServerError, "login_failed")
-		}
+		writeApplicationError(w, err, "login_failed")
 		return
 	}
 	r.setSessionCookie(w, result.Token, result.ExpiresAt)
@@ -174,11 +162,7 @@ func (r *Router) handleVerifyEmail(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	if err := r.account.VerifyEmail(req.Context(), strings.TrimSpace(input.Token)); err != nil {
-		if errors.Is(err, auth.ErrInvalidToken) {
-			writeError(w, http.StatusBadRequest, "invalid_or_expired_token")
-			return
-		}
-		writeError(w, http.StatusInternalServerError, "verification_failed")
+		writeApplicationError(w, err, "verification_failed")
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]string{"status": "verified"})
@@ -270,15 +254,7 @@ func (r *Router) handleResetPassword(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	if err := r.account.ResetPassword(req.Context(), strings.TrimSpace(input.Token), input.Password); err != nil {
-		if errors.Is(err, auth.ErrInvalidToken) {
-			writeError(w, http.StatusBadRequest, "invalid_or_expired_token")
-			return
-		}
-		if isValidationError(err) {
-			writeError(w, http.StatusBadRequest, "invalid_request")
-			return
-		}
-		writeError(w, http.StatusInternalServerError, "password_reset_failed")
+		writeApplicationError(w, err, "password_reset_failed")
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -305,10 +281,9 @@ func (r *Router) handleMe(w http.ResponseWriter, req *http.Request) {
 	if req.Method == http.MethodDelete {
 		if err := r.account.DeleteAccount(req.Context(), userID); err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
-				writeError(w, http.StatusNotFound, "account_not_found")
-				return
+				err = apperror.Wrap(apperror.KindNotFound, "account_not_found", err)
 			}
-			writeError(w, http.StatusInternalServerError, "account_delete_failed")
+			writeApplicationError(w, err, "account_delete_failed")
 			return
 		}
 		// Deletion revokes every session, so drop this one's cookie too.
@@ -355,11 +330,7 @@ func (r *Router) handleMe(w http.ResponseWriter, req *http.Request) {
 	}
 	profile, err := r.account.UpdateProfile(req.Context(), userID, update, links)
 	if err != nil {
-		if isValidationError(err) {
-			writeError(w, http.StatusBadRequest, "invalid_request")
-			return
-		}
-		writeError(w, http.StatusInternalServerError, "profile_update_failed")
+		writeApplicationError(w, err, "profile_update_failed")
 		return
 	}
 	writeJSON(w, http.StatusOK, profile)
@@ -399,11 +370,10 @@ func (r *Router) handleUserPath(w http.ResponseWriter, req *http.Request) {
 	}
 	profile, err := r.account.GetPublicProfile(req.Context(), id)
 	if errors.Is(err, pgx.ErrNoRows) {
-		writeError(w, http.StatusNotFound, "user_not_found")
-		return
+		err = apperror.Wrap(apperror.KindNotFound, "user_not_found", err)
 	}
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "profile_unavailable")
+		writeApplicationError(w, err, "profile_unavailable")
 		return
 	}
 	writeJSON(w, http.StatusOK, profile)
@@ -475,16 +445,7 @@ func rateLimitExceeded(w http.ResponseWriter, r *Router) {
 
 func writeProfileError(w http.ResponseWriter, err error) {
 	if errors.Is(err, pgx.ErrNoRows) {
-		writeError(w, http.StatusNotFound, "user_not_found")
-		return
+		err = apperror.Wrap(apperror.KindNotFound, "user_not_found", err)
 	}
-	writeError(w, http.StatusInternalServerError, "profile_unavailable")
-}
-
-func isValidationError(err error) bool {
-	message := strings.ToLower(err.Error())
-	return strings.Contains(message, "required") ||
-		strings.Contains(message, "must be") ||
-		strings.Contains(message, "valid") ||
-		strings.Contains(message, "allowed")
+	writeApplicationError(w, err, "profile_unavailable")
 }

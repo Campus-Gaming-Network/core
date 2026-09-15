@@ -9,13 +9,14 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/apperror"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 var (
-	ErrReportTargetNotFound = errors.New("report target not found")
-	ErrCannotReportSelf     = errors.New("cannot report self")
+	ErrReportTargetNotFound = apperror.New(apperror.KindNotFound, "report_target_not_found", "report target not found")
+	ErrCannotReportSelf     = apperror.New(apperror.KindValidation, "cannot_report_self", "cannot report self")
 )
 
 const (
@@ -82,16 +83,16 @@ func ValidateSupportTicket(input SupportTicketInput) error {
 		return err
 	}
 	if _, err := mail.ParseAddress(strings.TrimSpace(input.ContactEmail)); err != nil {
-		return errors.New("contact email must be valid")
+		return apperror.Validation("contact email must be valid")
 	}
 	if len(strings.TrimSpace(input.Name)) > 120 {
-		return errors.New("name must be 120 characters or fewer")
+		return apperror.Validation("name must be 120 characters or fewer")
 	}
 	if subject := strings.TrimSpace(input.Subject); subject == "" || len(subject) > 160 {
-		return errors.New("subject is required and must be 160 characters or fewer")
+		return apperror.Validation("subject is required and must be 160 characters or fewer")
 	}
 	if message := strings.TrimSpace(input.Message); message == "" || len(message) > 5000 {
-		return errors.New("message is required and must be 5,000 characters or fewer")
+		return apperror.Validation("message is required and must be 5,000 characters or fewer")
 	}
 	return nil
 }
@@ -101,16 +102,16 @@ func ValidateReport(input ReportInput) error {
 		return err
 	}
 	if strings.TrimSpace(input.ReporterUserID) == "" {
-		return errors.New("reporter is required")
+		return apperror.Validation("reporter is required")
 	}
 	if input.TargetType != ReportTargetEvent && input.TargetType != ReportTargetUser {
-		return errors.New("report target type must be event or user")
+		return apperror.Validation("report target type must be event or user")
 	}
 	if strings.TrimSpace(input.TargetID) == "" {
-		return errors.New("report target is required")
+		return apperror.Validation("report target is required")
 	}
 	if reason := strings.TrimSpace(input.Reason); reason == "" || len(reason) > 2000 {
-		return errors.New("reason is required and must be 2,000 characters or fewer")
+		return apperror.Validation("reason is required and must be 2,000 characters or fewer")
 	}
 	return nil
 }
@@ -138,7 +139,7 @@ func ContainsBlockedLanguage(value string) bool {
 
 func ValidateCleanText(field string, value string) error {
 	if ContainsBlockedLanguage(value) {
-		return fmt.Errorf("%s contains language that is not allowed", field)
+		return apperror.Validation(fmt.Sprintf("%s contains language that is not allowed", field))
 	}
 	return nil
 }

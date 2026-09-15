@@ -1,9 +1,10 @@
 package events
 
 import (
-	"errors"
 	"sort"
 	"time"
+
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/apperror"
 )
 
 type localDateTime struct {
@@ -25,14 +26,14 @@ type recurrenceSchedule struct {
 
 func newRecurrenceSchedule(rule string, startsAt time.Time, endsAt time.Time, timezone string) (recurrenceSchedule, error) {
 	if !validRecurrenceRule(rule) {
-		return recurrenceSchedule{}, errors.New("recurrence rule is invalid")
+		return recurrenceSchedule{}, apperror.Validation("recurrence rule is invalid")
 	}
 	location, err := time.LoadLocation(timezone)
 	if err != nil {
-		return recurrenceSchedule{}, errors.New("recurrence timezone is invalid")
+		return recurrenceSchedule{}, apperror.Validation("recurrence timezone is invalid")
 	}
 	if !endsAt.After(startsAt) {
-		return recurrenceSchedule{}, errors.New("recurrence duration must be positive")
+		return recurrenceSchedule{}, apperror.Validation("recurrence duration must be positive")
 	}
 
 	localStart := startsAt.In(location)
@@ -49,7 +50,7 @@ func newRecurrenceSchedule(rule string, startsAt time.Time, endsAt time.Time, ti
 // preserves the root event's elapsed duration.
 func (schedule recurrenceSchedule) occurrence(index int) (time.Time, time.Time, error) {
 	if index < 0 {
-		return time.Time{}, time.Time{}, errors.New("recurrence occurrence index cannot be negative")
+		return time.Time{}, time.Time{}, apperror.Validation("recurrence occurrence index cannot be negative")
 	}
 
 	target := schedule.targetLocalDateTime(index)
@@ -119,7 +120,7 @@ func resolveLocalDateTime(value localDateTime, location *time.Location) (time.Ti
 			return shiftedCandidates[0], nil
 		}
 	}
-	return time.Time{}, errors.New("recurrence local time could not be resolved")
+	return time.Time{}, apperror.Validation("recurrence local time could not be resolved")
 }
 
 func localDateTimeCandidates(value localDateTime, location *time.Location) ([]time.Time, map[int]struct{}) {

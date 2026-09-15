@@ -93,13 +93,13 @@ multi-organizer management belongs in the first release.
 | `CGN-001` | [`request-boundary.server.ts`](../apps/web/src/server/request-boundary.server.ts), [`visitor-identity.server.ts`](../apps/web/src/server/visitor-identity.server.ts), [`auth_handlers.go`](../apps/api/internal/httpapi/auth_handlers.go), [`visitor_identity.go`](../apps/api/internal/httpapi/visitor_identity.go), and [`limiter.go`](../apps/api/internal/ratelimit/limiter.go) |
 | `CGN-002`–`CGN-004` | [`auth-flow-operations.server.ts`](../apps/web/src/features/auth-flow-slice/auth-flow-operations.server.ts), [`auth-flow.functions.ts`](../apps/web/src/features/auth-flow-slice/auth-flow.functions.ts), [`auth/service.go`](../apps/api/internal/auth/service.go), [`auth/tokens.go`](../apps/api/internal/auth/tokens.go), and [`users.go`](../apps/api/internal/users/users.go) |
 | `CGN-005`–`CGN-006` | [`catalog-operations.server.ts`](../apps/web/src/features/school-slice/catalog-operations.server.ts), [`event-form.tsx`](../apps/web/src/features/event-slice/event-form.tsx), [`team.functions.ts`](../apps/web/src/features/team-slice/team.functions.ts), the school/event/team routes, and Go repositories |
-| `CGN-007`–`CGN-009` | [`event-operations.server.ts`](../apps/web/src/features/event-slice/event-operations.server.ts), [`contracts.ts`](../apps/web/src/features/event-slice/contracts.ts), [`event-form.tsx`](../apps/web/src/features/event-slice/event-form.tsx), [`event_handlers.go`](../apps/api/internal/httpapi/event_handlers.go), and [`events.go`](../apps/api/internal/events/events.go) |
+| `CGN-007`–`CGN-009` | [`event-operations.server.ts`](../apps/web/src/features/event-slice/event-operations.server.ts), [`contracts.ts`](../apps/web/src/features/event-slice/contracts.ts), [`event-form.tsx`](../apps/web/src/features/event-slice/event-form.tsx), [`event_handlers.go`](../apps/api/internal/httpapi/event_handlers.go), and the capability-based [`events`](../apps/api/internal/events/) package |
 | `CGN-010` | [`auth/mailer.go`](../apps/api/internal/auth/mailer.go), [`events/mailer.go`](../apps/api/internal/events/mailer.go), account/event services, and [`db/migrations`](../db/migrations/) |
 | `CGN-011`–`CGN-012` | [`__root.tsx`](../apps/web/src/routes/__root.tsx), [`viewer.server.ts`](../apps/web/src/server/viewer.server.ts), [`bff.server.ts`](../apps/web/src/server/bff.server.ts), and [`auth/postgres.go`](../apps/api/internal/auth/postgres.go) |
 | `CGN-013` | [`config.go`](../apps/api/internal/config/config.go), [`main.go`](../apps/api/cmd/api/main.go), and deployment configuration under [`railway`](../railway/) |
 | `CGN-014`, `CGN-020` | Public routes, feature `presentation.ts` modules, [`api.server.ts`](../apps/web/src/server/api.server.ts), and shared route-boundary components |
 | `CGN-015` | [`playwright.config.ts`](../apps/web/playwright.config.ts), [`phase4.spec.ts`](../apps/web/tests/e2e/phase4.spec.ts), [`docker-compose.yml`](../docker-compose.yml), and [`ci.yml`](../.github/workflows/ci.yml) |
-| `CGN-016`–`CGN-018` | [`events.go`](../apps/api/internal/events/events.go), [`users/deletion.go`](../apps/api/internal/users/deletion.go), HTTP handlers, feature-local Start operations/functions, and [`router_test.go`](../apps/api/internal/httpapi/router_test.go) |
+| `CGN-016`–`CGN-018` | The capability-based [`events`](../apps/api/internal/events/) package, [`users/deletion.go`](../apps/api/internal/users/deletion.go), HTTP handlers and route-family tests under [`httpapi`](../apps/api/internal/httpapi/), and feature-local Start operations/functions |
 | `CGN-019` | [`docs`](./), starting with [`04 — API`](./04-api.md) and [`10 — Delivery status`](./10-delivery-status.md) |
 
 ---
@@ -804,8 +804,16 @@ partially implemented and product documentation implies multi-organizer support.
 
 **Priority:** P2  
 **Size:** M  
-**Status:** Ready  
+**Status:** Done (2026-09-15)
+
 **Depends on:** `CGN-004` recommended
+
+**Completed:** Added a transport-neutral `apperror` type with validation,
+unprocessable, not-found, conflict, authentication, and authorization classes
+plus stable machine codes. Domain packages now return those errors, handlers use
+one error-to-HTTP mapper, wrapped causes remain available to `errors.Is` and
+`errors.As`, and unexpected wording always falls back to the handler's generic
+500 code. Table-driven tests lock every domain mapping and the generic fallback.
 
 **Problem**
 
@@ -835,14 +843,24 @@ status and error code, and internal errors can be misclassified.
 
 **Priority:** P3  
 **Size:** L  
-**Status:** Ready  
+**Status:** Done (2026-09-15)
+
 **Depends on:** Complete behavior fixes first to avoid mixing refactor and semantics
+
+**Completed:** Split the former 1,799-line event module into types, validation,
+model helpers, commands, queries, persistence, scanning, and recurrence files
+without changing the package API. Split the former 2,511-line router test file
+into school, event, team, safety, middleware, and shared-fixture files. TanStack
+Start operations remain separated by feature slice. All 53 event functions and
+all 68 former router tests were retained. The full Go suite, web unit and
+browser suites, web typecheck and lint, and production build pass.
 
 **Problem**
 
-`events.go`, the former monolithic action layer, and `router_test.go` became large mixed-
-responsibility files. Adding the Admin Console or another major domain will increase
-merge risk and make ownership and review harder.
+The former `events.go`, the former monolithic action layer, and the former
+`router_test.go` became large mixed-responsibility files. Adding the Admin
+Console or another major domain would increase merge risk and make ownership
+and review harder.
 
 **Action**
 

@@ -3,10 +3,10 @@ package schools
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/apperror"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -48,7 +48,7 @@ type FollowRepository interface {
 }
 
 // ErrSchoolNotFound indicates that an active school does not exist.
-var ErrSchoolNotFound = errors.New("school not found")
+var ErrSchoolNotFound = apperror.New(apperror.KindNotFound, "school_not_found", "school not found")
 
 // NormalizeListParams applies the catalog's pagination and filter defaults.
 func NormalizeListParams(params ListParams) ListParams {
