@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "incremental": false,
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "allowImportingTsExtensions": false,
+    "noEmit": false,
+    "outDir": ".test-build",
+    "rootDir": "."
+  },
+  "include": ["src/server/**/*.ts", "tests/**/*.ts"]
+}

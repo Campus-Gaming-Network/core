@@ -8,6 +8,7 @@
     "@playwright/test": "1.62.1"
   },
   "workspaces": [
+    "apps/admin",
     "apps/web",
     "apps/docs"
   ],
@@ -18,6 +19,12 @@
     "build:docs": "npm --prefix apps/docs run build",
     "serve:docs": "npm --prefix apps/docs run serve",
     "test:e2e:docs": "npm --prefix apps/docs run test:e2e",
+    "dev:admin": "npm --prefix apps/admin run dev",
+    "build:admin": "npm --prefix apps/admin run build",
+    "lint:admin": "npm --prefix apps/admin run lint",
+    "typecheck:admin": "npm --prefix apps/admin run typecheck",
+    "test:admin": "npm --prefix apps/admin run test",
+    "test:e2e:admin": "npm --prefix apps/admin run test:e2e",
     "dev:web": "npm --prefix apps/web run dev",
     "build:web": "npm --prefix apps/web run build",
     "lint:web": "npm --prefix apps/web run lint",

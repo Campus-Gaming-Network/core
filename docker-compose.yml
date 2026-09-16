@@ -122,6 +122,35 @@ services:
       timeout: 5s
       retries: 10
 
+  admin:
+    profiles: ["admin"]
+    build:
+      context: .
+      dockerfile: apps/admin/Dockerfile
+      target: dev
+    environment:
+      DEPLOYMENT_ENV: ${DEPLOYMENT_ENV:-local}
+      ADMIN_API_INTERNAL_URL: ${ADMIN_API_INTERNAL_URL:-http://api:8080}
+      ADMIN_API_PROXY_SHARED_SECRET: ${ADMIN_API_PROXY_SHARED_SECRET:-local-admin-bff-proxy-secret-000000}
+      ADMIN_SITE_URL: ${ADMIN_SITE_URL:-http://localhost:3002}
+      ADMIN_SESSION_COOKIE: ${ADMIN_SESSION_COOKIE:-cgn_admin_session}
+      ADMIN_CSRF_COOKIE: ${ADMIN_CSRF_COOKIE:-cgn_admin_csrf}
+      CLOUDFLARE_ACCESS_TEAM_DOMAIN: ${CLOUDFLARE_ACCESS_TEAM_DOMAIN:-}
+      CLOUDFLARE_ACCESS_AUDIENCE: ${CLOUDFLARE_ACCESS_AUDIENCE:-}
+      CLOUDFLARE_ACCESS_JWKS_URL: ${CLOUDFLARE_ACCESS_JWKS_URL:-}
+      HOST: 0.0.0.0
+      PORT: 3002
+    ports:
+      - "3002:3002"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3002/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
   docs:
     profiles: ["docs"]
     build:
