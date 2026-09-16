@@ -23,13 +23,16 @@ These docs are the source of truth for product intent, domain rules, architectur
 | [10 — Delivery status](./10-delivery-status.md) | Status tracker and remaining Now/Next/Later work |
 | [11 — Implementation decisions](./11-implementation-decisions.md) | Concrete engineering choices for Phase 0 and early implementation work |
 | [12 — Phase 1 plan](./12-phase-1-plan.md) | Reviewable Phase 1A–1D breakdown for auth, profiles, schools, and games |
-| [13 — Deployment plan](./13-deployment-plan.md) | Railway deploy target, env vars, migrations, backups, DNS, and launch smoke test |
+| [13 — Railway deployment guide](./13-deployment-plan.md) | Step-by-step Railway, PostgreSQL, Resend, Cloudflare, backup, launch, and rollback runbook |
 | [14 — Architecture diagrams](./14-architecture-diagrams.md) | Mermaid overviews of the frontend, backend, and complete system |
 | [15 — Pass v0 quality checklist](./15-pass-v0-checklist.md) | Regression checklist for signup → event → RSVP → team → dashboard |
 | [16 — Legal and data-lifecycle plan](./16-legal-and-data-lifecycle-plan.md) | Pre-launch policy blockers, retention targets, account deletion, and operations follow-up |
 | [17 — Codebase review action plan](./17-codebase-review-action-plan.md) | Prioritized engineering backlog from the 2026-09-05 architecture, correctness, reliability, and product-readiness review |
 | [18 — TanStack Start main-frontend migration guide](./18-tanstack-start-main-frontend-migration-guide.md) | Completed repository migration plan, historical execution record, remaining deployment acceptance, and rollback posture |
 | [19 — TanStack Start parity manifest](./19-tanstack-start-parity-manifest.md) | Route, mutation, security, browser, and cutover evidence for the canonical Start frontend |
+| [20 — Admin Console v1 engineering plan](./20-admin-console-v1-engineering-plan.md) | Security architecture, implementation tickets, release gates, and rollout plan for the separate privileged surface |
+| [21 — Admin Console security test plan](./21-admin-console-security-test-plan.md) | Threat-driven automated and staging test matrix required before the Admin Console can ship |
+| [22 — Admin Console access runbook](./22-admin-console-access-runbook.md) | Cloudflare Access, first-admin bootstrap, recovery, revocation, and emergency-disable procedures |
 
 ## How to use with AI / LLMs
 
@@ -41,7 +44,7 @@ These docs are the source of truth for product intent, domain rules, architectur
 ## Conventions
 
 - **US launch only** — international schools are out of scope at launch.
-- **Not yet scheduled** — Sentry/error monitoring, Admin Console, clubs, tournaments, on-site payments, usernames, waitlists, invite links, feature flags, near-you, custom event banners.
+- **Not yet scheduled** — Sentry/error monitoring, clubs, tournaments, on-site payments, usernames, waitlists, invite links, feature flags, near-you, custom event banners. Admin Console v1 is in progress but remains release-gated and undeployed.
 - **Events ≠ tournaments** — events are things you attend; tournaments (later) are competitions you enter.
 - **Clubs ≠ teams** — clubs (later) belong to schools; teams are supported now (public pages; password to join).
 - **Event visibility** — `public` · `unlisted` · `private` (blurred/gated + password modal).
@@ -51,7 +54,7 @@ These docs are the source of truth for product intent, domain rules, architectur
 - **Schools** — user selects one home school on signup, may follow more schools later; import all 6,243 seed rows (1,300 branches) as active; branch campuses use the same UI/UX as other schools; `unitid` optional.
 - **Paid events** — allowed as informational/off-site payment only; organizers handle payment outside the product.
 - **Launch games** — Rocket League, Valorant, League of Legends, Overwatch 2, Super Smash Bros. Ultimate, CSGO.
-- **Images** — event banners = default placeholder for now; school logos come later via Admin Console uploads (PNG/JPG only, max 500 MB).
+- **Images** — event banners = default placeholder for now; school logos come later via Admin Console uploads (PNG/JPG only, max 5 MB).
 - **Event slugs** — `slugify(title)-` + 8-char Base64URL(SHA-256(…)).
 - **Recurring events** — weekly, biweekly, or monthly; max one year; occurrences are independent event rows with independent RSVPs and cancellation.
 - **Cancellation email** — best-effort email to active yes/maybe RSVPs after soft cancellation; delivery failure does not undo cancellation.
@@ -59,7 +62,7 @@ These docs are the source of truth for product intent, domain rules, architectur
 - **Content filtering** — reject a small word-boundary blocked-term list in user-authored names, bios, event/team text, reports, and support messages before persistence.
 - **Page metadata** — every route sets its own title/description/Open Graph tags; authenticated, token, private, and unlisted routes are `noindex`. A locked private event exposes only a generic title.
 - **Not-found routes** — missing entities must return HTTP 404, never a soft 404; never put a `loading.tsx` above a `notFound()` route.
-- **Infra** — Railway hosts TanStack Start, the Go API, and production Postgres for the main site; Cloudflare manages DNS/protection; Resend handles email; Cloudflare R2 and the separate TanStack Start Admin Console are later concerns.
+- **Infra** — Railway hosts TanStack Start, the Go API, and production Postgres for the main site; Cloudflare manages DNS/protection; Resend handles email. The separate TanStack Start Admin Console and Cloudflare R2 remain undeployed until their security and release gates pass.
 - **Search** — Postgres full-text / trigram first; no Elasticsearch until proven necessary.
 - **Soft deletes** — use `deleted_at`; never hard-delete user-facing content without an explicit policy.
 - **Audit vs system logs** — audit = entity change history; system = operational/app logs.
