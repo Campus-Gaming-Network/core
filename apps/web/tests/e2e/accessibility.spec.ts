@@ -2,6 +2,7 @@ import { AxeBuilder } from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 
 const apiURL = "http://127.0.0.1:18081";
+const password = "E2EPassword123!";
 
 test.beforeEach(async ({ request }) => {
   const response = await request.post(`${apiURL}/__test/reset`);
@@ -135,7 +136,7 @@ for (const path of ["/account", "/events/new", "/teams/new"]) {
   }) => {
     await page.goto("/login?next=/account");
     await page.getByLabel("Email").fill("player@example.test");
-    await page.getByLabel("Password").fill("Password12345!");
+    await page.getByLabel("Password").fill(password);
     await page.getByRole("button", { name: "Log in" }).click();
     await expect(page).toHaveURL(/\/account$/);
 
@@ -172,7 +173,7 @@ async function expectAccessible(page: Page): Promise<void> {
 async function logIn(page: Page, next: string): Promise<void> {
   await page.goto(`/login?next=${encodeURIComponent(next)}`);
   await page.getByLabel("Email").fill("accessibility@example.test");
-  await page.getByLabel("Password").fill("E2EPassword123!");
+  await page.getByLabel("Password").fill(password);
   await page.getByRole("button", { name: "Log in" }).click();
   await expect(page).toHaveURL(
     new RegExp(`${next.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`)
