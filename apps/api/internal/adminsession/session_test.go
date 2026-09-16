@@ -16,10 +16,20 @@ type fakeRepository struct {
 	seenHash      []byte
 	revokedHash   []byte
 	revokedReason string
+	rotatedFrom   []byte
+	rotated       CreateParams
+	rotateReason  string
 }
 
 func (r *fakeRepository) CreateSession(_ context.Context, params CreateParams) error {
 	r.created = params
+	return nil
+}
+
+func (r *fakeRepository) RotateSession(_ context.Context, previousTokenHash []byte, params CreateParams, _ time.Time, reason string) error {
+	r.rotatedFrom = previousTokenHash
+	r.rotated = params
+	r.rotateReason = reason
 	return nil
 }
 
@@ -75,6 +85,29 @@ func TestServiceRejectsInvalidConfigurationAndInput(t *testing.T) {
 	service, _ := NewService(&fakeRepository{}, 30*time.Minute, 8*time.Hour)
 	if _, err := service.Start(context.Background(), StartInput{}); !errors.Is(err, ErrInvalidSessionInput) {
 		t.Fatalf("Start(empty) error = %v", err)
+	}
+}
+
+func TestServiceRotatesCredentialAndRecordsStepUp(t *testing.T) {
+	repository := &fakeRepository{}
+	service, _ := NewService(repository, 30*time.Minute, 8*time.Hour)
+	fixedNow := time.Date(2026, time.September, 16, 10, 0, 0, 0, time.UTC)
+	service.now = func() time.Time { return fixedNow }
+	credential, err := service.Rotate(context.Background(), "previous-raw-token", StartInput{
+		UserID: "user-id", GrantID: "grant-id",
+		AccessIssuer: "https://cgn.cloudflareaccess.com", AccessSubject: "subject",
+		AccessEmail: "admin@example.test",
+	}, true)
+	if err != nil {
+		t.Fatalf("Rotate() error = %v", err)
+	}
+	if credential.Token == "" || string(repository.rotatedFrom) == "previous-raw-token" ||
+		repository.rotated.StepUpAt == nil || !repository.rotated.StepUpAt.Equal(fixedNow) ||
+		repository.rotateReason != "credential rotated" {
+		t.Fatalf("rotation = credential %#v params %#v reason %q", credential, repository.rotated, repository.rotateReason)
+	}
+	if _, err := service.Rotate(context.Background(), "", StartInput{}, false); !errors.Is(err, ErrInvalidSessionInput) {
+		t.Fatalf("Rotate(empty) error = %v, want ErrInvalidSessionInput", err)
 	}
 }
 

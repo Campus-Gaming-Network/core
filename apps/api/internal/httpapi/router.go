@@ -16,6 +16,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminaccess"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminhttp"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminidentity"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminsecurity"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminsession"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/auth"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/config"
 	eventstore "github.com/Campus-Gaming-Network/core/apps/api/internal/events"
@@ -82,6 +87,28 @@ func NewRouter(cfg config.Config, pools ...*pgxpool.Pool) http.Handler {
 		router.sessionStore = sessionRepository
 	}
 
+	adminDependencies := adminhttp.Dependencies{}
+	if router.db != nil && cfg.AdminEnabled {
+		adminSessionService, sessionErr := adminsession.NewService(
+			adminsession.NewPostgresRepository(router.db),
+			cfg.AdminSessionIdleTTL,
+			cfg.AdminSessionAbsoluteTTL,
+		)
+		identityValidator, identityErr := adminidentity.NewValidator(adminidentity.Config{
+			Issuer: cfg.CloudflareAccessTeamDomain, Audience: cfg.CloudflareAccessAudience,
+			JWKSURL: cfg.CloudflareAccessJWKSURL,
+		}, nil)
+		if sessionErr == nil && identityErr == nil {
+			adminDependencies = adminhttp.Dependencies{
+				Identities: identityValidator,
+				Users:      users.NewPostgresRepository(router.db),
+				Grants:     adminaccess.NewPostgresRepository(router.db),
+				Sessions:   adminSessionService,
+				Security:   adminsecurity.NewPostgresStore(router.db),
+			}
+		}
+	}
+
 	router.mux.HandleFunc("/", requireMethod(http.MethodGet, router.handleRoot))
 	router.mux.HandleFunc("/health", requireMethod(http.MethodGet, router.handleHealth))
 	router.mux.HandleFunc("/ready", requireMethod(http.MethodGet, router.handleReady))
@@ -106,17 +133,32 @@ func NewRouter(cfg config.Config, pools ...*pgxpool.Pool) http.Handler {
 	router.mux.HandleFunc("/me/teams", router.handleMyTeams)
 	router.mux.HandleFunc("/me", router.handleMe)
 	router.mux.HandleFunc("/users/", router.handleUserPath)
+	router.mux.Handle("/admin/", adminhttp.NewHandler(adminhttp.Config{
+		Enabled: cfg.AdminEnabled, SiteOrigin: cfg.AdminSiteURL,
+		ProxySecret: cfg.AdminProxySharedSecret,
+		Cookies: adminsession.CookieConfig{
+			Name: cfg.AdminSessionCookie, CSRFName: cfg.AdminCSRFCookie,
+			Secure: cfg.AdminCookieSecure,
+		},
+	}, adminDependencies))
 
 	var handler http.Handler = router.mux
 	if router.sessionStore != nil {
-		handler = auth.WithSession(
+		publicSessionHandler := auth.WithSession(
 			router.sessionStore,
 			auth.SessionCookieConfig{
 				Name:   cfg.SessionCookie,
 				Secure: cfg.CookieSecure,
 				TTL:    cfg.SessionTTL,
 			},
-		)(handler)
+		)(router.mux)
+		handler = http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			if strings.HasPrefix(req.URL.Path, "/admin/") {
+				router.mux.ServeHTTP(w, req)
+				return
+			}
+			publicSessionHandler.ServeHTTP(w, req)
+		})
 	}
 
 	return withRequestLogging(withPanicRecovery(handler))
@@ -584,6 +626,7 @@ func withRequestLogging(next http.Handler) http.Handler {
 		slog.Info("request",
 			"method", req.Method,
 			"path", req.URL.Path,
+			"request_id", w.Header().Get(adminhttp.RequestIDHeader),
 			"duration_ms", time.Since(start).Milliseconds(),
 		)
 	})

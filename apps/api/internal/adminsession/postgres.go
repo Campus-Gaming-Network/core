@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -19,7 +20,15 @@ func NewPostgresRepository(pool *pgxpool.Pool) *PostgresRepository {
 }
 
 func (r *PostgresRepository) CreateSession(ctx context.Context, params CreateParams) error {
-	commandTag, err := r.pool.Exec(ctx, `
+	return createSession(ctx, r.pool, params)
+}
+
+type sessionExecutor interface {
+	Exec(context.Context, string, ...any) (pgconn.CommandTag, error)
+}
+
+func createSession(ctx context.Context, executor sessionExecutor, params CreateParams) error {
+	commandTag, err := executor.Exec(ctx, `
 		INSERT INTO admin_sessions (
 			user_id, grant_id, token_hash, csrf_token_hash, authn_method,
 			access_issuer, access_subject, access_email,
@@ -48,6 +57,41 @@ func (r *PostgresRepository) CreateSession(ctx context.Context, params CreatePar
 	}
 	if commandTag.RowsAffected() != 1 {
 		return ErrUnauthenticated
+	}
+	return nil
+}
+
+func (r *PostgresRepository) RotateSession(
+	ctx context.Context,
+	previousTokenHash []byte,
+	params CreateParams,
+	revokedAt time.Time,
+	reason string,
+) error {
+	tx, err := r.pool.BeginTx(ctx, pgx.TxOptions{})
+	if err != nil {
+		return fmt.Errorf("begin admin session rotation: %w", err)
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	commandTag, err := tx.Exec(ctx, `
+		UPDATE admin_sessions
+		SET revoked_at = $4, revocation_reason = $5
+		WHERE token_hash = $1
+		  AND user_id = $2::uuid
+		  AND grant_id = $3::uuid
+		  AND revoked_at IS NULL
+	`, previousTokenHash, params.UserID, params.GrantID, revokedAt, reason)
+	if err != nil {
+		return fmt.Errorf("revoke rotated admin session: %w", err)
+	}
+	if commandTag.RowsAffected() != 1 {
+		return ErrUnauthenticated
+	}
+	if err := createSession(ctx, tx, params); err != nil {
+		return err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("commit admin session rotation: %w", err)
 	}
 	return nil
 }

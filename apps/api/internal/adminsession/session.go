@@ -97,6 +97,7 @@ type CreateParams struct {
 
 type Repository interface {
 	CreateSession(ctx context.Context, params CreateParams) error
+	RotateSession(ctx context.Context, previousTokenHash []byte, params CreateParams, revokedAt time.Time, reason string) error
 	FindAndTouchSession(ctx context.Context, tokenHash []byte, now time.Time, idleExpiresAt time.Time) (Session, error)
 	RevokeSession(ctx context.Context, tokenHash []byte, revokedAt time.Time, reason string) error
 }
@@ -121,6 +122,36 @@ func NewService(repository Repository, idleTTL time.Duration, absoluteTTL time.D
 }
 
 func (s *Service) Start(ctx context.Context, input StartInput) (Credential, error) {
+	credential, params, err := s.newSession(input, false)
+	if err != nil {
+		return Credential{}, err
+	}
+	if err := s.repository.CreateSession(ctx, params); err != nil {
+		return Credential{}, err
+	}
+	return credential, nil
+}
+
+// Rotate atomically replaces an authenticated admin credential after a new
+// Access assertion has been validated. stepUp records that the assertion came
+// from the separately configured recent-authentication policy.
+func (s *Service) Rotate(ctx context.Context, previousRawToken string, input StartInput, stepUp bool) (Credential, error) {
+	if strings.TrimSpace(previousRawToken) == "" {
+		return Credential{}, ErrInvalidSessionInput
+	}
+	credential, params, err := s.newSession(input, stepUp)
+	if err != nil {
+		return Credential{}, err
+	}
+	if err := s.repository.RotateSession(
+		ctx, HashToken(previousRawToken), params, params.AuthenticatedAt, "credential rotated",
+	); err != nil {
+		return Credential{}, err
+	}
+	return credential, nil
+}
+
+func (s *Service) newSession(input StartInput, stepUp bool) (Credential, CreateParams, error) {
 	accessEmail := strings.ToLower(strings.TrimSpace(input.AccessEmail))
 	accessIssuer := strings.TrimSpace(input.AccessIssuer)
 	accessSubject := strings.TrimSpace(input.AccessSubject)
@@ -128,20 +159,20 @@ func (s *Service) Start(ctx context.Context, input StartInput) (Credential, erro
 		strings.TrimSpace(input.GrantID) == "" || accessSubject == "" || accessIssuer == "" ||
 		utf8.RuneCountInString(accessIssuer) > 500 || utf8.RuneCountInString(accessSubject) > 320 ||
 		utf8.RuneCountInString(accessEmail) > 320 || !validEmail(accessEmail) {
-		return Credential{}, ErrInvalidSessionInput
+		return Credential{}, CreateParams{}, ErrInvalidSessionInput
 	}
 
 	rawToken, tokenHash, err := newToken()
 	if err != nil {
-		return Credential{}, err
+		return Credential{}, CreateParams{}, err
 	}
 	csrfToken, csrfTokenHash, err := newToken()
 	if err != nil {
-		return Credential{}, err
+		return Credential{}, CreateParams{}, err
 	}
 	now := s.now().UTC()
 	absoluteExpiresAt := now.Add(s.absoluteTTL)
-	if err := s.repository.CreateSession(ctx, CreateParams{
+	params := CreateParams{
 		UserID: input.UserID, GrantID: input.GrantID, TokenHash: tokenHash,
 		CSRFTokenHash: csrfTokenHash,
 		AuthnMethod:   AuthMethodCloudflareAccess,
@@ -150,10 +181,11 @@ func (s *Service) Start(ctx context.Context, input StartInput) (Credential, erro
 		AccessEmail:   accessEmail, AuthenticatedAt: now,
 		LastSeenAt: now, IdleExpiresAt: now.Add(s.idleTTL),
 		AbsoluteExpiresAt: absoluteExpiresAt,
-	}); err != nil {
-		return Credential{}, err
 	}
-	return Credential{Token: rawToken, CSRFToken: csrfToken, ExpiresAt: absoluteExpiresAt}, nil
+	if stepUp {
+		params.StepUpAt = &now
+	}
+	return Credential{Token: rawToken, CSRFToken: csrfToken, ExpiresAt: absoluteExpiresAt}, params, nil
 }
 
 func (s *Service) Authenticate(ctx context.Context, rawToken string) (Principal, error) {

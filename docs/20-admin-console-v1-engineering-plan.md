@@ -1,7 +1,7 @@
 # 20 — Admin Console v1 engineering plan
 
 **Status:** Active — security foundation in progress
-**Last updated:** 2026-09-15
+**Last updated:** 2026-09-16
 **Audience:** Engineering, security, and operators
 **Target:** `admin.campusgamingnetwork.com`
 
@@ -688,11 +688,18 @@ capability/grant package, the isolated
 [`adminsession`](../apps/api/internal/adminsession/) package, hashed session and
 CSRF credentials, exact-grant binding, transactional grant auditing, explicit
 bootstrap provenance, last-admin protection, and transactional session closure
-on grant revocation. Durable security events, runtime database-role separation,
-and their verification remain before AC-002 is complete.
+on grant revocation. Migration `000014_admin_security_events.up.sql` and the
+closed-metadata [`adminsecurity`](../apps/api/internal/adminsecurity/) package
+now provide durable append-oriented authentication, authorization, session,
+sensitive-read, and break-glass events plus audit request/session correlation.
+Enabled staging/production startup also fails when the API role owns or can
+update, delete, or truncate audit/security-event tables, or lacks the required
+select/insert access. Provisioning the distinct production role and exercising
+that check in staging remain before AC-002 is complete.
 
 ### AC-003 — Implement bootstrap, revoke, and recovery CLI
 
+**Status:** In progress
 **Depends on:** AC-002
 **Deliverables:** `cgn-admin` command, validation, safe output, audit/security
 events, staging runbook.
@@ -705,8 +712,19 @@ events, staging runbook.
 - Commands never print credentials or accept secrets in argv.
 - Staging recovery drill succeeds without manual SQL.
 
+Implemented so far: the non-networked `cgn-admin` binary supports explicit
+first-admin bootstrap, normal grant/revoke, active-admin listing, bulk session
+revocation, and enabled Access-configuration validation. It requires an
+operator-supplied database environment, keeps credentials out of arguments,
+uses the shared last-admin and eligibility invariants, and writes bootstrap or
+session-revocation security events transactionally. The operator procedure is
+documented in
+[`22-admin-console-access-runbook.md`](./22-admin-console-access-runbook.md).
+A successful staging recovery drill remains before AC-003 is complete.
+
 ### AC-004 — Establish Cloudflare Access and Admin BFF trust
 
+**Status:** In progress
 **Depends on:** AC-001
 **Deliverables:** Access applications/policies, JWT validator, direct-origin
 denial, staging configuration, step-up feasibility spike.
@@ -718,8 +736,15 @@ denial, staging configuration, step-up feasibility spike.
 - Staging requires a passkey/security key through the configured IdP.
 - Fresh step-up can be proven; otherwise site-grant UI is marked CLI-only.
 
+Implemented so far: strict enabled/disabled configuration validation, distinct
+admin proxy-secret enforcement, direct-origin route concealment, and an RS256
+Cloudflare Access assertion validator with exact issuer/audience/time checks,
+bounded JWKS retrieval, caching, and signing-key rotation. Cloudflare policy
+provisioning and a staging step-up proof remain.
+
 ### AC-005 — Implement Go admin sessions and CSRF boundary
 
+**Status:** In progress
 **Depends on:** AC-002, AC-003, AC-004
 **Deliverables:** Exchange, step-up, session, logout endpoints; admin cookie;
 session repository; BFF cookie mirroring; CSRF verification.
@@ -732,8 +757,15 @@ session repository; BFF cookie mirroring; CSRF verification.
 - Every mutation fails without exact origin and a valid session CSRF token.
 - Session responses are private/no-store and reveal no token material.
 
+Implemented so far: `/admin/v1/auth/exchange`, `/admin/v1/session`, and
+`/admin/v1/logout`; isolated host-only cookies; exact-origin and double-submit
+CSRF enforcement; atomic session-token rotation; a route-level kill switch; and
+private/no-store responses. Step-up, event/session transactional tightening,
+and the recovery CLI dependency remain.
+
 ### AC-006 — Add capability authorization and route registration
 
+**Status:** In progress
 **Depends on:** AC-005
 **Deliverables:** Go role-to-capability map, authorization middleware, actor
 context, default-deny admin router, test matrix.
@@ -744,6 +776,12 @@ context, default-deny admin router, test matrix.
 - Ordinary, school-admin-only, revoked, and suspended users are denied.
 - The active grant and user state are checked on every request.
 - A registration test fails when a new route lacks an authorization policy.
+
+Implemented so far: the initial Admin API uses an explicit, unique route-policy
+registry, default-denies unknown routes, resolves the current grant for protected
+requests, verifies exact grant binding, and tests missing-session, stale-grant,
+and capability-denial paths. The registry must expand alongside the remaining
+v1 endpoints before this ticket is complete.
 
 ### AC-007 — Harden transactional audit and security logging
 

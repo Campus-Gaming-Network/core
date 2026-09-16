@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/mail"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -200,6 +201,10 @@ func ValidateBootstrapInput(input BootstrapInput) error {
 	if operatorIdentity == "" || utf8.RuneCountInString(operatorIdentity) > maximumBootstrapOperatorLength {
 		return apperror.Validation("bootstrap operator identity is required and must be 320 characters or fewer")
 	}
+	address, err := mail.ParseAddress(operatorIdentity)
+	if err != nil || address.Address != operatorIdentity {
+		return apperror.Validation("bootstrap operator identity must be one email address")
+	}
 	return validateReason(input.Reason)
 }
 
@@ -292,6 +297,9 @@ func (r *PostgresRepository) BootstrapSiteAdmin(ctx context.Context, input Boots
 		Bootstrap:        true,
 		OperatorIdentity: input.OperatorIdentity,
 	}); err != nil {
+		return Grant{}, err
+	}
+	if err := insertBootstrapSecurityEvent(ctx, tx, grant, input.OperatorIdentity); err != nil {
 		return Grant{}, err
 	}
 	if err := tx.Commit(ctx); err != nil {
@@ -570,6 +578,28 @@ func insertGrantAudit(
 		)
 	`, actorUserID, action, after.ID, beforeJSON, afterJSON, metadataJSON); err != nil {
 		return fmt.Errorf("write site role grant audit: %w", err)
+	}
+	return nil
+}
+
+func insertBootstrapSecurityEvent(ctx context.Context, tx pgx.Tx, grant Grant, operatorIdentity string) error {
+	metadata, err := json.Marshal(struct {
+		TargetUserID     string `json:"target_user_id"`
+		TargetGrantID    string `json:"target_grant_id"`
+		OperatorIdentity string `json:"operator_identity"`
+		Bootstrap        bool   `json:"bootstrap"`
+	}{
+		TargetUserID: grant.UserID, TargetGrantID: grant.ID,
+		OperatorIdentity: operatorIdentity, Bootstrap: true,
+	})
+	if err != nil {
+		return fmt.Errorf("marshal site administrator bootstrap security event: %w", err)
+	}
+	if _, err := tx.Exec(ctx, `
+		INSERT INTO admin_security_events (event_type, outcome, metadata)
+		VALUES ('admin.access.bootstrap', 'succeeded', $1::jsonb)
+	`, metadata); err != nil {
+		return fmt.Errorf("write site administrator bootstrap security event: %w", err)
 	}
 	return nil
 }

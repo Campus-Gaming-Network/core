@@ -13,7 +13,10 @@ notifications; site-admin authorization, purge/hold jobs, and Admin Console HTTP
 surfaces remain separate work.
 The Admin Console security foundation starts with revocable site-wide grants in
 `000012_site_role_grants.up.sql` and isolated, grant-bound admin sessions in
-`000013_admin_sessions.up.sql`. These tables do not expose an HTTP surface by
+`000013_admin_sessions.up.sql`. Migration
+`000014_admin_security_events.up.sql` adds append-oriented Admin Console
+security events and queryable admin-session/request correlation to domain audit
+history. These tables do not expose an HTTP surface by
 themselves; Cloudflare Access validation, admin-only proxy trust, session
 exchange, and capability middleware must land before any operations route is
 registered.

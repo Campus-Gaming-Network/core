@@ -64,6 +64,7 @@ func newAdminAccessFixture(t *testing.T) adminAccessFixture {
 
 	t.Cleanup(func() {
 		cleanupCtx := context.Background()
+		_, _ = pool.Exec(cleanupCtx, `DELETE FROM admin_security_events WHERE metadata ->> 'target_user_id' IN ($1, $2)`, actorID, otherID)
 		_, _ = pool.Exec(cleanupCtx, `DELETE FROM admin_sessions WHERE user_id IN ($1::uuid, $2::uuid)`, actorID, otherID)
 		_, _ = pool.Exec(cleanupCtx, `
 			DELETE FROM audit_logs
@@ -120,6 +121,28 @@ func TestPostgresRepositoryGrantLookupRevokeAndAudit(t *testing.T) {
 	if bootstrapActor != nil || !bootstrapDetails.Bootstrap ||
 		bootstrapDetails.OperatorIdentity != "deployment-operator@example.test" {
 		t.Fatalf("bootstrap audit actor/metadata = %v/%#v", bootstrapActor, bootstrapDetails)
+	}
+	var securityMetadata []byte
+	if err := fixture.pool.QueryRow(ctx, `
+		SELECT metadata
+		FROM admin_security_events
+		WHERE event_type = 'admin.access.bootstrap'
+		  AND metadata ->> 'target_grant_id' = $1
+	`, first.ID).Scan(&securityMetadata); err != nil {
+		t.Fatalf("query bootstrap security event: %v", err)
+	}
+	var securityDetails struct {
+		TargetUserID     string `json:"target_user_id"`
+		TargetGrantID    string `json:"target_grant_id"`
+		OperatorIdentity string `json:"operator_identity"`
+		Bootstrap        bool   `json:"bootstrap"`
+	}
+	if err := json.Unmarshal(securityMetadata, &securityDetails); err != nil {
+		t.Fatalf("decode bootstrap security metadata: %v", err)
+	}
+	if !securityDetails.Bootstrap || securityDetails.TargetUserID != fixture.actorID ||
+		securityDetails.TargetGrantID != first.ID || securityDetails.OperatorIdentity != "deployment-operator@example.test" {
+		t.Fatalf("bootstrap security metadata = %#v", securityDetails)
 	}
 
 	lookedUp, err := fixture.repository.ActiveGrant(ctx, fixture.actorID, RoleSiteAdmin)

@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminsecurity"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/auth"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/config"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/db"
@@ -34,6 +35,15 @@ func main() {
 		os.Exit(1)
 	}
 	defer database.Close()
+	if cfg.AdminEnabled && cfg.DeploymentEnvironment.Strict() {
+		privilegeContext, cancelPrivilegeCheck := context.WithTimeout(context.Background(), 5*time.Second)
+		if err := adminsecurity.VerifyRuntimePrivileges(privilegeContext, database); err != nil {
+			cancelPrivilegeCheck()
+			slog.Error("unsafe Admin Console database privileges", "error", err)
+			os.Exit(1)
+		}
+		cancelPrivilegeCheck()
+	}
 
 	handler := httpapi.NewRouter(cfg, database)
 	server := &http.Server{

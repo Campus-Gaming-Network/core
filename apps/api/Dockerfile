@@ -8,7 +8,8 @@ RUN go mod download
 COPY apps/api/ ./
 RUN CGO_ENABLED=0 GOOS=linux go build -o /out/cgn-api ./cmd/api \
     && CGO_ENABLED=0 GOOS=linux go build -o /out/cgn-migrate ./cmd/migrate \
-    && CGO_ENABLED=0 GOOS=linux go build -o /out/cgn-seed ./cmd/seed
+    && CGO_ENABLED=0 GOOS=linux go build -o /out/cgn-seed ./cmd/seed \
+    && CGO_ENABLED=0 GOOS=linux go build -o /out/cgn-admin ./cmd/cgn-admin
 
 FROM alpine:3.24 AS runner
 
@@ -22,6 +23,7 @@ USER cgn
 COPY --from=build /out/cgn-api /usr/local/bin/cgn-api
 COPY --from=build /out/cgn-migrate /usr/local/bin/cgn-migrate
 COPY --from=build /out/cgn-seed /usr/local/bin/cgn-seed
+COPY --from=build /out/cgn-admin /usr/local/bin/cgn-admin
 COPY db/migrations /migrations
 COPY data/schools_seed.csv /data/schools_seed.csv
 

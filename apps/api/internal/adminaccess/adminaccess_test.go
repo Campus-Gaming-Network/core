@@ -73,6 +73,13 @@ func TestValidateBootstrapInput(t *testing.T) {
 	}); err == nil {
 		t.Fatal("ValidateBootstrapInput(long operator) error = nil")
 	}
+	if err := ValidateBootstrapInput(BootstrapInput{
+		UserID:           validTestUserID,
+		OperatorIdentity: "not-an-operator-email",
+		Reason:           "Initial operator bootstrap",
+	}); err == nil {
+		t.Fatal("ValidateBootstrapInput(non-email operator) error = nil")
+	}
 }
 
 func TestCapabilityChecksDenyByDefault(t *testing.T) {
