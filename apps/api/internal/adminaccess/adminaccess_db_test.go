@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/dbtest"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -33,6 +34,15 @@ func newAdminAccessFixture(t *testing.T) adminAccessFixture {
 		t.Fatalf("connect: %v", err)
 	}
 	t.Cleanup(pool.Close)
+	unlock, err := dbtest.LockSiteRoleGrantTests(ctx, pool)
+	if err != nil {
+		t.Fatalf("lock site-role grant tests: %v", err)
+	}
+	t.Cleanup(func() {
+		if err := unlock(context.Background()); err != nil {
+			t.Errorf("unlock site-role grant tests: %v", err)
+		}
+	})
 
 	suffix := fmt.Sprint(time.Now().UnixNano())
 	var schoolID string
