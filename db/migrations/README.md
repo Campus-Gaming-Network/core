@@ -11,6 +11,12 @@ The operations foundation in `000010_operations_foundation.up.sql` adds queue
 assignment and terminal-retention fields, domain audit history, and per-user
 notifications; site-admin authorization, purge/hold jobs, and Admin Console HTTP/UI
 surfaces remain separate work.
+The Admin Console security foundation starts with revocable site-wide grants in
+`000012_site_role_grants.up.sql` and isolated, grant-bound admin sessions in
+`000013_admin_sessions.up.sql`. These tables do not expose an HTTP surface by
+themselves; Cloudflare Access validation, admin-only proxy trust, session
+exchange, and capability middleware must land before any operations route is
+registered.
 Do not add clubs, tournaments, feature flags, site announcements, on-site
 payment tables, IGDB sync tables, or Admin Console-only workflow tables until those
 phases are active.
