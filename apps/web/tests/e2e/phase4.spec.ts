@@ -26,6 +26,10 @@ test("public auth recovery and private account mutations work through the runtim
   const device = deviceName(testInfo.project.name);
 
   await page.goto("/signup?q=Browser");
+  // The school picker replaces its server-rendered select after hydration.
+  // Wait for the enhanced picker so form interactions cannot land on the
+  // fallback controls while React is swapping them out.
+  await expect(page.getByLabel("Search schools")).toBeVisible();
   await page.getByLabel("Name").fill("New Browser Player");
   await page.getByLabel("Email").fill(`signup-${device}@example.test`);
   await page.getByLabel("Password").fill(password);

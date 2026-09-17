@@ -28,7 +28,7 @@ jobs:
     env:
       API_DATABASE_URL: postgres://cgn:cgn@localhost:5432/cgn_test?sslmode=disable
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-go@v7
         with:
           go-version-file: apps/api/go.mod
@@ -54,8 +54,8 @@ jobs:
     name: TanStack Start web
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
       - name: Validate application containers
@@ -115,14 +115,14 @@ jobs:
     env:
       REAL_E2E_DATABASE_URL: postgres://cgn:cgn@127.0.0.1:5432/cgn_e2e?sslmode=disable
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-go@v7
         with:
           go-version-file: apps/api/go.mod
           cache-dependency-path: |
             apps/api/go.mod
             apps/api/go.sum
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: npm
