@@ -15,7 +15,7 @@ const shutdownGraceMilliseconds = 2 * 1000;
 const runIdentity = [
   process.env.GITHUB_RUN_ID,
   process.env.GITHUB_RUN_ATTEMPT,
-  process.pid
+  process.pid,
 ]
   .filter(Boolean)
   .join("-")
@@ -27,14 +27,16 @@ const containerName = `cgn-web-ci-${runIdentity}`;
 const expectedHealthBody = {
   service: "campus-gaming-network-web",
   status: "degraded",
-  reason: "api_unreachable"
+  reason: "api_unreachable",
 };
 
 let activeChild;
 let cleanupPromise;
 
 async function main() {
-  process.stdout.write("Building the TanStack Start production runner image...\n");
+  process.stdout.write(
+    "Building the TanStack Start production runner image...\n",
+  );
   await runDocker(
     [
       "build",
@@ -44,9 +46,9 @@ async function main() {
       "apps/web/Dockerfile",
       "--tag",
       imageTag,
-      "."
+      ".",
     ],
-    { timeoutMilliseconds: buildTimeoutMilliseconds, streamOutput: true }
+    { timeoutMilliseconds: buildTimeoutMilliseconds, streamOutput: true },
   );
 
   process.stdout.write("Starting the isolated production container...\n");
@@ -83,7 +85,7 @@ async function main() {
     "HOST=0.0.0.0",
     "--env",
     "PORT=3000",
-    imageTag
+    imageTag,
   ]);
 
   await waitForHealthyContainer();
@@ -91,7 +93,7 @@ async function main() {
   await verifyUnavailableAPIResponse();
 
   process.stdout.write(
-    "Web production Docker gate passed: healthy runner, uid/gid 1000, expected API-unavailable 503.\n"
+    "Web production Docker gate passed: healthy runner, uid/gid 1000, expected API-unavailable 503.\n",
   );
 }
 
@@ -104,7 +106,7 @@ async function waitForHealthyContainer() {
       "inspect",
       "--format",
       "{{if .State.Health}}{{.State.Health.Status}}{{else}}missing{{end}}",
-      containerName
+      containerName,
     ]);
     lastStatus = result.stdout.trim();
 
@@ -118,10 +120,10 @@ async function waitForHealthyContainer() {
   }
 
   const logs = await runDocker(["logs", "--tail", "80", containerName], {
-    check: false
+    check: false,
   });
   throw new Error(
-    `container did not become healthy within ${startupTimeoutMilliseconds}ms (last status: ${lastStatus})\n${logs.stdout}${logs.stderr}`
+    `container did not become healthy within ${startupTimeoutMilliseconds}ms (last status: ${lastStatus})\n${logs.stdout}${logs.stderr}`,
   );
 }
 
@@ -130,12 +132,12 @@ async function verifyRuntimeIdentity() {
     "inspect",
     "--format",
     "{{.Config.User}}",
-    containerName
+    containerName,
   ]);
   assert.equal(
     configuredUser.stdout.trim(),
     "node",
-    "production runner must configure the non-root node user"
+    "production runner must configure the non-root node user",
   );
 
   const identity = await runDocker([
@@ -143,12 +145,12 @@ async function verifyRuntimeIdentity() {
     containerName,
     "node",
     "--eval",
-    "process.stdout.write(JSON.stringify({uid:process.getuid?.(),gid:process.getgid?.()}))"
+    "process.stdout.write(JSON.stringify({uid:process.getuid?.(),gid:process.getgid?.()}))",
   ]);
   assert.deepEqual(
     JSON.parse(identity.stdout),
     { uid: 1000, gid: 1000 },
-    "production runner must execute with the node image's uid/gid 1000"
+    "production runner must execute with the node image's uid/gid 1000",
   );
 }
 
@@ -162,25 +164,25 @@ async function verifyUnavailableAPIResponse() {
     [
       'const response = await fetch("http://127.0.0.1:3000/api/health");',
       "const body = await response.json();",
-      "process.stdout.write(JSON.stringify({status:response.status,contentType:response.headers.get(\"content-type\"),body}));"
-    ].join("")
+      'process.stdout.write(JSON.stringify({status:response.status,contentType:response.headers.get("content-type"),body}));',
+    ].join(""),
   ]);
   const result = JSON.parse(probe.stdout);
 
   assert.equal(
     result.status,
     503,
-    "direct /api/health probe must return 503 while the API is deliberately unavailable"
+    "direct /api/health probe must return 503 while the API is deliberately unavailable",
   );
   assert.match(
     result.contentType ?? "",
     /^application\/json\b/i,
-    "direct /api/health probe must return JSON"
+    "direct /api/health probe must return JSON",
   );
   assert.deepEqual(
     result.body,
     expectedHealthBody,
-    "direct /api/health probe must return the safe degraded envelope"
+    "direct /api/health probe must return the safe degraded envelope",
   );
 }
 
@@ -189,14 +191,14 @@ function runDocker(
   {
     check = true,
     streamOutput = false,
-    timeoutMilliseconds = commandTimeoutMilliseconds
-  } = {}
+    timeoutMilliseconds = commandTimeoutMilliseconds,
+  } = {},
 ) {
   return new Promise((resolve, reject) => {
     const child = spawn("docker", arguments_, {
       cwd: repoRoot,
       env: process.env,
-      stdio: ["ignore", "pipe", "pipe"]
+      stdio: ["ignore", "pipe", "pipe"],
     });
     activeChild = child;
 
@@ -210,7 +212,7 @@ function runDocker(
       child.kill("SIGTERM");
       forceKillTimer = setTimeout(
         () => child.kill("SIGKILL"),
-        shutdownGraceMilliseconds
+        shutdownGraceMilliseconds,
       );
       forceKillTimer.unref();
     }, timeoutMilliseconds);
@@ -248,8 +250,8 @@ function runDocker(
         : `exited with code ${code}${signal ? ` (signal ${signal})` : ""}`;
       reject(
         new Error(
-          `docker ${arguments_.join(" ")} ${cause}\n${stdout}${stderr}`.trimEnd()
-        )
+          `docker ${arguments_.join(" ")} ${cause}\n${stdout}${stderr}`.trimEnd(),
+        ),
       );
     });
   });
@@ -268,13 +270,19 @@ function cleanup() {
       activeChild?.kill("SIGTERM");
       const containerCleanup = await runDocker(
         ["rm", "--force", containerName],
-        { check: false }
+        { check: false },
       );
-      const imageCleanup = await runDocker(["image", "rm", "--force", imageTag], {
-        check: false
-      });
+      const imageCleanup = await runDocker(
+        ["image", "rm", "--force", imageTag],
+        {
+          check: false,
+        },
+      );
       for (const result of [containerCleanup, imageCleanup]) {
-        if (result.code !== 0 && !/No such (container|image)/i.test(result.stderr)) {
+        if (
+          result.code !== 0 &&
+          !/No such (container|image)/i.test(result.stderr)
+        ) {
           process.stderr.write(`Docker cleanup warning: ${result.stderr}`);
         }
       }
@@ -285,7 +293,7 @@ function cleanup() {
 
 for (const [signal, exitCode] of [
   ["SIGINT", 130],
-  ["SIGTERM", 143]
+  ["SIGTERM", 143],
 ]) {
   process.once(signal, () => {
     void cleanup().finally(() => process.exit(exitCode));
@@ -303,7 +311,7 @@ try {
 
 if (failure) {
   process.stderr.write(
-    `Web production Docker gate failed: ${failure instanceof Error ? failure.message : String(failure)}\n`
+    `Web production Docker gate failed: ${failure instanceof Error ? failure.message : String(failure)}\n`,
   );
   process.exitCode = 1;
 }

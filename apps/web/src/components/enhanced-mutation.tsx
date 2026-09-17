@@ -17,7 +17,7 @@ type MutationFeedback = {
 
 const emptyFeedback: MutationFeedback = {
   message: "",
-  fieldErrors: {}
+  fieldErrors: {},
 };
 
 export function useEnhancedMutation(fallbackMessage: string) {
@@ -34,7 +34,7 @@ export function useEnhancedMutation(fallbackMessage: string) {
       if (result.status === "error") {
         setFeedback({
           message: result.message,
-          fieldErrors: result.fieldErrors ?? {}
+          fieldErrors: result.fieldErrors ?? {},
         });
         return;
       }
@@ -52,13 +52,13 @@ export function useEnhancedMutation(fallbackMessage: string) {
     execute,
     fieldErrors: feedback.fieldErrors,
     message: feedback.message,
-    pending
+    pending,
   };
 }
 
 export function FieldError({
   id,
-  messages
+  messages,
 }: {
   id: string;
   messages?: string[];
@@ -79,6 +79,6 @@ export function fieldErrorProps(messages: string[] | undefined, id: string) {
 
   return {
     "aria-describedby": invalid ? id : undefined,
-    "aria-invalid": invalid || undefined
+    "aria-invalid": invalid || undefined,
   };
 }

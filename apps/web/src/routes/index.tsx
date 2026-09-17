@@ -3,17 +3,17 @@ import { getHomeCatalog } from "../features/school-slice/catalog.functions";
 import { catalogClientStaleTime } from "../features/school-slice/contracts";
 import {
   homeHead,
-  schoolLocation
+  schoolLocation,
 } from "../features/school-slice/presentation";
 
 export const Route = createFileRoute("/")({
   loader: async ({ context }) => ({
     catalog: await getHomeCatalog(),
-    publicOrigin: context.publicOrigin
+    publicOrigin: context.publicOrigin,
   }),
   staleTime: catalogClientStaleTime,
   head: ({ loaderData }) => homeHead(loaderData?.publicOrigin),
-  component: HomePage
+  component: HomePage,
 });
 
 function HomePage() {
@@ -46,7 +46,9 @@ function HomePage() {
           <div className="game-grid">
             {catalog.games.length > 0 ? (
               catalog.games.map((game) => (
-                <span className="chip" key={game.id}>{game.name}</span>
+                <span className="chip" key={game.id}>
+                  {game.name}
+                </span>
               ))
             ) : (
               <span className="chip">
@@ -85,7 +87,10 @@ function HomePage() {
         )}
       </section>
 
-      <section className="section action-panel" aria-labelledby="cold-start-title">
+      <section
+        className="section action-panel"
+        aria-labelledby="cold-start-title"
+      >
         <p className="eyebrow">Start the scene</p>
         <h2 id="cold-start-title">Not seeing activity for your campus yet?</h2>
         <p>

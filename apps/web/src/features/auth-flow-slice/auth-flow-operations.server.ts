@@ -2,7 +2,7 @@ import * as z from "zod";
 import {
   ApiContractError,
   ApiError,
-  type ApiClient
+  type ApiClient,
 } from "../../server/api.server.js";
 import { profileDtoSchema } from "../../server/viewer.server.js";
 import {
@@ -11,7 +11,7 @@ import {
   type EmailInput,
   type ResetPasswordInput,
   type SignupInput,
-  type VerificationTokenInput
+  type VerificationTokenInput,
 } from "./contracts.js";
 
 type Dependencies = {
@@ -21,7 +21,7 @@ type Dependencies = {
 
 export async function signupOperation(
   input: SignupInput,
-  dependencies: Dependencies
+  dependencies: Dependencies,
 ): Promise<AuthMutationResult> {
   return performAuthMutation(
     {
@@ -29,15 +29,15 @@ export async function signupOperation(
       body: input,
       responseSchema: profileDtoSchema,
       successMessage:
-        "Account created. Check your email for the verification link before logging in."
+        "Account created. Check your email for the verification link before logging in.",
     },
-    dependencies
+    dependencies,
   );
 }
 
 export async function forgotPasswordOperation(
   input: EmailInput,
-  dependencies: Dependencies
+  dependencies: Dependencies,
 ): Promise<AuthMutationResult> {
   return performAuthMutation(
     {
@@ -45,15 +45,15 @@ export async function forgotPasswordOperation(
       body: input,
       responseSchema: authStatusDtoSchema,
       successMessage:
-        "If that account exists, a password reset link is on the way."
+        "If that account exists, a password reset link is on the way.",
     },
-    dependencies
+    dependencies,
   );
 }
 
 export async function resetPasswordOperation(
   input: ResetPasswordInput,
-  dependencies: Dependencies
+  dependencies: Dependencies,
 ): Promise<AuthMutationResult> {
   return performAuthMutation(
     {
@@ -61,15 +61,15 @@ export async function resetPasswordOperation(
       body: input,
       responseSchema: z.undefined(),
       successMessage: "Password reset.",
-      redirectTo: "/login?reset=complete"
+      redirectTo: "/login?reset=complete",
     },
-    dependencies
+    dependencies,
   );
 }
 
 export async function resendVerificationOperation(
   input: EmailInput,
-  dependencies: Dependencies
+  dependencies: Dependencies,
 ): Promise<AuthMutationResult> {
   return performAuthMutation(
     {
@@ -77,24 +77,24 @@ export async function resendVerificationOperation(
       body: input,
       responseSchema: authStatusDtoSchema,
       successMessage:
-        "If that account needs verification, another email is on the way."
+        "If that account needs verification, another email is on the way.",
     },
-    dependencies
+    dependencies,
   );
 }
 
 export async function verifyEmailOperation(
   input: VerificationTokenInput,
-  dependencies: Dependencies
+  dependencies: Dependencies,
 ): Promise<AuthMutationResult> {
   return performAuthMutation(
     {
       path: "/auth/verify-email",
       body: input,
       responseSchema: authStatusDtoSchema,
-      successMessage: "Your email is verified."
+      successMessage: "Your email is verified.",
     },
-    dependencies
+    dependencies,
   );
 }
 
@@ -106,19 +106,19 @@ async function performAuthMutation(
     successMessage: string;
     redirectTo?: string;
   },
-  { api, reportError = defaultErrorReporter }: Dependencies
+  { api, reportError = defaultErrorReporter }: Dependencies,
 ): Promise<AuthMutationResult> {
   try {
     await api({
       path: request.path,
       method: "POST",
       body: request.body,
-      responseSchema: request.responseSchema
+      responseSchema: request.responseSchema,
     });
     return {
       status: "success",
       message: request.successMessage,
-      ...(request.redirectTo ? { redirectTo: request.redirectTo } : {})
+      ...(request.redirectTo ? { redirectTo: request.redirectTo } : {}),
     };
   } catch (error) {
     reportError(error);
@@ -137,7 +137,7 @@ export function authErrorMessage(error: unknown): string {
     home_school_not_found: "Choose an active home school from the list.",
     invalid_or_expired_token: "That link is invalid or has expired.",
     invalid_request: "Check the form fields and try again.",
-    rate_limited: "Too many attempts. Give it a minute, then try again."
+    rate_limited: "Too many attempts. Give it a minute, then try again.",
   };
   return messages[error.code] ?? "Something went wrong. Please try again.";
 }
@@ -146,7 +146,7 @@ function defaultErrorReporter(error: unknown): void {
   if (error instanceof ApiContractError) {
     console.error("Authentication response contract violation", {
       path: error.path,
-      issues: error.issues
+      issues: error.issues,
     });
   } else if (!(error instanceof ApiError)) {
     console.error("Authentication request failed");

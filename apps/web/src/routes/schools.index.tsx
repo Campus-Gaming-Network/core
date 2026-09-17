@@ -5,11 +5,11 @@ import {
   catalogClientStaleTime,
   schoolsBrowseInput,
   validateSchoolsSearch,
-  type SchoolsSearch
+  type SchoolsSearch,
 } from "../features/school-slice/contracts";
 import {
   schoolLocation,
-  schoolsHead
+  schoolsHead,
 } from "../features/school-slice/presentation";
 
 export const Route = createFileRoute("/schools/")({
@@ -17,21 +17,22 @@ export const Route = createFileRoute("/schools/")({
   loaderDeps: ({ search }) => schoolsBrowseInput(search),
   loader: async ({ context, deps }) => ({
     catalog: await getSchoolsCatalog({ data: deps }),
-    publicOrigin: context.publicOrigin
+    publicOrigin: context.publicOrigin,
   }),
   staleTime: catalogClientStaleTime,
   head: ({ loaderData }) => schoolsHead(loaderData?.publicOrigin),
   pendingComponent: SchoolsPending,
-  component: SchoolsPage
+  component: SchoolsPage,
 });
 
 function SchoolsPage() {
   const { catalog } = Route.useLoaderData();
   const search = Route.useSearch();
   const page = search.page ?? 1;
-  const previousSearch = page > 1
-    ? catalogSearch(search, page > 2 ? page - 1 : undefined)
-    : undefined;
+  const previousSearch =
+    page > 1
+      ? catalogSearch(search, page > 2 ? page - 1 : undefined)
+      : undefined;
   const nextSearch = catalog.has_more
     ? catalogSearch(search, page + 1)
     : undefined;
@@ -122,15 +123,19 @@ function catalogSearch(search: SchoolsSearch, page?: number): SchoolsSearch {
   return {
     ...(search.q ? { q: search.q } : {}),
     ...(search.state ? { state: search.state } : {}),
-    ...(page && page > 1 ? { page } : {})
+    ...(page && page > 1 ? { page } : {}),
   };
 }
 
-function FollowNotice({ status }: { status: NonNullable<SchoolsSearch["follow"]> }) {
+function FollowNotice({
+  status,
+}: {
+  status: NonNullable<SchoolsSearch["follow"]>;
+}) {
   const messages = {
     added: "School followed.",
     failed: "We could not update this school follow. Please try again.",
-    removed: "School unfollowed."
+    removed: "School unfollowed.",
   } as const;
 
   return (

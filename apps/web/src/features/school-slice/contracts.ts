@@ -19,35 +19,35 @@ export const schoolDtoSchema = z.object({
   latitude: z.number().finite().optional(),
   longitude: z.number().finite().optional(),
   is_main_campus: z.boolean(),
-  num_branches: nonNegativeIntegerSchema
+  num_branches: nonNegativeIntegerSchema,
 });
 
 export const schoolsResponseDtoSchema = z.object({
   schools: z.array(schoolDtoSchema),
   limit: nonNegativeIntegerSchema,
   offset: nonNegativeIntegerSchema,
-  has_more: z.boolean()
+  has_more: z.boolean(),
 });
 
 export const followedSchoolsResponseDtoSchema = z.object({
-  schools: z.array(schoolDtoSchema)
+  schools: z.array(schoolDtoSchema),
 });
 
 export const gameDtoSchema = z.object({
   id: identifierSchema,
   name: z.string(),
   slug: identifierSchema,
-  cover_url: z.string().optional()
+  cover_url: z.string().optional(),
 });
 
 export const gamesResponseDtoSchema = z.object({
-  games: z.array(gameDtoSchema)
+  games: z.array(gameDtoSchema),
 });
 
 export const schoolsBrowseInputSchema = z.object({
   query: z.string(),
   state: z.string(),
-  page: z.number().int().positive()
+  page: z.number().int().positive(),
 });
 
 export const schoolSlugInputSchema = z.object({ slug: identifierSchema });
@@ -55,7 +55,7 @@ export const schoolViewerInputSchema = z.object({ schoolId: identifierSchema });
 export const schoolFollowInputSchema = z
   .object({
     school_id: identifierSchema,
-    slug: identifierSchema
+    slug: identifierSchema,
   })
   .strict();
 export const emptyResponseDtoSchema = z.undefined();
@@ -105,7 +105,7 @@ export type SchoolsSearch = {
 };
 
 export function validateSchoolsSearch(
-  search: Record<string, unknown>
+  search: Record<string, unknown>,
 ): SchoolsSearch {
   const q = firstString(search.q).trim();
   const state = firstString(search.state).trim();
@@ -118,7 +118,7 @@ export function validateSchoolsSearch(
     ...(page > 1 ? { page } : {}),
     ...(follow === "added" || follow === "failed" || follow === "removed"
       ? { follow }
-      : {})
+      : {}),
   };
 }
 
@@ -126,26 +126,26 @@ export function schoolsBrowseInput(search: SchoolsSearch): SchoolsBrowseInput {
   return {
     query: search.q ?? "",
     state: search.state ?? "",
-    page: search.page ?? 1
+    page: search.page ?? 1,
   };
 }
 
 export function validateSchoolFollowServerInput(
-  input: SchoolFollowInput | FormData
+  input: SchoolFollowInput | FormData,
 ): ValidatedSchoolFollowInput {
   const candidate = {
     school_id: inputValue(input, "school_id"),
-    slug: inputValue(input, "slug")
+    slug: inputValue(input, "slug"),
   };
   const parsed = schoolFollowInputSchema.safeParse(
-    input instanceof FormData ? candidate : input
+    input instanceof FormData ? candidate : input,
   );
   if (parsed.success) return { valid: true, value: parsed.data };
   return {
     valid: false,
     ...(identifierSchema.safeParse(candidate.slug).success
       ? { slug: candidate.slug.trim() }
-      : {})
+      : {}),
   };
 }
 
@@ -168,8 +168,7 @@ function firstString(value: unknown): string {
 }
 
 function inputValue(input: object | FormData, field: string): string {
-  const value = input instanceof FormData
-    ? input.get(field)
-    : Reflect.get(input, field);
+  const value =
+    input instanceof FormData ? input.get(field) : Reflect.get(input, field);
   return typeof value === "string" ? value : "";
 }

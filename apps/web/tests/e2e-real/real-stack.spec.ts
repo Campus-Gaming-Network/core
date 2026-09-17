@@ -5,7 +5,7 @@ import {
   type Browser,
   type BrowserContext,
   type Page,
-  type TestInfo
+  type TestInfo,
 } from "@playwright/test";
 
 const resendURL = "http://127.0.0.1:18083";
@@ -28,21 +28,31 @@ type StubMessage = {
 test("real browser journey crosses the BFF, Go API, Postgres, and email outbox", async ({
   context,
   page,
-  request
+  request,
 }, testInfo) => {
   const suffix = runSuffix(testInfo);
   await context.setExtraHTTPHeaders(
-    trustedHeaders(`198.51.100.${100 + testInfo.repeatEachIndex * 4 + testInfo.retry}`)
+    trustedHeaders(
+      `198.51.100.${100 + testInfo.repeatEachIndex * 4 + testInfo.retry}`,
+    ),
   );
   const ownerEmail = `real-owner-${suffix}@example.test`;
   const attendeeEmail = `real-attendee-${suffix}@example.test`;
   const eventTitle = `Real Stack Private Event ${suffix}`;
   const teamName = `Real Stack Team ${suffix}`;
 
-  await signUpVerifyAndLogIn(page, request, ownerEmail, "Real Stack Owner", "/events/new");
+  await signUpVerifyAndLogIn(
+    page,
+    request,
+    ownerEmail,
+    "Real Stack Owner",
+    "/events/new",
+  );
 
   await page.getByLabel("Title").fill(eventTitle);
-  await page.getByLabel("Description").fill("A full-stack private event fixture.");
+  await page
+    .getByLabel("Description")
+    .fill("A full-stack private event fixture.");
   await page.getByLabel("Visibility").selectOption("private");
   await page.getByLabel("Starts at").fill("2037-08-15T13:00");
   await page.getByLabel("Ends at").fill("2037-08-15T15:00");
@@ -50,8 +60,12 @@ test("real browser journey crosses the BFF, Go API, Postgres, and email outbox",
   await page.getByLabel("Games").selectOption({ label: "Strategy Arena" });
   await page.getByLabel("Private event password").fill(privateEventPassword);
   await page.getByRole("button", { name: "Create event" }).click();
-  await expect(page).toHaveURL(/\/events\/real-stack-private-event-[^?]+\?event=created$/);
-  await expect(page.getByRole("heading", { name: eventTitle, level: 1 })).toBeVisible();
+  await expect(page).toHaveURL(
+    /\/events\/real-stack-private-event-[^?]+\?event=created$/,
+  );
+  await expect(
+    page.getByRole("heading", { name: eventTitle, level: 1 }),
+  ).toBeVisible();
   const eventSlug = resourceSlug(page, "events");
 
   await page.goto("/teams/new");
@@ -70,18 +84,28 @@ test("real browser journey crosses the BFF, Go API, Postgres, and email outbox",
     request,
     attendeeEmail,
     "Real Stack Attendee",
-    `/events/${eventSlug}`
+    `/events/${eventSlug}`,
   );
 
-  await expect(page.getByRole("heading", { name: "This event is private.", level: 1 })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "This event is private.", level: 1 }),
+  ).toBeVisible();
   await page.getByLabel("Event password").fill(privateEventPassword);
   await page.getByRole("button", { name: "Unlock event" }).click();
-  await expect(page).toHaveURL(new RegExp(`/events/${eventSlug}\\?event=unlocked$`));
-  await expect(page.getByRole("heading", { name: eventTitle, level: 1 })).toBeVisible();
+  await expect(page).toHaveURL(
+    new RegExp(`/events/${eventSlug}\\?event=unlocked$`),
+  );
+  await expect(
+    page.getByRole("heading", { name: eventTitle, level: 1 }),
+  ).toBeVisible();
 
   await page.getByRole("button", { name: "Yes", exact: true }).click();
   await expect(page.getByRole("status")).toContainText("RSVP saved.");
-  const rsvpMessage = await waitForMessage(request, attendeeEmail, `You're going to ${eventTitle}`);
+  const rsvpMessage = await waitForMessage(
+    request,
+    attendeeEmail,
+    `You're going to ${eventTitle}`,
+  );
   expect(rsvpMessage.attachments).toHaveLength(1);
   expect(rsvpMessage.idempotencyKey).not.toBe("");
 
@@ -101,40 +125,46 @@ test("real browser journey crosses the BFF, Go API, Postgres, and email outbox",
 });
 
 test("trusted visitor identity keeps rate limits separate through the BFF", async ({
-  browser
+  browser,
 }, testInfo) => {
   const identity = 20 + testInfo.repeatEachIndex * 4 + testInfo.retry * 2;
-  const limitedContext = await trustedContext(browser, `198.51.100.${identity}`);
-  const otherContext = await trustedContext(browser, `198.51.100.${identity + 1}`);
+  const limitedContext = await trustedContext(
+    browser,
+    `198.51.100.${identity}`,
+  );
+  const otherContext = await trustedContext(
+    browser,
+    `198.51.100.${identity + 1}`,
+  );
 
   try {
     const limitedPage = await limitedContext.newPage();
     await expectLoginMessage(
       limitedPage,
       `missing-${runSuffix(testInfo)}-1@example.test`,
-      "The email or password did not match."
+      "The email or password did not match.",
     );
     await expectLoginMessage(
       limitedPage,
       `missing-${runSuffix(testInfo)}-2@example.test`,
-      "The email or password did not match."
+      "The email or password did not match.",
     );
     await expectLoginMessage(
       limitedPage,
       `missing-${runSuffix(testInfo)}-3@example.test`,
-      "The email or password did not match."
+      "The email or password did not match.",
     );
     await expectLoginMessage(
       limitedPage,
       `limited-${runSuffix(testInfo)}@example.test`,
-      "Too many attempts. Give it a minute, then try again."
+      "Too many attempts. Give it a minute, then try again.",
     );
 
     const otherPage = await otherContext.newPage();
     await expectLoginMessage(
       otherPage,
       `other-${runSuffix(testInfo)}@example.test`,
-      "The email or password did not match."
+      "The email or password did not match.",
     );
   } finally {
     await limitedContext.close();
@@ -147,7 +177,7 @@ async function signUpVerifyAndLogIn(
   request: APIRequestContext,
   email: string,
   name: string,
-  next: string
+  next: string,
 ) {
   await page.goto(`/signup?q=Real&school_id=${primarySchoolID}`);
   await page.getByLabel("Name").fill(name);
@@ -157,14 +187,22 @@ async function signUpVerifyAndLogIn(
   await page.getByRole("checkbox", { name: /18 or older/ }).check();
   await page.getByRole("button", { name: "Create account" }).click();
   await expect(
-    page.getByRole("status").filter({ hasText: "Account created. Check your email" })
+    page
+      .getByRole("status")
+      .filter({ hasText: "Account created. Check your email" }),
   ).toBeVisible();
 
-  const message = await waitForMessage(request, email, "Verify your Campus Gaming Network email");
+  const message = await waitForMessage(
+    request,
+    email,
+    "Verify your Campus Gaming Network email",
+  );
   const token = verificationToken(message.html);
   await page.goto(`/auth/verify-email?token=${encodeURIComponent(token)}`);
   await page.getByRole("button", { name: "Verify email" }).click();
-  await expect(page.getByRole("status")).toContainText("Your email is verified.");
+  await expect(page.getByRole("status")).toContainText(
+    "Your email is verified.",
+  );
 
   await logIn(page, email, next);
 }
@@ -180,13 +218,13 @@ async function logIn(page: Page, email: string, next: string) {
 async function waitForMessage(
   request: APIRequestContext,
   recipient: string,
-  subject: string
+  subject: string,
 ): Promise<StubMessage> {
   let found: StubMessage | undefined;
   await expect
     .poll(async () => {
       const response = await request.get(
-        `${resendURL}/__test/messages?recipient=${encodeURIComponent(recipient)}`
+        `${resendURL}/__test/messages?recipient=${encodeURIComponent(recipient)}`,
       );
       expect(response.ok()).toBe(true);
       const payload = (await response.json()) as { messages: StubMessage[] };
@@ -199,7 +237,8 @@ async function waitForMessage(
 
 function verificationToken(html: string): string {
   const match = html.match(/[?&]token=([^"&<]+)/);
-  if (!match) throw new Error("verification email did not contain a token link");
+  if (!match)
+    throw new Error("verification email did not contain a token link");
   return decodeURIComponent(match[1].replaceAll("+", " "));
 }
 
@@ -217,17 +256,17 @@ function runSuffix(testInfo: TestInfo) {
 
 async function trustedContext(
   browser: Browser,
-  visitorIP: string
+  visitorIP: string,
 ): Promise<BrowserContext> {
   return browser.newContext({
-    extraHTTPHeaders: trustedHeaders(visitorIP)
+    extraHTTPHeaders: trustedHeaders(visitorIP),
   });
 }
 
 function trustedHeaders(visitorIP: string) {
   return {
     "CF-Connecting-IP": visitorIP,
-    "X-CGN-Cloudflare-Secret": cloudflareSecret
+    "X-CGN-Cloudflare-Secret": cloudflareSecret,
   };
 }
 
@@ -241,7 +280,7 @@ async function expectLoginMessage(page: Page, email: string, message: string) {
 
 function hasCookie(
   cookies: Awaited<ReturnType<BrowserContext["cookies"]>>,
-  name: string
+  name: string,
 ) {
   return cookies.some((cookie) => cookie.name === name);
 }

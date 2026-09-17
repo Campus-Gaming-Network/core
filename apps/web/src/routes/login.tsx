@@ -4,7 +4,7 @@ import { type FormEvent } from "react";
 import {
   FieldError,
   fieldErrorProps,
-  useEnhancedMutation
+  useEnhancedMutation,
 } from "../components/enhanced-mutation";
 import { login } from "../features/event-slice/auth.functions";
 import { safeLocalPath } from "../safe-local-path";
@@ -25,39 +25,41 @@ export const Route = createFileRoute("/login")({
       {
         name: "description",
         content:
-          "Log in to your Campus Gaming Network account to RSVP to events and manage teams."
+          "Log in to your Campus Gaming Network account to RSVP to events and manage teams.",
       },
       { property: "og:type", content: "website" },
       { property: "og:site_name", content: "Campus Gaming Network" },
       {
         property: "og:title",
-        content: "Log in | Campus Gaming Network"
+        content: "Log in | Campus Gaming Network",
       },
       {
         property: "og:description",
         content:
-          "Log in to your Campus Gaming Network account to RSVP to events and manage teams."
+          "Log in to your Campus Gaming Network account to RSVP to events and manage teams.",
       },
       {
         property: "og:url",
-        content: `${loaderData ?? "http://localhost:3000"}/login`
+        content: `${loaderData ?? "http://localhost:3000"}/login`,
       },
       { name: "twitter:card", content: "summary" },
       {
         name: "twitter:title",
-        content: "Log in | Campus Gaming Network"
+        content: "Log in | Campus Gaming Network",
       },
       {
         name: "twitter:description",
         content:
-          "Log in to your Campus Gaming Network account to RSVP to events and manage teams."
-      }
-    ]
+          "Log in to your Campus Gaming Network account to RSVP to events and manage teams.",
+      },
+    ],
   }),
-  component: LoginPage
+  component: LoginPage,
 });
 
-export function validateLoginSearch(search: Record<string, unknown>): LoginSearch {
+export function validateLoginSearch(
+  search: Record<string, unknown>,
+): LoginSearch {
   const nextValue = firstString(search.next);
   const errorValue = firstString(search.error);
   const resetValue = firstString(search.reset);
@@ -72,7 +74,7 @@ export function validateLoginSearch(search: Record<string, unknown>): LoginSearc
     ...(resetValue === "complete" ? { reset: "complete" as const } : {}),
     ...(signupValue === "check-email"
       ? { signup: "check-email" as const }
-      : {})
+      : {}),
   };
 }
 
@@ -112,7 +114,7 @@ function LoginPage() {
 function LoginForm({
   next,
   notice,
-  initialFailure
+  initialFailure,
 }: {
   next?: string;
   notice?: string;
@@ -120,7 +122,7 @@ function LoginForm({
 }) {
   const runLogin = useServerFn(login);
   const mutation = useEnhancedMutation(
-    "We could not log you in. Check your details and try again."
+    "We could not log you in. Check your details and try again.",
   );
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -132,9 +134,9 @@ function LoginForm({
         data: {
           email: String(form.get("email") ?? ""),
           password: String(form.get("password") ?? ""),
-          ...(next ? { next } : {})
-        }
-      })
+          ...(next ? { next } : {}),
+        },
+      }),
     );
   }
 

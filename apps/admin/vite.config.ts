@@ -6,16 +6,16 @@ import { defineConfig } from "vite";
 export default defineConfig({
   server: {
     host: "0.0.0.0",
-    port: 3002
+    port: 3002,
   },
   resolve: {
-    tsconfigPaths: true
+    tsconfigPaths: true,
   },
   plugins: [
     tanstackStart({
-      srcDirectory: "src"
+      srcDirectory: "src",
     }),
     viteReact(),
-    nitro()
-  ]
+    nitro(),
+  ],
 });

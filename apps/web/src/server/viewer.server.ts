@@ -11,7 +11,7 @@ export const profileDtoSchema = z.object({
   bio: z.string().optional(),
   timezone: z.string().min(1),
   home_school_id: z.string().min(1),
-  role_indicators: z.array(z.string()).optional()
+  role_indicators: z.array(z.string()).optional(),
 });
 
 export type ProfileDTO = z.output<typeof profileDtoSchema>;
@@ -37,7 +37,7 @@ export class AuthenticationRequiredError extends Error {
 export async function optionalViewerProfile({
   api,
   cookieHeader,
-  sessionCookieValue
+  sessionCookieValue,
 }: ViewerRequest): Promise<ProfileDTO | null> {
   if (!sessionCookieValue) {
     return null;
@@ -48,7 +48,7 @@ export async function optionalViewerProfile({
       path: "/me",
       cookieHeader,
       cache: "no-store",
-      responseSchema: profileDtoSchema
+      responseSchema: profileDtoSchema,
     });
     return data;
   } catch (error) {
@@ -60,7 +60,7 @@ export async function optionalViewerProfile({
 }
 
 export async function requiredViewerProfile(
-  request: ViewerRequest
+  request: ViewerRequest,
 ): Promise<ProfileDTO> {
   const profile = await optionalViewerProfile(request);
   if (!profile) {

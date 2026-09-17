@@ -21,7 +21,7 @@ export function EventSchoolPicker({
   initialSchools,
   initialSearchFailed,
   describedBy,
-  invalid
+  invalid,
 }: Props) {
   const statusID = useId();
   const [enhanced, setEnhanced] = useState(false);
@@ -30,10 +30,16 @@ export function EventSchoolPicker({
   const [schools, setSchools] = useState(initialSchools);
   const [status, setStatus] = useState<
     "idle" | "loading" | "success" | "error"
-  >(initialSearchFailed ? "error" : initialQuery.length >= 2 ? "success" : "idle");
+  >(
+    initialSearchFailed
+      ? "error"
+      : initialQuery.length >= 2
+        ? "success"
+        : "idle",
+  );
   const options = useMemo(
     () => mergeSchools(defaultSchool, schools),
-    [defaultSchool, schools]
+    [defaultSchool, schools],
   );
 
   useEffect(() => setEnhanced(true), []);
@@ -54,17 +60,18 @@ export function EventSchoolPicker({
         const search = new URLSearchParams({ q: normalizedQuery, limit: "50" });
         const response = await fetch(`/api/schools?${search.toString()}`, {
           cache: "no-store",
-          signal: controller.signal
+          signal: controller.signal,
         });
         if (!response.ok) throw new Error("school search failed");
         const parsed = eventFormSchoolsResponseDtoSchema.safeParse(
-          await response.json()
+          await response.json(),
         );
         if (!parsed.success) throw new Error("invalid school search response");
         setSchools(parsed.data.schools);
         setStatus("success");
       } catch (error) {
-        if (error instanceof DOMException && error.name === "AbortError") return;
+        if (error instanceof DOMException && error.name === "AbortError")
+          return;
         setSchools([]);
         setStatus("error");
       }
@@ -162,7 +169,7 @@ export function EventSchoolPicker({
 
 export function NoScriptSchoolSearch({
   action,
-  query
+  query,
 }: {
   action: string;
   query: string;
@@ -188,7 +195,7 @@ export function NoScriptSchoolSearch({
 
 function mergeSchools(
   selected: EventFormSchoolDTO | undefined,
-  schools: EventFormSchoolDTO[]
+  schools: EventFormSchoolDTO[],
 ): EventFormSchoolDTO[] {
   const unique = new Map<string, EventFormSchoolDTO>();
   if (selected) unique.set(selected.id, selected);

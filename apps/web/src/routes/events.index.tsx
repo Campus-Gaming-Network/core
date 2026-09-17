@@ -1,12 +1,12 @@
 import {
   Link,
   createFileRoute,
-  type ErrorComponentProps
+  type ErrorComponentProps,
 } from "@tanstack/react-router";
 import { RouteErrorView, RoutePending } from "../components/route-boundaries";
 import {
   getEventViewerSession,
-  logout
+  logout,
 } from "../features/event-slice/auth.functions";
 import { EventBanner } from "../features/event-slice/event-banner";
 import { getEventsBrowse } from "../features/event-slice/event.functions";
@@ -14,7 +14,7 @@ import {
   eventsBrowseInput,
   validateEventsSearch,
   type EventNotice,
-  type EventsSearch
+  type EventsSearch,
 } from "../features/event-slice/contracts";
 import {
   eventLifecycleLabel,
@@ -22,7 +22,7 @@ import {
   eventNoticeMessage,
   eventTimeRange,
   eventsHead,
-  isFailureNotice
+  isFailureNotice,
 } from "../features/event-slice/presentation";
 import eventCSS from "../features/event-slice/events.css?url";
 
@@ -32,7 +32,7 @@ export const Route = createFileRoute("/events/")({
   loader: async ({ context, deps }) => {
     const [browse, session] = await Promise.all([
       getEventsBrowse({ data: deps }),
-      getEventViewerSession()
+      getEventViewerSession(),
     ]);
     if (session.status === "unavailable") {
       throw new Error("Event viewer session is unavailable");
@@ -42,7 +42,7 @@ export const Route = createFileRoute("/events/")({
       browse,
       authenticated: session.status === "authenticated",
       hasSessionCookie: session.hasSessionCookie,
-      publicOrigin: context.publicOrigin
+      publicOrigin: context.publicOrigin,
     };
   },
   staleTime: 0,
@@ -50,26 +50,28 @@ export const Route = createFileRoute("/events/")({
     "cache-control": loaderData?.hasSessionCookie
       ? "private, no-store"
       : "public, max-age=0, must-revalidate",
-    vary: "Cookie"
+    vary: "Cookie",
   }),
   head: ({ loaderData }) => ({
     ...eventsHead(loaderData?.publicOrigin),
-    links: [{ rel: "stylesheet", href: eventCSS }]
+    links: [{ rel: "stylesheet", href: eventCSS }],
   }),
   pendingComponent: EventsPending,
   errorComponent: EventsError,
-  component: EventsPage
+  component: EventsPage,
 });
 
 function EventsPage() {
   const { authenticated, browse } = Route.useLoaderData();
   const search = Route.useSearch();
-  const previousSearch = browse.has_previous && browse.previous_cursor
-    ? paginationSearch(search, { before: browse.previous_cursor })
-    : undefined;
-  const nextSearch = browse.has_more && browse.next_cursor
-    ? paginationSearch(search, { after: browse.next_cursor })
-    : undefined;
+  const previousSearch =
+    browse.has_previous && browse.previous_cursor
+      ? paginationSearch(search, { before: browse.previous_cursor })
+      : undefined;
+  const nextSearch =
+    browse.has_more && browse.next_cursor
+      ? paginationSearch(search, { after: browse.next_cursor })
+      : undefined;
   const notice = browseNotice(search.event);
 
   return (
@@ -198,17 +200,19 @@ function EventsPage() {
 
 function paginationSearch(
   search: EventsSearch,
-  cursor: Pick<EventsSearch, "after" | "before">
+  cursor: Pick<EventsSearch, "after" | "before">,
 ): EventsSearch {
   return {
     ...(search.game ? { game: search.game } : {}),
     ...(search.school ? { school: search.school } : {}),
     ...(search.format ? { format: search.format } : {}),
-    ...cursor
+    ...cursor,
   };
 }
 
-function browseNotice(notice: EventNotice | undefined): EventNotice | undefined {
+function browseNotice(
+  notice: EventNotice | undefined,
+): EventNotice | undefined {
   return notice === "cancelled" ||
     notice === "cancel-failed" ||
     notice === "deleted" ||

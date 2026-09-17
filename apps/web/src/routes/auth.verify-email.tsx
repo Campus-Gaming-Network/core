@@ -1,11 +1,9 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
 import {
   ResendVerificationForm,
-  VerifyEmailForm
+  VerifyEmailForm,
 } from "../features/auth-flow-slice/auth-forms";
-import {
-  validateVerifyEmailSearch
-} from "../features/auth-flow-slice/contracts";
+import { validateVerifyEmailSearch } from "../features/auth-flow-slice/contracts";
 import { establishPrivateAuthPage } from "../features/auth-flow-slice/auth-flow.functions";
 import { authPageHead } from "../features/auth-flow-slice/presentation";
 
@@ -17,17 +15,18 @@ export const Route = createFileRoute("/auth/verify-email")({
     await establishPrivateAuthPage();
     return context.publicOrigin;
   },
-  head: ({ loaderData }) => authPageHead(loaderData, {
-    title: "Verify email",
-    description,
-    path: "/auth/verify-email",
-    noIndex: true
-  }),
+  head: ({ loaderData }) =>
+    authPageHead(loaderData, {
+      title: "Verify email",
+      description,
+      path: "/auth/verify-email",
+      noIndex: true,
+    }),
   headers: () => ({
     "cache-control": "private, no-store",
-    "referrer-policy": "no-referrer"
+    "referrer-policy": "no-referrer",
   }),
-  component: VerifyEmailPage
+  component: VerifyEmailPage,
 });
 
 function VerifyEmailPage() {
@@ -53,7 +52,9 @@ function VerifyEmailPage() {
         </p>
       ) : hasUsableToken && search.token ? (
         <>
-          <p className="lede">Select Verify email to finish confirming your address.</p>
+          <p className="lede">
+            Select Verify email to finish confirming your address.
+          </p>
           <VerifyEmailForm token={search.token} />
         </>
       ) : (

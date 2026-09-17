@@ -93,23 +93,23 @@ content to a report/support form, discover a Railway service hostname, or
 compromise one operator credential. It does not assume Cloudflare Access, the
 application, or an operator is infallible.
 
-| Threat | V1 control | Required evidence |
-|---|---|---|
-| Stolen public CGN session | Public and admin cookies, stores, middleware, and proxy secrets are separate | Public session receives `401` from every admin endpoint |
-| Phished password or OTP | IdP policy requires passkey/WebAuthn or a hardware security key | Access policy export and successful security-key login test |
-| Direct Railway-origin bypass | Admin BFF validates the Access JWT on every request and fails closed when it is absent or invalid | Direct-origin request is denied before application content is rendered |
-| BFF-only authorization | Go loads the admin session, active user, active site grant, and capability on every request | Handler tests bypass the BFF and still receive `401`/`403` |
-| CSRF | Host-only `SameSite=Strict` cookie, exact-origin checks, and a per-session CSRF token on every mutation | Cross-origin and missing-token browser tests fail |
-| Stored/reflected XSS | Plain-text rendering, output escaping, no dangerous HTML sinks, and a strict CSP | Payload fixtures cannot create executable markup |
-| IDOR | Go scopes each request by capability and loads the addressed entity server-side | Cross-entity and random-ID tests return safe `404`/`403` responses |
-| Revoked admin keeps working | Active grant lookup on every request and revocation of all admin sessions in the same transaction | An existing browser session fails immediately after revocation |
-| Suspended/deleted admin keeps working | Active user status is checked with the grant on every request | Suspension/deletion invalidates current sessions |
-| Insider misuse | Required reasons for high-risk actions, transactional audits, security events, and no shared accounts | Audit entry identifies actor, session, action, entity, request, and reason |
-| Audit tampering or gaps | Append-only application interface; mutation and audit share a transaction; runtime DB role cannot update/delete audit rows | Forced audit failure rolls back the domain change |
-| Concurrent overwrite | `updated_at` preconditions or version fields on mutable records | Stale updates return `409` without losing the newer change |
-| Malicious or oversized logo | Byte limit before decode, signature check, pixel limit, decode/re-encode, generated key, separate asset origin | Polyglot, SVG, decompression-bomb, and oversize fixtures fail |
-| Sensitive data in logs/cache | Safe structured logs, redaction, `private, no-store`, and no analytics/third-party scripts | Automated header/log assertions pass |
-| Proxy-secret reuse | A distinct admin BFF secret authorizes only `/admin/v1/*`; public BFF secret is rejected | Secret-crossing tests fail in both directions |
+| Threat                                | V1 control                                                                                                                 | Required evidence                                                          |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| Stolen public CGN session             | Public and admin cookies, stores, middleware, and proxy secrets are separate                                               | Public session receives `401` from every admin endpoint                    |
+| Phished password or OTP               | IdP policy requires passkey/WebAuthn or a hardware security key                                                            | Access policy export and successful security-key login test                |
+| Direct Railway-origin bypass          | Admin BFF validates the Access JWT on every request and fails closed when it is absent or invalid                          | Direct-origin request is denied before application content is rendered     |
+| BFF-only authorization                | Go loads the admin session, active user, active site grant, and capability on every request                                | Handler tests bypass the BFF and still receive `401`/`403`                 |
+| CSRF                                  | Host-only `SameSite=Strict` cookie, exact-origin checks, and a per-session CSRF token on every mutation                    | Cross-origin and missing-token browser tests fail                          |
+| Stored/reflected XSS                  | Plain-text rendering, output escaping, no dangerous HTML sinks, and a strict CSP                                           | Payload fixtures cannot create executable markup                           |
+| IDOR                                  | Go scopes each request by capability and loads the addressed entity server-side                                            | Cross-entity and random-ID tests return safe `404`/`403` responses         |
+| Revoked admin keeps working           | Active grant lookup on every request and revocation of all admin sessions in the same transaction                          | An existing browser session fails immediately after revocation             |
+| Suspended/deleted admin keeps working | Active user status is checked with the grant on every request                                                              | Suspension/deletion invalidates current sessions                           |
+| Insider misuse                        | Required reasons for high-risk actions, transactional audits, security events, and no shared accounts                      | Audit entry identifies actor, session, action, entity, request, and reason |
+| Audit tampering or gaps               | Append-only application interface; mutation and audit share a transaction; runtime DB role cannot update/delete audit rows | Forced audit failure rolls back the domain change                          |
+| Concurrent overwrite                  | `updated_at` preconditions or version fields on mutable records                                                            | Stale updates return `409` without losing the newer change                 |
+| Malicious or oversized logo           | Byte limit before decode, signature check, pixel limit, decode/re-encode, generated key, separate asset origin             | Polyglot, SVG, decompression-bomb, and oversize fixtures fail              |
+| Sensitive data in logs/cache          | Safe structured logs, redaction, `private, no-store`, and no analytics/third-party scripts                                 | Automated header/log assertions pass                                       |
+| Proxy-secret reuse                    | A distinct admin BFF secret authorizes only `/admin/v1/*`; public BFF secret is rejected                                   | Secret-crossing tests fail in both directions                              |
 
 ## Target architecture
 
@@ -220,23 +220,23 @@ responses use `Cache-Control: private, no-store`.
 Persist only the `site_admin` role in v1, but authorize endpoints through named
 capabilities so later roles cannot accidentally inherit the whole surface.
 
-| Capability | V1 use |
-|---|---|
-| `admin.session.read` | Read the current admin identity/session |
-| `reports.read` | List/view reports |
-| `reports.manage` | Assign and transition reports |
-| `support.read` | List/view support tickets |
-| `support.manage` | Assign and transition support tickets |
-| `schools.read` | Read active/inactive/deleted school administration data |
-| `schools.manage` | Create/edit/deactivate/reactivate/soft-delete schools |
-| `school_logos.manage` | Upload/remove validated school logos |
-| `school_grants.manage` | Grant/revoke school-admin access |
-| `games.manage` | Manage the curated game catalog |
-| `users.read` | Bounded user search/detail for administrative work |
-| `users.manage_status` | Suspend/reactivate accounts with step-up |
-| `trust_grants.manage` | Change supported non-site trust grants |
-| `site_grants.manage` | Grant/revoke site-admin access with step-up |
-| `audit.read` | Read entity audit history and allowed security-event summaries |
+| Capability             | V1 use                                                         |
+| ---------------------- | -------------------------------------------------------------- |
+| `admin.session.read`   | Read the current admin identity/session                        |
+| `reports.read`         | List/view reports                                              |
+| `reports.manage`       | Assign and transition reports                                  |
+| `support.read`         | List/view support tickets                                      |
+| `support.manage`       | Assign and transition support tickets                          |
+| `schools.read`         | Read active/inactive/deleted school administration data        |
+| `schools.manage`       | Create/edit/deactivate/reactivate/soft-delete schools          |
+| `school_logos.manage`  | Upload/remove validated school logos                           |
+| `school_grants.manage` | Grant/revoke school-admin access                               |
+| `games.manage`         | Manage the curated game catalog                                |
+| `users.read`           | Bounded user search/detail for administrative work             |
+| `users.manage_status`  | Suspend/reactivate accounts with step-up                       |
+| `trust_grants.manage`  | Change supported non-site trust grants                         |
+| `site_grants.manage`   | Grant/revoke site-admin access with step-up                    |
+| `audit.read`           | Read entity audit history and allowed security-event summaries |
 
 The role-to-capability map lives in reviewed Go code. It is not editable through
 the database or Admin Console. Authorization middleware receives the required
@@ -389,58 +389,58 @@ applicable.
 
 ### Authentication
 
-| Method | Path | Capability/control | Purpose |
-|---|---|---|---|
-| POST | `/admin/v1/auth/exchange` | Valid Access identity + active grant | Create/rotate admin session |
-| POST | `/admin/v1/auth/step-up` | Fresh Access assertion | Rotate token and record recent auth |
-| GET | `/admin/v1/session` | `admin.session.read` | Current actor, capabilities, expiries |
-| POST | `/admin/v1/logout` | Current session | Revoke and clear admin cookie |
+| Method | Path                      | Capability/control                   | Purpose                               |
+| ------ | ------------------------- | ------------------------------------ | ------------------------------------- |
+| POST   | `/admin/v1/auth/exchange` | Valid Access identity + active grant | Create/rotate admin session           |
+| POST   | `/admin/v1/auth/step-up`  | Fresh Access assertion               | Rotate token and record recent auth   |
+| GET    | `/admin/v1/session`       | `admin.session.read`                 | Current actor, capabilities, expiries |
+| POST   | `/admin/v1/logout`        | Current session                      | Revoke and clear admin cookie         |
 
 ### Reports, support, and history
 
-| Method | Path | Capability | Purpose |
-|---|---|---|---|
-| GET | `/admin/v1/reports` | `reports.read` | Filtered, paginated queue |
-| GET | `/admin/v1/reports/:id` | `reports.read` | Report detail and target summary |
-| PATCH | `/admin/v1/reports/:id` | `reports.manage` | Assign, transition, resolution note |
-| GET | `/admin/v1/support-tickets` | `support.read` | Filtered, paginated queue |
-| GET | `/admin/v1/support-tickets/:id` | `support.read` | Ticket detail |
-| PATCH | `/admin/v1/support-tickets/:id` | `support.manage` | Assign, transition, resolution note |
-| GET | `/admin/v1/audit` | `audit.read` | History for one allowed entity |
+| Method | Path                            | Capability       | Purpose                             |
+| ------ | ------------------------------- | ---------------- | ----------------------------------- |
+| GET    | `/admin/v1/reports`             | `reports.read`   | Filtered, paginated queue           |
+| GET    | `/admin/v1/reports/:id`         | `reports.read`   | Report detail and target summary    |
+| PATCH  | `/admin/v1/reports/:id`         | `reports.manage` | Assign, transition, resolution note |
+| GET    | `/admin/v1/support-tickets`     | `support.read`   | Filtered, paginated queue           |
+| GET    | `/admin/v1/support-tickets/:id` | `support.read`   | Ticket detail                       |
+| PATCH  | `/admin/v1/support-tickets/:id` | `support.manage` | Assign, transition, resolution note |
+| GET    | `/admin/v1/audit`               | `audit.read`     | History for one allowed entity      |
 
 ### Schools and school grants
 
-| Method | Path | Capability | Purpose |
-|---|---|---|---|
-| GET | `/admin/v1/schools` | `schools.read` | Search all states, including inactive |
-| POST | `/admin/v1/schools` | `schools.manage` | Create school; `unitid` optional |
-| GET | `/admin/v1/schools/:id` | `schools.read` | Admin detail and version |
-| PATCH | `/admin/v1/schools/:id` | `schools.manage` | Edit allowed fields |
-| POST | `/admin/v1/schools/:id/deactivate` | `schools.manage` | Deactivate with reason |
-| POST | `/admin/v1/schools/:id/reactivate` | `schools.manage` | Reactivate with reason |
-| DELETE | `/admin/v1/schools/:id` | `schools.manage` | Soft-delete with dependency checks |
-| POST | `/admin/v1/schools/:id/logo` | `school_logos.manage` | Validate, re-encode, and store logo |
-| DELETE | `/admin/v1/schools/:id/logo` | `school_logos.manage` | Remove logo reference/object safely |
-| GET | `/admin/v1/schools/:id/admin-grants` | `school_grants.manage` | Active and revoked grant history |
-| POST | `/admin/v1/schools/:id/admin-grants` | `school_grants.manage` | Grant by user id with reason |
-| POST | `/admin/v1/schools/:id/admin-grants/:grant_id/revoke` | `school_grants.manage` | Soft-revoke with reason |
+| Method | Path                                                  | Capability             | Purpose                               |
+| ------ | ----------------------------------------------------- | ---------------------- | ------------------------------------- |
+| GET    | `/admin/v1/schools`                                   | `schools.read`         | Search all states, including inactive |
+| POST   | `/admin/v1/schools`                                   | `schools.manage`       | Create school; `unitid` optional      |
+| GET    | `/admin/v1/schools/:id`                               | `schools.read`         | Admin detail and version              |
+| PATCH  | `/admin/v1/schools/:id`                               | `schools.manage`       | Edit allowed fields                   |
+| POST   | `/admin/v1/schools/:id/deactivate`                    | `schools.manage`       | Deactivate with reason                |
+| POST   | `/admin/v1/schools/:id/reactivate`                    | `schools.manage`       | Reactivate with reason                |
+| DELETE | `/admin/v1/schools/:id`                               | `schools.manage`       | Soft-delete with dependency checks    |
+| POST   | `/admin/v1/schools/:id/logo`                          | `school_logos.manage`  | Validate, re-encode, and store logo   |
+| DELETE | `/admin/v1/schools/:id/logo`                          | `school_logos.manage`  | Remove logo reference/object safely   |
+| GET    | `/admin/v1/schools/:id/admin-grants`                  | `school_grants.manage` | Active and revoked grant history      |
+| POST   | `/admin/v1/schools/:id/admin-grants`                  | `school_grants.manage` | Grant by user id with reason          |
+| POST   | `/admin/v1/schools/:id/admin-grants/:grant_id/revoke` | `school_grants.manage` | Soft-revoke with reason               |
 
 ### Games, users, and site grants
 
-| Method | Path | Capability/control | Purpose |
-|---|---|---|---|
-| GET | `/admin/v1/games` | `games.manage` | List active/deleted catalog entries |
-| POST | `/admin/v1/games` | `games.manage` | Create curated entry |
-| PATCH | `/admin/v1/games/:id` | `games.manage` | Edit/version-check entry |
-| DELETE | `/admin/v1/games/:id` | `games.manage` | Soft-delete with dependency checks |
-| GET | `/admin/v1/users` | `users.read` | Bounded exact/prefix search |
-| GET | `/admin/v1/users/:id` | `users.read` | Safe account/grant summary |
-| POST | `/admin/v1/users/:id/suspend` | `users.manage_status` + step-up | Suspend with reason, revoke sessions |
-| POST | `/admin/v1/users/:id/reactivate` | `users.manage_status` + step-up | Reactivate with reason |
-| PATCH | `/admin/v1/users/:id/trust-grants` | `trust_grants.manage` | Supported named trust change |
-| GET | `/admin/v1/site-admin-grants` | `site_grants.manage` | Active/revoked site-admin history |
-| POST | `/admin/v1/site-admin-grants` | `site_grants.manage` + step-up | Grant with reason |
-| POST | `/admin/v1/site-admin-grants/:id/revoke` | `site_grants.manage` + step-up | Revoke and end sessions |
+| Method | Path                                     | Capability/control              | Purpose                              |
+| ------ | ---------------------------------------- | ------------------------------- | ------------------------------------ |
+| GET    | `/admin/v1/games`                        | `games.manage`                  | List active/deleted catalog entries  |
+| POST   | `/admin/v1/games`                        | `games.manage`                  | Create curated entry                 |
+| PATCH  | `/admin/v1/games/:id`                    | `games.manage`                  | Edit/version-check entry             |
+| DELETE | `/admin/v1/games/:id`                    | `games.manage`                  | Soft-delete with dependency checks   |
+| GET    | `/admin/v1/users`                        | `users.read`                    | Bounded exact/prefix search          |
+| GET    | `/admin/v1/users/:id`                    | `users.read`                    | Safe account/grant summary           |
+| POST   | `/admin/v1/users/:id/suspend`            | `users.manage_status` + step-up | Suspend with reason, revoke sessions |
+| POST   | `/admin/v1/users/:id/reactivate`         | `users.manage_status` + step-up | Reactivate with reason               |
+| PATCH  | `/admin/v1/users/:id/trust-grants`       | `trust_grants.manage`           | Supported named trust change         |
+| GET    | `/admin/v1/site-admin-grants`            | `site_grants.manage`            | Active/revoked site-admin history    |
+| POST   | `/admin/v1/site-admin-grants`            | `site_grants.manage` + step-up  | Grant with reason                    |
+| POST   | `/admin/v1/site-admin-grants/:id/revoke` | `site_grants.manage` + step-up  | Revoke and end sessions              |
 
 Do not implement a generic `CRUD /admin/users` endpoint. Each high-risk state
 transition is a named operation with its own validation, authorization, audit,
@@ -586,20 +586,20 @@ application error logs.
 
 Every route family must cover:
 
-| Actor/state | Expected result |
-|---|---|
-| No Access assertion | BFF denies; no protected HTML or API call |
-| Invalid/wrong-audience Access assertion | BFF denies closed |
-| Valid Access identity, no admin session | Exchange path only; otherwise `401` |
-| Public CGN session only | `401` |
-| Ordinary user | Exchange/route denied |
-| Active school admin without site grant | `403`; school scope grants no console access |
-| Revoked site admin with existing session | Immediate `403`/`401`; session revoked |
-| Suspended/deleted site admin | Denied and sessions revoked |
-| Idle-expired admin session | `401` and cookie cleared |
-| Absolute-expired admin session | `401` and cookie cleared |
-| Active site admin | Only named capabilities succeed |
-| Active site admin lacking a future capability | `403` despite console access |
+| Actor/state                                   | Expected result                              |
+| --------------------------------------------- | -------------------------------------------- |
+| No Access assertion                           | BFF denies; no protected HTML or API call    |
+| Invalid/wrong-audience Access assertion       | BFF denies closed                            |
+| Valid Access identity, no admin session       | Exchange path only; otherwise `401`          |
+| Public CGN session only                       | `401`                                        |
+| Ordinary user                                 | Exchange/route denied                        |
+| Active school admin without site grant        | `403`; school scope grants no console access |
+| Revoked site admin with existing session      | Immediate `403`/`401`; session revoked       |
+| Suspended/deleted site admin                  | Denied and sessions revoked                  |
+| Idle-expired admin session                    | `401` and cookie cleared                     |
+| Absolute-expired admin session                | `401` and cookie cleared                     |
+| Active site admin                             | Only named capabilities succeed              |
+| Active site admin lacking a future capability | `403` despite console access                 |
 
 ### Security and contract tests
 
@@ -976,26 +976,26 @@ AC-014: production stays disabled until the real-stack security matrix passes.
 
 ## Explicit v1 decisions
 
-| Topic | Decision |
-|---|---|
-| Audience | Site admins only; school admins have no console access |
-| Edge gate | Cloudflare Access with phishing-resistant IdP MFA |
-| App identity | Existing active, email-verified CGN user matched to validated Access identity |
-| Browser auth | Separate opaque admin session; public session is never sufficient |
-| Authorization | Go capability checks on every request; default deny |
-| Role model | One persisted v1 role (`site_admin`), capability map in Go |
-| API shape | Named `/admin/v1/*` operations, not generic CRUD |
-| BFF trust | Distinct admin-only proxy secret over Railway private networking |
-| Session lifetime | 30-minute idle, 8-hour absolute |
-| CSRF | Exact origin plus per-session token; `SameSite=Strict` is supplemental |
-| Critical actions | Recent auth within 10 minutes plus reason |
-| Auditing | Domain mutation and safe audit entry in one transaction |
-| Sensitive reads | Separate security event, no free-text/body duplication |
-| Uploads | School logos only; PNG/JPEG; 5 MB; decode/re-encode; separate asset origin |
-| Cache/search refresh | Invalidate/refresh school catalog after commit |
-| Deployment | Separate `apps/admin` Railway service and release |
-| Kill switch | `ADMIN_ENABLED` disables privileged surface |
-| Deferred | Impersonation, feature flags, announcements, bulk tools, exports, IGDB |
+| Topic                | Decision                                                                      |
+| -------------------- | ----------------------------------------------------------------------------- |
+| Audience             | Site admins only; school admins have no console access                        |
+| Edge gate            | Cloudflare Access with phishing-resistant IdP MFA                             |
+| App identity         | Existing active, email-verified CGN user matched to validated Access identity |
+| Browser auth         | Separate opaque admin session; public session is never sufficient             |
+| Authorization        | Go capability checks on every request; default deny                           |
+| Role model           | One persisted v1 role (`site_admin`), capability map in Go                    |
+| API shape            | Named `/admin/v1/*` operations, not generic CRUD                              |
+| BFF trust            | Distinct admin-only proxy secret over Railway private networking              |
+| Session lifetime     | 30-minute idle, 8-hour absolute                                               |
+| CSRF                 | Exact origin plus per-session token; `SameSite=Strict` is supplemental        |
+| Critical actions     | Recent auth within 10 minutes plus reason                                     |
+| Auditing             | Domain mutation and safe audit entry in one transaction                       |
+| Sensitive reads      | Separate security event, no free-text/body duplication                        |
+| Uploads              | School logos only; PNG/JPEG; 5 MB; decode/re-encode; separate asset origin    |
+| Cache/search refresh | Invalidate/refresh school catalog after commit                                |
+| Deployment           | Separate `apps/admin` Railway service and release                             |
+| Kill switch          | `ADMIN_ENABLED` disables privileged surface                                   |
+| Deferred             | Impersonation, feature flags, announcements, bulk tools, exports, IGDB        |
 
 ## Related repository references
 

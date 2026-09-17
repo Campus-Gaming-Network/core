@@ -5,17 +5,22 @@ import test from "node:test";
 import { accountHead } from "../src/features/account-slice/presentation.js";
 
 const currentDirectory = process.cwd();
-const appRoot = basename(currentDirectory) === "web"
-  ? currentDirectory
+const appRoot =
+  basename(currentDirectory) === "web"
+    ? currentDirectory
     : join(currentDirectory, "apps/web");
 
 test("account metadata is complete, absolute, and noindex", () => {
   const head = accountHead("https://campus.example.test");
   const meta = new Map(
     head.meta.map((entry) => [
-      "name" in entry ? entry.name : "property" in entry ? entry.property : "title",
-      entry.content ?? entry.title
-    ])
+      "name" in entry
+        ? entry.name
+        : "property" in entry
+          ? entry.property
+          : "title",
+      entry.content ?? entry.title,
+    ]),
   );
 
   assert.equal(meta.get("title"), "Account | Campus Gaming Network");
@@ -30,7 +35,7 @@ test("account metadata is complete, absolute, and noindex", () => {
 const source = readFileSync(join(appRoot, "src/routes/account.tsx"), "utf8");
 const functions = readFileSync(
   join(appRoot, "src/features/account-slice/account.functions.ts"),
-  "utf8"
+  "utf8",
 );
 
 test("account route is private, noindex, strict, and uses typed registered links", () => {

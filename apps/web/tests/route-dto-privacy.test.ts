@@ -18,13 +18,13 @@ test("locked event DTO strips private fields before loader serialization", () =>
     title: "Secret LAN",
     description: "Private event description",
     address: "123 Hidden Street",
-    unlock_token: "must-never-cross-the-boundary"
+    unlock_token: "must-never-cross-the-boundary",
   });
 
   assert.deepEqual(parsed, {
     slug: "invite-only-lan",
     visibility: "private",
-    locked: true
+    locked: true,
   });
   assert.equal("unlock_token" in parsed, false);
 });
@@ -32,17 +32,17 @@ test("locked event DTO strips private fields before loader serialization", () =>
 test("locked route view accepts only the public shell and navigation state", () => {
   const source = readFileSync(
     join(appRoot, "src/routes/events.$slug.tsx"),
-    "utf8"
+    "utf8",
   );
   const lockedView = source.match(
-    /export function LockedEventView[\s\S]*?\nfunction VisibleEventView/
+    /export function LockedEventView[\s\S]*?\nfunction VisibleEventView/,
   )?.[0];
 
   assert.ok(lockedView, "LockedEventView must remain independently auditable");
   assert.doesNotMatch(lockedView, /\bevent\s*\./);
   assert.doesNotMatch(
     lockedView,
-    /\b(title|description|address|unlock_token)\b/i
+    /\b(title|description|address|unlock_token)\b/i,
   );
   assert.match(lockedView, /slug: string/);
   assert.match(lockedView, /authenticated: boolean/);
@@ -51,10 +51,14 @@ test("locked route view accepts only the public shell and navigation state", () 
 test("route heads and search state use bounded privacy-safe values", () => {
   const eventSource = readFileSync(
     join(appRoot, "src/routes/events.$slug.tsx"),
-    "utf8"
+    "utf8",
   );
-  const loginSource = readFileSync(join(appRoot, "src/routes/login.tsx"), "utf8");
-  const eventLoader = eventSource.match(/loader:[\s\S]*?\n  headers:/)?.[0] ?? "";
+  const loginSource = readFileSync(
+    join(appRoot, "src/routes/login.tsx"),
+    "utf8",
+  );
+  const eventLoader =
+    eventSource.match(/loader:[\s\S]*?\n  headers:/)?.[0] ?? "";
 
   assert.match(eventSource, /Private event \|/);
   assert.match(eventSource, /noindex,nofollow/);
@@ -63,7 +67,7 @@ test("route heads and search state use bounded privacy-safe values", () => {
   assert.match(loginSource, /safeLocalPath\(nextValue\)/);
   const redirectSource = readFileSync(
     join(appRoot, "src/safe-local-path.ts"),
-    "utf8"
+    "utf8",
   );
   assert.match(redirectSource, /hasASCIIControlCharacter\(candidate\)/);
   assert.match(redirectSource, /resolved\.origin !== localOrigin/);
@@ -74,12 +78,15 @@ test("route heads and search state use bounded privacy-safe values", () => {
 test("enhanced forms retain native actions and accessible field feedback", () => {
   const eventSource = readFileSync(
     join(appRoot, "src/routes/events.$slug.tsx"),
-    "utf8"
+    "utf8",
   );
-  const loginSource = readFileSync(join(appRoot, "src/routes/login.tsx"), "utf8");
+  const loginSource = readFileSync(
+    join(appRoot, "src/routes/login.tsx"),
+    "utf8",
+  );
   const helperSource = readFileSync(
     join(appRoot, "src/components/enhanced-mutation.tsx"),
-    "utf8"
+    "utf8",
   );
 
   assert.match(loginSource, /action=\{login\.url\}/);

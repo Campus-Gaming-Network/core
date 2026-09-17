@@ -5,17 +5,14 @@ import {
   currentSessionRequest,
   isNativeFormPost,
   setPrivateNoStoreResponse,
-  setViewerResponseCache
+  setViewerResponseCache,
 } from "../../server/request-boundary.server.js";
 import {
   getEventViewerSessionOperation,
   loginOperation,
-  logoutOperation
+  logoutOperation,
 } from "./auth-operations.server.js";
-import {
-  validateLoginServerInput,
-  type LoginInput
-} from "./contracts.js";
+import { validateLoginServerInput, type LoginInput } from "./contracts.js";
 
 export const getEventViewerSession = createServerFn({ method: "GET" }).handler(
   async () => {
@@ -25,19 +22,19 @@ export const getEventViewerSession = createServerFn({ method: "GET" }).handler(
     const viewerSession = await getEventViewerSessionOperation({
       api: request.api,
       cookieHeader: request.cookieHeader,
-      sessionCookieValue: request.sessionCookieValue
+      sessionCookieValue: request.sessionCookieValue,
     });
 
     return {
       ...viewerSession,
-      hasSessionCookie: Boolean(request.sessionCookieValue)
+      hasSessionCookie: Boolean(request.sessionCookieValue),
     };
-  }
+  },
 );
 
 export const login = createServerFn({
   method: "POST",
-  strict: { input: false }
+  strict: { input: false },
 })
   .validator((input: LoginInput | FormData) => validateLoginServerInput(input))
   .handler(async ({ data }) => {
@@ -50,7 +47,7 @@ export const login = createServerFn({
       return {
         status: "error" as const,
         message: data.message,
-        fieldErrors: data.fieldErrors
+        fieldErrors: data.fieldErrors,
       };
     }
 
@@ -58,13 +55,14 @@ export const login = createServerFn({
     const result = await loginOperation(data.value, {
       api: request.api,
       sessionCookieName: request.sessionCookieName,
-      applyCookie: applyCookieMutation
+      applyCookie: applyCookieMutation,
     });
 
     if (nativeForm) {
-      const destination = result.status === "success"
-        ? result.redirectTo
-        : "/login?error=login-failed";
+      const destination =
+        result.status === "success"
+          ? result.redirectTo
+          : "/login?error=login-failed";
       throw redirect({ href: destination, statusCode: 303 });
     }
     return result;
@@ -77,7 +75,7 @@ export const logout = createServerFn({ method: "POST" }).handler(async () => {
     api: request.api,
     cookieHeader: request.cookieHeader,
     sessionCookieName: request.sessionCookieName,
-    applyCookie: applyCookieMutation
+    applyCookie: applyCookieMutation,
   });
 
   if (isNativeFormPost()) {

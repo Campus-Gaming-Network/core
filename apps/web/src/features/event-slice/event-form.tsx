@@ -3,18 +3,18 @@ import type { FormEvent, ReactNode } from "react";
 import {
   FieldError,
   fieldErrorProps,
-  useEnhancedMutation
+  useEnhancedMutation,
 } from "../../components/enhanced-mutation.js";
 import type {
   EventDTO,
   EventFormSchoolDTO,
-  EventGameDTO
+  EventGameDTO,
 } from "./contracts.js";
 import { createEvent, updateEvent } from "./event.functions.js";
 import {
   eventTimeZoneLabel,
   eventTimeZones,
-  instantToLocalDateTime
+  instantToLocalDateTime,
 } from "./event-time.js";
 import { EventSchoolPicker } from "./event-school-picker.js";
 import { recurrenceRuleLabel } from "./presentation.js";
@@ -40,19 +40,21 @@ export function EventForm({
   defaultSchool,
   defaultTimeZone,
   initialSchoolQuery,
-  initialSchoolSearchFailed
+  initialSchoolSearchFailed,
 }: Props) {
   const runCreateEvent = useServerFn(createEvent);
   const runUpdateEvent = useServerFn(updateEvent);
   const mutation = useEnhancedMutation(
     mode === "create"
       ? "We could not create that event. Please try again."
-      : "We could not update that event. Please try again."
+      : "We could not update that event. Please try again.",
   );
   const selectedSchool = event?.host_school ?? defaultSchool;
   const selectedSchoolID = event?.host_school.id ?? defaultSchoolID ?? "";
   const timeZone = event?.timezone ?? defaultTimeZone ?? "America/Los_Angeles";
-  const timeZoneOptions = eventTimeZones.some((option) => option.id === timeZone)
+  const timeZoneOptions = eventTimeZones.some(
+    (option) => option.id === timeZone,
+  )
     ? eventTimeZones
     : ([{ id: timeZone, label: timeZone }, ...eventTimeZones] as const);
 
@@ -60,9 +62,7 @@ export function EventForm({
     formEvent.preventDefault();
     const data = new FormData(formEvent.currentTarget);
     await mutation.execute(() =>
-      mode === "create"
-        ? runCreateEvent({ data })
-        : runUpdateEvent({ data })
+      mode === "create" ? runCreateEvent({ data }) : runUpdateEvent({ data }),
     );
   }
 
@@ -170,9 +170,7 @@ export function EventForm({
           >
             <input
               defaultValue={
-                event
-                  ? instantToLocalDateTime(event.starts_at, timeZone)
-                  : ""
+                event ? instantToLocalDateTime(event.starts_at, timeZone) : ""
               }
               name="starts_at"
               required
@@ -181,11 +179,7 @@ export function EventForm({
               {...fieldErrorProps(errors("starts_at"), "event-starts-at-error")}
             />
           </EventField>
-          <EventField
-            label="Ends at"
-            name="ends_at"
-            errors={errors("ends_at")}
-          >
+          <EventField label="Ends at" name="ends_at" errors={errors("ends_at")}>
             <input
               defaultValue={
                 event ? instantToLocalDateTime(event.ends_at, timeZone) : ""
@@ -211,7 +205,7 @@ export function EventForm({
                   name="recurrence_rule"
                   {...fieldErrorProps(
                     errors("recurrence_rule"),
-                    "event-recurrence-rule-error"
+                    "event-recurrence-rule-error",
                   )}
                 >
                   <option value="">Does not repeat</option>
@@ -230,7 +224,7 @@ export function EventForm({
                   type="date"
                   {...fieldErrorProps(
                     errors("recurrence_until"),
-                    "event-recurrence-until-error"
+                    "event-recurrence-until-error",
                   )}
                 />
               </EventField>
@@ -255,13 +249,18 @@ export function EventForm({
         <EventSchoolPicker
           defaultSchool={selectedSchool}
           defaultSchoolID={selectedSchoolID}
-          describedBy={errors("host_school_id") ? "event-school-error" : undefined}
+          describedBy={
+            errors("host_school_id") ? "event-school-error" : undefined
+          }
           initialQuery={initialSchoolQuery}
           initialSchools={schools}
           initialSearchFailed={initialSchoolSearchFailed}
           invalid={Boolean(errors("host_school_id"))}
         />
-        <FieldError id="event-school-error" messages={errors("host_school_id")} />
+        <FieldError
+          id="event-school-error"
+          messages={errors("host_school_id")}
+        />
         <div className="split-fields">
           <EventField
             label="Location name"
@@ -275,7 +274,7 @@ export function EventForm({
               placeholder="Student Union"
               {...fieldErrorProps(
                 errors("location_name"),
-                "event-location-name-error"
+                "event-location-name-error",
               )}
             />
           </EventField>
@@ -290,7 +289,10 @@ export function EventForm({
               name="online_url"
               placeholder="https://..."
               type="url"
-              {...fieldErrorProps(errors("online_url"), "event-online-url-error")}
+              {...fieldErrorProps(
+                errors("online_url"),
+                "event-online-url-error",
+              )}
             />
           </EventField>
         </div>
@@ -357,12 +359,16 @@ export function EventForm({
             type="password"
             {...fieldErrorProps(
               errors("private_password"),
-              "event-private-password-error"
+              "event-private-password-error",
             )}
           />
         </EventField>
         <label className="checkbox-field">
-          <input defaultChecked={event?.is_paid} name="is_paid" type="checkbox" />
+          <input
+            defaultChecked={event?.is_paid}
+            name="is_paid"
+            type="checkbox"
+          />
           <span>This event has off-site payment instructions.</span>
         </label>
         <EventField
@@ -376,7 +382,10 @@ export function EventForm({
             name="payment_note"
             placeholder="Tell attendees how payment works outside CGN."
             rows={3}
-            {...fieldErrorProps(errors("payment_note"), "event-payment-note-error")}
+            {...fieldErrorProps(
+              errors("payment_note"),
+              "event-payment-note-error",
+            )}
           />
         </EventField>
         <EventField
@@ -390,7 +399,10 @@ export function EventForm({
             name="payment_url"
             placeholder="https://..."
             type="url"
-            {...fieldErrorProps(errors("payment_url"), "event-payment-url-error")}
+            {...fieldErrorProps(
+              errors("payment_url"),
+              "event-payment-url-error",
+            )}
           />
         </EventField>
       </fieldset>
@@ -412,7 +424,7 @@ function EventField({
   children,
   errors,
   label,
-  name
+  name,
 }: {
   children: ReactNode;
   errors?: string[];
@@ -423,7 +435,10 @@ function EventField({
     <label>
       {label}
       {children}
-      <FieldError id={`event-${name.replaceAll("_", "-")}-error`} messages={errors} />
+      <FieldError
+        id={`event-${name.replaceAll("_", "-")}-error`}
+        messages={errors}
+      />
     </label>
   );
 }

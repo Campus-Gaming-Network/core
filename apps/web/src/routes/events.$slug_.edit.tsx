@@ -3,12 +3,12 @@ import {
   createFileRoute,
   notFound,
   redirect,
-  type ErrorComponentProps
+  type ErrorComponentProps,
 } from "@tanstack/react-router";
 import { RouteErrorView, RoutePending } from "../components/route-boundaries";
 import {
   validateNewEventSearch,
-  type EditEventPageResult
+  type EditEventPageResult,
 } from "../features/event-slice/contracts";
 import { EventForm } from "../features/event-slice/event-form";
 import { getEditEventPage } from "../features/event-slice/event.functions";
@@ -25,12 +25,12 @@ export const Route = createFileRoute("/events/$slug_/edit")({
   loaderDeps: ({ search }) => ({ schoolQuery: search.school_q ?? "" }),
   loader: async ({ deps, params }): Promise<EditEventRouteData> => {
     const result = await getEditEventPage({
-      data: { slug: params.slug, schoolQuery: deps.schoolQuery }
+      data: { slug: params.slug, schoolQuery: deps.schoolQuery },
     });
     if (result.status === "unauthenticated") {
       throw redirect({
         href: `/login?next=/events/${encodeURIComponent(params.slug)}/edit`,
-        statusCode: 307
+        statusCode: 307,
       });
     }
     if (result.status === "not_found") throw notFound();
@@ -49,27 +49,27 @@ export const Route = createFileRoute("/events/$slug_/edit")({
       { property: "og:site_name", content: "Campus Gaming Network" },
       {
         property: "og:title",
-        content: "Edit event | Campus Gaming Network"
+        content: "Edit event | Campus Gaming Network",
       },
       {
         property: "og:description",
-        content: "Edit your campus gaming event."
+        content: "Edit your campus gaming event.",
       },
       { name: "twitter:card", content: "summary" },
       {
         name: "twitter:title",
-        content: "Edit event | Campus Gaming Network"
+        content: "Edit event | Campus Gaming Network",
       },
       {
         name: "twitter:description",
-        content: "Edit your campus gaming event."
-      }
+        content: "Edit your campus gaming event.",
+      },
     ],
-    links: [{ rel: "stylesheet", href: eventCSS }]
+    links: [{ rel: "stylesheet", href: eventCSS }],
   }),
   pendingComponent: EditEventPending,
   errorComponent: EditEventError,
-  component: EditEventPage
+  component: EditEventPage,
 });
 
 function EditEventPage() {
@@ -93,7 +93,11 @@ function EditEventPage() {
               : "Only an event organizer can change or cancel it."}
           </p>
         </section>
-        <Link className="button button--secondary" to="/events/$slug" params={{ slug }}>
+        <Link
+          className="button button--secondary"
+          to="/events/$slug"
+          params={{ slug }}
+        >
           Back to event
         </Link>
       </main>

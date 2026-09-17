@@ -2,28 +2,22 @@ import {
   Link,
   createFileRoute,
   notFound,
-  type ErrorComponentProps
+  type ErrorComponentProps,
 } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { type FormEvent, useState } from "react";
-import {
-  FieldError,
-  fieldErrorProps
-} from "../components/enhanced-mutation";
-import {
-  RouteErrorView,
-  RoutePending
-} from "../components/route-boundaries";
+import { FieldError, fieldErrorProps } from "../components/enhanced-mutation";
+import { RouteErrorView, RoutePending } from "../components/route-boundaries";
 import type {
   PublicProfileDTO,
   ReportUserNotice,
   ReportUserResult,
-  ViewerRelationship
+  ViewerRelationship,
 } from "../features/public-profile/contracts";
 import { validatePublicProfileSearch } from "../features/public-profile/contracts";
 import {
   getPublicProfilePage,
-  reportUser
+  reportUser,
 } from "../features/public-profile/public-profile.functions";
 import {
   publicProfileHomeSchool,
@@ -31,7 +25,7 @@ import {
   roleIndicatorLabel,
   safeHTTPURL,
   userInitials,
-  verificationLabel
+  verificationLabel,
 } from "../features/public-profile/presentation";
 
 const siteName = "Campus Gaming Network";
@@ -60,19 +54,19 @@ export const Route = createFileRoute("/users/$id")({
       profile: result.profile,
       publicOrigin: context.publicOrigin,
       viewer: result.viewer,
-      hasSessionCookie: result.hasSessionCookie
+      hasSessionCookie: result.hasSessionCookie,
     };
   },
   headers: ({ loaderData }) => ({
     "cache-control": loaderData?.hasSessionCookie
       ? "private, no-store"
       : "public, max-age=0, must-revalidate",
-    vary: "Cookie"
+    vary: "Cookie",
   }),
   head: ({ loaderData }) => publicProfileHead(loaderData),
   pendingComponent: PublicProfilePending,
   errorComponent: PublicProfileError,
-  component: PublicProfilePage
+  component: PublicProfilePage,
 });
 
 export function publicProfileHead(loaderData?: PublicProfileRouteData) {
@@ -80,14 +74,14 @@ export function publicProfileHead(loaderData?: PublicProfileRouteData) {
     return {
       meta: [
         { title: `Public profile | ${siteName}` },
-        { name: "robots", content: "noindex,nofollow" }
-      ]
+        { name: "robots", content: "noindex,nofollow" },
+      ],
     };
   }
 
   const metadata = publicProfileMetadata(
     loaderData.profile,
-    loaderData.publicOrigin
+    loaderData.publicOrigin,
   );
 
   return {
@@ -101,8 +95,8 @@ export function publicProfileHead(loaderData?: PublicProfileRouteData) {
       { property: "og:url", content: metadata.url },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:title", content: metadata.title },
-      { name: "twitter:description", content: metadata.description }
-    ]
+      { name: "twitter:description", content: metadata.description },
+    ],
   };
 }
 
@@ -120,7 +114,11 @@ function PublicProfilePage() {
     <main className="narrow">
       <section className="profile-hero">
         <span className="user-avatar" aria-hidden="true">
-          {avatarURL ? <img src={avatarURL} alt="" /> : userInitials(profile.name)}
+          {avatarURL ? (
+            <img src={avatarURL} alt="" />
+          ) : (
+            userInitials(profile.name)
+          )}
         </span>
         <div>
           <p className="eyebrow">Public profile</p>
@@ -199,7 +197,7 @@ function PublicProfilePage() {
 function ProfileSafety({
   notice,
   profileID,
-  viewer
+  viewer,
 }: {
   notice?: ReportUserNotice;
   profileID: string;
@@ -243,9 +241,8 @@ function ReportUserForm({ userID }: { userID: string }) {
   const runReportUser = useServerFn(reportUser);
   const [pending, setPending] = useState(false);
   const [result, setResult] = useState<ReportUserResult>();
-  const reasonErrors = result?.status === "error"
-    ? result.fieldErrors?.reason
-    : undefined;
+  const reasonErrors =
+    result?.status === "error" ? result.fieldErrors?.reason : undefined;
 
   async function submit(formEvent: FormEvent<HTMLFormElement>) {
     formEvent.preventDefault();
@@ -257,15 +254,15 @@ function ReportUserForm({ userID }: { userID: string }) {
       const next = await runReportUser({
         data: {
           userID,
-          reason: String(formData.get("reason") ?? "")
-        }
+          reason: String(formData.get("reason") ?? ""),
+        },
       });
       setResult(next);
       if (next.status === "success") formElement.reset();
     } catch {
       setResult({
         status: "error",
-        message: "We could not submit that report. Please try again."
+        message: "We could not submit that report. Please try again.",
       });
     } finally {
       setPending(false);

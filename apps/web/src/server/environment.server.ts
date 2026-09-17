@@ -5,12 +5,14 @@ type Environment = Readonly<Record<string, string | undefined>>;
 const localDefaults = {
   API_INTERNAL_URL: "http://localhost:8080",
   API_SESSION_COOKIE: "cgn_session",
-  SITE_URL: "http://localhost:3000"
+  SITE_URL: "http://localhost:3000",
 } as const;
 
-export function environmentValidationIssues(environment: Environment): string[] {
+export function environmentValidationIssues(
+  environment: Environment,
+): string[] {
   const deploymentEnvironment = parseDeploymentEnvironment(
-    environment.DEPLOYMENT_ENV
+    environment.DEPLOYMENT_ENV,
   );
   if (!deploymentEnvironment) {
     return ["DEPLOYMENT_ENV must be local, staging, or production"];
@@ -24,7 +26,7 @@ export function environmentValidationIssues(environment: Environment): string[] 
     issues.push("API_INTERNAL_URL must be set");
   } else {
     const internalURL = parseHTTPOrigin(
-      internalURLValue ?? localDefaults.API_INTERNAL_URL
+      internalURLValue ?? localDefaults.API_INTERNAL_URL,
     );
     if (!internalURL) {
       issues.push("API_INTERNAL_URL must be an absolute HTTP(S) origin");
@@ -36,7 +38,7 @@ export function environmentValidationIssues(environment: Environment): string[] 
       !isRailwayPrivateHostname(internalURL.hostname)
     ) {
       issues.push(
-        "API_INTERNAL_URL must use HTTPS unless it is a Railway private-network origin"
+        "API_INTERNAL_URL must use HTTPS unless it is a Railway private-network origin",
       );
     }
   }
@@ -58,10 +60,7 @@ export function environmentValidationIssues(environment: Environment): string[] 
     }
   }
 
-  const sessionCookieValue = configuredValue(
-    environment,
-    "API_SESSION_COOKIE"
-  );
+  const sessionCookieValue = configuredValue(environment, "API_SESSION_COOKIE");
   if (strict && !sessionCookieValue) {
     issues.push("API_SESSION_COOKIE must be set");
   } else if (
@@ -73,12 +72,12 @@ export function environmentValidationIssues(environment: Environment): string[] 
   if (strict) {
     if (configuredLength(environment, "API_PROXY_SHARED_SECRET") < 32) {
       issues.push(
-        "API_PROXY_SHARED_SECRET must contain at least 32 characters"
+        "API_PROXY_SHARED_SECRET must contain at least 32 characters",
       );
     }
     if (configuredLength(environment, "CLOUDFLARE_ORIGIN_SECRET") < 32) {
       issues.push(
-        "CLOUDFLARE_ORIGIN_SECRET must contain at least 32 characters"
+        "CLOUDFLARE_ORIGIN_SECRET must contain at least 32 characters",
       );
     }
   }
@@ -87,7 +86,7 @@ export function environmentValidationIssues(environment: Environment): string[] 
 }
 
 export function assertSafeEnvironment(
-  environment: Environment = process.env
+  environment: Environment = process.env,
 ): void {
   const issues = environmentValidationIssues(environment);
   if (issues.length === 0) {
@@ -98,17 +97,17 @@ export function assertSafeEnvironment(
 }
 
 export function validatedPublicOrigin(
-  environment: Environment = process.env
+  environment: Environment = process.env,
 ): string {
   assertSafeEnvironment(environment);
 
   return new URL(
-    configuredValue(environment, "SITE_URL") ?? localDefaults.SITE_URL
+    configuredValue(environment, "SITE_URL") ?? localDefaults.SITE_URL,
   ).origin;
 }
 
 function parseDeploymentEnvironment(
-  value: string | undefined
+  value: string | undefined,
 ): DeploymentEnvironment | undefined {
   const normalized =
     value === undefined || value === "" ? "local" : value.trim().toLowerCase();
@@ -124,7 +123,7 @@ function parseDeploymentEnvironment(
 
 function configuredValue(
   environment: Environment,
-  key: string
+  key: string,
 ): string | undefined {
   const value = environment[key];
   return value?.trim() ? value : undefined;
@@ -157,10 +156,14 @@ function parseHTTPOrigin(value: string): URL | undefined {
 }
 
 function validCookieName(value: string): boolean {
-  const separators = "()<>@,;:\\\"/[]?={} \t";
+  const separators = '()<>@,;:\\"/[]?={} \t';
   for (const character of value) {
     const codePoint = character.codePointAt(0) ?? 0;
-    if (codePoint < 0x21 || codePoint > 0x7e || separators.includes(character)) {
+    if (
+      codePoint < 0x21 ||
+      codePoint > 0x7e ||
+      separators.includes(character)
+    ) {
       return false;
     }
   }

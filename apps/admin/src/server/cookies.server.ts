@@ -30,11 +30,11 @@ export function adminCookieHeader(
   sessionName: string,
   sessionValue: string | undefined,
   csrfName?: string,
-  csrfValue?: string
+  csrfValue?: string,
 ): string {
   return [
     sessionValue ? `${sessionName}=${sessionValue}` : "",
-    csrfName && csrfValue ? `${csrfName}=${csrfValue}` : ""
+    csrfName && csrfValue ? `${csrfName}=${csrfValue}` : "",
   ]
     .filter(Boolean)
     .join("; ");
@@ -43,7 +43,7 @@ export function adminCookieHeader(
 export function mirroredAdminCookies(
   headers: Headers,
   names: { session: string; csrf: string },
-  strictDeployment: boolean
+  strictDeployment: boolean,
 ): CookieMutation[] | null {
   const parsed = setCookieHeaders(headers).map(parseSetCookie);
   const session = parsed.find((cookie) => cookie?.name === names.session);
@@ -64,14 +64,14 @@ export function adminCookieDeletions(names: {
   return [names.session, names.csrf].map((name) => ({
     kind: "delete" as const,
     name,
-    options: { path: "/" as const }
+    options: { path: "/" as const },
   }));
 }
 
 function toMutation(
   cookie: ParsedCookie,
   httpOnly: boolean,
-  strictDeployment: boolean
+  strictDeployment: boolean,
 ): CookieMutation | null {
   if (cookie.path !== "/" || cookie.domain || cookie.sameSite !== "strict") {
     return null;
@@ -96,8 +96,8 @@ function toMutation(
       maxAge: cookie.maxAge,
       httpOnly,
       secure: cookie.secure || strictDeployment,
-      sameSite: "strict"
-    }
+      sameSite: "strict",
+    },
   };
 }
 
@@ -119,12 +119,14 @@ function parseSetCookie(header: string): ParsedCookie | null {
     name: nameValue.slice(0, separator),
     value: nameValue.slice(separator + 1),
     httpOnly: false,
-    secure: false
+    secure: false,
   };
 
   for (const attribute of attributes) {
     const position = attribute.indexOf("=");
-    const key = (position < 0 ? attribute : attribute.slice(0, position)).toLowerCase();
+    const key = (
+      position < 0 ? attribute : attribute.slice(0, position)
+    ).toLowerCase();
     const value = position < 0 ? "" : attribute.slice(position + 1);
     if (key === "path") parsed.path = value;
     if (key === "domain") parsed.domain = value;

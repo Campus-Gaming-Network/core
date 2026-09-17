@@ -3,7 +3,7 @@ import {
   ApiContractError,
   ApiError,
   safeApiErrorMessage,
-  type ApiClient
+  type ApiClient,
 } from "../../server/api.server.js";
 import type { CookieMutation } from "../../server/cookies.server.js";
 import {
@@ -14,7 +14,7 @@ import {
   type AccountDashboardResult,
   type AccountMutationResult,
   type DeleteAccountInput,
-  type UpdateProfileInput
+  type UpdateProfileInput,
 } from "./contracts.js";
 
 type ReadDependencies = {
@@ -30,19 +30,21 @@ type DeleteDependencies = ReadDependencies & {
 
 const emptyDashboard = {
   upcoming_rsvps: [],
-  followed_school_events: []
+  followed_school_events: [],
 };
 
-export async function accountDashboardOperation(
-  { api, cookieHeader, reportError = defaultErrorReporter }: ReadDependencies
-): Promise<AccountDashboardResult> {
+export async function accountDashboardOperation({
+  api,
+  cookieHeader,
+  reportError = defaultErrorReporter,
+}: ReadDependencies): Promise<AccountDashboardResult> {
   let profile;
   try {
     ({ data: profile } = await api({
       path: "/me",
       cookieHeader,
       cache: "no-store",
-      responseSchema: accountProfileDtoSchema
+      responseSchema: accountProfileDtoSchema,
     }));
   } catch (error) {
     if (error instanceof ApiError && error.status === 401) {
@@ -54,35 +56,38 @@ export async function accountDashboardOperation(
 
   const [dashboardEvents, followedSchools, teams] = await Promise.all([
     safeSecondaryRead(
-      () => api({
-        path: "/me/events?limit=5",
-        cookieHeader,
-        cache: "no-store",
-        responseSchema: dashboardEventsDtoSchema
-      }).then(({ data }) => data),
+      () =>
+        api({
+          path: "/me/events?limit=5",
+          cookieHeader,
+          cache: "no-store",
+          responseSchema: dashboardEventsDtoSchema,
+        }).then(({ data }) => data),
       emptyDashboard,
-      reportError
+      reportError,
     ),
     safeSecondaryRead(
-      () => api({
-        path: "/me/schools",
-        cookieHeader,
-        cache: "no-store",
-        responseSchema: followedSchoolsDtoSchema
-      }).then(({ data }) => data.schools),
+      () =>
+        api({
+          path: "/me/schools",
+          cookieHeader,
+          cache: "no-store",
+          responseSchema: followedSchoolsDtoSchema,
+        }).then(({ data }) => data.schools),
       [],
-      reportError
+      reportError,
     ),
     safeSecondaryRead(
-      () => api({
-        path: "/me/teams?limit=10",
-        cookieHeader,
-        cache: "no-store",
-        responseSchema: myTeamsDtoSchema
-      }).then(({ data }) => data.teams),
+      () =>
+        api({
+          path: "/me/teams?limit=10",
+          cookieHeader,
+          cache: "no-store",
+          responseSchema: myTeamsDtoSchema,
+        }).then(({ data }) => data.teams),
       [],
-      reportError
-    )
+      reportError,
+    ),
   ]);
 
   return {
@@ -94,14 +99,14 @@ export async function accountDashboardOperation(
     unavailable: {
       dashboardEvents: dashboardEvents.unavailable,
       followedSchools: followedSchools.unavailable,
-      teams: teams.unavailable
-    }
+      teams: teams.unavailable,
+    },
   };
 }
 
 export async function updateProfileOperation(
   input: UpdateProfileInput,
-  { api, cookieHeader, reportError = defaultErrorReporter }: ReadDependencies
+  { api, cookieHeader, reportError = defaultErrorReporter }: ReadDependencies,
 ): Promise<AccountMutationResult> {
   try {
     await api({
@@ -109,12 +114,12 @@ export async function updateProfileOperation(
       method: "PATCH",
       cookieHeader,
       body: input,
-      responseSchema: accountProfileDtoSchema
+      responseSchema: accountProfileDtoSchema,
     });
     return {
       status: "success",
       message: "Profile updated.",
-      redirectTo: "/account?account=profile-updated"
+      redirectTo: "/account?account=profile-updated",
     };
   } catch (error) {
     reportError(error);
@@ -129,15 +134,15 @@ export async function deleteAccountOperation(
     cookieHeader,
     sessionCookieName,
     applyCookie,
-    reportError = defaultErrorReporter
-  }: DeleteDependencies
+    reportError = defaultErrorReporter,
+  }: DeleteDependencies,
 ): Promise<AccountMutationResult> {
   try {
     await api({
       path: "/me",
       method: "DELETE",
       cookieHeader,
-      responseSchema: z.undefined()
+      responseSchema: z.undefined(),
     });
   } catch (error) {
     reportError(error);
@@ -147,19 +152,19 @@ export async function deleteAccountOperation(
   applyCookie({
     kind: "delete",
     name: sessionCookieName,
-    options: { path: "/" }
+    options: { path: "/" },
   });
   return {
     status: "success",
     message: "Account deleted.",
-    redirectTo: "/?account=deleted"
+    redirectTo: "/?account=deleted",
   };
 }
 
 async function safeSecondaryRead<T>(
   read: () => Promise<T>,
   fallback: T,
-  reportError: (error: unknown) => void
+  reportError: (error: unknown) => void,
 ) {
   try {
     return { data: await read(), unavailable: false };
@@ -173,7 +178,7 @@ function defaultErrorReporter(error: unknown): void {
   if (error instanceof ApiContractError) {
     console.error("Account response contract violation", {
       path: error.path,
-      issues: error.issues
+      issues: error.issues,
     });
   } else if (!(error instanceof ApiError)) {
     console.error("Account request failed");

@@ -6,7 +6,7 @@ import {
   accessSync,
   constants as fsConstants,
   readdirSync,
-  statSync
+  statSync,
 } from "node:fs";
 import { createServer } from "node:http";
 import { createServer as createNetServer } from "node:net";
@@ -23,7 +23,7 @@ const maximumChildOutputBytes = 32 * 1024;
 const fakeAPIHealthPayload = {
   service: "fake-go-api",
   status: "ok",
-  source: "web-production-smoke"
+  source: "web-production-smoke",
 };
 const eventSlug = "private-smoke-event";
 const missingEventSlug = "missing-smoke-event";
@@ -42,23 +42,14 @@ const privateEventSecrets = {
   title: "Midnight Strategy Session",
   description: "Private tournament plans for invited players only.",
   location: "Secret Student Union Room",
-  address: "123 Private Campus Way"
+  address: "123 Private Campus Way",
 };
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const repositoryRoot = path.resolve(scriptDirectory, "..");
 const webRoot = path.join(repositoryRoot, "apps", "web");
-const launcherPath = path.join(
-  webRoot,
-  "src",
-  "production-preflight.ts"
-);
-const outputEntryPath = path.join(
-  webRoot,
-  ".output",
-  "server",
-  "index.mjs"
-);
+const launcherPath = path.join(webRoot, "src", "production-preflight.ts");
+const outputEntryPath = path.join(webRoot, ".output", "server", "index.mjs");
 
 let fakeAPIServer;
 let webProcess;
@@ -68,19 +59,19 @@ const overallController = new AbortController();
 const overallTimer = setTimeout(() => {
   overallController.abort(
     new Error(
-      `Smoke test exceeded ${overallTimeoutMilliseconds}ms overall timeout`
-    )
+      `Smoke test exceeded ${overallTimeoutMilliseconds}ms overall timeout`,
+    ),
   );
 }, overallTimeoutMilliseconds);
 
 try {
   assertReadableFile(
     launcherPath,
-    "Production launcher is missing; expected apps/web/src/production-preflight.ts"
+    "Production launcher is missing; expected apps/web/src/production-preflight.ts",
   );
   assertReadableFile(
     outputEntryPath,
-    "Production output is missing; build apps/web before running this smoke test"
+    "Production output is missing; build apps/web before running this smoke test",
   );
 
   const nodeBinary = findNode24Binary();
@@ -89,42 +80,38 @@ try {
   const webPort = await findAvailablePort(overallController.signal);
   const webOrigin = `http://127.0.0.1:${webPort}`;
 
-  webProcess = spawn(
-    nodeBinary,
-    ["src/production-preflight.ts"],
-    {
-      cwd: webRoot,
-      env: {
-        ...process.env,
-        NODE_ENV: "production",
-        DEPLOYMENT_ENV: "local",
-        API_INTERNAL_URL: fakeAPI.origin,
-        API_SESSION_COOKIE: "cgn_session",
-        API_PROXY_SHARED_SECRET: "local-smoke-proxy-secret-not-for-production",
-        CLOUDFLARE_ORIGIN_SECRET:
-          "local-smoke-cloudflare-secret-not-for-production",
-        SITE_URL: webOrigin,
-        HOST: "127.0.0.1",
-        NITRO_HOST: "127.0.0.1",
-        PORT: String(webPort)
-      },
-      stdio: ["ignore", "pipe", "pipe"]
-    }
-  );
+  webProcess = spawn(nodeBinary, ["src/production-preflight.ts"], {
+    cwd: webRoot,
+    env: {
+      ...process.env,
+      NODE_ENV: "production",
+      DEPLOYMENT_ENV: "local",
+      API_INTERNAL_URL: fakeAPI.origin,
+      API_SESSION_COOKIE: "cgn_session",
+      API_PROXY_SHARED_SECRET: "local-smoke-proxy-secret-not-for-production",
+      CLOUDFLARE_ORIGIN_SECRET:
+        "local-smoke-cloudflare-secret-not-for-production",
+      SITE_URL: webOrigin,
+      HOST: "127.0.0.1",
+      NITRO_HOST: "127.0.0.1",
+      PORT: String(webPort),
+    },
+    stdio: ["ignore", "pipe", "pipe"],
+  });
   childOutput = captureChildOutput(webProcess);
 
   await waitForWebServer(
     webOrigin,
     webProcess,
     childOutput,
-    overallController.signal
+    overallController.signal,
   );
   await verifyHomePage(webOrigin, fakeAPI.calls, overallController.signal);
   await verifyAccountRoute(webOrigin, fakeAPI.calls, overallController.signal);
   await verifyPhase4RouteBoundaries(
     webOrigin,
     fakeAPI.calls,
-    overallController.signal
+    overallController.signal,
   );
   await verifyEventBrowse(webOrigin, fakeAPI.calls, overallController.signal);
   await verifyTeamRoutes(webOrigin, fakeAPI.calls, overallController.signal);
@@ -132,7 +119,7 @@ try {
   await verifyPublicProfileRoutes(
     webOrigin,
     fakeAPI.calls,
-    overallController.signal
+    overallController.signal,
   );
   await verifySchoolsAPI(webOrigin, overallController.signal);
   await verifyHealthRoute(webOrigin, overallController.signal);
@@ -140,115 +127,138 @@ try {
   await verifyNavigationSessionRoute(
     webOrigin,
     fakeAPI.calls,
-    overallController.signal
+    overallController.signal,
   );
   await verifyNotFoundPage(webOrigin, overallController.signal);
-  await verifyEventNotFound(
-    webOrigin,
-    fakeAPI.calls,
-    overallController.signal
-  );
+  await verifyEventNotFound(webOrigin, fakeAPI.calls, overallController.signal);
   const lockedEventHTML = await verifyLockedEvent(
     webOrigin,
     fakeAPI.calls,
-    overallController.signal
+    overallController.signal,
   );
   const loginHTML = await getHTML(
     `${webOrigin}/login?next=${encodeURIComponent(`/events/${eventSlug}`)}`,
     overallController.signal,
-    "GET /login"
+    "GET /login",
   );
   const loginAction = discoverFormAction(loginHTML, "form-stack", webOrigin);
   await verifyCrossOriginPostRejected(
     webOrigin,
     loginAction,
     fakeAPI.calls,
-    overallController.signal
+    overallController.signal,
   );
   const sessionCookie = await verifyNativeLogin(
     webOrigin,
     loginAction,
     fakeAPI.calls,
-    overallController.signal
+    overallController.signal,
   );
   await verifyAuthenticatedViewerOutage(
     webOrigin,
     fakeAPI.calls,
-    overallController.signal
+    overallController.signal,
   );
   const unlockAction = discoverFormAction(
     lockedEventHTML,
     "private-unlock-form",
-    webOrigin
+    webOrigin,
   );
   const unlockCookie = await verifyNativeUnlock(
     webOrigin,
     unlockAction,
     sessionCookie,
     fakeAPI.calls,
-    overallController.signal
+    overallController.signal,
   );
   const authenticatedCookies = `${sessionCookie}; ${unlockCookie}`;
   await verifyAuthenticatedWritePages(
     webOrigin,
     authenticatedCookies,
     fakeAPI.calls,
-    overallController.signal
+    overallController.signal,
   );
   const visibleEventHTML = await verifyUnlockedEvent(
     webOrigin,
     authenticatedCookies,
     fakeAPI.calls,
-    overallController.signal
+    overallController.signal,
   );
   const rsvpAction = discoverFormAction(
     visibleEventHTML,
     "rsvp-form",
-    webOrigin
+    webOrigin,
   );
   await verifyNativeRSVP(
     webOrigin,
     rsvpAction,
     authenticatedCookies,
     fakeAPI.calls,
-    overallController.signal
+    overallController.signal,
   );
   const logoutAction = discoverFormAction(
     visibleEventHTML,
     "logout-form",
-    webOrigin
+    webOrigin,
   );
   await verifyNativeLogout(
     webOrigin,
     logoutAction,
     authenticatedCookies,
     fakeAPI.calls,
-    overallController.signal
+    overallController.signal,
   );
   assertSensitiveValuesAbsentFromLogs(childOutput.format());
 
   process.stdout.write(
-    `PASS TanStack Start production HTTP smoke (${nodeVersion(nodeBinary)})\n`
+    `PASS TanStack Start production HTTP smoke (${nodeVersion(nodeBinary)})\n`,
   );
   process.stdout.write(`  GET /: 200 SSR catalog parity shell and metadata\n`);
-  process.stdout.write(`  Account: auth redirect and private composed dashboard SSR\n`);
-  process.stdout.write(`  Phase 4 auth/write pages: SSR metadata, private token pages, and anonymous redirects\n`);
-  process.stdout.write(`  Event browse: filtered SSR catalog with safe public DTOs\n`);
-  process.stdout.write(`  Team browse/detail: dynamic SSR, safe DTOs, and true 404\n`);
-  process.stdout.write(`  School browse/detail and public profile: dynamic SSR + true 404s\n`);
-  process.stdout.write(`  /api/schools: validation, HEAD/cache contract, and all 405 boundaries\n`);
+  process.stdout.write(
+    `  Account: auth redirect and private composed dashboard SSR\n`,
+  );
+  process.stdout.write(
+    `  Phase 4 auth/write pages: SSR metadata, private token pages, and anonymous redirects\n`,
+  );
+  process.stdout.write(
+    `  Event browse: filtered SSR catalog with safe public DTOs\n`,
+  );
+  process.stdout.write(
+    `  Team browse/detail: dynamic SSR, safe DTOs, and true 404\n`,
+  );
+  process.stdout.write(
+    `  School browse/detail and public profile: dynamic SSR + true 404s\n`,
+  );
+  process.stdout.write(
+    `  /api/schools: validation, HEAD/cache contract, and all 405 boundaries\n`,
+  );
   process.stdout.write(`  GET /api/health: 200 exact healthy envelope\n`);
-  process.stdout.write(`  /api/health: HEAD plus all unsupported-method 405 boundaries\n`);
-  process.stdout.write(`  /api/navigation-session: viewer states, HEAD/no-store, and all 405 boundaries\n`);
+  process.stdout.write(
+    `  /api/health: HEAD plus all unsupported-method 405 boundaries\n`,
+  );
+  process.stdout.write(
+    `  /api/navigation-session: viewer states, HEAD/no-store, and all 405 boundaries\n`,
+  );
   process.stdout.write(`  GET unknown route: 404 noindex shell\n`);
-  process.stdout.write(`  GET locked/missing events: private 200 shell and true 404\n`);
-  process.stdout.write(`  Cross-origin native form POST: rejected before upstream\n`);
-  process.stdout.write(`  Native login/unlock/RSVP/logout forms: 303 redirects, cookies, upstream calls\n`);
-  process.stdout.write(`  Authenticated write pages: private SSR metadata and no-store boundaries\n`);
+  process.stdout.write(
+    `  GET locked/missing events: private 200 shell and true 404\n`,
+  );
+  process.stdout.write(
+    `  Cross-origin native form POST: rejected before upstream\n`,
+  );
+  process.stdout.write(
+    `  Native login/unlock/RSVP/logout forms: 303 redirects, cookies, upstream calls\n`,
+  );
+  process.stdout.write(
+    `  Authenticated write pages: private SSR metadata and no-store boundaries\n`,
+  );
   process.stdout.write(`  Authenticated /me outage: safe event error\n`);
 } catch (error) {
-  const detail = error instanceof Error ? error.stack ?? error.message : String(error);
-  process.stderr.write(`FAIL TanStack Start production HTTP smoke\n${detail}\n`);
+  const detail =
+    error instanceof Error ? (error.stack ?? error.message) : String(error);
+  process.stderr.write(
+    `FAIL TanStack Start production HTTP smoke\n${detail}\n`,
+  );
   if (childOutput) {
     process.stderr.write(childOutput.format());
   }
@@ -266,42 +276,42 @@ async function verifyHomePage(origin, upstreamCalls, overallSignal) {
   assert.match(
     response.headers.get("content-type") ?? "",
     /^text\/html\b/i,
-    "GET / must return HTML"
+    "GET / must return HTML",
   );
   assert.equal(
     response.headers.get("cache-control"),
     "public, max-age=0, must-revalidate",
-    "Anonymous public shell responses must remain revalidatable instead of carrying viewer data"
+    "Anonymous public shell responses must remain revalidatable instead of carrying viewer data",
   );
   assert.match(
     response.headers.get("vary") ?? "",
     /(?:^|,\s*)Cookie(?:,|$)/i,
-    "Public shell responses must vary by Cookie"
+    "Public shell responses must vary by Cookie",
   );
 
   const html = await response.text();
   assert.match(
     html,
     /<title>Campus Gaming Network<\/title>/i,
-    "GET / SSR output must include the Campus Gaming Network title"
+    "GET / SSR output must include the Campus Gaming Network title",
   );
   assertSSRDocumentShell(html, "GET /");
   assert.match(
     html,
     /<h1[^>]*>Find the campus gaming scene around you\.<\/h1>/i,
-    "GET / SSR output must include the parity home heading"
+    "GET / SSR output must include the parity home heading",
   );
   assert.ok(
     html.includes("Smoke Arena") && html.includes("Smoke Test University"),
-    "GET / SSR output must include its independently loaded game and school catalogs"
+    "GET / SSR output must include its independently loaded game and school catalogs",
   );
   assert.match(
     html,
     new RegExp(
       `<meta\\s+property="og:url"\\s+content="${escapeRegularExpression(origin)}"\\s*\\/?>`,
-      "i"
+      "i",
     ),
-    "GET / must emit an absolute Open Graph URL from SITE_URL"
+    "GET / must emit an absolute Open Graph URL from SITE_URL",
   );
 
   const calls = upstreamCalls.slice(callsBefore);
@@ -313,22 +323,22 @@ async function verifyAccountRoute(origin, upstreamCalls, overallSignal) {
   const anonymous = await smokeFetch(
     `${origin}/account`,
     { redirect: "manual" },
-    overallSignal
+    overallSignal,
   );
   assert.equal(
     anonymous.status,
     307,
-    "Anonymous account requests must retain the temporary redirect status"
+    "Anonymous account requests must retain the temporary redirect status",
   );
   const anonymousLocation = new URL(
     anonymous.headers.get("location") ?? "",
-    origin
+    origin,
   );
   assert.equal(anonymousLocation.pathname, "/login");
   assert.equal(
     anonymousLocation.searchParams.get("next"),
     "/account",
-    "Anonymous account redirects must retain the exact local return path"
+    "Anonymous account redirects must retain the exact local return path",
   );
   await anonymous.body?.cancel();
 
@@ -336,43 +346,47 @@ async function verifyAccountRoute(origin, upstreamCalls, overallSignal) {
   const response = await smokeFetch(
     `${origin}/account`,
     { headers: { cookie: `cgn_session=${sessionToken}` } },
-    overallSignal
+    overallSignal,
   );
-  assert.equal(response.status, 200, "Authenticated GET /account must return 200");
+  assert.equal(
+    response.status,
+    200,
+    "Authenticated GET /account must return 200",
+  );
   assert.equal(
     response.headers.get("cache-control"),
     "private, no-store",
-    "Account responses must never be shared or cached"
+    "Account responses must never be shared or cached",
   );
   const html = await response.text();
   assertSSRDocumentShell(html, "Account dashboard");
   assert.match(
     html,
     /<title>Account \| Campus Gaming Network<\/title>/i,
-    "Account must render its private noindex metadata"
+    "Account must render its private noindex metadata",
   );
   assert.match(
     html,
     /<meta\s+name="robots"\s+content="noindex,nofollow"\s*\/?>/i,
-    "Account must remain noindex"
+    "Account must remain noindex",
   );
   for (const expected of [
     "Smoke Player",
     "Smoke Dashboard RSVP",
     "Smoke Followed Event",
     "Smoke Arena Team",
-    "Smoke Test University"
+    "Smoke Test University",
   ]) {
     assert.ok(html.includes(expected), `Account SSR must include ${expected}`);
   }
   for (const privateValue of [
     "account-password-hash",
     "account-session-secret",
-    "private-account-member"
+    "private-account-member",
   ]) {
     assert.ok(
       !html.includes(privateValue),
-      `Account loader DTO must strip ${privateValue}`
+      `Account loader DTO must strip ${privateValue}`,
     );
   }
 
@@ -380,7 +394,7 @@ async function verifyAccountRoute(origin, upstreamCalls, overallSignal) {
   assert.equal(
     matchingUpstreamCalls(calls, "GET", "/me").length,
     1,
-    "Authenticated account SSR must perform only its account profile read"
+    "Authenticated account SSR must perform only its account profile read",
   );
   oneUpstreamCall(calls, "GET", "/me/events");
   oneUpstreamCall(calls, "GET", "/me/schools");
@@ -390,116 +404,134 @@ async function verifyAccountRoute(origin, upstreamCalls, overallSignal) {
 async function verifyPhase4RouteBoundaries(
   origin,
   upstreamCalls,
-  overallSignal
+  overallSignal,
 ) {
   const publicPages = [
     {
       path: "/signup?q=Smoke",
       title: "Sign up",
-      heading: "Join with your home school."
+      heading: "Join with your home school.",
     },
     {
       path: "/forgot-password",
       title: "Forgot password",
-      heading: "Get a reset link."
+      heading: "Get a reset link.",
     },
     {
       path: "/reset-password?token=smoke-reset-token",
       title: "Reset password",
       heading: "Choose a new password.",
-      private: true
+      private: true,
     },
     {
       path: "/auth/verify-email?token=smoke-verification-token",
       title: "Verify email",
       heading: "Confirm your email.",
-      private: true
-    }
+      private: true,
+    },
   ];
 
   for (const page of publicPages) {
-    const response = await smokeFetch(`${origin}${page.path}`, {}, overallSignal);
+    const response = await smokeFetch(
+      `${origin}${page.path}`,
+      {},
+      overallSignal,
+    );
     assert.equal(response.status, 200, `GET ${page.path} must return 200`);
     if (page.private) {
       assert.equal(
         response.headers.get("cache-control"),
         "private, no-store",
-        `GET ${page.path} must not cache recovery tokens`
+        `GET ${page.path} must not cache recovery tokens`,
       );
     }
     const html = await response.text();
     assertSSRDocumentShell(html, `GET ${page.path}`);
     assert.match(
       html,
-      new RegExp(`<title>${escapeRegularExpression(page.title)} \\| Campus Gaming Network<\\/title>`, "i"),
-      `GET ${page.path} must render route metadata`
+      new RegExp(
+        `<title>${escapeRegularExpression(page.title)} \\| Campus Gaming Network<\\/title>`,
+        "i",
+      ),
+      `GET ${page.path} must render route metadata`,
     );
     assert.ok(
       html.includes(page.heading),
-      `GET ${page.path} must render its primary heading`
+      `GET ${page.path} must render its primary heading`,
     );
   }
 
   const legacyReset = await smokeFetch(
     `${origin}/auth/reset-password?token=legacy-smoke-token`,
     { redirect: "manual" },
-    overallSignal
+    overallSignal,
   );
-  assert.equal(legacyReset.status, 307, "Legacy reset route must retain a temporary redirect");
+  assert.equal(
+    legacyReset.status,
+    307,
+    "Legacy reset route must retain a temporary redirect",
+  );
   assert.equal(
     new URL(legacyReset.headers.get("location") ?? "", origin).href,
     `${origin}/reset-password?token=legacy-smoke-token`,
-    "Legacy reset route must preserve the validated token"
+    "Legacy reset route must preserve the validated token",
   );
   await legacyReset.body?.cancel();
 
   const encodedLegacyReset = await smokeFetch(
     `${origin}/auth/reset-password?token=${encodeURIComponent("encoded/token+value=")}`,
     { redirect: "manual" },
-    overallSignal
+    overallSignal,
   );
   assert.equal(encodedLegacyReset.status, 307);
   const encodedDestination = new URL(
     encodedLegacyReset.headers.get("location") ?? "",
-    origin
+    origin,
   );
   assert.equal(encodedDestination.pathname, "/reset-password");
-  assert.equal(encodedDestination.searchParams.get("token"), "encoded/token+value=");
+  assert.equal(
+    encodedDestination.searchParams.get("token"),
+    "encoded/token+value=",
+  );
   await encodedLegacyReset.body?.cancel();
 
   const missingLegacyReset = await smokeFetch(
     `${origin}/auth/reset-password`,
     { redirect: "manual" },
-    overallSignal
+    overallSignal,
   );
   assert.equal(missingLegacyReset.status, 307);
   assert.equal(
     new URL(missingLegacyReset.headers.get("location") ?? "", origin).href,
-    `${origin}/reset-password`
+    `${origin}/reset-password`,
   );
   await missingLegacyReset.body?.cancel();
 
   for (const path of [
     "/events/new",
     `/events/${eventSlug}/edit`,
-    "/teams/new"
+    "/teams/new",
   ]) {
     const response = await smokeFetch(
       `${origin}${path}`,
       { redirect: "manual" },
-      overallSignal
+      overallSignal,
     );
     assert.equal(
       response.status,
       307,
-      `Anonymous GET ${path} must retain the temporary redirect status`
+      `Anonymous GET ${path} must retain the temporary redirect status`,
     );
     const destination = new URL(response.headers.get("location") ?? "", origin);
-    assert.equal(destination.pathname, "/login", `GET ${path} must redirect to login`);
+    assert.equal(
+      destination.pathname,
+      "/login",
+      `GET ${path} must redirect to login`,
+    );
     assert.equal(
       destination.searchParams.get("next"),
       path,
-      `GET ${path} must retain its exact local return path`
+      `GET ${path} must retain its exact local return path`,
     );
     await response.body?.cancel();
   }
@@ -508,28 +540,30 @@ async function verifyPhase4RouteBoundaries(
     `${origin}/events/${missingEventSlug}/edit`,
     {
       headers: { cookie: `cgn_session=${sessionToken}` },
-      redirect: "manual"
+      redirect: "manual",
     },
-    overallSignal
+    overallSignal,
   );
   assert.equal(
     missingEdit.status,
     404,
-    "Authenticated editing of a missing event must return HTTP 404"
+    "Authenticated editing of a missing event must return HTTP 404",
   );
   await missingEdit.body?.cancel();
 
   assert.equal(
-    upstreamCalls.some((call) =>
-      call.method !== "GET" && [
-        "/auth/signup",
-        "/auth/forgot-password",
-        "/auth/reset-password",
-        "/auth/verify-email"
-      ].includes(call.pathname)
+    upstreamCalls.some(
+      (call) =>
+        call.method !== "GET" &&
+        [
+          "/auth/signup",
+          "/auth/forgot-password",
+          "/auth/reset-password",
+          "/auth/verify-email",
+        ].includes(call.pathname),
     ),
     false,
-    "Rendering Phase 4 pages must never trigger an authentication mutation"
+    "Rendering Phase 4 pages must never trigger an authentication mutation",
   );
 }
 
@@ -538,34 +572,34 @@ async function verifyEventBrowse(origin, upstreamCalls, overallSignal) {
   const response = await smokeFetch(
     `${origin}/events?game=smoke-arena&school=${schoolSlug}&format=in_person`,
     {},
-    overallSignal
+    overallSignal,
   );
   assert.equal(response.status, 200, "GET /events must return HTTP 200");
   assert.equal(
     response.headers.get("cache-control"),
     "public, max-age=0, must-revalidate",
-    "Anonymous event browse responses must remain viewer-safe"
+    "Anonymous event browse responses must remain viewer-safe",
   );
   const html = await response.text();
   assertSSRDocumentShell(html, "Event browse");
   assert.match(
     html,
     /<title>Events \| Campus Gaming Network<\/title>/i,
-    "Event browse must render its route metadata"
+    "Event browse must render its route metadata",
   );
   assert.match(
     html,
     /<h1[^>]*>Browse campus gaming events<\/h1>/i,
-    "Event browse must render its heading"
+    "Event browse must render its heading",
   );
   assert.ok(
     html.includes("Public Smoke Tournament") &&
       html.includes("Smoke Test University"),
-    "Event browse must render validated public event data"
+    "Event browse must render validated public event data",
   );
   assert.ok(
     !html.includes("private-event-browse-note"),
-    "Event browse HTML must strip additive upstream fields"
+    "Event browse HTML must strip additive upstream fields",
   );
 
   const calls = upstreamCalls.slice(callsBefore);
@@ -573,13 +607,13 @@ async function verifyEventBrowse(origin, upstreamCalls, overallSignal) {
   assert.equal(
     browseCall.search,
     `?game=smoke-arena&school=${schoolSlug}&format=in_person&limit=25`,
-    "Event browse must forward normalized filters and its bounded page size"
+    "Event browse must forward normalized filters and its bounded page size",
   );
   oneUpstreamCall(calls, "GET", "/games");
   assert.equal(
     matchingUpstreamCalls(calls, "GET", "/me").length,
     0,
-    "Anonymous event browse must not call /me"
+    "Anonymous event browse must not call /me",
   );
 }
 
@@ -588,40 +622,40 @@ async function verifyTeamRoutes(origin, upstreamCalls, overallSignal) {
   const browseResponse = await smokeFetch(
     `${origin}/teams?game=smoke-arena&school=${schoolSlug}`,
     {},
-    overallSignal
+    overallSignal,
   );
   assert.equal(browseResponse.status, 200, "GET /teams must return HTTP 200");
   assert.equal(
     browseResponse.headers.get("cache-control"),
     "public, max-age=0, must-revalidate",
-    "Anonymous team browse responses must remain viewer-safe"
+    "Anonymous team browse responses must remain viewer-safe",
   );
   const browseHTML = await browseResponse.text();
   assertSSRDocumentShell(browseHTML, "Team browse");
   assert.match(
     browseHTML,
     /<title>Teams \| Campus Gaming Network<\/title>/i,
-    "Team browse must render its route metadata"
+    "Team browse must render its route metadata",
   );
   assert.match(
     browseHTML,
     /<h1[^>]*>Find campus gaming teams<\/h1>/i,
-    "Team browse must render its heading"
+    "Team browse must render its heading",
   );
   assert.ok(
     browseHTML.includes("Smoke Arena Team"),
-    "Team browse must render validated public team data"
+    "Team browse must render validated public team data",
   );
   assert.ok(
     !browseHTML.includes("private-team-note"),
-    "Team browse HTML must strip additive upstream fields"
+    "Team browse HTML must strip additive upstream fields",
   );
   const browseCalls = upstreamCalls.slice(browseCallsBefore);
   const browseCall = oneUpstreamCall(browseCalls, "GET", "/teams");
   assert.equal(
     browseCall.search,
     `?game=smoke-arena&school=${schoolSlug}&limit=25`,
-    "Team browse must forward normalized filters and its bounded page size"
+    "Team browse must forward normalized filters and its bounded page size",
   );
   oneUpstreamCall(browseCalls, "GET", "/games");
 
@@ -629,37 +663,37 @@ async function verifyTeamRoutes(origin, upstreamCalls, overallSignal) {
   const detailResponse = await smokeFetch(
     `${origin}/teams/${teamSlug}`,
     {},
-    overallSignal
+    overallSignal,
   );
   assert.equal(
     detailResponse.status,
     200,
-    "A known team detail must return HTTP 200"
+    "A known team detail must return HTTP 200",
   );
   assert.equal(
     detailResponse.headers.get("cache-control"),
     "public, max-age=0, must-revalidate",
-    "Anonymous team detail responses must remain viewer-safe"
+    "Anonymous team detail responses must remain viewer-safe",
   );
   const detailHTML = await detailResponse.text();
   assert.match(
     detailHTML,
     /<title>Smoke Arena Team \| Campus Gaming Network<\/title>/i,
-    "Team detail must use metadata from the same safe DTO as its body"
+    "Team detail must use metadata from the same safe DTO as its body",
   );
   assert.match(
     detailHTML,
     /<h1[^>]*>Smoke Arena Team<\/h1>/i,
-    "Team detail must render its team heading"
+    "Team detail must render its team heading",
   );
   for (const privateValue of [
     "private-team-note",
     "private-owner-user-id",
-    "private-member@example.test"
+    "private-member@example.test",
   ]) {
     assert.ok(
       !detailHTML.includes(privateValue),
-      `Team detail HTML must not serialize ${privateValue}`
+      `Team detail HTML must not serialize ${privateValue}`,
     );
   }
   const detailCalls = upstreamCalls.slice(detailCallsBefore);
@@ -667,23 +701,23 @@ async function verifyTeamRoutes(origin, upstreamCalls, overallSignal) {
   assert.equal(
     matchingUpstreamCalls(detailCalls, "GET", "/me").length,
     0,
-    "Anonymous team detail must not call /me"
+    "Anonymous team detail must not call /me",
   );
 
   const missingResponse = await smokeFetch(
     `${origin}/teams/${missingTeamSlug}`,
     {},
-    overallSignal
+    overallSignal,
   );
   assert.equal(
     missingResponse.status,
     404,
-    "A missing team must return a true HTTP 404"
+    "A missing team must return a true HTTP 404",
   );
   assert.match(
     await missingResponse.text(),
     /<title>Page not found \| Campus Gaming Network<\/title>/i,
-    "A missing team must render the shared safe not-found metadata"
+    "A missing team must render the shared safe not-found metadata",
   );
 }
 
@@ -692,133 +726,133 @@ async function verifySchoolRoutes(origin, upstreamCalls, overallSignal) {
   const browseResponse = await smokeFetch(
     `${origin}/schools?q=Smoke&state=CA`,
     {},
-    overallSignal
+    overallSignal,
   );
   assert.equal(browseResponse.status, 200, "GET /schools must return HTTP 200");
   assert.equal(
     browseResponse.headers.get("cache-control"),
     "public, max-age=0, must-revalidate",
-    "Anonymous school browse responses must remain viewer-safe"
+    "Anonymous school browse responses must remain viewer-safe",
   );
   const browseHTML = await browseResponse.text();
   assertSSRDocumentShell(browseHTML, "School browse");
   assert.match(
     browseHTML,
     /<title>Schools \| Campus Gaming Network<\/title>/i,
-    "School browse must render its route metadata"
+    "School browse must render its route metadata",
   );
   assert.match(
     browseHTML,
     /<h1[^>]*>Browse schools<\/h1>/i,
-    "School browse must render its heading"
+    "School browse must render its heading",
   );
   assert.ok(
     browseHTML.includes("Smoke Test University"),
-    "School browse must render validated catalog data"
+    "School browse must render validated catalog data",
   );
   const browseCall = oneUpstreamCall(
     upstreamCalls.slice(browseCallsBefore),
     "GET",
-    "/schools"
+    "/schools",
   );
   assert.equal(
     browseCall.search,
     "?q=Smoke&state=CA&limit=25",
-    "School browse must forward the normalized query, state, and page size"
+    "School browse must forward the normalized query, state, and page size",
   );
 
   const detailCallsBefore = upstreamCalls.length;
   const detailResponse = await smokeFetch(
     `${origin}/schools/${schoolSlug}`,
     {},
-    overallSignal
+    overallSignal,
   );
   assert.equal(
     detailResponse.status,
     200,
-    "A known school detail must return HTTP 200"
+    "A known school detail must return HTTP 200",
   );
   assert.equal(
     detailResponse.headers.get("cache-control"),
     "private, no-store",
-    "Viewer-aware school detail responses must never be shared"
+    "Viewer-aware school detail responses must never be shared",
   );
   const detailHTML = await detailResponse.text();
   assert.match(
     detailHTML,
     /<title>Smoke Test University \| Campus Gaming Network<\/title>/i,
-    "School detail must use metadata from the same safe DTO as its body"
+    "School detail must use metadata from the same safe DTO as its body",
   );
   assert.match(
     detailHTML,
     /<h1[^>]*>Smoke Test University<\/h1>/i,
-    "School detail must render the school heading"
+    "School detail must render the school heading",
   );
   assert.ok(
     !detailHTML.includes("private-school-note"),
-    "School detail HTML must strip additive upstream fields"
+    "School detail HTML must strip additive upstream fields",
   );
   const detailCalls = upstreamCalls.slice(detailCallsBefore);
   oneUpstreamCall(detailCalls, "GET", `/schools/${schoolSlug}`);
   assert.equal(
     matchingUpstreamCalls(detailCalls, "GET", "/me").length,
     0,
-    "Anonymous school detail must not call /me"
+    "Anonymous school detail must not call /me",
   );
 
   const missingResponse = await smokeFetch(
     `${origin}/schools/${missingSchoolSlug}`,
     {},
-    overallSignal
+    overallSignal,
   );
   assert.equal(
     missingResponse.status,
     404,
-    "A missing school must return a true HTTP 404"
+    "A missing school must return a true HTTP 404",
   );
   assert.match(
     await missingResponse.text(),
     /<title>Page not found \| Campus Gaming Network<\/title>/i,
-    "A missing school must render the shared safe not-found metadata"
+    "A missing school must render the shared safe not-found metadata",
   );
 }
 
-async function verifyPublicProfileRoutes(
-  origin,
-  upstreamCalls,
-  overallSignal
-) {
+async function verifyPublicProfileRoutes(origin, upstreamCalls, overallSignal) {
   const callsBefore = upstreamCalls.length;
   const response = await smokeFetch(
     `${origin}/users/${publicProfileID}`,
     {},
-    overallSignal
+    overallSignal,
   );
-  assert.equal(response.status, 200, "A known public profile must return HTTP 200");
+  assert.equal(
+    response.status,
+    200,
+    "A known public profile must return HTTP 200",
+  );
   assert.equal(
     response.headers.get("cache-control"),
     "public, max-age=0, must-revalidate",
-    "Anonymous public-profile responses must remain viewer-safe"
+    "Anonymous public-profile responses must remain viewer-safe",
   );
   const html = await response.text();
   assert.match(
     html,
     /<title>Public Smoke Player \| Campus Gaming Network<\/title>/i,
-    "Public profile must render dynamic metadata"
+    "Public profile must render dynamic metadata",
   );
   assert.match(
     html,
     /<h1[^>]*>Public Smoke Player<\/h1>/i,
-    "Public profile must render its public name"
+    "Public profile must render its public name",
   );
   for (const privateValue of [
     "private-profile@example.test",
     "private-profile-session",
-    "private-profile-internal-header"
+    "private-profile-internal-header",
   ]) {
     assert.ok(
       !html.includes(privateValue),
-      `Public-profile HTML must not serialize ${privateValue}`
+      `Public-profile HTML must not serialize ${privateValue}`,
     );
   }
   const calls = upstreamCalls.slice(callsBefore);
@@ -826,18 +860,18 @@ async function verifyPublicProfileRoutes(
   assert.equal(
     matchingUpstreamCalls(calls, "GET", "/me").length,
     0,
-    "Anonymous public-profile rendering must not call /me"
+    "Anonymous public-profile rendering must not call /me",
   );
 
   const missingResponse = await smokeFetch(
     `${origin}/users/${missingPublicProfileID}`,
     {},
-    overallSignal
+    overallSignal,
   );
   assert.equal(
     missingResponse.status,
     404,
-    "A missing public profile must return a true HTTP 404"
+    "A missing public profile must return a true HTTP 404",
   );
 }
 
@@ -845,13 +879,17 @@ async function verifySchoolsAPI(origin, overallSignal) {
   const valid = await smokeFetch(
     `${origin}/api/schools?q=Smoke&limit=500`,
     {},
-    overallSignal
+    overallSignal,
   );
-  assert.equal(valid.status, 200, "Valid school search API input must return 200");
+  assert.equal(
+    valid.status,
+    200,
+    "Valid school search API input must return 200",
+  );
   assert.equal(
     valid.headers.get("cache-control"),
     "private, max-age=60",
-    "School search API responses must preserve the short private cache contract"
+    "School search API responses must preserve the short private cache contract",
   );
   const body = await valid.json();
   assert.equal(body.limit, 50, "School search API limits must clamp to 50");
@@ -859,13 +897,13 @@ async function verifySchoolsAPI(origin, overallSignal) {
   assert.equal(
     JSON.stringify(body).includes("private-school-note"),
     false,
-    "School search API responses must strip additive upstream fields"
+    "School search API responses must strip additive upstream fields",
   );
 
   const invalid = await smokeFetch(
     `${origin}/api/schools?q=x`,
     {},
-    overallSignal
+    overallSignal,
   );
   assert.equal(invalid.status, 400, "Short school search API input must fail");
   assert.deepEqual(await invalid.json(), { error: "invalid_school_query" });
@@ -873,20 +911,24 @@ async function verifySchoolsAPI(origin, overallSignal) {
   const head = await smokeFetch(
     `${origin}/api/schools?q=Smoke`,
     { method: "HEAD" },
-    overallSignal
+    overallSignal,
   );
   assert.equal(head.status, 200, "HEAD /api/schools must return 200");
   assert.equal(
     head.headers.get("cache-control"),
     "private, max-age=60",
-    "HEAD /api/schools must preserve the school cache contract"
+    "HEAD /api/schools must preserve the school cache contract",
   );
-  assert.equal(await head.text(), "", "HEAD /api/schools must not return a body");
+  assert.equal(
+    await head.text(),
+    "",
+    "HEAD /api/schools must not return a body",
+  );
 
   await verifyUnsupportedAPIMethods(
     origin,
     "/api/schools?q=Smoke",
-    overallSignal
+    overallSignal,
   );
 }
 
@@ -894,47 +936,47 @@ async function verifyAuthenticatedWritePages(
   origin,
   cookies,
   upstreamCalls,
-  overallSignal
+  overallSignal,
 ) {
   const callsBefore = upstreamCalls.length;
   const pages = [
     {
       path: "/events/new",
       title: "Create event",
-      heading: "Create a campus gaming event"
+      heading: "Create a campus gaming event",
     },
     {
       path: `/events/${eventSlug}/edit`,
       title: "Edit event",
-      heading: privateEventSecrets.title
+      heading: privateEventSecrets.title,
     },
     {
       path: "/teams/new",
       title: "Start a team",
-      heading: "Create a campus gaming team"
-    }
+      heading: "Create a campus gaming team",
+    },
   ];
 
   for (const page of pages) {
     const response = await smokeFetch(
       `${origin}${page.path}`,
       { headers: { cookie: cookies } },
-      overallSignal
+      overallSignal,
     );
     assert.equal(
       response.status,
       200,
-      `Authenticated GET ${page.path} must return 200`
+      `Authenticated GET ${page.path} must return 200`,
     );
     assert.equal(
       response.headers.get("cache-control"),
       "private, no-store",
-      `Authenticated GET ${page.path} must never be shared or cached`
+      `Authenticated GET ${page.path} must never be shared or cached`,
     );
     assert.match(
       response.headers.get("vary") ?? "",
       /(?:^|,\s*)Cookie(?:,|$)/i,
-      `Authenticated GET ${page.path} must vary by Cookie`
+      `Authenticated GET ${page.path} must vary by Cookie`,
     );
     const html = await response.text();
     assertSSRDocumentShell(html, `Authenticated GET ${page.path}`);
@@ -942,25 +984,25 @@ async function verifyAuthenticatedWritePages(
       html,
       new RegExp(
         `<title>${escapeRegularExpression(page.title)} \\| Campus Gaming Network<\\/title>`,
-        "i"
+        "i",
       ),
-      `Authenticated GET ${page.path} must render private route metadata`
+      `Authenticated GET ${page.path} must render private route metadata`,
     );
     assert.match(
       html,
       /<meta\s+name="robots"\s+content="noindex,nofollow"\s*\/?>/i,
-      `Authenticated GET ${page.path} must remain noindex`
+      `Authenticated GET ${page.path} must remain noindex`,
     );
     assert.ok(
       html.includes(page.heading),
-      `Authenticated GET ${page.path} must render its primary heading`
+      `Authenticated GET ${page.path} must render its primary heading`,
     );
   }
 
   const calls = upstreamCalls.slice(callsBefore);
   assert.ok(
     matchingUpstreamCalls(calls, "GET", "/me").length >= pages.length,
-    "Authenticated write pages must authorize from the request session"
+    "Authenticated write pages must authorize from the request session",
   );
   oneUpstreamCall(calls, "GET", `/events/${eventSlug}`);
 }
@@ -970,12 +1012,12 @@ async function verifyHealthRoute(origin, overallSignal) {
   assert.equal(
     response.status,
     200,
-    "GET /api/health must return HTTP 200 when the fake Go API is healthy"
+    "GET /api/health must return HTTP 200 when the fake Go API is healthy",
   );
   assert.match(
     response.headers.get("content-type") ?? "",
     /^application\/json\b/i,
-    "GET /api/health must return JSON"
+    "GET /api/health must return JSON",
   );
   assert.deepEqual(
     await response.json(),
@@ -984,10 +1026,10 @@ async function verifyHealthRoute(origin, overallSignal) {
       status: "ok",
       api: {
         service: fakeAPIHealthPayload.service,
-        status: fakeAPIHealthPayload.status
-      }
+        status: fakeAPIHealthPayload.status,
+      },
     },
-    "GET /api/health must return the exact web envelope and allowlisted API payload"
+    "GET /api/health must return the exact web envelope and allowlisted API payload",
   );
 }
 
@@ -995,26 +1037,30 @@ async function verifyHealthMethodBoundary(origin, overallSignal) {
   const head = await smokeFetch(
     `${origin}/api/health`,
     { method: "HEAD" },
-    overallSignal
+    overallSignal,
   );
   assert.equal(head.status, 200, "HEAD /api/health must return HTTP 200");
-  assert.equal(await head.text(), "", "HEAD /api/health must not return a body");
+  assert.equal(
+    await head.text(),
+    "",
+    "HEAD /api/health must not return a body",
+  );
 
   for (const method of ["POST", "PUT", "PATCH", "DELETE", "OPTIONS"]) {
     const response = await smokeFetch(
       `${origin}/api/health`,
       { method },
-      overallSignal
+      overallSignal,
     );
     assert.equal(
       response.status,
       405,
-      `${method} /api/health must return HTTP 405`
+      `${method} /api/health must return HTTP 405`,
     );
     assert.equal(
       response.headers.get("allow"),
       "GET, HEAD",
-      `${method} /api/health must advertise exactly Allow: GET, HEAD`
+      `${method} /api/health must advertise exactly Allow: GET, HEAD`,
     );
     await response.body?.cancel();
   }
@@ -1023,96 +1069,96 @@ async function verifyHealthMethodBoundary(origin, overallSignal) {
 async function verifyNavigationSessionRoute(
   origin,
   upstreamCalls,
-  overallSignal
+  overallSignal,
 ) {
   const meCallsBefore = matchingUpstreamCalls(
     upstreamCalls,
     "GET",
-    "/me"
+    "/me",
   ).length;
   const anonymousResponse = await smokeFetch(
     `${origin}/api/navigation-session`,
     {},
-    overallSignal
+    overallSignal,
   );
   assert.equal(
     anonymousResponse.status,
     200,
-    "Anonymous GET /api/navigation-session must return HTTP 200"
+    "Anonymous GET /api/navigation-session must return HTTP 200",
   );
   assert.equal(
     anonymousResponse.headers.get("cache-control"),
     "private, no-store",
-    "Anonymous navigation-session response must be private, no-store"
+    "Anonymous navigation-session response must be private, no-store",
   );
   assert.deepEqual(
     await anonymousResponse.json(),
     { authenticated: false },
-    "Anonymous navigation-session response must be exactly authenticated=false"
+    "Anonymous navigation-session response must be exactly authenticated=false",
   );
   assert.equal(
     matchingUpstreamCalls(upstreamCalls, "GET", "/me").length,
     meCallsBefore,
-    "Anonymous navigation-session lookup must not call upstream /me"
+    "Anonymous navigation-session lookup must not call upstream /me",
   );
 
   const authenticatedCallsBefore = upstreamCalls.length;
   const authenticatedResponse = await smokeFetch(
     `${origin}/api/navigation-session`,
     { headers: { cookie: `cgn_session=${sessionToken}` } },
-    overallSignal
+    overallSignal,
   );
   assert.equal(
     authenticatedResponse.status,
     200,
-    "Authenticated GET /api/navigation-session must return HTTP 200"
+    "Authenticated GET /api/navigation-session must return HTTP 200",
   );
   assert.equal(
     authenticatedResponse.headers.get("cache-control"),
     "private, no-store",
-    "Authenticated navigation-session response must be private, no-store"
+    "Authenticated navigation-session response must be private, no-store",
   );
   assert.deepEqual(
     await authenticatedResponse.json(),
     { authenticated: true },
-    "Exact-session navigation response must be exactly authenticated=true"
+    "Exact-session navigation response must be exactly authenticated=true",
   );
   const meCall = oneUpstreamCall(
     upstreamCalls.slice(authenticatedCallsBefore),
     "GET",
-    "/me"
+    "/me",
   );
   assert.equal(
     meCall.cookie,
     `cgn_session=${sessionToken}`,
-    "Authenticated navigation-session lookup must forward the exact session cookie"
+    "Authenticated navigation-session lookup must forward the exact session cookie",
   );
 
   const headResponse = await smokeFetch(
     `${origin}/api/navigation-session`,
     { method: "HEAD" },
-    overallSignal
+    overallSignal,
   );
   assert.equal(
     headResponse.status,
     200,
-    "HEAD /api/navigation-session must return HTTP 200"
+    "HEAD /api/navigation-session must return HTTP 200",
   );
   assert.equal(
     headResponse.headers.get("cache-control"),
     "private, no-store",
-    "HEAD /api/navigation-session must preserve the no-store contract"
+    "HEAD /api/navigation-session must preserve the no-store contract",
   );
   assert.equal(
     await headResponse.text(),
     "",
-    "HEAD /api/navigation-session must not return a body"
+    "HEAD /api/navigation-session must not return a body",
   );
 
   await verifyUnsupportedAPIMethods(
     origin,
     "/api/navigation-session",
-    overallSignal
+    overallSignal,
   );
 }
 
@@ -1121,17 +1167,17 @@ async function verifyUnsupportedAPIMethods(origin, path, overallSignal) {
     const response = await smokeFetch(
       `${origin}${path}`,
       { method, redirect: "manual" },
-      overallSignal
+      overallSignal,
     );
     assert.equal(
       response.status,
       405,
-      `${method} ${path} must return HTTP 405`
+      `${method} ${path} must return HTTP 405`,
     );
     assert.equal(
       response.headers.get("allow"),
       "GET, HEAD",
-      `${method} ${path} must advertise exactly Allow: GET, HEAD`
+      `${method} ${path} must advertise exactly Allow: GET, HEAD`,
     );
     await response.body?.cancel();
   }
@@ -1141,26 +1187,30 @@ async function verifyNotFoundPage(origin, overallSignal) {
   const response = await smokeFetch(
     `${origin}/__web_smoke_missing__`,
     {},
-    overallSignal
+    overallSignal,
   );
-  assert.equal(response.status, 404, "Unknown routes must return a true HTTP 404");
+  assert.equal(
+    response.status,
+    404,
+    "Unknown routes must return a true HTTP 404",
+  );
 
   const html = await response.text();
   assertSSRDocumentShell(html, "Unknown route");
   assert.match(
     html,
     /<title>Page not found \| Campus Gaming Network<\/title>/i,
-    "Unknown-route SSR output must include the not-found title"
+    "Unknown-route SSR output must include the not-found title",
   );
   assert.match(
     html,
     /<meta\s+name="robots"\s+content="noindex,nofollow"\s*\/?>/i,
-    "Unknown-route SSR output must include noindex,nofollow robots metadata"
+    "Unknown-route SSR output must include noindex,nofollow robots metadata",
   );
   assert.match(
     html,
     /<h1[^>]*>We could not find that page\.<\/h1>/i,
-    "Unknown-route SSR output must include the not-found heading"
+    "Unknown-route SSR output must include the not-found heading",
   );
 }
 
@@ -1169,12 +1219,12 @@ async function verifyEventNotFound(origin, upstreamCalls, overallSignal) {
   const response = await smokeFetch(
     `${origin}/events/${missingEventSlug}`,
     {},
-    overallSignal
+    overallSignal,
   );
   assert.equal(
     response.status,
     404,
-    "A missing event must return a true HTTP 404"
+    "A missing event must return a true HTTP 404",
   );
 
   const html = await response.text();
@@ -1182,23 +1232,23 @@ async function verifyEventNotFound(origin, upstreamCalls, overallSignal) {
   assert.match(
     html,
     /<title>Page not found \| Campus Gaming Network<\/title>/i,
-    "A missing event must render the safe not-found title"
+    "A missing event must render the safe not-found title",
   );
   assert.match(
     html,
     /<meta\s+name="robots"\s+content="noindex,nofollow"\s*\/?>/i,
-    "A missing event must be noindex"
+    "A missing event must be noindex",
   );
 
   const eventCall = oneUpstreamCall(
     upstreamCalls.slice(callsBefore),
     "GET",
-    `/events/${missingEventSlug}`
+    `/events/${missingEventSlug}`,
   );
   assert.equal(
     eventCall.eventUnlock,
     undefined,
-    "A missing-event request must not invent an unlock token"
+    "A missing-event request must not invent an unlock token",
   );
 }
 
@@ -1207,17 +1257,17 @@ async function verifyLockedEvent(origin, upstreamCalls, overallSignal) {
   const response = await smokeFetch(
     `${origin}/events/${eventSlug}`,
     {},
-    overallSignal
+    overallSignal,
   );
   assert.equal(
     response.status,
     200,
-    "A locked private event must return its generic HTTP 200 shell"
+    "A locked private event must return its generic HTTP 200 shell",
   );
   assert.equal(
     response.headers.get("cache-control"),
     "private, no-store",
-    "Locked event responses must never be shared or cached"
+    "Locked event responses must never be shared or cached",
   );
 
   const html = await response.text();
@@ -1225,17 +1275,17 @@ async function verifyLockedEvent(origin, upstreamCalls, overallSignal) {
   assert.match(
     html,
     /<title>Private event \| Campus Gaming Network<\/title>/i,
-    "A locked private event must use generic metadata"
+    "A locked private event must use generic metadata",
   );
   assert.match(
     html,
     /<meta\s+name="robots"\s+content="noindex,nofollow"\s*\/?>/i,
-    "A locked private event must be noindex"
+    "A locked private event must be noindex",
   );
   assert.match(
     html,
     /<h1[^>]*>This event is private\.<\/h1>/i,
-    "A locked private event must render the generic heading"
+    "A locked private event must render the generic heading",
   );
 
   for (const secret of [
@@ -1243,23 +1293,23 @@ async function verifyLockedEvent(origin, upstreamCalls, overallSignal) {
     eventPassword,
     unlockToken,
     sessionToken,
-    outageSessionToken
+    outageSessionToken,
   ]) {
     assert.ok(
       !html.includes(secret),
-      `Locked-event HTML must not contain private value: ${secret}`
+      `Locked-event HTML must not contain private value: ${secret}`,
     );
   }
 
   const eventCall = oneUpstreamCall(
     upstreamCalls.slice(callsBefore),
     "GET",
-    `/events/${eventSlug}`
+    `/events/${eventSlug}`,
   );
   assert.equal(
     eventCall.eventUnlock,
     undefined,
-    "The initial locked-event request must not send an unlock token"
+    "The initial locked-event request must not send an unlock token",
   );
   return html;
 }
@@ -1268,39 +1318,39 @@ async function verifyCrossOriginPostRejected(
   origin,
   loginAction,
   upstreamCalls,
-  overallSignal
+  overallSignal,
 ) {
   const loginCallsBefore = matchingUpstreamCalls(
     upstreamCalls,
     "POST",
-    "/auth/login"
+    "/auth/login",
   ).length;
   const response = await postNativeForm(
     loginAction,
     {
       email: "player@example.test",
       password: "Password12345!",
-      next: `/events/${eventSlug}`
+      next: `/events/${eventSlug}`,
     },
     {
       originHeader: "https://attacker.example",
-      overallSignal
-    }
+      overallSignal,
+    },
   );
   assert.ok(
     response.status >= 400 && response.status < 500,
-    `Cross-origin native form POST must be rejected with a 4xx response, received ${response.status}`
+    `Cross-origin native form POST must be rejected with a 4xx response, received ${response.status}`,
   );
   await response.body?.cancel();
   assert.equal(
     matchingUpstreamCalls(upstreamCalls, "POST", "/auth/login").length,
     loginCallsBefore,
-    "A rejected cross-origin login must not call the upstream API"
+    "A rejected cross-origin login must not call the upstream API",
   );
   assert.equal(
     new URL(loginAction).origin,
     origin,
-    "Discovered login action must stay on the Start origin"
+    "Discovered login action must stay on the Start origin",
   );
 }
 
@@ -1308,7 +1358,7 @@ async function verifyNativeLogin(
   origin,
   loginAction,
   upstreamCalls,
-  overallSignal
+  overallSignal,
 ) {
   const callsBefore = upstreamCalls.length;
   const response = await postNativeForm(
@@ -1316,35 +1366,30 @@ async function verifyNativeLogin(
     {
       email: "player@example.test",
       password: "Password12345!",
-      next: `/events/${eventSlug}`
+      next: `/events/${eventSlug}`,
     },
-    { originHeader: origin, overallSignal }
+    { originHeader: origin, overallSignal },
   );
-  assertRedirect(
-    response,
-    origin,
-    `/events/${eventSlug}`,
-    "Native login"
-  );
+  assertRedirect(response, origin, `/events/${eventSlug}`, "Native login");
   const sessionCookie = assertResponseCookie(
     response,
     "cgn_session",
     sessionToken,
-    "Native login"
+    "Native login",
   );
 
   const loginCall = oneUpstreamCall(
     upstreamCalls.slice(callsBefore),
     "POST",
-    "/auth/login"
+    "/auth/login",
   );
   assert.deepEqual(
     loginCall.body,
     {
       email: "player@example.test",
-      password: "Password12345!"
+      password: "Password12345!",
     },
-    "Native login must send the expected JSON upstream without the local next path"
+    "Native login must send the expected JSON upstream without the local next path",
   );
   return sessionCookie;
 }
@@ -1352,18 +1397,18 @@ async function verifyNativeLogin(
 async function verifyAuthenticatedViewerOutage(
   origin,
   upstreamCalls,
-  overallSignal
+  overallSignal,
 ) {
   const callsBefore = upstreamCalls.length;
   const response = await smokeFetch(
     `${origin}/events/${eventSlug}`,
     { headers: { cookie: `cgn_session=${outageSessionToken}` } },
-    overallSignal
+    overallSignal,
   );
   assert.equal(
     response.status,
     500,
-    "A non-401 /me outage for an apparent session must return a route error"
+    "A non-401 /me outage for an apparent session must return a route error",
   );
 
   const html = await response.text();
@@ -1371,40 +1416,40 @@ async function verifyAuthenticatedViewerOutage(
   assert.match(
     html,
     /<h1[^>]*>We could not load this event\.<\/h1>/i,
-    "An authenticated /me outage must render the safe event error boundary"
+    "An authenticated /me outage must render the safe event error boundary",
   );
   assert.ok(
     !/<a\b[^>]*>Log in to RSVP<\/a>/i.test(html) &&
       !/<h1[^>]*>This event is private\.<\/h1>/i.test(html),
-    "An authenticated /me outage must not render a false anonymous event page"
+    "An authenticated /me outage must not render a false anonymous event page",
   );
   for (const unsafeValue of [
     outageSessionToken,
     "service_unavailable",
     privateEventSecrets.title,
-    privateEventSecrets.description
+    privateEventSecrets.description,
   ]) {
     assert.ok(
       !html.includes(unsafeValue),
-      `Authenticated outage HTML must not expose upstream/private value: ${unsafeValue}`
+      `Authenticated outage HTML must not expose upstream/private value: ${unsafeValue}`,
     );
   }
 
   const meCalls = matchingUpstreamCalls(
     upstreamCalls.slice(callsBefore),
     "GET",
-    "/me"
+    "/me",
   );
   assert.equal(
     meCalls.length,
     1,
-    "The shared strict viewer-session boundary must verify the apparent session once"
+    "The shared strict viewer-session boundary must verify the apparent session once",
   );
   for (const meCall of meCalls) {
     assert.match(
       meCall.cookie ?? "",
       new RegExp(`(?:^|;\\s*)cgn_session=${outageSessionToken}(?:;|$)`),
-      "Each viewer-session check must forward the apparent session upstream"
+      "Each viewer-session check must forward the apparent session upstream",
     );
   }
 }
@@ -1414,7 +1459,7 @@ async function verifyNativeUnlock(
   unlockAction,
   sessionCookie,
   upstreamCalls,
-  overallSignal
+  overallSignal,
 ) {
   const callsBefore = upstreamCalls.length;
   const response = await postNativeForm(
@@ -1423,31 +1468,31 @@ async function verifyNativeUnlock(
     {
       cookie: sessionCookie,
       originHeader: origin,
-      overallSignal
-    }
+      overallSignal,
+    },
   );
   assertRedirect(
     response,
     origin,
     `/events/${eventSlug}?event=unlocked`,
-    "Native event unlock"
+    "Native event unlock",
   );
   const unlockCookie = assertResponseCookie(
     response,
     `cgn_event_unlock_${eventSlug}`,
     unlockToken,
-    "Native event unlock"
+    "Native event unlock",
   );
 
   const unlockCall = oneUpstreamCall(
     upstreamCalls.slice(callsBefore),
     "POST",
-    `/events/${eventSlug}/unlock`
+    `/events/${eventSlug}/unlock`,
   );
   assert.deepEqual(
     unlockCall.body,
     { password: eventPassword },
-    "Native unlock must send only the event password upstream"
+    "Native unlock must send only the event password upstream",
   );
   return unlockCookie;
 }
@@ -1456,43 +1501,46 @@ async function verifyUnlockedEvent(
   origin,
   cookies,
   upstreamCalls,
-  overallSignal
+  overallSignal,
 ) {
   const callsBefore = upstreamCalls.length;
   const response = await smokeFetch(
     `${origin}/events/${eventSlug}?event=unlocked`,
     { headers: { cookie: cookies } },
-    overallSignal
+    overallSignal,
   );
   assert.equal(response.status, 200, "An unlocked event must return HTTP 200");
   assert.equal(
     response.headers.get("cache-control"),
     "private, no-store",
-    "Unlocked viewer-aware event responses must never be shared or cached"
+    "Unlocked viewer-aware event responses must never be shared or cached",
   );
 
   const html = await response.text();
   assertSSRDocumentShell(html, "Unlocked event");
   assert.match(
     html,
-    new RegExp(`<title>${escapeRegularExpression(privateEventSecrets.title)} \\| Campus Gaming Network<\\/title>`, "i"),
-    "An unlocked event must render its real title"
+    new RegExp(
+      `<title>${escapeRegularExpression(privateEventSecrets.title)} \\| Campus Gaming Network<\\/title>`,
+      "i",
+    ),
+    "An unlocked event must render its real title",
   );
   assert.match(
     html,
     new RegExp(
       `<meta\\s+property="og:url"\\s+content="${escapeRegularExpression(`${origin}/events/${eventSlug}`)}"\\s*\\/?>`,
-      "i"
+      "i",
     ),
-    "An unlocked event must emit an absolute Open Graph URL"
+    "An unlocked event must emit an absolute Open Graph URL",
   );
   assert.ok(
     html.includes(privateEventSecrets.description),
-    "An unlocked event must render its real description"
+    "An unlocked event must render its real description",
   );
   assert.ok(
     !html.includes(unlockToken) && !html.includes(sessionToken),
-    "Unlocked-event HTML must not serialize cookie tokens"
+    "Unlocked-event HTML must not serialize cookie tokens",
   );
 
   const calls = upstreamCalls.slice(callsBefore);
@@ -1500,18 +1548,18 @@ async function verifyUnlockedEvent(
   assert.equal(
     eventCall.eventUnlock,
     unlockToken,
-    "Unlocked event read must forward its unlock token upstream"
+    "Unlocked event read must forward its unlock token upstream",
   );
   const meCalls = matchingUpstreamCalls(calls, "GET", "/me");
   assert.equal(
     meCalls.length,
     1,
-    "The shared viewer-session boundary must verify the session once"
+    "The shared viewer-session boundary must verify the session once",
   );
   for (const meCall of meCalls) {
     assert.ok(
       meCall.cookie?.includes(`cgn_session=${sessionToken}`),
-      "Unlocked event session checks must forward the session upstream"
+      "Unlocked event session checks must forward the session upstream",
     );
   }
   return html;
@@ -1522,39 +1570,39 @@ async function verifyNativeRSVP(
   rsvpAction,
   cookies,
   upstreamCalls,
-  overallSignal
+  overallSignal,
 ) {
   const callsBefore = upstreamCalls.length;
   const response = await postNativeForm(
     rsvpAction,
     { slug: eventSlug, response: "yes" },
-    { cookie: cookies, originHeader: origin, overallSignal }
+    { cookie: cookies, originHeader: origin, overallSignal },
   );
   assertRedirect(
     response,
     origin,
     `/events/${eventSlug}?event=rsvp-updated`,
-    "Native RSVP"
+    "Native RSVP",
   );
 
   const rsvpCall = oneUpstreamCall(
     upstreamCalls.slice(callsBefore),
     "POST",
-    `/events/${eventSlug}/rsvp`
+    `/events/${eventSlug}/rsvp`,
   );
   assert.deepEqual(
     rsvpCall.body,
     { response: "yes" },
-    "Native RSVP must send the selected response upstream"
+    "Native RSVP must send the selected response upstream",
   );
   assert.ok(
     rsvpCall.cookie?.includes(`cgn_session=${sessionToken}`),
-    "Native RSVP must forward the session cookie upstream"
+    "Native RSVP must forward the session cookie upstream",
   );
   assert.equal(
     rsvpCall.eventUnlock,
     unlockToken,
-    "Native RSVP must forward the private-event unlock token upstream"
+    "Native RSVP must forward the private-event unlock token upstream",
   );
 }
 
@@ -1563,13 +1611,13 @@ async function verifyNativeLogout(
   logoutAction,
   cookies,
   upstreamCalls,
-  overallSignal
+  overallSignal,
 ) {
   const callsBefore = upstreamCalls.length;
   const response = await postNativeForm(
     logoutAction,
     {},
-    { cookie: cookies, originHeader: origin, overallSignal }
+    { cookie: cookies, originHeader: origin, overallSignal },
   );
   assertRedirect(response, origin, "/", "Native logout");
   assertResponseCookieDeletion(response, "cgn_session", "Native logout");
@@ -1577,11 +1625,11 @@ async function verifyNativeLogout(
   const logoutCall = oneUpstreamCall(
     upstreamCalls.slice(callsBefore),
     "POST",
-    "/auth/logout"
+    "/auth/logout",
   );
   assert.ok(
     logoutCall.cookie?.includes(`cgn_session=${sessionToken}`),
-    "Native logout must forward the incoming session cookie upstream"
+    "Native logout must forward the incoming session cookie upstream",
   );
 }
 
@@ -1591,7 +1639,7 @@ async function getHTML(url, overallSignal, label) {
   assert.match(
     response.headers.get("content-type") ?? "",
     /^text\/html\b/i,
-    `${label} must return HTML`
+    `${label} must return HTML`,
   );
   return response.text();
 }
@@ -1610,7 +1658,7 @@ function discoverFormAction(html, className, origin) {
     assert.equal(
       actionURL.origin,
       origin,
-      `Form with class ${className} must submit to the Start origin`
+      `Form with class ${className} must submit to the Start origin`,
     );
     return actionURL.href;
   }
@@ -1621,7 +1669,10 @@ function discoverFormAction(html, className, origin) {
 function htmlAttribute(tag, name) {
   const escapedName = escapeRegularExpression(name);
   const match = tag.match(
-    new RegExp(`\\b${escapedName}\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s>]+))`, "i")
+    new RegExp(
+      `\\b${escapedName}\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s>]+))`,
+      "i",
+    ),
   );
   return match?.[1] ?? match?.[2] ?? match?.[3];
 }
@@ -1637,13 +1688,13 @@ function decodeHTMLEntities(value) {
 async function postNativeForm(
   action,
   fields,
-  { cookie, originHeader, overallSignal }
+  { cookie, originHeader, overallSignal },
 ) {
   const headers = {
     accept: "text/html",
     "content-type": "application/x-www-form-urlencoded",
     origin: originHeader,
-    ...(cookie ? { cookie } : {})
+    ...(cookie ? { cookie } : {}),
   };
   return smokeFetch(
     action,
@@ -1651,9 +1702,9 @@ async function postNativeForm(
       method: "POST",
       headers,
       body: new URLSearchParams(fields),
-      redirect: "manual"
+      redirect: "manual",
     },
-    overallSignal
+    overallSignal,
   );
 }
 
@@ -1665,7 +1716,7 @@ function assertRedirect(response, origin, destination, label) {
   assert.equal(
     `${resolved.pathname}${resolved.search}`,
     destination,
-    `${label} must redirect to ${destination}`
+    `${label} must redirect to ${destination}`,
   );
 }
 
@@ -1681,11 +1732,11 @@ function assertSensitiveValuesAbsentFromLogs(logs) {
     "smoke-verification-token",
     "legacy-smoke-token",
     "local-smoke-proxy-secret-not-for-production",
-    "local-smoke-cloudflare-secret-not-for-production"
+    "local-smoke-cloudflare-secret-not-for-production",
   ]) {
     assert.ok(
       !logs.includes(sensitiveValue),
-      "Production logs must not contain submitted PII, credentials, tokens, or deployment secrets"
+      "Production logs must not contain submitted PII, credentials, tokens, or deployment secrets",
     );
   }
 }
@@ -1698,13 +1749,16 @@ function assertResponseCookie(response, name, value, label) {
   assert.equal(
     cookie.split(";", 1)[0],
     `${name}=${value}`,
-    `${label} must set the expected opaque ${name} value`
+    `${label} must set the expected opaque ${name} value`,
   );
   for (const attribute of ["Path=/", "HttpOnly", "Secure", "SameSite=Lax"]) {
     assert.match(
       cookie,
-      new RegExp(`(?:^|;\\s*)${escapeRegularExpression(attribute)}(?:;|$)`, "i"),
-      `${label} ${name} cookie must include ${attribute}`
+      new RegExp(
+        `(?:^|;\\s*)${escapeRegularExpression(attribute)}(?:;|$)`,
+        "i",
+      ),
+      `${label} ${name} cookie must include ${attribute}`,
     );
   }
   return `${name}=${value}`;
@@ -1718,12 +1772,12 @@ function assertResponseCookieDeletion(response, name, label) {
   assert.equal(
     cookie.split(";", 1)[0],
     `${name}=`,
-    `${label} must clear the configured cookie value`
+    `${label} must clear the configured cookie value`,
   );
   assert.match(
     cookie,
     /(?:^|;\s*)Path=\/(?:;|$)/i,
-    `${label} must delete the configured cookie at the root path`
+    `${label} must delete the configured cookie at the root path`,
   );
 
   const maxAge = cookie.match(/(?:^|;\s*)Max-Age=(-?\d+)(?:;|$)/i)?.[1];
@@ -1731,7 +1785,7 @@ function assertResponseCookieDeletion(response, name, label) {
   assert.ok(
     (maxAge !== undefined && Number(maxAge) <= 0) ||
       (expires !== undefined && new Date(expires).getTime() <= Date.now()),
-    `${label} must expire the configured local cookie`
+    `${label} must expire the configured local cookie`,
   );
 }
 
@@ -1740,14 +1794,14 @@ function oneUpstreamCall(calls, method, pathname) {
   assert.equal(
     matches.length,
     1,
-    `Expected exactly one upstream ${method} ${pathname} call, received ${matches.length}`
+    `Expected exactly one upstream ${method} ${pathname} call, received ${matches.length}`,
   );
   return matches[0];
 }
 
 function matchingUpstreamCalls(calls, method, pathname) {
   return calls.filter(
-    (call) => call.method === method && call.pathname === pathname
+    (call) => call.method === method && call.pathname === pathname,
   );
 }
 
@@ -1757,16 +1811,32 @@ function escapeRegularExpression(value) {
 
 function assertSSRDocumentShell(html, label) {
   assert.match(html, /<!DOCTYPE html>/i, `${label} must include a doctype`);
-  assert.match(html, /<html\b[^>]*lang="en"/i, `${label} must include the HTML shell`);
-  assert.match(html, /<header\b[^>]*class="site-header"/i, `${label} must include the site header`);
-  assert.match(html, /<nav\b[^>]*aria-label="Main navigation"/i, `${label} must include main navigation`);
-  assert.match(html, /<footer\b[^>]*class="site-footer"/i, `${label} must include the site footer`);
+  assert.match(
+    html,
+    /<html\b[^>]*lang="en"/i,
+    `${label} must include the HTML shell`,
+  );
+  assert.match(
+    html,
+    /<header\b[^>]*class="site-header"/i,
+    `${label} must include the site header`,
+  );
+  assert.match(
+    html,
+    /<nav\b[^>]*aria-label="Main navigation"/i,
+    `${label} must include main navigation`,
+  );
+  assert.match(
+    html,
+    /<footer\b[^>]*class="site-footer"/i,
+    `${label} must include the site footer`,
+  );
 }
 
 async function smokeFetch(url, options, overallSignal) {
   const requestSignal = AbortSignal.any([
     overallSignal,
-    AbortSignal.timeout(requestTimeoutMilliseconds)
+    AbortSignal.timeout(requestTimeoutMilliseconds),
   ]);
 
   try {
@@ -1776,7 +1846,7 @@ async function smokeFetch(url, options, overallSignal) {
       throw overallSignal.reason;
     }
     throw new Error(`Request failed for ${options.method ?? "GET"} ${url}`, {
-      cause: error
+      cause: error,
     });
   }
 }
@@ -1790,18 +1860,18 @@ async function waitForWebServer(origin, child, output, overallSignal) {
     }
     if (output.spawnError) {
       throw new Error("Unable to spawn the Node 24 production launcher", {
-        cause: output.spawnError
+        cause: output.spawnError,
       });
     }
     if (child.exitCode !== null || child.signalCode !== null) {
       throw new Error(
-        `Production launcher exited before becoming ready (code=${String(child.exitCode)}, signal=${String(child.signalCode)})`
+        `Production launcher exited before becoming ready (code=${String(child.exitCode)}, signal=${String(child.signalCode)})`,
       );
     }
 
     try {
       const response = await fetch(`${origin}/`, {
-        signal: AbortSignal.timeout(500)
+        signal: AbortSignal.timeout(500),
       });
       await response.body?.cancel();
       return;
@@ -1811,7 +1881,7 @@ async function waitForWebServer(origin, child, output, overallSignal) {
   }
 
   throw new Error(
-    `Production launcher did not accept HTTP requests within ${startupTimeoutMilliseconds}ms`
+    `Production launcher did not accept HTTP requests within ${startupTimeoutMilliseconds}ms`,
   );
 }
 
@@ -1839,18 +1909,21 @@ async function handleFakeAPIRequest(request, response, calls) {
     search: requestURL.search,
     cookie: headerValue(request.headers.cookie),
     eventUnlock: headerValue(request.headers["x-cgn-event-unlock"]),
-    body
+    body,
   };
   calls.push(call);
 
-  if ((method === "GET" || method === "HEAD") && requestURL.pathname === "/health") {
+  if (
+    (method === "GET" || method === "HEAD") &&
+    requestURL.pathname === "/health"
+  ) {
     writeJSON(response, 200, fakeAPIHealthPayload, { head: method === "HEAD" });
     return;
   }
 
   if (method === "GET" && requestURL.pathname === "/games") {
     writeJSON(response, 200, {
-      games: [{ id: "game-smoke", name: "Smoke Arena", slug: "smoke-arena" }]
+      games: [{ id: "game-smoke", name: "Smoke Arena", slug: "smoke-arena" }],
     });
     return;
   }
@@ -1860,7 +1933,7 @@ async function handleFakeAPIRequest(request, response, calls) {
       events: [fakePublicEvent()],
       limit: 25,
       has_more: false,
-      has_previous: false
+      has_previous: false,
     });
     return;
   }
@@ -1870,15 +1943,12 @@ async function handleFakeAPIRequest(request, response, calls) {
       teams: [fakeTeam()],
       limit: 25,
       has_more: false,
-      has_previous: false
+      has_previous: false,
     });
     return;
   }
 
-  if (
-    method === "GET" &&
-    requestURL.pathname === `/teams/${missingTeamSlug}`
-  ) {
+  if (method === "GET" && requestURL.pathname === `/teams/${missingTeamSlug}`) {
     writeJSON(response, 404, { error: "team_not_found" });
     return;
   }
@@ -1889,13 +1959,19 @@ async function handleFakeAPIRequest(request, response, calls) {
   }
 
   if (method === "GET" && requestURL.pathname === "/schools") {
-    const limit = Number.parseInt(requestURL.searchParams.get("limit") ?? "25", 10);
-    const offset = Number.parseInt(requestURL.searchParams.get("offset") ?? "0", 10);
+    const limit = Number.parseInt(
+      requestURL.searchParams.get("limit") ?? "25",
+      10,
+    );
+    const offset = Number.parseInt(
+      requestURL.searchParams.get("offset") ?? "0",
+      10,
+    );
     writeJSON(response, 200, {
       schools: [fakeSchool()],
       limit,
       offset,
-      has_more: false
+      has_more: false,
     });
     return;
   }
@@ -1921,15 +1997,15 @@ async function handleFakeAPIRequest(request, response, calls) {
     return;
   }
 
-  if (
-    method === "GET" &&
-    requestURL.pathname === `/users/${publicProfileID}`
-  ) {
+  if (method === "GET" && requestURL.pathname === `/users/${publicProfileID}`) {
     writeJSON(response, 200, fakePublicProfile());
     return;
   }
 
-  if (method === "GET" && requestURL.pathname === `/events/${missingEventSlug}`) {
+  if (
+    method === "GET" &&
+    requestURL.pathname === `/events/${missingEventSlug}`
+  ) {
     writeJSON(response, 404, { error: "event_not_found" });
     return;
   }
@@ -1940,14 +2016,14 @@ async function handleFakeAPIRequest(request, response, calls) {
         response,
         200,
         visibleEvent({
-          viewerCanEdit: call.cookie?.includes(`cgn_session=${sessionToken}`)
-        })
+          viewerCanEdit: call.cookie?.includes(`cgn_session=${sessionToken}`),
+        }),
       );
     } else {
       writeJSON(response, 200, {
         slug: eventSlug,
         visibility: "private",
-        locked: true
+        locked: true,
       });
     }
     return;
@@ -1956,7 +2032,7 @@ async function handleFakeAPIRequest(request, response, calls) {
   if (method === "GET" && requestURL.pathname === "/me/events") {
     writeJSON(response, 200, {
       upcoming_rsvps: [fakeAccountEvent("Smoke Dashboard RSVP", "yes")],
-      followed_school_events: [fakeAccountEvent("Smoke Followed Event")]
+      followed_school_events: [fakeAccountEvent("Smoke Followed Event")],
     });
     return;
   }
@@ -1968,12 +2044,14 @@ async function handleFakeAPIRequest(request, response, calls) {
 
   if (method === "GET" && requestURL.pathname === "/me/teams") {
     writeJSON(response, 200, {
-      teams: [{
-        ...fakeTeam(),
-        viewer_role: "member",
-        members: [{ name: "private-account-member" }]
-      }],
-      limit: 10
+      teams: [
+        {
+          ...fakeTeam(),
+          viewer_role: "member",
+          members: [{ name: "private-account-member" }],
+        },
+      ],
+      limit: 10,
     });
     return;
   }
@@ -1996,9 +2074,8 @@ async function handleFakeAPIRequest(request, response, calls) {
     ) {
       writeJSON(response, 200, fakeProfile(), {
         headers: {
-          "set-cookie":
-            `cgn_session=${sessionToken}; Path=/; Max-Age=3600; HttpOnly; Secure; SameSite=Lax`
-        }
+          "set-cookie": `cgn_session=${sessionToken}; Path=/; Max-Age=3600; HttpOnly; Secure; SameSite=Lax`,
+        },
       });
     } else {
       writeJSON(response, 401, { error: "invalid_credentials" });
@@ -2022,7 +2099,7 @@ async function handleFakeAPIRequest(request, response, calls) {
       writeJSON(response, 200, {
         event: visibleEvent(),
         unlock_token: unlockToken,
-        expires_at: "2037-08-15T20:00:00Z"
+        expires_at: "2037-08-15T20:00:00Z",
       });
     } else {
       writeJSON(response, 422, { error: "invalid_private_password" });
@@ -2070,23 +2147,21 @@ function visibleEvent({ viewerRSVP, viewerCanEdit = false } = {}) {
       name: "Smoke Test University",
       slug: "smoke-test-university",
       city: "Irvine",
-      state: "CA"
+      state: "CA",
     },
-    games: [
-      { id: "game-smoke", name: "Smoke Arena", slug: "smoke-arena" }
-    ],
+    games: [{ id: "game-smoke", name: "Smoke Arena", slug: "smoke-arena" }],
     organizers: [
       {
         id: "user-smoke",
         name: "Smoke Player",
         role: "creator",
-        verification_level: "verified_student"
-      }
+        verification_level: "verified_student",
+      },
     ],
     ...(viewerCanEdit ? { viewer_can_edit: true } : {}),
     ...(viewerRSVP === "yes" || viewerRSVP === "maybe" || viewerRSVP === "no"
       ? { viewer_rsvp: viewerRSVP }
-      : {})
+      : {}),
   };
 }
 
@@ -2104,7 +2179,7 @@ function fakePublicEvent() {
     lifecycle: "upcoming",
     host_school: { name: "Smoke Test University" },
     games: [{ name: "Smoke Arena" }],
-    private_note: "private-event-browse-note"
+    private_note: "private-event-browse-note",
   };
 }
 
@@ -2120,7 +2195,7 @@ function fakeAccountEvent(title, viewerRSVP) {
     host_school: fakeSchool(),
     games: [{ id: "game-smoke", name: "Smoke Arena", slug: "smoke-arena" }],
     ...(viewerRSVP ? { viewer_rsvp: viewerRSVP } : {}),
-    private_note: "account-event-private-note"
+    private_note: "account-event-private-note",
   };
 }
 
@@ -2136,20 +2211,18 @@ function fakeTeam() {
       name: "Smoke Test University",
       slug: schoolSlug,
       city: "Irvine",
-      state: "CA"
+      state: "CA",
     },
-    games: [
-      { id: "game-smoke", name: "Smoke Arena", slug: "smoke-arena" }
-    ],
+    games: [{ id: "game-smoke", name: "Smoke Arena", slug: "smoke-arena" }],
     owner_user_id: "private-owner-user-id",
     members: [
       {
         user_id: "private-owner-user-id",
         name: "private-member@example.test",
-        role: "member"
-      }
+        role: "member",
+      },
     ],
-    private_note: "private-team-note"
+    private_note: "private-team-note",
   };
 }
 
@@ -2167,12 +2240,12 @@ function fakeProfile() {
       {
         id: "social-smoke",
         label: "Community",
-        url: "https://community.example.test/smoke-player"
-      }
+        url: "https://community.example.test/smoke-player",
+      },
     ],
     role_indicators: [],
     password_hash: "account-password-hash",
-    session: "account-session-secret"
+    session: "account-session-secret",
   };
 }
 
@@ -2191,7 +2264,7 @@ function fakeSchool() {
     longitude: -117.84,
     is_main_campus: true,
     num_branches: 1,
-    private_note: "private-school-note"
+    private_note: "private-school-note",
   };
 }
 
@@ -2208,13 +2281,13 @@ function fakePublicProfile() {
       {
         id: "social-smoke",
         label: "Community",
-        url: "https://community.example.test/public-smoke-player"
-      }
+        url: "https://community.example.test/public-smoke-player",
+      },
     ],
     role_indicators: ["school_admin"],
     email: "private-profile@example.test",
     session: "private-profile-session",
-    internal_header: "private-profile-internal-header"
+    internal_header: "private-profile-internal-header",
   };
 }
 
@@ -2236,12 +2309,17 @@ async function readJSONRequestBody(request) {
   return text.trim() ? JSON.parse(text) : undefined;
 }
 
-function writeJSON(response, status, payload, { head = false, headers = {} } = {}) {
+function writeJSON(
+  response,
+  status,
+  payload,
+  { head = false, headers = {} } = {},
+) {
   const body = JSON.stringify(payload);
   response.writeHead(status, {
     "content-type": "application/json; charset=utf-8",
     "content-length": Buffer.byteLength(body),
-    ...headers
+    ...headers,
   });
   response.end(head ? undefined : body);
 }
@@ -2275,7 +2353,9 @@ function listenOnEphemeralPort(server, signal) {
       server.removeListener("error", onError);
       const address = server.address();
       if (!address || typeof address === "string") {
-        reject(new Error("Unable to determine dynamically selected localhost port"));
+        reject(
+          new Error("Unable to determine dynamically selected localhost port"),
+        );
         return;
       }
       resolve(address.port);
@@ -2293,9 +2373,9 @@ function captureChildOutput(child) {
     format() {
       return [
         formatCapturedStream("child stdout", this.stdout, this.stdoutTruncated),
-        formatCapturedStream("child stderr", this.stderr, this.stderrTruncated)
+        formatCapturedStream("child stderr", this.stderr, this.stderrTruncated),
       ].join("");
-    }
+    },
   };
 
   child.stdout?.on("data", (chunk) => {
@@ -2323,7 +2403,7 @@ function appendBounded(current, chunk) {
 
   return {
     value: Buffer.from(combined).subarray(-maximumChildOutputBytes).toString(),
-    truncated: true
+    truncated: true,
   };
 }
 
@@ -2342,14 +2422,14 @@ async function terminateChild(child) {
   child.kill("SIGTERM");
   const exited = await Promise.race([
     waitForExit(child).then(() => true),
-    delay(shutdownTimeoutMilliseconds).then(() => false)
+    delay(shutdownTimeoutMilliseconds).then(() => false),
   ]);
 
   if (!exited && child.exitCode === null && child.signalCode === null) {
     child.kill("SIGKILL");
     await Promise.race([
       waitForExit(child),
-      delay(shutdownTimeoutMilliseconds)
+      delay(shutdownTimeoutMilliseconds),
     ]);
   }
 }
@@ -2371,7 +2451,7 @@ async function closeServer(server) {
       server.close(resolve);
       server.closeAllConnections?.();
     }),
-    delay(shutdownTimeoutMilliseconds)
+    delay(shutdownTimeoutMilliseconds),
   ]);
 }
 
@@ -2385,7 +2465,7 @@ function findNode24Binary() {
   }
 
   throw new Error(
-    "Node 24 is required. Run this script with Node 24 or set NODE_24_BINARY to a Node 24 executable."
+    "Node 24 is required. Run this script with Node 24 or set NODE_24_BINARY to a Node 24 executable.",
   );
 }
 
@@ -2398,7 +2478,12 @@ function nodeBinaryCandidates() {
 
   for (const directory of (process.env.PATH ?? "").split(path.delimiter)) {
     if (directory) {
-      candidates.add(path.join(directory, process.platform === "win32" ? "node.exe" : "node"));
+      candidates.add(
+        path.join(
+          directory,
+          process.platform === "win32" ? "node.exe" : "node",
+        ),
+      );
     }
   }
 
@@ -2432,7 +2517,7 @@ function nodeVersion(binary) {
 
   const result = spawnSync(binary, ["--version"], {
     encoding: "utf8",
-    timeout: 2_000
+    timeout: 2_000,
   });
   return result.status === 0 ? result.stdout.trim() : undefined;
 }

@@ -2,7 +2,7 @@ import * as z from "zod";
 
 const headerSchema = z.object({
   alg: z.literal("RS256"),
-  kid: z.string().min(1).max(512)
+  kid: z.string().min(1).max(512),
 });
 
 const claimsSchema = z.object({
@@ -12,7 +12,7 @@ const claimsSchema = z.object({
   aud: z.union([z.string(), z.array(z.string())]),
   exp: z.number().int(),
   iat: z.number().int(),
-  nbf: z.number().int().optional()
+  nbf: z.number().int().optional(),
 });
 
 const jwksSchema = z.object({
@@ -23,9 +23,9 @@ const jwksSchema = z.object({
       alg: z.literal("RS256").optional(),
       use: z.literal("sig").optional(),
       n: z.string(),
-      e: z.string()
-    })
-  )
+      e: z.string(),
+    }),
+  ),
 });
 
 export type AccessAssertionConfig = {
@@ -54,7 +54,7 @@ export async function validateAccessAssertion(
     fetcher?: typeof fetch;
     now?: () => Date;
     cacheTTLMilliseconds?: number;
-  } = {}
+  } = {},
 ): Promise<void> {
   if (!assertion.trim()) throw new AccessAssertionError("missing");
   if (assertion.length > 64 * 1024) throw new AccessAssertionError("invalid");
@@ -90,14 +90,14 @@ export async function validateAccessAssertion(
   const key = await signingKey(header.kid, config.jwksURL, {
     fetcher: dependencies.fetcher,
     now,
-    cacheTTLMilliseconds: dependencies.cacheTTLMilliseconds
+    cacheTTLMilliseconds: dependencies.cacheTTLMilliseconds,
   });
   let signature: ArrayBuffer;
   try {
     const bytes = Buffer.from(parts[2], "base64url");
     signature = bytes.buffer.slice(
       bytes.byteOffset,
-      bytes.byteOffset + bytes.byteLength
+      bytes.byteOffset + bytes.byteLength,
     ) as ArrayBuffer;
   } catch {
     throw new AccessAssertionError("invalid");
@@ -109,13 +109,13 @@ export async function validateAccessAssertion(
       key,
       { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
       false,
-      ["verify"]
+      ["verify"],
     );
     const verified = await crypto.subtle.verify(
       "RSASSA-PKCS1-v1_5",
       imported,
       signature,
-      new TextEncoder().encode(`${parts[0]}.${parts[1]}`)
+      new TextEncoder().encode(`${parts[0]}.${parts[1]}`),
     );
     if (!verified) throw new AccessAssertionError("invalid");
   } catch (error) {
@@ -131,7 +131,7 @@ async function signingKey(
     fetcher?: typeof fetch;
     now: Date;
     cacheTTLMilliseconds?: number;
-  }
+  },
 ): Promise<JsonWebKey> {
   if (keyCache && keyCache.expiresAt > dependencies.now.getTime()) {
     const cached = keyCache.keys.get(keyID);
@@ -145,7 +145,7 @@ async function signingKey(
       headers: { Accept: "application/json" },
       cache: "no-store",
       redirect: "error",
-      signal: AbortSignal.timeout(5000)
+      signal: AbortSignal.timeout(5000),
     });
   } catch {
     throw new AccessAssertionError("unavailable");
@@ -163,8 +163,10 @@ async function signingKey(
   if (!parsed.success) throw new AccessAssertionError("unavailable");
   const keys = new Map<string, JsonWebKey>();
   for (const key of parsed.data.keys) {
-    if ((key.alg === undefined || key.alg === "RS256") &&
-      (key.use === undefined || key.use === "sig")) {
+    if (
+      (key.alg === undefined || key.alg === "RS256") &&
+      (key.use === undefined || key.use === "sig")
+    ) {
       keys.set(key.kid, key);
     }
   }
@@ -172,7 +174,7 @@ async function signingKey(
     expiresAt:
       dependencies.now.getTime() +
       (dependencies.cacheTTLMilliseconds ?? 5 * 60 * 1000),
-    keys
+    keys,
   };
   const key = keys.get(keyID);
   if (!key) throw new AccessAssertionError("invalid");
@@ -181,11 +183,11 @@ async function signingKey(
 
 function parseSegment<T extends z.ZodType>(
   segment: string,
-  schema: T
+  schema: T,
 ): z.output<T> | null {
   try {
     const payload: unknown = JSON.parse(
-      Buffer.from(segment, "base64url").toString("utf8")
+      Buffer.from(segment, "base64url").toString("utf8"),
     );
     const parsed = schema.safeParse(payload);
     return parsed.success ? parsed.data : null;

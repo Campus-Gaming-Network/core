@@ -1,8 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { publicPageHead } from "../components/public-page-head";
-import {
-  validateSupportSearch
-} from "../features/support-slice/contracts";
+import { validateSupportSearch } from "../features/support-slice/contracts";
 import { SupportTicketForm } from "../features/support-slice/support-ticket-form";
 
 const description =
@@ -15,9 +13,9 @@ export const Route = createFileRoute("/support")({
     publicPageHead(loaderData, {
       title: "Support",
       description,
-      path: "/support"
+      path: "/support",
     }),
-  component: SupportPage
+  component: SupportPage,
 });
 
 function SupportPage() {

@@ -2,32 +2,29 @@ import {
   Link,
   createFileRoute,
   notFound,
-  type ErrorComponentProps
+  type ErrorComponentProps,
 } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { type FormEvent } from "react";
 import { useEnhancedMutation } from "../components/enhanced-mutation";
-import {
-  RouteErrorView,
-  RoutePending
-} from "../components/route-boundaries";
+import { RouteErrorView, RoutePending } from "../components/route-boundaries";
 import {
   getSchoolCatalog,
-  getSchoolViewerState
+  getSchoolViewerState,
 } from "../features/school-slice/catalog.functions";
 import {
   followSchool,
-  unfollowSchool
+  unfollowSchool,
 } from "../features/school-slice/school-follow.functions";
 import {
   validateSchoolsSearch,
   type SchoolDTO,
-  type SchoolsSearch
+  type SchoolsSearch,
 } from "../features/school-slice/contracts";
 import {
   schoolHead,
   schoolLocation,
-  safeSchoolWebsite
+  safeSchoolWebsite,
 } from "../features/school-slice/presentation";
 
 export type SchoolRouteData = {
@@ -48,20 +45,22 @@ export const Route = createFileRoute("/schools/$slug")({
     }
     return {
       school: catalog.school,
-      viewer: await getSchoolViewerState({ data: { schoolId: catalog.school.id } }),
-      publicOrigin: context.publicOrigin
+      viewer: await getSchoolViewerState({
+        data: { schoolId: catalog.school.id },
+      }),
+      publicOrigin: context.publicOrigin,
     };
   },
   staleTime: 0,
   headers: () => ({
     "cache-control": "private, no-store",
-    vary: "Cookie"
+    vary: "Cookie",
   }),
   head: ({ loaderData }) =>
     schoolHead(loaderData?.school, loaderData?.publicOrigin),
   pendingComponent: SchoolPending,
   errorComponent: SchoolError,
-  component: SchoolPage
+  component: SchoolPage,
 });
 
 function SchoolPage() {
@@ -85,7 +84,9 @@ function SchoolPage() {
       <section className="detail-grid" aria-label="School details">
         <div className="detail-row">
           <span>Campus type</span>
-          <strong>{school.is_main_campus ? "Main campus" : "Branch campus"}</strong>
+          <strong>
+            {school.is_main_campus ? "Main campus" : "Branch campus"}
+          </strong>
         </div>
         <div className="detail-row">
           <span>Known branches</span>
@@ -144,7 +145,7 @@ function SchoolPage() {
 
 function SchoolFollowForm({
   following,
-  school
+  school,
 }: {
   following: boolean;
   school: Pick<SchoolDTO, "id" | "slug">;
@@ -152,7 +153,7 @@ function SchoolFollowForm({
   const runFollowSchool = useServerFn(followSchool);
   const runUnfollowSchool = useServerFn(unfollowSchool);
   const mutation = useEnhancedMutation(
-    "We could not update this school follow. Please try again."
+    "We could not update this school follow. Please try again.",
   );
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -161,7 +162,7 @@ function SchoolFollowForm({
     await mutation.execute(() =>
       following
         ? runUnfollowSchool({ data: input })
-        : runFollowSchool({ data: input })
+        : runFollowSchool({ data: input }),
     );
   }
 
@@ -192,11 +193,15 @@ function SchoolFollowForm({
   );
 }
 
-function FollowNotice({ status }: { status: NonNullable<SchoolsSearch["follow"]> }) {
+function FollowNotice({
+  status,
+}: {
+  status: NonNullable<SchoolsSearch["follow"]>;
+}) {
   const messages = {
     added: "School followed.",
     failed: "We could not update this school follow. Please try again.",
-    removed: "School unfollowed."
+    removed: "School unfollowed.",
   } as const;
   return (
     <p role={status === "failed" ? "alert" : "status"} aria-live="polite">

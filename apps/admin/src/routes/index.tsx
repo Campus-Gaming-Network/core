@@ -2,9 +2,9 @@ import { createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/")({
   head: () => ({
-    meta: [{ title: "Overview | CGN Admin Console" }]
+    meta: [{ title: "Overview | CGN Admin Console" }],
   }),
-  component: AdminOverview
+  component: AdminOverview,
 });
 
 function AdminOverview() {
@@ -39,7 +39,7 @@ function AdminOverview() {
           <strong>
             {new Intl.DateTimeFormat("en", {
               dateStyle: "medium",
-              timeStyle: "short"
+              timeStyle: "short",
             }).format(new Date(admin.session.absolute_expires_at))}
           </strong>
         </article>

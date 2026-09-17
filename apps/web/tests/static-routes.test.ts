@@ -21,7 +21,7 @@ const pages = [
     title: "About",
     description:
       "How Campus Gaming Network connects collegiate gamers with events, teams, and campus activity.",
-    heading: "Campus Gaming Network connects collegiate gaming communities."
+    heading: "Campus Gaming Network connects collegiate gaming communities.",
   },
   {
     route: "/faq",
@@ -29,7 +29,7 @@ const pages = [
     title: "FAQ",
     description:
       "Answers to common questions about accounts, events, teams, and schools on Campus Gaming Network.",
-    heading: "Frequently asked questions."
+    heading: "Frequently asked questions.",
   },
   {
     route: "/privacy",
@@ -37,14 +37,14 @@ const pages = [
     title: "Privacy",
     description:
       "How Campus Gaming Network collects, uses, and protects your information.",
-    heading: "Privacy placeholder"
+    heading: "Privacy placeholder",
   },
   {
     route: "/terms",
     file: "terms.tsx",
     title: "Terms",
     description: "The terms of service for using Campus Gaming Network.",
-    heading: "Terms placeholder"
+    heading: "Terms placeholder",
   },
   {
     route: "/support",
@@ -52,8 +52,8 @@ const pages = [
     title: "Support",
     description:
       "Get help with Campus Gaming Network or send the team a support request.",
-    heading: "Need help?"
-  }
+    heading: "Need help?",
+  },
 ] as const;
 
 test("static routes preserve the public, indexable metadata contract", () => {
@@ -61,36 +61,36 @@ test("static routes preserve the public, indexable metadata contract", () => {
     const head = publicPageHead("https://cgn.example", {
       title: page.title,
       description: page.description,
-      path: page.route
+      path: page.route,
     });
 
     assert.deepEqual(head.meta[0], {
-      title: `${page.title} | Campus Gaming Network`
+      title: `${page.title} | Campus Gaming Network`,
     });
     assert.ok(
       head.meta.some(
         (entry) =>
-          entry.name === "description" && entry.content === page.description
-      )
+          entry.name === "description" && entry.content === page.description,
+      ),
     );
     assert.ok(
       head.meta.some(
         (entry) =>
           entry.property === "og:url" &&
-          entry.content === `https://cgn.example${page.route}`
-      )
+          entry.content === `https://cgn.example${page.route}`,
+      ),
     );
     assert.ok(
       head.meta.some(
         (entry) =>
           entry.name === "twitter:title" &&
-          entry.content === `${page.title} | Campus Gaming Network`
-      )
+          entry.content === `${page.title} | Campus Gaming Network`,
+      ),
     );
     assert.equal(
       head.meta.some((entry) => entry.name === "robots"),
       false,
-      `${page.route} must remain indexable`
+      `${page.route} must remain indexable`,
     );
   }
 });
@@ -99,13 +99,22 @@ test("static routes are SSR loader-backed and do not fetch viewer state themselv
   for (const page of pages) {
     const routeSource = source(`src/routes/${page.file}`);
 
-    assert.match(routeSource, new RegExp(`createFileRoute\\("${page.route}"\\)`));
     assert.match(
       routeSource,
-      /loader: \(\{ context \}\) => context\.publicOrigin/
+      new RegExp(`createFileRoute\\("${page.route}"\\)`),
     );
-    assert.match(routeSource, new RegExp(page.heading.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
-    assert.doesNotMatch(routeSource, /getEventViewerSession|createServerFn|["']\/me["']/);
+    assert.match(
+      routeSource,
+      /loader: \(\{ context \}\) => context\.publicOrigin/,
+    );
+    assert.match(
+      routeSource,
+      new RegExp(page.heading.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")),
+    );
+    assert.doesNotMatch(
+      routeSource,
+      /getEventViewerSession|createServerFn|["']\/me["']/,
+    );
   }
 });
 

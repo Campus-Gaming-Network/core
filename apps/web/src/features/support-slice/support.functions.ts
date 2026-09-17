@@ -3,20 +3,20 @@ import { createServerFn } from "@tanstack/react-start";
 import {
   currentSessionRequest,
   isNativeFormPost,
-  setPrivateNoStoreResponse
+  setPrivateNoStoreResponse,
 } from "../../server/request-boundary.server.js";
 import {
   validateSupportTicketServerInput,
-  type SupportTicketInput
+  type SupportTicketInput,
 } from "./contracts.js";
 import { submitSupportTicketOperation } from "./support-operations.server.js";
 
 export const submitSupportTicket = createServerFn({
   method: "POST",
-  strict: { input: false }
+  strict: { input: false },
 })
   .validator((input: SupportTicketInput | FormData) =>
-    validateSupportTicketServerInput(input)
+    validateSupportTicketServerInput(input),
   )
   .handler(async ({ data }) => {
     setPrivateNoStoreResponse();
@@ -26,18 +26,18 @@ export const submitSupportTicket = createServerFn({
       return {
         status: "error" as const,
         message: data.message,
-        fieldErrors: data.fieldErrors
+        fieldErrors: data.fieldErrors,
       };
     }
 
     const request = currentSessionRequest();
     const result = await submitSupportTicketOperation(data.value, {
       api: request.api,
-      cookieHeader: request.cookieHeader
+      cookieHeader: request.cookieHeader,
     });
     if (nativeForm) {
       nativeRedirect(
-        `/support?support=${result.status === "success" ? "submitted" : "failed"}`
+        `/support?support=${result.status === "success" ? "submitted" : "failed"}`,
       );
     }
     return result;

@@ -1,7 +1,7 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import {
   firstString,
-  legacyResetDestination
+  legacyResetDestination,
 } from "../features/auth-flow-slice/contracts";
 import { establishPrivateAuthPage } from "../features/auth-flow-slice/auth-flow.functions";
 import { authPageHead } from "../features/auth-flow-slice/presentation";
@@ -21,15 +21,16 @@ export const Route = createFileRoute("/auth/reset-password")({
       statusCode: 307,
       headers: {
         "cache-control": "private, no-store",
-        "referrer-policy": "no-referrer"
-      }
+        "referrer-policy": "no-referrer",
+      },
     });
   },
-  head: () => authPageHead(undefined, {
-    title: "Reset password",
-    description,
-    path: "/auth/reset-password",
-    noIndex: true
-  }),
-  headers: () => ({ "cache-control": "private, no-store" })
+  head: () =>
+    authPageHead(undefined, {
+      title: "Reset password",
+      description,
+      path: "/auth/reset-password",
+      noIndex: true,
+    }),
+  headers: () => ({ "cache-control": "private, no-store" }),
 });

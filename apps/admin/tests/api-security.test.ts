@@ -3,24 +3,26 @@ import test from "node:test";
 import * as z from "zod";
 import {
   AdminApiContractError,
-  createAdminApiClient
+  createAdminApiClient,
 } from "../src/server/api.server.js";
 
 test("the Admin API client replaces browser-supplied trust headers", async () => {
-  let request: { input: string | URL | Request; init?: RequestInit } | undefined;
+  let request:
+    | { input: string | URL | Request; init?: RequestInit }
+    | undefined;
   const api = createAdminApiClient({
     baseURL: "http://api.internal",
     proxySecret: "server-owned-secret",
     fetcher: async (input, init) => {
       request = { input, init };
       return Response.json({ ok: true });
-    }
+    },
   });
 
   await api({
     path: "/admin/v1/session",
     responseSchema: z.object({ ok: z.literal(true) }),
-    headers: { "X-CGN-Admin-Proxy-Secret": "browser-controlled" }
+    headers: { "X-CGN-Admin-Proxy-Secret": "browser-controlled" },
   });
 
   assert.equal(String(request?.input), "http://api.internal/admin/v1/session");
@@ -34,14 +36,14 @@ test("unexpected privileged response fields fail the explicit contract", async (
   const api = createAdminApiClient({
     baseURL: "http://api.internal",
     proxySecret: "server-owned-secret",
-    fetcher: async () => Response.json({ role: "school_admin" })
+    fetcher: async () => Response.json({ role: "school_admin" }),
   });
 
   await assert.rejects(
     api({
       path: "/admin/v1/session",
-      responseSchema: z.object({ role: z.literal("site_admin") })
+      responseSchema: z.object({ role: z.literal("site_admin") }),
     }),
-    AdminApiContractError
+    AdminApiContractError,
   );
 });

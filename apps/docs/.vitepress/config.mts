@@ -29,12 +29,12 @@ function titleFor(fileName: string) {
 }
 
 const rewrites = Object.fromEntries(
-  markdownFiles.map((fileName) => [fileName, outputName(fileName)])
+  markdownFiles.map((fileName) => [fileName, outputName(fileName)]),
 );
 
 const sidebar = markdownFiles.map((fileName) => ({
   text: fileName === "README.md" ? "Overview" : titleFor(fileName),
-  link: linkFor(fileName)
+  link: linkFor(fileName),
 }));
 
 export default defineConfig({
@@ -48,7 +48,9 @@ export default defineConfig({
   cleanUrls: true,
   lastUpdated: gitLastUpdatedEnabled,
   rewrites,
-  head: [["link", { rel: "icon", href: "/img/favicon.svg", type: "image/svg+xml" }]],
+  head: [
+    ["link", { rel: "icon", href: "/img/favicon.svg", type: "image/svg+xml" }],
+  ],
 
   markdown: {
     config(markdown) {
@@ -60,7 +62,13 @@ export default defineConfig({
       };
 
       const defaultFence = markdown.renderer.rules.fence;
-      markdown.renderer.rules.fence = (tokens, index, options, environment, self) => {
+      markdown.renderer.rules.fence = (
+        tokens,
+        index,
+        options,
+        environment,
+        self,
+      ) => {
         const token = tokens[index];
         if (token.info.trim() === "mermaid") {
           const encoded = Buffer.from(token.content, "utf8").toString("base64");
@@ -76,7 +84,7 @@ export default defineConfig({
         index,
         options,
         environment,
-        self
+        self,
       ) => {
         const token = tokens[index];
         const href = token.attrGet("href");
@@ -85,7 +93,7 @@ export default defineConfig({
           const kind = href.endsWith("/") ? "tree" : "blob";
           token.attrSet(
             "href",
-            `https://github.com/Campus-Gaming-Network/core/${kind}/main/${repoPath}`
+            `https://github.com/Campus-Gaming-Network/core/${kind}/main/${repoPath}`,
           );
           token.attrSet("target", "_blank");
           token.attrSet("rel", "noreferrer");
@@ -94,14 +102,19 @@ export default defineConfig({
         } else {
           const localDoc = href?.match(/^\.\/([^?#]+\.md)([?#].*)?$/);
           if (localDoc) {
-            token.attrSet("href", `${linkFor(localDoc[1])}${localDoc[2] ?? ""}`);
+            token.attrSet(
+              "href",
+              `${linkFor(localDoc[1])}${localDoc[2] ?? ""}`,
+            );
           }
         }
 
-        return defaultLinkOpen?.(tokens, index, options, environment, self) ??
-          self.renderToken(tokens, index, options);
+        return (
+          defaultLinkOpen?.(tokens, index, options, environment, self) ??
+          self.renderToken(tokens, index, options)
+        );
       };
-    }
+    },
   },
 
   themeConfig: {
@@ -110,34 +123,34 @@ export default defineConfig({
     nav: [
       { text: "Current state", link: "/current-state" },
       { text: "Action plan", link: "/codebase-review-action-plan" },
-      { text: "Open product", link: "http://localhost:3000" }
+      { text: "Open product", link: "http://localhost:3000" },
     ],
     sidebar,
     outline: {
       level: [2, 4],
-      label: "On this page"
+      label: "On this page",
     },
     search: {
-      provider: "local"
+      provider: "local",
     },
     editLink: {
       pattern:
         "https://github.com/Campus-Gaming-Network/core/edit/main/docs/:path",
-      text: "Edit this page on GitHub"
+      text: "Edit this page on GitHub",
     },
     docFooter: {
       prev: "Previous",
-      next: "Next"
+      next: "Next",
     },
     lastUpdated: {
       text: "Last updated",
       formatOptions: {
         dateStyle: "medium",
-        timeStyle: "short"
-      }
+        timeStyle: "short",
+      },
     },
     footer: {
-      message: "Campus Gaming Network · Local documentation"
-    }
-  }
+      message: "Campus Gaming Network · Local documentation",
+    },
+  },
 });

@@ -10,12 +10,12 @@ change has been merged, deployed, or legally reviewed.
 These are the product targets to build against until reviewed copy and operator
 decisions replace them:
 
-| Record | Target | Clock |
-|---|---|---|
-| Support ticket | Purge 12 months after the ticket becomes `resolved` or `closed` | `retention_started_at`; clear it if the ticket is reopened and start a new clock when it next becomes terminal |
-| Safety report | Purge 24 months after the report becomes `resolved` or `closed` | `retention_started_at`, with the same reopen/restart behavior |
-| Domain audit entry | Purge after 24 months unless it is needed for an active case or hold | Normally `created_at`; define the associated-case rule before automation |
-| Database backup | Expire within 90 days | Backup creation date; verify the actual provider schedule and deletion behavior before launch |
+| Record             | Target                                                               | Clock                                                                                                          |
+| ------------------ | -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Support ticket     | Purge 12 months after the ticket becomes `resolved` or `closed`      | `retention_started_at`; clear it if the ticket is reopened and start a new clock when it next becomes terminal |
+| Safety report      | Purge 24 months after the report becomes `resolved` or `closed`      | `retention_started_at`, with the same reopen/restart behavior                                                  |
+| Domain audit entry | Purge after 24 months unless it is needed for an active case or hold | Normally `created_at`; define the associated-case rule before automation                                       |
+| Database backup    | Expire within 90 days                                                | Backup creation date; verify the actual provider schedule and deletion behavior before launch                  |
 
 No eligible record should be purged until a legal-hold check has run. An active
 investigation, appeal, dispute, preservation request, or applicable legal duty
@@ -29,21 +29,21 @@ rights and exceptions that should be considered when the launch scope is known.
 ### Operations foundation
 
 - [x] Migration `000010_operations_foundation.up.sql` adds report/support
-  assignment, resolution notes, retention-clock timestamps and cleanup indexes;
-  append-oriented `audit_logs`; and user-scoped `notifications`.
+      assignment, resolution notes, retention-clock timestamps and cleanup indexes;
+      append-oriented `audit_logs`; and user-scoped `notifications`.
 - [x] Report and support queue repository updates write their before/after audit
-  record in the same transaction as the queue change.
+      record in the same transaction as the queue change.
 - [x] A report or ticket first entering `resolved` or `closed` starts its
-  retention clock. A terminal-to-terminal change preserves it; reopening clears
-  it; and a later terminal transition starts a fresh clock. Existing terminal
-  records are conservatively backfilled from `updated_at`.
+      retention clock. A terminal-to-terminal change preserves it; reopening clears
+      it; and a later terminal transition starts a fresh clock. Existing terminal
+      records are conservatively backfilled from `updated_at`.
 - [x] Notification repository reads and mark-read operations are scoped to the
-  owning user, and creation locks and verifies an active recipient so deletion
-  cannot race with a new notification. Notifications are deleted during
-  account deletion.
+      owning user, and creation locks and verifies an active recipient so deletion
+      cannot race with a new notification. Notifications are deleted during
+      account deletion.
 - [x] CI now provisions PostgreSQL, applies migrations, and supplies
-  `API_DATABASE_URL` before `go test ./...`, so database-backed operations and
-  account-deletion tests no longer silently skip in CI.
+      `API_DATABASE_URL` before `go test ./...`, so database-backed operations and
+      account-deletion tests no longer silently skip in CI.
 
 The foundation deliberately has no public or admin HTTP routes yet. Repository
 methods alone do not provide site-admin authorization.
@@ -53,23 +53,23 @@ methods alone do not provide site-admin authorization.
 The current deletion transaction:
 
 - [x] Replaces the user’s email and name, removes the bio, resets account trust
-  fields, marks the account deleted, revokes live sessions, and removes pending
-  verification/reset tokens.
+      fields, marks the account deleted, revokes live sessions, and removes pending
+      verification/reset tokens.
 - [x] Deletes personally scoped social links, school follows, team memberships,
-  event RSVPs/interests, event-organizer membership, and notifications.
+      event RSVPs/interests, event-organizer membership, and notifications.
 - [x] Transfers an owned team to the longest-tenured captain, then member, or
-  soft-deletes a team with no successor.
+      soft-deletes a team with no successor.
 - [x] Transfers a future created event to the longest-tenured other active
-  organizer. It archives future events with no active successor and archives
-  past events rather than rewriting their historical creator.
+      organizer. It archives future events with no active successor and archives
+      past events rather than rewriting their historical creator.
 - [x] Detaches support tickets from the deleted account. Terminal tickets also
-  have their direct contact email/name scrubbed; open or in-review tickets keep
-  contact fields so the support conversation can finish and carry a deletion
-  marker so the queue transition scrubs them when they become terminal.
+      have their direct contact email/name scrubbed; open or in-review tickets keep
+      contact fields so the support conversation can finish and carry a deletion
+      marker so the queue transition scrubs them when they become terminal.
 - [x] Unassigns report/support work assigned to the deleted user and retains
-  domain audit history. Reports can remain linked to the now-anonymized user row.
+      domain audit history. Reports can remain linked to the now-anonymized user row.
 - [x] Ignores suspended/deleted team and event successor candidates, scopes role
-  updates to the affected records, and removes active school-admin grants.
+      updates to the affected records, and removes active school-admin grants.
 
 Known limit: an event soft-cancelled by account deletion does not currently use
 the normal cancellation-mail path, so active `yes`/`maybe` attendees are not
@@ -86,20 +86,20 @@ Production Terms and Privacy copy should remain blocked until the operator
 supplies and confirms:
 
 - [ ] Legal operator name, any public business name, physical/mailing address,
-  and support/privacy contact details.
+      and support/privacy contact details.
 - [ ] State/country of formation, intended governing law and venue, and whether
-  the Terms will include arbitration or a class-action waiver.
+      the Terms will include arbitration or a class-action waiver.
 - [ ] Initial launch geography and whether access will be limited to the United
-  States and adults age 18 or older.
+      States and adults age 18 or older.
 - [ ] Final provider list and purposes, including Railway, Cloudflare, Resend,
-  DiceBear, and any analytics or error-monitoring provider added
-  before launch.
+      DiceBear, and any analytics or error-monitoring provider added
+      before launch.
 - [ ] Whether personal information is sold or shared for cross-context
-  behavioral advertising, and whether targeted advertising is planned.
+      behavioral advertising, and whether targeted advertising is planned.
 - [ ] Confirmation of the retention targets in this document, the provider’s
-  real backup retention/deletion behavior, and who may authorize a legal hold.
+      real backup retention/deletion behavior, and who may authorize a legal hold.
 - [ ] A contact and operating process for access, correction, deletion, and
-  appeal requests.
+      appeal requests.
 
 Only after those facts and the exact document text are settled should the team
 assign production policy versions and make acceptance mandatory. The Ninth
@@ -115,123 +115,123 @@ Items marked **pre-launch** should not wait until after a public release.
 ### Versioned Terms agreement and Privacy acknowledgement — pre-launch
 
 - [ ] Add immutable policy-document records with document type, public version,
-  effective time, content hash, and the exact rendered artifact or durable
-  source reference. Publishing a new version must not mutate the old one.
+      effective time, content hash, and the exact rendered artifact or durable
+      source reference. Publishing a new version must not mutate the old one.
 - [ ] Add append-only user acceptance records with user, policy-document id,
-  accepted time, and source (`signup` or `policy_update`). Do not collect an IP
-  address or user agent solely for this record without a documented need and
-  retention rule.
+      accepted time, and source (`signup` or `policy_update`). Do not collect an IP
+      address or user agent solely for this record without a documented need and
+      retention rule.
 - [ ] Keep the semantics separate: the user **agrees** to the Terms and
-  **acknowledges** the Privacy Policy. Use a required, initially unchecked
-  signup control with direct links to both exact versions.
+      **acknowledges** the Privacy Policy. Use a required, initially unchecked
+      signup control with direct links to both exact versions.
 - [ ] Extend signup API input and validation so the server records the currently
-  published versions in the same transaction as account creation and rejects
-  missing, false, stale, or unknown document/version claims. Do not trust a
-  client-supplied version without resolving it to a published server record.
+      published versions in the same transaction as account creation and rejects
+      missing, false, stale, or unknown document/version claims. Do not trust a
+      client-supplied version without resolving it to a published server record.
 - [ ] Extend the signup UI/action payload and accessible validation/error copy.
 - [ ] Add migration tests; repository/service/handler tests; web payload and
-  component tests; and an end-to-end signup test that proves the two accepted
-  versions were stored.
+      component tests; and an end-to-end signup test that proves the two accepted
+      versions were stored.
 - [ ] Migration rule: do not fabricate historical acceptance for existing
-  users. Leave them without an acceptance record and route them through the
-  existing-user flow below.
+      users. Leave them without an acceptance record and route them through the
+      existing-user flow below.
 - [ ] Define “material change,” notice timing, grace period, and which changes
-  require renewed Terms agreement versus notice or a legally required privacy
-  consent.
+      require renewed Terms agreement versus notice or a legally required privacy
+      consent.
 
 ### Existing-user reacceptance — pre-launch if accounts already exist
 
 - [ ] Present the current required Terms version after login when no matching
-  acceptance exists; preserve access to account deletion, privacy requests, and
-  logout even when the user declines.
+      acceptance exists; preserve access to account deletion, privacy requests, and
+      logout even when the user declines.
 - [ ] Record each new affirmative acceptance rather than overwriting history.
 - [ ] Send or display the required change notice and test the accepted,
-  declined, stale-version, and interrupted-session paths.
+      declined, stale-version, and interrupted-session paths.
 
 ### Retention, holds, and purge jobs — pre-launch policy; automation may follow
 
 - [ ] Model legal holds with scope, reason, creator, start/end timestamps and an
-  auditable release action. The purge query must exclude held records before any
-  delete or redaction occurs.
+      auditable release action. The purge query must exclude held records before any
+      delete or redaction occurs.
 - [ ] Implement idempotent, bounded cleanup jobs for the 12-month support and
-  24-month report/audit targets, with dry-run counts, metrics, failure alerts,
-  and tests around terminal transitions and exact cutoff boundaries.
+      24-month report/audit targets, with dry-run counts, metrics, failure alerts,
+      and tests around terminal transitions and exact cutoff boundaries.
 - [ ] Decide whether each expiry action hard-deletes the row or preserves a
-  minimal non-personal aggregate. Never keep the original free text under the
-  label “anonymous” without proving it has been de-identified.
+      minimal non-personal aggregate. Never keep the original free text under the
+      label “anonymous” without proving it has been de-identified.
 - [ ] Inventory and minimize incidental personal information in support
-  messages, report reasons, resolution notes, and audit before/after/metadata
-  JSON. Avoid copying full record bodies into audit entries when a narrower
-  change record is sufficient.
+      messages, report reasons, resolution notes, and audit before/after/metadata
+      JSON. Avoid copying full record bodies into audit entries when a narrower
+      change record is sufficient.
 - [ ] Document a manual runbook until cleanup is automated: owner, cadence,
-  query/review steps, hold check, evidence recorded, and recovery procedure.
+      query/review steps, hold check, evidence recorded, and recovery procedure.
 - [ ] Configure backups to expire within 90 days, document that deleted data may
-  persist in isolated backups until expiry, restrict restoration access, and
-  ensure restored data is re-subjected to completed deletion/purge requests.
+      persist in isolated backups until expiry, restrict restoration access, and
+      ensure restored data is re-subjected to completed deletion/purge requests.
 
 ### Event lifecycle on account deletion — pre-launch
 
 - [x] Transfer future events with another active organizer; archive future
-  events without one and archive past events without rewriting ownership.
+      events without one and archive past events without rewriting ownership.
 - [ ] Return the newly cancelled event ids and active `yes`/`maybe` recipients
-  from the deletion transaction, then send the existing best-effort
-  cancellation email after commit. Email failure must not roll back deletion.
+      from the deletion transaction, then send the existing best-effort
+      cancellation email after commit. Email failure must not roll back deletion.
 - [x] Add database tests for active successor selection, orphan cancellation,
-  child-record archival, past-event archival, and account-related support data.
+      child-record archival, past-event archival, and account-related support data.
 - [ ] Add handler/service tests for attendee selection and mail failure once
-  deletion returns the cancelled-event notification work.
+      deletion returns the cancelled-event notification work.
 
 ### DiceBear disclosure and opt-out — pre-launch
 
 - [ ] Disclose that the service derives a DiceBear Critters avatar from the
-  public user id and that the browser's image request contacts DiceBear.
+      public user id and that the browser's image request contacts DiceBear.
 - [ ] Add an account-level “use DiceBear” choice with an initials-only option.
-  When disabled, neither the API nor the page should emit a DiceBear URL, so the
-  browser makes no DiceBear request.
+      When disabled, neither the API nor the page should emit a DiceBear URL, so the
+      browser makes no DiceBear request.
 - [ ] Define the default for new and existing users, persist it, include it in
-  export/correction behavior, and test both rendering paths.
+      export/correction behavior, and test both rendering paths.
 
 ### Privacy request operations
 
 - [ ] Add authenticated data export covering profile, school relationships,
-  teams, events, RSVPs/interests, support/report submissions, notifications,
-  and policy-acceptance history, with secure generation, expiry, and audit.
+      teams, events, RSVPs/interests, support/report submissions, notifications,
+      and policy-acceptance history, with secure generation, expiry, and audit.
 - [ ] Add correction paths for editable profile data and a support workflow for
-  records that cannot safely be self-edited. Document identity verification,
-  request status, response deadlines, denial/appeal handling, and authorized
-  agents after launch geography is known.
+      records that cannot safely be self-edited. Document identity verification,
+      request status, response deadlines, denial/appeal handling, and authorized
+      agents after launch geography is known.
 - [ ] Keep deletion and privacy-request access available to users who decline a
-  new Terms version.
+      new Terms version.
 
 ### Operations surfaces
 
 - [ ] Bootstrap and authorize the first `site_admin`; define revocation and
-  least-privilege checks before exposing operations data.
+      least-privilege checks before exposing operations data.
 - [ ] Add site-admin-only report queue, support queue, and entity audit-history
-  endpoints. Test unauthenticated, ordinary-user, revoked-admin, school-admin,
-  and site-admin access, plus audit writes for every mutation.
+      endpoints. Test unauthenticated, ordinary-user, revoked-admin, school-admin,
+      and site-admin access, plus audit writes for every mutation.
 - [ ] Build the Admin Console report/support queue UI on those endpoints, including
-  assignment, status, notes, hold visibility, retention status, and safe
-  rendering of user-supplied text.
+      assignment, status, notes, hold visibility, retention status, and safe
+      rendering of user-supplied text.
 - [ ] Add authenticated user notification list/unread/mark-read endpoints and an
-  in-app notification inbox. Do not expose the repository directly.
+      in-app notification inbox. Do not expose the repository directly.
 - [ ] Adopt audit writes for deletion-triggered queue unassignment and other
-  account-lifecycle domain mutations; the current audit guarantee covers queue
-  repository patches, not every direct transactional maintenance change.
+      account-lifecycle domain mutations; the current audit guarantee covers queue
+      repository patches, not every direct transactional maintenance change.
 
 ### Known trust and infrastructure mismatches — pre-launch
 
 - [x] **`.edu` verification:** verified inboxes whose normalized domain ends
-  exactly in `.edu` promote `basic` accounts to `verified`; valid subdomains
-  and mixed case qualify, lookalike suffixes do not, and staff/faculty grants
-  are preserved. The product copy treats this as a limited domain trust signal,
-  not proof of enrollment, current affiliation, or identity.
+      exactly in `.edu` promote `basic` accounts to `verified`; valid subdomains
+      and mixed case qualify, lookalike suffixes do not, and staff/faculty grants
+      are preserved. The product copy treats this as a limited domain trust signal,
+      not proof of enrollment, current affiliation, or identity.
 - [ ] **Forwarded-IP rate limits:** deployment routes traffic through the web
-  service/proxies, while the API limiter keys only on `RemoteAddr`. In that
-  topology unrelated users may share one limiter bucket. Define the trusted
-  proxy chain, forward the original client address, accept a provider header
-  only from trusted immediate peers, and test spoofed/multiple forwarded values.
-  Replace the process-local limiter before running more than one API instance.
+      service/proxies, while the API limiter keys only on `RemoteAddr`. In that
+      topology unrelated users may share one limiter bucket. Define the trusted
+      proxy chain, forward the original client address, accept a provider header
+      only from trusted immediate peers, and test spoofed/multiple forwarded values.
+      Replace the process-local limiter before running more than one API instance.
 
 ## Completion gate
 

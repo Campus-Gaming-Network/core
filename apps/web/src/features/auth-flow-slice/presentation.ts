@@ -7,16 +7,13 @@ export function authPageHead(
     description: string;
     path: `/${string}`;
     noIndex?: boolean;
-  }
+  },
 ) {
   const head = publicPageHead(publicOrigin, options);
   return options.noIndex
     ? {
         ...head,
-        meta: [
-          ...head.meta,
-          { name: "robots", content: "noindex,nofollow" }
-        ]
+        meta: [...head.meta, { name: "robots", content: "noindex,nofollow" }],
       }
     : head;
 }

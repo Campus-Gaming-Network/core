@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import {
   schoolsApiResponse,
-  schoolsMethodNotAllowedResponse
+  schoolsMethodNotAllowedResponse,
 } from "../features/school-slice/schools-api.server";
 import { goBFFForHeaders } from "../server/request-boundary.server";
 
@@ -14,13 +14,13 @@ export const Route = createFileRoute("/api/schools")({
       PUT: schoolsMethodNotAllowedResponse,
       PATCH: schoolsMethodNotAllowedResponse,
       DELETE: schoolsMethodNotAllowedResponse,
-      OPTIONS: schoolsMethodNotAllowedResponse
-    }
-  }
+      OPTIONS: schoolsMethodNotAllowedResponse,
+    },
+  },
 });
 
 function handleSchoolsRequest(request: Request): Promise<Response> {
   return schoolsApiResponse(request, {
-    api: goBFFForHeaders(request.headers)
+    api: goBFFForHeaders(request.headers),
   });
 }

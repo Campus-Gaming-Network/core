@@ -2,7 +2,7 @@ export async function adminHealthResponse(
   dependencies: {
     apiBaseURL?: string;
     fetcher?: typeof fetch;
-  } = {}
+  } = {},
 ): Promise<Response> {
   const baseURL =
     dependencies.apiBaseURL ??
@@ -11,27 +11,27 @@ export async function adminHealthResponse(
   const fetcher = dependencies.fetcher ?? fetch;
   try {
     const response = await fetcher(`${baseURL.replace(/\/+$/, "")}/health`, {
-      cache: "no-store"
+      cache: "no-store",
     });
     const healthy = response.ok;
     return Response.json(
       {
         service: "campus-gaming-network-admin",
-        status: healthy ? "ok" : "degraded"
+        status: healthy ? "ok" : "degraded",
       },
       {
         status: healthy ? 200 : 503,
-        headers: { "cache-control": "private, no-store" }
-      }
+        headers: { "cache-control": "private, no-store" },
+      },
     );
   } catch {
     return Response.json(
       {
         service: "campus-gaming-network-admin",
         status: "degraded",
-        reason: "api_unreachable"
+        reason: "api_unreachable",
       },
-      { status: 503, headers: { "cache-control": "private, no-store" } }
+      { status: 503, headers: { "cache-control": "private, no-store" } },
     );
   }
 }
@@ -39,6 +39,6 @@ export async function adminHealthResponse(
 export function methodNotAllowedResponse(): Response {
   return new Response(null, {
     status: 405,
-    headers: { Allow: "GET, HEAD", "cache-control": "private, no-store" }
+    headers: { Allow: "GET, HEAD", "cache-control": "private, no-store" },
   });
 }

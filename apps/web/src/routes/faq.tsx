@@ -8,24 +8,24 @@ const faqs = [
   {
     question: "Can any school be listed?",
     answer:
-      "Phase 1 starts with the seeded school list. Main and branch campuses are shown the same way."
+      "Phase 1 starts with the seeded school list. Main and branch campuses are shown the same way.",
   },
   {
     question: "Do I need to verify my email?",
-    answer: "Yes. Verification is required before normal authenticated use."
+    answer: "Yes. Verification is required before normal authenticated use.",
   },
   {
     question: "Can I create events yet?",
     answer:
-      "Yes. Logged-in users can create, edit, delete, and RSVP to event listings. Private events support password unlocks, and yes RSVPs send confirmation emails with calendar files."
-  }
+      "Yes. Logged-in users can create, edit, delete, and RSVP to event listings. Private events support password unlocks, and yes RSVPs send confirmation emails with calendar files.",
+  },
 ];
 
 export const Route = createFileRoute("/faq")({
   loader: ({ context }) => context.publicOrigin,
   head: ({ loaderData }) =>
     publicPageHead(loaderData, { title: "FAQ", description, path: "/faq" }),
-  component: FAQPage
+  component: FAQPage,
 });
 
 function FAQPage() {

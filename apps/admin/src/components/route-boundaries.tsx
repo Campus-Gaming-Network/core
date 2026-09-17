@@ -1,4 +1,8 @@
-import { Link, useRouter, type ErrorComponentProps } from "@tanstack/react-router";
+import {
+  Link,
+  useRouter,
+  type ErrorComponentProps,
+} from "@tanstack/react-router";
 
 export function DefaultPending() {
   return (

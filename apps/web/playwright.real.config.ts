@@ -24,18 +24,21 @@ export default defineConfig({
   repeatEach: process.env.CI ? 2 : 1,
   workers: 1,
   reporter: process.env.CI
-    ? [["github"], ["html", { open: "never", outputFolder: "playwright-report-real" }]]
+    ? [
+        ["github"],
+        ["html", { open: "never", outputFolder: "playwright-report-real" }],
+      ]
     : [["list"]],
   use: {
     baseURL: webURL,
     screenshot: "only-on-failure",
-    trace: "retain-on-failure"
+    trace: "retain-on-failure",
   },
   projects: [
     {
       name: "real-stack-chromium",
-      use: { ...devices["Desktop Chrome"] }
-    }
+      use: { ...devices["Desktop Chrome"] },
+    },
   ],
   webServer: [
     {
@@ -43,10 +46,10 @@ export default defineConfig({
       url: `${resendURL}/health`,
       env: {
         PORT: "18083",
-        RESEND_STUB_API_KEY: "real-e2e-resend-key"
+        RESEND_STUB_API_KEY: "real-e2e-resend-key",
       },
       reuseExistingServer: false,
-      timeout: 30_000
+      timeout: 30_000,
     },
     {
       command: `${goExecutable} run ./cmd/api`,
@@ -66,11 +69,11 @@ export default defineConfig({
         API_AUTH_RATE_LIMIT: "3",
         API_AUTH_RATE_WINDOW: "15m",
         API_CATALOG_REFRESH_INTERVAL: "24h",
-        API_PROXY_SHARED_SECRET: "real-e2e-proxy-secret-000000000000"
+        API_PROXY_SHARED_SECRET: "real-e2e-proxy-secret-000000000000",
       },
       gracefulShutdown: { signal: "SIGTERM", timeout: 5_000 },
       reuseExistingServer: false,
-      timeout: 60_000
+      timeout: 60_000,
     },
     {
       command: `${nodeExecutable} src/production-preflight.ts`,
@@ -85,11 +88,11 @@ export default defineConfig({
         SITE_URL: webURL,
         HOST: "127.0.0.1",
         NITRO_HOST: "127.0.0.1",
-        PORT: "3300"
+        PORT: "3300",
       },
       gracefulShutdown: { signal: "SIGTERM", timeout: 5_000 },
       reuseExistingServer: false,
-      timeout: 60_000
-    }
-  ]
+      timeout: 60_000,
+    },
+  ],
 });

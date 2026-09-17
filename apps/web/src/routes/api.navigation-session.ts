@@ -12,9 +12,9 @@ export const Route = createFileRoute("/api/navigation-session")({
       PUT: methodNotAllowedResponse,
       PATCH: methodNotAllowedResponse,
       DELETE: methodNotAllowedResponse,
-      OPTIONS: methodNotAllowedResponse
-    }
-  }
+      OPTIONS: methodNotAllowedResponse,
+    },
+  },
 });
 
 async function navigationSessionResponse(request: Request): Promise<Response> {
@@ -22,10 +22,10 @@ async function navigationSessionResponse(request: Request): Promise<Response> {
   const session = await getNavigationSessionOperation({
     api: sessionRequest.api,
     cookieHeader: sessionRequest.cookieHeader,
-    sessionCookieValue: sessionRequest.sessionCookieValue
+    sessionCookieValue: sessionRequest.sessionCookieValue,
   });
 
   return Response.json(session, {
-    headers: { "cache-control": "private, no-store" }
+    headers: { "cache-control": "private, no-store" },
   });
 }

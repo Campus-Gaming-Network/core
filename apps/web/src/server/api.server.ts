@@ -2,7 +2,7 @@ import type * as z from "zod";
 
 export type Fetcher = (
   input: string | URL | Request,
-  init?: RequestInit
+  init?: RequestInit,
 ) => Promise<Response>;
 
 export type ApiRequestOptions<TSchema extends z.ZodType> = {
@@ -21,7 +21,7 @@ export type ApiResult<T> = {
 };
 
 export type ApiClient = <TSchema extends z.ZodType>(
-  options: ApiRequestOptions<TSchema>
+  options: ApiRequestOptions<TSchema>,
 ) => Promise<ApiResult<z.output<TSchema>>>;
 
 export type ApiClientDependencies = {
@@ -56,7 +56,7 @@ export class ApiContractError extends Error {
       code: string;
       message: string;
       path: PropertyKey[];
-    }>
+    }>,
   ) {
     super(`API response did not match its contract for ${path}`);
     this.name = "ApiContractError";
@@ -68,7 +68,7 @@ export class ApiContractError extends Error {
 export function createApiClient({
   baseUrl,
   fetcher = fetch,
-  prepareHeaders = (headers) => headers
+  prepareHeaders = (headers) => headers,
 }: ApiClientDependencies): ApiClient {
   return async <TSchema extends z.ZodType>({
     path,
@@ -77,7 +77,7 @@ export function createApiClient({
     body,
     cookieHeader,
     headers,
-    cache = "no-store"
+    cache = "no-store",
   }: ApiRequestOptions<TSchema>): Promise<ApiResult<z.output<TSchema>>> => {
     const outgoingHeaders = prepareHeaders(new Headers(headers));
 
@@ -92,7 +92,7 @@ export function createApiClient({
       method,
       headers: outgoingHeaders,
       body: body === undefined ? undefined : JSON.stringify(body),
-      cache
+      cache,
     });
     const payload = await readPayload(response);
 
@@ -107,8 +107,8 @@ export function createApiClient({
         parsed.error.issues.map(({ code, message, path: issuePath }) => ({
           code,
           message,
-          path: issuePath
-        }))
+          path: issuePath,
+        })),
       );
     }
 
@@ -142,7 +142,7 @@ export function safeApiErrorMessage(error: unknown): string {
     invalid_private_password: "That event password did not match.",
     invalid_request: "Check the form fields and try again.",
     private_event_locked: "Unlock that private event before RSVPing.",
-    rate_limited: "Too many attempts. Give it a minute, then try again."
+    rate_limited: "Too many attempts. Give it a minute, then try again.",
   };
 
   return messages[error.code] ?? "Something went wrong. Please try again.";

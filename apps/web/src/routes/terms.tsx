@@ -7,7 +7,7 @@ export const Route = createFileRoute("/terms")({
   loader: ({ context }) => context.publicOrigin,
   head: ({ loaderData }) =>
     publicPageHead(loaderData, { title: "Terms", description, path: "/terms" }),
-  component: TermsPage
+  component: TermsPage,
 });
 
 function TermsPage() {

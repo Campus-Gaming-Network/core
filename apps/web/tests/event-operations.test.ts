@@ -3,16 +3,16 @@ import test from "node:test";
 import { createApiClient, type Fetcher } from "../src/server/api.server.js";
 import {
   eventUnlockCookieName,
-  type CookieMutation
+  type CookieMutation,
 } from "../src/server/cookies.server.js";
 import {
   getEventDetailOperation,
   rsvpEventOperation,
-  unlockEventOperation
+  unlockEventOperation,
 } from "../src/features/event-slice/event-operations.server.js";
 import {
   validateRSVPServerInput,
-  validateUnlockServerInput
+  validateUnlockServerInput,
 } from "../src/features/event-slice/contracts.js";
 
 const event = {
@@ -30,13 +30,13 @@ const event = {
   lifecycle: "upcoming",
   is_paid: false,
   host_school: { id: "school-1", name: "Example University", slug: "example" },
-  games: [{ id: "game-1", name: "Example Game", slug: "example-game" }]
+  games: [{ id: "game-1", name: "Example Game", slug: "example-game" }],
 };
 
 function client(fetcher: Fetcher) {
   return createApiClient({
     baseUrl: "http://api:8080",
-    fetcher
+    fetcher,
   });
 }
 
@@ -53,20 +53,26 @@ test("event detail forwards viewer credentials and preserves a redacted locked s
           locked: true,
           unlock_token: "must-not-serialize",
           session: "must-not-serialize",
-          "X-CGN-Visitor-IP": "must-not-serialize"
+          "X-CGN-Visitor-IP": "must-not-serialize",
         });
       }),
       cookieHeader: "cgn_session=session-value",
-      unlockHeaders: { "X-CGN-Event-Unlock": "unlock-value" }
-    }
+      unlockHeaders: { "X-CGN-Event-Unlock": "unlock-value" },
+    },
   );
 
-  assert.equal(new Headers(init?.headers).get("cookie"), "cgn_session=session-value");
-  assert.equal(new Headers(init?.headers).get("x-cgn-event-unlock"), "unlock-value");
+  assert.equal(
+    new Headers(init?.headers).get("cookie"),
+    "cgn_session=session-value",
+  );
+  assert.equal(
+    new Headers(init?.headers).get("x-cgn-event-unlock"),
+    "unlock-value",
+  );
   assert.equal(init?.cache, "no-store");
   assert.deepEqual(result, {
     status: "found",
-    event: { slug: "private-event", visibility: "private", locked: true }
+    event: { slug: "private-event", visibility: "private", locked: true },
   });
   assert.equal(JSON.stringify(result).includes("must-not-serialize"), false);
 });
@@ -76,10 +82,10 @@ test("event detail distinguishes an upstream 404 from a locked event", async () 
     { slug: "missing" },
     {
       api: client(async () =>
-        Response.json({ error: "event_not_found" }, { status: 404 })
+        Response.json({ error: "event_not_found" }, { status: 404 }),
       ),
-      cookieHeader: ""
-    }
+      cookieHeader: "",
+    },
   );
 
   assert.deepEqual(result, { status: "not_found" });
@@ -96,12 +102,12 @@ test("unlock posts only the password, stores a secure root cookie, and never ret
         return Response.json({
           event,
           unlock_token: "server-only-unlock-token",
-          expires_at: "2037-02-20T01:00:00Z"
+          expires_at: "2037-02-20T01:00:00Z",
         });
       }),
       production: true,
-      applyCookie: (cookie) => cookies.push(cookie)
-    }
+      applyCookie: (cookie) => cookies.push(cookie),
+    },
   );
 
   assert.equal(init?.body, JSON.stringify({ password: "open sesame" }));
@@ -115,12 +121,15 @@ test("unlock posts only the password, stores a secure root cookie, and never ret
         expires: new Date("2037-02-20T01:00:00Z"),
         httpOnly: true,
         secure: true,
-        sameSite: "lax"
-      }
-    }
+        sameSite: "lax",
+      },
+    },
   ]);
   assert.equal(result.status, "success");
-  assert.equal(JSON.stringify(result).includes("server-only-unlock-token"), false);
+  assert.equal(
+    JSON.stringify(result).includes("server-only-unlock-token"),
+    false,
+  );
 });
 
 test("RSVP forwards session/unlock state, exact payload, and strips additive response fields", async () => {
@@ -132,17 +141,27 @@ test("RSVP forwards session/unlock state, exact payload, and strips additive res
       api: client(async (requestInput, requestInit) => {
         input = requestInput;
         init = requestInit;
-        return Response.json({ ...event, unlock_token: "leak", session: "leak" });
+        return Response.json({
+          ...event,
+          unlock_token: "leak",
+          session: "leak",
+        });
       }),
       cookieHeader: "cgn_session=session-value",
-      unlockHeaders: { "X-CGN-Event-Unlock": "unlock-value" }
-    }
+      unlockHeaders: { "X-CGN-Event-Unlock": "unlock-value" },
+    },
   );
 
   assert.equal(input, "http://api:8080/events/private%2Fevent/rsvp");
   assert.equal(init?.body, JSON.stringify({ response: "maybe" }));
-  assert.equal(new Headers(init?.headers).get("cookie"), "cgn_session=session-value");
-  assert.equal(new Headers(init?.headers).get("x-cgn-event-unlock"), "unlock-value");
+  assert.equal(
+    new Headers(init?.headers).get("cookie"),
+    "cgn_session=session-value",
+  );
+  assert.equal(
+    new Headers(init?.headers).get("x-cgn-event-unlock"),
+    "unlock-value",
+  );
   assert.equal(result.status, "success");
   assert.equal(JSON.stringify(result).includes("leak"), false);
 });
@@ -152,16 +171,16 @@ test("event operation failures return safe messages", async () => {
     { slug: "private", password: "wrong" },
     {
       api: client(async () =>
-        Response.json({ error: "invalid_private_password" }, { status: 401 })
+        Response.json({ error: "invalid_private_password" }, { status: 401 }),
       ),
       production: false,
-      applyCookie: () => undefined
-    }
+      applyCookie: () => undefined,
+    },
   );
 
   assert.deepEqual(result, {
     status: "error",
-    message: "That event password did not match."
+    message: "That event password did not match.",
   });
 });
 
@@ -175,29 +194,32 @@ test("event mutations validate typed RPC data and native FormData", () => {
 
   assert.deepEqual(validateUnlockServerInput(unlock), {
     valid: true,
-    value: { slug: "private/event", password: "open sesame" }
+    value: { slug: "private/event", password: "open sesame" },
   });
   assert.deepEqual(validateRSVPServerInput(rsvp), {
     valid: true,
-    value: { slug: "private/event", response: "yes" }
+    value: { slug: "private/event", response: "yes" },
   });
   assert.deepEqual(
     validateUnlockServerInput({
       slug: " private/event ",
-      password: " open sesame "
+      password: " open sesame ",
     }),
-    validateUnlockServerInput(unlock)
+    validateUnlockServerInput(unlock),
   );
   assert.deepEqual(
-    validateRSVPServerInput({ slug: " private/event ", response: " yes " as "yes" }),
-    validateRSVPServerInput(rsvp)
+    validateRSVPServerInput({
+      slug: " private/event ",
+      response: " yes " as "yes",
+    }),
+    validateRSVPServerInput(rsvp),
   );
 });
 
 test("event validation enforces password parity and returns field errors", () => {
   const shortPassword = validateUnlockServerInput({
     slug: "private/event",
-    password: "short"
+    password: "short",
   });
   const invalidRSVP = new FormData();
   invalidRSVP.set("slug", "private/event");
@@ -209,7 +231,7 @@ test("event validation enforces password parity and returns field errors", () =>
     assert.fail("short event password unexpectedly passed validation");
   }
   assert.deepEqual(shortPassword.fieldErrors.password, [
-    "Password must be at least 8 characters."
+    "Password must be at least 8 characters.",
   ]);
 
   assert.equal(response.valid, false);
@@ -217,6 +239,6 @@ test("event validation enforces password parity and returns field errors", () =>
     assert.fail("invalid RSVP unexpectedly passed validation");
   }
   assert.deepEqual(response.fieldErrors.response, [
-    "Invalid option: expected one of \"yes\"|\"maybe\"|\"no\""
+    'Invalid option: expected one of "yes"|"maybe"|"no"',
   ]);
 });

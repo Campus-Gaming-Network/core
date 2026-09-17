@@ -2,7 +2,7 @@ import type * as z from "zod";
 
 export type Fetcher = (
   input: string | URL | Request,
-  init?: RequestInit
+  init?: RequestInit,
 ) => Promise<Response>;
 
 export type ApiClient = <TSchema extends z.ZodType>(options: {
@@ -38,7 +38,7 @@ export class AdminApiContractError extends Error {
 export function createAdminApiClient({
   baseURL,
   proxySecret,
-  fetcher = fetch
+  fetcher = fetch,
 }: {
   baseURL: string;
   proxySecret: string;
@@ -49,7 +49,7 @@ export function createAdminApiClient({
     responseSchema,
     method = "GET",
     cookieHeader,
-    headers
+    headers,
   }) => {
     const outgoing = new Headers(headers);
     // Never trust browser-supplied internal credentials. This client is the
@@ -62,13 +62,13 @@ export function createAdminApiClient({
       method,
       headers: outgoing,
       cache: "no-store",
-      redirect: "error"
+      redirect: "error",
     });
     const payload = await readPayload(response);
     if (!response.ok) {
       throw new AdminApiError(
         response.status,
-        errorCode(payload, response.status)
+        errorCode(payload, response.status),
       );
     }
     const parsed = responseSchema.safeParse(payload);

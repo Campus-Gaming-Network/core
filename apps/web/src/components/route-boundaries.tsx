@@ -1,7 +1,7 @@
 import {
   Link,
   useRouter,
-  type ErrorComponentProps
+  type ErrorComponentProps,
 } from "@tanstack/react-router";
 
 type RoutePendingProps = {
@@ -29,11 +29,10 @@ export function DefaultPending() {
 
 export function RouteErrorView({
   reset,
-  description =
-    "This is usually temporary. Try again, and contact support if it keeps happening.",
+  description = "This is usually temporary. Try again, and contact support if it keeps happening.",
   eyebrow = "Something went wrong",
   heading = "We could not load this page.",
-  showNavigation = true
+  showNavigation = true,
 }: RouteErrorViewProps) {
   const router = useRouter();
 

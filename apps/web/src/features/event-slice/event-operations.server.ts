@@ -3,11 +3,11 @@ import {
   ApiContractError,
   ApiError,
   safeApiErrorMessage,
-  type ApiClient
+  type ApiClient,
 } from "../../server/api.server.js";
 import {
   unlockCookieMutation,
-  type CookieMutation
+  type CookieMutation,
 } from "../../server/cookies.server.js";
 import {
   eventDetailDtoSchema,
@@ -34,13 +34,13 @@ import {
   type RSVPEventInput,
   type RSVPEventResult,
   type UnlockEventInput,
-  type UnlockEventResult
+  type UnlockEventResult,
 } from "./contracts.js";
 
 const unlockResponseSchema = z.object({
   event: eventDtoSchema,
   unlock_token: z.string().min(1),
-  expires_at: z.iso.datetime({ offset: true })
+  expires_at: z.iso.datetime({ offset: true }),
 });
 
 type ReadDependencies = {
@@ -70,20 +70,20 @@ type EventFormPageDependencies = EventWriteDependencies & {
 
 export async function newEventPageOperation(
   { schoolQuery }: z.output<typeof eventFormPageInputSchema>,
-  dependencies: EventFormPageDependencies
+  dependencies: EventFormPageDependencies,
 ): Promise<NewEventPageResult> {
   const normalizedSchoolQuery = schoolQuery.trim();
   const {
     api,
     cookieHeader,
     sessionCookieValue,
-    reportError = defaultErrorReporter
+    reportError = defaultErrorReporter,
   } = dependencies;
   const viewer = await readEventFormViewer({
     api,
     cookieHeader,
     sessionCookieValue,
-    reportError
+    reportError,
   });
   if (viewer.status === "unauthenticated") return viewer;
   if (viewer.status === "error") {
@@ -93,7 +93,7 @@ export async function newEventPageOperation(
   const resources = await readEventFormResources(
     normalizedSchoolQuery,
     api,
-    reportError
+    reportError,
   );
   if (resources.status === "error") {
     return { status: "error", message: "Event creation is unavailable." };
@@ -108,13 +108,13 @@ export async function newEventPageOperation(
     defaultTimeZone: viewer.profile.timezone,
     games: resources.games,
     schools: resources.schools,
-    schoolSearchFailed: resources.schoolSearchFailed
+    schoolSearchFailed: resources.schoolSearchFailed,
   };
 }
 
 export async function editEventPageOperation(
   input: EventSlugInput & { schoolQuery: string },
-  dependencies: EventFormPageDependencies
+  dependencies: EventFormPageDependencies,
 ): Promise<EditEventPageResult> {
   const normalizedSchoolQuery = input.schoolQuery.trim();
   const {
@@ -122,13 +122,13 @@ export async function editEventPageOperation(
     cookieHeader,
     sessionCookieValue,
     unlockHeaders,
-    reportError = defaultErrorReporter
+    reportError = defaultErrorReporter,
   } = dependencies;
   const viewer = await readEventFormViewer({
     api,
     cookieHeader,
     sessionCookieValue,
-    reportError
+    reportError,
   });
   if (viewer.status === "unauthenticated") return viewer;
   if (viewer.status === "error") {
@@ -137,7 +137,7 @@ export async function editEventPageOperation(
 
   const detail = await getEventDetailOperation(
     { slug: input.slug },
-    { api, cookieHeader, unlockHeaders, reportError }
+    { api, cookieHeader, unlockHeaders, reportError },
   );
   if (detail.status === "not_found") return detail;
   if (detail.status === "error") {
@@ -153,7 +153,7 @@ export async function editEventPageOperation(
   const resources = await readEventFormResources(
     normalizedSchoolQuery,
     api,
-    reportError
+    reportError,
   );
   if (resources.status === "error") {
     return { status: "error", message: "Event editing is unavailable." };
@@ -164,13 +164,13 @@ export async function editEventPageOperation(
     event: detail.event,
     games: resources.games,
     schools: resources.schools,
-    schoolSearchFailed: resources.schoolSearchFailed
+    schoolSearchFailed: resources.schoolSearchFailed,
   };
 }
 
 export async function getEventsBrowseOperation(
   input: EventsBrowseInput,
-  { api, reportError = defaultErrorReporter }: PublicReadDependencies
+  { api, reportError = defaultErrorReporter }: PublicReadDependencies,
 ): Promise<EventsBrowseResult> {
   const [events, games] = await Promise.all([
     readEvents(api, input)
@@ -182,28 +182,28 @@ export async function getEventsBrowseOperation(
             events: [],
             limit: 25,
             has_more: false,
-            has_previous: false
+            has_previous: false,
           },
-          unavailable: true
+          unavailable: true,
         };
       }),
     api({
       path: "/games",
       cache: "no-store",
-      responseSchema: gamesBrowseResponseDtoSchema
+      responseSchema: gamesBrowseResponseDtoSchema,
     })
       .then(({ data }) => ({ data: data.games, unavailable: false }))
       .catch((error: unknown) => {
         reportError(error);
         return { data: [], unavailable: true };
-      })
+      }),
   ]);
 
   return {
     ...events.data,
     games: games.data,
     eventsUnavailable: events.unavailable,
-    gamesUnavailable: games.unavailable
+    gamesUnavailable: games.unavailable,
   };
 }
 
@@ -213,8 +213,8 @@ export async function getEventDetailOperation(
     api,
     cookieHeader,
     unlockHeaders,
-    reportError = defaultErrorReporter
-  }: ReadDependencies
+    reportError = defaultErrorReporter,
+  }: ReadDependencies,
 ): Promise<GetEventDetailResult> {
   try {
     const { data } = await api({
@@ -222,7 +222,7 @@ export async function getEventDetailOperation(
       cookieHeader,
       headers: unlockHeaders,
       cache: "no-store",
-      responseSchema: eventDetailDtoSchema
+      responseSchema: eventDetailDtoSchema,
     });
     return { status: "found", event: data };
   } catch (error) {
@@ -240,25 +240,33 @@ export async function unlockEventOperation(
     api,
     production,
     applyCookie,
-    reportError = defaultErrorReporter
-  }: Pick<MutationDependencies, "api" | "production" | "applyCookie" | "reportError">
+    reportError = defaultErrorReporter,
+  }: Pick<
+    MutationDependencies,
+    "api" | "production" | "applyCookie" | "reportError"
+  >,
 ): Promise<UnlockEventResult> {
   try {
     const { data } = await api({
       path: `/events/${encodeURIComponent(slug)}/unlock`,
       method: "POST",
       body: { password },
-      responseSchema: unlockResponseSchema
+      responseSchema: unlockResponseSchema,
     });
 
     applyCookie(
-      unlockCookieMutation(slug, data.unlock_token, data.expires_at, production)
+      unlockCookieMutation(
+        slug,
+        data.unlock_token,
+        data.expires_at,
+        production,
+      ),
     );
 
     return {
       status: "success",
       event: data.event,
-      redirectTo: `/events/${encodeURIComponent(data.event.slug)}?event=unlocked`
+      redirectTo: `/events/${encodeURIComponent(data.event.slug)}?event=unlocked`,
     };
   } catch (error) {
     reportError(error);
@@ -272,8 +280,8 @@ export async function rsvpEventOperation(
     api,
     cookieHeader,
     unlockHeaders,
-    reportError = defaultErrorReporter
-  }: ReadDependencies
+    reportError = defaultErrorReporter,
+  }: ReadDependencies,
 ): Promise<RSVPEventResult> {
   try {
     const { data } = await api({
@@ -282,13 +290,13 @@ export async function rsvpEventOperation(
       cookieHeader,
       headers: unlockHeaders,
       body: { response },
-      responseSchema: eventDtoSchema
+      responseSchema: eventDtoSchema,
     });
 
     return {
       status: "success",
       event: data,
-      redirectTo: `/events/${encodeURIComponent(data.slug)}?event=rsvp-updated`
+      redirectTo: `/events/${encodeURIComponent(data.slug)}?event=rsvp-updated`,
     };
   } catch (error) {
     reportError(error);
@@ -301,8 +309,8 @@ export async function reportEventOperation(
   {
     api,
     cookieHeader,
-    reportError = defaultErrorReporter
-  }: EventWriteDependencies
+    reportError = defaultErrorReporter,
+  }: EventWriteDependencies,
 ): Promise<ReportEventResult> {
   try {
     await api({
@@ -310,7 +318,7 @@ export async function reportEventOperation(
       method: "POST",
       cookieHeader,
       body: { reason },
-      responseSchema: idResponseDtoSchema
+      responseSchema: idResponseDtoSchema,
     });
     return { status: "success", message: "Report submitted for review." };
   } catch (error) {
@@ -324,8 +332,8 @@ export async function createEventOperation(
   {
     api,
     cookieHeader,
-    reportError = defaultErrorReporter
-  }: EventWriteDependencies
+    reportError = defaultErrorReporter,
+  }: EventWriteDependencies,
 ): Promise<EventMutationResult> {
   try {
     const { data } = await api({
@@ -333,12 +341,12 @@ export async function createEventOperation(
       method: "POST",
       cookieHeader,
       body: input,
-      responseSchema: eventDtoSchema
+      responseSchema: eventDtoSchema,
     });
     return {
       status: "success",
       event: data,
-      redirectTo: `/events/${encodeURIComponent(data.slug)}?event=created`
+      redirectTo: `/events/${encodeURIComponent(data.slug)}?event=created`,
     };
   } catch (error) {
     reportError(error);
@@ -351,8 +359,8 @@ export async function updateEventOperation(
   {
     api,
     cookieHeader,
-    reportError = defaultErrorReporter
-  }: EventWriteDependencies
+    reportError = defaultErrorReporter,
+  }: EventWriteDependencies,
 ): Promise<EventMutationResult> {
   try {
     const { data } = await api({
@@ -360,12 +368,12 @@ export async function updateEventOperation(
       method: "PATCH",
       cookieHeader,
       body: input,
-      responseSchema: eventDtoSchema
+      responseSchema: eventDtoSchema,
     });
     return {
       status: "success",
       event: data,
-      redirectTo: `/events/${encodeURIComponent(data.slug)}?event=updated`
+      redirectTo: `/events/${encodeURIComponent(data.slug)}?event=updated`,
     };
   } catch (error) {
     reportError(error);
@@ -378,21 +386,21 @@ export async function cancelEventOperation(
   {
     api,
     cookieHeader,
-    reportError = defaultErrorReporter
-  }: EventWriteDependencies
+    reportError = defaultErrorReporter,
+  }: EventWriteDependencies,
 ): Promise<EventRedirectResult> {
   try {
     await api({
       path: `/events/${encodeURIComponent(slug)}`,
       method: "DELETE",
       cookieHeader,
-      responseSchema: emptyResponseDtoSchema
+      responseSchema: emptyResponseDtoSchema,
     });
     return { redirectTo: "/events?event=cancelled" };
   } catch (error) {
     reportError(error);
     return {
-      redirectTo: `/events/${encodeURIComponent(slug)}?event=cancel-failed`
+      redirectTo: `/events/${encodeURIComponent(slug)}?event=cancel-failed`,
     };
   }
 }
@@ -403,8 +411,8 @@ export async function eventInterestOperation(
     api,
     cookieHeader,
     unlockHeaders,
-    reportError = defaultErrorReporter
-  }: EventWriteDependencies
+    reportError = defaultErrorReporter,
+  }: EventWriteDependencies,
 ): Promise<EventRedirectResult> {
   try {
     const { data } = await api({
@@ -412,17 +420,17 @@ export async function eventInterestOperation(
       method: interested ? "POST" : "DELETE",
       cookieHeader,
       headers: unlockHeaders,
-      responseSchema: eventDtoSchema
+      responseSchema: eventDtoSchema,
     });
     return {
       redirectTo: `/events/${encodeURIComponent(data.slug)}?event=${
         interested ? "interest-added" : "interest-removed"
-      }`
+      }`,
     };
   } catch (error) {
     reportError(error);
     return {
-      redirectTo: `/events/${encodeURIComponent(slug)}?event=interest-failed`
+      redirectTo: `/events/${encodeURIComponent(slug)}?event=interest-failed`,
     };
   }
 }
@@ -431,7 +439,7 @@ async function readEventFormViewer({
   api,
   cookieHeader,
   sessionCookieValue,
-  reportError
+  reportError,
 }: EventFormPageDependencies): Promise<
   | {
       status: "ready";
@@ -447,7 +455,7 @@ async function readEventFormViewer({
       path: "/me",
       cookieHeader,
       cache: "no-store",
-      responseSchema: eventFormViewerDtoSchema
+      responseSchema: eventFormViewerDtoSchema,
     });
     return { status: "ready", profile: data };
   } catch (error) {
@@ -462,7 +470,7 @@ async function readEventFormViewer({
 async function readEventFormResources(
   schoolQuery: string,
   api: ApiClient,
-  reportError: (error: unknown) => void
+  reportError: (error: unknown) => void,
 ): Promise<
   | {
       status: "ready";
@@ -472,29 +480,30 @@ async function readEventFormResources(
     }
   | { status: "error" }
 > {
-  const schoolsPromise = schoolQuery.length >= 2
-    ? readEventFormSchools(api, schoolQuery)
-        .then((schools) => ({ schools, failed: false }))
-        .catch((error: unknown) => {
-          reportError(error);
-          return { schools: [], failed: true };
-        })
-    : Promise.resolve({ schools: [], failed: false });
+  const schoolsPromise =
+    schoolQuery.length >= 2
+      ? readEventFormSchools(api, schoolQuery)
+          .then((schools) => ({ schools, failed: false }))
+          .catch((error: unknown) => {
+            reportError(error);
+            return { schools: [], failed: true };
+          })
+      : Promise.resolve({ schools: [], failed: false });
 
   try {
     const [{ data: games }, schools] = await Promise.all([
       api({
         path: "/games",
         cache: "no-store",
-        responseSchema: gamesBrowseResponseDtoSchema
+        responseSchema: gamesBrowseResponseDtoSchema,
       }),
-      schoolsPromise
+      schoolsPromise,
     ]);
     return {
       status: "ready",
       games: games.games,
       schools: schools.schools,
-      schoolSearchFailed: schools.failed
+      schoolSearchFailed: schools.failed,
     };
   } catch (error) {
     reportError(error);
@@ -507,7 +516,7 @@ async function readEventFormSchools(api: ApiClient, query: string) {
   const { data } = await api({
     path: `/schools?${search.toString()}`,
     cache: "no-store",
-    responseSchema: eventFormSchoolsResponseDtoSchema
+    responseSchema: eventFormSchoolsResponseDtoSchema,
   });
   return data.schools;
 }
@@ -524,7 +533,7 @@ async function readEvents(api: ApiClient, input: EventsBrowseInput) {
   const { data } = await api({
     path: `/events?${search.toString()}`,
     cache: "no-store",
-    responseSchema: eventsBrowseResponseDtoSchema
+    responseSchema: eventsBrowseResponseDtoSchema,
   });
   return data;
 }
@@ -533,7 +542,7 @@ function defaultErrorReporter(error: unknown): void {
   if (error instanceof ApiContractError) {
     console.error("API response contract violation", {
       path: error.path,
-      issues: error.issues
+      issues: error.issues,
     });
   } else if (!(error instanceof ApiError)) {
     console.error("Event request failed");

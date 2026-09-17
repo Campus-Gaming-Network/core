@@ -4,7 +4,7 @@ const siteName = "Campus Gaming Network";
 
 export function publicProfileMetadata(
   profile: PublicProfileDTO,
-  publicOrigin: string
+  publicOrigin: string,
 ): { description: string; title: string; url: string } {
   const homeSchool = publicProfileHomeSchool(profile);
   const bio = profile.bio?.trim();
@@ -16,7 +16,7 @@ export function publicProfileMetadata(
       (homeSchool.name
         ? `${profile.name} plays at ${homeSchool.name} on ${siteName}.`
         : `${profile.name} on ${siteName}.`),
-    url: `${publicOrigin}/users/${encodeURIComponent(profile.id)}`
+    url: `${publicOrigin}/users/${encodeURIComponent(profile.id)}`,
   };
 }
 
@@ -24,7 +24,7 @@ export function verificationLabel(level: string): string {
   const labels: Record<string, string> = {
     basic: "Community member",
     verified: "Verified student",
-    staff_faculty: "Staff / faculty"
+    staff_faculty: "Staff / faculty",
   };
   return labels[level] ?? "Community member";
 }
@@ -32,7 +32,7 @@ export function verificationLabel(level: string): string {
 export function roleIndicatorLabel(role: string): string {
   const labels: Record<string, string> = {
     school_admin: "School admin",
-    staff_faculty: "Staff / faculty"
+    staff_faculty: "Staff / faculty",
   };
   return labels[role] ?? "Community role";
 }
@@ -51,7 +51,7 @@ export function publicProfileHomeSchool(profile: PublicProfileDTO): {
     location: [profile.home_school.city, profile.home_school.state]
       .filter(Boolean)
       .join(", "),
-    href: `/schools/${profile.home_school.slug}`
+    href: `/schools/${profile.home_school.slug}`,
   };
 }
 

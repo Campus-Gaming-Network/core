@@ -1,8 +1,6 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { ResetPasswordForm } from "../features/auth-flow-slice/auth-forms";
-import {
-  validateResetPasswordSearch
-} from "../features/auth-flow-slice/contracts";
+import { validateResetPasswordSearch } from "../features/auth-flow-slice/contracts";
 import { establishPrivateAuthPage } from "../features/auth-flow-slice/auth-flow.functions";
 import { authPageHead } from "../features/auth-flow-slice/presentation";
 
@@ -15,17 +13,18 @@ export const Route = createFileRoute("/reset-password")({
     await establishPrivateAuthPage();
     return context.publicOrigin;
   },
-  head: ({ loaderData }) => authPageHead(loaderData, {
-    title: "Reset password",
-    description,
-    path: "/reset-password",
-    noIndex: true
-  }),
+  head: ({ loaderData }) =>
+    authPageHead(loaderData, {
+      title: "Reset password",
+      description,
+      path: "/reset-password",
+      noIndex: true,
+    }),
   headers: () => ({
     "cache-control": "private, no-store",
-    "referrer-policy": "no-referrer"
+    "referrer-policy": "no-referrer",
   }),
-  component: ResetPasswordPage
+  component: ResetPasswordPage,
 });
 
 function ResetPasswordPage() {
@@ -43,7 +42,8 @@ function ResetPasswordPage() {
           {search.reset === "failed"
             ? "That reset link is invalid or has expired. "
             : "This reset link is missing its token. "}
-          Request a new link from <Link to="/forgot-password">forgot password</Link>.
+          Request a new link from{" "}
+          <Link to="/forgot-password">forgot password</Link>.
         </p>
       )}
     </main>

@@ -16,25 +16,34 @@ export function SchoolPicker({
   initialQuery = "",
   initialSearchFailed = false,
   describedBy,
-  invalid
+  invalid,
 }: SchoolPickerProps) {
   const resultsId = useId();
   const statusId = useId();
   const initialSelection = schoolSelection(selectedSchoolId, schools);
   const [enhanced, setEnhanced] = useState(false);
-  const [selected, setSelected] = useState<SchoolDTO | SchoolChoice | undefined>(
-    initialSelection
-  );
+  const [selected, setSelected] = useState<
+    SchoolDTO | SchoolChoice | undefined
+  >(initialSelection);
   const [retained, setRetained] = useState(initialSelection);
   const [query, setQuery] = useState(
-    initialQuery || (initialSelection ? schoolLabel(initialSelection) : "")
+    initialQuery || (initialSelection ? schoolLabel(initialSelection) : ""),
   );
   const [results, setResults] = useState(schools);
-  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">(
-    initialSearchFailed ? "error" : initialQuery.trim().length >= 2 ? "success" : "idle"
+  const [status, setStatus] = useState<
+    "idle" | "loading" | "success" | "error"
+  >(
+    initialSearchFailed
+      ? "error"
+      : initialQuery.trim().length >= 2
+        ? "success"
+        : "idle",
   );
   const [retry, setRetry] = useState(0);
-  const options = useMemo(() => mergeSchools(retained, results), [retained, results]);
+  const options = useMemo(
+    () => mergeSchools(retained, results),
+    [retained, results],
+  );
 
   useEffect(() => setEnhanced(true), []);
 
@@ -54,15 +63,17 @@ export function SchoolPicker({
         const search = new URLSearchParams({ q: value, limit: "50" });
         const response = await fetch(`/api/schools?${search}`, {
           cache: "no-store",
-          signal: controller.signal
+          signal: controller.signal,
         });
         if (!response.ok) throw new Error("school search failed");
         const payload: unknown = await response.json();
-        if (!isSchoolsPayload(payload)) throw new Error("invalid school search response");
+        if (!isSchoolsPayload(payload))
+          throw new Error("invalid school search response");
         setResults(payload.schools);
         setStatus("success");
       } catch (error) {
-        if (error instanceof DOMException && error.name === "AbortError") return;
+        if (error instanceof DOMException && error.name === "AbortError")
+          return;
         setResults([]);
         setStatus("error");
       }
@@ -87,12 +98,18 @@ export function SchoolPicker({
         >
           <option value="">No school selected</option>
           {options.map((school) => (
-            <option key={school.id} value={school.id}>{schoolLabel(school)}</option>
+            <option key={school.id} value={school.id}>
+              {schoolLabel(school)}
+            </option>
           ))}
         </select>
-        <span className="form-help">Use the school search above to load more choices.</span>
+        <span className="form-help">
+          Use the school search above to load more choices.
+        </span>
         {initialSearchFailed ? (
-          <span className="form-error">We couldn’t load schools. Try the search again.</span>
+          <span className="form-error">
+            We couldn’t load schools. Try the search again.
+          </span>
         ) : null}
       </label>
     );
@@ -122,7 +139,11 @@ export function SchoolPicker({
         {statusMessage}
       </p>
       {status === "error" ? (
-        <button type="button" className="button button--secondary" onClick={() => setRetry((n) => n + 1)}>
+        <button
+          type="button"
+          className="button button--secondary"
+          onClick={() => setRetry((n) => n + 1)}
+        >
           Try again
         </button>
       ) : null}
@@ -136,7 +157,7 @@ export function SchoolPicker({
         value={selected?.id ?? ""}
         onChange={(event) => {
           const school = options.find(
-            (option) => option.id === event.currentTarget.value
+            (option) => option.id === event.currentTarget.value,
           );
           setSelected(school);
           if (school) setRetained(school);
@@ -157,15 +178,17 @@ type SchoolChoice = { id: string; name: string; city?: string; state?: string };
 
 function schoolSelection(selectedId: string | undefined, schools: SchoolDTO[]) {
   if (!selectedId) return undefined;
-  return schools.find((school) => school.id === selectedId) ?? {
-    id: selectedId,
-    name: "Selected school"
-  };
+  return (
+    schools.find((school) => school.id === selectedId) ?? {
+      id: selectedId,
+      name: "Selected school",
+    }
+  );
 }
 
 function mergeSchools(
   retained: SchoolDTO | SchoolChoice | undefined,
-  schools: SchoolDTO[]
+  schools: SchoolDTO[],
 ): Array<SchoolDTO | SchoolChoice> {
   return retained && !schools.some((school) => school.id === retained.id)
     ? [retained, ...schools]
@@ -184,22 +207,30 @@ function schoolLocation(school: Pick<SchoolChoice, "city" | "state">) {
 function schoolStatus(
   query: string,
   count: number,
-  status: "idle" | "loading" | "success" | "error"
+  status: "idle" | "loading" | "success" | "error",
 ) {
   if (status === "loading") return "Searching schools…";
-  if (status === "error") return "We couldn’t load schools. Check your connection and try again.";
-  if (query.trim().length < 2) return "Type at least 2 characters to search every active school.";
+  if (status === "error")
+    return "We couldn’t load schools. Check your connection and try again.";
+  if (query.trim().length < 2)
+    return "Type at least 2 characters to search every active school.";
   if (count === 0) return `No schools found for “${query.trim()}”.`;
   return `${count} school${count === 1 ? "" : "s"} found.`;
 }
 
 function isSchoolsPayload(value: unknown): value is { schools: SchoolDTO[] } {
-  if (typeof value !== "object" || value === null || !("schools" in value)) return false;
+  if (typeof value !== "object" || value === null || !("schools" in value))
+    return false;
   const schools = Reflect.get(value, "schools");
-  return Array.isArray(schools) && schools.every((school) =>
-    typeof school === "object" && school !== null &&
-    typeof Reflect.get(school, "id") === "string" &&
-    typeof Reflect.get(school, "name") === "string" &&
-    typeof Reflect.get(school, "slug") === "string"
+  return (
+    Array.isArray(schools) &&
+    schools.every(
+      (school) =>
+        typeof school === "object" &&
+        school !== null &&
+        typeof Reflect.get(school, "id") === "string" &&
+        typeof Reflect.get(school, "name") === "string" &&
+        typeof Reflect.get(school, "slug") === "string",
+    )
   );
 }

@@ -4,9 +4,10 @@ import { basename, join } from "node:path";
 import test from "node:test";
 
 const currentDirectory = process.cwd();
-const appRoot = basename(currentDirectory) === "web"
-  ? currentDirectory
-  : join(currentDirectory, "apps/web");
+const appRoot =
+  basename(currentDirectory) === "web"
+    ? currentDirectory
+    : join(currentDirectory, "apps/web");
 
 function source(relativePath: string) {
   return readFileSync(join(appRoot, relativePath), "utf8");
@@ -18,7 +19,10 @@ test("home and school routes isolate catalog freshness from viewer state", () =>
   const school = source("src/routes/schools.$slug.tsx");
 
   assert.match(home, /staleTime: catalogClientStaleTime/);
-  assert.match(schools, /loaderDeps: \(\{ search \}\) => schoolsBrowseInput\(search\)/);
+  assert.match(
+    schools,
+    /loaderDeps: \(\{ search \}\) => schoolsBrowseInput\(search\)/,
+  );
   assert.match(schools, /staleTime: catalogClientStaleTime/);
   assert.match(school, /staleTime: 0/);
   assert.match(school, /"cache-control": "private, no-store"/);
@@ -46,24 +50,33 @@ test("registered school destinations use typed links and expose follow actions",
   assert.match(detail, /name="school_id"/);
   assert.match(detail, /name="slug"/);
   assert.match(detail, /to="\/login"/);
-  assert.match(detail, /search=\{\{ next: `\/schools\/\$\{school\.slug\}` \}\}/);
-  assert.doesNotMatch(detail, /controls are coming in the next migration phase/);
+  assert.match(
+    detail,
+    /search=\{\{ next: `\/schools\/\$\{school\.slug\}` \}\}/,
+  );
+  assert.doesNotMatch(
+    detail,
+    /controls are coming in the next migration phase/,
+  );
   assert.equal(routeNames.includes("schools.$slug.tsx"), true);
-  assert.equal(routeNames.some((name) => name.includes("\\")), false);
+  assert.equal(
+    routeNames.some((name) => name.includes("\\")),
+    false,
+  );
 });
 
 test("follow server functions keep credentials server-side and native redirects bounded", () => {
   const functions = source(
-    "src/features/school-slice/school-follow.functions.ts"
+    "src/features/school-slice/school-follow.functions.ts",
   );
   const operations = source(
-    "src/features/school-slice/school-follow-operations.server.ts"
+    "src/features/school-slice/school-follow-operations.server.ts",
   );
 
   assert.equal((functions.match(/method: "POST"/g) ?? []).length, 2);
   assert.equal(
     (functions.match(/strict: \{ input: false \}/g) ?? []).length,
-    2
+    2,
   );
   assert.match(functions, /validateSchoolFollowServerInput/);
   assert.match(functions, /currentSessionRequest\(\)/);
@@ -77,7 +90,10 @@ test("follow server functions keep credentials server-side and native redirects 
   assert.match(operations, /method: "POST" \| "DELETE"/);
   assert.match(operations, /cookieHeader/);
   assert.match(operations, /responseSchema: emptyResponseDtoSchema/);
-  assert.match(operations, /error instanceof ApiError && error\.status === 401/);
+  assert.match(
+    operations,
+    /error instanceof ApiError && error\.status === 401/,
+  );
   assert.match(operations, /encodeURIComponent\(next\)/);
   assert.doesNotMatch(operations, /body:/);
 });
@@ -85,9 +101,18 @@ test("follow server functions keep credentials server-side and native redirects 
 test("school API route exposes GET and HEAD with an explicit 405 boundary", () => {
   const apiRoute = source("src/routes/api.schools.ts");
 
-  assert.match(apiRoute, /GET: \(\{ request \}\) => handleSchoolsRequest\(request\)/);
-  assert.match(apiRoute, /HEAD: \(\{ request \}\) => handleSchoolsRequest\(request\)/);
+  assert.match(
+    apiRoute,
+    /GET: \(\{ request \}\) => handleSchoolsRequest\(request\)/,
+  );
+  assert.match(
+    apiRoute,
+    /HEAD: \(\{ request \}\) => handleSchoolsRequest\(request\)/,
+  );
   for (const method of ["POST", "PUT", "PATCH", "DELETE", "OPTIONS"]) {
-    assert.match(apiRoute, new RegExp(`${method}: schoolsMethodNotAllowedResponse`));
+    assert.match(
+      apiRoute,
+      new RegExp(`${method}: schoolsMethodNotAllowedResponse`),
+    );
   }
 });

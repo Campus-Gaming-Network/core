@@ -2,7 +2,7 @@ import { createRouter } from "@tanstack/react-router";
 import {
   DefaultError,
   DefaultNotFound,
-  DefaultPending
+  DefaultPending,
 } from "./components/route-boundaries";
 import { routeTree } from "./routeTree.gen";
 
@@ -12,7 +12,7 @@ export function getRouter() {
     defaultPendingComponent: DefaultPending,
     defaultErrorComponent: DefaultError,
     defaultNotFoundComponent: DefaultNotFound,
-    scrollRestoration: true
+    scrollRestoration: true,
   });
 }
 

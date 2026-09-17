@@ -4,7 +4,7 @@ import { getEventViewerSession } from "../features/event-slice/auth.functions";
 import {
   teamsBrowseInput,
   validateTeamsSearch,
-  type TeamsSearch
+  type TeamsSearch,
 } from "../features/team-slice/contracts";
 import { getTeamsBrowse } from "../features/team-slice/team.functions";
 import { teamsHead } from "../features/team-slice/presentation";
@@ -16,7 +16,7 @@ export const Route = createFileRoute("/teams/")({
   loader: async ({ context, deps }) => {
     const [catalog, session] = await Promise.all([
       getTeamsBrowse({ data: deps }),
-      getEventViewerSession()
+      getEventViewerSession(),
     ]);
     if (session.status === "unavailable") {
       throw new Error("Team viewer session is unavailable");
@@ -25,7 +25,7 @@ export const Route = createFileRoute("/teams/")({
       catalog,
       authenticated: session.status === "authenticated",
       hasSessionCookie: session.hasSessionCookie,
-      publicOrigin: context.publicOrigin
+      publicOrigin: context.publicOrigin,
     };
   },
   staleTime: 0,
@@ -33,14 +33,14 @@ export const Route = createFileRoute("/teams/")({
     "cache-control": loaderData?.hasSessionCookie
       ? "private, no-store"
       : "public, max-age=0, must-revalidate",
-    vary: "Cookie"
+    vary: "Cookie",
   }),
   head: ({ loaderData }) => ({
     ...teamsHead(loaderData?.publicOrigin),
-    links: [{ rel: "stylesheet", href: teamCSS }]
+    links: [{ rel: "stylesheet", href: teamCSS }],
   }),
   pendingComponent: TeamsPending,
-  component: TeamsPage
+  component: TeamsPage,
 });
 
 function TeamsPage() {
@@ -133,7 +133,9 @@ function TeamsPage() {
       ) : (
         <section className="empty-state">
           <h2>No teams found</h2>
-          <p>Try clearing filters or check again when more teams are available.</p>
+          <p>
+            Try clearing filters or check again when more teams are available.
+          </p>
         </section>
       )}
 
@@ -159,12 +161,12 @@ function TeamsPage() {
 
 export function paginationSearch(
   search: TeamsSearch,
-  cursor: Pick<TeamsSearch, "after" | "before">
+  cursor: Pick<TeamsSearch, "after" | "before">,
 ): TeamsSearch {
   return {
     ...(search.game ? { game: search.game } : {}),
     ...(search.school ? { school: search.school } : {}),
-    ...cursor
+    ...cursor,
   };
 }
 

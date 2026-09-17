@@ -1,14 +1,14 @@
 import {
   createCsrfMiddleware,
   createMiddleware,
-  createStart
+  createStart,
 } from "@tanstack/react-start";
 
 const localAdminOrigin = "http://localhost:3002";
 
 const csrfMiddleware = createCsrfMiddleware({
   filter: ({ handlerType }) => handlerType === "serverFn",
-  origin: adminOrigin()
+  origin: adminOrigin(),
 });
 
 const securityHeadersMiddleware = createMiddleware().server(
@@ -25,7 +25,7 @@ const securityHeadersMiddleware = createMiddleware().server(
       "referrer-policy": "no-referrer",
       "x-content-type-options": "nosniff",
       "x-frame-options": "DENY",
-      "x-robots-tag": "noindex, nofollow, noarchive, nosnippet"
+      "x-robots-tag": "noindex, nofollow, noarchive, nosnippet",
     } as const;
 
     for (const [name, value] of Object.entries(defaults)) {
@@ -37,7 +37,7 @@ const securityHeadersMiddleware = createMiddleware().server(
     ) {
       headers.set(
         "strict-transport-security",
-        "max-age=31536000; includeSubDomains"
+        "max-age=31536000; includeSubDomains",
       );
     }
 
@@ -46,19 +46,17 @@ const securityHeadersMiddleware = createMiddleware().server(
       response: new Response(response.body, {
         headers,
         status: response.status,
-        statusText: response.statusText
-      })
+        statusText: response.statusText,
+      }),
     };
-  }
+  },
 );
 
 export const startInstance = createStart(() => ({
-  requestMiddleware: [securityHeadersMiddleware, csrfMiddleware]
+  requestMiddleware: [securityHeadersMiddleware, csrfMiddleware],
 }));
 
 function adminOrigin(): string {
   if (typeof window !== "undefined") return window.location.origin;
-  return new URL(
-    process.env.ADMIN_SITE_URL?.trim() || localAdminOrigin
-  ).origin;
+  return new URL(process.env.ADMIN_SITE_URL?.trim() || localAdminOrigin).origin;
 }

@@ -1,12 +1,8 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
-import {
-  SignupForm
-} from "../features/auth-flow-slice/auth-forms";
+import { SignupForm } from "../features/auth-flow-slice/auth-forms";
 import "../features/auth-flow-slice/auth-flow.css";
 import { getSignupSchools } from "../features/auth-flow-slice/auth-flow.functions";
-import {
-  validateSignupSearch
-} from "../features/auth-flow-slice/contracts";
+import { validateSignupSearch } from "../features/auth-flow-slice/contracts";
 import { authPageHead } from "../features/auth-flow-slice/presentation";
 
 const description =
@@ -17,14 +13,15 @@ export const Route = createFileRoute("/signup")({
   loaderDeps: ({ search }) => ({ query: search.q ?? "" }),
   loader: async ({ context, deps }) => ({
     schoolSearch: await getSignupSchools({ data: deps.query }),
-    publicOrigin: context.publicOrigin
+    publicOrigin: context.publicOrigin,
   }),
-  head: ({ loaderData }) => authPageHead(loaderData?.publicOrigin, {
-    title: "Sign up",
-    description,
-    path: "/signup"
-  }),
-  component: SignupPage
+  head: ({ loaderData }) =>
+    authPageHead(loaderData?.publicOrigin, {
+      title: "Sign up",
+      description,
+      path: "/signup",
+    }),
+  component: SignupPage,
 });
 
 function SignupPage() {

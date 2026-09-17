@@ -10,7 +10,7 @@ import {
   teamsBrowseInput,
   validateTeamDetailSearch,
   validateNewTeamSearch,
-  validateTeamsSearch
+  validateTeamsSearch,
 } from "../src/features/team-slice/contracts.js";
 import {
   createTeamOperation,
@@ -20,13 +20,13 @@ import {
   setTeamCaptainOperation,
   teamDetailOperation,
   teamsBrowseOperation,
-  transferTeamOwnershipOperation
+  transferTeamOwnershipOperation,
 } from "../src/features/team-slice/team-operations.server.js";
 import {
   newTeamHead,
   teamHead,
   teamRoleLabel,
-  teamsHead
+  teamsHead,
 } from "../src/features/team-slice/presentation.js";
 
 const team = {
@@ -41,7 +41,7 @@ const team = {
     name: "Example University",
     slug: "example-university",
     city: "Irvine",
-    state: "CA"
+    state: "CA",
   },
   games: [{ id: "game-1", name: "Rocket League", slug: "rocket-league" }],
   viewer_role: "owner",
@@ -50,12 +50,12 @@ const team = {
       user_id: "member-private-id",
       name: "Private Member",
       role: "member",
-      email: "private-member@example.test"
-    }
+      email: "private-member@example.test",
+    },
   ],
   password: "must-not-serialize",
   session: "must-not-serialize",
-  "X-CGN-Proxy-Secret": "must-not-serialize"
+  "X-CGN-Proxy-Secret": "must-not-serialize",
 };
 
 function client(fetcher: Fetcher) {
@@ -69,7 +69,7 @@ test("team browse preserves encoded filters/cursors, uses no-store, and strips p
       game: "rocket league",
       school: "example/university",
       after: "next+cursor",
-      before: "previous/cursor"
+      before: "previous/cursor",
     },
     {
       api: client(async (input, init) => {
@@ -82,9 +82,9 @@ test("team browse preserves encoded filters/cursors, uses no-store, and strips p
                   id: "game-1",
                   name: "Rocket League",
                   slug: "rocket-league",
-                  cover_url: "private-addition"
-                }
-              ]
+                  cover_url: "private-addition",
+                },
+              ],
             })
           : Response.json({
               teams: [team],
@@ -93,27 +93,27 @@ test("team browse preserves encoded filters/cursors, uses no-store, and strips p
               has_previous: true,
               next_cursor: "next",
               previous_cursor: "previous",
-              internal: "must-not-serialize"
+              internal: "must-not-serialize",
             });
-      })
-    }
+      }),
+    },
   );
 
   const teamCall = calls.find(({ url }) => url.includes("/teams?"));
   assert.equal(
     teamCall?.url,
-    "http://api:8080/teams?game=rocket+league&school=example%2Funiversity&limit=25&after=next%2Bcursor&before=previous%2Fcursor"
+    "http://api:8080/teams?game=rocket+league&school=example%2Funiversity&limit=25&after=next%2Bcursor&before=previous%2Fcursor",
   );
   assert.equal(teamCall?.init?.cache, "no-store");
   assert.equal(
     calls.find(({ url }) => url.endsWith("/games"))?.init?.cache,
-    "no-store"
+    "no-store",
   );
   assert.equal(result.teamsUnavailable, false);
   assert.equal(result.gamesUnavailable, false);
   assert.equal(result.teams[0]?.name, "Varsity Rocket League");
   assert.deepEqual(result.games, [
-    { id: "game-1", name: "Rocket League", slug: "rocket-league" }
+    { id: "game-1", name: "Rocket League", slug: "rocket-league" },
   ]);
   const serialized = JSON.stringify(result);
   assert.equal(serialized.includes("owner-private-id"), false);
@@ -128,10 +128,10 @@ test("team and game browse failures independently degrade to bounded empty resul
     { game: "", school: "", after: "", before: "" },
     {
       api: client(async () =>
-        Response.json({ error: "sensitive_upstream_detail" }, { status: 503 })
+        Response.json({ error: "sensitive_upstream_detail" }, { status: 503 }),
       ),
-      reportError: (error) => reported.push(error)
-    }
+      reportError: (error) => reported.push(error),
+    },
   );
 
   assert.deepEqual(result, {
@@ -141,10 +141,13 @@ test("team and game browse failures independently degrade to bounded empty resul
     has_previous: false,
     games: [],
     gamesUnavailable: true,
-    teamsUnavailable: true
+    teamsUnavailable: true,
   });
   assert.equal(reported.length, 2);
-  assert.equal(JSON.stringify(result).includes("sensitive_upstream_detail"), false);
+  assert.equal(
+    JSON.stringify(result).includes("sensitive_upstream_detail"),
+    false,
+  );
 });
 
 test("team detail forwards viewer cookies and returns only the minimal owner roster", async () => {
@@ -158,15 +161,15 @@ test("team detail forwards viewer cookies and returns only the minimal owner ros
         init = requestInit;
         return Response.json(team);
       }),
-      cookieHeader: "cgn_session=server-only; unrelated=present"
-    }
+      cookieHeader: "cgn_session=server-only; unrelated=present",
+    },
   );
 
   assert.equal(input, "http://api:8080/teams/varsity%2Frocket-league");
   assert.equal(init?.cache, "no-store");
   assert.equal(
     new Headers(init?.headers).get("cookie"),
-    "cgn_session=server-only; unrelated=present"
+    "cgn_session=server-only; unrelated=present",
   );
   assert.equal(result.status, "found");
   if (result.status !== "found") assert.fail("team should be found");
@@ -175,13 +178,16 @@ test("team detail forwards viewer cookies and returns only the minimal owner ros
     {
       user_id: "member-private-id",
       name: "Private Member",
-      role: "member"
-    }
+      role: "member",
+    },
   ]);
   assert.equal("owner_user_id" in result.team, false);
   assert.equal("members" in result.team, false);
   assert.equal(JSON.stringify(result).includes("server-only"), false);
-  assert.equal(JSON.stringify(result).includes("private-member@example.test"), false);
+  assert.equal(
+    JSON.stringify(result).includes("private-member@example.test"),
+    false,
+  );
 });
 
 test("team detail never returns a roster to non-owners", async () => {
@@ -189,10 +195,10 @@ test("team detail never returns a roster to non-owners", async () => {
     { slug: "varsity-rocket-league" },
     {
       api: client(async () =>
-        Response.json({ ...team, viewer_role: "member" })
+        Response.json({ ...team, viewer_role: "member" }),
       ),
-      cookieHeader: "cgn_session=server-only"
-    }
+      cookieHeader: "cgn_session=server-only",
+    },
   );
 
   assert.equal(result.status, "found");
@@ -207,10 +213,10 @@ test("team detail preserves exact 404 and maps other failures to a generic resul
     { slug: "missing" },
     {
       api: client(async () =>
-        Response.json({ error: "team_not_found" }, { status: 404 })
+        Response.json({ error: "team_not_found" }, { status: 404 }),
       ),
-      cookieHeader: ""
-    }
+      cookieHeader: "",
+    },
   );
   const reported: unknown[] = [];
   const unavailable = await teamDetailOperation(
@@ -218,14 +224,14 @@ test("team detail preserves exact 404 and maps other failures to a generic resul
     {
       api: client(async () => Response.json({ id: "broken" })),
       cookieHeader: "",
-      reportError: (error) => reported.push(error)
-    }
+      reportError: (error) => reported.push(error),
+    },
   );
 
   assert.deepEqual(missing, { status: "not_found" });
   assert.deepEqual(unavailable, {
     status: "error",
-    message: "Team details are unavailable."
+    message: "Team details are unavailable.",
   });
   assert.equal(reported.length, 1);
 });
@@ -237,27 +243,30 @@ test("team search normalization is tolerant, bounded, and preserves opaque curso
       school: " example-university ",
       after: " cursor-a ",
       before: " cursor-b ",
-      ignored: { nested: true }
+      ignored: { nested: true },
     }),
     {
       game: "rocket-league",
       school: "example-university",
       after: "cursor-a",
-      before: "cursor-b"
-    }
+      before: "cursor-b",
+    },
   );
-  assert.deepEqual(validateTeamsSearch({ game: "x".repeat(201), after: 7 }), {});
+  assert.deepEqual(
+    validateTeamsSearch({ game: "x".repeat(201), after: 7 }),
+    {},
+  );
   assert.deepEqual(
     teamsBrowseInput({ game: "rocket-league", after: "opaque" }),
     {
       game: "rocket-league",
       school: "",
       after: "opaque",
-      before: ""
-    }
+      before: "",
+    },
   );
   assert.deepEqual(validateTeamDetailSearch({ team: " joined " }), {
-    team: "joined"
+    team: "joined",
   });
   assert.deepEqual(validateTeamDetailSearch({ team: "raw-api-error" }), {});
 });
@@ -266,33 +275,35 @@ test("team metadata is dynamic, indexable, and built from the same safe DTO", ()
   const safeTeam = teamDtoSchema.parse(team);
   assert.deepEqual(teamRoleLabel("captain"), "Captain");
   assert.deepEqual(teamsHead("https://cgn.example").meta[0], {
-    title: "Teams | Campus Gaming Network"
+    title: "Teams | Campus Gaming Network",
   });
 
   const metadata = teamHead(safeTeam, "https://cgn.example");
   assert.deepEqual(metadata.meta[0], {
-    title: "Varsity Rocket League | Campus Gaming Network"
+    title: "Varsity Rocket League | Campus Gaming Network",
   });
   assert.ok(
     metadata.meta.some(
       (entry) =>
         entry.property === "og:url" &&
-        entry.content ===
-          "https://cgn.example/teams/varsity%2Frocket-league"
-    )
+        entry.content === "https://cgn.example/teams/varsity%2Frocket-league",
+    ),
   );
   assert.equal(JSON.stringify(metadata).includes("owner-private-id"), false);
-  assert.equal(JSON.stringify(metadata).includes("private-member@example.test"), false);
+  assert.equal(
+    JSON.stringify(metadata).includes("private-member@example.test"),
+    false,
+  );
 
   const createMetadata = newTeamHead("https://cgn.example");
   assert.deepEqual(createMetadata.meta[0], {
-    title: "Start a team | Campus Gaming Network"
+    title: "Start a team | Campus Gaming Network",
   });
   assert.ok(
     createMetadata.meta.some(
       (entry) =>
-        entry.name === "robots" && entry.content === "noindex,nofollow"
-    )
+        entry.name === "robots" && entry.content === "noindex,nofollow",
+    ),
   );
 });
 
@@ -303,7 +314,7 @@ const profile = {
   verification_level: "verified_student",
   name: "Viewer",
   timezone: "America/Los_Angeles",
-  home_school_id: "school-home"
+  home_school_id: "school-home",
 };
 
 test("new team page requires a server-derived session and bounds its catalog DTOs", async () => {
@@ -322,9 +333,9 @@ test("new team page requires a server-derived session and bounds its catalog DTO
                 id: "game-1",
                 name: "Rocket League",
                 slug: "rocket-league",
-                internal: "strip-me"
-              }
-            ]
+                internal: "strip-me",
+              },
+            ],
           });
         }
         return Response.json({
@@ -333,17 +344,17 @@ test("new team page requires a server-derived session and bounds its catalog DTO
               id: "school-1",
               name: "Example University",
               slug: "example-university",
-              private_notes: "strip-me"
-            }
+              private_notes: "strip-me",
+            },
           ],
           limit: 50,
           offset: 0,
-          has_more: false
+          has_more: false,
         });
       }),
       cookieHeader: "cgn_session=server-only",
-      sessionCookieValue: "server-only"
-    }
+      sessionCookieValue: "server-only",
+    },
   );
 
   assert.equal(result.status, "ready");
@@ -353,7 +364,7 @@ test("new team page requires a server-derived session and bounds its catalog DTO
   assert.equal(result.schools[0]?.name, "Example University");
   assert.equal(
     calls.find(({ url }) => url.includes("/schools?"))?.url,
-    "http://api:8080/schools?q=Example+%2F+University&limit=50"
+    "http://api:8080/schools?q=Example+%2F+University&limit=50",
   );
   assert.ok(calls.every(({ init }) => init?.cache === "no-store"));
   const serialized = JSON.stringify(result);
@@ -371,8 +382,8 @@ test("new team page skips catalogs without a session and degrades school search 
         anonymousCalls += 1;
         return Response.json({});
       }),
-      cookieHeader: ""
-    }
+      cookieHeader: "",
+    },
   );
   assert.deepEqual(anonymous, { status: "unauthenticated" });
   assert.equal(anonymousCalls, 0);
@@ -389,15 +400,15 @@ test("new team page skips catalogs without a session and degrades school search 
       }),
       cookieHeader: "cgn_session=server-only",
       sessionCookieValue: "server-only",
-      reportError: (error) => reported.push(error)
-    }
+      reportError: (error) => reported.push(error),
+    },
   );
   assert.deepEqual(degraded, {
     status: "ready",
     defaultSchoolID: "school-home",
     games: [],
     schools: [],
-    schoolSearchFailed: true
+    schoolSearchFailed: true,
   });
   assert.equal(reported.length, 1);
   assert.equal(JSON.stringify(degraded).includes("sensitive_detail"), false);
@@ -419,8 +430,8 @@ test("team write validators normalize typed and native inputs without accepting 
       description: "Compete on campus.",
       school_id: "school-1",
       game_ids: ["game-1", "game-2"],
-      password: "TeamPass8"
-    }
+      password: "TeamPass8",
+    },
   });
 
   const invalidJoin = new FormData();
@@ -430,27 +441,30 @@ test("team write validators normalize typed and native inputs without accepting 
     valid: false,
     message: "Check the highlighted fields and try again.",
     fieldErrors: { password: ["Password must be at least 8 characters."] },
-    slug: "varsity/rocket-league"
+    slug: "varsity/rocket-league",
   });
   assert.equal(
     validateSetTeamCaptainServerInput({
       slug: "team-a",
       user_id: "member-a",
       captain: true,
-      viewer_role: "owner"
+      viewer_role: "owner",
     } as never).valid,
-    true
+    true,
   );
   assert.equal(
     validateTransferTeamOwnershipServerInput({
       slug: "team-a",
-      new_owner_user_id: ""
+      new_owner_user_id: "",
     }).valid,
-    false
+    false,
   );
-  assert.deepEqual(validateNewTeamSearch({ school_q: " Example ", team: "x" }), {
-    school_q: "Example"
-  });
+  assert.deepEqual(
+    validateNewTeamSearch({ school_q: " Example ", team: "x" }),
+    {
+      school_q: "Example",
+    },
+  );
 });
 
 test("team mutations use exact Go endpoints, request cookies, and minimal responses", async () => {
@@ -467,18 +481,18 @@ test("team mutations use exact Go endpoints, request cookies, and minimal respon
       body: init?.body ? JSON.parse(String(init.body)) : undefined,
       cookie: new Headers(init?.headers).get("cookie"),
       method: init?.method,
-      url
+      url,
     });
     return Response.json({
       ...team,
       slug: "returned/team",
-      password: "must-not-serialize"
+      password: "must-not-serialize",
     });
   });
   const dependencies = {
     api,
     cookieHeader: "cgn_session=server-only",
-    sessionCookieValue: "server-only"
+    sessionCookieValue: "server-only",
   };
 
   const results = await Promise.all([
@@ -488,22 +502,19 @@ test("team mutations use exact Go endpoints, request cookies, and minimal respon
         description: "Description",
         school_id: "school-1",
         game_ids: ["game-1"],
-        password: "TeamPass8"
+        password: "TeamPass8",
       },
-      dependencies
+      dependencies,
     ),
-    joinTeamOperation(
-      { slug: "team/a", password: "TeamPass8" },
-      dependencies
-    ),
+    joinTeamOperation({ slug: "team/a", password: "TeamPass8" }, dependencies),
     setTeamCaptainOperation(
       { slug: "team/a", user_id: "member-1", captain: true },
-      dependencies
+      dependencies,
     ),
     transferTeamOwnershipOperation(
       { slug: "team/a", new_owner_user_id: "member-2" },
-      dependencies
-    )
+      dependencies,
+    ),
   ]);
 
   assert.deepEqual(
@@ -512,29 +523,27 @@ test("team mutations use exact Go endpoints, request cookies, and minimal respon
       "http://api:8080/teams",
       "http://api:8080/teams/team%2Fa/join",
       "http://api:8080/teams/team%2Fa/captains",
-      "http://api:8080/teams/team%2Fa/transfer-ownership"
-    ]
+      "http://api:8080/teams/team%2Fa/transfer-ownership",
+    ],
   );
-  assert.deepEqual(calls.map(({ method }) => method), [
-    "POST",
-    "POST",
-    "POST",
-    "POST"
-  ]);
+  assert.deepEqual(
+    calls.map(({ method }) => method),
+    ["POST", "POST", "POST", "POST"],
+  );
   assert.ok(calls.every(({ cookie }) => cookie === "cgn_session=server-only"));
   assert.deepEqual(calls[1]?.body, { password: "TeamPass8" });
   assert.deepEqual(calls[2]?.body, { user_id: "member-1", captain: true });
   assert.deepEqual(calls[3]?.body, { new_owner_user_id: "member-2" });
   assert.deepEqual(
     results.map((result) =>
-      result.status === "success" ? result.redirectTo : result.status
+      result.status === "success" ? result.redirectTo : result.status,
     ),
     [
       "/teams/returned%2Fteam?team=created",
       "/teams/returned%2Fteam?team=joined",
       "/teams/returned%2Fteam?team=captain-updated",
-      "/teams/returned%2Fteam?team=ownership-transferred"
-    ]
+      "/teams/returned%2Fteam?team=ownership-transferred",
+    ],
   );
   assert.equal(JSON.stringify(results).includes("must-not-serialize"), false);
 });
@@ -548,12 +557,12 @@ test("team writes authorize independently and leave owner checks to Go", async (
         unauthenticatedCalls += 1;
         return Response.json({});
       }),
-      cookieHeader: ""
-    }
+      cookieHeader: "",
+    },
   );
   assert.deepEqual(unauthenticated, {
     status: "error",
-    message: "Please log in to continue."
+    message: "Please log in to continue.",
   });
   assert.equal(unauthenticatedCalls, 0);
 
@@ -568,25 +577,28 @@ test("team writes authorize independently and leave owner checks to Go", async (
         forbiddenCalls.push(url);
         return Response.json(
           { error: "not_team_owner", detail: "private database detail" },
-          { status: 403 }
+          { status: 403 },
         );
       }),
       cookieHeader: "cgn_session=non-owner",
       sessionCookieValue: "non-owner",
-      reportError: (error) => reported.push(error)
-    }
+      reportError: (error) => reported.push(error),
+    },
   );
   assert.deepEqual(forbidden, {
     status: "error",
-    message: "Only the team owner can manage members."
+    message: "Only the team owner can manage members.",
   });
   assert.deepEqual(forbiddenCalls, [
-    "http://api:8080/teams/team-a/transfer-ownership"
+    "http://api:8080/teams/team-a/transfer-ownership",
   ]);
   assert.equal(reported.length, 1);
-  assert.equal(JSON.stringify(forbidden).includes("private database detail"), false);
+  assert.equal(
+    JSON.stringify(forbidden).includes("private database detail"),
+    false,
+  );
   assert.equal(
     safeTeamMutationMessage(new Error("private response contents")),
-    "Something went wrong. Please try again."
+    "Something went wrong. Please try again.",
   );
 });

@@ -20,13 +20,13 @@ export function headersWithTrustedVisitorIdentity({
   outgoingHeaders,
   proxySecret,
   cloudflareOriginSecret = "",
-  trustRailwayHeaders = Boolean(process.env.RAILWAY_ENVIRONMENT_ID)
+  trustRailwayHeaders = Boolean(process.env.RAILWAY_ENVIRONMENT_ID),
 }: TrustedVisitorHeadersOptions): Headers {
   const headers = sanitizeInternalHeaders(outgoingHeaders);
   const visitorIP = visitorIPFromHostingHeaders(
     incomingHeaders,
     cloudflareOriginSecret,
-    trustRailwayHeaders
+    trustRailwayHeaders,
   );
 
   if (visitorIP && proxySecret.trim()) {
@@ -50,17 +50,17 @@ export function sanitizeInternalHeaders(headers?: HeadersInit): Headers {
 export function visitorIPFromHostingHeaders(
   requestHeaders: HeaderReader,
   cloudflareOriginSecret = "",
-  trustRailwayHeaders = Boolean(process.env.RAILWAY_ENVIRONMENT_ID)
+  trustRailwayHeaders = Boolean(process.env.RAILWAY_ENVIRONMENT_ID),
 ): string | null {
   if (
     cloudflareOriginSecret &&
     secretsEqual(
       requestHeaders.get(cloudflareSecretHeader) ?? "",
-      cloudflareOriginSecret
+      cloudflareOriginSecret,
     )
   ) {
     const cloudflareVisitorIP = normalizeIPAddress(
-      requestHeaders.get("cf-connecting-ip")
+      requestHeaders.get("cf-connecting-ip"),
     );
     if (cloudflareVisitorIP) {
       return cloudflareVisitorIP;

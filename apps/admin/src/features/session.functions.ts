@@ -5,7 +5,7 @@ import {
   getCookie,
   getRequestHeaders,
   setCookie,
-  setResponseHeader
+  setResponseHeader,
 } from "@tanstack/react-start/server";
 import type { CookieMutation } from "../server/cookies.server.js";
 import { adminEnvironment } from "../server/environment.server.js";
@@ -13,7 +13,7 @@ import {
   createSessionDependencies,
   establishAdminSession,
   logoutAdminSession,
-  stepUpAdminSession
+  stepUpAdminSession,
 } from "../server/session.server.js";
 
 export const getAdminShellSession = createServerFn({ method: "GET" }).handler(
@@ -26,9 +26,9 @@ export const getAdminShellSession = createServerFn({ method: "GET" }).handler(
       ...dependencies,
       assertion: getRequestHeaders().get("Cf-Access-Jwt-Assertion") ?? "",
       sessionCookieValue: getCookie(environment.sessionCookieName),
-      applyCookies
+      applyCookies,
     });
-  }
+  },
 );
 
 export const logout = createServerFn({ method: "POST" }).handler(async () => {
@@ -42,7 +42,7 @@ export const logout = createServerFn({ method: "POST" }).handler(async () => {
     sessionCookieValue: getCookie(dependencies.sessionCookieName),
     csrfCookieName: dependencies.csrfCookieName,
     csrfCookieValue: getCookie(dependencies.csrfCookieName),
-    applyCookies
+    applyCookies,
   });
 
   if (getRequestHeaders().get("x-tsr-serverfn") !== "true") {
@@ -64,7 +64,7 @@ export const stepUp = createServerFn({ method: "POST" }).handler(async () => {
     assertion: getRequestHeaders().get("Cf-Access-Jwt-Assertion") ?? "",
     sessionCookieValue: getCookie(dependencies.sessionCookieName),
     csrfCookieValue: getCookie(dependencies.csrfCookieName),
-    applyCookies
+    applyCookies,
   });
 });
 

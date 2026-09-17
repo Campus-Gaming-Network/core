@@ -3,7 +3,7 @@ import {
   getCookie,
   getRequestHeaders,
   setCookie,
-  setResponseHeader
+  setResponseHeader,
 } from "@tanstack/react-start/server";
 import { type ApiClient } from "./api.server.js";
 import { createGoBFFClient } from "./bff.server.js";
@@ -11,13 +11,13 @@ import {
   cookieHeaderValue,
   eventUnlockCookieName,
   sessionCookieName,
-  type CookieMutation
+  type CookieMutation,
 } from "./cookies.server.js";
 import {
   optionalViewerProfile,
   requiredViewerProfile,
   type ProfileDTO,
-  type ViewerRequest
+  type ViewerRequest,
 } from "./viewer.server.js";
 
 type HeaderReader = Pick<Headers, "get">;
@@ -35,29 +35,29 @@ export function goBFFForCurrentRequest(): ApiClient {
 }
 
 export function incomingCookieHeader(
-  incomingHeaders: HeaderReader = getRequestHeaders()
+  incomingHeaders: HeaderReader = getRequestHeaders(),
 ): string {
   return incomingHeaders.get("cookie") ?? "";
 }
 
 export function sessionRequestForHeaders(
-  incomingHeaders: HeaderReader
+  incomingHeaders: HeaderReader,
 ): SessionRequest {
   const configuredCookieName = sessionCookieName();
   const incomingCookies = incomingCookieHeader(incomingHeaders);
   const sessionCookieValue = cookieHeaderValue(
     incomingCookies,
-    configuredCookieName
+    configuredCookieName,
   );
 
   return {
     api: goBFFForHeaders(incomingHeaders),
     cookieHeader: sessionOnlyCookieHeader(
       configuredCookieName,
-      sessionCookieValue
+      sessionCookieValue,
     ),
     sessionCookieName: configuredCookieName,
-    sessionCookieValue
+    sessionCookieValue,
   };
 }
 
@@ -70,16 +70,16 @@ export function currentSessionRequest(): SessionRequest {
     api: goBFFForHeaders(incomingHeaders),
     cookieHeader: sessionOnlyCookieHeader(
       configuredCookieName,
-      sessionCookieValue
+      sessionCookieValue,
     ),
     sessionCookieName: configuredCookieName,
-    sessionCookieValue
+    sessionCookieValue,
   };
 }
 
 export function sessionOnlyCookieHeader(
   name: string,
-  value: string | undefined
+  value: string | undefined,
 ): string {
   return value ? `${name}=${value}` : "";
 }
@@ -115,8 +115,10 @@ export function isNativeFormRequest(headers: HeaderReader): boolean {
   }
 
   const contentType = headers.get("content-type") ?? "";
-  return contentType.includes("application/x-www-form-urlencoded") ||
-    contentType.includes("multipart/form-data");
+  return (
+    contentType.includes("application/x-www-form-urlencoded") ||
+    contentType.includes("multipart/form-data")
+  );
 }
 
 export function setPrivateNoStoreResponse(): void {
@@ -129,6 +131,6 @@ export function setViewerResponseCache(hasSessionCookie: boolean): void {
     "cache-control",
     hasSessionCookie
       ? "private, no-store"
-      : "public, max-age=0, must-revalidate"
+      : "public, max-age=0, must-revalidate",
   );
 }

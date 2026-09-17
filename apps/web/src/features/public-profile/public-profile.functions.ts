@@ -4,17 +4,17 @@ import {
   currentSessionRequest,
   isNativeFormPost,
   setPrivateNoStoreResponse,
-  setViewerResponseCache
+  setViewerResponseCache,
 } from "../../server/request-boundary.server.js";
 import {
   publicProfileInputSchema,
   reportUserNativeDestination,
   validateReportUserServerInput,
-  type ReportUserInput
+  type ReportUserInput,
 } from "./contracts.js";
 import {
   getPublicProfilePageOperation,
-  reportUserOperation
+  reportUserOperation,
 } from "./public-profile-operations.server.js";
 
 export const getPublicProfilePage = createServerFn({ method: "GET" })
@@ -27,7 +27,7 @@ export const getPublicProfilePage = createServerFn({ method: "GET" })
     const result = await getPublicProfilePageOperation(data, {
       api: request.api,
       cookieHeader: request.cookieHeader,
-      sessionCookieValue: request.sessionCookieValue
+      sessionCookieValue: request.sessionCookieValue,
     });
 
     return { ...result, hasSessionCookie };
@@ -35,10 +35,10 @@ export const getPublicProfilePage = createServerFn({ method: "GET" })
 
 export const reportUser = createServerFn({
   method: "POST",
-  strict: { input: false }
+  strict: { input: false },
 })
   .validator((input: ReportUserInput | FormData) =>
-    validateReportUserServerInput(input)
+    validateReportUserServerInput(input),
   )
   .handler(async ({ data }) => {
     setPrivateNoStoreResponse();
@@ -47,28 +47,28 @@ export const reportUser = createServerFn({
       if (nativeForm) {
         throw redirect({
           href: reportUserNativeDestination(data.userID, "failed"),
-          statusCode: 303
+          statusCode: 303,
         });
       }
       return {
         status: "error" as const,
         message: data.message,
-        fieldErrors: data.fieldErrors
+        fieldErrors: data.fieldErrors,
       };
     }
 
     const request = currentSessionRequest();
     const result = await reportUserOperation(data.value, {
       api: request.api,
-      cookieHeader: request.cookieHeader
+      cookieHeader: request.cookieHeader,
     });
     if (nativeForm) {
       throw redirect({
         href: reportUserNativeDestination(
           data.value.userID,
-          result.status === "success" ? "submitted" : "failed"
+          result.status === "success" ? "submitted" : "failed",
         ),
-        statusCode: 303
+        statusCode: 303,
       });
     }
     return result;

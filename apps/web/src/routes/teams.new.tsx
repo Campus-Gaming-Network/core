@@ -2,14 +2,14 @@ import {
   Link,
   createFileRoute,
   redirect,
-  type ErrorComponentProps
+  type ErrorComponentProps,
 } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { type FormEvent } from "react";
 import {
   FieldError,
   fieldErrorProps,
-  useEnhancedMutation
+  useEnhancedMutation,
 } from "../components/enhanced-mutation";
 import { RouteErrorView, RoutePending } from "../components/route-boundaries";
 import {
@@ -17,11 +17,11 @@ import {
   validateNewTeamSearch,
   type GameSummaryDTO,
   type NewTeamSearch,
-  type SchoolSummaryDTO
+  type SchoolSummaryDTO,
 } from "../features/team-slice/contracts";
 import {
   createTeam,
-  getNewTeamPage
+  getNewTeamPage,
 } from "../features/team-slice/team.functions";
 import { newTeamHead } from "../features/team-slice/presentation";
 import teamCSS from "../features/team-slice/teams.css?url";
@@ -35,7 +35,7 @@ export const Route = createFileRoute("/teams/new")({
     if (result.status === "unauthenticated") {
       throw redirect({
         to: "/login",
-        search: { next: "/teams/new" }
+        search: { next: "/teams/new" },
       });
     }
     if (result.status !== "ready") {
@@ -46,15 +46,15 @@ export const Route = createFileRoute("/teams/new")({
   staleTime: 0,
   headers: () => ({
     "cache-control": "private, no-store",
-    vary: "Cookie"
+    vary: "Cookie",
   }),
   head: ({ loaderData }) => ({
     ...newTeamHead(loaderData?.publicOrigin),
-    links: [{ rel: "stylesheet", href: teamCSS }]
+    links: [{ rel: "stylesheet", href: teamCSS }],
   }),
   pendingComponent: NewTeamPending,
   errorComponent: NewTeamError,
-  component: NewTeamPage
+  component: NewTeamPage,
 });
 
 function NewTeamPage() {
@@ -88,7 +88,7 @@ function NewTeamPage() {
 
 function SchoolSearch({
   failed,
-  search
+  search,
 }: {
   failed: boolean;
   search: NewTeamSearch;
@@ -125,7 +125,7 @@ function CreateTeamForm({
   defaultSchoolID,
   games,
   initialFailure,
-  schools
+  schools,
 }: {
   defaultSchoolID: string;
   games: GameSummaryDTO[];
@@ -134,7 +134,7 @@ function CreateTeamForm({
 }) {
   const runCreateTeam = useServerFn(createTeam);
   const mutation = useEnhancedMutation(
-    "We could not create that team. Please try again."
+    "We could not create that team. Please try again.",
   );
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -149,9 +149,9 @@ function CreateTeamForm({
           game_ids: form
             .getAll("game_ids")
             .filter((value): value is string => typeof value === "string"),
-          password: String(form.get("password") ?? "")
-        }
-      })
+          password: String(form.get("password") ?? ""),
+        },
+      }),
     );
   }
 
@@ -195,10 +195,7 @@ function CreateTeamForm({
           rows={6}
           {...fieldErrorProps(descriptionErrors, "team-description-error")}
         />
-        <FieldError
-          id="team-description-error"
-          messages={descriptionErrors}
-        />
+        <FieldError id="team-description-error" messages={descriptionErrors} />
       </label>
 
       <label>
@@ -257,14 +254,14 @@ function CreateTeamForm({
 
 function uniqueSchools(
   schools: SchoolSummaryDTO[],
-  defaultSchoolID: string
+  defaultSchoolID: string,
 ): SchoolSummaryDTO[] {
   const unique = new Map(schools.map((school) => [school.id, school]));
   if (defaultSchoolID && !unique.has(defaultSchoolID)) {
     unique.set(defaultSchoolID, {
       id: defaultSchoolID,
       name: "Your home school",
-      slug: defaultSchoolID
+      slug: defaultSchoolID,
     });
   }
   return [...unique.values()];

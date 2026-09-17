@@ -11,7 +11,7 @@ test.beforeEach(async ({ request }) => {
 
 test("login rejects control-character redirect targets", async ({ page }) => {
   const unsafeNext = new URLSearchParams({
-    next: "/\t/attacker.example"
+    next: "/\t/attacker.example",
   });
   await gotoApp(page, `/login?${unsafeNext}`);
   await page.getByLabel("Email").fill("safe-redirect@example.test");
@@ -22,7 +22,7 @@ test("login rejects control-character redirect targets", async ({ page }) => {
 
 test("public auth recovery and private account mutations work through the runtime", async ({
   context,
-  page
+  page,
 }, testInfo) => {
   const device = deviceName(testInfo.project.name);
 
@@ -34,24 +34,26 @@ test("public auth recovery and private account mutations work through the runtim
   await page.getByLabel("Home school").selectOption("school-e2e");
   await page.getByRole("checkbox", { name: /18 or older/ }).check();
   await page.getByRole("button", { name: "Create account" }).click();
-  await expect(page.getByText("Account created. Check your email")).toBeVisible();
+  await expect(
+    page.getByText("Account created. Check your email"),
+  ).toBeVisible();
 
   await gotoApp(page, "/forgot-password");
   await page.getByLabel("Email").fill(`recovery-${device}@example.test`);
   await page.getByRole("button", { name: "Send reset link" }).click();
   await expect(page.getByRole("status")).toContainText(
-    "If that account exists"
+    "If that account exists",
   );
 
   await gotoApp(page, `/auth/verify-email?token=valid-verification-${device}`);
   await page.getByRole("button", { name: "Verify email" }).click();
   await expect(page.getByRole("status")).toContainText(
-    "Your email is verified"
+    "Your email is verified",
   );
 
   await gotoApp(page, `/auth/reset-password?token=valid-reset-${device}`);
   await expect(page).toHaveURL(
-    new RegExp(`/reset-password\\?token=valid-reset-${device}$`)
+    new RegExp(`/reset-password\\?token=valid-reset-${device}$`),
   );
   await page.getByLabel("New password").fill("UpdatedPassword123!");
   await page.getByRole("button", { name: "Reset password" }).click();
@@ -64,7 +66,7 @@ test("public auth recovery and private account mutations work through the runtim
   await page.getByRole("button", { name: "Save profile" }).click();
   await expect(page).toHaveURL(/\/account\?account=profile-updated$/);
   await expect(
-    page.getByRole("heading", { name: "Updated Browser Player", level: 1 })
+    page.getByRole("heading", { name: "Updated Browser Player", level: 1 }),
   ).toBeVisible();
 
   await page.getByLabel("Type DELETE to confirm").fill("DELETE");
@@ -76,7 +78,7 @@ test("public auth recovery and private account mutations work through the runtim
 });
 
 test("event create, report, interest, edit, and cancellation work through the runtime", async ({
-  page
+  page,
 }, testInfo) => {
   const device = deviceName(testInfo.project.name);
   await logIn(page, `event-${device}@example.test`, "/events/new");
@@ -92,9 +94,11 @@ test("event create, report, interest, edit, and cancellation work through the ru
   await page.getByLabel("Capacity").fill("24");
   await page.getByRole("button", { name: "Create event" }).click();
 
-  await expect(page).toHaveURL(/\/events\/browser-campus-tournament-[^?]+\?event=created$/);
+  await expect(page).toHaveURL(
+    /\/events\/browser-campus-tournament-[^?]+\?event=created$/,
+  );
   await expect(
-    page.getByRole("heading", { name: "Browser Campus Tournament", level: 1 })
+    page.getByRole("heading", { name: "Browser Campus Tournament", level: 1 }),
   ).toBeVisible();
   await expect(page.getByText("Event created.")).toBeVisible();
 
@@ -111,7 +115,7 @@ test("event create, report, interest, edit, and cancellation work through the ru
   await page.getByRole("button", { name: "Save event" }).click();
   await expect(page).toHaveURL(/\?event=updated$/);
   await expect(
-    page.getByRole("heading", { name: "Updated Browser Tournament", level: 1 })
+    page.getByRole("heading", { name: "Updated Browser Tournament", level: 1 }),
   ).toBeVisible();
 
   await page.getByRole("button", { name: "Cancel event" }).click();
@@ -121,11 +125,15 @@ test("event create, report, interest, edit, and cancellation work through the ru
 
 test("team creation, joining, captain changes, and ownership transfer work through the runtime", async ({
   context,
-  page
+  page,
 }, testInfo) => {
   const device = deviceName(testInfo.project.name);
 
-  await logIn(page, `member-${device}@example.test`, "/teams/joinable-browser-team");
+  await logIn(
+    page,
+    `member-${device}@example.test`,
+    "/teams/joinable-browser-team",
+  );
   await page.getByLabel("Team password").fill("BrowserTeamPass123!");
   await page.getByRole("button", { name: "Join team" }).click();
   await expect(page).toHaveURL(/\?team=joined$/);
@@ -140,12 +148,16 @@ test("team creation, joining, captain changes, and ownership transfer work throu
   await page.getByRole("checkbox", { name: "Strategy Arena" }).check();
   await page.getByLabel("Join password").fill("BrowserTeamPass123!");
   await page.getByRole("button", { name: "Create team" }).click();
-  await expect(page).toHaveURL(/\/teams\/browser-migration-team-[^?]+\?team=created$/);
+  await expect(page).toHaveURL(
+    /\/teams\/browser-migration-team-[^?]+\?team=created$/,
+  );
   await expect(page.getByText("Your role: Owner.")).toBeVisible();
 
   await page.getByRole("button", { name: "Make captain" }).click();
   await expect(page).toHaveURL(/\?team=captain-updated$/);
-  await expect(page.getByRole("button", { name: "Remove captain" })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Remove captain" }),
+  ).toBeVisible();
 
   await page.getByRole("button", { name: "Transfer ownership" }).click();
   await expect(page).toHaveURL(/\?team=ownership-transferred$/);
@@ -153,7 +165,7 @@ test("team creation, joining, captain changes, and ownership transfer work throu
 });
 
 test("support, user reporting, and school follow state work through the runtime", async ({
-  page
+  page,
 }, testInfo) => {
   const device = deviceName(testInfo.project.name);
 
@@ -167,7 +179,11 @@ test("support, user reporting, and school follow state work through the runtime"
   await page.getByRole("button", { name: "Submit support ticket" }).click();
   await expect(page.getByText("Support ticket submitted.")).toBeVisible();
 
-  await logIn(page, `safety-${device}@example.test`, "/users/reportable-player");
+  await logIn(
+    page,
+    `safety-${device}@example.test`,
+    "/users/reportable-player",
+  );
   await page
     .getByLabel("Reason")
     .fill("Testing the production user-report boundary.");
@@ -183,12 +199,14 @@ test("support, user reporting, and school follow state work through the runtime"
   await page.getByRole("button", { name: "Unfollow" }).click();
   await expect(page).toHaveURL(/\?follow=removed$/);
   await expect(page.getByText("School unfollowed.")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Follow school" })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Follow school" }),
+  ).toBeVisible();
 });
 
 function hasCookie(
   cookies: Awaited<ReturnType<BrowserContext["cookies"]>>,
-  name: string
+  name: string,
 ) {
   return cookies.some((cookie) => cookie.name === name);
 }

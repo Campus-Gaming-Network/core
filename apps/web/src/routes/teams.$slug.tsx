@@ -3,19 +3,16 @@ import {
   createFileRoute,
   notFound,
   useRouter,
-  type ErrorComponentProps
+  type ErrorComponentProps,
 } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { type FormEvent, useState } from "react";
 import {
   FieldError,
   fieldErrorProps,
-  useEnhancedMutation
+  useEnhancedMutation,
 } from "../components/enhanced-mutation";
-import {
-  RouteErrorView,
-  RoutePending
-} from "../components/route-boundaries";
+import { RouteErrorView, RoutePending } from "../components/route-boundaries";
 import { getEventViewerSession } from "../features/event-slice/auth.functions";
 import {
   validateTeamDetailSearch,
@@ -23,18 +20,15 @@ import {
   type TeamMemberDTO,
   type TeamMutationResult,
   type TeamNotice,
-  type TeamViewerState
+  type TeamViewerState,
 } from "../features/team-slice/contracts";
 import {
   getTeamDetail,
   joinTeam,
   setTeamCaptain,
-  transferTeamOwnership
+  transferTeamOwnership,
 } from "../features/team-slice/team.functions";
-import {
-  teamHead,
-  teamRoleLabel
-} from "../features/team-slice/presentation";
+import { teamHead, teamRoleLabel } from "../features/team-slice/presentation";
 import teamCSS from "../features/team-slice/teams.css?url";
 
 export type TeamRouteData = {
@@ -50,7 +44,7 @@ export const Route = createFileRoute("/teams/$slug")({
   loader: async ({ context, params }): Promise<TeamRouteData> => {
     const [detail, session] = await Promise.all([
       getTeamDetail({ data: { slug: params.slug } }),
-      getEventViewerSession()
+      getEventViewerSession(),
     ]);
     if (detail.status === "not_found") {
       throw notFound();
@@ -66,11 +60,11 @@ export const Route = createFileRoute("/teams/$slug")({
       team: detail.team,
       viewer:
         session.status === "authenticated"
-          ? detail.viewerRole ?? "non_member"
+          ? (detail.viewerRole ?? "non_member")
           : "anonymous",
       ...(detail.ownerRoster ? { ownerRoster: detail.ownerRoster } : {}),
       hasSessionCookie: detail.hasSessionCookie,
-      publicOrigin: context.publicOrigin
+      publicOrigin: context.publicOrigin,
     };
   },
   staleTime: 0,
@@ -78,15 +72,15 @@ export const Route = createFileRoute("/teams/$slug")({
     "cache-control": loaderData?.hasSessionCookie
       ? "private, no-store"
       : "public, max-age=0, must-revalidate",
-    vary: "Cookie"
+    vary: "Cookie",
   }),
   head: ({ loaderData }) => ({
     ...teamHead(loaderData?.team, loaderData?.publicOrigin),
-    links: [{ rel: "stylesheet", href: teamCSS }]
+    links: [{ rel: "stylesheet", href: teamCSS }],
   }),
   pendingComponent: TeamPending,
   errorComponent: TeamError,
-  component: TeamPage
+  component: TeamPage,
 });
 
 function TeamPage() {
@@ -147,7 +141,7 @@ function TeamPage() {
 function TeamActions({
   ownerRoster,
   slug,
-  viewer
+  viewer,
 }: {
   ownerRoster?: TeamMemberDTO[];
   slug: string;
@@ -192,7 +186,7 @@ function TeamActions({
 function TeamJoinForm({ slug }: { slug: string }) {
   const runJoinTeam = useServerFn(joinTeam);
   const mutation = useEnhancedMutation(
-    "We could not join that team. Please try again."
+    "We could not join that team. Please try again.",
   );
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -202,9 +196,9 @@ function TeamJoinForm({ slug }: { slug: string }) {
       runJoinTeam({
         data: {
           slug,
-          password: String(form.get("password") ?? "")
-        }
-      })
+          password: String(form.get("password") ?? ""),
+        },
+      }),
     );
   }
 
@@ -234,10 +228,7 @@ function TeamJoinForm({ slug }: { slug: string }) {
           type="password"
           {...fieldErrorProps(passwordErrors, "team-join-password-error")}
         />
-        <FieldError
-          id="team-join-password-error"
-          messages={passwordErrors}
-        />
+        <FieldError id="team-join-password-error" messages={passwordErrors} />
       </label>
       <p className="form-help">
         Team pages are public. The password is checked only when you join.
@@ -251,7 +242,7 @@ function TeamJoinForm({ slug }: { slug: string }) {
 
 function TeamManagementPanel({
   members,
-  slug
+  slug,
 }: {
   members: TeamMemberDTO[];
   slug: string;
@@ -304,7 +295,7 @@ function TeamManagementPanel({
 
 function CaptainManagementRow({
   member,
-  slug
+  slug,
 }: {
   member: TeamMemberDTO;
   slug: string;
@@ -323,8 +314,8 @@ function CaptainManagementRow({
         data: {
           slug,
           user_id: member.user_id,
-          captain: !isCaptain
-        }
+          captain: !isCaptain,
+        },
       });
     } catch {
       result = undefined;
@@ -365,7 +356,7 @@ function CaptainManagementRow({
 
 function TransferOwnershipForm({
   members,
-  slug
+  slug,
 }: {
   members: TeamMemberDTO[];
   slug: string;
@@ -383,8 +374,8 @@ function TransferOwnershipForm({
       result = await runTransferTeamOwnership({
         data: {
           slug,
-          new_owner_user_id: String(form.get("new_owner_user_id") ?? "")
-        }
+          new_owner_user_id: String(form.get("new_owner_user_id") ?? ""),
+        },
       });
     } catch {
       result = undefined;
@@ -429,7 +420,7 @@ function TransferOwnershipForm({
 async function finishManagementMutation(
   router: ReturnType<typeof useRouter>,
   result: TeamMutationResult | undefined,
-  slug: string
+  slug: string,
 ) {
   await router.invalidate();
   await router.navigate({
@@ -437,7 +428,7 @@ async function finishManagementMutation(
       result?.status === "success"
         ? result.redirectTo
         : `/teams/${encodeURIComponent(slug)}?team=manage-failed`,
-    replace: true
+    replace: true,
   });
 }
 
@@ -448,7 +439,7 @@ function TeamNoticeMessage({ status }: { status: TeamNotice }) {
     joined: "You joined the team.",
     "join-failed": "We could not join that team. Please try again.",
     "manage-failed": "We could not update team management. Please try again.",
-    "ownership-transferred": "Ownership transferred."
+    "ownership-transferred": "Ownership transferred.",
   };
   return (
     <p

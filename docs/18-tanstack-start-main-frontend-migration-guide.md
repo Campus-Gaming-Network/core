@@ -31,14 +31,14 @@ require a database migration or an incompatible Go API change.
 Inventory this again at the beginning of the migration; the following numbers
 describe the repository when this guide was written:
 
-| Surface | Current size |
-|---|---:|
-| Next.js page routes | 23 |
-| Next.js route handlers | 3 |
-| Exported Server Actions | 24 |
-| Files importing a Next.js API | 29 |
-| TypeScript unit-test declaration sites | 73 in 11 files |
-| Playwright coverage | 17 tests in 4 specifications |
+| Surface                                |                 Current size |
+| -------------------------------------- | ---------------------------: |
+| Next.js page routes                    |                           23 |
+| Next.js route handlers                 |                            3 |
+| Exported Server Actions                |                           24 |
+| Files importing a Next.js API          |                           29 |
+| TypeScript unit-test declaration sites |               73 in 11 files |
+| Playwright coverage                    | 17 tests in 4 specifications |
 
 Most code in `lib/api-contracts.ts`, `lib/form-validation.ts`,
 `lib/action-payloads.ts`, `lib/pass-v0-requests.ts`, and presentation helpers is
@@ -163,12 +163,12 @@ Use four concurrent lanes: one integration lead and up to three worker agents.
 All agents share a working tree, so coordination is based on exclusive file
 ownership rather than optimistic conflict resolution.
 
-| Lane | Responsibility | Exclusive/shared-file rules |
-|---|---|---|
-| Integration lead | Task graph, scaffolding, dependency pins, integration, final validation | Sole owner of package manifests/lockfile, `vite.config.ts`, `router.tsx`, generated route tree, global CSS, and migration docs |
-| Platform/security | Server request context, BFF transport, cookies, CSRF, trusted visitor identity, safe errors | Owns `src/server/` foundation; changes its public interfaces only through an agreed handoff |
-| Domain slice | One bounded route/action domain at a time | Owns only its assigned routes, forms, and `*.functions.ts` module |
-| Verification/deployment | Tests, parity evidence, Docker/Compose, CI, Railway rehearsal | May edit test and deployment files, but asks the lead to make dependency/lockfile changes |
+| Lane                    | Responsibility                                                                              | Exclusive/shared-file rules                                                                                                    |
+| ----------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Integration lead        | Task graph, scaffolding, dependency pins, integration, final validation                     | Sole owner of package manifests/lockfile, `vite.config.ts`, `router.tsx`, generated route tree, global CSS, and migration docs |
+| Platform/security       | Server request context, BFF transport, cookies, CSRF, trusted visitor identity, safe errors | Owns `src/server/` foundation; changes its public interfaces only through an agreed handoff                                    |
+| Domain slice            | One bounded route/action domain at a time                                                   | Owns only its assigned routes, forms, and `*.functions.ts` module                                                              |
+| Verification/deployment | Tests, parity evidence, Docker/Compose, CI, Railway rehearsal                               | May edit test and deployment files, but asks the lead to make dependency/lockfile changes                                      |
 
 ### Coordination rules
 
@@ -389,16 +389,16 @@ Give each domain agent complete ownership of its route files and focused tests.
 Port loaders and route components together; do not leave components importing
 temporary Next shims longer than one wave.
 
-| Work package | Routes | Key checks |
-|---|---|---|
-| Shell and static | `/about`, `/faq`, `/privacy`, `/terms` | Root head/template, canonical navigation, SSR, no visual drift |
-| Home and schools | `/`, `/schools`, `/schools/:slug`, `/api/schools` | Catalog failure fallback, typed filters, pagination/search, follow-state privacy |
-| Public identity | `/users/:id` | Dynamic head, verification indicators, true 404, report target |
-| Events read side | `/events`, `/events/:slug` | Typed filters/cursors, dynamic/private metadata, lifecycle display, locked-event redaction |
-| Teams read side | `/teams`, `/teams/:slug` | Typed filters/cursors, viewer role, dynamic head, true 404 |
-| Auth/read flows | `/login`, `/signup`, `/forgot-password`, `/reset-password`, `/auth/reset-password`, `/auth/verify-email` | Typed search/token input, `noindex`, safe redirect target |
-| Private screens | `/account`, `/events/new`, `/events/:slug/edit`, `/teams/new` | Route guard UX plus server authorization, no private cache, correct login redirects |
-| Support | `/support` | Static metadata plus later mutation integration |
+| Work package     | Routes                                                                                                   | Key checks                                                                                 |
+| ---------------- | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| Shell and static | `/about`, `/faq`, `/privacy`, `/terms`                                                                   | Root head/template, canonical navigation, SSR, no visual drift                             |
+| Home and schools | `/`, `/schools`, `/schools/:slug`, `/api/schools`                                                        | Catalog failure fallback, typed filters, pagination/search, follow-state privacy           |
+| Public identity  | `/users/:id`                                                                                             | Dynamic head, verification indicators, true 404, report target                             |
+| Events read side | `/events`, `/events/:slug`                                                                               | Typed filters/cursors, dynamic/private metadata, lifecycle display, locked-event redaction |
+| Teams read side  | `/teams`, `/teams/:slug`                                                                                 | Typed filters/cursors, viewer role, dynamic head, true 404                                 |
+| Auth/read flows  | `/login`, `/signup`, `/forgot-password`, `/reset-password`, `/auth/reset-password`, `/auth/verify-email` | Typed search/token input, `noindex`, safe redirect target                                  |
+| Private screens  | `/account`, `/events/new`, `/events/:slug/edit`, `/teams/new`                                            | Route guard UX plus server authorization, no private cache, correct login redirects        |
+| Support          | `/support`                                                                                               | Static metadata plus later mutation integration                                            |
 
 For every route:
 
@@ -429,14 +429,14 @@ Split the 24-action monolith into server-function modules. Keep shared parsing,
 validation, error mapping, and API request builders rather than duplicating
 logic in each wrapper.
 
-| Server-function module | Existing actions |
-|---|---|
-| `auth.functions.ts` | signup, login, logout, forgot/reset password, resend verification, verify email |
-| `profile.functions.ts` | update profile, delete account |
-| `support.functions.ts` | support ticket, report event, report user |
-| `schools.functions.ts` | follow, unfollow |
-| `events.functions.ts` | create, update, delete/cancel, unlock, RSVP, interest |
-| `teams.functions.ts` | create, join, set captain, transfer ownership |
+| Server-function module | Existing actions                                                                |
+| ---------------------- | ------------------------------------------------------------------------------- |
+| `auth.functions.ts`    | signup, login, logout, forgot/reset password, resend verification, verify email |
+| `profile.functions.ts` | update profile, delete account                                                  |
+| `support.functions.ts` | support ticket, report event, report user                                       |
+| `schools.functions.ts` | follow, unfollow                                                                |
+| `events.functions.ts`  | create, update, delete/cancel, unlock, RSVP, interest                           |
+| `teams.functions.ts`   | create, join, set captain, transfer ownership                                   |
 
 ### Server-function contract
 
@@ -498,11 +498,11 @@ Nitro server where behavior can differ.
 
 ### Server routes
 
-| Existing route | Start equivalent | Required behavior |
-|---|---|---|
-| `/api/health` | GET server route | Proxy Go health; 200 healthy, 503 degraded/unreachable; no redirect |
-| `/api/navigation-session` | GET server route | Private, no-store authentication decoration; fail closed to logged-out UI |
-| `/api/schools` | GET server route | Validate query/limit, preserve response codes, private 60-second browser cache |
+| Existing route            | Start equivalent | Required behavior                                                              |
+| ------------------------- | ---------------- | ------------------------------------------------------------------------------ |
+| `/api/health`             | GET server route | Proxy Go health; 200 healthy, 503 degraded/unreachable; no redirect            |
+| `/api/navigation-session` | GET server route | Private, no-store authentication decoration; fail closed to logged-out UI      |
+| `/api/schools`            | GET server route | Validate query/limit, preserve response codes, private 60-second browser cache |
 
 ### Environment and startup
 
@@ -547,21 +547,21 @@ injected `PORT` without a hard-coded production port.
 
 ### Automated validation matrix
 
-| Concern | Minimum evidence |
-|---|---|
-| Route contract | Direct HTTP tests for all URLs, redirects, 404s, and allowed methods |
-| Metadata | Title, description, Open Graph, Twitter, canonical URL where applicable, and `noindex` |
-| Privacy | HTML/serialized-data assertions for locked events, auth pages, and private responses |
-| Auth | Signup, login, authenticated SSR/navigation, logout, reset, verify, expired/invalid session |
-| Cookies | Exact name/value forwarding, expiry/deletion, path, `HttpOnly`, `Secure`, and `SameSite` |
-| CSRF | Same-origin success and cross-origin server-function rejection |
-| BFF identity | Cloudflare authenticated IP, Railway fallback IP, spoof rejection, missing secret |
-| Forms | Field errors, pending UI, success/failure notices, redirects, native constraints, valid no-JS submission |
-| Cache | No shared caching of viewer data; expected catalog freshness; mutation invalidation |
-| Accessibility | Existing Axe/Playwright assertions, focus behavior, live regions, field descriptions |
-| Responsive UI | Existing desktop and mobile Chromium projects |
-| Runtime | Vite dev, Nitro production process, Docker image, Compose, Railway staging |
-| Supply chain | Pinned packages and zero production dependency advisories |
+| Concern        | Minimum evidence                                                                                         |
+| -------------- | -------------------------------------------------------------------------------------------------------- |
+| Route contract | Direct HTTP tests for all URLs, redirects, 404s, and allowed methods                                     |
+| Metadata       | Title, description, Open Graph, Twitter, canonical URL where applicable, and `noindex`                   |
+| Privacy        | HTML/serialized-data assertions for locked events, auth pages, and private responses                     |
+| Auth           | Signup, login, authenticated SSR/navigation, logout, reset, verify, expired/invalid session              |
+| Cookies        | Exact name/value forwarding, expiry/deletion, path, `HttpOnly`, `Secure`, and `SameSite`                 |
+| CSRF           | Same-origin success and cross-origin server-function rejection                                           |
+| BFF identity   | Cloudflare authenticated IP, Railway fallback IP, spoof rejection, missing secret                        |
+| Forms          | Field errors, pending UI, success/failure notices, redirects, native constraints, valid no-JS submission |
+| Cache          | No shared caching of viewer data; expected catalog freshness; mutation invalidation                      |
+| Accessibility  | Existing Axe/Playwright assertions, focus behavior, live regions, field descriptions                     |
+| Responsive UI  | Existing desktop and mobile Chromium projects                                                            |
+| Runtime        | Vite dev, Nitro production process, Docker image, Compose, Railway staging                               |
+| Supply chain   | Pinned packages and zero production dependency advisories                                                |
 
 ### Full validation commands
 
@@ -688,15 +688,15 @@ patching production interactively.
 
 With four total concurrency slots, run these waves:
 
-| Wave | Lead | Worker 1 | Worker 2 | Worker 3 |
-|---|---|---|---|---|
-| 0 | Baseline/task graph | Route inventory | Security inventory | Test/deploy inventory |
-| 1 | Scaffold/integrate | Request boundary | Event/login/RSVP slice | Spike verification |
-| 2 | Shared router/integrate | Server platform | Error/head helpers | Runtime/CI foundation |
-| 3 | Integrate/review | Home/schools/users | Events read side | Teams read side |
-| 4 | Integrate/review | Auth/profile | Event mutations | Team/school/support mutations |
-| 5 | Full-suite integration | Security adversarial review | Route/metadata parity review | Docker/Railway rehearsal |
-| 6 | Cutover candidate | Performance comparison | Browser/accessibility sweep | Documentation/rollback audit |
+| Wave | Lead                    | Worker 1                    | Worker 2                     | Worker 3                      |
+| ---- | ----------------------- | --------------------------- | ---------------------------- | ----------------------------- |
+| 0    | Baseline/task graph     | Route inventory             | Security inventory           | Test/deploy inventory         |
+| 1    | Scaffold/integrate      | Request boundary            | Event/login/RSVP slice       | Spike verification            |
+| 2    | Shared router/integrate | Server platform             | Error/head helpers           | Runtime/CI foundation         |
+| 3    | Integrate/review        | Home/schools/users          | Events read side             | Teams read side               |
+| 4    | Integrate/review        | Auth/profile                | Event mutations              | Team/school/support mutations |
+| 5    | Full-suite integration  | Security adversarial review | Route/metadata parity review | Docker/Railway rehearsal      |
+| 6    | Cutover candidate       | Performance comparison      | Browser/accessibility sweep  | Documentation/rollback audit  |
 
 Rotate reviewers so the author of a security-critical implementation is not its
 only reviewer. Keep the lead available for integration rather than consuming
@@ -727,13 +727,13 @@ when:
 
 For one integration lead and three active worker lanes, budget approximately:
 
-| Work | Focused elapsed time |
-|---|---:|
-| Baseline and hard vertical slice | 2–3 days |
-| Shared foundation | 2–3 days |
-| Read-route parity | 2–4 days |
-| Auth, forms, and mutations | 4–6 days |
-| Runtime, CI, hardening, and staging | 3–5 days |
+| Work                                | Focused elapsed time |
+| ----------------------------------- | -------------------: |
+| Baseline and hard vertical slice    |             2–3 days |
+| Shared foundation                   |             2–3 days |
+| Read-route parity                   |             2–4 days |
+| Auth, forms, and mutations          |             4–6 days |
+| Runtime, CI, hardening, and staging |             3–5 days |
 
 Parallelism shortens elapsed time but does not remove integration and review.
 Expect roughly two focused weeks plus staging soak if the Phase 1 execution

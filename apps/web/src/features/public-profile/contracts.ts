@@ -17,13 +17,13 @@ const schoolSummarySchema = z.object({
   name: z.string(),
   slug: identifierSchema,
   city: z.string().optional(),
-  state: z.string().optional()
+  state: z.string().optional(),
 });
 
 const socialLinkSchema = z.object({
   id: identifierSchema.optional(),
   label: z.string(),
-  url: z.string()
+  url: z.string(),
 });
 
 /** Public allowlist for loader serialization. */
@@ -36,16 +36,16 @@ export const publicProfileDtoSchema = z.object({
   home_school_id: identifierSchema,
   home_school: schoolSummarySchema.optional(),
   social_links: z.array(socialLinkSchema).optional(),
-  role_indicators: z.array(z.string()).optional()
+  role_indicators: z.array(z.string()).optional(),
 });
 
 export const publicProfileInputSchema = z.object({
-  id: identifierSchema
+  id: identifierSchema,
 });
 
 export const reportUserInputSchema = z.object({
   userID: reportTargetSchema,
-  reason: reportReasonSchema
+  reason: reportReasonSchema,
 });
 
 const reportNotices = new Set(["submitted", "failed"] as const);
@@ -86,11 +86,11 @@ export type PublicProfilePageResult =
     };
 
 export function validateReportUserServerInput(
-  input: ReportUserInput | FormData
+  input: ReportUserInput | FormData,
 ): ValidatedReportUserInput {
   const candidate = {
     userID: normalizedInputValue(input, "user_id", "userID"),
-    reason: normalizedInputValue(input, "reason")
+    reason: normalizedInputValue(input, "reason"),
   };
   const parsed = reportUserInputSchema.safeParse(candidate);
   if (parsed.success) {
@@ -110,13 +110,13 @@ export function validateReportUserServerInput(
     valid: false,
     message: "Check the highlighted fields and try again.",
     fieldErrors,
-    ...(target.success ? { userID: target.data } : {})
+    ...(target.success ? { userID: target.data } : {}),
   };
 }
 
-export function validatePublicProfileSearch(
-  search: Record<string, unknown>
-): { report?: ReportUserNotice } {
+export function validatePublicProfileSearch(search: Record<string, unknown>): {
+  report?: ReportUserNotice;
+} {
   const value = Array.isArray(search.report) ? search.report[0] : search.report;
   return typeof value === "string" &&
     reportNotices.has(value as ReportUserNotice)
@@ -126,7 +126,7 @@ export function validatePublicProfileSearch(
 
 export function reportUserNativeDestination(
   userID: string | undefined,
-  notice: ReportUserNotice
+  notice: ReportUserNotice,
 ): string {
   const target = reportTargetSchema.safeParse(userID);
   return target.success
@@ -137,10 +137,11 @@ export function reportUserNativeDestination(
 function normalizedInputValue(
   input: ReportUserInput | FormData,
   formName: string,
-  objectName = formName
+  objectName = formName,
 ): string {
-  const value = input instanceof FormData
-    ? input.get(formName)
-    : input[objectName as keyof ReportUserInput];
+  const value =
+    input instanceof FormData
+      ? input.get(formName)
+      : input[objectName as keyof ReportUserInput];
   return typeof value === "string" ? value : "";
 }

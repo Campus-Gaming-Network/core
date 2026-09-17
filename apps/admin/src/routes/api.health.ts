@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import {
   adminHealthResponse,
-  methodNotAllowedResponse
+  methodNotAllowedResponse,
 } from "../server/health.server";
 
 export const Route = createFileRoute("/api/health")({
@@ -13,7 +13,7 @@ export const Route = createFileRoute("/api/health")({
       PUT: methodNotAllowedResponse,
       PATCH: methodNotAllowedResponse,
       DELETE: methodNotAllowedResponse,
-      OPTIONS: methodNotAllowedResponse
-    }
-  }
+      OPTIONS: methodNotAllowedResponse,
+    },
+  },
 });

@@ -4,7 +4,7 @@ import { basename, join } from "node:path";
 import test from "node:test";
 import {
   eventsBrowseInput,
-  validateEventsSearch
+  validateEventsSearch,
 } from "../src/features/event-slice/contracts.js";
 import { getEventsBrowseOperation } from "../src/features/event-slice/event-operations.server.js";
 import {
@@ -13,7 +13,7 @@ import {
   eventLocation,
   eventNoticeMessage,
   eventsHead,
-  safeExternalEventUrl
+  safeExternalEventUrl,
 } from "../src/features/event-slice/presentation.js";
 import { createApiClient, type Fetcher } from "../src/server/api.server.js";
 
@@ -46,12 +46,12 @@ const browseEvent = {
   host_school: {
     id: "school-1",
     name: "Example University",
-    slug: "example"
+    slug: "example",
   },
   games: [{ id: "game-1", name: "Example Game", slug: "example-game" }],
   viewer_interested: true,
   viewer_can_edit: true,
-  unlock_token: "must-not-cross-the-browse-boundary"
+  unlock_token: "must-not-cross-the-browse-boundary",
 };
 
 test("event search accepts bounded filters and opaque cursors without loading notices", () => {
@@ -61,7 +61,7 @@ test("event search accepts bounded filters and opaque cursors without loading no
     format: "hybrid",
     after: " opaque+cursor== ",
     before: ["previous/cursor", "ignored"],
-    event: "cancelled"
+    event: "cancelled",
   });
 
   assert.deepEqual(search, {
@@ -70,26 +70,26 @@ test("event search accepts bounded filters and opaque cursors without loading no
     format: "hybrid",
     after: "opaque+cursor==",
     before: "previous/cursor",
-    event: "cancelled"
+    event: "cancelled",
   });
   assert.deepEqual(eventsBrowseInput(search), {
     game: "example-game",
     school: "example-school",
     format: "hybrid",
     after: "opaque+cursor==",
-    before: "previous/cursor"
+    before: "previous/cursor",
   });
 
   assert.deepEqual(
     validateEventsSearch({
       format: "teleport",
       after: "x".repeat(1025),
-      event: "backend-message"
+      event: "backend-message",
     }),
-    {}
+    {},
   );
   assert.deepEqual(validateEventsSearch({ event: "report-submitted" }), {
-    event: "report-submitted"
+    event: "report-submitted",
   });
 });
 
@@ -100,7 +100,7 @@ test("event browse reads public no-store DTOs and strips viewer/private fields",
       game: "example-game",
       school: "example-school",
       format: "hybrid",
-      after: "opaque+cursor=="
+      after: "opaque+cursor==",
     },
     {
       api: client(async (input, init) => {
@@ -113,9 +113,9 @@ test("event browse reads public no-store DTOs and strips viewer/private fields",
                 id: "game-1",
                 name: "Example Game",
                 slug: "example-game",
-                internal_rank: 1
-              }
-            ]
+                internal_rank: 1,
+              },
+            ],
           });
         }
         return Response.json({
@@ -123,18 +123,18 @@ test("event browse reads public no-store DTOs and strips viewer/private fields",
           limit: 25,
           has_more: true,
           has_previous: false,
-          next_cursor: "next+cursor=="
+          next_cursor: "next+cursor==",
         });
-      })
-    }
+      }),
+    },
   );
 
   assert.ok(
     requests.some(
       ({ url }) =>
         url ===
-        "http://api:8080/events?game=example-game&school=example-school&format=hybrid&limit=25&after=opaque%2Bcursor%3D%3D"
-    )
+        "http://api:8080/events?game=example-game&school=example-school&format=hybrid&limit=25&after=opaque%2Bcursor%3D%3D",
+    ),
   );
   assert.ok(requests.some(({ url }) => url === "http://api:8080/games"));
   for (const request of requests) {
@@ -149,7 +149,7 @@ test("event browse reads public no-store DTOs and strips viewer/private fields",
   assert.equal(JSON.stringify(result).includes("viewer_interested"), false);
   assert.equal(JSON.stringify(result).includes("internal_rank"), false);
   assert.deepEqual(result.events[0]?.host_school, {
-    name: "Example University"
+    name: "Example University",
   });
   assert.deepEqual(result.events[0]?.games, [{ name: "Example Game" }]);
 });
@@ -163,13 +163,13 @@ test("event and game browse failures independently degrade to empty data", async
         String(input).endsWith("/games")
           ? Response.json({
               games: [
-                { id: "game-1", name: "Example Game", slug: "example-game" }
-              ]
+                { id: "game-1", name: "Example Game", slug: "example-game" },
+              ],
             })
-          : Response.json({ error: "database_unavailable" }, { status: 503 })
+          : Response.json({ error: "database_unavailable" }, { status: 503 }),
       ),
-      reportError: (error) => reported.push(error)
-    }
+      reportError: (error) => reported.push(error),
+    },
   );
   assert.deepEqual(eventFailure.events, []);
   assert.equal(eventFailure.eventsUnavailable, true);
@@ -186,11 +186,11 @@ test("event and game browse failures independently degrade to empty data", async
               events: [browseEvent],
               limit: 25,
               has_more: false,
-              has_previous: false
-            })
+              has_previous: false,
+            }),
       ),
-      reportError: (error) => reported.push(error)
-    }
+      reportError: (error) => reported.push(error),
+    },
   );
   assert.equal(gameFailure.events.length, 1);
   assert.equal(gameFailure.eventsUnavailable, false);
@@ -203,28 +203,34 @@ test("event read presentation matches labels, notices, indexable head, and safe 
   const head = eventsHead("https://cgn.example");
 
   assert.deepEqual(head.meta[0], {
-    title: "Events | Campus Gaming Network"
+    title: "Events | Campus Gaming Network",
   });
   assert.ok(
     head.meta.some(
       (entry) =>
         entry.property === "og:url" &&
-        entry.content === "https://cgn.example/events"
-    )
+        entry.content === "https://cgn.example/events",
+    ),
   );
-  assert.equal(head.meta.some((entry) => entry.name === "robots"), false);
+  assert.equal(
+    head.meta.some((entry) => entry.name === "robots"),
+    false,
+  );
   assert.equal(eventLifecycleLabel("happening_now"), "Happening now");
   assert.equal(eventFormatLabel("in_person"), "In person");
-  assert.equal(eventLocation(browseEvent), "Student Union · 100 Campus Drive + online");
+  assert.equal(
+    eventLocation(browseEvent),
+    "Student Union · 100 Campus Drive + online",
+  );
   assert.equal(eventNoticeMessage("interest-added"), "Marked as interested.");
   assert.equal(
     eventNoticeMessage("report-submitted"),
-    "Report submitted for review."
+    "Report submitted for review.",
   );
   assert.equal(safeExternalEventUrl("javascript:alert(1)"), undefined);
   assert.equal(
     safeExternalEventUrl("https://payments.example/path"),
-    "https://payments.example/path"
+    "https://payments.example/path",
   );
 });
 
@@ -232,10 +238,13 @@ test("browse and detail routes keep strict viewer and typed event write surfaces
   const browse = source("src/routes/events.index.tsx");
   const detail = source("src/routes/events.$slug.tsx");
 
-  assert.match(browse, /loaderDeps: \(\{ search \}\) => eventsBrowseInput\(search\)/);
+  assert.match(
+    browse,
+    /loaderDeps: \(\{ search \}\) => eventsBrowseInput\(search\)/,
+  );
   assert.doesNotMatch(
     browse.match(/loaderDeps:[^\n]+/)?.[0] ?? "",
-    /search\.event/
+    /search\.event/,
   );
   assert.match(browse, /getEventViewerSession\(\)/);
   assert.match(browse, /session\.status === "unavailable"/);

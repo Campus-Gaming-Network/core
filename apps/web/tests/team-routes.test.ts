@@ -10,19 +10,19 @@ const appRoot =
     : join(currentDirectory, "apps/web");
 const browseSource = readFileSync(
   join(appRoot, "src/routes/teams.index.tsx"),
-  "utf8"
+  "utf8",
 );
 const detailSource = readFileSync(
   join(appRoot, "src/routes/teams.$slug.tsx"),
-  "utf8"
+  "utf8",
 );
 const newSource = readFileSync(
   join(appRoot, "src/routes/teams.new.tsx"),
-  "utf8"
+  "utf8",
 );
 const functionSource = readFileSync(
   join(appRoot, "src/features/team-slice/team.functions.ts"),
-  "utf8"
+  "utf8",
 );
 
 test("team routes use the strict shared viewer state without serializing a profile", () => {
@@ -35,7 +35,10 @@ test("team routes use the strict shared viewer state without serializing a profi
   assert.doesNotMatch(detailSource, /viewer\.email/);
   assert.doesNotMatch(detailSource, /viewer\.id/);
   assert.doesNotMatch(functionSource, /\/me/);
-  assert.match(functionSource, /hasSessionCookie \? request\.cookieHeader : ""/);
+  assert.match(
+    functionSource,
+    /hasSessionCookie \? request\.cookieHeader : ""/,
+  );
   assert.match(functionSource, /setViewerResponseCache\(hasSessionCookie\)/);
 });
 
@@ -91,13 +94,10 @@ test("join and owner management retain native forms and enhanced invalidation re
 });
 
 test("team server functions derive request authority and bound native redirects", () => {
-  assert.equal(
-    (functionSource.match(/method: "POST"/g) ?? []).length,
-    4
-  );
+  assert.equal((functionSource.match(/method: "POST"/g) ?? []).length, 4);
   assert.equal(
     (functionSource.match(/strict: \{ input: false \}/g) ?? []).length,
-    4
+    4,
   );
   assert.match(functionSource, /currentSessionRequest\(\)/);
   assert.match(functionSource, /isNativeFormPost\(\)/);

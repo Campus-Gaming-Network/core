@@ -1,25 +1,21 @@
 import { expect, test } from "@playwright/test";
-import {
-  gotoApp,
-  waitForAppReady
-} from "./fixtures/app-navigation.js";
+import { gotoApp, waitForAppReady } from "./fixtures/app-navigation.js";
 
 const apiURL = "http://127.0.0.1:18081";
 const eventPassword = "E2EEventPassword123!";
 const password = "E2EPassword123!";
-const unlockCookieSecure =
-  process.env.WEB_BROWSER_RUNTIME !== "development";
+const unlockCookieSecure = process.env.WEB_BROWSER_RUNTIME !== "development";
 const privateMarkers = [
   "Invitation-Only Strategy Session",
   "Private plans shared only after the event is unlocked.",
   "Private Student Union Room",
-  "123 Hidden Campus Way"
+  "123 Hidden Campus Way",
 ];
 
 test("private event auth, RSVP, and logout survive runtime navigation", async ({
   context,
   page,
-  request
+  request,
 }, testInfo) => {
   const reset = await request.post(`${apiURL}/__test/reset`);
   expect(reset.ok()).toBe(true);
@@ -35,10 +31,10 @@ test("private event auth, RSVP, and logout survive runtime navigation", async ({
   await expect(page).toHaveTitle("Private event | Campus Gaming Network");
   await expect(page.locator('meta[name="robots"]')).toHaveAttribute(
     "content",
-    "noindex,nofollow"
+    "noindex,nofollow",
   );
   await expect(
-    page.getByRole("heading", { name: "This event is private.", level: 1 })
+    page.getByRole("heading", { name: "This event is private.", level: 1 }),
   ).toBeVisible();
   const lockedHTML = await page.content();
   for (const marker of privateMarkers) {
@@ -47,12 +43,10 @@ test("private event auth, RSVP, and logout survive runtime navigation", async ({
 
   await page.getByLabel("Event password").fill(eventPassword);
   await page.getByRole("button", { name: "Unlock event" }).click();
-  await expect(page).toHaveURL(
-    new RegExp(`/events/${slug}\\?event=unlocked$`)
-  );
+  await expect(page).toHaveURL(new RegExp(`/events/${slug}\\?event=unlocked$`));
   await waitForAppReady(page);
   await expect(
-    page.getByRole("heading", { name: privateMarkers[0], level: 1 })
+    page.getByRole("heading", { name: privateMarkers[0], level: 1 }),
   ).toBeVisible();
 
   const unlockCookieName = `cgn_event_unlock_${slug}`;
@@ -64,7 +58,7 @@ test("private event auth, RSVP, and logout survive runtime navigation", async ({
       httpOnly: true,
       secure: unlockCookieSecure,
       sameSite: "Lax",
-      path: "/"
+      path: "/",
     });
 
   await page.getByRole("link", { name: "Log in to RSVP" }).click();
@@ -83,23 +77,23 @@ test("private event auth, RSVP, and logout survive runtime navigation", async ({
       httpOnly: true,
       secure: true,
       sameSite: "Lax",
-      path: "/"
+      path: "/",
     });
   await expect(page.getByRole("button", { name: "Log out" })).toBeVisible();
 
   await page.reload();
   await waitForAppReady(page);
   await expect(page).toHaveTitle(
-    `${privateMarkers[0]} | Campus Gaming Network`
+    `${privateMarkers[0]} | Campus Gaming Network`,
   );
   await expect(
-    page.getByRole("heading", { name: privateMarkers[0], level: 1 })
+    page.getByRole("heading", { name: privateMarkers[0], level: 1 }),
   ).toBeVisible();
   await expect(page.getByRole("button", { name: "Log out" })).toBeVisible();
 
   await page.getByRole("button", { name: "Yes" }).click();
   await expect(page).toHaveURL(
-    new RegExp(`/events/${slug}\\?event=rsvp-updated$`)
+    new RegExp(`/events/${slug}\\?event=rsvp-updated$`),
   );
   await waitForAppReady(page);
   await expect(page.getByRole("status")).toHaveText("RSVP saved.");
@@ -124,7 +118,7 @@ test("private event auth, RSVP, and logout survive runtime navigation", async ({
     unlockCalls: 1,
     rsvpCalls: 1,
     logoutCalls: 1,
-    logoutReceivedSession: true
+    logoutReceivedSession: true,
   });
 });
 
@@ -137,7 +131,7 @@ function cookieShape(
     sameSite: string;
     path: string;
   }>,
-  name: string
+  name: string,
 ) {
   const cookie = cookies.find((candidate) => candidate.name === name);
   if (!cookie) {
@@ -149,6 +143,6 @@ function cookieShape(
     httpOnly: cookie.httpOnly,
     secure: cookie.secure,
     sameSite: cookie.sameSite,
-    path: cookie.path
+    path: cookie.path,
   };
 }

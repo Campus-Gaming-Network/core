@@ -2,7 +2,7 @@ import type {
   EventBrowseItemDTO,
   EventDTO,
   EventNotice,
-  EventRSVP
+  EventRSVP,
 } from "./contracts.js";
 
 export const eventsDescription =
@@ -23,37 +23,34 @@ export function eventsHead(publicOrigin = "http://localhost:3000") {
       { property: "og:url", content: `${publicOrigin}/events` },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:title", content: title },
-      { name: "twitter:description", content: eventsDescription }
-    ]
+      { name: "twitter:description", content: eventsDescription },
+    ],
   };
 }
 
 export function eventTimeRange(
-  event: Pick<EventDTO, "starts_at" | "ends_at" | "timezone">
+  event: Pick<EventDTO, "starts_at" | "ends_at" | "timezone">,
 ): string {
   const formatter = new Intl.DateTimeFormat("en-US", {
     dateStyle: "medium",
     timeStyle: "short",
-    timeZone: event.timezone
+    timeZone: event.timezone,
   });
 
   return `${formatter.format(new Date(event.starts_at))} – ${formatter.format(
-    new Date(event.ends_at)
+    new Date(event.ends_at),
   )}`;
 }
 
 export function formatEventDate(value: string, timeZone: string): string {
   return new Intl.DateTimeFormat("en-US", {
     dateStyle: "medium",
-    timeZone
+    timeZone,
   }).format(new Date(value));
 }
 
 export function eventLocation(
-  event: Pick<
-    EventDTO,
-    "format" | "location_name" | "address" | "online_url"
-  >
+  event: Pick<EventDTO, "format" | "location_name" | "address" | "online_url">,
 ): string {
   if (event.format === "online") {
     return event.online_url ? "Online" : "Online details pending";
@@ -73,24 +70,24 @@ export function eventLocation(
 }
 
 export function eventLifecycleLabel(
-  lifecycle: EventBrowseItemDTO["lifecycle"]
+  lifecycle: EventBrowseItemDTO["lifecycle"],
 ): string {
   const labels = {
     ended: "Ended",
     full: "Full",
     happening_now: "Happening now",
-    upcoming: "Upcoming"
+    upcoming: "Upcoming",
   } as const;
   return labels[lifecycle];
 }
 
 export function eventVisibilityLabel(
-  visibility: EventDTO["visibility"]
+  visibility: EventDTO["visibility"],
 ): string {
   const labels = {
     private: "Private",
     public: "Public",
-    unlisted: "Unlisted"
+    unlisted: "Unlisted",
   } as const;
   return labels[visibility];
 }
@@ -99,7 +96,7 @@ export function eventFormatLabel(format: EventDTO["format"]): string {
   const labels = {
     hybrid: "Hybrid",
     in_person: "In person",
-    online: "Online"
+    online: "Online",
   } as const;
   return labels[format];
 }
@@ -110,12 +107,12 @@ export function eventRSVPLabel(response: EventRSVP): string {
 }
 
 export function recurrenceRuleLabel(
-  rule: NonNullable<EventDTO["recurrence_rule"]>
+  rule: NonNullable<EventDTO["recurrence_rule"]>,
 ): string {
   const labels = {
     biweekly: "Every two weeks",
     monthly: "Monthly",
-    weekly: "Weekly"
+    weekly: "Weekly",
   } as const;
   return labels[rule];
 }
@@ -124,7 +121,7 @@ export function verificationLabel(level: string): string {
   const labels: Record<string, string> = {
     basic: "Community member",
     verified: "Verified student",
-    staff_faculty: "Staff / faculty"
+    staff_faculty: "Staff / faculty",
   };
   return labels[level] ?? "Community member";
 }
@@ -132,7 +129,7 @@ export function verificationLabel(level: string): string {
 export function roleIndicatorLabel(role: string): string {
   const labels: Record<string, string> = {
     school_admin: "School admin",
-    staff_faculty: "Staff / faculty"
+    staff_faculty: "Staff / faculty",
   };
   return labels[role] ?? "Community role";
 }
@@ -154,7 +151,7 @@ export function eventNoticeMessage(notice: EventNotice): string {
     "rsvp-updated": "RSVP saved.",
     "unlock-failed": "That password did not unlock the event. Try again.",
     unlocked: "Event unlocked.",
-    updated: "Event updated."
+    updated: "Event updated.",
   };
   return notices[notice];
 }
@@ -164,7 +161,7 @@ export function isFailureNotice(notice: EventNotice): boolean {
 }
 
 export function safeExternalEventUrl(
-  value: string | undefined
+  value: string | undefined,
 ): string | undefined {
   if (!value) return undefined;
   try {

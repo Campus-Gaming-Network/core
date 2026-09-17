@@ -4,17 +4,17 @@ PostgreSQL is the system of record. Conventions first; then core tables. Exact c
 
 ## Conventions
 
-| Rule | Detail |
-|------|--------|
-| Primary keys | **UUID** (`gen_random_uuid()`) for domain tables — decided in [11 — Implementation decisions](./11-implementation-decisions.md) |
-| Timestamps | Every table has `created_at`, `updated_at`, `deleted_at` (nullable) |
-| Soft deletes | Default for user-facing rows; queries filter `deleted_at IS NULL` unless admin/history |
-| Time storage | Store instants in UTC (`timestamptz`); display in user timezone in app layer |
-| Money | May list paid/off-site-payment events, but CGN does not process payment. Store only lightweight display fields such as `is_paid`, `payment_note`, and optional `payment_url`; use integer cents + currency only if on-site payments ship later. |
-| Slugs | Unique URL keys: `schools.slug`; `events.slug` — events use `slugify(title)-` + **8** Base64URL chars of SHA-256(creatorId\|date\|title) |
-| Images | Event banners use default placeholder for now; school `logo_url` comes later via Admin Console upload (PNG/JPG only; max 500 MB) |
-| Audit vs system | `audit_logs` holds domain change history and remains separate from system/ops logs. |
-| Nightly backups | Required in production |
+| Rule            | Detail                                                                                                                                                                                                                                          |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Primary keys    | **UUID** (`gen_random_uuid()`) for domain tables — decided in [11 — Implementation decisions](./11-implementation-decisions.md)                                                                                                                 |
+| Timestamps      | Every table has `created_at`, `updated_at`, `deleted_at` (nullable)                                                                                                                                                                             |
+| Soft deletes    | Default for user-facing rows; queries filter `deleted_at IS NULL` unless admin/history                                                                                                                                                          |
+| Time storage    | Store instants in UTC (`timestamptz`); display in user timezone in app layer                                                                                                                                                                    |
+| Money           | May list paid/off-site-payment events, but CGN does not process payment. Store only lightweight display fields such as `is_paid`, `payment_note`, and optional `payment_url`; use integer cents + currency only if on-site payments ship later. |
+| Slugs           | Unique URL keys: `schools.slug`; `events.slug` — events use `slugify(title)-` + **8** Base64URL chars of SHA-256(creatorId\|date\|title)                                                                                                        |
+| Images          | Event banners use default placeholder for now; school `logo_url` comes later via Admin Console upload (PNG/JPG only; max 500 MB)                                                                                                                |
+| Audit vs system | `audit_logs` holds domain change history and remains separate from system/ops logs.                                                                                                                                                             |
+| Nightly backups | Required in production                                                                                                                                                                                                                          |
 
 ## Initial migration scope
 
@@ -221,21 +221,21 @@ If activity and audit can share one table with a clear `kind` discriminator, pre
 
 Prefer Postgres over Elasticsearch (or similar) until scale demands it.
 
-| Use case | Approach |
-|----------|----------|
-| School search / browse | `pg_trgm` on `name` / `alias` + filters (state, etc.); optional `tsvector` |
+| Use case                     | Approach                                                                            |
+| ---------------------------- | ----------------------------------------------------------------------------------- |
+| School search / browse       | `pg_trgm` on `name` / `alias` + filters (state, etc.); optional `tsvector`          |
 | Events / tournaments by game | Join `event_games` / `tournament_games`; filter `visibility = public` for discovery |
-| Text filters | Indexed columns: game, starts_at, format, school_id, visibility |
+| Text filters                 | Indexed columns: game, starts_at, format, school_id, visibility                     |
 
 Do not list `unlisted` or `private` events in discovery search. Unlisted is reachable by slug URL; private also requires password verification.
 
 ## Soft delete & anonymization
 
-| Case | Behavior |
-|------|----------|
-| Event cancelled | Soft delete; public URL shows “no longer exists”; best-effort cancellation email to active yes/maybe RSVPs |
+| Case                 | Behavior                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Event cancelled      | Soft delete; public URL shows “no longer exists”; best-effort cancellation email to active yes/maybe RSVPs                                                                                                                                                                                                                                                                                                                                 |
 | User deletes account | Scrub the account row; delete personal follows, memberships, RSVPs, interests, tokens, and notifications; unassign moderation/support work; detach submitted support tickets and scrub direct contact fields on terminal tickets; transfer created events to the longest-tenured active co-organizer or soft-cancel them; keep required domain FKs and audit history. Free-text retention and final purge policy remain tracked in doc 16. |
-| Hard delete | Avoid for domain entities unless legally required |
+| Hard delete          | Avoid for domain entities unless legally required                                                                                                                                                                                                                                                                                                                                                                                          |
 
 ## Backups
 

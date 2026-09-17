@@ -1,7 +1,7 @@
 import {
   ApiContractError,
   ApiError,
-  type ApiClient
+  type ApiClient,
 } from "../../server/api.server.js";
 import { optionalViewerProfile } from "../../server/viewer.server.js";
 import {
@@ -16,7 +16,7 @@ import {
   type SchoolsBrowseInput,
   type SchoolsCatalogResult,
   type SchoolViewerInput,
-  type SchoolViewerState
+  type SchoolViewerState,
 } from "./contracts.js";
 
 type CatalogDependencies = {
@@ -31,7 +31,7 @@ type ViewerDependencies = CatalogDependencies & {
 
 export async function homeCatalogOperation({
   api,
-  reportError = defaultErrorReporter
+  reportError = defaultErrorReporter,
 }: CatalogDependencies): Promise<HomeCatalogResult> {
   const [schools, games] = await Promise.all([
     readSchools(api, { limit: 6 })
@@ -43,26 +43,26 @@ export async function homeCatalogOperation({
     api({
       path: "/games",
       cache: "no-store",
-      responseSchema: gamesResponseDtoSchema
+      responseSchema: gamesResponseDtoSchema,
     })
       .then(({ data }) => ({ data: data.games, unavailable: false }))
       .catch((error: unknown) => {
         reportError(error);
         return { data: [], unavailable: true };
-      })
+      }),
   ]);
 
   return {
     schools: schools.data,
     games: games.data,
     schoolsUnavailable: schools.unavailable,
-    gamesUnavailable: games.unavailable
+    gamesUnavailable: games.unavailable,
   };
 }
 
 export async function schoolsCatalogOperation(
   input: SchoolsBrowseInput,
-  { api, reportError = defaultErrorReporter }: CatalogDependencies
+  { api, reportError = defaultErrorReporter }: CatalogDependencies,
 ): Promise<SchoolsCatalogResult> {
   const offset = (input.page - 1) * schoolsPageSize;
 
@@ -72,9 +72,9 @@ export async function schoolsCatalogOperation(
         query: input.query,
         state: input.state,
         limit: schoolsPageSize,
-        offset
+        offset,
       })),
-      unavailable: false
+      unavailable: false,
     };
   } catch (error) {
     reportError(error);
@@ -83,20 +83,20 @@ export async function schoolsCatalogOperation(
       limit: schoolsPageSize,
       offset,
       has_more: false,
-      unavailable: true
+      unavailable: true,
     };
   }
 }
 
 export async function schoolCatalogOperation(
   { slug }: SchoolSlugInput,
-  { api, reportError = defaultErrorReporter }: CatalogDependencies
+  { api, reportError = defaultErrorReporter }: CatalogDependencies,
 ): Promise<SchoolCatalogResult> {
   try {
     const { data } = await api({
       path: `/schools/${encodeURIComponent(slug)}`,
       cache: "no-store",
-      responseSchema: schoolDtoSchema
+      responseSchema: schoolDtoSchema,
     });
     return { status: "found", school: data };
   } catch (error) {
@@ -114,20 +114,20 @@ export async function schoolViewerStateOperation(
     api,
     cookieHeader,
     sessionCookieValue,
-    reportError = defaultErrorReporter
-  }: ViewerDependencies
+    reportError = defaultErrorReporter,
+  }: ViewerDependencies,
 ): Promise<SchoolViewerState> {
   try {
     const profile = await optionalViewerProfile({
       api,
       cookieHeader,
-      sessionCookieValue
+      sessionCookieValue,
     });
     if (!profile) {
       return {
         authenticated: false,
         isHomeSchool: false,
-        isFollowing: false
+        isFollowing: false,
       };
     }
 
@@ -135,14 +135,14 @@ export async function schoolViewerStateOperation(
       path: "/me/schools",
       cookieHeader,
       cache: "no-store",
-      responseSchema: followedSchoolsResponseDtoSchema
+      responseSchema: followedSchoolsResponseDtoSchema,
     });
     const isHomeSchool = profile.home_school_id === schoolId;
 
     return {
       authenticated: true,
       isHomeSchool,
-      isFollowing: data.schools.some((school) => school.id === schoolId)
+      isFollowing: data.schools.some((school) => school.id === schoolId),
     };
   } catch (error) {
     reportError(error);
@@ -156,13 +156,13 @@ export async function readSchools(
     query,
     state,
     limit,
-    offset
+    offset,
   }: {
     query?: string;
     state?: string;
     limit?: number;
     offset?: number;
-  }
+  },
 ) {
   const search = new URLSearchParams();
   if (query) search.set("q", query);
@@ -174,7 +174,7 @@ export async function readSchools(
   const { data } = await api({
     path: `/schools${suffix}`,
     cache: "no-store",
-    responseSchema: schoolsResponseDtoSchema
+    responseSchema: schoolsResponseDtoSchema,
   });
   return data;
 }
@@ -183,7 +183,7 @@ function defaultErrorReporter(error: unknown): void {
   if (error instanceof ApiContractError) {
     console.error("School catalog response contract violation", {
       path: error.path,
-      issues: error.issues
+      issues: error.issues,
     });
   } else if (!(error instanceof ApiError)) {
     console.error("School catalog request failed");

@@ -39,68 +39,68 @@ status when work begins.
 
 ### Priority definitions
 
-| Priority | Meaning |
-|----------|---------|
-| P0 | Active data-loss or security emergency. None found in this review. |
-| P1 | Must complete before inviting public users. |
-| P2 | Complete during private beta or before traffic grows. |
-| P3 | Maintainability work that should precede the next major product area. |
+| Priority | Meaning                                                               |
+| -------- | --------------------------------------------------------------------- |
+| P0       | Active data-loss or security emergency. None found in this review.    |
+| P1       | Must complete before inviting public users.                           |
+| P2       | Complete during private beta or before traffic grows.                 |
+| P3       | Maintainability work that should precede the next major product area. |
 
 ### Size guide
 
-| Size | Expected scope |
-|------|----------------|
-| S | A focused change, usually one layer and a small test update. |
-| M | A vertical slice across two layers or a non-trivial data change. |
-| L | A multi-layer change requiring design, migration, or broad regression coverage. |
-| XL | Split into a design task and multiple implementation tasks before starting. |
+| Size | Expected scope                                                                  |
+| ---- | ------------------------------------------------------------------------------- |
+| S    | A focused change, usually one layer and a small test update.                    |
+| M    | A vertical slice across two layers or a non-trivial data change.                |
+| L    | A multi-layer change requiring design, migration, or broad regression coverage. |
+| XL   | Split into a design task and multiple implementation tasks before starting.     |
 
 ## Recommended execution order
 
 Product/legal owners can advance the external launch gates in parallel with
 the engineering queue, but all P1 work must be complete before public access.
 
-| Queue | Item | Priority | Outcome unlocked |
-|------:|------|----------|------------------|
-| 1 | `CGN-001` | P1 | Per-visitor abuse controls work behind the BFF. |
-| 2 | `CGN-002` | P1 | Email scanners cannot mutate account state. |
-| 3 | `CGN-003` | P1 | The advertised student-verification badge is real. |
-| 4 | `CGN-004` | P1 | Account writes no longer partially commit. |
-| 5 | `CGN-013` | P1 | Unsafe production deployments fail at startup. |
-| 6 | `CGN-005` | P1 | All schools are selectable in core forms. |
-| 7 | `CGN-006` | P1 | All browse results are reachable. |
-| 8 | `CGN-007` | P1 | Event edits stop claiming unsupported recurrence changes. |
-| 9 | `CGN-008` | P1 | Recurrences remain correct through DST and short months. |
-| 10 | `CGN-009` | P1 | Event time entry is usable without ISO/IANA expertise. |
-| 11 | `CGN-010` | P1 | Email side effects are bounded, durable, and idempotent. |
-| 12 | `CGN-015` | P1 | CI proves the BFF/API/database system as deployed. |
-| 13 | `CGN-011` | P2 | Static/public routes survive API failure and avoid needless session work. |
-| 14 | `CGN-012` | P2 | Read traffic stops creating a session write for every API request. |
-| 15 | `CGN-014` | P2 | Users can distinguish no data from service failure. |
-| 16 | `CGN-020` | P2 | Redirect notices have truthful, typed severity. |
-| 17 | `CGN-017` | P2 | HTTP status no longer depends on error wording. |
-| 18 | `CGN-019` | P2 | Documentation has one maintained source per fact. |
-| 19 | `CGN-016` | P2 | Multi-organizer scope matches the product promise. |
-| 20 | `CGN-018` | P3 | Large modules are split before product expansion. |
+| Queue | Item      | Priority | Outcome unlocked                                                          |
+| ----: | --------- | -------- | ------------------------------------------------------------------------- |
+|     1 | `CGN-001` | P1       | Per-visitor abuse controls work behind the BFF.                           |
+|     2 | `CGN-002` | P1       | Email scanners cannot mutate account state.                               |
+|     3 | `CGN-003` | P1       | The advertised student-verification badge is real.                        |
+|     4 | `CGN-004` | P1       | Account writes no longer partially commit.                                |
+|     5 | `CGN-013` | P1       | Unsafe production deployments fail at startup.                            |
+|     6 | `CGN-005` | P1       | All schools are selectable in core forms.                                 |
+|     7 | `CGN-006` | P1       | All browse results are reachable.                                         |
+|     8 | `CGN-007` | P1       | Event edits stop claiming unsupported recurrence changes.                 |
+|     9 | `CGN-008` | P1       | Recurrences remain correct through DST and short months.                  |
+|    10 | `CGN-009` | P1       | Event time entry is usable without ISO/IANA expertise.                    |
+|    11 | `CGN-010` | P1       | Email side effects are bounded, durable, and idempotent.                  |
+|    12 | `CGN-015` | P1       | CI proves the BFF/API/database system as deployed.                        |
+|    13 | `CGN-011` | P2       | Static/public routes survive API failure and avoid needless session work. |
+|    14 | `CGN-012` | P2       | Read traffic stops creating a session write for every API request.        |
+|    15 | `CGN-014` | P2       | Users can distinguish no data from service failure.                       |
+|    16 | `CGN-020` | P2       | Redirect notices have truthful, typed severity.                           |
+|    17 | `CGN-017` | P2       | HTTP status no longer depends on error wording.                           |
+|    18 | `CGN-019` | P2       | Documentation has one maintained source per fact.                         |
+|    19 | `CGN-016` | P2       | Multi-organizer scope matches the product promise.                        |
+|    20 | `CGN-018` | P3       | Large modules are split before product expansion.                         |
 
 `CGN-012` is next, followed by `CGN-014` and `CGN-020`. Before `CGN-016`, decide whether
 multi-organizer management belongs in the first release.
 
 ### Implementation map
 
-| Items | Primary starting points |
-|-------|-------------------------|
-| `CGN-001` | [`request-boundary.server.ts`](../apps/web/src/server/request-boundary.server.ts), [`visitor-identity.server.ts`](../apps/web/src/server/visitor-identity.server.ts), [`auth_handlers.go`](../apps/api/internal/httpapi/auth_handlers.go), [`visitor_identity.go`](../apps/api/internal/httpapi/visitor_identity.go), and [`limiter.go`](../apps/api/internal/ratelimit/limiter.go) |
-| `CGN-002`–`CGN-004` | [`auth-flow-operations.server.ts`](../apps/web/src/features/auth-flow-slice/auth-flow-operations.server.ts), [`auth-flow.functions.ts`](../apps/web/src/features/auth-flow-slice/auth-flow.functions.ts), [`auth/service.go`](../apps/api/internal/auth/service.go), [`auth/tokens.go`](../apps/api/internal/auth/tokens.go), and [`users.go`](../apps/api/internal/users/users.go) |
-| `CGN-005`–`CGN-006` | [`catalog-operations.server.ts`](../apps/web/src/features/school-slice/catalog-operations.server.ts), [`event-form.tsx`](../apps/web/src/features/event-slice/event-form.tsx), [`team.functions.ts`](../apps/web/src/features/team-slice/team.functions.ts), the school/event/team routes, and Go repositories |
-| `CGN-007`–`CGN-009` | [`event-operations.server.ts`](../apps/web/src/features/event-slice/event-operations.server.ts), [`contracts.ts`](../apps/web/src/features/event-slice/contracts.ts), [`event-form.tsx`](../apps/web/src/features/event-slice/event-form.tsx), [`event_handlers.go`](../apps/api/internal/httpapi/event_handlers.go), and the capability-based [`events`](../apps/api/internal/events/) package |
-| `CGN-010` | [`auth/mailer.go`](../apps/api/internal/auth/mailer.go), [`events/mailer.go`](../apps/api/internal/events/mailer.go), account/event services, and [`db/migrations`](../db/migrations/) |
-| `CGN-011`–`CGN-012` | [`__root.tsx`](../apps/web/src/routes/__root.tsx), [`viewer.server.ts`](../apps/web/src/server/viewer.server.ts), [`bff.server.ts`](../apps/web/src/server/bff.server.ts), and [`auth/postgres.go`](../apps/api/internal/auth/postgres.go) |
-| `CGN-013` | [`config.go`](../apps/api/internal/config/config.go), [`main.go`](../apps/api/cmd/api/main.go), and deployment configuration under [`railway`](../railway/) |
-| `CGN-014`, `CGN-020` | Public routes, feature `presentation.ts` modules, [`api.server.ts`](../apps/web/src/server/api.server.ts), and shared route-boundary components |
-| `CGN-015` | [`playwright.config.ts`](../apps/web/playwright.config.ts), [`phase4.spec.ts`](../apps/web/tests/e2e/phase4.spec.ts), [`docker-compose.yml`](../docker-compose.yml), and [`ci.yml`](../.github/workflows/ci.yml) |
-| `CGN-016`–`CGN-018` | The capability-based [`events`](../apps/api/internal/events/) package, [`users/deletion.go`](../apps/api/internal/users/deletion.go), HTTP handlers and route-family tests under [`httpapi`](../apps/api/internal/httpapi/), and feature-local Start operations/functions |
-| `CGN-019` | [`docs`](./), starting with [`04 — API`](./04-api.md) and [`10 — Delivery status`](./10-delivery-status.md) |
+| Items                | Primary starting points                                                                                                                                                                                                                                                                                                                                                                         |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CGN-001`            | [`request-boundary.server.ts`](../apps/web/src/server/request-boundary.server.ts), [`visitor-identity.server.ts`](../apps/web/src/server/visitor-identity.server.ts), [`auth_handlers.go`](../apps/api/internal/httpapi/auth_handlers.go), [`visitor_identity.go`](../apps/api/internal/httpapi/visitor_identity.go), and [`limiter.go`](../apps/api/internal/ratelimit/limiter.go)             |
+| `CGN-002`–`CGN-004`  | [`auth-flow-operations.server.ts`](../apps/web/src/features/auth-flow-slice/auth-flow-operations.server.ts), [`auth-flow.functions.ts`](../apps/web/src/features/auth-flow-slice/auth-flow.functions.ts), [`auth/service.go`](../apps/api/internal/auth/service.go), [`auth/tokens.go`](../apps/api/internal/auth/tokens.go), and [`users.go`](../apps/api/internal/users/users.go)             |
+| `CGN-005`–`CGN-006`  | [`catalog-operations.server.ts`](../apps/web/src/features/school-slice/catalog-operations.server.ts), [`event-form.tsx`](../apps/web/src/features/event-slice/event-form.tsx), [`team.functions.ts`](../apps/web/src/features/team-slice/team.functions.ts), the school/event/team routes, and Go repositories                                                                                  |
+| `CGN-007`–`CGN-009`  | [`event-operations.server.ts`](../apps/web/src/features/event-slice/event-operations.server.ts), [`contracts.ts`](../apps/web/src/features/event-slice/contracts.ts), [`event-form.tsx`](../apps/web/src/features/event-slice/event-form.tsx), [`event_handlers.go`](../apps/api/internal/httpapi/event_handlers.go), and the capability-based [`events`](../apps/api/internal/events/) package |
+| `CGN-010`            | [`auth/mailer.go`](../apps/api/internal/auth/mailer.go), [`events/mailer.go`](../apps/api/internal/events/mailer.go), account/event services, and [`db/migrations`](../db/migrations/)                                                                                                                                                                                                          |
+| `CGN-011`–`CGN-012`  | [`__root.tsx`](../apps/web/src/routes/__root.tsx), [`viewer.server.ts`](../apps/web/src/server/viewer.server.ts), [`bff.server.ts`](../apps/web/src/server/bff.server.ts), and [`auth/postgres.go`](../apps/api/internal/auth/postgres.go)                                                                                                                                                      |
+| `CGN-013`            | [`config.go`](../apps/api/internal/config/config.go), [`main.go`](../apps/api/cmd/api/main.go), and deployment configuration under [`railway`](../railway/)                                                                                                                                                                                                                                     |
+| `CGN-014`, `CGN-020` | Public routes, feature `presentation.ts` modules, [`api.server.ts`](../apps/web/src/server/api.server.ts), and shared route-boundary components                                                                                                                                                                                                                                                 |
+| `CGN-015`            | [`playwright.config.ts`](../apps/web/playwright.config.ts), [`phase4.spec.ts`](../apps/web/tests/e2e/phase4.spec.ts), [`docker-compose.yml`](../docker-compose.yml), and [`ci.yml`](../.github/workflows/ci.yml)                                                                                                                                                                                |
+| `CGN-016`–`CGN-018`  | The capability-based [`events`](../apps/api/internal/events/) package, [`users/deletion.go`](../apps/api/internal/users/deletion.go), HTTP handlers and route-family tests under [`httpapi`](../apps/api/internal/httpapi/), and feature-local Start operations/functions                                                                                                                       |
+| `CGN-019`            | [`docs`](./), starting with [`04 — API`](./04-api.md) and [`10 — Delivery status`](./10-delivery-status.md)                                                                                                                                                                                                                                                                                     |
 
 ---
 

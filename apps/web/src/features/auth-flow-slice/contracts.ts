@@ -1,45 +1,51 @@
 import * as z from "zod";
 
-const emailSchema = z.string().trim().max(
-  320,
-  "Email must be 320 characters or fewer."
-).pipe(
-  z.email("Enter a valid email address.")
-);
-const passwordSchema = z.string().trim()
+const emailSchema = z
+  .string()
+  .trim()
+  .max(320, "Email must be 320 characters or fewer.")
+  .pipe(z.email("Enter a valid email address."));
+const passwordSchema = z
+  .string()
+  .trim()
   .min(8, "Password must be at least 8 characters.")
   .max(256, "Password must be 256 characters or fewer.");
-const tokenSchema = z.string().trim()
+const tokenSchema = z
+  .string()
+  .trim()
   .min(1, "That link is invalid or has expired.")
   .max(4096, "That link is invalid or has expired.");
 const boundedSearchSchema = z.string().trim().max(200);
 
 export const authStatusDtoSchema = z.object({
-  status: z.string().min(1).max(100)
+  status: z.string().min(1).max(100),
 });
 
 export const signupInputSchema = z.object({
   email: emailSchema,
   password: passwordSchema,
-  name: z.string().trim().min(1, "Name is required.").max(
-    120,
-    "Name must be 120 characters or fewer."
-  ),
+  name: z
+    .string()
+    .trim()
+    .min(1, "Name is required.")
+    .max(120, "Name must be 120 characters or fewer."),
   home_school_id: z.string().trim().min(1, "Choose a home school.").max(200),
   age_confirmed: z.literal(true, {
-    error: "Confirm that you are 18 or older."
+    error: "Confirm that you are 18 or older.",
   }),
-  timezone: z.string().trim().min(1, "Time zone is required.").max(100).refine(
-    validIANATimeZone,
-    "Enter a valid IANA time zone."
-  )
+  timezone: z
+    .string()
+    .trim()
+    .min(1, "Time zone is required.")
+    .max(100)
+    .refine(validIANATimeZone, "Enter a valid IANA time zone."),
 });
 
 export const emailInputSchema = z.object({ email: emailSchema });
 
 export const resetPasswordInputSchema = z.object({
   token: tokenSchema,
-  password: passwordSchema
+  password: passwordSchema,
 });
 
 export const verificationTokenInputSchema = z.object({ token: tokenSchema });
@@ -74,7 +80,7 @@ export type ValidatedServerInput<T> =
     };
 
 export function validateSignupServerInput(
-  input: SignupInput | FormData
+  input: SignupInput | FormData,
 ): ValidatedServerInput<SignupInput> {
   return validateInput(signupInputSchema, {
     email: normalizedInputValue(input, "email"),
@@ -82,32 +88,32 @@ export function validateSignupServerInput(
     name: normalizedInputValue(input, "name"),
     home_school_id: normalizedInputValue(input, "home_school_id"),
     age_confirmed: checkedInputValue(input, "age_confirmed"),
-    timezone: normalizedInputValue(input, "timezone") || "America/Los_Angeles"
+    timezone: normalizedInputValue(input, "timezone") || "America/Los_Angeles",
   });
 }
 
 export function validateEmailServerInput(
-  input: EmailInput | FormData
+  input: EmailInput | FormData,
 ): ValidatedServerInput<EmailInput> {
   return validateInput(emailInputSchema, {
-    email: normalizedInputValue(input, "email")
+    email: normalizedInputValue(input, "email"),
   });
 }
 
 export function validateResetPasswordServerInput(
-  input: ResetPasswordInput | FormData
+  input: ResetPasswordInput | FormData,
 ): ValidatedServerInput<ResetPasswordInput> {
   return validateInput(resetPasswordInputSchema, {
     token: normalizedInputValue(input, "token"),
-    password: normalizedInputValue(input, "password")
+    password: normalizedInputValue(input, "password"),
   });
 }
 
 export function validateVerificationTokenServerInput(
-  input: VerificationTokenInput | FormData
+  input: VerificationTokenInput | FormData,
 ): ValidatedServerInput<VerificationTokenInput> {
   return validateInput(verificationTokenInputSchema, {
-    token: normalizedInputValue(input, "token")
+    token: normalizedInputValue(input, "token"),
   });
 }
 
@@ -118,7 +124,7 @@ export type SignupSearch = {
 };
 
 export function validateSignupSearch(
-  search: Record<string, unknown>
+  search: Record<string, unknown>,
 ): SignupSearch {
   const q = boundedSearchValue(search.q);
   const schoolId = boundedSearchValue(search.school_id);
@@ -127,7 +133,7 @@ export function validateSignupSearch(
   return {
     ...(q ? { q } : {}),
     ...(schoolId ? { school_id: schoolId } : {}),
-    ...(auth === "created" || auth === "failed" ? { auth } : {})
+    ...(auth === "created" || auth === "failed" ? { auth } : {}),
   };
 }
 
@@ -136,7 +142,7 @@ export type ForgotPasswordSearch = {
 };
 
 export function validateForgotPasswordSearch(
-  search: Record<string, unknown>
+  search: Record<string, unknown>,
 ): ForgotPasswordSearch {
   const request = firstString(search.request);
   return request === "sent" || request === "failed" ? { request } : {};
@@ -148,13 +154,13 @@ export type ResetPasswordSearch = {
 };
 
 export function validateResetPasswordSearch(
-  search: Record<string, unknown>
+  search: Record<string, unknown>,
 ): ResetPasswordSearch {
   const token = firstString(search.token);
   const reset = firstString(search.reset);
   return {
     ...(token ? { token } : {}),
-    ...(reset === "failed" ? { reset: "failed" as const } : {})
+    ...(reset === "failed" ? { reset: "failed" as const } : {}),
   };
 }
 
@@ -166,7 +172,7 @@ export type VerifyEmailSearch = {
 };
 
 export function validateVerifyEmailSearch(
-  search: Record<string, unknown>
+  search: Record<string, unknown>,
 ): VerifyEmailSearch {
   const token = firstString(search.token);
   const error = firstString(search.error);
@@ -177,9 +183,7 @@ export function validateVerifyEmailSearch(
     ...(token ? { token } : {}),
     ...(error === "invalid-link" ? { error: "invalid-link" as const } : {}),
     ...(resend === "sent" || resend === "failed" ? { resend } : {}),
-    ...(verified === "complete"
-      ? { verified: "complete" as const }
-      : {})
+    ...(verified === "complete" ? { verified: "complete" as const } : {}),
   };
 }
 
@@ -200,26 +204,28 @@ function boundedSearchValue(value: unknown): string | undefined {
 }
 
 function normalizedInputValue(input: FormData | object, name: string): string {
-  const value = input instanceof FormData
-    ? input.get(name)
-    : name in input
-      ? Reflect.get(input, name)
-      : undefined;
+  const value =
+    input instanceof FormData
+      ? input.get(name)
+      : name in input
+        ? Reflect.get(input, name)
+        : undefined;
   return typeof value === "string" ? value.trim() : "";
 }
 
 function checkedInputValue(input: FormData | object, name: string): boolean {
-  const value = input instanceof FormData
-    ? input.get(name)
-    : name in input
-      ? Reflect.get(input, name)
-      : undefined;
+  const value =
+    input instanceof FormData
+      ? input.get(name)
+      : name in input
+        ? Reflect.get(input, name)
+        : undefined;
   return value === true || value === "on";
 }
 
 function validateInput<T>(
   schema: z.ZodType<T>,
-  candidate: unknown
+  candidate: unknown,
 ): ValidatedServerInput<T> {
   const parsed = schema.safeParse(candidate);
   if (parsed.success) return { valid: true, value: parsed.data };
@@ -234,7 +240,7 @@ function validateInput<T>(
   return {
     valid: false,
     message: "Check the highlighted fields and try again.",
-    fieldErrors
+    fieldErrors,
   };
 }
 

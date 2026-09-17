@@ -9,7 +9,7 @@ test("installs explicit fail-closed CSRF middleware for server functions", async
 
   assert.ok(middlewares);
   const middleware = middlewares.find(
-    (candidate) => Reflect.get(candidate, csrfSymbol) === true
+    (candidate) => Reflect.get(candidate, csrfSymbol) === true,
   );
   assert.ok(middleware);
   assert.equal(middlewares.length, 2);
@@ -19,38 +19,44 @@ test("installs explicit fail-closed CSRF middleware for server functions", async
     : "http://localhost:3000";
 
   assert.equal(
-    (await invokeMiddleware(
-      middleware.options.server,
-      new Request(`${origin}/_server`, {
-        method: "POST",
-        headers: { Origin: origin }
-      })
-    )).status,
-    204
+    (
+      await invokeMiddleware(
+        middleware.options.server,
+        new Request(`${origin}/_server`, {
+          method: "POST",
+          headers: { Origin: origin },
+        }),
+      )
+    ).status,
+    204,
   );
   assert.equal(
-    (await invokeMiddleware(
-      middleware.options.server,
-      new Request(`${origin}/_server`, {
-        method: "POST",
-        headers: { Origin: "https://attacker.example" }
-      })
-    )).status,
-    403
+    (
+      await invokeMiddleware(
+        middleware.options.server,
+        new Request(`${origin}/_server`, {
+          method: "POST",
+          headers: { Origin: "https://attacker.example" },
+        }),
+      )
+    ).status,
+    403,
   );
   assert.equal(
-    (await invokeMiddleware(
-      middleware.options.server,
-      new Request(`${origin}/_server`, { method: "POST" })
-    )).status,
-    403
+    (
+      await invokeMiddleware(
+        middleware.options.server,
+        new Request(`${origin}/_server`, { method: "POST" }),
+      )
+    ).status,
+    403,
   );
 });
 
 test("request middleware adds security headers without weakening route policy", async () => {
   const options = await startInstance.getOptions();
   const middleware = options.requestMiddleware?.find(
-    (candidate) => Reflect.get(candidate, csrfSymbol) !== true
+    (candidate) => Reflect.get(candidate, csrfSymbol) !== true,
   );
   assert.ok(middleware?.options.server);
   const request = new Request("https://campus.example.test/reset-password");
@@ -62,21 +68,24 @@ test("request middleware adds security headers without weakening route policy", 
       pathname: "/reset-password",
       request,
       response: new Response("ok", {
-        headers: { "referrer-policy": "no-referrer" }
-      })
+        headers: { "referrer-policy": "no-referrer" },
+      }),
     }),
     pathname: "/reset-password",
-    request
+    request,
   } as never);
 
   assert.equal(result instanceof Response, false);
   if (result instanceof Response) assert.fail("expected a request result");
   assert.equal(result.response.headers.get("referrer-policy"), "no-referrer");
   assert.equal(result.response.headers.get("x-frame-options"), "DENY");
-  assert.equal(result.response.headers.get("x-content-type-options"), "nosniff");
+  assert.equal(
+    result.response.headers.get("x-content-type-options"),
+    "nosniff",
+  );
   assert.match(
     result.response.headers.get("content-security-policy") ?? "",
-    /frame-ancestors 'none'/
+    /frame-ancestors 'none'/,
   );
 });
 
@@ -84,7 +93,7 @@ async function invokeMiddleware(
   handler: NonNullable<
     Awaited<ReturnType<typeof startInstance.getOptions>>["requestMiddleware"]
   >[number]["options"]["server"],
-  request: Request
+  request: Request,
 ): Promise<Response> {
   assert.ok(handler);
 
@@ -92,7 +101,7 @@ async function invokeMiddleware(
     context: {},
     handlerType: "serverFn",
     next: async () => new Response(null, { status: 204 }),
-    request
+    request,
   } as never);
 
   assert.ok(result instanceof Response);

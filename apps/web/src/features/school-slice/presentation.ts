@@ -8,12 +8,14 @@ export const schoolsDescription =
 
 export function schoolLocation(
   school: Pick<SchoolDTO, "city" | "state">,
-  fallback = "Location pending"
+  fallback = "Location pending",
 ): string {
   return [school.city, school.state].filter(Boolean).join(", ") || fallback;
 }
 
-export function safeSchoolWebsite(value: string | undefined): string | undefined {
+export function safeSchoolWebsite(
+  value: string | undefined,
+): string | undefined {
   if (!value) return undefined;
   try {
     const url = new URL(value);
@@ -30,7 +32,7 @@ export function homeHead(publicOrigin = "http://localhost:3000") {
     bareTitle: true,
     title: siteName,
     description: homeDescription,
-    url: publicOrigin
+    url: publicOrigin,
   });
 }
 
@@ -38,32 +40,31 @@ export function schoolsHead(publicOrigin = "http://localhost:3000") {
   return pageHead({
     title: "Schools",
     description: schoolsDescription,
-    url: `${publicOrigin}/schools`
+    url: `${publicOrigin}/schools`,
   });
 }
 
 export function schoolHead(
   school: SchoolDTO | undefined,
-  publicOrigin = "http://localhost:3000"
+  publicOrigin = "http://localhost:3000",
 ) {
   if (!school) {
     return {
       meta: [
         { title: `School | ${siteName}` },
         { name: "description", content: "School details are unavailable." },
-        { name: "robots", content: "noindex,nofollow" }
-      ]
+        { name: "robots", content: "noindex,nofollow" },
+      ],
     };
   }
 
   const location = schoolLocation(school);
-  const description =
-    `Campus gaming events, teams, and activity at ${school.name} in ${location}.`;
+  const description = `Campus gaming events, teams, and activity at ${school.name} in ${location}.`;
 
   return pageHead({
     title: school.name,
     description,
-    url: `${publicOrigin}/schools/${encodeURIComponent(school.slug)}`
+    url: `${publicOrigin}/schools/${encodeURIComponent(school.slug)}`,
   });
 }
 
@@ -71,7 +72,7 @@ function pageHead({
   bareTitle = false,
   title,
   description,
-  url
+  url,
 }: {
   bareTitle?: boolean;
   title: string;
@@ -90,7 +91,7 @@ function pageHead({
       { property: "og:url", content: url },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:title", content: fullTitle },
-      { name: "twitter:description", content: description }
-    ]
+      { name: "twitter:description", content: description },
+    ],
   };
 }

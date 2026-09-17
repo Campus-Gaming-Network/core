@@ -1,8 +1,4 @@
-import {
-  createApiClient,
-  type ApiClient,
-  type Fetcher
-} from "./api.server.js";
+import { createApiClient, type ApiClient, type Fetcher } from "./api.server.js";
 import { headersWithTrustedVisitorIdentity } from "./visitor-identity.server.js";
 
 type HeaderReader = Pick<Headers, "get">;
@@ -27,7 +23,7 @@ export function createGoBFFClient({
   cloudflareOriginSecret = process.env.CLOUDFLARE_ORIGIN_SECRET ?? "",
   trustRailwayHeaders = Boolean(process.env.RAILWAY_ENVIRONMENT_ID),
   baseUrl = process.env.API_INTERNAL_URL ?? "http://localhost:8080",
-  fetcher = fetch
+  fetcher = fetch,
 }: GoBFFClientDependencies): ApiClient {
   return createApiClient({
     baseUrl,
@@ -38,7 +34,7 @@ export function createGoBFFClient({
         outgoingHeaders: headers,
         proxySecret,
         cloudflareOriginSecret,
-        trustRailwayHeaders
-      })
+        trustRailwayHeaders,
+      }),
   });
 }

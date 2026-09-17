@@ -2,34 +2,34 @@ import { createServerFn } from "@tanstack/react-start";
 import {
   currentSessionRequest,
   goBFFForCurrentRequest,
-  setPrivateNoStoreResponse
+  setPrivateNoStoreResponse,
 } from "../../server/request-boundary.server.js";
 import {
   homeCatalogOperation,
   schoolCatalogOperation,
   schoolsCatalogOperation,
-  schoolViewerStateOperation
+  schoolViewerStateOperation,
 } from "./catalog-operations.server.js";
 import {
   schoolSlugInputSchema,
   schoolsBrowseInputSchema,
-  schoolViewerInputSchema
+  schoolViewerInputSchema,
 } from "./contracts.js";
 
 export const getHomeCatalog = createServerFn({ method: "GET" }).handler(
-  async () => homeCatalogOperation({ api: goBFFForCurrentRequest() })
+  async () => homeCatalogOperation({ api: goBFFForCurrentRequest() }),
 );
 
 export const getSchoolsCatalog = createServerFn({ method: "GET" })
   .validator(schoolsBrowseInputSchema)
   .handler(async ({ data }) =>
-    schoolsCatalogOperation(data, { api: goBFFForCurrentRequest() })
+    schoolsCatalogOperation(data, { api: goBFFForCurrentRequest() }),
   );
 
 export const getSchoolCatalog = createServerFn({ method: "GET" })
   .validator(schoolSlugInputSchema)
   .handler(async ({ data }) =>
-    schoolCatalogOperation(data, { api: goBFFForCurrentRequest() })
+    schoolCatalogOperation(data, { api: goBFFForCurrentRequest() }),
   );
 
 export const getSchoolViewerState = createServerFn({ method: "GET" })
@@ -40,6 +40,6 @@ export const getSchoolViewerState = createServerFn({ method: "GET" })
     return schoolViewerStateOperation(data, {
       api: request.api,
       cookieHeader: request.cookieHeader,
-      sessionCookieValue: request.sessionCookieValue
+      sessionCookieValue: request.sessionCookieValue,
     });
   });

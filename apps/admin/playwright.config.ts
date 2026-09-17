@@ -18,24 +18,24 @@ export default defineConfig({
   use: {
     baseURL: adminURL,
     screenshot: "only-on-failure",
-    trace: "retain-on-failure"
+    trace: "retain-on-failure",
   },
   projects: [
     {
       name: "desktop-chromium",
       testIgnore: "**/no-js.spec.ts",
-      use: { ...devices["Desktop Chrome"] }
+      use: { ...devices["Desktop Chrome"] },
     },
     {
       name: "mobile-chromium",
       testMatch: "**/accessibility.spec.ts",
-      use: { ...devices["Pixel 5"] }
+      use: { ...devices["Pixel 5"] },
     },
     {
       name: "no-javascript-chromium",
       testMatch: "**/no-js.spec.ts",
-      use: { ...devices["Desktop Chrome"], javaScriptEnabled: false }
-    }
+      use: { ...devices["Desktop Chrome"], javaScriptEnabled: false },
+    },
   ],
   webServer: [
     {
@@ -43,7 +43,7 @@ export default defineConfig({
       url: `${apiURL}/health`,
       env: { PORT: "18082" },
       reuseExistingServer: false,
-      timeout: 30_000
+      timeout: 30_000,
     },
     {
       command: `${nodeExecutable} .output/server/index.mjs`,
@@ -52,16 +52,17 @@ export default defineConfig({
         NODE_ENV: "production",
         DEPLOYMENT_ENV: "local",
         ADMIN_API_INTERNAL_URL: apiURL,
-        ADMIN_API_PROXY_SHARED_SECRET: "browser-test-admin-proxy-secret-00000000",
+        ADMIN_API_PROXY_SHARED_SECRET:
+          "browser-test-admin-proxy-secret-00000000",
         ADMIN_SITE_URL: adminURL,
         ADMIN_SESSION_COOKIE: "cgn_admin_session",
         ADMIN_CSRF_COOKIE: "cgn_admin_csrf",
         HOST: "127.0.0.1",
         NITRO_HOST: "127.0.0.1",
-        PORT: "3202"
+        PORT: "3202",
       },
       reuseExistingServer: false,
-      timeout: 30_000
-    }
-  ]
+      timeout: 30_000,
+    },
+  ],
 });

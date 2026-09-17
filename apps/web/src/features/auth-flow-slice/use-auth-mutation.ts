@@ -1,9 +1,6 @@
 import { useRouter } from "@tanstack/react-router";
 import { useState } from "react";
-import type {
-  AuthMutationResult,
-  FormFieldErrors
-} from "./contracts";
+import type { AuthMutationResult, FormFieldErrors } from "./contracts";
 
 const emptyErrors: FormFieldErrors = {};
 
@@ -25,7 +22,7 @@ export function useAuthMutation(fallbackMessage: string) {
         setResult({
           status: "error",
           message: next.message,
-          fieldErrors: next.fieldErrors ?? emptyErrors
+          fieldErrors: next.fieldErrors ?? emptyErrors,
         });
       } else if (next.redirectTo) {
         await router.invalidate();
@@ -34,14 +31,14 @@ export function useAuthMutation(fallbackMessage: string) {
         setResult({
           status: "success",
           message: next.message,
-          fieldErrors: emptyErrors
+          fieldErrors: emptyErrors,
         });
       }
     } catch {
       setResult({
         status: "error",
         message: fallbackMessage,
-        fieldErrors: emptyErrors
+        fieldErrors: emptyErrors,
       });
     } finally {
       setPending(false);

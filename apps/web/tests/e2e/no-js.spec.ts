@@ -9,9 +9,11 @@ test.beforeEach(async ({ request }) => {
   expect(response.ok()).toBe(true);
 });
 
-test("native login rejects control-character redirect targets", async ({ page }) => {
+test("native login rejects control-character redirect targets", async ({
+  page,
+}) => {
   const unsafeNext = new URLSearchParams({
-    next: "/\t/attacker.example"
+    next: "/\t/attacker.example",
   });
   await page.goto(`/login?${unsafeNext}`);
   await page.getByLabel("Email").fill("safe-redirect-no-js@example.test");
@@ -21,7 +23,7 @@ test("native login rejects control-character redirect targets", async ({ page })
 });
 
 test("public auth and support forms complete without JavaScript", async ({
-  page
+  page,
 }) => {
   await page.goto("/signup?q=Browser");
   await page.getByLabel("Name").fill("No JavaScript Player");
@@ -31,7 +33,9 @@ test("public auth and support forms complete without JavaScript", async ({
   await page.getByRole("checkbox", { name: /18 or older/ }).check();
   await page.getByRole("button", { name: "Create account" }).click();
   await expect(page).toHaveURL(/\/signup\?auth=created$/);
-  await expect(page.getByText("Account created. Check your email")).toBeVisible();
+  await expect(
+    page.getByText("Account created. Check your email"),
+  ).toBeVisible();
 
   await page.goto("/forgot-password");
   await page.getByLabel("Email").fill("no-js-recovery@example.test");
@@ -66,7 +70,7 @@ test("public auth and support forms complete without JavaScript", async ({
 
 test("account, safety, and school forms complete without JavaScript", async ({
   context,
-  page
+  page,
 }) => {
   await logIn(page, "no-js-account@example.test", "/account");
 
@@ -76,8 +80,8 @@ test("account, safety, and school forms complete without JavaScript", async ({
   await expect(
     page.getByRole("heading", {
       name: "Updated No JavaScript Player",
-      level: 1
-    })
+      level: 1,
+    }),
   ).toBeVisible();
 
   await page.goto("/users/reportable-player");
@@ -85,9 +89,7 @@ test("account, safety, and school forms complete without JavaScript", async ({
     .getByLabel("Reason")
     .fill("Verify the user report native submission boundary.");
   await page.getByRole("button", { name: "Submit report" }).click();
-  await expect(page).toHaveURL(
-    /\/users\/reportable-player\?report=submitted$/
-  );
+  await expect(page).toHaveURL(/\/users\/reportable-player\?report=submitted$/);
 
   await page.goto("/schools/follow-browser-university");
   await page.getByRole("button", { name: "Follow school" }).click();
@@ -111,13 +113,13 @@ test("event forms complete without JavaScript", async ({ context, page }) => {
   await page.getByLabel("Event password").fill(eventPassword);
   await page.getByRole("button", { name: "Unlock event" }).click();
   await expect(page).toHaveURL(
-    new RegExp(`/events/${privateSlug}\\?event=unlocked$`)
+    new RegExp(`/events/${privateSlug}\\?event=unlocked$`),
   );
 
   await logIn(page, "no-js-event@example.test", `/events/${privateSlug}`);
   await page.getByRole("button", { name: "Yes" }).click();
   await expect(page).toHaveURL(
-    new RegExp(`/events/${privateSlug}\\?event=rsvp-updated$`)
+    new RegExp(`/events/${privateSlug}\\?event=rsvp-updated$`),
   );
   await expect(page.getByRole("button", { name: "Log out" })).toBeVisible();
 
@@ -133,7 +135,7 @@ test("event forms complete without JavaScript", async ({ context, page }) => {
   await page.getByLabel("Capacity").fill("24");
   await page.getByRole("button", { name: "Create event" }).click();
   await expect(page).toHaveURL(
-    /\/events\/no-javascript-tournament-[^?]+\?event=created$/
+    /\/events\/no-javascript-tournament-[^?]+\?event=created$/,
   );
 
   await page
@@ -164,7 +166,7 @@ test("team forms complete without JavaScript", async ({ context, page }) => {
   await logIn(
     page,
     "no-js-member@example.test",
-    "/teams/joinable-browser-team"
+    "/teams/joinable-browser-team",
   );
   await page.getByLabel("Team password").fill("BrowserTeamPass123!");
   await page.getByRole("button", { name: "Join team" }).click();
@@ -180,7 +182,7 @@ test("team forms complete without JavaScript", async ({ context, page }) => {
   await page.getByLabel("Join password").fill("BrowserTeamPass123!");
   await page.getByRole("button", { name: "Create team" }).click();
   await expect(page).toHaveURL(
-    /\/teams\/no-javascript-team-[^?]+\?team=created$/
+    /\/teams\/no-javascript-team-[^?]+\?team=created$/,
   );
 
   await page.getByRole("button", { name: "Make captain" }).click();
@@ -199,7 +201,7 @@ async function logIn(page: Page, email: string, next: string) {
 
 function hasCookie(
   cookies: Awaited<ReturnType<BrowserContext["cookies"]>>,
-  name: string
+  name: string,
 ) {
   return cookies.some((cookie) => cookie.name === name);
 }

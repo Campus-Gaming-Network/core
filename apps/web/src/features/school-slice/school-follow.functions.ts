@@ -3,55 +3,53 @@ import { createServerFn } from "@tanstack/react-start";
 import {
   currentSessionRequest,
   isNativeFormPost,
-  setPrivateNoStoreResponse
+  setPrivateNoStoreResponse,
 } from "../../server/request-boundary.server.js";
 import {
   validateSchoolFollowServerInput,
   type SchoolFollowInput,
-  type SchoolFollowRedirectResult
+  type SchoolFollowRedirectResult,
 } from "./contracts.js";
 import {
   followSchoolOperation,
-  unfollowSchoolOperation
+  unfollowSchoolOperation,
 } from "./school-follow-operations.server.js";
 
 export const followSchool = createServerFn({
   method: "POST",
-  strict: { input: false }
+  strict: { input: false },
 })
   .validator((input: SchoolFollowInput | FormData) =>
-    validateSchoolFollowServerInput(input)
+    validateSchoolFollowServerInput(input),
   )
-  .handler(async ({ data }) =>
-    handleSchoolFollow(data, followSchoolOperation)
-  );
+  .handler(async ({ data }) => handleSchoolFollow(data, followSchoolOperation));
 
 export const unfollowSchool = createServerFn({
   method: "POST",
-  strict: { input: false }
+  strict: { input: false },
 })
   .validator((input: SchoolFollowInput | FormData) =>
-    validateSchoolFollowServerInput(input)
+    validateSchoolFollowServerInput(input),
   )
   .handler(async ({ data }) =>
-    handleSchoolFollow(data, unfollowSchoolOperation)
+    handleSchoolFollow(data, unfollowSchoolOperation),
   );
 
 type Operation = (
   input: SchoolFollowInput,
-  dependencies: ReturnType<typeof currentSessionRequest>
+  dependencies: ReturnType<typeof currentSessionRequest>,
 ) => Promise<SchoolFollowRedirectResult>;
 
 async function handleSchoolFollow(
   data: ReturnType<typeof validateSchoolFollowServerInput>,
-  operation: Operation
+  operation: Operation,
 ): Promise<SchoolFollowRedirectResult> {
   setPrivateNoStoreResponse();
   const result = data.valid
     ? await operation(data.value, currentSessionRequest())
     : {
         status: "success" as const,
-        redirectTo: "/schools?follow=failed"
+        redirectTo: "/schools?follow=failed",
       };
 
   if (isNativeFormPost()) {

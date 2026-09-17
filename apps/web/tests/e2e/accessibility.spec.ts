@@ -10,7 +10,7 @@ test.beforeEach(async ({ request }) => {
 });
 
 test("keyboard users can skip navigation and receive route-change focus", async ({
-  page
+  page,
 }) => {
   await gotoApp(page, "/");
 
@@ -24,7 +24,7 @@ test("keyboard users can skip navigation and receive route-change focus", async 
   await expect(page).toHaveURL(/\/schools$/);
   const heading = page.getByRole("heading", {
     name: "Browse schools",
-    level: 1
+    level: 1,
   });
   await expect(heading).toBeFocused();
   await expect(heading).toBeVisible();
@@ -40,10 +40,10 @@ for (const path of [
   "/teams/joinable-browser-team",
   "/schools/follow-browser-university",
   "/users/reportable-player",
-  "/support"
+  "/support",
 ]) {
   test(`${path} keeps landmarks, headings, and viewport bounds`, async ({
-    page
+    page,
   }) => {
     const pageErrors: string[] = [];
     page.on("pageerror", (error) => pageErrors.push(error.message));
@@ -51,7 +51,7 @@ for (const path of [
     const response = await gotoApp(page, path);
     expect(response?.status(), `${path} must render successfully`).toBe(200);
     await expect(
-      page.getByRole("navigation", { name: "Main navigation" })
+      page.getByRole("navigation", { name: "Main navigation" }),
     ).toBeVisible();
     await expect(page.locator("main")).toHaveCount(1);
     await expect(page.locator("main h1")).toHaveCount(1);
@@ -60,7 +60,7 @@ for (const path of [
     const overflow = await horizontalOverflow(page);
     expect(
       overflow,
-      `${path} must not overflow the ${page.viewportSize()?.width ?? "current"}px viewport`
+      `${path} must not overflow the ${page.viewportSize()?.width ?? "current"}px viewport`,
     ).toBeLessThanOrEqual(1);
 
     await expectAccessible(page);
@@ -69,7 +69,7 @@ for (const path of [
 }
 
 test("enhanced validation feedback identifies the invalid event field", async ({
-  page
+  page,
 }) => {
   await logIn(page, "accessibility@example.test", "/events/new");
   await page.getByLabel("Title").fill("Accessible validation event");
@@ -80,38 +80,38 @@ test("enhanced validation feedback identifies the invalid event field", async ({
 
   const endTime = page.getByLabel("Ends at");
   await expect(page.getByRole("alert")).toContainText(
-    "Check the highlighted fields"
+    "Check the highlighted fields",
   );
   await expect(endTime).toHaveAttribute("aria-invalid", "true");
   await expect(endTime).toHaveAttribute(
     "aria-describedby",
-    "event-ends-at-error"
+    "event-ends-at-error",
   );
   await expect(page.locator("#event-ends-at-error")).toContainText(
-    "End time must be after start time"
+    "End time must be after start time",
   );
   await expectAccessible(page);
 });
 
 test("event report API failures use an assertive error region", async ({
-  page
+  page,
 }) => {
   await logIn(
     page,
     "accessibility@example.test",
-    "/events/public-browser-event"
+    "/events/public-browser-event",
   );
   await page.getByLabel("Reason").fill("Trigger report failure");
   await page.getByRole("button", { name: "Submit report" }).click();
 
   await expect(page.getByRole("alert")).toContainText(
-    "We could not submit that report"
+    "We could not submit that report",
   );
   await expectAccessible(page);
 });
 
 test("owner roster controls include the affected member name", async ({
-  page
+  page,
 }) => {
   await logIn(page, "accessibility@example.test", "/teams/new");
   await page.getByLabel("Team name").fill("Accessible Owner Team");
@@ -120,7 +120,7 @@ test("owner roster controls include the affected member name", async ({
   await page.getByRole("button", { name: "Create team" }).click();
 
   await expect(
-    page.getByRole("button", { name: "Make captain Browser Teammate" })
+    page.getByRole("button", { name: "Make captain Browser Teammate" }),
   ).toBeVisible();
   await expectAccessible(page);
 });
@@ -135,7 +135,7 @@ test("long user content reflows at a 320px viewport", async ({ page }) => {
 
 for (const path of ["/account", "/events/new", "/teams/new"]) {
   test(`${path} keeps accessible authenticated forms and layouts`, async ({
-    page
+    page,
   }) => {
     await logIn(page, "player@example.test", "/account");
 
@@ -163,14 +163,16 @@ async function expectAccessible(page: Page): Promise<void> {
       impact: violation.impact,
       targets: violation.nodes.map((node) => ({
         selector: node.target.join(" "),
-        summary: node.failureSummary
-      }))
-    }))
+        summary: node.failureSummary,
+      })),
+    })),
   ).toEqual([]);
 }
 
 async function horizontalOverflow(page: Page): Promise<number> {
   return page.evaluate(
-    () => document.documentElement.scrollWidth - document.documentElement.clientWidth
+    () =>
+      document.documentElement.scrollWidth -
+      document.documentElement.clientWidth,
   );
 }

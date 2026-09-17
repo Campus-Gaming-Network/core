@@ -1,8 +1,6 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { ForgotPasswordForm } from "../features/auth-flow-slice/auth-forms";
-import {
-  validateForgotPasswordSearch
-} from "../features/auth-flow-slice/contracts";
+import { validateForgotPasswordSearch } from "../features/auth-flow-slice/contracts";
 import { authPageHead } from "../features/auth-flow-slice/presentation";
 
 const description =
@@ -11,13 +9,14 @@ const description =
 export const Route = createFileRoute("/forgot-password")({
   validateSearch: validateForgotPasswordSearch,
   loader: ({ context }) => context.publicOrigin,
-  head: ({ loaderData }) => authPageHead(loaderData, {
-    title: "Forgot password",
-    description,
-    path: "/forgot-password",
-    noIndex: true
-  }),
-  component: ForgotPasswordPage
+  head: ({ loaderData }) =>
+    authPageHead(loaderData, {
+      title: "Forgot password",
+      description,
+      path: "/forgot-password",
+      noIndex: true,
+    }),
+  component: ForgotPasswordPage,
 });
 
 function ForgotPasswordPage() {

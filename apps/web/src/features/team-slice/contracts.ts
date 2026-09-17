@@ -14,13 +14,13 @@ export const schoolSummaryDtoSchema = z.object({
   name: z.string(),
   slug: identifierSchema,
   city: z.string().optional(),
-  state: z.string().optional()
+  state: z.string().optional(),
 });
 
 export const gameSummaryDtoSchema = z.object({
   id: identifierSchema,
   name: z.string(),
-  slug: identifierSchema
+  slug: identifierSchema,
 });
 
 /** Public team fields allowed to cross the Start loader boundary. */
@@ -31,13 +31,13 @@ export const teamDtoSchema = z.object({
   description: z.string(),
   member_count: nonNegativeIntegerSchema,
   school: schoolSummaryDtoSchema.optional(),
-  games: z.array(gameSummaryDtoSchema)
+  games: z.array(gameSummaryDtoSchema),
 });
 
 export const teamMemberDtoSchema = z.object({
   user_id: identifierSchema,
   name: z.string(),
-  role: teamRoleSchema
+  role: teamRoleSchema,
 });
 
 /**
@@ -47,7 +47,7 @@ export const teamMemberDtoSchema = z.object({
  */
 export const teamDetailResponseDtoSchema = teamDtoSchema.extend({
   viewer_role: teamRoleSchema.optional(),
-  members: z.array(teamMemberDtoSchema).optional()
+  members: z.array(teamMemberDtoSchema).optional(),
 });
 
 export const teamsResponseDtoSchema = z.object({
@@ -56,25 +56,25 @@ export const teamsResponseDtoSchema = z.object({
   has_more: z.boolean(),
   has_previous: z.boolean(),
   next_cursor: z.string().min(1).optional(),
-  previous_cursor: z.string().min(1).optional()
+  previous_cursor: z.string().min(1).optional(),
 });
 
 export const gamesResponseDtoSchema = z.object({
-  games: z.array(gameSummaryDtoSchema)
+  games: z.array(gameSummaryDtoSchema),
 });
 
 export const schoolsResponseDtoSchema = z.object({
   schools: z.array(schoolSummaryDtoSchema),
   limit: nonNegativeIntegerSchema,
   offset: nonNegativeIntegerSchema,
-  has_more: z.boolean()
+  has_more: z.boolean(),
 });
 
 export const teamsBrowseInputSchema = z.object({
   game: filterSchema,
   school: filterSchema,
   after: cursorSchema,
-  before: cursorSchema
+  before: cursorSchema,
 });
 
 export const teamSlugInputSchema = z.object({ slug: identifierSchema });
@@ -102,27 +102,29 @@ export const createTeamInputSchema = z.object({
     .array(identifierSchema)
     .min(1, "Choose at least one game.")
     .max(25, "Choose 25 games or fewer."),
-  password: teamPasswordSchema
+  password: teamPasswordSchema,
 });
 
 export const joinTeamInputSchema = teamSlugInputSchema.extend({
-  password: teamPasswordSchema
+  password: teamPasswordSchema,
 });
 
 export const setTeamCaptainInputSchema = teamSlugInputSchema.extend({
   user_id: identifierSchema,
-  captain: z.boolean()
+  captain: z.boolean(),
 });
 
 export const transferTeamOwnershipInputSchema = teamSlugInputSchema.extend({
-  new_owner_user_id: identifierSchema
+  new_owner_user_id: identifierSchema,
 });
 
 export const newTeamPageInputSchema = z.object({
-  schoolQuery: filterSchema
+  schoolQuery: filterSchema,
 });
 
-export const teamMutationResponseDtoSchema = z.object({ slug: identifierSchema });
+export const teamMutationResponseDtoSchema = z.object({
+  slug: identifierSchema,
+});
 
 export type TeamDTO = z.output<typeof teamDtoSchema>;
 export type TeamRole = z.output<typeof teamRoleSchema>;
@@ -206,7 +208,7 @@ export type ValidatedTeamInput<T> =
     };
 
 export function validateTeamsSearch(
-  search: Record<string, unknown>
+  search: Record<string, unknown>,
 ): TeamsSearch {
   const game = tolerantSearchValue(search.game, 200);
   const school = tolerantSearchValue(search.school, 200);
@@ -219,7 +221,7 @@ export function validateTeamsSearch(
     ...(school ? { school } : {}),
     ...(after ? { after } : {}),
     ...(before ? { before } : {}),
-    ...(team === "manage-failed" ? { team } : {})
+    ...(team === "manage-failed" ? { team } : {}),
   };
 }
 
@@ -228,12 +230,12 @@ export function teamsBrowseInput(search: TeamsSearch): TeamsBrowseInput {
     game: search.game ?? "",
     school: search.school ?? "",
     after: search.after ?? "",
-    before: search.before ?? ""
+    before: search.before ?? "",
   };
 }
 
 export function validateTeamDetailSearch(
-  search: Record<string, unknown>
+  search: Record<string, unknown>,
 ): TeamDetailSearch {
   const team = tolerantSearchValue(search.team, 64);
   return team === "captain-updated" ||
@@ -247,44 +249,44 @@ export function validateTeamDetailSearch(
 }
 
 export function validateNewTeamSearch(
-  search: Record<string, unknown>
+  search: Record<string, unknown>,
 ): NewTeamSearch {
   const schoolQuery = tolerantSearchValue(search.school_q, 200);
   const team = tolerantSearchValue(search.team, 64);
   return {
     ...(schoolQuery ? { school_q: schoolQuery } : {}),
-    ...(team === "create-failed" ? { team } : {})
+    ...(team === "create-failed" ? { team } : {}),
   };
 }
 
 export function validateCreateTeamServerInput(
-  input: CreateTeamInput | FormData
+  input: CreateTeamInput | FormData,
 ): ValidatedTeamInput<CreateTeamInput> {
   const candidate = {
     name: inputValue(input, "name"),
     description: inputValue(input, "description"),
     school_id: inputValue(input, "school_id"),
     game_ids: inputValues(input, "game_ids"),
-    password: inputValue(input, "password")
+    password: inputValue(input, "password"),
   };
   return validationResult(createTeamInputSchema.safeParse(candidate));
 }
 
 export function validateJoinTeamServerInput(
-  input: JoinTeamInput | FormData
+  input: JoinTeamInput | FormData,
 ): ValidatedTeamInput<JoinTeamInput> {
   const candidate = {
     slug: inputValue(input, "slug"),
-    password: inputValue(input, "password")
+    password: inputValue(input, "password"),
   };
   return validationResult(
     joinTeamInputSchema.safeParse(candidate),
-    validFailureSlug(candidate.slug)
+    validFailureSlug(candidate.slug),
   );
 }
 
 export function validateSetTeamCaptainServerInput(
-  input: SetTeamCaptainInput | FormData
+  input: SetTeamCaptainInput | FormData,
 ): ValidatedTeamInput<SetTeamCaptainInput> {
   const rawCaptain = inputValue(input, "captain");
   const candidate = {
@@ -299,30 +301,30 @@ export function validateSetTeamCaptainServerInput(
           ? true
           : rawCaptain === "false"
             ? false
-            : rawCaptain
+            : rawCaptain,
   };
   return validationResult(
     setTeamCaptainInputSchema.safeParse(candidate),
-    validFailureSlug(candidate.slug)
+    validFailureSlug(candidate.slug),
   );
 }
 
 export function validateTransferTeamOwnershipServerInput(
-  input: TransferTeamOwnershipInput | FormData
+  input: TransferTeamOwnershipInput | FormData,
 ): ValidatedTeamInput<TransferTeamOwnershipInput> {
   const candidate = {
     slug: inputValue(input, "slug"),
-    new_owner_user_id: inputValue(input, "new_owner_user_id")
+    new_owner_user_id: inputValue(input, "new_owner_user_id"),
   };
   return validationResult(
     transferTeamOwnershipInputSchema.safeParse(candidate),
-    validFailureSlug(candidate.slug)
+    validFailureSlug(candidate.slug),
   );
 }
 
 function validationResult<T>(
   parsed: z.ZodSafeParseResult<T>,
-  slug?: string
+  slug?: string,
 ): ValidatedTeamInput<T> {
   if (parsed.success) return { valid: true, value: parsed.data };
   const fieldErrors: TeamFieldErrors = {};
@@ -336,7 +338,7 @@ function validationResult<T>(
     valid: false,
     message: "Check the highlighted fields and try again.",
     fieldErrors,
-    ...(slug ? { slug } : {})
+    ...(slug ? { slug } : {}),
   };
 }
 
@@ -350,9 +352,10 @@ function inputValue(input: object | FormData, field: string): string {
 }
 
 function inputValues(input: object | FormData, field: string): string[] {
-  const values = input instanceof FormData
-    ? input.getAll(field)
-    : (input as Record<string, unknown>)[field];
+  const values =
+    input instanceof FormData
+      ? input.getAll(field)
+      : (input as Record<string, unknown>)[field];
   return (Array.isArray(values) ? values : [])
     .filter((value): value is string => typeof value === "string")
     .map((value) => value.trim());

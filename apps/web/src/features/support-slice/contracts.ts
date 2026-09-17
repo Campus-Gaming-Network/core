@@ -1,25 +1,27 @@
 import * as z from "zod";
 
-const emailSchema = z.string().trim().pipe(
-  z.email("Enter a valid email address.")
-);
+const emailSchema = z
+  .string()
+  .trim()
+  .pipe(z.email("Enter a valid email address."));
 
 function requiredText(label: string, maximum: number) {
-  return z.string().trim().min(1, `${label} is required.`).max(
-    maximum,
-    `${label} must be ${maximum} characters or fewer.`
-  );
+  return z
+    .string()
+    .trim()
+    .min(1, `${label} is required.`)
+    .max(maximum, `${label} must be ${maximum} characters or fewer.`);
 }
 
 export const supportTicketInputSchema = z.object({
   contact_email: emailSchema,
   name: z.string().trim().max(120, "Name must be 120 characters or fewer."),
   subject: requiredText("Subject", 160),
-  message: requiredText("Message", 5000)
+  message: requiredText("Message", 5000),
 });
 
 export const supportTicketIdDtoSchema = z.object({
-  id: z.string().trim().min(1)
+  id: z.string().trim().min(1),
 });
 
 export type SupportTicketInput = z.output<typeof supportTicketInputSchema>;
@@ -45,13 +47,13 @@ export type ValidatedSupportInput =
     };
 
 export function validateSupportTicketServerInput(
-  input: SupportTicketInput | FormData
+  input: SupportTicketInput | FormData,
 ): ValidatedSupportInput {
   const candidate = {
     contact_email: inputValue(input, "contact_email"),
     name: inputValue(input, "name"),
     subject: inputValue(input, "subject"),
-    message: inputValue(input, "message")
+    message: inputValue(input, "message"),
   };
   const parsed = supportTicketInputSchema.safeParse(candidate);
   if (parsed.success) return { valid: true, value: parsed.data };
@@ -67,7 +69,7 @@ export function validateSupportTicketServerInput(
   return {
     valid: false,
     message: "Check the highlighted fields and try again.",
-    fieldErrors
+    fieldErrors,
   };
 }
 
@@ -76,20 +78,19 @@ export type SupportSearch = {
 };
 
 export function validateSupportSearch(
-  search: Record<string, unknown>
+  search: Record<string, unknown>,
 ): SupportSearch {
   const value = firstString(search.support);
-  return value === "failed" || value === "submitted"
-    ? { support: value }
-    : {};
+  return value === "failed" || value === "submitted" ? { support: value } : {};
 }
 
 function inputValue(input: FormData | object, name: string): string {
-  const value = input instanceof FormData
-    ? input.get(name)
-    : name in input
-      ? Reflect.get(input, name)
-      : undefined;
+  const value =
+    input instanceof FormData
+      ? input.get(name)
+      : name in input
+        ? Reflect.get(input, name)
+        : undefined;
   return typeof value === "string" ? value.trim() : "";
 }
 

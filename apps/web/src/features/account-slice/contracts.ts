@@ -9,19 +9,19 @@ const schoolSummarySchema = z.object({
   name: z.string(),
   slug: identifierSchema,
   city: z.string().optional(),
-  state: z.string().optional()
+  state: z.string().optional(),
 });
 
 const gameSummarySchema = z.object({
   id: identifierSchema,
   name: z.string(),
-  slug: identifierSchema
+  slug: identifierSchema,
 });
 
 const socialLinkSchema = z.object({
   id: identifierSchema.optional(),
   label: z.string(),
-  url: z.string()
+  url: z.string(),
 });
 
 export const accountProfileDtoSchema = z.object({
@@ -36,7 +36,7 @@ export const accountProfileDtoSchema = z.object({
   home_school_id: identifierSchema,
   home_school: schoolSummarySchema.optional(),
   social_links: z.array(socialLinkSchema).max(3).optional(),
-  role_indicators: z.array(z.string()).optional()
+  role_indicators: z.array(z.string()).optional(),
 });
 
 export const dashboardEventDtoSchema = z.object({
@@ -49,16 +49,16 @@ export const dashboardEventDtoSchema = z.object({
   lifecycle: z.enum(["upcoming", "happening_now", "ended", "full"]),
   host_school: schoolSummarySchema.pick({ name: true }),
   games: z.array(gameSummarySchema.pick({ name: true })),
-  viewer_rsvp: z.enum(["yes", "maybe", "no"]).optional()
+  viewer_rsvp: z.enum(["yes", "maybe", "no"]).optional(),
 });
 
 export const dashboardEventsDtoSchema = z.object({
   upcoming_rsvps: z.array(dashboardEventDtoSchema),
-  followed_school_events: z.array(dashboardEventDtoSchema)
+  followed_school_events: z.array(dashboardEventDtoSchema),
 });
 
 export const followedSchoolsDtoSchema = z.object({
-  schools: z.array(schoolSummarySchema)
+  schools: z.array(schoolSummarySchema),
 });
 
 export const accountTeamDtoSchema = z.object({
@@ -68,12 +68,12 @@ export const accountTeamDtoSchema = z.object({
   member_count: nonNegativeIntegerSchema,
   school: schoolSummarySchema.pick({ name: true }).optional(),
   games: z.array(gameSummarySchema.pick({ name: true })),
-  viewer_role: z.enum(["owner", "captain", "member"]).optional()
+  viewer_role: z.enum(["owner", "captain", "member"]).optional(),
 });
 
 export const myTeamsDtoSchema = z.object({
   teams: z.array(accountTeamDtoSchema),
-  limit: nonNegativeIntegerSchema
+  limit: nonNegativeIntegerSchema,
 });
 
 const timeZoneSchema = z
@@ -93,7 +93,7 @@ const profileSocialLinkInputSchema = z.object({
     .trim()
     .min(1, "Social link URL is required.")
     .max(500, "Social link URL must be 500 characters or fewer.")
-    .refine(isHTTPURL, "Social link URL must use HTTP or HTTPS.")
+    .refine(isHTTPURL, "Social link URL must use HTTP or HTTPS."),
 });
 
 export const updateProfileInputSchema = z.object({
@@ -104,7 +104,7 @@ export const updateProfileInputSchema = z.object({
     .max(120, "Name must be 120 characters or fewer."),
   bio: z.string().trim().max(2000, "Bio must be 2000 characters or fewer."),
   timezone: timeZoneSchema,
-  social_links: z.array(profileSocialLinkInputSchema).max(3)
+  social_links: z.array(profileSocialLinkInputSchema).max(3),
 });
 
 export const deleteAccountInputSchema = z.object({
@@ -112,7 +112,7 @@ export const deleteAccountInputSchema = z.object({
     .string()
     .trim()
     .toUpperCase()
-    .pipe(z.literal("DELETE", { error: "Type DELETE to confirm." }))
+    .pipe(z.literal("DELETE", { error: "Type DELETE to confirm." })),
 });
 
 export type AccountProfileDTO = z.output<typeof accountProfileDtoSchema>;
@@ -151,16 +151,17 @@ export type ValidatedAccountInput<T> =
     };
 
 export function validateUpdateProfileInput(
-  input: UpdateProfileInput | FormData
+  input: UpdateProfileInput | FormData,
 ): ValidatedAccountInput<z.output<typeof updateProfileInputSchema>> {
-  const candidate = input instanceof FormData
-    ? {
-        name: formString(input, "name"),
-        bio: formString(input, "bio"),
-        timezone: formString(input, "timezone"),
-        social_links: socialLinksFromForm(input)
-      }
-    : input;
+  const candidate =
+    input instanceof FormData
+      ? {
+          name: formString(input, "name"),
+          bio: formString(input, "bio"),
+          timezone: formString(input, "timezone"),
+          social_links: socialLinksFromForm(input),
+        }
+      : input;
   const parsed = updateProfileInputSchema.safeParse(candidate);
   return parsed.success
     ? { valid: true, value: parsed.data }
@@ -168,11 +169,12 @@ export function validateUpdateProfileInput(
 }
 
 export function validateDeleteAccountInput(
-  input: DeleteAccountInput | FormData
+  input: DeleteAccountInput | FormData,
 ): ValidatedAccountInput<z.output<typeof deleteAccountInputSchema>> {
-  const candidate = input instanceof FormData
-    ? { confirm: formString(input, "confirm") }
-    : input;
+  const candidate =
+    input instanceof FormData
+      ? { confirm: formString(input, "confirm") }
+      : input;
   const parsed = deleteAccountInputSchema.safeParse(candidate);
   return parsed.success
     ? { valid: true, value: parsed.data }
@@ -191,9 +193,10 @@ function validationFailure(error: z.ZodError): ValidatedAccountInput<never> {
   const fieldErrors: AccountFormErrors = {};
   for (const issue of error.issues) {
     const [root, index, field] = issue.path;
-    const key = root === "social_links" && typeof index === "number"
-      ? `social_${String(field)}_${index}`
-      : String(root ?? "form");
+    const key =
+      root === "social_links" && typeof index === "number"
+        ? `social_${String(field)}_${index}`
+        : String(root ?? "form");
     const messages = fieldErrors[key] ?? [];
     if (!messages.includes(issue.message)) messages.push(issue.message);
     fieldErrors[key] = messages;
@@ -201,7 +204,7 @@ function validationFailure(error: z.ZodError): ValidatedAccountInput<never> {
   return {
     valid: false,
     message: "Check the highlighted fields and try again.",
-    fieldErrors
+    fieldErrors,
   };
 }
 

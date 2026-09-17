@@ -5,19 +5,14 @@ import {
   Scripts,
   useRouter,
   useRouterState,
-  createRootRoute
+  createRootRoute,
 } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import {
-  useEffect,
-  useState,
-  type FormEvent,
-  type ReactNode
-} from "react";
+import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import {
   DefaultError,
   DefaultNotFound,
-  DefaultPending
+  DefaultPending,
 } from "../components/route-boundaries";
 import { logout } from "../features/event-slice/auth.functions";
 import { getPublicSiteOrigin } from "../server/public-origin.functions";
@@ -28,25 +23,25 @@ const siteName = "Campus Gaming Network";
 export const Route = createRootRoute({
   beforeLoad: async () => ({ publicOrigin: await getPublicSiteOrigin() }),
   loader: ({ context }) => ({
-    publicOrigin: context.publicOrigin
+    publicOrigin: context.publicOrigin,
   }),
   headers: () => ({
     "cache-control": "public, max-age=0, must-revalidate",
-    vary: "Cookie"
+    vary: "Cookie",
   }),
   head: () => ({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { name: "application-name", content: siteName }
+      { name: "application-name", content: siteName },
     ],
-    links: [{ rel: "stylesheet", href: appCSS }]
+    links: [{ rel: "stylesheet", href: appCSS }],
   }),
   component: RootComponent,
   pendingComponent: DefaultPending,
   errorComponent: DefaultError,
   notFoundComponent: DefaultNotFound,
-  shellComponent: RootDocument
+  shellComponent: RootDocument,
 });
 
 function RootComponent() {
@@ -91,15 +86,14 @@ function MainContent() {
         if (!pathChanged) return;
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
-            const heading = document.querySelector<HTMLElement>(
-              "#main-content h1"
-            );
+            const heading =
+              document.querySelector<HTMLElement>("#main-content h1");
             heading?.setAttribute("tabindex", "-1");
             heading?.focus();
           });
         });
       }),
-    [router]
+    [router],
   );
 
   return (
@@ -113,7 +107,7 @@ function AuthNavigation() {
   const runLogout = useServerFn(logout);
   const router = useRouter();
   const pathname = useRouterState({
-    select: (state) => state.location.pathname
+    select: (state) => state.location.pathname,
   });
   const [authenticated, setAuthenticated] = useState(false);
   const [pending, setPending] = useState(false);
@@ -126,7 +120,7 @@ function AuthNavigation() {
       try {
         const response = await fetch("/api/navigation-session", {
           cache: "no-store",
-          signal: controller.signal
+          signal: controller.signal,
         });
         if (!response.ok) return;
         const session: unknown = await response.json();
@@ -134,7 +128,7 @@ function AuthNavigation() {
           typeof session === "object" &&
             session !== null &&
             "authenticated" in session &&
-            session.authenticated === true
+            session.authenticated === true,
         );
       } catch {
         // Public navigation stays logged out if session discovery is unavailable.

@@ -4,20 +4,20 @@ Authorization rules for the public site and later Admin Console. Enforce in **Go
 
 ## Roles overview
 
-| Role | How granted | Scope |
-|------|-------------|-------|
-| **Anonymous** | — | Search/browse schools; view school clubs; browse public events/tournaments by game; unlock private event with password; no account mutations |
-| **Basic user** | Email registration + clicked verification link + 18+ confirmation | Create events/teams (no event approval); RSVP; favorite events; follow schools; request clubs; report |
-| **Verified student** | `.edu` email | Same as basic + verified-student trust badge |
-| **Staff / faculty** | Site admin grant | Same as verified + faculty context; **visible faculty indicator** |
-| **Alumni** | Affiliation / graduation | Can participate (not locked out after grad) |
-| **School admin** | School-scoped grant; future Admin Console manages grants | Edit school; **manage clubs**; assign school teams; organizer badge; **visible admin indicator** |
-| **Club officer** | Later club workflow | Manage club; future badge-eligible events |
-| **Team owner** | Creator or transfer | Manage team; transfer ownership; assign captains |
-| **Team captain** | Owner assigns | Register team for tournaments; limited team mgmt |
-| **Event organizer** | Creator or assigned | Edit event (with past-event limits); manage RSVPs as needed |
-| **Approved organizer** | Explicit grant | Badge-eligible events |
-| **Site admin** | Bootstrap, then Admin Console | Schools; games; reports; support tickets; staff grants; impersonation and feature flags later |
+| Role                   | How granted                                                       | Scope                                                                                                                                        |
+| ---------------------- | ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Anonymous**          | —                                                                 | Search/browse schools; view school clubs; browse public events/tournaments by game; unlock private event with password; no account mutations |
+| **Basic user**         | Email registration + clicked verification link + 18+ confirmation | Create events/teams (no event approval); RSVP; favorite events; follow schools; request clubs; report                                        |
+| **Verified student**   | `.edu` email                                                      | Same as basic + verified-student trust badge                                                                                                 |
+| **Staff / faculty**    | Site admin grant                                                  | Same as verified + faculty context; **visible faculty indicator**                                                                            |
+| **Alumni**             | Affiliation / graduation                                          | Can participate (not locked out after grad)                                                                                                  |
+| **School admin**       | School-scoped grant; future Admin Console manages grants          | Edit school; **manage clubs**; assign school teams; organizer badge; **visible admin indicator**                                             |
+| **Club officer**       | Later club workflow                                               | Manage club; future badge-eligible events                                                                                                    |
+| **Team owner**         | Creator or transfer                                               | Manage team; transfer ownership; assign captains                                                                                             |
+| **Team captain**       | Owner assigns                                                     | Register team for tournaments; limited team mgmt                                                                                             |
+| **Event organizer**    | Creator or assigned                                               | Edit event (with past-event limits); manage RSVPs as needed                                                                                  |
+| **Approved organizer** | Explicit grant                                                    | Badge-eligible events                                                                                                                        |
+| **Site admin**         | Bootstrap, then Admin Console                                     | Schools; games; reports; support tickets; staff grants; impersonation and feature flags later                                                |
 
 A user may hold **multiple** roles (e.g. school admin at two schools, member of many teams).
 
@@ -36,41 +36,41 @@ Verification is not a substitute for school admin or site admin.
 
 ## Role indicators (UI)
 
-| Role | Indicator |
-|------|-----------|
-| School admin | Visible badge/label on profile and event organizer UI for the granted school |
-| Staff / faculty | Visible badge/label on profile and event organizer UI |
-| Verified (`.edu`) | Optional trust mark (lighter than admin/faculty) |
+| Role              | Indicator                                                                    |
+| ----------------- | ---------------------------------------------------------------------------- |
+| School admin      | Visible badge/label on profile and event organizer UI for the granted school |
+| Staff / faculty   | Visible badge/label on profile and event organizer UI                        |
+| Verified (`.edu`) | Optional trust mark (lighter than admin/faculty)                             |
 
 ## Permission matrix (summary)
 
-| Action | Anonymous | Basic+ | School admin | Club officer | Team owner | Event organizer | Site admin |
-|--------|-----------|--------|--------------|--------------|------------|-----------------|------------|
-| Search/browse schools | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| View school clubs | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Browse public events/tournaments by game | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Create event | | ✓ (no approval) | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Badge on created event | | | ✓ | later | | if approved | ✓ |
-| Unlock private event (password modal) | ✓* | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Mark event interested (favorite) | | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Create team | | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| View team page | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Join / interact with team | | password | | | | | |
-| Transfer team ownership | | | | | ✓ | | ✓ (break-glass) |
-| Request club | | ✓ | | | | | |
-| Create/approve/manage club | | | ✓ | | | | ✓ |
-| Assign team to club | | | ✓ | ✓? | | | ✓ |
-| Edit school details | | | ✓ | | | | ✓ |
-| Create/edit/delete school | | | | | | | ✓ (later Admin Console) |
-| Edit games | | | | | | | ✓ (later Admin Console) |
-| Remove other school admin | | | ✗ | | | | ✓ only |
-| Edit past event date/location | | ✗ | ✗ | ✗ | ✗ | ✗ | break-glass TBD |
-| Minor edit past event | | | | | | ✓ | ✓ |
-| Soft-delete event | | | | | | ✓ | ✓ |
-| View all reports | | | | | | | ✓ |
-| Impersonate user | | | | | | | ✓ |
-| Manage feature flags | | | | | | | ✓ (later) |
-| Sync IGDB / manage games | | | | | | | ✓ / cron |
+| Action                                   | Anonymous | Basic+          | School admin | Club officer | Team owner | Event organizer | Site admin              |
+| ---------------------------------------- | --------- | --------------- | ------------ | ------------ | ---------- | --------------- | ----------------------- |
+| Search/browse schools                    | ✓         | ✓               | ✓            | ✓            | ✓          | ✓               | ✓                       |
+| View school clubs                        | ✓         | ✓               | ✓            | ✓            | ✓          | ✓               | ✓                       |
+| Browse public events/tournaments by game | ✓         | ✓               | ✓            | ✓            | ✓          | ✓               | ✓                       |
+| Create event                             |           | ✓ (no approval) | ✓            | ✓            | ✓          | ✓               | ✓                       |
+| Badge on created event                   |           |                 | ✓            | later        |            | if approved     | ✓                       |
+| Unlock private event (password modal)    | ✓*        | ✓               | ✓            | ✓            | ✓          | ✓               | ✓                       |
+| Mark event interested (favorite)         |           | ✓               | ✓            | ✓            | ✓          | ✓               | ✓                       |
+| Create team                              |           | ✓               | ✓            | ✓            | ✓          | ✓               | ✓                       |
+| View team page                           | ✓         | ✓               | ✓            | ✓            | ✓          | ✓               | ✓                       |
+| Join / interact with team                |           | password        |              |              |            |                 |                         |
+| Transfer team ownership                  |           |                 |              |              | ✓          |                 | ✓ (break-glass)         |
+| Request club                             |           | ✓               |              |              |            |                 |                         |
+| Create/approve/manage club               |           |                 | ✓            |              |            |                 | ✓                       |
+| Assign team to club                      |           |                 | ✓            | ✓?           |            |                 | ✓                       |
+| Edit school details                      |           |                 | ✓            |              |            |                 | ✓                       |
+| Create/edit/delete school                |           |                 |              |              |            |                 | ✓ (later Admin Console) |
+| Edit games                               |           |                 |              |              |            |                 | ✓ (later Admin Console) |
+| Remove other school admin                |           |                 | ✗            |              |            |                 | ✓ only                  |
+| Edit past event date/location            |           | ✗               | ✗            | ✗            | ✗          | ✗               | break-glass TBD         |
+| Minor edit past event                    |           |                 |              |              |            | ✓               | ✓                       |
+| Soft-delete event                        |           |                 |              |              |            | ✓               | ✓                       |
+| View all reports                         |           |                 |              |              |            |                 | ✓                       |
+| Impersonate user                         |           |                 |              |              |            |                 | ✓                       |
+| Manage feature flags                     |           |                 |              |              |            |                 | ✓ (later)               |
+| Sync IGDB / manage games                 |           |                 |              |              |            |                 | ✓ / cron                |
 
 \* Anonymous may open a private event link and submit the password via modal; pre-unlock responses must not leak event details. Still no account mutations without login where required (e.g. RSVP). Anyone (including anonymous) may submit a support ticket.
 

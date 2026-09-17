@@ -11,11 +11,11 @@ UI route / server function  →  TanStack Start BFF  →  Go API  →  Postgres
 Later Admin Console screens →  (admin BFF or direct) →  Go Admin API  →  Postgres
 ```
 
-| Layer | Responsibility |
-|-------|----------------|
+| Layer              | Responsibility                                                                                                                       |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
 | TanStack Start BFF | Opaque server-side session cookies, CSRF, route-loader data, DTO mapping, server routes, server functions, and native-form redirects |
-| Go API | AuthZ checks, validation, transactions, email triggers, rate limits, and future audit writes |
-| Browser | Progressive enhancement only; no core business rules |
+| Go API             | AuthZ checks, validation, transactions, email triggers, rate limits, and future audit writes                                         |
+| Browser            | Progressive enhancement only; no core business rules                                                                                 |
 
 Prefer server-rendered routes and server functions over exposing a wide public
 JSON surface. Core forms also retain native POST behavior for progressive
@@ -63,80 +63,80 @@ Not every path must exist on day one — align with [05 — Roadmap](./05-roadma
 
 ### Auth
 
-| Method | Path | Notes |
-|--------|------|-------|
-| POST | `/auth/signup` | Rate limited; requires 18+ confirmation and home school selection; sends verification email |
-| POST | `/auth/login` | |
-| POST | `/auth/logout` | |
-| POST | `/auth/forgot-password` | |
-| POST | `/auth/reset-password` | |
-| POST | `/auth/verify-email` | Consumes the token after explicit confirmation on the web verification page; direct GET returns 405 |
-| POST | `/auth/resend-verification` | Rate limited |
+| Method | Path                        | Notes                                                                                               |
+| ------ | --------------------------- | --------------------------------------------------------------------------------------------------- |
+| POST   | `/auth/signup`              | Rate limited; requires 18+ confirmation and home school selection; sends verification email         |
+| POST   | `/auth/login`               |                                                                                                     |
+| POST   | `/auth/logout`              |                                                                                                     |
+| POST   | `/auth/forgot-password`     |                                                                                                     |
+| POST   | `/auth/reset-password`      |                                                                                                     |
+| POST   | `/auth/verify-email`        | Consumes the token after explicit confirmation on the web verification page; direct GET returns 405 |
+| POST   | `/auth/resend-verification` | Rate limited                                                                                        |
 
 ### Users / profile
 
-| Method | Path | Notes |
-|--------|------|-------|
-| GET | `/me` | Profile + timezone + home school summary + role indicators |
-| PATCH | `/me` | Name, bio, socials, timezone, majors, graduation |
-| DELETE | `/me` | Anonymize the account in place and return 204. Scrubs email, name, bio, and timezone; marks `account_status = 'deleted'`; hard-deletes social links, school follows, RSVPs, and interests; revokes sessions and drops outstanding tokens. Teams they own pass to the longest-tenured captain, else the longest-tenured member, else are soft-deleted. Events they created stay published; the deleted organizer is omitted from public organizer summaries. The scrubbed email releases the original address for re-registration. |
-| GET | `/me/schools` | Followed schools |
-| GET | `/me/events` | Dashboard event sections: upcoming RSVPs + followed-school public events |
-| GET | `/me/teams` | Dashboard team activity |
-| GET | `/me/activity` | Future full user activity log |
-| GET | `/users/:id` | Public profile (database id), including `home_school_id`, display-ready `home_school`, verification level, and role indicators when available |
-| POST | `/users/:id/report` | Rate limited |
+| Method | Path                | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| ------ | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/me`               | Profile + timezone + home school summary + role indicators                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| PATCH  | `/me`               | Name, bio, socials, timezone, majors, graduation                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| DELETE | `/me`               | Anonymize the account in place and return 204. Scrubs email, name, bio, and timezone; marks `account_status = 'deleted'`; hard-deletes social links, school follows, RSVPs, and interests; revokes sessions and drops outstanding tokens. Teams they own pass to the longest-tenured captain, else the longest-tenured member, else are soft-deleted. Events they created stay published; the deleted organizer is omitted from public organizer summaries. The scrubbed email releases the original address for re-registration. |
+| GET    | `/me/schools`       | Followed schools                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| GET    | `/me/events`        | Dashboard event sections: upcoming RSVPs + followed-school public events                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| GET    | `/me/teams`         | Dashboard team activity                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| GET    | `/me/activity`      | Future full user activity log                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| GET    | `/users/:id`        | Public profile (database id), including `home_school_id`, display-ready `home_school`, verification level, and role indicators when available                                                                                                                                                                                                                                                                                                                                                                                     |
+| POST   | `/users/:id/report` | Rate limited                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 
 ### Schools
 
-| Method | Path | Notes |
-|--------|------|-------|
-| GET | `/schools` | Search/browse (public, incl. logged out); `q`, `state`, `limit`, and `offset`; response includes `has_more` (no total count) |
-| GET | `/schools/:slug` | Public school page (clubs list when clubs ship) |
-| POST | `/schools/:id/follow` | Auth required |
-| DELETE | `/schools/:id/follow` | |
-| GET | `/schools/:id/games/popular` | |
-| PATCH | `/schools/:id` | School admin only |
-| POST | `/admin/schools` | Later site admin / Admin Console only |
+| Method | Path                         | Notes                                                                                                                        |
+| ------ | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/schools`                   | Search/browse (public, incl. logged out); `q`, `state`, `limit`, and `offset`; response includes `has_more` (no total count) |
+| GET    | `/schools/:slug`             | Public school page (clubs list when clubs ship)                                                                              |
+| POST   | `/schools/:id/follow`        | Auth required                                                                                                                |
+| DELETE | `/schools/:id/follow`        |                                                                                                                              |
+| GET    | `/schools/:id/games/popular` |                                                                                                                              |
+| PATCH  | `/schools/:id`               | School admin only                                                                                                            |
+| POST   | `/admin/schools`             | Later site admin / Admin Console only                                                                                        |
 
 ### Clubs (later)
 
-| Method | Path | Notes |
-|--------|------|-------|
-| GET | `/schools/:slug/clubs` | Public; clubs for that school |
-| POST | `/schools/:id/clubs/requests` | User request |
-| POST | `/clubs` | School admin create/manage |
-| PATCH | `/clubs/:id` | School admin |
-| POST | `/clubs/:id/approve` | School admin |
-| POST | `/clubs/:id/teams` | Assign team to club (Varsity, JV, …) |
+| Method | Path                          | Notes                                |
+| ------ | ----------------------------- | ------------------------------------ |
+| GET    | `/schools/:slug/clubs`        | Public; clubs for that school        |
+| POST   | `/schools/:id/clubs/requests` | User request                         |
+| POST   | `/clubs`                      | School admin create/manage           |
+| PATCH  | `/clubs/:id`                  | School admin                         |
+| POST   | `/clubs/:id/approve`          | School admin                         |
+| POST   | `/clubs/:id/teams`            | Assign team to club (Varsity, JV, …) |
 
 ### Teams
 
-| Method | Path | Notes |
-|--------|------|-------|
-| POST | `/teams` | Anyone authenticated |
-| GET | `/teams` | Public browse; `game`, `school`, `limit`, and opaque `after`/`before` cursors; response includes `has_more` and `has_previous` |
-| GET | `/teams/:slug` | **Public** team page |
-| POST | `/teams/:slug/join` | Password required to join/interact |
-| POST | `/teams/:slug/transfer-ownership` | Owner |
-| POST | `/teams/:slug/captains` | Assign captains |
-| GET | `/teams/:slug/audit` | Later team change history |
+| Method | Path                              | Notes                                                                                                                          |
+| ------ | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| POST   | `/teams`                          | Anyone authenticated                                                                                                           |
+| GET    | `/teams`                          | Public browse; `game`, `school`, `limit`, and opaque `after`/`before` cursors; response includes `has_more` and `has_previous` |
+| GET    | `/teams/:slug`                    | **Public** team page                                                                                                           |
+| POST   | `/teams/:slug/join`               | Password required to join/interact                                                                                             |
+| POST   | `/teams/:slug/transfer-ownership` | Owner                                                                                                                          |
+| POST   | `/teams/:slug/captains`           | Assign captains                                                                                                                |
+| GET    | `/teams/:slug/audit`              | Later team change history                                                                                                      |
 
 ### Events
 
-| Method | Path | Notes |
-|--------|------|-------|
-| GET | `/events` | Search/browse **public only**; `game`, `school`, `format`, `limit`, and opaque `after`/`before` cursors; response includes `has_more` and `has_previous` |
-| GET | `/events/:slug` | Public & unlisted return full page; private returns gated shell until unlocked |
-| POST | `/events/:slug/unlock` | Password for private events; unlock session required before details/RSVP |
-| POST | `/events` | Auth; no approval; rate limited; 8-char slug hash; optional capacity; optional off-site payment fields; default banner only; optional `recurrence_rule` (`weekly`, `biweekly`, `monthly`) and `recurrence_until` (`YYYY-MM-DD`) |
-| PATCH | `/events/:slug` | Organizers; past-event field restrictions; recurrence is configured at creation and occurrences are edited independently (no edit-series workflow yet). Supplying either recurrence field returns `400 event_recurrence_immutable`. |
-| DELETE | `/events/:slug` | Soft-cancel; best-effort email to active yes/maybe RSVPs after cancellation |
-| POST | `/events/:slug/rsvp` | yes/no/maybe; capacity counts **yes only**; reject yes if full; email+ICS on yes |
-| POST | `/events/:slug/interest` | Favorite/bookmark; independent of RSVP |
-| DELETE | `/events/:slug/interest` | Remove favorite |
-| POST | `/events/:slug/report` | Rate limited |
-| GET | `/events/:slug/audit` | Later event change history |
+| Method | Path                     | Notes                                                                                                                                                                                                                               |
+| ------ | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/events`                | Search/browse **public only**; `game`, `school`, `format`, `limit`, and opaque `after`/`before` cursors; response includes `has_more` and `has_previous`                                                                            |
+| GET    | `/events/:slug`          | Public & unlisted return full page; private returns gated shell until unlocked                                                                                                                                                      |
+| POST   | `/events/:slug/unlock`   | Password for private events; unlock session required before details/RSVP                                                                                                                                                            |
+| POST   | `/events`                | Auth; no approval; rate limited; 8-char slug hash; optional capacity; optional off-site payment fields; default banner only; optional `recurrence_rule` (`weekly`, `biweekly`, `monthly`) and `recurrence_until` (`YYYY-MM-DD`)     |
+| PATCH  | `/events/:slug`          | Organizers; past-event field restrictions; recurrence is configured at creation and occurrences are edited independently (no edit-series workflow yet). Supplying either recurrence field returns `400 event_recurrence_immutable`. |
+| DELETE | `/events/:slug`          | Soft-cancel; best-effort email to active yes/maybe RSVPs after cancellation                                                                                                                                                         |
+| POST   | `/events/:slug/rsvp`     | yes/no/maybe; capacity counts **yes only**; reject yes if full; email+ICS on yes                                                                                                                                                    |
+| POST   | `/events/:slug/interest` | Favorite/bookmark; independent of RSVP                                                                                                                                                                                              |
+| DELETE | `/events/:slug/interest` | Remove favorite                                                                                                                                                                                                                     |
+| POST   | `/events/:slug/report`   | Rate limited                                                                                                                                                                                                                        |
+| GET    | `/events/:slug/audit`    | Later event change history                                                                                                                                                                                                          |
 
 Discovery lists only `visibility = public`. Unlisted is link/slug only. Private: do not leak event details in HTML/JSON before unlock — blurred shell + password modal only. Capacity = count of RSVP `yes`; full → cannot RSVP yes (no waitlist). Paid events are allowed only as off-site-payment listings: no checkout, payment intent, refund, tax, payout, or ledger behavior in CGN.
 
@@ -166,64 +166,64 @@ Event detail responses include `organizers`, with each organizer's name, role,
 
 ### Tournaments (later)
 
-| Method | Path | Notes |
-|--------|------|-------|
-| GET | `/tournaments` | Browse/filter by game and other filters |
-| GET | `/tournaments/:slug` | |
-| POST | `/tournaments` | Slug = name + hash; optional capacity |
-| POST | `/tournaments/:slug/register` | Individual or team (captain); reject if at capacity |
+| Method | Path                          | Notes                                               |
+| ------ | ----------------------------- | --------------------------------------------------- |
+| GET    | `/tournaments`                | Browse/filter by game and other filters             |
+| GET    | `/tournaments/:slug`          |                                                     |
+| POST   | `/tournaments`                | Slug = name + hash; optional capacity               |
+| POST   | `/tournaments/:slug/register` | Individual or team (captain); reject if at capacity |
 
 ### Games
 
-| Method | Path | Notes |
-|--------|------|-------|
-| GET | `/games` | Browse (public); currently the 6 curated launch games |
-| GET | `/games/:slug/events` | Public events for game + filters |
-| GET | `/games/:slug/tournaments` | Tournaments for game + filters (later) |
-| POST | `/admin/games/sync` | IGDB import (later; Admin Console / cron) |
-| PATCH | `/admin/games/:id` | Later Admin Console only — end users cannot edit games |
+| Method | Path                       | Notes                                                  |
+| ------ | -------------------------- | ------------------------------------------------------ |
+| GET    | `/games`                   | Browse (public); currently the 6 curated launch games  |
+| GET    | `/games/:slug/events`      | Public events for game + filters                       |
+| GET    | `/games/:slug/tournaments` | Tournaments for game + filters (later)                 |
+| POST   | `/admin/games/sync`        | IGDB import (later; Admin Console / cron)              |
+| PATCH  | `/admin/games/:id`         | Later Admin Console only — end users cannot edit games |
 
 ### Notifications & announcements (later)
 
-| Method | Path | Notes |
-|--------|------|-------|
-| GET | `/me/notifications` | |
-| POST | `/me/notifications/:id/read` | |
-| GET | `/announcements/active` | Site-wide banner |
+| Method | Path                         | Notes            |
+| ------ | ---------------------------- | ---------------- |
+| GET    | `/me/notifications`          |                  |
+| POST   | `/me/notifications/:id/read` |                  |
+| GET    | `/announcements/active`      | Site-wide banner |
 
 ### Moderation & admin (Admin Console, later — admin.campusgamingnetwork.com)
 
-| Method | Path | Notes |
-|--------|------|-------|
-| POST | `/support-tickets` | Main site: anyone can submit (logged out OK); rate limited |
-| GET | `/admin/reports` | All reports |
-| PATCH | `/admin/reports/:id` | |
-| GET | `/admin/support-tickets` | Support tickets from main site |
-| PATCH | `/admin/support-tickets/:id` | |
-| POST | `/admin/impersonate` | Site admin; heavily audited (later) |
-| POST | `/admin/impersonate/stop` | |
-| CRUD | `/admin/feature-flags` | Later |
-| CRUD | `/admin/users` | ACL management |
-| CRUD | `/admin/announcements` | Later |
+| Method | Path                         | Notes                                                      |
+| ------ | ---------------------------- | ---------------------------------------------------------- |
+| POST   | `/support-tickets`           | Main site: anyone can submit (logged out OK); rate limited |
+| GET    | `/admin/reports`             | All reports                                                |
+| PATCH  | `/admin/reports/:id`         |                                                            |
+| GET    | `/admin/support-tickets`     | Support tickets from main site                             |
+| PATCH  | `/admin/support-tickets/:id` |                                                            |
+| POST   | `/admin/impersonate`         | Site admin; heavily audited (later)                        |
+| POST   | `/admin/impersonate/stop`    |                                                            |
+| CRUD   | `/admin/feature-flags`       | Later                                                      |
+| CRUD   | `/admin/users`               | ACL management                                             |
+| CRUD   | `/admin/announcements`       | Later                                                      |
 
 ### Health
 
-| Method | Path | Notes |
-|--------|------|-------|
-| GET | `/health` | Process up |
-| GET | `/ready` | Dependencies up |
+| Method | Path      | Notes           |
+| ------ | --------- | --------------- |
+| GET    | `/health` | Process up      |
+| GET    | `/ready`  | Dependencies up |
 
 ## Email side effects
 
-| Trigger | Email |
-|---------|-------|
-| Event RSVP (yes) | Details + ICS — from `events@campusgamingnetwork.com` |
-| Event cancellation | Active yes/maybe RSVPs; best effort, without ICS — from `events@campusgamingnetwork.com` |
-| Signup verification | Link — from `account@campusgamingnetwork.com` |
-| Password reset | Link — from `account@campusgamingnetwork.com` |
-| Basic notifications (later) | From `notifications@campusgamingnetwork.com` |
-| Support / report follow-up (later) | From `support@campusgamingnetwork.com` |
-| (Future) club approval, team invite links | As needed |
+| Trigger                                   | Email                                                                                    |
+| ----------------------------------------- | ---------------------------------------------------------------------------------------- |
+| Event RSVP (yes)                          | Details + ICS — from `events@campusgamingnetwork.com`                                    |
+| Event cancellation                        | Active yes/maybe RSVPs; best effort, without ICS — from `events@campusgamingnetwork.com` |
+| Signup verification                       | Link — from `account@campusgamingnetwork.com`                                            |
+| Password reset                            | Link — from `account@campusgamingnetwork.com`                                            |
+| Basic notifications (later)               | From `notifications@campusgamingnetwork.com`                                             |
+| Support / report follow-up (later)        | From `support@campusgamingnetwork.com`                                                   |
+| (Future) club approval, team invite links | As needed                                                                                |
 
 ## Validation & safety
 

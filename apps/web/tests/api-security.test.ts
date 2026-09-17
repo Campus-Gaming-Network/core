@@ -7,12 +7,12 @@ import {
   ApiContractError,
   ApiError,
   createApiClient,
-  safeApiErrorMessage
+  safeApiErrorMessage,
 } from "../src/server/api.server.js";
 import { createGoBFFClient } from "../src/server/bff.server.js";
 import {
   proxySecretHeader,
-  visitorIPHeader
+  visitorIPHeader,
 } from "../src/server/visitor-identity.server.js";
 
 const currentDirectory = process.cwd();
@@ -29,7 +29,7 @@ test("framework-neutral API and BFF mechanics stay outside the TanStack adapter"
 
   const requestBoundary = readFileSync(
     join(appRoot, "src/server/request-boundary.server.ts"),
-    "utf8"
+    "utf8",
   );
   assert.match(requestBoundary, /@tanstack\/react-start\/server/);
 });
@@ -44,7 +44,7 @@ test("BFF requests sanitize internal headers and assert trusted visitor identity
     fetcher: async (input, init) => {
       call = { input, init };
       return Response.json({ ok: true, secret: "strip-me" });
-    }
+    },
   });
 
   const result = await api({
@@ -53,10 +53,10 @@ test("BFF requests sanitize internal headers and assert trusted visitor identity
     cookieHeader: "cgn_session=session-value",
     headers: {
       [visitorIPHeader]: "192.0.2.99",
-      [proxySecretHeader]: "browser-secret"
+      [proxySecretHeader]: "browser-secret",
     },
     body: { choice: "yes" },
-    responseSchema: z.object({ ok: z.boolean() })
+    responseSchema: z.object({ ok: z.boolean() }),
   });
 
   const outgoing = new Headers(call?.init?.headers);
@@ -72,12 +72,13 @@ test("BFF requests sanitize internal headers and assert trusted visitor identity
 test("all successful API payloads pass their Zod contract", async () => {
   const api = createApiClient({
     baseUrl: "http://api:8080",
-    fetcher: async () => Response.json({ ok: "not-a-boolean" })
+    fetcher: async () => Response.json({ ok: "not-a-boolean" }),
   });
 
   await assert.rejects(
     () => api({ path: "/test", responseSchema: z.object({ ok: z.boolean() }) }),
-    (error: unknown) => error instanceof ApiContractError && error.path === "/test"
+    (error: unknown) =>
+      error instanceof ApiContractError && error.path === "/test",
   );
 });
 
@@ -85,7 +86,7 @@ test("upstream errors retain status internally but expose only allowlisted messa
   const api = createApiClient({
     baseUrl: "http://api:8080",
     fetcher: async () =>
-      Response.json({ error: "database-password-was-wrong" }, { status: 500 })
+      Response.json({ error: "database-password-was-wrong" }, { status: 500 }),
   });
 
   let caught: unknown;
@@ -97,6 +98,9 @@ test("upstream errors retain status internally but expose only allowlisted messa
 
   assert.ok(caught instanceof ApiError);
   assert.equal(caught.status, 500);
-  assert.equal(safeApiErrorMessage(caught), "Something went wrong. Please try again.");
+  assert.equal(
+    safeApiErrorMessage(caught),
+    "Something went wrong. Please try again.",
+  );
   assert.equal(safeApiErrorMessage(caught).includes("password"), false);
 });

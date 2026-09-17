@@ -9,7 +9,7 @@ type PublicPageHeadOptions = {
 
 export function publicPageHead(
   publicOrigin: string | undefined,
-  { description, path, title }: PublicPageHeadOptions
+  { description, path, title }: PublicPageHeadOptions,
 ) {
   const fullTitle = `${title} | ${siteName}`;
 
@@ -23,11 +23,11 @@ export function publicPageHead(
       { property: "og:description", content: description },
       {
         property: "og:url",
-        content: `${publicOrigin ?? localOrigin}${path}`
+        content: `${publicOrigin ?? localOrigin}${path}`,
       },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:title", content: fullTitle },
-      { name: "twitter:description", content: description }
-    ]
+      { name: "twitter:description", content: description },
+    ],
   };
 }

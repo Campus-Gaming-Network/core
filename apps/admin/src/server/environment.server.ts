@@ -7,7 +7,7 @@ const localDefaults = {
   ADMIN_API_PROXY_SHARED_SECRET: "local-admin-bff-proxy-secret-000000",
   ADMIN_SITE_URL: "http://localhost:3002",
   ADMIN_SESSION_COOKIE: "cgn_admin_session",
-  ADMIN_CSRF_COOKIE: "cgn_admin_csrf"
+  ADMIN_CSRF_COOKIE: "cgn_admin_csrf",
 } as const;
 
 export type AdminEnvironment = {
@@ -22,9 +22,11 @@ export type AdminEnvironment = {
   accessJWKSURL?: string;
 };
 
-export function environmentValidationIssues(environment: Environment): string[] {
+export function environmentValidationIssues(
+  environment: Environment,
+): string[] {
   const deploymentEnvironment = parseDeploymentEnvironment(
-    environment.DEPLOYMENT_ENV
+    environment.DEPLOYMENT_ENV,
   );
   if (!deploymentEnvironment) {
     return ["DEPLOYMENT_ENV must be local, staging, or production"];
@@ -38,24 +40,27 @@ export function environmentValidationIssues(environment: Environment): string[] 
 
   const proxySecret = configuredValue(
     environment,
-    "ADMIN_API_PROXY_SHARED_SECRET"
+    "ADMIN_API_PROXY_SHARED_SECRET",
   );
   if (strict && (proxySecret?.length ?? 0) < 32) {
     issues.push(
-      "ADMIN_API_PROXY_SHARED_SECRET must contain at least 32 characters"
+      "ADMIN_API_PROXY_SHARED_SECRET must contain at least 32 characters",
     );
   }
-  const publicProxySecret = configuredValue(environment, "API_PROXY_SHARED_SECRET");
+  const publicProxySecret = configuredValue(
+    environment,
+    "API_PROXY_SHARED_SECRET",
+  );
   if (strict && proxySecret && proxySecret === publicProxySecret) {
     issues.push(
-      "ADMIN_API_PROXY_SHARED_SECRET must differ from API_PROXY_SHARED_SECRET"
+      "ADMIN_API_PROXY_SHARED_SECRET must differ from API_PROXY_SHARED_SECRET",
     );
   }
 
   for (const key of [
     "CLOUDFLARE_ACCESS_TEAM_DOMAIN",
     "CLOUDFLARE_ACCESS_AUDIENCE",
-    "CLOUDFLARE_ACCESS_JWKS_URL"
+    "CLOUDFLARE_ACCESS_JWKS_URL",
   ] as const) {
     if (strict && !configuredValue(environment, key)) {
       issues.push(`${key} must be set`);
@@ -64,11 +69,11 @@ export function environmentValidationIssues(environment: Environment): string[] 
 
   const accessIssuer = configuredValue(
     environment,
-    "CLOUDFLARE_ACCESS_TEAM_DOMAIN"
+    "CLOUDFLARE_ACCESS_TEAM_DOMAIN",
   );
   if (accessIssuer && !parseHTTPSOrigin(accessIssuer)) {
     issues.push(
-      "CLOUDFLARE_ACCESS_TEAM_DOMAIN must be an absolute HTTPS origin"
+      "CLOUDFLARE_ACCESS_TEAM_DOMAIN must be an absolute HTTPS origin",
     );
   }
   const jwksURL = configuredValue(environment, "CLOUDFLARE_ACCESS_JWKS_URL");
@@ -80,22 +85,22 @@ export function environmentValidationIssues(environment: Environment): string[] 
 }
 
 export function assertSafeEnvironment(
-  environment: Environment = process.env
+  environment: Environment = process.env,
 ): void {
   const issues = environmentValidationIssues(environment);
   if (issues.length > 0) {
     throw new Error(
-      `[configuration] Unsafe Admin Console configuration: ${issues.join("; ")}`
+      `[configuration] Unsafe Admin Console configuration: ${issues.join("; ")}`,
     );
   }
 }
 
 export function adminEnvironment(
-  environment: Environment = process.env
+  environment: Environment = process.env,
 ): AdminEnvironment {
   assertSafeEnvironment(environment);
   const deploymentEnvironment = parseDeploymentEnvironment(
-    environment.DEPLOYMENT_ENV
+    environment.DEPLOYMENT_ENV,
   );
   if (!deploymentEnvironment) {
     throw new Error("[configuration] Invalid deployment environment");
@@ -111,7 +116,7 @@ export function adminEnvironment(
       localDefaults.ADMIN_API_PROXY_SHARED_SECRET,
     siteOrigin: new URL(
       configuredValue(environment, "ADMIN_SITE_URL") ??
-        localDefaults.ADMIN_SITE_URL
+        localDefaults.ADMIN_SITE_URL,
     ).origin,
     sessionCookieName:
       configuredValue(environment, "ADMIN_SESSION_COOKIE") ??
@@ -119,25 +124,16 @@ export function adminEnvironment(
     csrfCookieName:
       configuredValue(environment, "ADMIN_CSRF_COOKIE") ??
       localDefaults.ADMIN_CSRF_COOKIE,
-    accessIssuer: configuredValue(
-      environment,
-      "CLOUDFLARE_ACCESS_TEAM_DOMAIN"
-    ),
-    accessAudience: configuredValue(
-      environment,
-      "CLOUDFLARE_ACCESS_AUDIENCE"
-    ),
-    accessJWKSURL: configuredValue(
-      environment,
-      "CLOUDFLARE_ACCESS_JWKS_URL"
-    )
+    accessIssuer: configuredValue(environment, "CLOUDFLARE_ACCESS_TEAM_DOMAIN"),
+    accessAudience: configuredValue(environment, "CLOUDFLARE_ACCESS_AUDIENCE"),
+    accessJWKSURL: configuredValue(environment, "CLOUDFLARE_ACCESS_JWKS_URL"),
   };
 }
 
 function validateInternalURL(
   environment: Environment,
   strict: boolean,
-  issues: string[]
+  issues: string[],
 ): void {
   const configured = configuredValue(environment, "ADMIN_API_INTERNAL_URL");
   if (strict && !configured) {
@@ -145,7 +141,7 @@ function validateInternalURL(
     return;
   }
   const parsed = parseHTTPOrigin(
-    configured ?? localDefaults.ADMIN_API_INTERNAL_URL
+    configured ?? localDefaults.ADMIN_API_INTERNAL_URL,
   );
   if (!parsed) {
     issues.push("ADMIN_API_INTERNAL_URL must be an absolute HTTP(S) origin");
@@ -157,7 +153,7 @@ function validateInternalURL(
     !parsed.hostname.endsWith(".railway.internal")
   ) {
     issues.push(
-      "ADMIN_API_INTERNAL_URL must use HTTPS unless it is a Railway private-network origin"
+      "ADMIN_API_INTERNAL_URL must use HTTPS unless it is a Railway private-network origin",
     );
   }
 }
@@ -165,7 +161,7 @@ function validateInternalURL(
 function validateSiteURL(
   environment: Environment,
   strict: boolean,
-  issues: string[]
+  issues: string[],
 ): void {
   const configured = configuredValue(environment, "ADMIN_SITE_URL");
   if (strict && !configured) {
@@ -185,7 +181,7 @@ function validateSiteURL(
 function validateCookies(
   environment: Environment,
   strict: boolean,
-  issues: string[]
+  issues: string[],
 ): void {
   const session =
     configuredValue(environment, "ADMIN_SESSION_COOKIE") ??
@@ -211,7 +207,7 @@ function validateCookies(
 }
 
 function parseDeploymentEnvironment(
-  value: string | undefined
+  value: string | undefined,
 ): DeploymentEnvironment | undefined {
   const normalized = value?.trim().toLowerCase() || "local";
   if (
@@ -226,7 +222,7 @@ function parseDeploymentEnvironment(
 
 function configuredValue(
   environment: Environment,
-  key: string
+  key: string,
 ): string | undefined {
   const value = environment[key]?.trim();
   return value ? value : undefined;
@@ -268,7 +264,7 @@ function parseHTTPSURL(value: string): URL | undefined {
 }
 
 function validCookieName(value: string): boolean {
-  const separators = "()<>@,;:\\\"/[]?={} \t";
+  const separators = '()<>@,;:\\"/[]?={} \t';
   return (
     value.length > 0 &&
     [...value].every((character) => {

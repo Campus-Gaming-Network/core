@@ -6,8 +6,7 @@ import { assertSafeEnvironment } from "./server/environment.server";
 // binds requires a separate production launcher or Nitro startup hook.
 assertSafeEnvironment();
 
-const { default: serverEntry } = await import(
-  "@tanstack/react-start/server-entry"
-);
+const { default: serverEntry } =
+  await import("@tanstack/react-start/server-entry");
 
 export default serverEntry;

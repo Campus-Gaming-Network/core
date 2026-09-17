@@ -5,5 +5,10 @@
     "suspicious": "warn",
     "perf": "warn"
   },
-  "ignorePatterns": [".output", ".test-build", "node_modules", "src/routeTree.gen.ts"]
+  "ignorePatterns": [
+    ".output",
+    ".test-build",
+    "node_modules",
+    "src/routeTree.gen.ts"
+  ]
 }

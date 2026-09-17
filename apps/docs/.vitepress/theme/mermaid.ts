@@ -13,7 +13,7 @@ export function renderMermaid(source: string, darkMode: boolean) {
     mermaid.initialize({
       startOnLoad: false,
       securityLevel: "strict",
-      theme: darkMode ? "dark" : "neutral"
+      theme: darkMode ? "dark" : "neutral",
     });
 
     renderNumber += 1;
@@ -23,7 +23,7 @@ export function renderMermaid(source: string, darkMode: boolean) {
   const result = renderQueue.then(render, render);
   renderQueue = result.then(
     () => undefined,
-    () => undefined
+    () => undefined,
   );
   return result;
 }

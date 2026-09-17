@@ -7,7 +7,7 @@ import {
   getNavigationSessionOperation,
   loginOperation,
   logoutOperation,
-  safeLocalNext
+  safeLocalNext,
 } from "../src/features/event-slice/auth-operations.server.js";
 import { validateLoginServerInput } from "../src/features/event-slice/contracts.js";
 
@@ -17,13 +17,13 @@ const profile = {
   verification_level: "basic",
   name: "Player One",
   timezone: "America/Los_Angeles",
-  home_school_id: "school-1"
+  home_school_id: "school-1",
 };
 
 function client(fetcher: Fetcher) {
   return createApiClient({
     baseUrl: "http://api:8080",
-    fetcher
+    fetcher,
   });
 }
 
@@ -35,19 +35,22 @@ test("navigation session is a no-store viewer read and degrades safely", async (
       return Response.json(profile);
     }),
     cookieHeader: "cgn_session=session-value",
-    sessionCookieValue: "session-value"
+    sessionCookieValue: "session-value",
   });
   const unavailable = await getNavigationSessionOperation({
     api: client(async () => {
       throw new Error("upstream host and credentials must not escape");
     }),
     cookieHeader: "cgn_session=session-value",
-    sessionCookieValue: "session-value"
+    sessionCookieValue: "session-value",
   });
 
   assert.deepEqual(authenticated, { authenticated: true });
   assert.equal(init?.cache, "no-store");
-  assert.equal(new Headers(init?.headers).get("cookie"), "cgn_session=session-value");
+  assert.equal(
+    new Headers(init?.headers).get("cookie"),
+    "cgn_session=session-value",
+  );
   assert.deepEqual(unavailable, { authenticated: false });
 });
 
@@ -59,7 +62,7 @@ test("navigation does not call /me for an unrelated cookie", async () => {
       return Response.json(profile);
     }),
     cookieHeader: "analytics=value",
-    sessionCookieValue: undefined
+    sessionCookieValue: undefined,
   });
 
   assert.deepEqual(result, { authenticated: false });
@@ -75,32 +78,32 @@ test("strict event viewer session distinguishes logged out, authenticated, and 4
   const noSession = await getEventViewerSessionOperation({
     api,
     cookieHeader: "analytics=value",
-    sessionCookieValue: undefined
+    sessionCookieValue: undefined,
   });
   const authenticated = await getEventViewerSessionOperation({
     api,
     cookieHeader: "cgn_session=session-value",
-    sessionCookieValue: "session-value"
+    sessionCookieValue: "session-value",
   });
   const expired = await getEventViewerSessionOperation({
     api: client(async () =>
-      Response.json({ error: "authentication_required" }, { status: 401 })
+      Response.json({ error: "authentication_required" }, { status: 401 }),
     ),
     cookieHeader: "cgn_session=expired",
-    sessionCookieValue: "expired"
+    sessionCookieValue: "expired",
   });
 
   assert.deepEqual(noSession, {
     status: "unauthenticated",
-    authenticated: false
+    authenticated: false,
   });
   assert.deepEqual(authenticated, {
     status: "authenticated",
-    authenticated: true
+    authenticated: true,
   });
   assert.deepEqual(expired, {
     status: "unauthenticated",
-    authenticated: false
+    authenticated: false,
   });
   assert.equal(calls, 1);
 });
@@ -108,7 +111,7 @@ test("strict event viewer session distinguishes logged out, authenticated, and 4
 test("strict event viewer session never masks upstream unavailability as logged out", async () => {
   const unavailable = {
     status: "unavailable" as const,
-    message: "We could not verify your session. Please try again." as const
+    message: "We could not verify your session. Please try again." as const,
   };
   const network = await getEventViewerSessionOperation({
     api: client(async () => {
@@ -116,21 +119,21 @@ test("strict event viewer session never masks upstream unavailability as logged 
     }),
     cookieHeader: "cgn_session=session-value",
     sessionCookieValue: "session-value",
-    reportError: () => undefined
+    reportError: () => undefined,
   });
   const serverError = await getEventViewerSessionOperation({
     api: client(async () =>
-      Response.json({ error: "database_unavailable" }, { status: 503 })
+      Response.json({ error: "database_unavailable" }, { status: 503 }),
     ),
     cookieHeader: "cgn_session=session-value",
     sessionCookieValue: "session-value",
-    reportError: () => undefined
+    reportError: () => undefined,
   });
   const contractError = await getEventViewerSessionOperation({
     api: client(async () => Response.json({ unexpected: true })),
     cookieHeader: "cgn_session=session-value",
     sessionCookieValue: "session-value",
-    reportError: () => undefined
+    reportError: () => undefined,
   });
 
   assert.deepEqual(network, unavailable);
@@ -146,7 +149,7 @@ test("login sends only credentials and mirrors the named upstream session cookie
     {
       email: "player@example.com",
       password: "Password12345!",
-      next: "/events/private-event"
+      next: "/events/private-event",
     },
     {
       api: client(async (_input, requestInit) => {
@@ -154,26 +157,26 @@ test("login sends only credentials and mirrors the named upstream session cookie
         return Response.json(profile, {
           headers: {
             "set-cookie":
-              "cgn_session=session-token; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=3600"
-          }
+              "cgn_session=session-token; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=3600",
+          },
         });
       }),
       sessionCookieName: "cgn_session",
-      applyCookie: (mutation) => mutations.push(mutation)
-    }
+      applyCookie: (mutation) => mutations.push(mutation),
+    },
   );
 
   assert.equal(
     init?.body,
     JSON.stringify({
       email: "player@example.com",
-      password: "Password12345!"
-    })
+      password: "Password12345!",
+    }),
   );
   assert.deepEqual(result, {
     status: "success",
     authenticated: true,
-    redirectTo: "/events/private-event"
+    redirectTo: "/events/private-event",
   });
   assert.deepEqual(mutations, [
     {
@@ -186,9 +189,9 @@ test("login sends only credentials and mirrors the named upstream session cookie
         maxAge: 3600,
         httpOnly: true,
         secure: true,
-        sameSite: "lax"
-      }
-    }
+        sameSite: "lax",
+      },
+    },
   ]);
   assert.equal(JSON.stringify(result).includes("session-token"), false);
 });
@@ -208,76 +211,84 @@ test("login accepts only local next paths", async () => {
     {
       email: "player@example.com",
       password: "Password12345!",
-      next: "https://attacker.example/path"
+      next: "https://attacker.example/path",
     },
     {
-      api: client(async () => Response.json(profile, {
-        headers: {
-          "set-cookie":
-            "cgn_session=session-token; Path=/; HttpOnly; Secure; SameSite=Lax"
-        }
-      })),
+      api: client(async () =>
+        Response.json(profile, {
+          headers: {
+            "set-cookie":
+              "cgn_session=session-token; Path=/; HttpOnly; Secure; SameSite=Lax",
+          },
+        }),
+      ),
       sessionCookieName: "cgn_session",
-      applyCookie: () => undefined
-    }
+      applyCookie: () => undefined,
+    },
   );
   assert.equal(result.status === "success" && result.redirectTo, "/account");
 });
 
 test("login fails closed without a session cookie and hardens weak flags", async () => {
-  const incompleteResults = await Promise.all([
-    Response.json(profile),
-    Response.json(profile, {
-      headers: { "set-cookie": "unrelated=value; Path=/" }
-    })
-  ].map(async (response) => {
-    const mutations: CookieMutation[] = [];
-    const result = await loginOperation(
-      { email: "player@example.com", password: "Password12345!" },
-      {
-        api: client(async () => response.clone()),
-        sessionCookieName: "cgn_session",
-        applyCookie: (mutation) => mutations.push(mutation),
-        reportError: () => undefined
-      }
-    );
+  const incompleteResults = await Promise.all(
+    [
+      Response.json(profile),
+      Response.json(profile, {
+        headers: { "set-cookie": "unrelated=value; Path=/" },
+      }),
+    ].map(async (response) => {
+      const mutations: CookieMutation[] = [];
+      const result = await loginOperation(
+        { email: "player@example.com", password: "Password12345!" },
+        {
+          api: client(async () => response.clone()),
+          sessionCookieName: "cgn_session",
+          applyCookie: (mutation) => mutations.push(mutation),
+          reportError: () => undefined,
+        },
+      );
 
-    assert.deepEqual(result, {
-      status: "error",
-      message: "We could not complete login. Please try again."
-    });
-    assert.deepEqual(mutations, []);
-    return result;
-  }));
+      assert.deepEqual(result, {
+        status: "error",
+        message: "We could not complete login. Please try again.",
+      });
+      assert.deepEqual(mutations, []);
+      return result;
+    }),
+  );
   assert.equal(incompleteResults.length, 2);
 
   const mutations: CookieMutation[] = [];
   const hardened = await loginOperation(
     { email: "player@example.com", password: "Password12345!" },
     {
-      api: client(async () => Response.json(profile, {
-        headers: {
-          "set-cookie": "cgn_session=session-token; Path=/app; SameSite=None"
-        }
-      })),
+      api: client(async () =>
+        Response.json(profile, {
+          headers: {
+            "set-cookie": "cgn_session=session-token; Path=/app; SameSite=None",
+          },
+        }),
+      ),
       sessionCookieName: "cgn_session",
-      applyCookie: (mutation) => mutations.push(mutation)
-    }
+      applyCookie: (mutation) => mutations.push(mutation),
+    },
   );
   assert.equal(hardened.status, "success");
-  assert.deepEqual(mutations, [{
-    kind: "set",
-    name: "cgn_session",
-    value: "session-token",
-    options: {
-      path: "/",
-      expires: undefined,
-      maxAge: undefined,
-      httpOnly: true,
-      secure: false,
-      sameSite: "lax"
-    }
-  }]);
+  assert.deepEqual(mutations, [
+    {
+      kind: "set",
+      name: "cgn_session",
+      value: "session-token",
+      options: {
+        path: "/",
+        expires: undefined,
+        maxAge: undefined,
+        httpOnly: true,
+        secure: false,
+        sameSite: "lax",
+      },
+    },
+  ]);
 });
 
 test("login input validation accepts typed RPC data and native FormData", () => {
@@ -291,23 +302,23 @@ test("login input validation accepts typed RPC data and native FormData", () => 
     value: {
       email: "player@example.com",
       password: "Password12345!",
-      next: "/account"
-    }
+      next: "/account",
+    },
   });
   assert.deepEqual(
     validateLoginServerInput({
       email: " player@example.com ",
       password: " Password12345! ",
-      next: " /account "
+      next: " /account ",
     }),
-    validateLoginServerInput(native)
+    validateLoginServerInput(native),
   );
 });
 
 test("login validation returns bounded accessible field errors", () => {
   const result = validateLoginServerInput({
     email: "not-an-email",
-    password: ""
+    password: "",
   });
 
   assert.equal(result.valid, false);
@@ -325,16 +336,16 @@ test("login maps API failures without exposing upstream details", async () => {
     { email: "player@example.com", password: "wrong" },
     {
       api: client(async () =>
-        Response.json({ error: "invalid_credentials" }, { status: 401 })
+        Response.json({ error: "invalid_credentials" }, { status: 401 }),
       ),
       sessionCookieName: "cgn_session",
-      applyCookie: () => assert.fail("failed login must not write a cookie")
-    }
+      applyCookie: () => assert.fail("failed login must not write a cookie"),
+    },
   );
 
   assert.deepEqual(result, {
     status: "error",
-    message: "The email or password did not match."
+    message: "The email or password did not match.",
   });
 });
 
@@ -349,23 +360,24 @@ test("logout posts the incoming session and mirrors upstream deletion", async ()
       return new Response(null, {
         status: 204,
         headers: {
-          "set-cookie": "cgn_session=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=-1"
-        }
+          "set-cookie":
+            "cgn_session=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=-1",
+        },
       });
     }),
     cookieHeader: "cgn_session=private-session-value",
     sessionCookieName: "cgn_session",
-    applyCookie: (mutation) => mutations.push(mutation)
+    applyCookie: (mutation) => mutations.push(mutation),
   });
 
   assert.equal(input, "http://api:8080/auth/logout");
   assert.equal(init?.method, "POST");
   assert.equal(
     new Headers(init?.headers).get("cookie"),
-    "cgn_session=private-session-value"
+    "cgn_session=private-session-value",
   );
   assert.deepEqual(mutations, [
-    { kind: "delete", name: "cgn_session", options: { path: "/" } }
+    { kind: "delete", name: "cgn_session", options: { path: "/" } },
   ]);
   assert.deepEqual(result, { status: "success", redirectTo: "/" });
   assert.equal(JSON.stringify(result).includes("private-session-value"), false);
@@ -376,48 +388,55 @@ test("logout failure always deletes the configured local cookie without leaking 
     async () => {
       throw new Error("session=private-session-value upstream unavailable");
     },
-    async () => Response.json({ error: "private-auth-detail" }, { status: 500 }),
-    async () => Response.json({ unexpected: "private-session-value" })
+    async () =>
+      Response.json({ error: "private-auth-detail" }, { status: 500 }),
+    async () => Response.json({ unexpected: "private-session-value" }),
   ];
 
-  const outcomes = await Promise.all(failures.map(async (fetcher) => {
-    const mutations: CookieMutation[] = [];
-    const result = await logoutOperation({
-      api: client(fetcher),
-      cookieHeader: "cgn_session=private-session-value",
-      sessionCookieName: "custom_session",
-      applyCookie: (mutation) => mutations.push(mutation),
-      reportError: () => undefined
-    });
+  const outcomes = await Promise.all(
+    failures.map(async (fetcher) => {
+      const mutations: CookieMutation[] = [];
+      const result = await logoutOperation({
+        api: client(fetcher),
+        cookieHeader: "cgn_session=private-session-value",
+        sessionCookieName: "custom_session",
+        applyCookie: (mutation) => mutations.push(mutation),
+        reportError: () => undefined,
+      });
 
-    return { mutations, result };
-  }));
+      return { mutations, result };
+    }),
+  );
 
   for (const { mutations, result } of outcomes) {
     assert.deepEqual(mutations, [
-      { kind: "delete", name: "custom_session", options: { path: "/" } }
+      { kind: "delete", name: "custom_session", options: { path: "/" } },
     ]);
     assert.deepEqual(result, { status: "success", redirectTo: "/" });
-    assert.equal(JSON.stringify(result).includes("private-session-value"), false);
+    assert.equal(
+      JSON.stringify(result).includes("private-session-value"),
+      false,
+    );
   }
 });
 
 test("logout ignores an unrelated upstream Set-Cookie", async () => {
   const mutations: CookieMutation[] = [];
   const result = await logoutOperation({
-    api: client(async () =>
-      new Response(null, {
-        status: 204,
-        headers: { "set-cookie": "other_cookie=; Path=/; Max-Age=-1" }
-      })
+    api: client(
+      async () =>
+        new Response(null, {
+          status: 204,
+          headers: { "set-cookie": "other_cookie=; Path=/; Max-Age=-1" },
+        }),
     ),
     cookieHeader: "cgn_session=value",
     sessionCookieName: "cgn_session",
-    applyCookie: (mutation) => mutations.push(mutation)
+    applyCookie: (mutation) => mutations.push(mutation),
   });
 
   assert.deepEqual(mutations, [
-    { kind: "delete", name: "cgn_session", options: { path: "/" } }
+    { kind: "delete", name: "cgn_session", options: { path: "/" } },
   ]);
   assert.deepEqual(result, { status: "success", redirectTo: "/" });
 });
@@ -428,11 +447,11 @@ test("logout deletes the local root session when 204 omits Set-Cookie", async ()
     api: client(async () => new Response(null, { status: 204 })),
     cookieHeader: "cgn_session=value",
     sessionCookieName: "cgn_session",
-    applyCookie: (mutation) => mutations.push(mutation)
+    applyCookie: (mutation) => mutations.push(mutation),
   });
 
   assert.deepEqual(mutations, [
-    { kind: "delete", name: "cgn_session", options: { path: "/" } }
+    { kind: "delete", name: "cgn_session", options: { path: "/" } },
   ]);
   assert.deepEqual(result, { status: "success", redirectTo: "/" });
 });

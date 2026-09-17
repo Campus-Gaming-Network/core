@@ -1,19 +1,19 @@
 import * as z from "zod";
 import {
   AccessAssertionError,
-  validateAccessAssertion
+  validateAccessAssertion,
 } from "./access-assertion.server.js";
 import {
   AdminApiContractError,
   AdminApiError,
   createAdminApiClient,
-  type ApiClient
+  type ApiClient,
 } from "./api.server.js";
 import {
   adminCookieDeletions,
   adminCookieHeader,
   mirroredAdminCookies,
-  type CookieMutation
+  type CookieMutation,
 } from "./cookies.server.js";
 import { adminSessionSchema, type AdminSession } from "./contracts.server.js";
 
@@ -46,17 +46,14 @@ export async function establishAdminSession({
   strictDeployment,
   validateAssertion,
   applyCookies,
-  reportError = defaultErrorReporter
+  reportError = defaultErrorReporter,
 }: SessionDependencies): Promise<AdminShellSession> {
   if (sessionCookieValue) {
     try {
       const { data } = await api({
         path: "/admin/v1/session",
         responseSchema: adminSessionSchema,
-        cookieHeader: adminCookieHeader(
-          sessionCookieName,
-          sessionCookieValue
-        )
+        cookieHeader: adminCookieHeader(sessionCookieName, sessionCookieValue),
       });
       return { status: "authenticated", session: data };
     } catch (error) {
@@ -75,13 +72,13 @@ export async function establishAdminSession({
       responseSchema: adminSessionSchema,
       headers: {
         Origin: siteOrigin,
-        "Cf-Access-Jwt-Assertion": assertion
-      }
+        "Cf-Access-Jwt-Assertion": assertion,
+      },
     });
     const cookies = mirroredAdminCookies(
       response.headers,
       { session: sessionCookieName, csrf: csrfCookieName },
-      strictDeployment
+      strictDeployment,
     );
     if (!cookies || cookies.some((cookie) => cookie.kind !== "set")) {
       reportError(new Error("Admin exchange omitted secure session cookies"));
@@ -103,7 +100,7 @@ export async function logoutAdminSession({
   csrfCookieName,
   csrfCookieValue,
   applyCookies,
-  reportError = defaultErrorReporter
+  reportError = defaultErrorReporter,
 }: {
   api: ApiClient;
   siteOrigin: string;
@@ -124,19 +121,22 @@ export async function logoutAdminSession({
           sessionCookieName,
           sessionCookieValue,
           csrfCookieName,
-          csrfCookieValue
+          csrfCookieValue,
         ),
         headers: {
           Origin: siteOrigin,
-          "X-CGN-Admin-CSRF": csrfCookieValue
-        }
+          "X-CGN-Admin-CSRF": csrfCookieValue,
+        },
       });
     }
   } catch (error) {
     reportError(error);
   } finally {
     applyCookies(
-      adminCookieDeletions({ session: sessionCookieName, csrf: csrfCookieName })
+      adminCookieDeletions({
+        session: sessionCookieName,
+        csrf: csrfCookieName,
+      }),
     );
   }
 }
@@ -152,7 +152,7 @@ export async function stepUpAdminSession({
   strictDeployment,
   validateAssertion,
   applyCookies,
-  reportError = defaultErrorReporter
+  reportError = defaultErrorReporter,
 }: {
   api: ApiClient;
   siteOrigin: string;
@@ -180,18 +180,18 @@ export async function stepUpAdminSession({
         sessionCookieName,
         sessionCookieValue,
         csrfCookieName,
-        csrfCookieValue
+        csrfCookieValue,
       ),
       headers: {
         Origin: siteOrigin,
         "Cf-Access-Jwt-Assertion": assertion,
-        "X-CGN-Admin-CSRF": csrfCookieValue
-      }
+        "X-CGN-Admin-CSRF": csrfCookieValue,
+      },
     });
     const cookies = mirroredAdminCookies(
       response.headers,
       { session: sessionCookieName, csrf: csrfCookieName },
-      strictDeployment
+      strictDeployment,
     );
     if (!cookies || cookies.some((cookie) => cookie.kind !== "set")) {
       reportError(new Error("Admin step-up omitted secure session cookies"));
@@ -227,7 +227,7 @@ export function createSessionDependencies(environment: {
   return {
     api: createAdminApiClient({
       baseURL: environment.apiInternalURL,
-      proxySecret: environment.apiProxySecret
+      proxySecret: environment.apiProxySecret,
     }),
     siteOrigin: environment.siteOrigin,
     sessionCookieName: environment.sessionCookieName,
@@ -237,8 +237,8 @@ export function createSessionDependencies(environment: {
       validateAccessAssertion(assertion, {
         issuer: environment.accessIssuer,
         audience: environment.accessAudience,
-        jwksURL: environment.accessJWKSURL
-      })
+        jwksURL: environment.accessJWKSURL,
+      }),
   };
 }
 
@@ -258,7 +258,7 @@ function statusForError(error: unknown): AdminShellSession {
 function defaultErrorReporter(error: unknown): void {
   if (error instanceof AdminApiContractError) {
     console.error("Admin API response contract violation", {
-      path: error.path
+      path: error.path,
     });
   } else if (
     !(error instanceof AdminApiError) &&

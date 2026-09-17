@@ -64,6 +64,8 @@ jobs:
         run: node scripts/web_docker_gate.mjs
       - name: Install
         run: npm ci
+      - name: Format check
+        run: npm run fmt:check
       - name: Audit production dependencies
         run: npm audit --workspace @campus-gaming-network/web --omit=dev --omit=optional --audit-level=high
       - name: Typecheck

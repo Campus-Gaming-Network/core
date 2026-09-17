@@ -1,7 +1,14 @@
 [build]
 builder = "DOCKERFILE"
 dockerfilePath = "apps/web/Dockerfile"
-watchPatterns = [".dockerignore", "apps/docs/package.json", "apps/web/**", "package.json", "package-lock.json", "railway/web.toml"]
+watchPatterns = [
+  ".dockerignore",
+  "apps/docs/package.json",
+  "apps/web/**",
+  "package.json",
+  "package-lock.json",
+  "railway/web.toml",
+]
 
 [deploy]
 startCommand = "node src/production-preflight.ts"

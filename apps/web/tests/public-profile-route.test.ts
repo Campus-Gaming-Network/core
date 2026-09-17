@@ -11,14 +11,11 @@ const appRoot =
     : join(currentDirectory, "apps/web");
 const routeSource = readFileSync(
   join(appRoot, "src/routes/users.$id.tsx"),
-  "utf8"
+  "utf8",
 );
 const functionSource = readFileSync(
-  join(
-    appRoot,
-    "src/features/public-profile/public-profile.functions.ts"
-  ),
-  "utf8"
+  join(appRoot, "src/features/public-profile/public-profile.functions.ts"),
+  "utf8",
 );
 
 test("public-profile DTO strips account, session, unlock, and internal-header fields", () => {
@@ -32,14 +29,14 @@ test("public-profile DTO strips account, session, unlock, and internal-header fi
     session: "server-only-session",
     unlock_token: "server-only-unlock",
     "X-CGN-Visitor-IP": "203.0.113.10",
-    "X-CGN-Proxy-Secret": "server-only-secret"
+    "X-CGN-Proxy-Secret": "server-only-secret",
   });
 
   assert.deepEqual(parsed, {
     id: "user-1",
     name: "Player One",
     verification_level: "verified",
-    home_school_id: "school-1"
+    home_school_id: "school-1",
   });
 });
 
@@ -59,14 +56,20 @@ test("profile UI renders public verification and viewer-safe report controls", (
   assert.match(routeSource, /verificationLabel\(profile\.verification_level\)/);
   assert.match(routeSource, /roleIndicatorLabel/);
   assert.match(routeSource, /to="\/schools\/\$slug"/);
-  assert.match(routeSource, /params=\{\{ slug: profile\.home_school\.slug \}\}/);
+  assert.match(
+    routeSource,
+    /params=\{\{ slug: profile\.home_school\.slug \}\}/,
+  );
   assert.match(routeSource, /safeHTTPURL\(profile\.avatar_url\)/);
   assert.match(routeSource, /safeHTTPURL\(link\.url\)/);
   assert.match(routeSource, /viewer === "self"/);
   assert.match(routeSource, /This is your profile\./);
   assert.match(routeSource, /viewer === "anonymous"/);
   assert.match(routeSource, /to="\/login"/);
-  assert.match(routeSource, /search=\{\{ next: `\/users\/\$\{profileID\}` \}\}/);
+  assert.match(
+    routeSource,
+    /search=\{\{ next: `\/users\/\$\{profileID\}` \}\}/,
+  );
   assert.match(routeSource, /<ReportUserForm userID=\{profileID\}/);
   assert.match(routeSource, /action=\{reportUser\.url\}/);
   assert.match(routeSource, /method="post"/);
@@ -76,7 +79,10 @@ test("profile UI renders public verification and viewer-safe report controls", (
   assert.match(routeSource, /required/);
   assert.match(routeSource, /useServerFn\(reportUser\)/);
   assert.match(routeSource, /formEvent\.preventDefault\(\)/);
-  assert.match(routeSource, /role=\{result\.status === "error" \? "alert" : "status"\}/);
+  assert.match(
+    routeSource,
+    /role=\{result\.status === "error" \? "alert" : "status"\}/,
+  );
   assert.match(routeSource, /validateSearch: validatePublicProfileSearch/);
   assert.doesNotMatch(routeSource, /Profile reporting is not available yet/);
 });
@@ -91,5 +97,8 @@ test("report-user server boundary is private, validated, and supports bounded no
   assert.match(functionSource, /cookieHeader: request\.cookieHeader/);
   assert.match(functionSource, /reportUserNativeDestination\(/);
   assert.match(functionSource, /statusCode: 303/);
-  assert.doesNotMatch(functionSource, /data\.cookie|input\.cookie|reason.*href/);
+  assert.doesNotMatch(
+    functionSource,
+    /data\.cookie|input\.cookie|reason.*href/,
+  );
 });

@@ -10,9 +10,9 @@ export const Route = createFileRoute("/privacy")({
     publicPageHead(loaderData, {
       title: "Privacy",
       description,
-      path: "/privacy"
+      path: "/privacy",
     }),
-  component: PrivacyPage
+  component: PrivacyPage,
 });
 
 function PrivacyPage() {

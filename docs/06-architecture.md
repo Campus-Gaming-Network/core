@@ -41,26 +41,26 @@ See [14 — Architecture diagrams](./14-architecture-diagrams.md) for Mermaid vi
 
 ## Technology choices
 
-| Layer | Choice | Notes |
-|-------|--------|-------|
-| Frontend | TanStack Start + React + TypeScript | TanStack Router, Vite, Nitro SSR, code-split routes |
-| UI | Semantic React + application CSS | Keep the runtime dependency surface small and accessible |
-| BFF validation | Zod | Runtime Go-response contracts and server-function/native-form input errors; server-only operations |
-| A11y / patterns | GOV.UK Design System (reference) | Prefer accessible, clear components |
-| Server / API | Go | All server domain code in Go |
-| Database | Railway PostgreSQL | Backups required before public launch |
-| Local dev | Docker | Works on all systems; develop on M1 MacBook |
-| App host | Railway | Hosts the TanStack Start web service and Go API |
-| DNS / edge | Cloudflare | DNS and edge protection for campusgamingnetwork.com |
-| Admin Console | TanStack Start | Later `apps/admin` app/release at admin.campusgamingnetwork.com |
-| Email | Resend | Verification, password reset, RSVP+ICS, etc. |
-| Object storage | Cloudflare R2 | School logos via Admin Console (PNG/JPG ≤500 MB), then custom event banners — both later |
-| Errors | Sentry | Later bug reporting; not required for launch |
-| Avatars | DiceBear Critters default preset with initials fallback | Custom avatars later |
-| Maps | Google Maps embed (mini) | Later nicety; address text first |
-| Games data | Curated seed; IGDB later | Not user-editable; Admin Console takes over management |
-| Analytics | Non-GA tool (TBD) | No Google Analytics (perf) |
-| Client data libs | TanStack where justified | Main site uses Start/Router; Query/Table remain optional |
+| Layer            | Choice                                                  | Notes                                                                                              |
+| ---------------- | ------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| Frontend         | TanStack Start + React + TypeScript                     | TanStack Router, Vite, Nitro SSR, code-split routes                                                |
+| UI               | Semantic React + application CSS                        | Keep the runtime dependency surface small and accessible                                           |
+| BFF validation   | Zod                                                     | Runtime Go-response contracts and server-function/native-form input errors; server-only operations |
+| A11y / patterns  | GOV.UK Design System (reference)                        | Prefer accessible, clear components                                                                |
+| Server / API     | Go                                                      | All server domain code in Go                                                                       |
+| Database         | Railway PostgreSQL                                      | Backups required before public launch                                                              |
+| Local dev        | Docker                                                  | Works on all systems; develop on M1 MacBook                                                        |
+| App host         | Railway                                                 | Hosts the TanStack Start web service and Go API                                                    |
+| DNS / edge       | Cloudflare                                              | DNS and edge protection for campusgamingnetwork.com                                                |
+| Admin Console    | TanStack Start                                          | Later `apps/admin` app/release at admin.campusgamingnetwork.com                                    |
+| Email            | Resend                                                  | Verification, password reset, RSVP+ICS, etc.                                                       |
+| Object storage   | Cloudflare R2                                           | School logos via Admin Console (PNG/JPG ≤500 MB), then custom event banners — both later           |
+| Errors           | Sentry                                                  | Later bug reporting; not required for launch                                                       |
+| Avatars          | DiceBear Critters default preset with initials fallback | Custom avatars later                                                                               |
+| Maps             | Google Maps embed (mini)                                | Later nicety; address text first                                                                   |
+| Games data       | Curated seed; IGDB later                                | Not user-editable; Admin Console takes over management                                             |
+| Analytics        | Non-GA tool (TBD)                                       | No Google Analytics (perf)                                                                         |
+| Client data libs | TanStack where justified                                | Main site uses Start/Router; Query/Table remain optional                                           |
 
 ## Frontend guidelines
 
@@ -160,14 +160,14 @@ The school and game catalogs are effectively static — roughly 6,200 schools gr
 
 ## Observability
 
-| Concern | Approach |
-|---------|----------|
-| Errors | App/system logs for now; Sentry later |
-| Health | Dedicated health checks |
-| Audit | Later polymorphic `audit_logs` (who changed what on which entity) |
-| System logs | App/ops logging (distinct from audit) |
-| User activity | Later user-visible activity history |
-| Entity history | Later school, team, and event change history |
+| Concern        | Approach                                                          |
+| -------------- | ----------------------------------------------------------------- |
+| Errors         | App/system logs for now; Sentry later                             |
+| Health         | Dedicated health checks                                           |
+| Audit          | Later polymorphic `audit_logs` (who changed what on which entity) |
+| System logs    | App/ops logging (distinct from audit)                             |
+| User activity  | Later user-visible activity history                               |
+| Entity history | Later school, team, and event change history                      |
 
 ## Feature flags (later)
 
@@ -193,12 +193,12 @@ The school and game catalogs are effectively static — roughly 6,200 schools gr
 - Domain: `campusgamingnetwork.com`
 - Keep templates simple and server-generated (Go or BFF)
 
-| From address | Use for |
-|--------------|---------|
-| `events@campusgamingnetwork.com` | Any email related to an event RSVP (confirmation, ICS, future RSVP updates) |
-| `notifications@campusgamingnetwork.com` | Later basic notification emails |
-| `support@campusgamingnetwork.com` | Later support and report workflow email |
-| `account@campusgamingnetwork.com` | Account emails (verification, password reset, etc.) |
+| From address                            | Use for                                                                     |
+| --------------------------------------- | --------------------------------------------------------------------------- |
+| `events@campusgamingnetwork.com`        | Any email related to an event RSVP (confirmation, ICS, future RSVP updates) |
+| `notifications@campusgamingnetwork.com` | Later basic notification emails                                             |
+| `support@campusgamingnetwork.com`       | Later support and report workflow email                                     |
+| `account@campusgamingnetwork.com`       | Account emails (verification, password reset, etc.)                         |
 
 ## Object storage (Cloudflare R2)
 

@@ -1,5 +1,12 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import {
+  computed,
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+  watch,
+} from "vue";
 import { useData } from "vitepress";
 import { renderMermaid } from "./mermaid";
 
@@ -22,7 +29,7 @@ const canZoomIn = computed(() => zoom.value < MAXIMUM_ZOOM);
 
 function decodeSource(encoded: string) {
   const bytes = Uint8Array.from(atob(encoded), (character) =>
-    character.charCodeAt(0)
+    character.charCodeAt(0),
   );
   return new TextDecoder().decode(bytes);
 }
@@ -38,21 +45,22 @@ async function renderChart() {
   try {
     const result = await renderMermaid(
       decodeSource(properties.encoded),
-      isDark.value
+      isDark.value,
     );
     if (chart.value !== chartElement) return;
 
     chartElement.innerHTML = result.svg;
     result.bindFunctions?.(chartElement);
   } catch (cause) {
-    error.value = cause instanceof Error ? cause.message : "Unable to render diagram";
+    error.value =
+      cause instanceof Error ? cause.message : "Unable to render diagram";
   }
 }
 
 function changeZoom(amount: number) {
   zoom.value = Math.min(
     MAXIMUM_ZOOM,
-    Math.max(MINIMUM_ZOOM, zoom.value + amount)
+    Math.max(MINIMUM_ZOOM, zoom.value + amount),
   );
 }
 
@@ -74,9 +82,11 @@ async function toggleFullscreen() {
 }
 
 onMounted(renderChart);
-onMounted(() => document.addEventListener("fullscreenchange", updateFullscreenState));
+onMounted(() =>
+  document.addEventListener("fullscreenchange", updateFullscreenState),
+);
 onBeforeUnmount(() =>
-  document.removeEventListener("fullscreenchange", updateFullscreenState)
+  document.removeEventListener("fullscreenchange", updateFullscreenState),
 );
 watch(isDark, renderChart);
 </script>

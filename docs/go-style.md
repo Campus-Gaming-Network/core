@@ -37,4 +37,3 @@ npm run test:api
 `go test ./...` remains the source of truth for the API test suite. The style
 guide is a review baseline as well as a tooling baseline; automated checks do
 not replace judgment about clarity, simplicity, and maintainability.
-

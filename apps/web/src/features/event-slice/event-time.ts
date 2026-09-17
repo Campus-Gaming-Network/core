@@ -17,7 +17,7 @@ export const eventTimeZones = [
   { id: "America/Los_Angeles", label: "Pacific Time" },
   { id: "America/Anchorage", label: "Alaska Time" },
   { id: "Pacific/Honolulu", label: "Hawaii Time" },
-  { id: "America/Puerto_Rico", label: "Atlantic Time" }
+  { id: "America/Puerto_Rico", label: "Atlantic Time" },
 ] as const;
 
 type LocalDateTimeParts = {
@@ -31,7 +31,7 @@ type LocalDateTimeParts = {
 
 export function localDateTimeToInstant(
   value: string,
-  timeZone: string
+  timeZone: string,
 ): ZonedDateTimeResult {
   const local = parseLocalDateTime(value);
   if (!local) return { success: false, reason: "invalid_datetime" };
@@ -45,7 +45,7 @@ export function localDateTimeToInstant(
     local.day,
     local.hour,
     local.minute,
-    local.second
+    local.second,
   );
   const candidates: number[] = [];
 
@@ -69,7 +69,10 @@ export function localDateTimeToInstant(
   return { success: true, instant: new Date(candidates[0]).toISOString() };
 }
 
-export function instantToLocalDateTime(value: string, timeZone: string): string {
+export function instantToLocalDateTime(
+  value: string,
+  timeZone: string,
+): string {
   const instant = Date.parse(value);
   const formatter = timeZoneFormatter(timeZone);
   if (!Number.isFinite(instant) || !formatter) return "";
@@ -79,12 +82,15 @@ export function instantToLocalDateTime(value: string, timeZone: string): string 
 }
 
 export function eventTimeZoneLabel(timeZone: string): string {
-  return eventTimeZones.find((option) => option.id === timeZone)?.label ?? timeZone;
+  return (
+    eventTimeZones.find((option) => option.id === timeZone)?.label ?? timeZone
+  );
 }
 
 function parseLocalDateTime(value: string): LocalDateTimeParts | null {
-  const match =
-    /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/.exec(value);
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/.exec(
+    value,
+  );
   if (!match) return null;
 
   const parts = {
@@ -93,7 +99,7 @@ function parseLocalDateTime(value: string): LocalDateTimeParts | null {
     day: Number(match[3]),
     hour: Number(match[4]),
     minute: Number(match[5]),
-    second: Number(match[6] ?? "0")
+    second: Number(match[6] ?? "0"),
   };
   const check = new Date(
     Date.UTC(
@@ -102,8 +108,8 @@ function parseLocalDateTime(value: string): LocalDateTimeParts | null {
       parts.day,
       parts.hour,
       parts.minute,
-      parts.second
-    )
+      parts.second,
+    ),
   );
   if (
     parts.year < 100 ||
@@ -129,7 +135,7 @@ function timeZoneFormatter(timeZone: string): Intl.DateTimeFormat | null {
       hour: "2-digit",
       minute: "2-digit",
       second: "2-digit",
-      hourCycle: "h23"
+      hourCycle: "h23",
     });
   } catch {
     return null;
@@ -138,13 +144,13 @@ function timeZoneFormatter(timeZone: string): Intl.DateTimeFormat | null {
 
 function partsInTimeZone(
   instant: number,
-  formatter: Intl.DateTimeFormat
+  formatter: Intl.DateTimeFormat,
 ): LocalDateTimeParts {
   const values = new Map(
     formatter
       .formatToParts(new Date(instant))
       .filter((part) => part.type !== "literal")
-      .map((part) => [part.type, Number(part.value)])
+      .map((part) => [part.type, Number(part.value)]),
   );
   return {
     year: values.get("year") ?? 0,
@@ -152,13 +158,13 @@ function partsInTimeZone(
     day: values.get("day") ?? 0,
     hour: values.get("hour") ?? 0,
     minute: values.get("minute") ?? 0,
-    second: values.get("second") ?? 0
+    second: values.get("second") ?? 0,
   };
 }
 
 function sameLocalDateTime(
   left: LocalDateTimeParts,
-  right: LocalDateTimeParts
+  right: LocalDateTimeParts,
 ): boolean {
   return (
     left.year === right.year &&

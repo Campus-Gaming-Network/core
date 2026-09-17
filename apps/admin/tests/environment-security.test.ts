@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   adminEnvironment,
-  environmentValidationIssues
+  environmentValidationIssues,
 } from "../src/server/environment.server.js";
 
 const safeProduction = {
@@ -16,16 +16,13 @@ const safeProduction = {
   CLOUDFLARE_ACCESS_TEAM_DOMAIN: "https://cgn.cloudflareaccess.com",
   CLOUDFLARE_ACCESS_AUDIENCE: "admin-audience",
   CLOUDFLARE_ACCESS_JWKS_URL:
-    "https://cgn.cloudflareaccess.com/cdn-cgi/access/certs"
+    "https://cgn.cloudflareaccess.com/cdn-cgi/access/certs",
 };
 
 test("accepts a separate production Admin Console boundary", () => {
   assert.deepEqual(environmentValidationIssues(safeProduction), []);
   const environment = adminEnvironment(safeProduction);
-  assert.equal(
-    environment.sessionCookieName,
-    "__Host-cgn_admin_session"
-  );
+  assert.equal(environment.sessionCookieName, "__Host-cgn_admin_session");
   assert.equal(environment.siteOrigin, "https://admin.campusgamingnetwork.com");
 });
 
@@ -36,7 +33,7 @@ test("rejects public credentials, insecure origins, and non-Host cookies", () =>
     ADMIN_SITE_URL: "http://admin.example.test",
     ADMIN_API_PROXY_SHARED_SECRET: safeProduction.API_PROXY_SHARED_SECRET,
     ADMIN_SESSION_COOKIE: "cgn_admin_session",
-    ADMIN_CSRF_COOKIE: "cgn_admin_csrf"
+    ADMIN_CSRF_COOKIE: "cgn_admin_csrf",
   });
 
   assert.ok(issues.some((issue) => issue.includes("must differ")));
@@ -50,7 +47,7 @@ test("validation messages never contain credential values", () => {
   const canary = "super-secret-canary-value";
   const issues = environmentValidationIssues({
     ...safeProduction,
-    ADMIN_API_PROXY_SHARED_SECRET: canary
+    ADMIN_API_PROXY_SHARED_SECRET: canary,
   });
   assert.ok(issues.length > 0);
   assert.equal(issues.join(" ").includes(canary), false);

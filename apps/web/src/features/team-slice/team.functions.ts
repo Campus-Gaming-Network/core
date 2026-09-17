@@ -5,7 +5,7 @@ import {
   goBFFForCurrentRequest,
   isNativeFormPost,
   setPrivateNoStoreResponse,
-  setViewerResponseCache
+  setViewerResponseCache,
 } from "../../server/request-boundary.server.js";
 import {
   newTeamPageInputSchema,
@@ -18,7 +18,7 @@ import {
   type CreateTeamInput,
   type JoinTeamInput,
   type SetTeamCaptainInput,
-  type TransferTeamOwnershipInput
+  type TransferTeamOwnershipInput,
 } from "./contracts.js";
 import {
   createTeamOperation,
@@ -27,13 +27,13 @@ import {
   setTeamCaptainOperation,
   teamDetailOperation,
   teamsBrowseOperation,
-  transferTeamOwnershipOperation
+  transferTeamOwnershipOperation,
 } from "./team-operations.server.js";
 
 export const getTeamsBrowse = createServerFn({ method: "GET" })
   .validator(teamsBrowseInputSchema)
   .handler(async ({ data }) =>
-    teamsBrowseOperation(data, { api: goBFFForCurrentRequest() })
+    teamsBrowseOperation(data, { api: goBFFForCurrentRequest() }),
   );
 
 export const getTeamDetail = createServerFn({ method: "GET" })
@@ -44,7 +44,7 @@ export const getTeamDetail = createServerFn({ method: "GET" })
     setViewerResponseCache(hasSessionCookie);
     const result = await teamDetailOperation(data, {
       api: request.api,
-      cookieHeader: hasSessionCookie ? request.cookieHeader : ""
+      cookieHeader: hasSessionCookie ? request.cookieHeader : "",
     });
     return { ...result, hasSessionCookie };
   });
@@ -59,10 +59,10 @@ export const getNewTeamPage = createServerFn({ method: "GET" })
 
 export const createTeam = createServerFn({
   method: "POST",
-  strict: { input: false }
+  strict: { input: false },
 })
   .validator((input: CreateTeamInput | FormData) =>
-    validateCreateTeamServerInput(input)
+    validateCreateTeamServerInput(input),
   )
   .handler(async ({ data }) => {
     setPrivateNoStoreResponse();
@@ -74,13 +74,13 @@ export const createTeam = createServerFn({
 
     const result = await createTeamOperation(
       data.value,
-      currentSessionRequest()
+      currentSessionRequest(),
     );
     if (nativeForm) {
       throwTeamRedirect(
         result.status === "success"
           ? result.redirectTo
-          : "/teams/new?team=create-failed"
+          : "/teams/new?team=create-failed",
       );
     }
     return result;
@@ -88,10 +88,10 @@ export const createTeam = createServerFn({
 
 export const joinTeam = createServerFn({
   method: "POST",
-  strict: { input: false }
+  strict: { input: false },
 })
   .validator((input: JoinTeamInput | FormData) =>
-    validateJoinTeamServerInput(input)
+    validateJoinTeamServerInput(input),
   )
   .handler(async ({ data }) => {
     setPrivateNoStoreResponse();
@@ -108,7 +108,7 @@ export const joinTeam = createServerFn({
       throwTeamRedirect(
         result.status === "success"
           ? result.redirectTo
-          : teamFailureDestination(data.value.slug, "join-failed")
+          : teamFailureDestination(data.value.slug, "join-failed"),
       );
     }
     return result;
@@ -116,10 +116,10 @@ export const joinTeam = createServerFn({
 
 export const setTeamCaptain = createServerFn({
   method: "POST",
-  strict: { input: false }
+  strict: { input: false },
 })
   .validator((input: SetTeamCaptainInput | FormData) =>
-    validateSetTeamCaptainServerInput(input)
+    validateSetTeamCaptainServerInput(input),
   )
   .handler(async ({ data }) => {
     setPrivateNoStoreResponse();
@@ -133,13 +133,13 @@ export const setTeamCaptain = createServerFn({
 
     const result = await setTeamCaptainOperation(
       data.value,
-      currentSessionRequest()
+      currentSessionRequest(),
     );
     if (nativeForm) {
       throwTeamRedirect(
         result.status === "success"
           ? result.redirectTo
-          : teamFailureDestination(data.value.slug, "manage-failed")
+          : teamFailureDestination(data.value.slug, "manage-failed"),
       );
     }
     return result;
@@ -147,10 +147,10 @@ export const setTeamCaptain = createServerFn({
 
 export const transferTeamOwnership = createServerFn({
   method: "POST",
-  strict: { input: false }
+  strict: { input: false },
 })
   .validator((input: TransferTeamOwnershipInput | FormData) =>
-    validateTransferTeamOwnershipServerInput(input)
+    validateTransferTeamOwnershipServerInput(input),
   )
   .handler(async ({ data }) => {
     setPrivateNoStoreResponse();
@@ -164,13 +164,13 @@ export const transferTeamOwnership = createServerFn({
 
     const result = await transferTeamOwnershipOperation(
       data.value,
-      currentSessionRequest()
+      currentSessionRequest(),
     );
     if (nativeForm) {
       throwTeamRedirect(
         result.status === "success"
           ? result.redirectTo
-          : teamFailureDestination(data.value.slug, "manage-failed")
+          : teamFailureDestination(data.value.slug, "manage-failed"),
       );
     }
     return result;
@@ -183,13 +183,13 @@ function validationFailure(data: {
   return {
     status: "error" as const,
     message: data.message,
-    fieldErrors: data.fieldErrors
+    fieldErrors: data.fieldErrors,
   };
 }
 
 function teamFailureDestination(
   slug: string | undefined,
-  notice: "join-failed" | "manage-failed"
+  notice: "join-failed" | "manage-failed",
 ): string {
   return slug
     ? `/teams/${encodeURIComponent(slug)}?team=${notice}`

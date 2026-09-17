@@ -37,21 +37,22 @@ major product area.
 
 No blocking decisions left for media/slugs/email. Optional later: exact default banner asset design.
 
-| Topic | Decision |
-|-------|----------|
-| Event slug hash | **8** Base64URL chars |
-| Images | **PNG or JPG only**; max **500 MB** |
-| Event banners | Default placeholder image/background — **no user uploads yet** |
-| School logos | Placeholder for now; Admin Console upload via R2 later |
-| Email From | Now: `events@` / `account@`; later workflows: `notifications@` / `support@campusgamingnetwork.com` |
-| Paid events | Off-site-payment listings only; no CGN checkout/payments |
-| Deploy path | Railway hosts TanStack Start, Go API, and PostgreSQL; Cloudflare manages DNS/protection |
+| Topic           | Decision                                                                                           |
+| --------------- | -------------------------------------------------------------------------------------------------- |
+| Event slug hash | **8** Base64URL chars                                                                              |
+| Images          | **PNG or JPG only**; max **500 MB**                                                                |
+| Event banners   | Default placeholder image/background — **no user uploads yet**                                     |
+| School logos    | Placeholder for now; Admin Console upload via R2 later                                             |
+| Email From      | Now: `events@` / `account@`; later workflows: `notifications@` / `support@campusgamingnetwork.com` |
+| Paid events     | Off-site-payment listings only; no CGN checkout/payments                                           |
+| Deploy path     | Railway hosts TanStack Start, Go API, and PostgreSQL; Cloudflare manages DNS/protection            |
 
 ---
 
 ## Now — first public release
 
 ### Foundation
+
 - [x] Docker Compose: TanStack Start, Go API, Postgres (M1-friendly)
 - [x] Project skeletons + BFF wiring
 - [x] Health checks
@@ -62,6 +63,7 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 - [ ] Provision Railway staging/production + DNS + backups and execute the documented launch/smoke-test flow
 
 ### Pre-launch polish
+
 - [x] Historical Next.js dependency sweep: Next.js 16.3 cleared 9 high-severity advisories plus transitive `postcss`/`sharp`; Go and oxlint were refreshed in the same readiness pass
 - [x] Run a fresh online production-runtime dependency audit for TanStack Start; the current registry reports zero vulnerabilities after excluding development-optional build tooling that is not copied into the runtime image
 - [x] Go toolchain refresh: Go 1.27.1 for the API module, CI, Docker build, and local formatting; API runtime image on Alpine 3.24
@@ -88,6 +90,7 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 - [x] Split the event domain and HTTP router tests into capability and route-family files without changing public behavior (`CGN-018`)
 
 ### Auth & profiles
+
 - [x] Signup / login / logout
 - [x] Signup requires selecting a home school
 - [x] Search the full active school catalog from signup, event create/edit, and team create without a fixed first-page picker
@@ -99,6 +102,7 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 - [x] Public profile at `/users/:id` (database id)
 
 ### Schools
+
 - [x] One-time import of **all** seed schools as `is_active=true` (main + branch; same UI/UX)
 - [x] Public search/browse (Postgres), including logged out
 - [x] Filter-preserving previous/next browse navigation with explicit page metadata and no total-count query
@@ -107,6 +111,7 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 - [x] Empty states for school list + school page
 
 ### Games (curated seed)
+
 - [x] Seed/curate launch games:
   - Rocket League
   - Valorant
@@ -118,6 +123,7 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 - [x] End users cannot edit games (admin seed; Admin Console later)
 
 ### Events
+
 - [x] Create / edit / soft-cancel (no approval; cancellation email to active yes/maybe RSVPs)
 - [x] Slug = `slugify(title) + "-" + base64url(sha256(...))` (**8** chars)
 - [x] Visibility: public / unlisted / private
@@ -140,6 +146,7 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 - [x] Empty states for events browse
 
 ### Teams
+
 - [x] Create team
 - [x] **Public** team page
 - [x] Bidirectional cursor pagination that preserves game and school filters
@@ -148,6 +155,7 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 - [x] Dashboard shows team activity
 
 ### Dashboard & content
+
 - [x] Simple dashboard: upcoming RSVPs + followed-school events + team activity
 - [x] Homepage (works with little/no UGC)
 - [x] Cold-start plan (demo seed and/or “create first event” CTA)
@@ -155,6 +163,7 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 - [x] Support ticket form — **anyone** can submit (logged out OK)
 
 ### Safety (baseline)
+
 - [x] Rate limits: signup, resend verification, event create, reports, private unlock, support tickets
 - [x] Report event + report user (queued for Admin Console review)
 - [x] New-account abuse limits (basic)
@@ -164,6 +173,7 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 ## Next — immediately after the first release
 
 ### Admin Console (`admin.campusgamingnetwork.com` — TanStack Start in `apps/admin`)
+
 - [x] Add operations data/repository foundation for assignable reports/support queues with terminal retention clocks, transactional audit history, and user-scoped notifications
 - [ ] Bootstrap first site admin (CLI / env seed)
 - [ ] Add site-admin-authorized reports, support, and audit API endpoints
@@ -178,6 +188,7 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 - [ ] Placeholder school logos until Admin Console upload
 
 ### Product polish
+
 - [ ] Sentry/error monitoring
 - [ ] Analytics (non-GA: Plausible or Cloudflare Web Analytics)
 - [x] Define and apply basic blocked-language filtering
@@ -185,6 +196,7 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 - [ ] Open Graph share image, favicon, `robots.txt`, and `sitemap.xml`
 
 ### Active product milestone
+
 - [x] Complete frontend regression coverage for signup, event creation, RSVP, team joining, and dashboard flows
 - [ ] Complete mobile and accessibility pass on the primary journeys
 - [x] Define initial support/report/audit retention targets and track legal-hold/purge follow-up
@@ -202,6 +214,7 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 ## Later — planned, not yet scheduled
 
 ### Near-term candidates
+
 - [ ] Google Maps embed (address text is enough first)
 - [ ] Richer profile fields (majors, graduation automation, faculty extras)
 - [x] Database-backed audit-history foundation (broader domain adoption and UIs remain)
@@ -211,6 +224,7 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 - [ ] Broader IGDB game import
 
 ### Larger feature areas
+
 - [ ] Clubs
 - [ ] Tournaments
 - [ ] On-site payments

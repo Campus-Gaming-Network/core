@@ -3,14 +3,14 @@ import { createServerFn } from "@tanstack/react-start";
 import {
   goBFFForCurrentRequest,
   isNativeFormPost,
-  setPrivateNoStoreResponse
+  setPrivateNoStoreResponse,
 } from "../../server/request-boundary.server.js";
 import {
   forgotPasswordOperation,
   resendVerificationOperation,
   resetPasswordOperation,
   signupOperation,
-  verifyEmailOperation
+  verifyEmailOperation,
 } from "./auth-flow-operations.server.js";
 import {
   validateEmailServerInput,
@@ -20,24 +20,30 @@ import {
   type EmailInput,
   type ResetPasswordInput,
   type SignupInput,
-  type VerificationTokenInput
+  type VerificationTokenInput,
 } from "./contracts.js";
 import { signupSchoolSearchOperation } from "./signup-school-operations.server.js";
 
-export const establishPrivateAuthPage = createServerFn({ method: "GET" })
-  .handler(() => {
-    setPrivateNoStoreResponse();
-    return { private: true as const };
-  });
+export const establishPrivateAuthPage = createServerFn({
+  method: "GET",
+}).handler(() => {
+  setPrivateNoStoreResponse();
+  return { private: true as const };
+});
 
 export const getSignupSchools = createServerFn({ method: "GET" })
   .validator((query: string) => query)
   .handler(async ({ data }) =>
-    signupSchoolSearchOperation(data, { api: goBFFForCurrentRequest() })
+    signupSchoolSearchOperation(data, { api: goBFFForCurrentRequest() }),
   );
 
-export const signup = createServerFn({ method: "POST", strict: { input: false } })
-  .validator((input: SignupInput | FormData) => validateSignupServerInput(input))
+export const signup = createServerFn({
+  method: "POST",
+  strict: { input: false },
+})
+  .validator((input: SignupInput | FormData) =>
+    validateSignupServerInput(input),
+  )
   .handler(async ({ data }) => {
     setPrivateNoStoreResponse();
     const nativeForm = isNativeFormPost();
@@ -47,13 +53,13 @@ export const signup = createServerFn({ method: "POST", strict: { input: false } 
     }
 
     const result = await signupOperation(data.value, {
-      api: goBFFForCurrentRequest()
+      api: goBFFForCurrentRequest(),
     });
     if (nativeForm) {
       nativeRedirect(
         result.status === "success"
           ? "/signup?auth=created"
-          : "/signup?auth=failed"
+          : "/signup?auth=failed",
       );
     }
     return result;
@@ -61,7 +67,7 @@ export const signup = createServerFn({ method: "POST", strict: { input: false } 
 
 export const forgotPassword = createServerFn({
   method: "POST",
-  strict: { input: false }
+  strict: { input: false },
 })
   .validator((input: EmailInput | FormData) => validateEmailServerInput(input))
   .handler(async ({ data }) => {
@@ -73,11 +79,11 @@ export const forgotPassword = createServerFn({
     }
 
     const result = await forgotPasswordOperation(data.value, {
-      api: goBFFForCurrentRequest()
+      api: goBFFForCurrentRequest(),
     });
     if (nativeForm) {
       nativeRedirect(
-        `/forgot-password?request=${result.status === "success" ? "sent" : "failed"}`
+        `/forgot-password?request=${result.status === "success" ? "sent" : "failed"}`,
       );
     }
     return result;
@@ -85,10 +91,10 @@ export const forgotPassword = createServerFn({
 
 export const resetPassword = createServerFn({
   method: "POST",
-  strict: { input: false }
+  strict: { input: false },
 })
   .validator((input: ResetPasswordInput | FormData) =>
-    validateResetPasswordServerInput(input)
+    validateResetPasswordServerInput(input),
   )
   .handler(async ({ data }) => {
     setPrivateNoStoreResponse();
@@ -99,13 +105,13 @@ export const resetPassword = createServerFn({
     }
 
     const result = await resetPasswordOperation(data.value, {
-      api: goBFFForCurrentRequest()
+      api: goBFFForCurrentRequest(),
     });
     if (nativeForm) {
       nativeRedirect(
         result.status === "success"
           ? "/login?reset=complete"
-          : "/reset-password?reset=failed"
+          : "/reset-password?reset=failed",
       );
     }
     return result;
@@ -113,7 +119,7 @@ export const resetPassword = createServerFn({
 
 export const resendVerification = createServerFn({
   method: "POST",
-  strict: { input: false }
+  strict: { input: false },
 })
   .validator((input: EmailInput | FormData) => validateEmailServerInput(input))
   .handler(async ({ data }) => {
@@ -127,11 +133,11 @@ export const resendVerification = createServerFn({
     }
 
     const result = await resendVerificationOperation(data.value, {
-      api: goBFFForCurrentRequest()
+      api: goBFFForCurrentRequest(),
     });
     if (nativeForm) {
       nativeRedirect(
-        `/auth/verify-email?resend=${result.status === "success" ? "sent" : "failed"}`
+        `/auth/verify-email?resend=${result.status === "success" ? "sent" : "failed"}`,
       );
     }
     return result;
@@ -139,10 +145,10 @@ export const resendVerification = createServerFn({
 
 export const verifyEmail = createServerFn({
   method: "POST",
-  strict: { input: false }
+  strict: { input: false },
 })
   .validator((input: VerificationTokenInput | FormData) =>
-    validateVerificationTokenServerInput(input)
+    validateVerificationTokenServerInput(input),
   )
   .handler(async ({ data }) => {
     setPrivateNoStoreResponse();
@@ -153,18 +159,18 @@ export const verifyEmail = createServerFn({
       }
       return {
         ...validationResult(data),
-        message: "That link is invalid or has expired."
+        message: "That link is invalid or has expired.",
       };
     }
 
     const result = await verifyEmailOperation(data.value, {
-      api: goBFFForCurrentRequest()
+      api: goBFFForCurrentRequest(),
     });
     if (nativeForm) {
       nativeRedirect(
         result.status === "success"
           ? "/auth/verify-email?verified=complete"
-          : "/auth/verify-email?error=invalid-link"
+          : "/auth/verify-email?error=invalid-link",
       );
     }
     return result;
@@ -181,6 +187,6 @@ function validationResult(data: {
   return {
     status: "error" as const,
     message: data.message,
-    fieldErrors: data.fieldErrors
+    fieldErrors: data.fieldErrors,
   };
 }

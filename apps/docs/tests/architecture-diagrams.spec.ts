@@ -1,6 +1,8 @@
 import { expect, test } from "@playwright/test";
 
-test("renders every architecture diagram as a distinct SVG", async ({ page }) => {
+test("renders every architecture diagram as a distinct SVG", async ({
+  page,
+}) => {
   await page.goto("/architecture-diagrams");
 
   const diagrams = page.locator(".mermaid-frame");
@@ -13,9 +15,9 @@ test("renders every architecture diagram as a distinct SVG", async ({ page }) =>
     await expect(diagram.locator(".mermaid-error")).toHaveCount(0);
   }
 
-  const ids = await diagrams.locator("svg").evaluateAll((elements) =>
-    elements.map((element) => element.id)
-  );
+  const ids = await diagrams
+    .locator("svg")
+    .evaluateAll((elements) => elements.map((element) => element.id));
   expect(new Set(ids).size).toBe(3);
 
   const frontendDiagram = diagrams.first();
@@ -25,13 +27,13 @@ test("renders every architecture diagram as a distinct SVG", async ({ page }) =>
 
   await frontendDiagram.getByRole("button", { name: "Zoom in" }).click();
   await expect(
-    frontendDiagram.getByRole("button", { name: "Reset zoom" })
+    frontendDiagram.getByRole("button", { name: "Reset zoom" }),
   ).toHaveText("125%");
   await expect
     .poll(() =>
       frontendDiagram
         .locator(".mermaid-chart")
-        .evaluate((element) => element.getBoundingClientRect().width)
+        .evaluate((element) => element.getBoundingClientRect().width),
     )
     .toBeGreaterThan(diagramWidth);
 
@@ -42,6 +44,6 @@ test("renders every architecture diagram as a distinct SVG", async ({ page }) =>
     .poll(() => page.evaluate(() => document.fullscreenElement !== null))
     .toBe(true);
   await expect(
-    frontendDiagram.getByRole("button", { name: "Exit full screen" })
+    frontendDiagram.getByRole("button", { name: "Exit full screen" }),
   ).toBeVisible();
 });

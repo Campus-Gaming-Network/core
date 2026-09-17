@@ -3,12 +3,12 @@ import { createServer, type Server } from "node:http";
 import test from "node:test";
 import {
   schoolsApiResponse,
-  schoolsMethodNotAllowedResponse
+  schoolsMethodNotAllowedResponse,
 } from "../src/features/school-slice/schools-api.server.js";
 import {
   createApiClient,
   type ApiClient,
-  type Fetcher
+  type Fetcher,
 } from "../src/server/api.server.js";
 
 const school = {
@@ -18,7 +18,7 @@ const school = {
   city: "Irvine",
   state: "CA",
   is_main_campus: true,
-  num_branches: 0
+  num_branches: 0,
 };
 
 function client(fetcher: Fetcher): ApiClient {
@@ -33,27 +33,26 @@ test("school API validates and clamps its query over real HTTP", async () => {
       schools: [{ ...school, private_note: "strip-me" }],
       limit: 50,
       offset: 0,
-      has_more: false
+      has_more: false,
     });
   });
 
   await withSchoolsServer(api, async (origin) => {
-    const response = await fetch(`${origin}/api/schools?q=%20Example%20&limit=500`);
+    const response = await fetch(
+      `${origin}/api/schools?q=%20Example%20&limit=500`,
+    );
     assert.equal(response.status, 200);
     assert.equal(response.headers.get("cache-control"), "private, max-age=60");
     assert.deepEqual(await response.json(), {
       schools: [school],
       limit: 50,
       offset: 0,
-      has_more: false
+      has_more: false,
     });
-    assert.equal(
-      upstreamURL,
-      "http://api:8080/schools?q=Example&limit=50"
-    );
+    assert.equal(upstreamURL, "http://api:8080/schools?q=Example&limit=50");
 
     const head = await fetch(`${origin}/api/schools?q=Example`, {
-      method: "HEAD"
+      method: "HEAD",
     });
     assert.equal(head.status, 200);
     assert.equal(head.headers.get("cache-control"), "private, max-age=60");
@@ -64,7 +63,7 @@ test("school API validates and clamps its query over real HTTP", async () => {
     assert.deepEqual(await invalid.json(), { error: "invalid_school_query" });
 
     const unsupported = await fetch(`${origin}/api/schools?q=Example`, {
-      method: "POST"
+      method: "POST",
     });
     assert.equal(unsupported.status, 405);
     assert.equal(unsupported.headers.get("allow"), "GET, HEAD");
@@ -79,8 +78,8 @@ test("school API rejects overlong queries without touching the upstream", async 
       api: client(async () => {
         calls += 1;
         return Response.json({});
-      })
-    }
+      }),
+    },
   );
 
   assert.equal(response.status, 400);
@@ -93,31 +92,33 @@ test("school API preserves upstream client status and safely maps server/contrac
     new Request("http://web.test/api/schools?q=Example"),
     {
       api: client(async () =>
-        Response.json({ error: "invalid_state" }, { status: 422 })
-      )
-    }
+        Response.json({ error: "invalid_state" }, { status: 422 }),
+      ),
+    },
   );
   const serverError = await schoolsApiResponse(
     new Request("http://web.test/api/schools?q=Example"),
     {
       api: client(async () =>
-        Response.json({ error: "database_connection_secret" }, { status: 500 })
-      )
-    }
+        Response.json({ error: "database_connection_secret" }, { status: 500 }),
+      ),
+    },
   );
   const contractError = await schoolsApiResponse(
     new Request("http://web.test/api/schools?q=Example"),
     {
       api: client(async () => Response.json({ schools: "wrong" })),
-      reportError: () => undefined
-    }
+      reportError: () => undefined,
+    },
   );
 
   assert.equal(clientError.status, 422);
   assert.equal(serverError.status, 503);
   assert.equal(contractError.status, 503);
   const bodies = await Promise.all(
-    [clientError, serverError, contractError].map((response) => response.json())
+    [clientError, serverError, contractError].map((response) =>
+      response.json(),
+    ),
   );
   for (const body of bodies) {
     assert.deepEqual(body, { error: "schools_unavailable" });
@@ -126,21 +127,24 @@ test("school API preserves upstream client status and safely maps server/contrac
 
 async function withSchoolsServer(
   api: ApiClient,
-  verify: (origin: string) => Promise<void>
+  verify: (origin: string) => Promise<void>,
 ): Promise<void> {
   const server = createServer(async (request, response) => {
     try {
       const origin = `http://127.0.0.1:${(server.address() as { port: number }).port}`;
       const webRequest = new Request(`${origin}${request.url ?? "/"}`, {
-        method: request.method
+        method: request.method,
       });
-      const result = request.method === "GET" || request.method === "HEAD"
-        ? await schoolsApiResponse(webRequest, { api })
-        : schoolsMethodNotAllowedResponse();
+      const result =
+        request.method === "GET" || request.method === "HEAD"
+          ? await schoolsApiResponse(webRequest, { api })
+          : schoolsMethodNotAllowedResponse();
       response.writeHead(result.status, Object.fromEntries(result.headers));
       response.end(Buffer.from(await result.arrayBuffer()));
     } catch (error) {
-      response.destroy(error instanceof Error ? error : new Error(String(error)));
+      response.destroy(
+        error instanceof Error ? error : new Error(String(error)),
+      );
     }
   });
 

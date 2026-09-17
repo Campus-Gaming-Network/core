@@ -4,17 +4,17 @@ import {
   ApiContractError,
   ApiError,
   createApiClient,
-  type Fetcher
+  type Fetcher,
 } from "../src/server/api.server.js";
 import { cookieHeaderValue } from "../src/server/cookies.server.js";
 import {
   isNativeFormRequest,
-  sessionRequestForHeaders
+  sessionRequestForHeaders,
 } from "../src/server/request-boundary.server.js";
 import {
   AuthenticationRequiredError,
   optionalViewerProfile,
-  requiredViewerProfile
+  requiredViewerProfile,
 } from "../src/server/viewer.server.js";
 
 const profile = {
@@ -23,13 +23,13 @@ const profile = {
   verification_level: "basic",
   name: "Player One",
   timezone: "America/Los_Angeles",
-  home_school_id: "school-1"
+  home_school_id: "school-1",
 };
 
 function client(fetcher: Fetcher) {
   return createApiClient({
     baseUrl: "http://api:8080",
-    fetcher
+    fetcher,
   });
 }
 
@@ -40,8 +40,8 @@ test("session boundary extracts only the exact configured incoming cookie", () =
   try {
     const request = sessionRequestForHeaders(
       new Headers({
-        cookie: "analytics=value; cgn_session=wrong; custom_session=expected"
-      })
+        cookie: "analytics=value; cgn_session=wrong; custom_session=expected",
+      }),
     );
 
     assert.equal(request.cookieHeader, "custom_session=expected");
@@ -61,21 +61,25 @@ test("session boundary extracts only the exact configured incoming cookie", () =
 
 test("native form detection excludes enhanced TanStack server function requests", () => {
   assert.equal(
-    isNativeFormRequest(new Headers({
-      "content-type": "multipart/form-data; boundary=enhanced",
-      "x-tsr-serverfn": "true"
-    })),
-    false
+    isNativeFormRequest(
+      new Headers({
+        "content-type": "multipart/form-data; boundary=enhanced",
+        "x-tsr-serverfn": "true",
+      }),
+    ),
+    false,
   );
   assert.equal(
-    isNativeFormRequest(new Headers({
-      "content-type": "application/x-www-form-urlencoded"
-    })),
-    true
+    isNativeFormRequest(
+      new Headers({
+        "content-type": "application/x-www-form-urlencoded",
+      }),
+    ),
+    true,
   );
   assert.equal(
     isNativeFormRequest(new Headers({ "content-type": "application/json" })),
-    false
+    false,
   );
 });
 
@@ -86,7 +90,7 @@ test("optional viewer skips anonymous traffic and validates its safe profile DTO
     return Response.json({
       ...profile,
       session: "must-not-cross-profile-boundary",
-      unlock_token: "must-not-cross-profile-boundary"
+      unlock_token: "must-not-cross-profile-boundary",
     });
   });
 
@@ -94,14 +98,14 @@ test("optional viewer skips anonymous traffic and validates its safe profile DTO
     await optionalViewerProfile({
       api,
       cookieHeader: "analytics=value",
-      sessionCookieValue: undefined
+      sessionCookieValue: undefined,
     }),
-    null
+    null,
   );
   const authenticated = await optionalViewerProfile({
     api,
     cookieHeader: "cgn_session=session-value",
-    sessionCookieValue: "session-value"
+    sessionCookieValue: "session-value",
   });
 
   assert.deepEqual(authenticated, profile);
@@ -112,10 +116,10 @@ test("optional viewer skips anonymous traffic and validates its safe profile DTO
 test("optional viewer maps only upstream 401 to anonymous", async () => {
   const anonymous = await optionalViewerProfile({
     api: client(async () =>
-      Response.json({ error: "authentication_required" }, { status: 401 })
+      Response.json({ error: "authentication_required" }, { status: 401 }),
     ),
     cookieHeader: "cgn_session=expired",
-    sessionCookieValue: "expired"
+    sessionCookieValue: "expired",
   });
 
   assert.equal(anonymous, null);
@@ -123,21 +127,21 @@ test("optional viewer maps only upstream 401 to anonymous", async () => {
     () =>
       optionalViewerProfile({
         api: client(async () =>
-          Response.json({ error: "database_unavailable" }, { status: 503 })
+          Response.json({ error: "database_unavailable" }, { status: 503 }),
         ),
         cookieHeader: "cgn_session=value",
-        sessionCookieValue: "value"
+        sessionCookieValue: "value",
       }),
-    (error: unknown) => error instanceof ApiError && error.status === 503
+    (error: unknown) => error instanceof ApiError && error.status === 503,
   );
   await assert.rejects(
     () =>
       optionalViewerProfile({
         api: client(async () => Response.json({ unexpected: true })),
         cookieHeader: "cgn_session=value",
-        sessionCookieValue: "value"
+        sessionCookieValue: "value",
       }),
-    ApiContractError
+    ApiContractError,
   );
 });
 
@@ -145,17 +149,19 @@ test("required viewer rejects only an absent or unauthorized session", async () 
   await assert.rejects(
     () =>
       requiredViewerProfile({
-        api: client(async () => assert.fail("anonymous request must not call /me")),
+        api: client(async () =>
+          assert.fail("anonymous request must not call /me"),
+        ),
         cookieHeader: "",
-        sessionCookieValue: undefined
+        sessionCookieValue: undefined,
       }),
-    AuthenticationRequiredError
+    AuthenticationRequiredError,
   );
 
   const authenticated = await requiredViewerProfile({
     api: client(async () => Response.json(profile)),
     cookieHeader: "cgn_session=value",
-    sessionCookieValue: "value"
+    sessionCookieValue: "value",
   });
   assert.deepEqual(authenticated, profile);
 });

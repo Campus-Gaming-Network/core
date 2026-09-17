@@ -25,7 +25,7 @@ test("shared route defaults preserve safe pending, error, and not-found conventi
   assert.ok(
     boundaries.indexOf("await router.invalidate()") <
       boundaries.indexOf("reset();"),
-    "Error retry must invalidate stale loader data before resetting the boundary"
+    "Error retry must invalidate stale loader data before resetting the boundary",
   );
   assert.doesNotMatch(boundaries, /error\.message/);
   assert.match(boundaries, /Page not found \| Campus Gaming Network/);
@@ -85,8 +85,11 @@ test("registered internal destinations use typed links without inventing routes"
     "'/teams'",
     "'/teams/$slug'",
     "'/teams/new'",
-    "'/users/$id'"
+    "'/users/$id'",
   ]) {
-    assert.ok(routeTree.includes(route), `Generated route tree must retain ${route}`);
+    assert.ok(
+      routeTree.includes(route),
+      `Generated route tree must retain ${route}`,
+    );
   }
 });

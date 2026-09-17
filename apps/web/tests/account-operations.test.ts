@@ -4,12 +4,12 @@ import { ApiError, type ApiClient } from "../src/server/api.server.js";
 import {
   accountDashboardOperation,
   deleteAccountOperation,
-  updateProfileOperation
+  updateProfileOperation,
 } from "../src/features/account-slice/account-operations.server.js";
 import {
   accountProfileDtoSchema,
   validateDeleteAccountInput,
-  validateUpdateProfileInput
+  validateUpdateProfileInput,
 } from "../src/features/account-slice/contracts.js";
 
 const profile = {
@@ -25,7 +25,7 @@ const profile = {
   social_links: [{ label: "Community", url: "https://example.test/player" }],
   role_indicators: [],
   password_hash: "must-strip",
-  session: "must-strip"
+  session: "must-strip",
 };
 
 test("account dashboard requires /me, strips private additions, and isolates secondary failures", async () => {
@@ -42,7 +42,7 @@ test("account dashboard requires /me, strips private additions, and isolates sec
   const dashboard = await accountDashboardOperation({
     api,
     cookieHeader: "cgn_session=secret",
-    reportError: () => undefined
+    reportError: () => undefined,
   });
   assert.equal(dashboard.status, "found");
   if (dashboard.status !== "found") return;
@@ -50,7 +50,7 @@ test("account dashboard requires /me, strips private additions, and isolates sec
   assert.equal("session" in dashboard.profile, false);
   assert.deepEqual(dashboard.dashboardEvents, {
     upcoming_rsvps: [],
-    followed_school_events: []
+    followed_school_events: [],
   });
   assert.equal(dashboard.unavailable.dashboardEvents, true);
   assert.equal(dashboard.unavailable.followedSchools, false);
@@ -63,8 +63,11 @@ test("account dashboard distinguishes 401 from an upstream outage", async () => 
     throw new ApiError(401, "authentication_required");
   }) as ApiClient;
   assert.deepEqual(
-    await accountDashboardOperation({ api: unauthorized, cookieHeader: "cgn_session=old" }),
-    { status: "unauthenticated" }
+    await accountDashboardOperation({
+      api: unauthorized,
+      cookieHeader: "cgn_session=old",
+    }),
+    { status: "unauthenticated" },
   );
 
   const unavailable = (async () => {
@@ -74,9 +77,9 @@ test("account dashboard distinguishes 401 from an upstream outage", async () => 
     await accountDashboardOperation({
       api: unavailable,
       cookieHeader: "cgn_session=live",
-      reportError: () => undefined
+      reportError: () => undefined,
     }),
-    { status: "error", message: "Account details are unavailable." }
+    { status: "error", message: "Account details are unavailable." },
   );
 });
 
@@ -95,7 +98,7 @@ test("profile and deletion validation support typed and native inputs", () => {
     name: "Player",
     bio: "",
     timezone: "America/Los_Angeles",
-    social_links: [{ label: "Unsafe", url: "javascript:alert(1)" }]
+    social_links: [{ label: "Unsafe", url: "javascript:alert(1)" }],
   });
   assert.equal(invalidURL.valid, false);
   if (!invalidURL.valid) assert.ok(invalidURL.fieldErrors.social_url_0);
@@ -119,9 +122,9 @@ test("profile update sends only validated fields and deletion drops the local ro
       name: "Player One",
       bio: "Captain",
       timezone: "America/Los_Angeles",
-      social_links: []
+      social_links: [],
     },
-    { api, cookieHeader: "cgn_session=secret" }
+    { api, cookieHeader: "cgn_session=secret" },
   );
   assert.equal(update.status, "success");
 
@@ -132,23 +135,26 @@ test("profile update sends only validated fields and deletion drops the local ro
       api,
       cookieHeader: "cgn_session=secret",
       sessionCookieName: "cgn_session",
-      applyCookie: (cookie) => cookies.push(cookie)
-    }
+      applyCookie: (cookie) => cookies.push(cookie),
+    },
   );
   assert.deepEqual(deletion, {
     status: "success",
     message: "Account deleted.",
-    redirectTo: "/?account=deleted"
+    redirectTo: "/?account=deleted",
   });
   assert.deepEqual(cookies, [
-    { kind: "delete", name: "cgn_session", options: { path: "/" } }
+    { kind: "delete", name: "cgn_session", options: { path: "/" } },
   ]);
   assert.deepEqual(
     requests.map((request) => (request as { method?: string }).method),
-    ["PATCH", "DELETE"]
+    ["PATCH", "DELETE"],
   );
 });
 
 function result<T>(data: T) {
-  return { data, response: new Response(null, { status: data === undefined ? 204 : 200 }) };
+  return {
+    data,
+    response: new Response(null, { status: data === undefined ? 204 : 200 }),
+  };
 }

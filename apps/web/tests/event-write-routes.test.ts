@@ -28,12 +28,18 @@ test("new-event route is private, noindex, searchable, and progressively enhance
   assert.match(route, /<RoutePending message="Loading event form…"/);
   assert.doesNotMatch(route, /result\.message/);
 
-  assert.match(form, /action=\{mode === "create" \? createEvent\.url : updateEvent\.url\}/);
+  assert.match(
+    form,
+    /action=\{mode === "create" \? createEvent\.url : updateEvent\.url\}/,
+  );
   assert.match(form, /method="post"/);
   assert.match(form, /useEnhancedMutation/);
   assert.match(form, /new FormData\(formEvent\.currentTarget\)/);
   assert.match(form, /mode === "create" \?/);
-  assert.match(form, /Repeat settings cannot be changed after an event is created/);
+  assert.match(
+    form,
+    /Repeat settings cannot be changed after an event is created/,
+  );
   assert.match(picker, /fetch\(`\/api\/schools\?\$\{search\.toString\(\)\}`/);
   assert.match(picker, /<noscript>/);
   assert.match(picker, /name="school_q"/);
@@ -46,7 +52,7 @@ test("edit-event route preserves auth redirect, true 404, generic denial, and sa
   assert.match(route, /createFileRoute\("\/events\/\$slug_\/edit"\)/);
   assert.match(
     route,
-    /href: `\/login\?next=\/events\/\$\{encodeURIComponent\(params\.slug\)\}\/edit`/
+    /href: `\/login\?next=\/events\/\$\{encodeURIComponent\(params\.slug\)\}\/edit`/,
   );
   assert.match(route, /result\.status === "not_found"/);
   assert.match(route, /throw notFound\(\)/);
@@ -58,10 +64,13 @@ test("edit-event route preserves auth redirect, true 404, generic denial, and sa
   assert.match(route, /name: "robots", content: "noindex,nofollow"/);
   assert.doesNotMatch(
     route.match(/head:[\s\S]*?pendingComponent:/)?.[0] ?? "",
-    /data\.event\.title|loaderData.*title/
+    /data\.event\.title|loaderData.*title/,
   );
   assert.match(route, /search\.event === "failed"/);
-  assert.match(route, /action=\{`\/events\/\$\{encodeURIComponent\(slug\)\}\/edit`\}/);
+  assert.match(
+    route,
+    /action=\{`\/events\/\$\{encodeURIComponent\(slug\)\}\/edit`\}/,
+  );
 });
 
 test("event detail exposes A10, A16, and A23 without disturbing unlock or RSVP", () => {
@@ -73,7 +82,7 @@ test("event detail exposes A10, A16, and A23 without disturbing unlock or RSVP",
     "cancelEvent.url",
     "reportEvent.url",
     "unlockEvent.url",
-    "rsvpEvent.url"
+    "rsvpEvent.url",
   ]) {
     assert.ok(detail.includes(action), `event detail must use ${action}`);
   }

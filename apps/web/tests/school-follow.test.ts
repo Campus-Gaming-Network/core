@@ -2,18 +2,18 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   schoolFollowInputSchema,
-  validateSchoolFollowServerInput
+  validateSchoolFollowServerInput,
 } from "../src/features/school-slice/contracts.js";
 import {
   followSchoolOperation,
   schoolFollowErrorDestination,
-  unfollowSchoolOperation
+  unfollowSchoolOperation,
 } from "../src/features/school-slice/school-follow-operations.server.js";
 import {
   ApiContractError,
   ApiError,
   createApiClient,
-  type Fetcher
+  type Fetcher,
 } from "../src/server/api.server.js";
 
 function client(fetcher: Fetcher) {
@@ -31,45 +31,48 @@ test("school follow validation trims and allowlists typed and native input", () 
     valid: true,
     value: {
       school_id: "school-1",
-      slug: "example-university"
-    }
+      slug: "example-university",
+    },
   });
   assert.deepEqual(
     validateSchoolFollowServerInput({
       school_id: " school-2 ",
-      slug: " second-school "
+      slug: " second-school ",
     }),
     {
       valid: true,
-      value: { school_id: "school-2", slug: "second-school" }
-    }
+      value: { school_id: "school-2", slug: "second-school" },
+    },
   );
   assert.equal(
     schoolFollowInputSchema.safeParse({
       school_id: "school-1",
       slug: "example-university",
-      session: "forged"
+      session: "forged",
     }).success,
-    false
+    false,
   );
   assert.deepEqual(
     validateSchoolFollowServerInput({
       school_id: "school-1",
       slug: "example-university",
-      session: "forged"
+      session: "forged",
     } as never),
-    { valid: false, slug: "example-university" }
+    { valid: false, slug: "example-university" },
   );
   assert.deepEqual(
     validateSchoolFollowServerInput({ school_id: "", slug: "known-school" }),
-    { valid: false, slug: "known-school" }
+    {
+      valid: false,
+      slug: "known-school",
+    },
   );
   assert.deepEqual(
     validateSchoolFollowServerInput({
       school_id: "school-1",
-      slug: "x".repeat(201)
+      slug: "x".repeat(201),
     }),
-    { valid: false }
+    { valid: false },
   );
 });
 
@@ -87,22 +90,22 @@ test("follow and unfollow use exact Go endpoints with server-derived cookies", a
       cache: init?.cache,
       cookie: new Headers(init?.headers).get("cookie"),
       method: init?.method,
-      url: String(input)
+      url: String(input),
     });
     return new Response(null, { status: 204 });
   });
   const dependencies = {
     api,
-    cookieHeader: "cgn_session=server-only; analytics=value"
+    cookieHeader: "cgn_session=server-only; analytics=value",
   };
 
   const followed = await followSchoolOperation(
     { school_id: "school/id", slug: "example/university" },
-    dependencies
+    dependencies,
   );
   const unfollowed = await unfollowSchoolOperation(
     { school_id: "school/id", slug: "example/university" },
-    dependencies
+    dependencies,
   );
 
   assert.deepEqual(calls, [
@@ -111,23 +114,23 @@ test("follow and unfollow use exact Go endpoints with server-derived cookies", a
       cache: "no-store",
       cookie: "cgn_session=server-only; analytics=value",
       method: "POST",
-      url: "http://api:8080/schools/school%2Fid/follow"
+      url: "http://api:8080/schools/school%2Fid/follow",
     },
     {
       body: undefined,
       cache: "no-store",
       cookie: "cgn_session=server-only; analytics=value",
       method: "DELETE",
-      url: "http://api:8080/schools/school%2Fid/follow"
-    }
+      url: "http://api:8080/schools/school%2Fid/follow",
+    },
   ]);
   assert.deepEqual(followed, {
     status: "success",
-    redirectTo: "/schools/example%2Funiversity?follow=added"
+    redirectTo: "/schools/example%2Funiversity?follow=added",
   });
   assert.deepEqual(unfollowed, {
     status: "success",
-    redirectTo: "/schools/example%2Funiversity?follow=removed"
+    redirectTo: "/schools/example%2Funiversity?follow=removed",
   });
   assert.equal(JSON.stringify(followed).includes("server-only"), false);
 });
@@ -140,12 +143,12 @@ test("Go authentication and API failures map to bounded redirect-only results", 
       api: client(async () =>
         Response.json(
           { error: "authentication_required", detail: "private" },
-          { status: 401 }
-        )
+          { status: 401 },
+        ),
       ),
       cookieHeader: "",
-      reportError: (error) => reports.push(error)
-    }
+      reportError: (error) => reports.push(error),
+    },
   );
   const unavailable = await unfollowSchoolOperation(
     { school_id: "school-1", slug: "example/university" },
@@ -153,33 +156,33 @@ test("Go authentication and API failures map to bounded redirect-only results", 
       api: client(async () =>
         Response.json(
           { error: "unfollow_failed", database: "private" },
-          { status: 500 }
-        )
+          { status: 500 },
+        ),
       ),
       cookieHeader: "cgn_session=value",
-      reportError: (error) => reports.push(error)
-    }
+      reportError: (error) => reports.push(error),
+    },
   );
   const malformed = await followSchoolOperation(
     { school_id: "school-1", slug: "example-university" },
     {
       api: client(async () => Response.json({ internal: "private" })),
       cookieHeader: "cgn_session=value",
-      reportError: (error) => reports.push(error)
-    }
+      reportError: (error) => reports.push(error),
+    },
   );
 
   assert.deepEqual(unauthorized, {
     status: "success",
-    redirectTo: "/login?next=%2Fschools%2Fexample-university"
+    redirectTo: "/login?next=%2Fschools%2Fexample-university",
   });
   assert.deepEqual(unavailable, {
     status: "success",
-    redirectTo: "/schools/example%2Funiversity?follow=failed"
+    redirectTo: "/schools/example%2Funiversity?follow=failed",
   });
   assert.deepEqual(malformed, {
     status: "success",
-    redirectTo: "/schools/example-university?follow=failed"
+    redirectTo: "/schools/example-university?follow=failed",
   });
   assert.equal(reports.length, 3);
   assert.ok(reports[0] instanceof ApiError);
@@ -192,12 +195,12 @@ test("authentication return targets remain local and encoded", () => {
   assert.equal(
     schoolFollowErrorDestination(
       new ApiError(401, "authentication_required"),
-      "school/branch"
+      "school/branch",
     ),
-    "/login?next=%2Fschools%2Fschool%252Fbranch"
+    "/login?next=%2Fschools%2Fschool%252Fbranch",
   );
   assert.equal(
     schoolFollowErrorDestination(new Error("private"), "school/branch"),
-    "/schools/school%2Fbranch?follow=failed"
+    "/schools/school%2Fbranch?follow=failed",
   );
 });

@@ -1,9 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import {
-  gotoApp,
-  logIn,
-  waitForAppReady
-} from "./fixtures/app-navigation.js";
+import { gotoApp, logIn, waitForAppReady } from "./fixtures/app-navigation.js";
 
 const apiURL = "http://127.0.0.1:18081";
 const siteOrigin = "http://127.0.0.1:3200";
@@ -19,25 +15,123 @@ type MetadataContract = {
 };
 
 const pages: MetadataContract[] = [
-  { path: "/", title: "Campus Gaming Network", cache: publicCache, openGraphPath: "" },
-  { path: "/about", title: "About | Campus Gaming Network", cache: publicCache, openGraphPath: "/about" },
-  { path: "/faq", title: "FAQ | Campus Gaming Network", cache: publicCache, openGraphPath: "/faq" },
-  { path: "/privacy", title: "Privacy | Campus Gaming Network", cache: publicCache, openGraphPath: "/privacy" },
-  { path: "/terms", title: "Terms | Campus Gaming Network", cache: publicCache, openGraphPath: "/terms" },
-  { path: "/support", title: "Support | Campus Gaming Network", cache: publicCache, openGraphPath: "/support" },
-  { path: "/login", title: "Log in | Campus Gaming Network", cache: publicCache, openGraphPath: "/login" },
-  { path: "/signup?q=Browser", title: "Sign up | Campus Gaming Network", cache: publicCache, openGraphPath: "/signup" },
-  { path: "/forgot-password", title: "Forgot password | Campus Gaming Network", cache: publicCache, noIndex: true, openGraphPath: "/forgot-password" },
-  { path: "/reset-password?token=metadata-token", title: "Reset password | Campus Gaming Network", cache: privateCache, noIndex: true, openGraphPath: "/reset-password" },
-  { path: "/auth/verify-email?token=metadata-token", title: "Verify email | Campus Gaming Network", cache: privateCache, noIndex: true, openGraphPath: "/auth/verify-email" },
-  { path: "/events", title: "Events | Campus Gaming Network", cache: publicCache, openGraphPath: "/events" },
-  { path: "/events/public-browser-event", title: "Public Browser Tournament | Campus Gaming Network", cache: privateCache, openGraphPath: "/events/public-browser-event" },
-  { path: "/events/private-browser-event", title: "Private event | Campus Gaming Network", cache: privateCache, noIndex: true },
-  { path: "/teams", title: "Teams | Campus Gaming Network", cache: publicCache, openGraphPath: "/teams" },
-  { path: "/teams/joinable-browser-team", title: "Joinable Browser Team | Campus Gaming Network", cache: publicCache, openGraphPath: "/teams/joinable-browser-team" },
-  { path: "/schools", title: "Schools | Campus Gaming Network", cache: publicCache, openGraphPath: "/schools" },
-  { path: "/schools/follow-browser-university", title: "Follow Browser University | Campus Gaming Network", cache: privateCache, openGraphPath: "/schools/follow-browser-university" },
-  { path: "/users/reportable-player", title: "Reportable Browser Player | Campus Gaming Network", cache: publicCache, openGraphPath: "/users/reportable-player" }
+  {
+    path: "/",
+    title: "Campus Gaming Network",
+    cache: publicCache,
+    openGraphPath: "",
+  },
+  {
+    path: "/about",
+    title: "About | Campus Gaming Network",
+    cache: publicCache,
+    openGraphPath: "/about",
+  },
+  {
+    path: "/faq",
+    title: "FAQ | Campus Gaming Network",
+    cache: publicCache,
+    openGraphPath: "/faq",
+  },
+  {
+    path: "/privacy",
+    title: "Privacy | Campus Gaming Network",
+    cache: publicCache,
+    openGraphPath: "/privacy",
+  },
+  {
+    path: "/terms",
+    title: "Terms | Campus Gaming Network",
+    cache: publicCache,
+    openGraphPath: "/terms",
+  },
+  {
+    path: "/support",
+    title: "Support | Campus Gaming Network",
+    cache: publicCache,
+    openGraphPath: "/support",
+  },
+  {
+    path: "/login",
+    title: "Log in | Campus Gaming Network",
+    cache: publicCache,
+    openGraphPath: "/login",
+  },
+  {
+    path: "/signup?q=Browser",
+    title: "Sign up | Campus Gaming Network",
+    cache: publicCache,
+    openGraphPath: "/signup",
+  },
+  {
+    path: "/forgot-password",
+    title: "Forgot password | Campus Gaming Network",
+    cache: publicCache,
+    noIndex: true,
+    openGraphPath: "/forgot-password",
+  },
+  {
+    path: "/reset-password?token=metadata-token",
+    title: "Reset password | Campus Gaming Network",
+    cache: privateCache,
+    noIndex: true,
+    openGraphPath: "/reset-password",
+  },
+  {
+    path: "/auth/verify-email?token=metadata-token",
+    title: "Verify email | Campus Gaming Network",
+    cache: privateCache,
+    noIndex: true,
+    openGraphPath: "/auth/verify-email",
+  },
+  {
+    path: "/events",
+    title: "Events | Campus Gaming Network",
+    cache: publicCache,
+    openGraphPath: "/events",
+  },
+  {
+    path: "/events/public-browser-event",
+    title: "Public Browser Tournament | Campus Gaming Network",
+    cache: privateCache,
+    openGraphPath: "/events/public-browser-event",
+  },
+  {
+    path: "/events/private-browser-event",
+    title: "Private event | Campus Gaming Network",
+    cache: privateCache,
+    noIndex: true,
+  },
+  {
+    path: "/teams",
+    title: "Teams | Campus Gaming Network",
+    cache: publicCache,
+    openGraphPath: "/teams",
+  },
+  {
+    path: "/teams/joinable-browser-team",
+    title: "Joinable Browser Team | Campus Gaming Network",
+    cache: publicCache,
+    openGraphPath: "/teams/joinable-browser-team",
+  },
+  {
+    path: "/schools",
+    title: "Schools | Campus Gaming Network",
+    cache: publicCache,
+    openGraphPath: "/schools",
+  },
+  {
+    path: "/schools/follow-browser-university",
+    title: "Follow Browser University | Campus Gaming Network",
+    cache: privateCache,
+    openGraphPath: "/schools/follow-browser-university",
+  },
+  {
+    path: "/users/reportable-player",
+    title: "Reportable Browser Player | Campus Gaming Network",
+    cache: publicCache,
+    openGraphPath: "/users/reportable-player",
+  },
 ];
 
 test.beforeEach(async ({ request }) => {
@@ -47,7 +141,7 @@ test.beforeEach(async ({ request }) => {
 
 for (const expected of pages) {
   test(`${expected.path} has the complete metadata and cache contract`, async ({
-    page
+    page,
   }) => {
     const response = await gotoApp(page, expected.path);
     await assertMetadataContract(page, response, expected);
@@ -62,21 +156,21 @@ test("authenticated pages keep complete private metadata", async ({ page }) => {
     title: "Account | Campus Gaming Network",
     cache: privateCache,
     noIndex: true,
-    openGraphPath: "/account"
+    openGraphPath: "/account",
   });
   await visitAndAssertMetadata(page, {
     path: "/events/new",
     title: "Create event | Campus Gaming Network",
     cache: privateCache,
     noIndex: true,
-    openGraphPath: "/events/new"
+    openGraphPath: "/events/new",
   });
   await visitAndAssertMetadata(page, {
     path: "/teams/new",
     title: "Start a team | Campus Gaming Network",
     cache: privateCache,
     noIndex: true,
-    openGraphPath: "/teams/new"
+    openGraphPath: "/teams/new",
   });
 
   await gotoApp(page, "/events/new");
@@ -89,7 +183,9 @@ test("authenticated pages keep complete private metadata", async ({ page }) => {
   await page.getByLabel("Location name").fill("Browser Student Union");
   await page.getByLabel("Games").selectOption("game-e2e");
   await page.getByRole("button", { name: "Create event" }).click();
-  await expect(page).toHaveURL(/\/events\/metadata-browser-event-[^?]+\?event=created$/);
+  await expect(page).toHaveURL(
+    /\/events\/metadata-browser-event-[^?]+\?event=created$/,
+  );
   await waitForAppReady(page);
 
   const editPath = `${new URL(page.url()).pathname}/edit`;
@@ -98,7 +194,7 @@ test("authenticated pages keep complete private metadata", async ({ page }) => {
     path: editPath,
     title: "Edit event | Campus Gaming Network",
     cache: privateCache,
-    noIndex: true
+    noIndex: true,
   });
 });
 
@@ -107,49 +203,48 @@ for (const path of [
   "/schools/missing-browser-school",
   "/events/missing-browser-event",
   "/teams/missing-browser-team",
-  "/users/missing-browser-player"
+  "/users/missing-browser-player",
 ]) {
   test(`${path} keeps the complete noindex 404 metadata contract`, async ({
-    page
+    page,
   }) => {
     const response = await gotoApp(page, path);
     expect(response?.status()).toBe(404);
-    await expect(page).toHaveTitle(
-      "Page not found | Campus Gaming Network"
-    );
+    await expect(page).toHaveTitle("Page not found | Campus Gaming Network");
     await expect(page.locator('meta[name="description"]')).toHaveCount(1);
     await expect(page.locator('meta[name="description"]')).toHaveAttribute(
       "content",
-      "That page does not exist on Campus Gaming Network."
+      "That page does not exist on Campus Gaming Network.",
     );
     await expect(page.locator('meta[name="robots"]')).toHaveAttribute(
       "content",
-      "noindex,nofollow"
+      "noindex,nofollow",
     );
     await expect(page.locator('meta[property="og:title"]')).toHaveAttribute(
       "content",
-      "Page not found | Campus Gaming Network"
+      "Page not found | Campus Gaming Network",
     );
-    await expect(page.locator('meta[property="og:description"]')).toHaveAttribute(
+    await expect(
+      page.locator('meta[property="og:description"]'),
+    ).toHaveAttribute(
       "content",
-      "That page does not exist on Campus Gaming Network."
+      "That page does not exist on Campus Gaming Network.",
     );
     await expect(page.locator('meta[property="og:url"]')).toHaveCount(0);
     await expect(page.locator('meta[name="twitter:title"]')).toHaveAttribute(
       "content",
-      "Page not found | Campus Gaming Network"
+      "Page not found | Campus Gaming Network",
     );
-    await expect(page.locator('meta[name="twitter:description"]')).toHaveAttribute(
+    await expect(
+      page.locator('meta[name="twitter:description"]'),
+    ).toHaveAttribute(
       "content",
-      "That page does not exist on Campus Gaming Network."
+      "That page does not exist on Campus Gaming Network.",
     );
   });
 }
 
-async function visitAndAssertMetadata(
-  page: Page,
-  expected: MetadataContract
-) {
+async function visitAndAssertMetadata(page: Page, expected: MetadataContract) {
   const response = await gotoApp(page, expected.path);
   await assertMetadataContract(page, response, expected);
 }
@@ -157,7 +252,7 @@ async function visitAndAssertMetadata(
 async function assertMetadataContract(
   page: Page,
   response: Awaited<ReturnType<Page["goto"]>>,
-  expected: MetadataContract
+  expected: MetadataContract,
 ) {
   expect(response?.status()).toBe(200);
   expect(response?.headers()["cache-control"]).toBe(expected.cache);
@@ -166,37 +261,36 @@ async function assertMetadataContract(
   const description = await requiredMeta(page, 'meta[name="description"]');
   await expect(page.locator('meta[property="og:type"]')).toHaveAttribute(
     "content",
-    "website"
+    "website",
   );
   await expect(page.locator('meta[property="og:site_name"]')).toHaveAttribute(
     "content",
-    "Campus Gaming Network"
+    "Campus Gaming Network",
   );
   await expect(page.locator('meta[property="og:title"]')).toHaveAttribute(
     "content",
-    expected.title
+    expected.title,
   );
   await expect(page.locator('meta[property="og:description"]')).toHaveAttribute(
     "content",
-    description
+    description,
   );
   await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute(
     "content",
-    "summary"
+    "summary",
   );
   await expect(page.locator('meta[name="twitter:title"]')).toHaveAttribute(
     "content",
-    expected.title
+    expected.title,
   );
-  await expect(page.locator('meta[name="twitter:description"]')).toHaveAttribute(
-    "content",
-    description
-  );
+  await expect(
+    page.locator('meta[name="twitter:description"]'),
+  ).toHaveAttribute("content", description);
 
   if (expected.openGraphPath !== undefined) {
     await expect(page.locator('meta[property="og:url"]')).toHaveAttribute(
       "content",
-      `${siteOrigin}${expected.openGraphPath}`
+      `${siteOrigin}${expected.openGraphPath}`,
     );
   } else {
     await expect(page.locator('meta[property="og:url"]')).toHaveCount(0);

@@ -1,7 +1,12 @@
 [build]
 builder = "DOCKERFILE"
 dockerfilePath = "apps/api/Dockerfile"
-watchPatterns = ["apps/api/**", "db/migrations/**", "data/schools_seed.csv", "railway/api.toml"]
+watchPatterns = [
+  "apps/api/**",
+  "db/migrations/**",
+  "data/schools_seed.csv",
+  "railway/api.toml",
+]
 
 [deploy]
 preDeployCommand = ["cgn-migrate -dir /migrations"]

@@ -30,23 +30,23 @@ SiteAnnouncement ── global banner                        (later)
 
 ### User
 
-| Field / concept | Notes |
-|-----------------|-------|
-| Email / password | Auth; forgot/reset password |
-| Email verification | Signup sends verification email; link click sets email verified |
-| Age gate | Must confirm **18+** at signup (checkbox); store acceptance timestamp |
-| Name | Single public name field (no usernames; no first/last/display split) |
-| Profile URL | `/users/:id` (database id) |
-| Verification level | `basic` (email verified) \| `verified` (`.edu`) \| `staff_faculty` |
-| Avatar | DiceBear Critters at launch using the default preset; fallback to initials when unavailable |
-| Bio, social links | Profile |
-| Timezone | Default from system; used to display event times |
-| School affiliations | Selects one home school during signup; can follow additional schools afterward |
-| Majors | Multiple allowed |
-| Graduation | Expected graduation date; alumni still participate |
-| Degree level | Undergrad / graduate / etc. (open question) |
-| Role context | Student, alumni, faculty advisor, etc. |
-| Role indicators | School-admin grants and staff/faculty status produce visible role indicators |
+| Field / concept     | Notes                                                                                       |
+| ------------------- | ------------------------------------------------------------------------------------------- |
+| Email / password    | Auth; forgot/reset password                                                                 |
+| Email verification  | Signup sends verification email; link click sets email verified                             |
+| Age gate            | Must confirm **18+** at signup (checkbox); store acceptance timestamp                       |
+| Name                | Single public name field (no usernames; no first/last/display split)                        |
+| Profile URL         | `/users/:id` (database id)                                                                  |
+| Verification level  | `basic` (email verified) \| `verified` (`.edu`) \| `staff_faculty`                          |
+| Avatar              | DiceBear Critters at launch using the default preset; fallback to initials when unavailable |
+| Bio, social links   | Profile                                                                                     |
+| Timezone            | Default from system; used to display event times                                            |
+| School affiliations | Selects one home school during signup; can follow additional schools afterward              |
+| Majors              | Multiple allowed                                                                            |
+| Graduation          | Expected graduation date; alumni still participate                                          |
+| Degree level        | Undergrad / graduate / etc. (open question)                                                 |
+| Role context        | Student, alumni, faculty advisor, etc.                                                      |
+| Role indicators     | School-admin grants and staff/faculty status produce visible role indicators                |
 
 **Rules**
 
@@ -56,16 +56,16 @@ SiteAnnouncement ── global banner                        (later)
 
 ### School
 
-| Field / concept | Notes |
-|-----------------|-------|
-| Name | Not required to be unique |
-| Slug | URL identity; on collision append auto-increment (`-2`, `-3`, …) |
-| UNITID | Optional (set on Scorecard-seeded rows; Admin Console-created schools may omit) |
-| Logo | Later Admin Console upload only (PNG/JPG ≤500 MB); placeholder until set |
-| Location | City, state, zip, lat/lng (from seed or Admin Console) |
-| Admins | Many; a user may admin many schools |
-| Clubs | Listed on school page when clubs ship (later) |
-| Popularity | Derived (e.g. event volume) |
+| Field / concept | Notes                                                                           |
+| --------------- | ------------------------------------------------------------------------------- |
+| Name            | Not required to be unique                                                       |
+| Slug            | URL identity; on collision append auto-increment (`-2`, `-3`, …)                |
+| UNITID          | Optional (set on Scorecard-seeded rows; Admin Console-created schools may omit) |
+| Logo            | Later Admin Console upload only (PNG/JPG ≤500 MB); placeholder until set        |
+| Location        | City, state, zip, lat/lng (from seed or Admin Console)                          |
+| Admins          | Many; a user may admin many schools                                             |
+| Clubs           | Listed on school page when clubs ship (later)                                   |
+| Popularity      | Derived (e.g. event volume)                                                     |
 
 **Rules**
 
@@ -80,13 +80,13 @@ SiteAnnouncement ── global banner                        (later)
 
 ### Club
 
-| Field / concept | Notes |
-|-----------------|-------|
-| School | **Required** — clubs exist only under a school |
-| Official | Clubs are the official school org type |
-| Teams | Optional assigned teams (Varsity, JV, etc.) |
-| Games | One or more |
-| Officers | Club officer workflow is later; current event badges use school-admin and staff/faculty indicators |
+| Field / concept | Notes                                                                                              |
+| --------------- | -------------------------------------------------------------------------------------------------- |
+| School          | **Required** — clubs exist only under a school                                                     |
+| Official        | Clubs are the official school org type                                                             |
+| Teams           | Optional assigned teams (Varsity, JV, etc.)                                                        |
+| Games           | One or more                                                                                        |
+| Officers        | Club officer workflow is later; current event badges use school-admin and staff/faculty indicators |
 
 **Rules**
 
@@ -96,15 +96,15 @@ SiteAnnouncement ── global banner                        (later)
 
 ### Team
 
-| Field / concept | Notes |
-|-----------------|-------|
-| Owner | Transferable |
-| Captains | Assignable |
-| Visibility | **Public** team page |
-| Members | Password required to **join / interact** (not to view the page) |
-| Club | Optional `club_id` when the team is part of a school club (Varsity, JV, …) |
-| Games | One or more |
-| School sponsorship | Optional sponsored team/group without a club |
+| Field / concept    | Notes                                                                      |
+| ------------------ | -------------------------------------------------------------------------- |
+| Owner              | Transferable                                                               |
+| Captains           | Assignable                                                                 |
+| Visibility         | **Public** team page                                                       |
+| Members            | Password required to **join / interact** (not to view the page)            |
+| Club               | Optional `club_id` when the team is part of a school club (Varsity, JV, …) |
+| Games              | One or more                                                                |
+| School sponsorship | Optional sponsored team/group without a club                               |
 
 **Rules**
 
@@ -116,40 +116,40 @@ SiteAnnouncement ── global banner                        (later)
 
 ### Event
 
-| Field / concept | Notes |
-|-----------------|-------|
-| Creator | Shown on event |
-| Hosts / organizers | Multiple; shown on event |
-| Slug | `slugify(title) + "-" + shortHash` — see slug algorithm below |
-| Visibility | `public` \| `unlisted` \| `private` (all supported) |
-| Password | Required when `visibility = private` (stored hashed); share URL + password manually |
-| Capacity | Optional max attendees; counts **RSVP yes only**; when full, block new yes (no waitlist yet) |
-| Format | `online` \| `in_person` \| `hybrid` |
-| Pricing | Supports free vs paid/off-site-payment events; CGN does not process payment |
-| Location | Physical address; optional mini Google Map |
-| Banner | Default placeholder only; custom user uploads later (moderated) |
-| Description | Character-limited |
-| Recurrence | `weekly`, `biweekly`, or `monthly`; up to one year; each occurrence is a normal independent event |
-| Games | One or more |
-| Registration | Closes automatically; blocked when ended or at capacity |
-| Soft delete | `deleted_at` only |
+| Field / concept    | Notes                                                                                             |
+| ------------------ | ------------------------------------------------------------------------------------------------- |
+| Creator            | Shown on event                                                                                    |
+| Hosts / organizers | Multiple; shown on event                                                                          |
+| Slug               | `slugify(title) + "-" + shortHash` — see slug algorithm below                                     |
+| Visibility         | `public` \| `unlisted` \| `private` (all supported)                                               |
+| Password           | Required when `visibility = private` (stored hashed); share URL + password manually               |
+| Capacity           | Optional max attendees; counts **RSVP yes only**; when full, block new yes (no waitlist yet)      |
+| Format             | `online` \| `in_person` \| `hybrid`                                                               |
+| Pricing            | Supports free vs paid/off-site-payment events; CGN does not process payment                       |
+| Location           | Physical address; optional mini Google Map                                                        |
+| Banner             | Default placeholder only; custom user uploads later (moderated)                                   |
+| Description        | Character-limited                                                                                 |
+| Recurrence         | `weekly`, `biweekly`, or `monthly`; up to one year; each occurrence is a normal independent event |
+| Games              | One or more                                                                                       |
+| Registration       | Closes automatically; blocked when ended or at capacity                                           |
+| Soft delete        | `deleted_at` only                                                                                 |
 
 **Visibility**
 
-| Value | In search/browse | Access |
-|-------|------------------|--------|
-| `public` | Yes | Anyone with the page |
-| `unlisted` | No | Anyone with the direct link/slug |
-| `private` | No | Content fully gated (blurred / not inspectable) until password modal unlock succeeds |
+| Value      | In search/browse | Access                                                                               |
+| ---------- | ---------------- | ------------------------------------------------------------------------------------ |
+| `public`   | Yes              | Anyone with the page                                                                 |
+| `unlisted` | No               | Anyone with the direct link/slug                                                     |
+| `private`  | No               | Content fully gated (blurred / not inspectable) until password modal unlock succeeds |
 
 **Lifecycle display**
 
-| State | UI |
-|-------|----|
-| Upcoming | Show date and time (user timezone) |
-| Happening now | “Happening now” |
-| Ended | “Ended”; no further signups |
-| Full | At capacity; no further RSVP yes |
+| State             | UI                                      |
+| ----------------- | --------------------------------------- |
+| Upcoming          | Show date and time (user timezone)      |
+| Happening now     | “Happening now”                         |
+| Ended             | “Ended”; no further signups             |
+| Full              | At capacity; no further RSVP yes        |
 | Missing / deleted | Dedicated “event no longer exists” page |
 
 **RSVP vs interested**
@@ -187,13 +187,13 @@ slug    = slugify(eventTitle) + "-" + short
 
 ### Tournament
 
-| Field / concept | Notes |
-|-----------------|-------|
-| Slug | From name + short hash for uniqueness |
-| Type | `individual` \| `team` |
-| Capacity | Optional; when full, block new registrations (no waitlist); counting rule for team tournaments TBD |
-| Optional event | May be tied to an Event |
-| Games | One or more |
+| Field / concept | Notes                                                                                              |
+| --------------- | -------------------------------------------------------------------------------------------------- |
+| Slug            | From name + short hash for uniqueness                                                              |
+| Type            | `individual` \| `team`                                                                             |
+| Capacity        | Optional; when full, block new registrations (no waitlist); counting rule for team tournaments TBD |
+| Optional event  | May be tied to an Event                                                                            |
+| Games           | One or more                                                                                        |
 
 **Rules**
 
@@ -204,11 +204,11 @@ slug    = slugify(eventTitle) + "-" + short
 
 ### Game
 
-| Field / concept | Notes |
-|-----------------|-------|
-| Launch seed | Curated list (below); not user-editable |
-| Later | IGDB import and enrichment through the Admin Console |
-| Editable by end users | **No** — curated seed first; Admin Console later |
+| Field / concept       | Notes                                                |
+| --------------------- | ---------------------------------------------------- |
+| Launch seed           | Curated list (below); not user-editable              |
+| Later                 | IGDB import and enrichment through the Admin Console |
+| Editable by end users | **No** — curated seed first; Admin Console later     |
 
 **launch games**
 
@@ -249,34 +249,34 @@ Used for: browse/filter events (and later tournaments) by game; popular games by
 
 ## Cross-cutting rules
 
-| Topic | Rule |
-|-------|------|
-| Timestamps | Every table: `created_at`, `updated_at`, `deleted_at` |
-| Soft deletes | Default for user-facing entities (esp. events) |
-| Slugs | Schools: name + numeric suffix on collision. Events: `slugify(title)-` + first **8** Base64URL chars of SHA-256(creatorId\|date\|title) |
-| Images | Event banners default placeholder for now; school logos later via Admin Console upload (PNG or JPG only; max 500 MB) |
-| Search | Postgres (`tsvector` / `pg_trgm`) before any external search service |
-| Profanity | Block bad words in user-entered text |
-| XSS / SQLi | Prevent via parameterized queries + output encoding / sanitization |
-| Rate limits | Signups, event creation, reports (and general API rate limiting) |
-| Content filtering | Basic blocked-term list with word boundaries; reject disallowed user-authored text before persistence |
-| Timezones | Store events in absolute time; display in user timezone |
-| US scope | No international school handling at launch |
+| Topic             | Rule                                                                                                                                    |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Timestamps        | Every table: `created_at`, `updated_at`, `deleted_at`                                                                                   |
+| Soft deletes      | Default for user-facing entities (esp. events)                                                                                          |
+| Slugs             | Schools: name + numeric suffix on collision. Events: `slugify(title)-` + first **8** Base64URL chars of SHA-256(creatorId\|date\|title) |
+| Images            | Event banners default placeholder for now; school logos later via Admin Console upload (PNG or JPG only; max 500 MB)                    |
+| Search            | Postgres (`tsvector` / `pg_trgm`) before any external search service                                                                    |
+| Profanity         | Block bad words in user-entered text                                                                                                    |
+| XSS / SQLi        | Prevent via parameterized queries + output encoding / sanitization                                                                      |
+| Rate limits       | Signups, event creation, reports (and general API rate limiting)                                                                        |
+| Content filtering | Basic blocked-term list with word boundaries; reject disallowed user-authored text before persistence                                   |
+| Timezones         | Store events in absolute time; display in user timezone                                                                                 |
+| US scope          | No international school handling at launch                                                                                              |
 
 ## Relationship cardinality (summary)
 
-| Relationship | Cardinality |
-|--------------|-------------|
-| User ↔ School (follow) | many-to-many |
-| User ↔ School (admin) | many-to-many |
-| User ↔ Major | many-to-many |
-| User ↔ Team (member) | many-to-many |
-| User → Team (owner) | one owner per team; user may own many |
-| School → Club | one-to-many (required parent) |
-| Club → Team | one-to-many (optional on team) |
-| Event ↔ Organizer | many-to-many |
-| Event ↔ Game | many-to-many |
-| Team ↔ Game | many-to-many |
-| Club ↔ Game | many-to-many |
-| Tournament ↔ Game | many-to-many |
-| Tournament → Event | optional many-to-one |
+| Relationship           | Cardinality                           |
+| ---------------------- | ------------------------------------- |
+| User ↔ School (follow) | many-to-many                          |
+| User ↔ School (admin)  | many-to-many                          |
+| User ↔ Major           | many-to-many                          |
+| User ↔ Team (member)   | many-to-many                          |
+| User → Team (owner)    | one owner per team; user may own many |
+| School → Club          | one-to-many (required parent)         |
+| Club → Team            | one-to-many (optional on team)        |
+| Event ↔ Organizer      | many-to-many                          |
+| Event ↔ Game           | many-to-many                          |
+| Team ↔ Game            | many-to-many                          |
+| Club ↔ Game            | many-to-many                          |
+| Tournament ↔ Game      | many-to-many                          |
+| Tournament → Event     | optional many-to-one                  |

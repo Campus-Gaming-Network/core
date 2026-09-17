@@ -17,13 +17,13 @@ API fixture where browser and server-rendered state matter.
 
 **Locked web request surface (method, path, body/header shape):**
 
-| Journey | Routes |
-|---------|--------|
-| Signup | `POST /auth/signup`, `POST /auth/resend-verification` |
+| Journey      | Routes                                                                       |
+| ------------ | ---------------------------------------------------------------------------- |
+| Signup       | `POST /auth/signup`, `POST /auth/resend-verification`                        |
 | Event create | `POST /events`, `POST /events/:slug/unlock`, `DELETE /events/:slug` (cancel) |
-| RSVP | `POST /events/:slug/rsvp`, `POST\|DELETE /events/:slug/interest` |
-| Team join | `POST /teams/:slug/join`, `POST /teams/:slug/transfer-ownership` |
-| Dashboard | `GET /me/events`, `GET /me/teams` |
+| RSVP         | `POST /events/:slug/rsvp`, `POST\|DELETE /events/:slug/interest`             |
+| Team join    | `POST /teams/:slug/join`, `POST /teams/:slug/transfer-ownership`             |
+| Dashboard    | `GET /me/events`, `GET /me/teams`                                            |
 
 Failure cases to keep green: `rate_limited`, `event_full`, `invalid_private_password`,
 `private_event_locked`, validation rejects (`invalid_request` / blocked-language).
@@ -41,39 +41,46 @@ Failure cases to keep green: `rate_limited`, `event_full`, `invalid_private_pass
 - [x] Existing payload builders for event/RSVP/unlock/team join (`action-payloads.test.ts`)
 - [x] Existing client helpers incl. role indicators (`cgn-api.test.ts`)
 - [x] Cross-service contracts: production web requests plus exact Go statuses and
-  payload shapes (`apps/api/internal/httpapi/pass_v0_contracts_test.go`)
+      payload shapes (`apps/api/internal/httpapi/pass_v0_contracts_test.go`)
 - [x] Playwright/Next harness: private unlock cookie → login → RSVP
 - [x] Playwright: dashboard composition (`upcoming_rsvps` + followed-school + teams)
 - [x] Desktop/mobile Chromium projects with automated WCAG A/AA scans
 - [x] Server-action integration for signup/resend, event create/interest/cancel,
-  and team join/captain/ownership transfer
+      and team join/captain/ownership transfer
 
 ### Journey acceptance (manual / later E2E)
 
 #### Signup
+
 - [x] Home school required; 18+ checkbox stored
 - [x] Verification email + resend rate limit
 - [x] Blocked-language name rejected before persistence
 
 #### Event create
+
 - [x] Public create; private unlock gate; capacity; paid off-site fields
 - [x] Recurrence bounds (weekly/biweekly/monthly, ≤1 year)
 - [x] Soft cancel notifies active yes/maybe RSVPs (best-effort)
 
 #### RSVP
+
 - [x] yes/no/maybe; ICS on yes; interested separate; capacity counts yes only
 
 #### Team join
+
 - [x] Public page; password gate; captain/transfer smoke
 
 #### Dashboard
+
 - [x] Upcoming RSVPs + followed-school events + team activity
 
 #### Post-#12 nits
+
 - [x] Organizers on event detail; role indicators on profile
 - [x] Blocked terms on event/team/user/support/report forms
 
 ### Still open after Pass v0 web slice
+
 - Manual mobile + assistive-technology pass on the same journeys
 - Real Terms/Privacy content
 - `school_admins` grant path (Admin Console later; indicators read-only today)

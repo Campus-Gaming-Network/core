@@ -1,7 +1,7 @@
 import {
   ApiContractError,
   ApiError,
-  type ApiClient
+  type ApiClient,
 } from "../../server/api.server.js";
 import { optionalViewerProfile } from "../../server/viewer.server.js";
 import {
@@ -21,7 +21,7 @@ import {
   type TeamMutationResult,
   type TransferTeamOwnershipInput,
   type TeamsBrowseInput,
-  type TeamsBrowseResult
+  type TeamsBrowseResult,
 } from "./contracts.js";
 
 type Dependencies = {
@@ -39,12 +39,12 @@ const emptyTeams = {
   teams: [],
   limit: teamsPageSize,
   has_more: false,
-  has_previous: false
+  has_previous: false,
 };
 
 export async function teamsBrowseOperation(
   input: TeamsBrowseInput,
-  { api, reportError = defaultErrorReporter }: Dependencies
+  { api, reportError = defaultErrorReporter }: Dependencies,
 ): Promise<TeamsBrowseResult> {
   const [teamsResult, gamesResult] = await Promise.all([
     readTeams(api, input)
@@ -56,37 +56,33 @@ export async function teamsBrowseOperation(
     api({
       path: "/games",
       cache: "no-store",
-      responseSchema: gamesResponseDtoSchema
+      responseSchema: gamesResponseDtoSchema,
     })
       .then(({ data }) => ({ data: data.games, unavailable: false }))
       .catch((error: unknown) => {
         reportError(error);
         return { data: [], unavailable: true };
-      })
+      }),
   ]);
 
   return {
     ...teamsResult.data,
     games: gamesResult.data,
     gamesUnavailable: gamesResult.unavailable,
-    teamsUnavailable: teamsResult.unavailable
+    teamsUnavailable: teamsResult.unavailable,
   };
 }
 
 export async function teamDetailOperation(
   { slug }: { slug: string },
-  {
-    api,
-    cookieHeader,
-    reportError = defaultErrorReporter
-  }: DetailDependencies
+  { api, cookieHeader, reportError = defaultErrorReporter }: DetailDependencies,
 ): Promise<TeamDetailResult> {
   try {
     const { data } = await api({
       path: `/teams/${encodeURIComponent(slug)}`,
       cookieHeader,
       cache: "no-store",
-      responseSchema: teamDetailResponseDtoSchema
+      responseSchema: teamDetailResponseDtoSchema,
     });
     const team = teamDtoSchema.parse(data);
     return {
@@ -95,7 +91,7 @@ export async function teamDetailOperation(
       ...(data.viewer_role ? { viewerRole: data.viewer_role } : {}),
       ...(data.viewer_role === "owner"
         ? { ownerRoster: data.members ?? [] }
-        : {})
+        : {}),
     };
   } catch (error) {
     if (error instanceof ApiError && error.status === 404) {
@@ -112,32 +108,33 @@ export async function newTeamPageOperation(
     api,
     cookieHeader,
     sessionCookieValue,
-    reportError = defaultErrorReporter
-  }: AuthorizedDependencies
+    reportError = defaultErrorReporter,
+  }: AuthorizedDependencies,
 ): Promise<NewTeamPageResult> {
   try {
     const profile = await optionalViewerProfile({
       api,
       cookieHeader,
-      sessionCookieValue
+      sessionCookieValue,
     });
     if (!profile) return { status: "unauthenticated" };
 
-    const schoolsPromise = schoolQuery.length >= 2
-      ? readSchools(api, schoolQuery)
-          .then((schools) => ({ schools, failed: false }))
-          .catch((error: unknown) => {
-            reportError(error);
-            return { schools: [], failed: true };
-          })
-      : Promise.resolve({ schools: [], failed: false });
+    const schoolsPromise =
+      schoolQuery.length >= 2
+        ? readSchools(api, schoolQuery)
+            .then((schools) => ({ schools, failed: false }))
+            .catch((error: unknown) => {
+              reportError(error);
+              return { schools: [], failed: true };
+            })
+        : Promise.resolve({ schools: [], failed: false });
     const [gamesResult, schoolsResult] = await Promise.all([
       api({
         path: "/games",
         cache: "no-store",
-        responseSchema: gamesResponseDtoSchema
+        responseSchema: gamesResponseDtoSchema,
       }),
-      schoolsPromise
+      schoolsPromise,
     ]);
 
     return {
@@ -145,7 +142,7 @@ export async function newTeamPageOperation(
       defaultSchoolID: profile.home_school_id,
       games: gamesResult.data.games,
       schools: schoolsResult.schools,
-      schoolSearchFailed: schoolsResult.failed
+      schoolSearchFailed: schoolsResult.failed,
     };
   } catch (error) {
     reportError(error);
@@ -155,61 +152,61 @@ export async function newTeamPageOperation(
 
 export async function createTeamOperation(
   input: CreateTeamInput,
-  dependencies: AuthorizedDependencies
+  dependencies: AuthorizedDependencies,
 ): Promise<TeamMutationResult> {
   return authorizedTeamMutation(
     dependencies,
     () => ({
       path: "/teams",
       method: "POST" as const,
-      body: input
+      body: input,
     }),
-    "created"
+    "created",
   );
 }
 
 export async function joinTeamOperation(
   { slug, password }: JoinTeamInput,
-  dependencies: AuthorizedDependencies
+  dependencies: AuthorizedDependencies,
 ): Promise<TeamMutationResult> {
   return authorizedTeamMutation(
     dependencies,
     () => ({
       path: `/teams/${encodeURIComponent(slug)}/join`,
       method: "POST" as const,
-      body: { password }
+      body: { password },
     }),
-    "joined"
+    "joined",
   );
 }
 
 export async function setTeamCaptainOperation(
   { slug, user_id, captain }: SetTeamCaptainInput,
-  dependencies: AuthorizedDependencies
+  dependencies: AuthorizedDependencies,
 ): Promise<TeamMutationResult> {
   return authorizedTeamMutation(
     dependencies,
     () => ({
       path: `/teams/${encodeURIComponent(slug)}/captains`,
       method: "POST" as const,
-      body: { user_id, captain }
+      body: { user_id, captain },
     }),
-    "captain-updated"
+    "captain-updated",
   );
 }
 
 export async function transferTeamOwnershipOperation(
   { slug, new_owner_user_id }: TransferTeamOwnershipInput,
-  dependencies: AuthorizedDependencies
+  dependencies: AuthorizedDependencies,
 ): Promise<TeamMutationResult> {
   return authorizedTeamMutation(
     dependencies,
     () => ({
       path: `/teams/${encodeURIComponent(slug)}/transfer-ownership`,
       method: "POST" as const,
-      body: { new_owner_user_id }
+      body: { new_owner_user_id },
     }),
-    "ownership-transferred"
+    "ownership-transferred",
   );
 }
 
@@ -218,14 +215,14 @@ async function authorizedTeamMutation(
     api,
     cookieHeader,
     sessionCookieValue,
-    reportError = defaultErrorReporter
+    reportError = defaultErrorReporter,
   }: AuthorizedDependencies,
   request: () => {
     path: string;
     method: "POST";
     body: unknown;
   },
-  notice: "created" | "joined" | "captain-updated" | "ownership-transferred"
+  notice: "created" | "joined" | "captain-updated" | "ownership-transferred",
 ): Promise<TeamMutationResult> {
   try {
     // The session is derived from the incoming request, never function input.
@@ -234,7 +231,7 @@ async function authorizedTeamMutation(
     const profile = await optionalViewerProfile({
       api,
       cookieHeader,
-      sessionCookieValue
+      sessionCookieValue,
     });
     if (!profile) {
       return { status: "error", message: "Please log in to continue." };
@@ -244,11 +241,11 @@ async function authorizedTeamMutation(
       ...request(),
       cookieHeader,
       cache: "no-store",
-      responseSchema: teamMutationResponseDtoSchema
+      responseSchema: teamMutationResponseDtoSchema,
     });
     return {
       status: "success",
-      redirectTo: `/teams/${encodeURIComponent(data.slug)}?team=${notice}`
+      redirectTo: `/teams/${encodeURIComponent(data.slug)}?team=${notice}`,
     };
   } catch (error) {
     reportError(error);
@@ -267,7 +264,7 @@ export async function readTeams(api: ApiClient, input: TeamsBrowseInput) {
   const { data } = await api({
     path: `/teams?${search.toString()}`,
     cache: "no-store",
-    responseSchema: teamsResponseDtoSchema
+    responseSchema: teamsResponseDtoSchema,
   });
   return data;
 }
@@ -277,7 +274,7 @@ async function readSchools(api: ApiClient, query: string) {
   const { data } = await api({
     path: `/schools?${search.toString()}`,
     cache: "no-store",
-    responseSchema: schoolsResponseDtoSchema
+    responseSchema: schoolsResponseDtoSchema,
   });
   return data.schools;
 }
@@ -305,8 +302,7 @@ export function safeTeamMutationMessage(error: unknown): string {
     team_school_not_found: "Choose an active school for that team.",
     team_slug_unavailable:
       "That team URL is unavailable. Try changing the name.",
-    team_transfer_failed:
-      "We could not transfer ownership. Please try again."
+    team_transfer_failed: "We could not transfer ownership. Please try again.",
   };
   return messages[error.code] ?? "Something went wrong. Please try again.";
 }
@@ -315,7 +311,7 @@ function defaultErrorReporter(error: unknown): void {
   if (error instanceof ApiContractError) {
     console.error("Team response contract violation", {
       path: error.path,
-      issues: error.issues
+      issues: error.issues,
     });
   } else if (!(error instanceof ApiError)) {
     console.error("Team request failed");

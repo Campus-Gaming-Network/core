@@ -21,19 +21,25 @@ const forbiddenClientMarkers = [
   "local-smoke-proxy-secret-not-for-production",
   "local-smoke-cloudflare-secret-not-for-production",
   "account-password-hash",
-  "account-session-secret"
+  "account-session-secret",
 ];
 
 const forbiddenSourcePatterns = [
-  { label: "Next.js import", pattern: /(?:from|import)\s*\(?["']next(?:\/[^"']*)?["']/ },
+  {
+    label: "Next.js import",
+    pattern: /(?:from|import)\s*\(?["']next(?:\/[^"']*)?["']/,
+  },
   { label: "Next.js build output reference", pattern: /\.next(?:\/|["'])/ },
-  { label: "Next.js server directive", pattern: /^[ \t]*["']use server["'];?/m },
-  { label: "legacy public site environment", pattern: /NEXT_PUBLIC_SITE_URL/ }
+  {
+    label: "Next.js server directive",
+    pattern: /^[ \t]*["']use server["'];?/m,
+  },
+  { label: "legacy public site environment", pattern: /NEXT_PUBLIC_SITE_URL/ },
 ];
 
 assert.ok(
   existsSync(publicOutput),
-  "TanStack Start public output is missing; build apps/web before scanning"
+  "TanStack Start public output is missing; build apps/web before scanning",
 );
 
 const clientFiles = readableFiles(publicOutput);
@@ -64,7 +70,7 @@ if (findings.length > 0) {
   process.exitCode = 1;
 } else {
   process.stdout.write(
-    `Web privacy/static scan passed: ${clientFiles.length} public files contain no server markers and application source contains no Next.js boundary.\n`
+    `Web privacy/static scan passed: ${clientFiles.length} public files contain no server markers and application source contains no Next.js boundary.\n`,
   );
 }
 

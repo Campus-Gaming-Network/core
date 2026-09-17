@@ -4,9 +4,10 @@ import { basename, join } from "node:path";
 import test from "node:test";
 
 const currentDirectory = process.cwd();
-const appRoot = basename(currentDirectory) === "web"
-  ? currentDirectory
-  : join(currentDirectory, "apps/web");
+const appRoot =
+  basename(currentDirectory) === "web"
+    ? currentDirectory
+    : join(currentDirectory, "apps/web");
 
 function source(relativePath: string) {
   return readFileSync(join(appRoot, relativePath), "utf8");
@@ -18,7 +19,7 @@ test("public auth routes are registered with the expected head and search contra
     ["forgot-password.tsx", "/forgot-password", true],
     ["reset-password.tsx", "/reset-password", true],
     ["auth.verify-email.tsx", "/auth/verify-email", true],
-    ["auth.reset-password.tsx", "/auth/reset-password", true]
+    ["auth.reset-password.tsx", "/auth/reset-password", true],
   ] as const;
 
   for (const [file, route, noIndex] of routes) {
@@ -34,11 +35,17 @@ test("signup keeps exact school search and native plus enhanced form behavior", 
   const picker = source("src/features/auth-flow-slice/school-picker.tsx");
   const forms = source("src/features/auth-flow-slice/auth-forms.tsx");
 
-  assert.match(route, /loaderDeps: \(\{ search \}\) => \(\{ query: search\.q \?\? "" \}\)/);
+  assert.match(
+    route,
+    /loaderDeps: \(\{ search \}\) => \(\{ query: search\.q \?\? "" \}\)/,
+  );
   assert.match(route, /<noscript>/);
   assert.match(route, /name="q"/);
   assert.match(picker, /<select[\s\S]*name="home_school_id"[\s\S]*required/);
-  assert.match(picker, /placeholder="Search by school name"[\s\S]*type="search"/);
+  assert.match(
+    picker,
+    /placeholder="Search by school name"[\s\S]*type="search"/,
+  );
   assert.doesNotMatch(picker, /role="combobox"|role="listbox"|role="option"/);
   assert.match(picker, /Searching schools…/);
   assert.match(picker, /No schools found/);
@@ -54,7 +61,9 @@ test("token routes never render secrets as text or place them in mutation redire
   const reset = source("src/routes/reset-password.tsx");
   const verify = source("src/routes/auth.verify-email.tsx");
   const forms = source("src/features/auth-flow-slice/auth-forms.tsx");
-  const functions = source("src/features/auth-flow-slice/auth-flow.functions.ts");
+  const functions = source(
+    "src/features/auth-flow-slice/auth-flow.functions.ts",
+  );
 
   assert.match(forms, /type="hidden" name="token" value=\{token\}/);
   assert.doesNotMatch(reset, />\s*\{search\.token\}\s*</);
@@ -68,15 +77,23 @@ test("token routes never render secrets as text or place them in mutation redire
   assert.match(verify, /"referrer-policy": "no-referrer"/);
   assert.match(reset, /await establishPrivateAuthPage\(\)/);
   assert.match(verify, /await establishPrivateAuthPage\(\)/);
-  assert.match(functions, /establishPrivateAuthPage[\s\S]*setPrivateNoStoreResponse\(\)/);
+  assert.match(
+    functions,
+    /establishPrivateAuthPage[\s\S]*setPrivateNoStoreResponse\(\)/,
+  );
 });
 
 test("verification is explicit POST and missing or used links expose resend", () => {
   const verifyRoute = source("src/routes/auth.verify-email.tsx");
   const forms = source("src/features/auth-flow-slice/auth-forms.tsx");
-  const functions = source("src/features/auth-flow-slice/auth-flow.functions.ts");
+  const functions = source(
+    "src/features/auth-flow-slice/auth-flow.functions.ts",
+  );
 
-  assert.match(verifyRoute, /Select Verify email to finish confirming your address/);
+  assert.match(
+    verifyRoute,
+    /Select Verify email to finish confirming your address/,
+  );
   assert.match(verifyRoute, /<ResendVerificationForm/);
   assert.match(forms, /action=\{verifyEmail\.url\}/);
   assert.match(forms, /Need a new link\?/);

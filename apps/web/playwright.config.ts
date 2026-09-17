@@ -3,8 +3,7 @@ import { defineConfig, devices } from "@playwright/test";
 const webURL = "http://127.0.0.1:3200";
 const apiURL = "http://127.0.0.1:18081";
 const nodeExecutable = JSON.stringify(process.execPath);
-const developmentRuntime =
-  process.env.WEB_BROWSER_RUNTIME === "development";
+const developmentRuntime = process.env.WEB_BROWSER_RUNTIME === "development";
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -20,27 +19,27 @@ export default defineConfig({
   use: {
     baseURL: webURL,
     screenshot: "only-on-failure",
-    trace: "retain-on-failure"
+    trace: "retain-on-failure",
   },
   projects: [
     {
       name: "desktop-chromium",
       testIgnore: "**/no-js.spec.ts",
-      use: { ...devices["Desktop Chrome"] }
+      use: { ...devices["Desktop Chrome"] },
     },
     {
       name: "mobile-chromium",
       testIgnore: "**/no-js.spec.ts",
-      use: { ...devices["Pixel 5"] }
+      use: { ...devices["Pixel 5"] },
     },
     {
       name: "no-javascript-chromium",
       testMatch: "**/no-js.spec.ts",
       use: {
         ...devices["Desktop Chrome"],
-        javaScriptEnabled: false
-      }
-    }
+        javaScriptEnabled: false,
+      },
+    },
   ],
   webServer: [
     {
@@ -48,7 +47,7 @@ export default defineConfig({
       url: `${apiURL}/health`,
       env: { PORT: "18081" },
       reuseExistingServer: false,
-      timeout: 30_000
+      timeout: 30_000,
     },
     {
       command: developmentRuntime
@@ -65,10 +64,10 @@ export default defineConfig({
         SITE_URL: webURL,
         HOST: "127.0.0.1",
         NITRO_HOST: "127.0.0.1",
-        PORT: "3200"
+        PORT: "3200",
       },
       reuseExistingServer: false,
-      timeout: 30_000
-    }
-  ]
+      timeout: 30_000,
+    },
+  ],
 });

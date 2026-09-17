@@ -13,7 +13,9 @@ const server = createServer(async (request, response) => {
   if (request.method === "GET" && url.pathname === "/__test/messages") {
     const recipient = url.searchParams.get("recipient")?.trim().toLowerCase();
     const matching = recipient
-      ? messages.filter((message) => message.to.some((value) => value.toLowerCase() === recipient))
+      ? messages.filter((message) =>
+          message.to.some((value) => value.toLowerCase() === recipient),
+        )
       : messages;
     return json(response, 200, { messages: matching });
   }
@@ -22,7 +24,11 @@ const server = createServer(async (request, response) => {
       return json(response, 401, { message: "invalid API key" });
     }
     const payload = await readJSON(request);
-    if (!payload || !Array.isArray(payload.to) || typeof payload.subject !== "string") {
+    if (
+      !payload ||
+      !Array.isArray(payload.to) ||
+      typeof payload.subject !== "string"
+    ) {
       return json(response, 400, { message: "invalid payload" });
     }
     const id = `stub-message-${messages.length + 1}`;
@@ -32,8 +38,10 @@ const server = createServer(async (request, response) => {
       to: payload.to.map(String),
       subject: payload.subject,
       html: String(payload.html ?? ""),
-      attachments: Array.isArray(payload.attachments) ? payload.attachments : [],
-      idempotencyKey: String(request.headers["idempotency-key"] ?? "")
+      attachments: Array.isArray(payload.attachments)
+        ? payload.attachments
+        : [],
+      idempotencyKey: String(request.headers["idempotency-key"] ?? ""),
     });
     return json(response, 202, { id });
   }

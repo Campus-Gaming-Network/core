@@ -17,7 +17,7 @@ export function accountHead(publicOrigin = "http://localhost:3000") {
       { property: "og:url", content: `${publicOrigin}/account` },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:title", content: title },
-      { name: "twitter:description", content: accountDescription }
-    ]
+      { name: "twitter:description", content: accountDescription },
+    ],
   };
 }

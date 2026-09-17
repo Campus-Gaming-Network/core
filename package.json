@@ -5,7 +5,8 @@
     "node": "24.x"
   },
   "devDependencies": {
-    "@playwright/test": "1.62.1"
+    "@playwright/test": "1.62.1",
+    "oxfmt": "0.68.0"
   },
   "workspaces": [
     "apps/admin",
@@ -15,6 +16,8 @@
   "scripts": {
     "check:apps-compose": "node scripts/check_apps_compose.mjs",
     "compose:up": "docker compose up --build",
+    "fmt": "oxfmt .",
+    "fmt:check": "oxfmt --check .",
     "dev:docs": "npm --prefix apps/docs run start",
     "build:docs": "npm --prefix apps/docs run build",
     "serve:docs": "npm --prefix apps/docs run serve",

@@ -1,12 +1,12 @@
 import {
   createFileRoute,
   redirect,
-  type ErrorComponentProps
+  type ErrorComponentProps,
 } from "@tanstack/react-router";
 import { RouteErrorView, RoutePending } from "../components/route-boundaries";
 import {
   validateNewEventSearch,
-  type NewEventPageResult
+  type NewEventPageResult,
 } from "../features/event-slice/contracts";
 import { EventForm } from "../features/event-slice/event-form";
 import { getNewEventPage } from "../features/event-slice/event.functions";
@@ -36,38 +36,38 @@ export const Route = createFileRoute("/events/new")({
       { title: "Create event | Campus Gaming Network" },
       {
         name: "description",
-        content: "Create a new campus gaming event."
+        content: "Create a new campus gaming event.",
       },
       { name: "robots", content: "noindex,nofollow" },
       { property: "og:type", content: "website" },
       { property: "og:site_name", content: "Campus Gaming Network" },
       {
         property: "og:title",
-        content: "Create event | Campus Gaming Network"
+        content: "Create event | Campus Gaming Network",
       },
       {
         property: "og:description",
-        content: "Create a new campus gaming event."
+        content: "Create a new campus gaming event.",
       },
       {
         property: "og:url",
-        content: `${loaderData?.publicOrigin ?? "http://localhost:3000"}/events/new`
+        content: `${loaderData?.publicOrigin ?? "http://localhost:3000"}/events/new`,
       },
       { name: "twitter:card", content: "summary" },
       {
         name: "twitter:title",
-        content: "Create event | Campus Gaming Network"
+        content: "Create event | Campus Gaming Network",
       },
       {
         name: "twitter:description",
-        content: "Create a new campus gaming event."
-      }
+        content: "Create a new campus gaming event.",
+      },
     ],
-    links: [{ rel: "stylesheet", href: eventCSS }]
+    links: [{ rel: "stylesheet", href: eventCSS }],
   }),
   pendingComponent: NewEventPending,
   errorComponent: NewEventError,
-  component: NewEventPage
+  component: NewEventPage,
 });
 
 function NewEventPage() {

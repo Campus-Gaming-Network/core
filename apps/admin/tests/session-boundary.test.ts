@@ -5,7 +5,7 @@ import type { CookieMutation } from "../src/server/cookies.server.js";
 import type { AdminSession } from "../src/server/contracts.server.js";
 import {
   establishAdminSession,
-  stepUpAdminSession
+  stepUpAdminSession,
 } from "../src/server/session.server.js";
 
 const session: AdminSession = {
@@ -14,7 +14,7 @@ const session: AdminSession = {
   role: "site_admin",
   capabilities: ["admin.session.read"],
   authenticated_at: "2026-09-16T12:00:00Z",
-  absolute_expires_at: "2026-09-16T20:00:00Z"
+  absolute_expires_at: "2026-09-16T20:00:00Z",
 };
 
 test("an existing admin session is authorized before protected SSR renders", async () => {
@@ -32,8 +32,10 @@ test("an existing admin session is authorized before protected SSR renders", asy
     sessionCookieValue: "opaque-session",
     csrfCookieName: "admin_csrf",
     strictDeployment: true,
-    validateAssertion: async () => { assertionChecks += 1; },
-    applyCookies: () => undefined
+    validateAssertion: async () => {
+      assertionChecks += 1;
+    },
+    applyCookies: () => undefined,
   });
 
   assert.equal(result.status, "authenticated");
@@ -44,17 +46,20 @@ test("exchange validates Access and requires both hardened cookies", async () =>
   const headers = new Headers();
   headers.append(
     "set-cookie",
-    "admin_session=opaque; Path=/; Secure; HttpOnly; SameSite=Strict"
+    "admin_session=opaque; Path=/; Secure; HttpOnly; SameSite=Strict",
   );
   headers.append(
     "set-cookie",
-    "admin_csrf=csrf; Path=/; Secure; SameSite=Strict"
+    "admin_csrf=csrf; Path=/; Secure; SameSite=Strict",
   );
   let checkedAssertion = "";
   let mutations: CookieMutation[] = [];
   const api = (async ({ path }) => {
     assert.equal(path, "/admin/v1/auth/exchange");
-    return { data: session, response: new Response(JSON.stringify(session), { headers }) };
+    return {
+      data: session,
+      response: new Response(JSON.stringify(session), { headers }),
+    };
   }) as ApiClient;
 
   const result = await establishAdminSession({
@@ -64,8 +69,12 @@ test("exchange validates Access and requires both hardened cookies", async () =>
     sessionCookieName: "admin_session",
     csrfCookieName: "admin_csrf",
     strictDeployment: true,
-    validateAssertion: async (assertion) => { checkedAssertion = assertion; },
-    applyCookies: (value) => { mutations = value; }
+    validateAssertion: async (assertion) => {
+      checkedAssertion = assertion;
+    },
+    applyCookies: (value) => {
+      mutations = value;
+    },
   });
 
   assert.equal(result.status, "authenticated");
@@ -77,30 +86,24 @@ test("step-up forwards only isolated cookies and mirrors both rotations", async 
   const headers = new Headers();
   headers.append(
     "set-cookie",
-    "admin_session=rotated; Path=/; Secure; HttpOnly; SameSite=Strict"
+    "admin_session=rotated; Path=/; Secure; HttpOnly; SameSite=Strict",
   );
   headers.append(
     "set-cookie",
-    "admin_csrf=rotated-csrf; Path=/; Secure; SameSite=Strict"
+    "admin_csrf=rotated-csrf; Path=/; Secure; SameSite=Strict",
   );
   let mutations: CookieMutation[] = [];
   let checkedAssertion = "";
   const api = (async ({ path, cookieHeader, headers: requestHeaders }) => {
     assert.equal(path, "/admin/v1/auth/step-up");
-    assert.equal(
-      cookieHeader,
-      "admin_session=opaque; admin_csrf=csrf"
-    );
+    assert.equal(cookieHeader, "admin_session=opaque; admin_csrf=csrf");
     const outgoing = new Headers(requestHeaders);
     assert.equal(outgoing.get("Origin"), "https://admin.example.test");
     assert.equal(outgoing.get("X-CGN-Admin-CSRF"), "csrf");
-    assert.equal(
-      outgoing.get("Cf-Access-Jwt-Assertion"),
-      "fresh-access-token"
-    );
+    assert.equal(outgoing.get("Cf-Access-Jwt-Assertion"), "fresh-access-token");
     return {
       data: { ...session, step_up_at: "2026-09-16T12:05:00Z" },
-      response: new Response(JSON.stringify(session), { headers })
+      response: new Response(JSON.stringify(session), { headers }),
     };
   }) as ApiClient;
 
@@ -113,8 +116,12 @@ test("step-up forwards only isolated cookies and mirrors both rotations", async 
     csrfCookieName: "admin_csrf",
     csrfCookieValue: "csrf",
     strictDeployment: true,
-    validateAssertion: async (assertion) => { checkedAssertion = assertion; },
-    applyCookies: (value) => { mutations = value; }
+    validateAssertion: async (assertion) => {
+      checkedAssertion = assertion;
+    },
+    applyCookies: (value) => {
+      mutations = value;
+    },
   });
 
   assert.equal(result.status, "authenticated");
@@ -136,7 +143,7 @@ test("step-up fails before the API without both privileged cookies", async () =>
     csrfCookieValue: "csrf",
     strictDeployment: true,
     validateAssertion: async () => undefined,
-    applyCookies: () => undefined
+    applyCookies: () => undefined,
   });
 
   assert.equal(result.status, "unauthorized");

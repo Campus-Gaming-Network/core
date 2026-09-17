@@ -29,7 +29,7 @@ const school = {
   latitude: 33.64,
   longitude: -117.84,
   is_main_campus: true,
-  num_branches: 0
+  num_branches: 0,
 };
 
 const followableSchool = {
@@ -39,13 +39,13 @@ const followableSchool = {
   name: "Follow Browser University",
   alias: "FBU",
   slug: "follow-browser-university",
-  city: "Long Beach"
+  city: "Long Beach",
 };
 
 const game = {
   id: "game-e2e",
   name: "Strategy Arena",
-  slug: "strategy-arena"
+  slug: "strategy-arena",
 };
 
 const server = createServer(async (request, response) => {
@@ -94,18 +94,18 @@ async function handleRequest(request, response) {
     json(response, 200, {
       loginCalls: countCalls("POST", "/auth/login"),
       unlockCalls: calls.filter(
-        (call) => call.method === "POST" && call.pathname.endsWith("/unlock")
+        (call) => call.method === "POST" && call.pathname.endsWith("/unlock"),
       ).length,
       rsvpCalls: calls.filter(
-        (call) => call.method === "POST" && call.pathname.endsWith("/rsvp")
+        (call) => call.method === "POST" && call.pathname.endsWith("/rsvp"),
       ).length,
       logoutCalls: countCalls("POST", "/auth/logout"),
       logoutReceivedSession: calls.some(
         (call) =>
           call.method === "POST" &&
           call.pathname === "/auth/logout" &&
-          call.hadValidSession
-      )
+          call.hadValidSession,
+      ),
     });
     return;
   }
@@ -114,8 +114,8 @@ async function handleRequest(request, response) {
     json(response, 200, {
       calls: calls.map(({ method: callMethod, pathname }) => ({
         method: callMethod,
-        pathname
-      }))
+        pathname,
+      })),
     });
     return;
   }
@@ -127,7 +127,7 @@ async function handleRequest(request, response) {
     method,
     pathname: url.pathname,
     hadValidSession: Boolean(session),
-    hadUnlockToken: Boolean(request.headers["x-cgn-event-unlock"])
+    hadUnlockToken: Boolean(request.headers["x-cgn-event-unlock"]),
   };
   calls.push(call);
 
@@ -143,7 +143,7 @@ async function handleRequest(request, response) {
       schools: [school].slice(offset, offset + limit),
       limit,
       offset,
-      has_more: false
+      has_more: false,
     });
     return;
   }
@@ -226,7 +226,7 @@ async function handleRequest(request, response) {
     json(response, 201, {
       ...profileFor(body.email),
       name: body.name,
-      email_verified_at: undefined
+      email_verified_at: undefined,
     });
     return;
   }
@@ -242,7 +242,10 @@ async function handleRequest(request, response) {
   }
 
   if (method === "POST" && url.pathname === "/auth/reset-password") {
-    if (typeof body?.token !== "string" || !body.token.startsWith("valid-reset-")) {
+    if (
+      typeof body?.token !== "string" ||
+      !body.token.startsWith("valid-reset-")
+    ) {
       json(response, 400, { error: "invalid_or_expired_token" });
       return;
     }
@@ -279,8 +282,7 @@ async function handleRequest(request, response) {
     const profile = profileFor(body.email);
     sessions.set(token, profile);
     json(response, 200, profile, {
-      "set-cookie":
-        `cgn_session=${token}; Path=/; Max-Age=3600; HttpOnly; Secure; SameSite=Lax`
+      "set-cookie": `cgn_session=${token}; Path=/; Max-Age=3600; HttpOnly; Secure; SameSite=Lax`,
     });
     return;
   }
@@ -304,7 +306,7 @@ async function handleRequest(request, response) {
       name: body?.name,
       bio: body?.bio,
       timezone: body?.timezone,
-      social_links: body?.social_links
+      social_links: body?.social_links,
     };
     sessions.set(sessionToken, updated);
     json(response, 200, updated);
@@ -329,7 +331,7 @@ async function handleRequest(request, response) {
     }
     json(response, 200, {
       upcoming_rsvps: [dashboardEvent("Browser Dashboard RSVP", "yes")],
-      followed_school_events: [dashboardEvent("Browser Followed Event")]
+      followed_school_events: [dashboardEvent("Browser Followed Event")],
     });
     return;
   }
@@ -341,12 +343,12 @@ async function handleRequest(request, response) {
       session
         ? {
             schools: followedSchools.has(
-              `${sessionToken}:${followableSchool.id}`
+              `${sessionToken}:${followableSchool.id}`,
             )
               ? [followableSchool]
-              : []
+              : [],
           }
-        : { error: "authentication_required" }
+        : { error: "authentication_required" },
     );
     return;
   }
@@ -357,7 +359,7 @@ async function handleRequest(request, response) {
       session ? 200 : 401,
       session
         ? { teams: [teamFor("browser-team", sessionToken)], limit: 10 }
-        : { error: "authentication_required" }
+        : { error: "authentication_required" },
     );
     return;
   }
@@ -368,7 +370,7 @@ async function handleRequest(request, response) {
     }
     response.writeHead(204, {
       "set-cookie":
-        "cgn_session=; Path=/; Max-Age=-1; HttpOnly; Secure; SameSite=Lax"
+        "cgn_session=; Path=/; Max-Age=-1; HttpOnly; Secure; SameSite=Lax",
     });
     response.end();
     return;
@@ -381,7 +383,7 @@ async function handleRequest(request, response) {
         .map((record) => eventBrowseItem(record.event)),
       limit: 25,
       has_more: false,
-      has_previous: false
+      has_previous: false,
     });
     return;
   }
@@ -397,17 +399,16 @@ async function handleRequest(request, response) {
       event,
       ownerSession: sessionToken,
       interestedSessions: new Set(),
-      cancelled: false
+      cancelled: false,
     });
     json(response, 201, createdEventFor(slug, sessionToken));
     return;
   }
 
-  const eventInterestMatch = url.pathname.match(/^\/events\/([^/]+)\/interest$/);
-  if (
-    eventInterestMatch &&
-    (method === "POST" || method === "DELETE")
-  ) {
+  const eventInterestMatch = url.pathname.match(
+    /^\/events\/([^/]+)\/interest$/,
+  );
+  if (eventInterestMatch && (method === "POST" || method === "DELETE")) {
     if (!session || !sessionToken) {
       json(response, 401, { error: "authentication_required" });
       return;
@@ -460,7 +461,7 @@ async function handleRequest(request, response) {
           ...body,
           slug,
           host_school: school,
-          games: [game]
+          games: [game],
         };
       } else if (method === "DELETE") {
         if (!sessionToken || created.ownerSession !== sessionToken) {
@@ -505,7 +506,7 @@ async function handleRequest(request, response) {
     json(response, 200, {
       event: eventFor(slug),
       unlock_token: token,
-      expires_at: "2037-08-15T20:00:00Z"
+      expires_at: "2037-08-15T20:00:00Z",
     });
     return;
   }
@@ -538,7 +539,7 @@ async function handleRequest(request, response) {
       teams: [...slugs].map((slug) => publicTeam(teamFor(slug, sessionToken))),
       limit: 25,
       has_more: false,
-      has_previous: false
+      has_previous: false,
     });
     return;
   }
@@ -553,7 +554,7 @@ async function handleRequest(request, response) {
       name: body?.name,
       description: body?.description,
       school: body?.school_id ? school : undefined,
-      games: [game]
+      games: [game],
     });
     teamRoles.set(teamRoleKey(sessionToken, slug), "owner");
     json(response, 201, { slug });
@@ -602,7 +603,7 @@ async function handleRequest(request, response) {
   }
 
   const transferMatch = url.pathname.match(
-    /^\/teams\/([^/]+)\/transfer-ownership$/
+    /^\/teams\/([^/]+)\/transfer-ownership$/,
   );
   if (method === "POST" && transferMatch) {
     const slug = decodeURIComponent(transferMatch[1]);
@@ -642,7 +643,7 @@ function eventFor(slug, viewerRsvp) {
       name: "Browser Test University",
       slug: "browser-test-university",
       city: "Irvine",
-      state: "CA"
+      state: "CA",
     },
     games: [{ id: "game-e2e", name: "Strategy Arena", slug: "strategy-arena" }],
     organizers: [
@@ -650,23 +651,24 @@ function eventFor(slug, viewerRsvp) {
         id: "user-e2e",
         name: "Browser Test Player",
         role: "creator",
-        verification_level: "verified_student"
-      }
+        verification_level: "verified_student",
+      },
     ],
-    ...(viewerRsvp ? { viewer_rsvp: viewerRsvp } : {})
+    ...(viewerRsvp ? { viewer_rsvp: viewerRsvp } : {}),
   };
 }
 
 function publicEventFor(slug) {
   return {
     ...eventFor(slug),
-    title: slug === "long-content-event"
-      ? "ExtremelyLongUnbrokenUserSuppliedTournamentTitleThatMustWrapWithoutCreatingHorizontalViewportOverflowAtNarrowWidths"
-      : "Public Browser Tournament",
+    title:
+      slug === "long-content-event"
+        ? "ExtremelyLongUnbrokenUserSuppliedTournamentTitleThatMustWrapWithoutCreatingHorizontalViewportOverflowAtNarrowWidths"
+        : "Public Browser Tournament",
     description: "A public campus tournament used for browser parity checks.",
     visibility: "public",
     location_name: "Browser Student Union",
-    address: "100 Public Campus Way"
+    address: "100 Public Campus Way",
   };
 }
 
@@ -702,9 +704,9 @@ function createdEventFromBody(body, slug, profile) {
         id: profile.id,
         name: profile.name,
         role: "creator",
-        verification_level: profile.verification_level
-      }
-    ]
+        verification_level: profile.verification_level,
+      },
+    ],
   };
 }
 
@@ -714,7 +716,7 @@ function createdEventFor(slug, sessionToken) {
     ...record.event,
     interest_count: record.interestedSessions.size,
     viewer_interested: record.interestedSessions.has(sessionToken),
-    viewer_can_edit: record.ownerSession === sessionToken
+    viewer_can_edit: record.ownerSession === sessionToken,
   };
 }
 
@@ -732,7 +734,7 @@ function eventBrowseItem(event) {
     ...(event.online_url ? { online_url: event.online_url } : {}),
     lifecycle: event.lifecycle,
     host_school: { name: event.host_school.name },
-    games: event.games.map(({ name }) => ({ name }))
+    games: event.games.map(({ name }) => ({ name })),
   };
 }
 
@@ -741,7 +743,7 @@ function teamFor(slug, sessionToken) {
   const viewerRole = teamRoles.get(teamRoleKey(sessionToken, slug));
   const candidateID = "user-browser-teammate";
   const candidateRole = promotedCaptains.has(
-    `${sessionToken}:${slug}:${candidateID}`
+    `${sessionToken}:${slug}:${candidateID}`,
   )
     ? "captain"
     : "member";
@@ -766,17 +768,17 @@ function teamFor(slug, sessionToken) {
             {
               user_id: sessions.get(sessionToken)?.id ?? "user-browser-owner",
               name: sessions.get(sessionToken)?.name ?? "Browser Owner",
-              role: "owner"
+              role: "owner",
             },
             {
               user_id: candidateID,
               name: "Browser Teammate",
-              role: candidateRole
-            }
-          ]
+              role: candidateRole,
+            },
+          ],
         }
       : {}),
-    ownership_transferred: transferredOwners.has(`${sessionToken}:${slug}`)
+    ownership_transferred: transferredOwners.has(`${sessionToken}:${slug}`),
   };
 }
 
@@ -805,16 +807,18 @@ function dashboardEvent(title, viewerRsvp) {
     lifecycle: "upcoming",
     host_school: { name: school.name },
     games: [{ name: game.name }],
-    ...(viewerRsvp ? { viewer_rsvp: viewerRsvp } : {})
+    ...(viewerRsvp ? { viewer_rsvp: viewerRsvp } : {}),
   };
 }
 
 function slugify(value) {
-  return String(value)
-    .trim()
-    .toLowerCase()
-    .replaceAll(/[^a-z0-9]+/g, "-")
-    .replaceAll(/^-|-$/g, "") || "browser-item";
+  return (
+    String(value)
+      .trim()
+      .toLowerCase()
+      .replaceAll(/[^a-z0-9]+/g, "-")
+      .replaceAll(/^-|-$/g, "") || "browser-item"
+  );
 }
 
 function profileFor(email) {
@@ -823,13 +827,15 @@ function profileFor(email) {
     email,
     email_verified_at: "2037-08-01T12:00:00Z",
     verification_level: "verified_student",
-    name: email.startsWith("owner-") ? "Browser Team Owner" : "Browser Test Player",
+    name: email.startsWith("owner-")
+      ? "Browser Team Owner"
+      : "Browser Test Player",
     bio: "Browser-test campus player",
     timezone: "America/Los_Angeles",
     home_school_id: school.id,
     home_school: school,
     social_links: [],
-    role_indicators: []
+    role_indicators: [],
   };
 }
 
@@ -842,7 +848,7 @@ function publicProfileFor(id) {
     home_school_id: school.id,
     home_school: school,
     social_links: [],
-    role_indicators: []
+    role_indicators: [],
   };
 }
 
@@ -856,7 +862,7 @@ function rsvpKey(sessionToken, slug) {
 
 function countCalls(method, pathname) {
   return calls.filter(
-    (call) => call.method === method && call.pathname === pathname
+    (call) => call.method === method && call.pathname === pathname,
   ).length;
 }
 
@@ -896,7 +902,7 @@ function json(response, status, payload, headers = {}) {
   response.writeHead(status, {
     "content-type": "application/json; charset=utf-8",
     "content-length": Buffer.byteLength(body),
-    ...headers
+    ...headers,
   });
   response.end(body);
 }

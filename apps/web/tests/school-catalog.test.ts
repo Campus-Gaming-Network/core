@@ -4,23 +4,23 @@ import {
   homeCatalogOperation,
   schoolCatalogOperation,
   schoolsCatalogOperation,
-  schoolViewerStateOperation
+  schoolViewerStateOperation,
 } from "../src/features/school-slice/catalog-operations.server.js";
 import {
   catalogClientStaleTime,
   schoolsBrowseInput,
-  validateSchoolsSearch
+  validateSchoolsSearch,
 } from "../src/features/school-slice/contracts.js";
 import {
   homeHead,
   safeSchoolWebsite,
   schoolHead,
-  schoolLocation
+  schoolLocation,
 } from "../src/features/school-slice/presentation.js";
 import {
   ApiError,
   createApiClient,
-  type Fetcher
+  type Fetcher,
 } from "../src/server/api.server.js";
 
 const school = {
@@ -36,7 +36,7 @@ const school = {
   latitude: 33.64,
   longitude: -117.84,
   is_main_campus: true,
-  num_branches: 2
+  num_branches: 2,
 };
 const profile = {
   id: "user-1",
@@ -44,7 +44,7 @@ const profile = {
   verification_level: "basic",
   name: "Player One",
   timezone: "America/Los_Angeles",
-  home_school_id: school.id
+  home_school_id: school.id,
 };
 
 function client(fetcher: Fetcher) {
@@ -57,19 +57,19 @@ test("school search normalization is tolerant and keeps notices out of catalog k
     state: " CA ",
     page: "2",
     follow: "added",
-    untrusted: { nested: true }
+    untrusted: { nested: true },
   });
 
   assert.deepEqual(search, {
     q: "example",
     state: "CA",
     page: 2,
-    follow: "added"
+    follow: "added",
   });
   assert.deepEqual(schoolsBrowseInput(search), {
     query: "example",
     state: "CA",
-    page: 2
+    page: 2,
   });
   assert.deepEqual(validateSchoolsSearch({ page: "0", follow: "unknown" }), {});
   assert.deepEqual(validateSchoolsSearch({ page: "9007199254740991" }), {});
@@ -79,20 +79,24 @@ test("school search normalization is tolerant and keeps notices out of catalog k
 test("home catalog loads public schools and games independently with safe fallbacks", async () => {
   const requests: Array<{ path: string; cache?: RequestCache }> = [];
   const api = client(async (input, init) => {
-    const path = new URL(String(input)).pathname + new URL(String(input)).search;
+    const path =
+      new URL(String(input)).pathname + new URL(String(input)).search;
     requests.push({ path, cache: init?.cache });
     if (path === "/schools?limit=6") {
       return Response.json({
         schools: [{ ...school, internal_note: "strip-me" }],
         limit: 6,
         offset: 0,
-        has_more: false
+        has_more: false,
       });
     }
     throw new Error("games unavailable with private connection details");
   });
 
-  const result = await homeCatalogOperation({ api, reportError: () => undefined });
+  const result = await homeCatalogOperation({
+    api,
+    reportError: () => undefined,
+  });
 
   assert.deepEqual(result.schools, [school]);
   assert.deepEqual(result.games, []);
@@ -101,7 +105,7 @@ test("home catalog loads public schools and games independently with safe fallba
   assert.equal(JSON.stringify(result).includes("internal_note"), false);
   assert.deepEqual(requests, [
     { path: "/schools?limit=6", cache: "no-store" },
-    { path: "/games", cache: "no-store" }
+    { path: "/games", cache: "no-store" },
   ]);
 });
 
@@ -116,10 +120,10 @@ test("school browse builds encoded pagination requests and falls back to an empt
           schools: [school],
           limit: 25,
           offset: 50,
-          has_more: true
+          has_more: true,
         });
-      })
-    }
+      }),
+    },
   );
   const unavailable = await schoolsCatalogOperation(
     { query: "", state: "", page: 3 },
@@ -127,27 +131,27 @@ test("school browse builds encoded pagination requests and falls back to an empt
       api: client(async () => {
         throw new Error("offline");
       }),
-      reportError: () => undefined
-    }
+      reportError: () => undefined,
+    },
   );
 
   assert.equal(
     requested,
-    "http://api:8080/schools?q=Cal+State&state=CA&limit=25&offset=50"
+    "http://api:8080/schools?q=Cal+State&state=CA&limit=25&offset=50",
   );
   assert.deepEqual(available, {
     schools: [school],
     limit: 25,
     offset: 50,
     has_more: true,
-    unavailable: false
+    unavailable: false,
   });
   assert.deepEqual(unavailable, {
     schools: [],
     limit: 25,
     offset: 50,
     has_more: false,
-    unavailable: true
+    unavailable: true,
   });
 });
 
@@ -158,21 +162,21 @@ test("school detail strips additive data and distinguishes a true upstream 404",
       api: client(async (input, init) => {
         assert.equal(
           String(input),
-          "http://api:8080/schools/example%20university"
+          "http://api:8080/schools/example%20university",
         );
         assert.equal(new Headers(init?.headers).has("cookie"), false);
         assert.equal(init?.cache, "no-store");
         return Response.json({ ...school, private_token: "never-serialize" });
-      })
-    }
+      }),
+    },
   );
   const missing = await schoolCatalogOperation(
     { slug: "missing" },
     {
       api: client(async () =>
-        Response.json({ error: "school_not_found" }, { status: 404 })
-      )
-    }
+        Response.json({ error: "school_not_found" }, { status: 404 }),
+      ),
+    },
   );
 
   assert.deepEqual(found, { status: "found", school });
@@ -190,11 +194,15 @@ test("viewer follow state is request-scoped, minimal, and skips anonymous upstre
         return Response.json(profile);
       }),
       cookieHeader: "analytics=value",
-      sessionCookieValue: undefined
-    }
+      sessionCookieValue: undefined,
+    },
   );
 
-  const calls: Array<{ path: string; cache?: RequestCache; cookie: string | null }> = [];
+  const calls: Array<{
+    path: string;
+    cache?: RequestCache;
+    cookie: string | null;
+  }> = [];
   const authenticated = await schoolViewerStateOperation(
     { schoolId: school.id },
     {
@@ -203,35 +211,37 @@ test("viewer follow state is request-scoped, minimal, and skips anonymous upstre
         calls.push({
           path,
           cache: init?.cache,
-          cookie: new Headers(init?.headers).get("cookie")
+          cookie: new Headers(init?.headers).get("cookie"),
         });
         return path === "/me"
           ? Response.json({ ...profile, session: "strip-me" })
-          : Response.json({ schools: [{ ...school, unlock_token: "strip-me" }] });
+          : Response.json({
+              schools: [{ ...school, unlock_token: "strip-me" }],
+            });
       }),
       cookieHeader: "cgn_session=session-value",
-      sessionCookieValue: "session-value"
-    }
+      sessionCookieValue: "session-value",
+    },
   );
 
   assert.deepEqual(anonymous, {
     authenticated: false,
     isHomeSchool: false,
-    isFollowing: false
+    isFollowing: false,
   });
   assert.equal(anonymousCalls, 0);
   assert.deepEqual(authenticated, {
     authenticated: true,
     isHomeSchool: true,
-    isFollowing: true
+    isFollowing: true,
   });
   assert.deepEqual(calls, [
     { path: "/me", cache: "no-store", cookie: "cgn_session=session-value" },
     {
       path: "/me/schools",
       cache: "no-store",
-      cookie: "cgn_session=session-value"
-    }
+      cookie: "cgn_session=session-value",
+    },
   ]);
   assert.equal(JSON.stringify(authenticated).includes("session-value"), false);
 });
@@ -243,14 +253,14 @@ test("viewer failures remain failures rather than false anonymous state", async 
         { schoolId: school.id },
         {
           api: client(async () =>
-            Response.json({ error: "database_unavailable" }, { status: 503 })
+            Response.json({ error: "database_unavailable" }, { status: 503 }),
           ),
           cookieHeader: "cgn_session=value",
           sessionCookieValue: "value",
-          reportError: () => undefined
-        }
+          reportError: () => undefined,
+        },
       ),
-    (error: unknown) => error instanceof ApiError && error.status === 503
+    (error: unknown) => error instanceof ApiError && error.status === 503,
   );
 });
 
@@ -260,20 +270,23 @@ test("school metadata is dynamic and external website links allow only HTTP(S)",
     metadata.meta.some(
       (entry) =>
         entry.property === "og:url" &&
-        entry.content === "https://cgn.example/schools/example-university"
-    )
+        entry.content === "https://cgn.example/schools/example-university",
+    ),
   );
   assert.ok(
     metadata.meta.some(
-      (entry) => entry.title === "Example University | Campus Gaming Network"
-    )
+      (entry) => entry.title === "Example University | Campus Gaming Network",
+    ),
   );
   assert.equal(schoolLocation(school), "Irvine, CA");
-  assert.equal(homeHead("https://cgn.example").meta[0]?.title, "Campus Gaming Network");
+  assert.equal(
+    homeHead("https://cgn.example").meta[0]?.title,
+    "Campus Gaming Network",
+  );
   assert.equal(safeSchoolWebsite("javascript:alert(1)"), undefined);
   assert.equal(safeSchoolWebsite("not a URL"), undefined);
   assert.equal(
     safeSchoolWebsite("https://example.edu/gaming"),
-    "https://example.edu/gaming"
+    "https://example.edu/gaming",
   );
 });

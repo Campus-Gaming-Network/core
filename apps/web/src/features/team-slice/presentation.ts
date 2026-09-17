@@ -9,7 +9,7 @@ export function teamRoleLabel(role: TeamRole): string {
   const labels: Record<TeamRole, string> = {
     owner: "Owner",
     captain: "Captain",
-    member: "Member"
+    member: "Member",
   };
   return labels[role];
 }
@@ -18,21 +18,21 @@ export function teamsHead(publicOrigin = "http://localhost:3000") {
   return pageHead({
     title: "Teams",
     description: teamsDescription,
-    url: `${publicOrigin}/teams`
+    url: `${publicOrigin}/teams`,
   });
 }
 
 export function teamHead(
   team: TeamDTO | undefined,
-  publicOrigin = "http://localhost:3000"
+  publicOrigin = "http://localhost:3000",
 ) {
   if (!team) {
     return {
       meta: [
         { title: `Team | ${siteName}` },
         { name: "description", content: "Team details are unavailable." },
-        { name: "robots", content: "noindex,nofollow" }
-      ]
+        { name: "robots", content: "noindex,nofollow" },
+      ],
     };
   }
 
@@ -42,7 +42,7 @@ export function teamHead(
   return pageHead({
     title: team.name,
     description,
-    url: `${publicOrigin}/teams/${encodeURIComponent(team.slug)}`
+    url: `${publicOrigin}/teams/${encodeURIComponent(team.slug)}`,
   });
 }
 
@@ -60,15 +60,15 @@ export function newTeamHead(publicOrigin = "http://localhost:3000") {
       { property: "og:url", content: `${publicOrigin}/teams/new` },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:title", content: title },
-      { name: "twitter:description", content: newTeamDescription }
-    ]
+      { name: "twitter:description", content: newTeamDescription },
+    ],
   };
 }
 
 function pageHead({
   title,
   description,
-  url
+  url,
 }: {
   title: string;
   description: string;
@@ -86,7 +86,7 @@ function pageHead({
       { property: "og:url", content: url },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:title", content: fullTitle },
-      { name: "twitter:description", content: description }
-    ]
+      { name: "twitter:description", content: description },
+    ],
   };
 }

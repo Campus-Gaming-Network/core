@@ -25,7 +25,7 @@ type ParsedCookie = {
 };
 
 export function sessionCookieName(
-  environment: Readonly<Record<string, string | undefined>> = process.env
+  environment: Readonly<Record<string, string | undefined>> = process.env,
 ): string {
   return environment.API_SESSION_COOKIE?.trim() || "cgn_session";
 }
@@ -36,7 +36,7 @@ export function eventUnlockCookieName(slug: string): string {
 
 export function cookieHeaderValue(
   cookieHeader: string,
-  name: string
+  name: string,
 ): string | undefined {
   for (const part of cookieHeader.split(";")) {
     const separator = part.indexOf("=");
@@ -58,7 +58,7 @@ export function unlockCookieMutation(
   slug: string,
   token: string,
   expiresAt: string,
-  production: boolean
+  production: boolean,
 ): CookieMutation {
   const expires = new Date(expiresAt);
 
@@ -71,14 +71,14 @@ export function unlockCookieMutation(
       expires: Number.isNaN(expires.getTime()) ? undefined : expires,
       httpOnly: true,
       secure: production,
-      sameSite: "lax"
-    }
+      sameSite: "lax",
+    },
   };
 }
 
 export function mirroredSessionCookieMutation(
   headers: Headers,
-  expectedName: string
+  expectedName: string,
 ): CookieMutation | null {
   const parsed = setCookieHeaders(headers)
     .map(parseSetCookie)
@@ -91,7 +91,11 @@ export function mirroredSessionCookieMutation(
     (parsed.maxAge !== undefined && parsed.maxAge <= 0) ||
     (parsed.expires !== undefined && parsed.expires.getTime() <= Date.now())
   ) {
-    return { kind: "delete", name: parsed.name, options: { path: parsed.path ?? "/" } };
+    return {
+      kind: "delete",
+      name: parsed.name,
+      options: { path: parsed.path ?? "/" },
+    };
   }
   if (!parsed.value) {
     return null;
@@ -111,8 +115,8 @@ export function mirroredSessionCookieMutation(
       maxAge: parsed.maxAge,
       httpOnly: true,
       secure: parsed.secure || strictDeployment,
-      sameSite: parsed.sameSite === "strict" ? "strict" : "lax"
-    }
+      sameSite: parsed.sameSite === "strict" ? "strict" : "lax",
+    },
   };
 }
 
@@ -140,16 +144,18 @@ function parseSetCookie(header: string): ParsedCookie | null {
     name: nameValue.slice(0, separator),
     value: nameValue.slice(separator + 1),
     httpOnly: false,
-    secure: false
+    secure: false,
   };
 
   for (const attribute of attributes) {
     const attributeSeparator = attribute.indexOf("=");
-    const key = (attributeSeparator < 0
-      ? attribute
-      : attribute.slice(0, attributeSeparator)
+    const key = (
+      attributeSeparator < 0
+        ? attribute
+        : attribute.slice(0, attributeSeparator)
     ).toLowerCase();
-    const value = attributeSeparator < 0 ? "" : attribute.slice(attributeSeparator + 1);
+    const value =
+      attributeSeparator < 0 ? "" : attribute.slice(attributeSeparator + 1);
 
     if (key === "path") {
       parsed.path = value;

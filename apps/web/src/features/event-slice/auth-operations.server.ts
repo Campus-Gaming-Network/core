@@ -4,22 +4,22 @@ import {
   ApiContractError,
   ApiError,
   safeApiErrorMessage,
-  type ApiClient
+  type ApiClient,
 } from "../../server/api.server.js";
 import {
   configuredCookieDeletion,
   mirroredSessionCookieMutation,
-  type CookieMutation
+  type CookieMutation,
 } from "../../server/cookies.server.js";
 import {
   optionalViewerProfile,
-  profileDtoSchema
+  profileDtoSchema,
 } from "../../server/viewer.server.js";
 import type {
   EventViewerSessionResult,
   LoginInput,
   LoginResult,
-  NavigationSessionDTO
+  NavigationSessionDTO,
 } from "./contracts.js";
 
 type Dependencies = {
@@ -39,7 +39,7 @@ export type LogoutResult = {
 export async function getNavigationSessionOperation({
   api,
   cookieHeader,
-  sessionCookieValue
+  sessionCookieValue,
 }: Pick<
   Dependencies,
   "api" | "cookieHeader" | "sessionCookieValue"
@@ -52,7 +52,7 @@ export async function getNavigationSessionOperation({
     const profile = await optionalViewerProfile({
       api,
       cookieHeader,
-      sessionCookieValue
+      sessionCookieValue,
     });
     return { authenticated: profile !== null };
   } catch {
@@ -66,7 +66,7 @@ export async function getEventViewerSessionOperation({
   api,
   cookieHeader,
   sessionCookieValue,
-  reportError = defaultErrorReporter
+  reportError = defaultErrorReporter,
 }: Pick<
   Dependencies,
   "api" | "cookieHeader" | "sessionCookieValue" | "reportError"
@@ -79,7 +79,7 @@ export async function getEventViewerSessionOperation({
     const profile = await optionalViewerProfile({
       api,
       cookieHeader,
-      sessionCookieValue
+      sessionCookieValue,
     });
     return profile
       ? { status: "authenticated", authenticated: true }
@@ -88,7 +88,7 @@ export async function getEventViewerSessionOperation({
     reportError(error);
     return {
       status: "unavailable",
-      message: "We could not verify your session. Please try again."
+      message: "We could not verify your session. Please try again.",
     };
   }
 }
@@ -99,25 +99,25 @@ export async function loginOperation(
     api,
     sessionCookieName,
     applyCookie,
-    reportError = defaultErrorReporter
-  }: Omit<Dependencies, "cookieHeader">
+    reportError = defaultErrorReporter,
+  }: Omit<Dependencies, "cookieHeader">,
 ): Promise<LoginResult> {
   try {
     const { response } = await api({
       path: "/auth/login",
       method: "POST",
       body: { email: input.email, password: input.password },
-      responseSchema: profileDtoSchema
+      responseSchema: profileDtoSchema,
     });
     const cookie = mirroredSessionCookieMutation(
       response.headers,
-      sessionCookieName
+      sessionCookieName,
     );
     if (!cookie || cookie.kind !== "set") {
       reportError(new Error("Login response did not establish a session"));
       return {
         status: "error",
-        message: "We could not complete login. Please try again."
+        message: "We could not complete login. Please try again.",
       };
     }
     applyCookie(cookie);
@@ -125,7 +125,7 @@ export async function loginOperation(
     return {
       status: "success",
       authenticated: true,
-      redirectTo: safeLocalNext(input.next) ?? "/account"
+      redirectTo: safeLocalNext(input.next) ?? "/account",
     };
   } catch (error) {
     reportError(error);
@@ -138,18 +138,18 @@ export async function logoutOperation({
   cookieHeader,
   sessionCookieName,
   applyCookie,
-  reportError = defaultErrorReporter
+  reportError = defaultErrorReporter,
 }: Omit<Dependencies, "sessionCookieValue">): Promise<LogoutResult> {
   try {
     const { response } = await api({
       path: "/auth/logout",
       method: "POST",
       cookieHeader,
-      responseSchema: z.undefined()
+      responseSchema: z.undefined(),
     });
     const upstreamCookie = mirroredSessionCookieMutation(
       response.headers,
-      sessionCookieName
+      sessionCookieName,
     );
     if (upstreamCookie?.kind === "delete") {
       applyCookie(upstreamCookie);
@@ -180,7 +180,7 @@ function defaultErrorReporter(error: unknown): void {
   if (error instanceof ApiContractError) {
     console.error("API response contract violation", {
       path: error.path,
-      issues: error.issues
+      issues: error.issues,
     });
   } else if (!(error instanceof ApiError)) {
     console.error("Authentication request failed");

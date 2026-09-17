@@ -2,37 +2,34 @@ import {
   Link,
   createFileRoute,
   notFound,
-  type ErrorComponentProps
+  type ErrorComponentProps,
 } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { type FormEvent, useState } from "react";
 import {
   FieldError,
   fieldErrorProps,
-  useEnhancedMutation
+  useEnhancedMutation,
 } from "../components/enhanced-mutation";
-import {
-  RouteErrorView,
-  RoutePending
-} from "../components/route-boundaries";
+import { RouteErrorView, RoutePending } from "../components/route-boundaries";
 import {
   cancelEvent,
   getEventDetail,
   reportEvent,
   rsvpEvent,
   setEventInterest,
-  unlockEvent
+  unlockEvent,
 } from "../features/event-slice/event.functions";
 import {
   getEventViewerSession,
-  logout
+  logout,
 } from "../features/event-slice/auth.functions";
 import { EventBanner } from "../features/event-slice/event-banner";
 import type {
   EventDTO,
   EventDetailDTO,
   EventNotice,
-  LockedEventDTO
+  LockedEventDTO,
 } from "../features/event-slice/contracts";
 import { validateEventsSearch } from "../features/event-slice/contracts";
 import {
@@ -48,7 +45,7 @@ import {
   recurrenceRuleLabel,
   roleIndicatorLabel,
   safeExternalEventUrl,
-  verificationLabel
+  verificationLabel,
 } from "../features/event-slice/presentation";
 import eventCSS from "../features/event-slice/events.css?url";
 
@@ -94,23 +91,25 @@ export const Route = createFileRoute("/events/$slug")({
     return {
       event: detail.event,
       authenticated: session.authenticated,
-      publicOrigin: context.publicOrigin
+      publicOrigin: context.publicOrigin,
     };
   },
   headers: () => ({
     "cache-control": "private, no-store",
-    vary: "Cookie"
+    vary: "Cookie",
   }),
   head: ({ loaderData }) => ({
     ...eventHead(loaderData),
-    links: [{ rel: "stylesheet", href: eventCSS }]
+    links: [{ rel: "stylesheet", href: eventCSS }],
   }),
   pendingComponent: EventPending,
   errorComponent: EventError,
-  component: EventPage
+  component: EventPage,
 });
 
-export function validateEventSearch(search: Record<string, unknown>): EventSearch {
+export function validateEventSearch(
+  search: Record<string, unknown>,
+): EventSearch {
   const event = validateEventsSearch(search).event;
   return event ? { event } : {};
 }
@@ -132,8 +131,8 @@ export function eventHead(loaderData?: EventRouteData) {
         { property: "og:description", content: privateEventDescription },
         { name: "twitter:card", content: "summary" },
         { name: "twitter:title", content: title },
-        { name: "twitter:description", content: privateEventDescription }
-      ]
+        { name: "twitter:description", content: privateEventDescription },
+      ],
     };
   }
 
@@ -155,12 +154,12 @@ export function eventHead(loaderData?: EventRouteData) {
       { property: "og:description", content: description },
       {
         property: "og:url",
-        content: `${loaderData.publicOrigin}/events/${encodeURIComponent(event.slug)}`
+        content: `${loaderData.publicOrigin}/events/${encodeURIComponent(event.slug)}`,
       },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:title", content: title },
-      { name: "twitter:description", content: description }
-    ]
+      { name: "twitter:description", content: description },
+    ],
   };
 }
 
@@ -183,7 +182,7 @@ function EventPage() {
 
 export function LockedEventView({
   slug,
-  authenticated
+  authenticated,
 }: {
   slug: string;
   authenticated: boolean;
@@ -222,7 +221,7 @@ export function LockedEventView({
 function VisibleEventView({
   event,
   authenticated,
-  notice
+  notice,
 }: {
   event: EventDTO;
   authenticated: boolean;
@@ -240,8 +239,12 @@ function VisibleEventView({
           {event.description || "Event details are coming soon."}
         </p>
         <div className="event-pill-list">
-          <span className="event-pill">{eventLifecycleLabel(event.lifecycle)}</span>
-          <span className="event-pill">{eventVisibilityLabel(event.visibility)}</span>
+          <span className="event-pill">
+            {eventLifecycleLabel(event.lifecycle)}
+          </span>
+          <span className="event-pill">
+            {eventVisibilityLabel(event.visibility)}
+          </span>
           <span className="event-pill">{eventFormatLabel(event.format)}</span>
         </div>
       </section>
@@ -269,10 +272,7 @@ function VisibleEventView({
         <div className="detail-row">
           <span>Host school</span>
           <strong>
-            <Link
-              to="/schools/$slug"
-              params={{ slug: event.host_school.slug }}
-            >
+            <Link to="/schools/$slug" params={{ slug: event.host_school.slug }}>
               {event.host_school.name}
             </Link>
           </strong>
@@ -402,14 +402,14 @@ function NativeLogoutFallback({ authenticated }: { authenticated: boolean }) {
 function InterestEventForm({ event }: { event: EventDTO }) {
   const runSetEventInterest = useServerFn(setEventInterest);
   const mutation = useEnhancedMutation(
-    "We could not update your interest. Please try again."
+    "We could not update your interest. Please try again.",
   );
   const interested = !event.viewer_interested;
 
   async function submit(formEvent: FormEvent<HTMLFormElement>) {
     formEvent.preventDefault();
     await mutation.execute(() =>
-      runSetEventInterest({ data: { slug: event.slug, interested } })
+      runSetEventInterest({ data: { slug: event.slug, interested } }),
     );
   }
 
@@ -433,7 +433,7 @@ function InterestEventForm({ event }: { event: EventDTO }) {
 function CancelEventForm({ slug }: { slug: string }) {
   const runCancelEvent = useServerFn(cancelEvent);
   const mutation = useEnhancedMutation(
-    "We could not cancel that event. Please try again."
+    "We could not cancel that event. Please try again.",
   );
 
   async function submit(formEvent: FormEvent<HTMLFormElement>) {
@@ -468,14 +468,14 @@ function ReportEventForm({ slug }: { slug: string }) {
     setReasonErrors(undefined);
     try {
       const result = await runReportEvent({
-        data: { slug, reason: String(form.get("reason") ?? "") }
+        data: { slug, reason: String(form.get("reason") ?? "") },
       });
       if (result.status === "error") {
         setFailed(true);
         setMessage(
           result.fieldErrors?.reason?.length
             ? result.message
-            : "We could not submit that report. Please try again."
+            : "We could not submit that report. Please try again.",
         );
         setReasonErrors(result.fieldErrors?.reason);
       } else {
@@ -524,7 +524,7 @@ function ReportEventForm({ slug }: { slug: string }) {
 function UnlockEventForm({ slug }: { slug: string }) {
   const runUnlockEvent = useServerFn(unlockEvent);
   const mutation = useEnhancedMutation(
-    "We could not unlock that event. Please try again."
+    "We could not unlock that event. Please try again.",
   );
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -535,9 +535,9 @@ function UnlockEventForm({ slug }: { slug: string }) {
       runUnlockEvent({
         data: {
           slug,
-          password: String(form.get("password") ?? "")
-        }
-      })
+          password: String(form.get("password") ?? ""),
+        },
+      }),
     );
   }
 
@@ -579,7 +579,7 @@ function UnlockEventForm({ slug }: { slug: string }) {
 function RsvpEventForm({ event }: { event: EventDTO }) {
   const runRsvpEvent = useServerFn(rsvpEvent);
   const mutation = useEnhancedMutation(
-    "We could not save your RSVP. Please try again."
+    "We could not save your RSVP. Please try again.",
   );
   const isEnded = event.lifecycle === "ended";
   const isFullForViewer =
@@ -595,15 +595,15 @@ function RsvpEventForm({ event }: { event: EventDTO }) {
       await mutation.execute(async () => ({
         status: "error",
         message: "Check the highlighted fields and try again.",
-        fieldErrors: { response: ["Choose yes, maybe, or no."] }
+        fieldErrors: { response: ["Choose yes, maybe, or no."] },
       }));
       return;
     }
 
     await mutation.execute(() =>
       runRsvpEvent({
-        data: { slug: event.slug, response }
-      })
+        data: { slug: event.slug, response },
+      }),
     );
   }
 

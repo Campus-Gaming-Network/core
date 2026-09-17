@@ -3,7 +3,7 @@ import test from "node:test";
 
 import {
   apiHealthResponse,
-  methodNotAllowedResponse
+  methodNotAllowedResponse,
 } from "../src/server/health.server.js";
 
 test("health route preserves the healthy public response contract", async () => {
@@ -12,8 +12,11 @@ test("health route preserves the healthy public response contract", async () => 
     apiBaseURL: "http://api.internal",
     fetcher: async (input) => {
       requestedURL = String(input);
-      return Response.json({ service: "campus-gaming-network-api", status: "ok" });
-    }
+      return Response.json({
+        service: "campus-gaming-network-api",
+        status: "ok",
+      });
+    },
   });
 
   assert.equal(requestedURL, "http://api.internal/health");
@@ -22,14 +25,14 @@ test("health route preserves the healthy public response contract", async () => 
   assert.deepEqual(await response.json(), {
     service: "campus-gaming-network-web",
     status: "ok",
-    api: { service: "campus-gaming-network-api", status: "ok" }
+    api: { service: "campus-gaming-network-api", status: "ok" },
   });
 });
 
 test("health route maps an unhealthy API to a degraded response", async () => {
   const response = await apiHealthResponse({
     apiBaseURL: "http://api.internal",
-    fetcher: async () => Response.json({ status: "degraded" }, { status: 503 })
+    fetcher: async () => Response.json({ status: "degraded" }, { status: 503 }),
   });
 
   assert.equal(response.status, 503);
@@ -37,7 +40,7 @@ test("health route maps an unhealthy API to a degraded response", async () => {
   assert.deepEqual(await response.json(), {
     service: "campus-gaming-network-web",
     status: "degraded",
-    api: { status: "degraded" }
+    api: { status: "degraded" },
   });
 });
 
@@ -46,7 +49,7 @@ test("health route reports an unreachable API without leaking the error", async 
     apiBaseURL: "http://api.internal",
     fetcher: async () => {
       throw new Error("connection contained a secret");
-    }
+    },
   });
 
   assert.equal(response.status, 503);
@@ -54,34 +57,35 @@ test("health route reports an unreachable API without leaking the error", async 
   assert.deepEqual(await response.json(), {
     service: "campus-gaming-network-web",
     status: "degraded",
-    reason: "api_unreachable"
+    reason: "api_unreachable",
   });
 });
 
 test("health route strips additive upstream fields and rejects malformed success", async () => {
   const additive = await apiHealthResponse({
     apiBaseURL: "http://api.internal",
-    fetcher: async () => Response.json({
-      service: "campus-gaming-network-api",
-      status: "ok",
-      database_url: "postgres://private"
-    })
+    fetcher: async () =>
+      Response.json({
+        service: "campus-gaming-network-api",
+        status: "ok",
+        database_url: "postgres://private",
+      }),
   });
   assert.deepEqual(await additive.json(), {
     service: "campus-gaming-network-web",
     status: "ok",
-    api: { service: "campus-gaming-network-api", status: "ok" }
+    api: { service: "campus-gaming-network-api", status: "ok" },
   });
 
   const malformed = await apiHealthResponse({
     apiBaseURL: "http://api.internal",
-    fetcher: async () => Response.json({ status: { private: true } })
+    fetcher: async () => Response.json({ status: { private: true } }),
   });
   assert.equal(malformed.status, 503);
   assert.deepEqual(await malformed.json(), {
     service: "campus-gaming-network-web",
     status: "degraded",
-    api: { status: "unknown" }
+    api: { status: "unknown" },
   });
 });
 

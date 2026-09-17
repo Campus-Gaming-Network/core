@@ -3,7 +3,7 @@ import {
   ApiContractError,
   ApiError,
   safeApiErrorMessage,
-  type ApiClient
+  type ApiClient,
 } from "../../server/api.server.js";
 import { optionalViewerProfile } from "../../server/viewer.server.js";
 import {
@@ -12,7 +12,7 @@ import {
   type PublicProfileDTO,
   type PublicProfilePageResult,
   type ReportUserInput,
-  type ReportUserResult
+  type ReportUserResult,
 } from "./contracts.js";
 
 type Dependencies = {
@@ -31,7 +31,7 @@ const idResponseSchema = z.object({ id: z.string().trim().min(1) });
 
 const unavailableResult = {
   status: "error" as const,
-  message: "We could not load this profile. Please try again." as const
+  message: "We could not load this profile. Please try again." as const,
 };
 
 export async function getPublicProfilePageOperation(
@@ -40,15 +40,15 @@ export async function getPublicProfilePageOperation(
     api,
     cookieHeader,
     sessionCookieValue,
-    reportError = defaultErrorReporter
-  }: Dependencies
+    reportError = defaultErrorReporter,
+  }: Dependencies,
 ): Promise<PublicProfilePageResult> {
   let profile: PublicProfileDTO;
   try {
     const result = await api({
       path: `/users/${encodeURIComponent(id)}`,
       cache: "no-store",
-      responseSchema: publicProfileDtoSchema
+      responseSchema: publicProfileDtoSchema,
     });
     profile = result.data;
   } catch (error) {
@@ -65,12 +65,16 @@ export async function getPublicProfilePageOperation(
     const viewer = await optionalViewerProfile({
       api,
       cookieHeader,
-      sessionCookieValue
+      sessionCookieValue,
     });
     return {
       status: "found",
       profile,
-      viewer: !viewer ? "anonymous" : viewer.id === profile.id ? "self" : "other"
+      viewer: !viewer
+        ? "anonymous"
+        : viewer.id === profile.id
+          ? "self"
+          : "other",
     };
   } catch (error) {
     reportError(error);
@@ -80,11 +84,7 @@ export async function getPublicProfilePageOperation(
 
 export async function reportUserOperation(
   { userID, reason }: ReportUserInput,
-  {
-    api,
-    cookieHeader,
-    reportError = defaultErrorReporter
-  }: ReportDependencies
+  { api, cookieHeader, reportError = defaultErrorReporter }: ReportDependencies,
 ): Promise<ReportUserResult> {
   try {
     await api({
@@ -93,7 +93,7 @@ export async function reportUserOperation(
       cookieHeader,
       body: { reason },
       cache: "no-store",
-      responseSchema: idResponseSchema
+      responseSchema: idResponseSchema,
     });
     return { status: "success", message: "Report submitted for review." };
   } catch (error) {
@@ -106,7 +106,7 @@ function defaultErrorReporter(error: unknown): void {
   if (error instanceof ApiContractError) {
     console.error("API response contract violation", {
       path: error.path,
-      issues: error.issues
+      issues: error.issues,
     });
   } else if (!(error instanceof ApiError)) {
     console.error("Public profile request failed");

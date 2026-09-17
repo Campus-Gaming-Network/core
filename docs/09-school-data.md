@@ -6,11 +6,11 @@ One-time bootstrap of the US school catalog from the Department of Education [Co
 
 ## Files
 
-| File | Role | Git? |
-|------|------|------|
-| `data/Schools_2025_26.csv` | Raw Scorecard institution extract (~60MB, 3308 columns, 6273 rows) | **Ignored** (too large) |
-| `data/schools_seed.csv` | Slim seed for the one-time import (12 columns, 6243 operating schools) | **Tracked** |
-| `scripts/build_schools_seed.py` | Builds the seed CSV from the raw download (dev utility only) | Tracked |
+| File                            | Role                                                                   | Git?                    |
+| ------------------------------- | ---------------------------------------------------------------------- | ----------------------- |
+| `data/Schools_2025_26.csv`      | Raw Scorecard institution extract (~60MB, 3308 columns, 6273 rows)     | **Ignored** (too large) |
+| `data/schools_seed.csv`         | Slim seed for the one-time import (12 columns, 6243 operating schools) | **Tracked**             |
+| `scripts/build_schools_seed.py` | Builds the seed CSV from the raw download (dev utility only)           | Tracked                 |
 
 ```bash
 # Only needed if regenerating the seed file before the first import:
@@ -21,30 +21,30 @@ python3 scripts/build_schools_seed.py
 
 Identity and location only (no public/private/nonprofit classification).
 
-| Seed column | Scorecard field | Notes |
-|-------------|-----------------|-------|
-| `unitid` | `UNITID` | Optional in DB; set on seeded rows; unique when present |
-| `name` | `INSTNM` | Display name (not unique) |
-| `alias` | `ALIAS` | Optional short name |
-| `slug` | derived | URL slug; collisions get `-2`, `-3`, … |
-| `city` / `state` / `zip` | `CITY` / `STABBR` / `ZIP` | |
-| `website_url` | `INSTURL` | Normalized with `https://` when missing |
-| `latitude` / `longitude` | `LATITUDE` / `LONGITUDE` | Stored now; near-you feature is later |
-| `is_main_campus` | `MAIN` | `1` = main |
-| `num_branches` | `NUMBRANCH` | |
+| Seed column              | Scorecard field           | Notes                                                   |
+| ------------------------ | ------------------------- | ------------------------------------------------------- |
+| `unitid`                 | `UNITID`                  | Optional in DB; set on seeded rows; unique when present |
+| `name`                   | `INSTNM`                  | Display name (not unique)                               |
+| `alias`                  | `ALIAS`                   | Optional short name                                     |
+| `slug`                   | derived                   | URL slug; collisions get `-2`, `-3`, …                  |
+| `city` / `state` / `zip` | `CITY` / `STABBR` / `ZIP` |                                                         |
+| `website_url`            | `INSTURL`                 | Normalized with `https://` when missing                 |
+| `latitude` / `longitude` | `LATITUDE` / `LONGITUDE`  | Stored now; near-you feature is later                   |
+| `is_main_campus`         | `MAIN`                    | `1` = main                                              |
+| `num_branches`           | `NUMBRANCH`               |                                                         |
 
 **Filter applied:** `CURROPER = 1` (currently operating). Closed schools are dropped from the seed (30 rows in this file).
 
 ## Counts (this extract)
 
-| Set | Count |
-|-----|------:|
-| Raw rows | 6,273 |
-| Operating (`CURROPER=1`) in seed | 6,243 |
-| Main campuses | 4,943 |
-| **Branch campuses** | **1,300** |
-| With lat/lng | 5,715 |
-| Distinct `STABBR` values | 59 (states + DC + territories) |
+| Set                              |                          Count |
+| -------------------------------- | -----------------------------: |
+| Raw rows                         |                          6,273 |
+| Operating (`CURROPER=1`) in seed |                          6,243 |
+| Main campuses                    |                          4,943 |
+| **Branch campuses**              |                      **1,300** |
+| With lat/lng                     |                          5,715 |
+| Distinct `STABBR` values         | 59 (states + DC + territories) |
 
 ## Lifecycle
 

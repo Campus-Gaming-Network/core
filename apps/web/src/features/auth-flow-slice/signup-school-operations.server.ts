@@ -11,8 +11,8 @@ export async function signupSchoolSearchOperation(
   query: string,
   {
     api,
-    reportError = () => undefined
-  }: { api: ApiClient; reportError?: (error: unknown) => void }
+    reportError = () => undefined,
+  }: { api: ApiClient; reportError?: (error: unknown) => void },
 ): Promise<SignupSchoolSearchResult> {
   if (query.trim().length < 2) {
     return { schools: [], failed: false };

@@ -2,7 +2,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useState, type FormEvent } from "react";
 import {
   FieldError,
-  fieldErrorProps
+  fieldErrorProps,
 } from "../../components/enhanced-mutation";
 import type { SupportFieldErrors } from "./contracts";
 import { submitSupportTicket } from "./support.functions";
@@ -10,7 +10,7 @@ import { submitSupportTicket } from "./support.functions";
 const emptyErrors: SupportFieldErrors = {};
 
 export function SupportTicketForm({
-  initialStatus
+  initialStatus,
 }: {
   initialStatus?: "failed" | "submitted";
 }) {
@@ -27,28 +27,34 @@ export function SupportTicketForm({
     setPending(true);
     setResult({ status: "idle", message: "", fieldErrors: emptyErrors });
     try {
-      const next = await runSubmission({ data: new FormData(event.currentTarget) });
+      const next = await runSubmission({
+        data: new FormData(event.currentTarget),
+      });
       setResult({
         status: next.status,
         message: next.message,
-        fieldErrors: next.status === "error" ? next.fieldErrors ?? emptyErrors : emptyErrors
+        fieldErrors:
+          next.status === "error"
+            ? (next.fieldErrors ?? emptyErrors)
+            : emptyErrors,
       });
     } catch {
       setResult({
         status: "error",
         message: "We could not submit that support ticket. Please try again.",
-        fieldErrors: emptyErrors
+        fieldErrors: emptyErrors,
       });
     } finally {
       setPending(false);
     }
   }
 
-  const initialMessage = initialStatus === "submitted"
-    ? "Support ticket submitted. We will review it soon."
-    : initialStatus === "failed"
-      ? "We could not submit that support ticket. Please try again."
-      : "";
+  const initialMessage =
+    initialStatus === "submitted"
+      ? "Support ticket submitted. We will review it soon."
+      : initialStatus === "failed"
+        ? "We could not submit that support ticket. Please try again."
+        : "";
   const status = result.message
     ? result.status
     : initialStatus === "submitted"
@@ -65,10 +71,7 @@ export function SupportTicketForm({
       onSubmit={submit}
     >
       {result.message || initialMessage ? (
-        <p
-          aria-live="polite"
-          role={status === "error" ? "alert" : "status"}
-        >
+        <p aria-live="polite" role={status === "error" ? "alert" : "status"}>
           {result.message || initialMessage}
         </p>
       ) : null}
@@ -82,7 +85,7 @@ export function SupportTicketForm({
           required
           {...fieldErrorProps(
             result.fieldErrors.contact_email,
-            "contact_email-error"
+            "contact_email-error",
           )}
         />
         <FieldError
@@ -108,10 +111,7 @@ export function SupportTicketForm({
           maxLength={160}
           {...fieldErrorProps(result.fieldErrors.subject, "subject-error")}
         />
-        <FieldError
-          id="subject-error"
-          messages={result.fieldErrors.subject}
-        />
+        <FieldError id="subject-error" messages={result.fieldErrors.subject} />
       </label>
       <label>
         Message
@@ -122,14 +122,11 @@ export function SupportTicketForm({
           rows={7}
           {...fieldErrorProps(result.fieldErrors.message, "message-error")}
         />
-        <FieldError
-          id="message-error"
-          messages={result.fieldErrors.message}
-        />
+        <FieldError id="message-error" messages={result.fieldErrors.message} />
       </label>
       <p className="form-help">
-        Support tickets are queued for review. Do not include passwords,
-        payment card details, or other sensitive secrets.
+        Support tickets are queued for review. Do not include passwords, payment
+        card details, or other sensitive secrets.
       </p>
       <button type="submit" disabled={pending}>
         {pending ? "Submitting…" : "Submit support ticket"}

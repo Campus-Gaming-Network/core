@@ -59,20 +59,20 @@ A Railway hard limit stops workloads when reached, so it is a last-resort contro
 
 Complete this worksheet before creating services. Do not place secret values in Git, issue trackers, screenshots, or chat transcripts.
 
-| Item | Recommended value or decision | Ready |
-|---|---|---|
-| Railway workspace | Workspace that will own production billing | [ ] |
-| Railway project name | `campus-gaming-network` | [ ] |
-| Staging branch | `next` | [ ] |
-| Production branch | `main` | [ ] |
-| Railway region | One US region for `web`, `api`, and `postgres` | [ ] |
-| GitHub access | Railway GitHub App can read `Campus-Gaming-Network/core` | [ ] |
-| Production domain | `campusgamingnetwork.com` in Cloudflare | [ ] |
-| Resend domain | `campusgamingnetwork.com` verified for sending | [ ] |
-| Staging Resend key | Sending-only key, stored in a password manager | [ ] |
-| Production Resend key | Different sending-only key, stored in a password manager | [ ] |
-| Alert recipient | Monitored operational email address | [ ] |
-| Launch operator | Person responsible for deploy and rollback | [ ] |
+| Item                  | Recommended value or decision                            | Ready |
+| --------------------- | -------------------------------------------------------- | ----- |
+| Railway workspace     | Workspace that will own production billing               | [ ]   |
+| Railway project name  | `campus-gaming-network`                                  | [ ]   |
+| Staging branch        | `next`                                                   | [ ]   |
+| Production branch     | `main`                                                   | [ ]   |
+| Railway region        | One US region for `web`, `api`, and `postgres`           | [ ]   |
+| GitHub access         | Railway GitHub App can read `Campus-Gaming-Network/core` | [ ]   |
+| Production domain     | `campusgamingnetwork.com` in Cloudflare                  | [ ]   |
+| Resend domain         | `campusgamingnetwork.com` verified for sending           | [ ]   |
+| Staging Resend key    | Sending-only key, stored in a password manager           | [ ]   |
+| Production Resend key | Different sending-only key, stored in a password manager | [ ]   |
+| Alert recipient       | Monitored operational email address                      | [ ]   |
+| Launch operator       | Person responsible for deploy and rollback               | [ ]   |
 
 Choose **US West Metal (`us-west2`)** when the initial community and operator are primarily on the West Coast. Choose **US East Metal (`us-east4-eqdc4a`)** when the initial audience is concentrated in the eastern United States. Keep all three long-running services in the same region; cross-region database calls add latency, and moving a database volume later causes downtime.<sup>[[7]](#source-7)</sup>
 
@@ -87,12 +87,12 @@ openssl rand -hex 32
 
 Label and save them in a password manager:
 
-| Environment | Secret | Used by |
-|---|---|---|
-| Staging | `API_PROXY_SHARED_SECRET` | `web` and `api`; values must match |
-| Staging | `CLOUDFLARE_ORIGIN_SECRET` | `web`; required at startup even when staging uses its Railway domain directly |
-| Production | `API_PROXY_SHARED_SECRET` | `web` and `api`; values must match |
-| Production | `CLOUDFLARE_ORIGIN_SECRET` | `web` and the Cloudflare request-header transform |
+| Environment | Secret                     | Used by                                                                       |
+| ----------- | -------------------------- | ----------------------------------------------------------------------------- |
+| Staging     | `API_PROXY_SHARED_SECRET`  | `web` and `api`; values must match                                            |
+| Staging     | `CLOUDFLARE_ORIGIN_SECRET` | `web`; required at startup even when staging uses its Railway domain directly |
+| Production  | `API_PROXY_SHARED_SECRET`  | `web` and `api`; values must match                                            |
+| Production  | `CLOUDFLARE_ORIGIN_SECRET` | `web` and the Cloudflare request-header transform                             |
 
 Each generated value is 64 hexadecimal characters, exceeding the application's 32-character minimum. Never reuse a staging value in production.
 
@@ -166,18 +166,18 @@ Create the source service without starting a deployment so its configuration can
 4. Select the Dockerfile builder and set **Dockerfile Path** to `/apps/api/Dockerfile`. If the dashboard exposes only a variable, add `RAILWAY_DOCKERFILE_PATH=/apps/api/Dockerfile`.
 5. Configure the deployment values below.
 
-| API setting | Value |
-|---|---|
-| Start command | `cgn-api` |
-| Pre-deploy command | `cgn-migrate -dir /migrations` |
-| Pre-deploy timeout | `120` seconds |
-| Health-check path | `/ready` |
-| Health-check timeout | `120` seconds |
-| Restart policy | `On Failure` |
-| Maximum restarts | `10` |
-| Draining time | `10` seconds |
-| Replicas | `1` |
-| Public domain/TCP proxy | None |
+| API setting             | Value                          |
+| ----------------------- | ------------------------------ |
+| Start command           | `cgn-api`                      |
+| Pre-deploy command      | `cgn-migrate -dir /migrations` |
+| Pre-deploy timeout      | `120` seconds                  |
+| Health-check path       | `/ready`                       |
+| Health-check timeout    | `120` seconds                  |
+| Restart policy          | `On Failure`                   |
+| Maximum restarts        | `10`                           |
+| Draining time           | `10` seconds                   |
+| Replicas                | `1`                            |
+| Public domain/TCP proxy | None                           |
 
 The pre-deploy command runs inside the private network with service variables. If it exits nonzero, Railway does not activate the new deployment.<sup>[[17]](#source-17)</sup> The API image contains both `cgn-migrate` and `/migrations`, and `/ready` succeeds only when PostgreSQL is reachable.
 
@@ -222,15 +222,15 @@ Railway reference-variable syntax keeps the database URL synchronized without co
 4. Set **Dockerfile Path** to `/apps/web/Dockerfile`, using `RAILWAY_DOCKERFILE_PATH=/apps/web/Dockerfile` if necessary.
 5. Configure the following deployment values.
 
-| Web setting | Value |
-|---|---|
-| Start command | `node src/production-preflight.ts` |
-| Health-check path | `/api/health` |
-| Health-check timeout | `120` seconds |
-| Restart policy | `On Failure` |
-| Maximum restarts | `10` |
-| Draining time | `10` seconds |
-| Replicas | `1` initially |
+| Web setting          | Value                              |
+| -------------------- | ---------------------------------- |
+| Start command        | `node src/production-preflight.ts` |
+| Health-check path    | `/api/health`                      |
+| Health-check timeout | `120` seconds                      |
+| Restart policy       | `On Failure`                       |
+| Maximum restarts     | `10`                               |
+| Draining time        | `10` seconds                       |
+| Replicas             | `1` initially                      |
 
 6. Open **Settings → Networking → Public Networking** and choose **Generate Domain**.
 7. Copy the full HTTPS origin, for example `https://cgn-staging-example.up.railway.app`. Do not include a trailing path.
@@ -527,39 +527,39 @@ Never edit a migration already applied to staging or production, and do not use 
 
 ## Troubleshooting
 
-| Symptom | Most likely cause | Resolution |
-|---|---|---|
-| Docker build cannot find `package-lock.json`, `db/migrations`, or the seed CSV | Root Directory points at an app subdirectory | Reset Root Directory to `/`; keep the custom Dockerfile path |
-| API pre-deploy fails with `unsafe staging configuration` | A strict-mode API variable is missing or invalid | Correct every variable named in the log; Resend and site variables are required even for the migrator |
-| API health check fails | API cannot reach PostgreSQL, wrong `API_DATABASE_URL`, or process did not bind `PORT` | Confirm `${{postgres.DATABASE_URL}}`, same environment/region, and do not override `PORT` |
-| Web reports `api_unreachable` | Wrong private URL or service name | Service must be named `api`; use `http://${{api.RAILWAY_PRIVATE_DOMAIN}}:${{api.PORT}}` |
-| Seed logs `school seed skipped` | Schools table was already populated | Treat as expected only on a rerun; investigate if a supposedly fresh environment was not empty |
-| Resend returns 403 | Key invalid, domain unverified, or From domain mismatch | Verify domain status, key scope, and exact sender domain<sup>[[29]](#source-29)</sup> |
-| Custom domain returns 404 | Railway TXT record is absent or incorrect | Add both Railway-provided CNAME and TXT records and wait for verification |
-| Cloudflare shows too many redirects | Proxy or SSL/TLS mode is incorrect | Keep apex CNAME proxied and use SSL/TLS mode Full per Railway guidance |
-| Deployment never starts after a push | Wrong branch, failed CI, watch path mismatch, or GitHub permissions | Check skipped deployments, Wait for CI, source branch, Railway GitHub App access, and watch paths<sup>[[8]](#source-8)</sup> |
-| Unexpected bill growth | Both environments running, excess replicas, or public inter-service traffic | Review usage by service, use private URLs, remove `seed`, and tune limits |
+| Symptom                                                                        | Most likely cause                                                                     | Resolution                                                                                                                   |
+| ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Docker build cannot find `package-lock.json`, `db/migrations`, or the seed CSV | Root Directory points at an app subdirectory                                          | Reset Root Directory to `/`; keep the custom Dockerfile path                                                                 |
+| API pre-deploy fails with `unsafe staging configuration`                       | A strict-mode API variable is missing or invalid                                      | Correct every variable named in the log; Resend and site variables are required even for the migrator                        |
+| API health check fails                                                         | API cannot reach PostgreSQL, wrong `API_DATABASE_URL`, or process did not bind `PORT` | Confirm `${{postgres.DATABASE_URL}}`, same environment/region, and do not override `PORT`                                    |
+| Web reports `api_unreachable`                                                  | Wrong private URL or service name                                                     | Service must be named `api`; use `http://${{api.RAILWAY_PRIVATE_DOMAIN}}:${{api.PORT}}`                                      |
+| Seed logs `school seed skipped`                                                | Schools table was already populated                                                   | Treat as expected only on a rerun; investigate if a supposedly fresh environment was not empty                               |
+| Resend returns 403                                                             | Key invalid, domain unverified, or From domain mismatch                               | Verify domain status, key scope, and exact sender domain<sup>[[29]](#source-29)</sup>                                        |
+| Custom domain returns 404                                                      | Railway TXT record is absent or incorrect                                             | Add both Railway-provided CNAME and TXT records and wait for verification                                                    |
+| Cloudflare shows too many redirects                                            | Proxy or SSL/TLS mode is incorrect                                                    | Keep apex CNAME proxied and use SSL/TLS mode Full per Railway guidance                                                       |
+| Deployment never starts after a push                                           | Wrong branch, failed CI, watch path mismatch, or GitHub permissions                   | Check skipped deployments, Wait for CI, source branch, Railway GitHub App access, and watch paths<sup>[[8]](#source-8)</sup> |
+| Unexpected bill growth                                                         | Both environments running, excess replicas, or public inter-service traffic           | Review usage by service, use private URLs, remove `seed`, and tune limits                                                    |
 
 ## Launch record
 
 Copy this table into the launch issue and complete it for each environment.
 
-| Gate | Staging | Production |
-|---|---|---|
-| Git commit SHA |  |  |
-| Railway region |  |  |
-| API migration deployment ID |  |  |
-| School seed log captured: 6,243 |  |  |
-| Automated smoke test passed |  |  |
-| Authenticated checklist passed |  |  |
-| Backup schedules enabled |  |  |
-| Manual backup timestamp |  |  |
-| Restore rehearsal date/result |  |  |
-| Resend delivery verified |  |  |
-| API/Postgres confirmed private |  |  |
-| Cloudflare domain/header/redirect | N/A unless used |  |
-| Operator and rollback owner |  |  |
-| Final acceptance time |  |  |
+| Gate                              | Staging         | Production |
+| --------------------------------- | --------------- | ---------- |
+| Git commit SHA                    |                 |            |
+| Railway region                    |                 |            |
+| API migration deployment ID       |                 |            |
+| School seed log captured: 6,243   |                 |            |
+| Automated smoke test passed       |                 |            |
+| Authenticated checklist passed    |                 |            |
+| Backup schedules enabled          |                 |            |
+| Manual backup timestamp           |                 |            |
+| Restore rehearsal date/result     |                 |            |
+| Resend delivery verified          |                 |            |
+| API/Postgres confirmed private    |                 |            |
+| Cloudflare domain/header/redirect | N/A unless used |            |
+| Operator and rollback owner       |                 |            |
+| Final acceptance time             |                 |            |
 
 ## Sources
 

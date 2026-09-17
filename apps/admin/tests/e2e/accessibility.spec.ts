@@ -2,7 +2,7 @@ import { AxeBuilder } from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 
 test("the denied-by-default shell is accessible at desktop and mobile sizes", async ({
-  page
+  page,
 }) => {
   const response = await page.goto("/");
   expect(response?.status()).toBe(200);
@@ -16,8 +16,8 @@ test("the denied-by-default shell is accessible at desktop and mobile sizes", as
   expect(
     results.violations.map((violation) => ({
       id: violation.id,
-      targets: violation.nodes.map((node) => node.target)
-    }))
+      targets: violation.nodes.map((node) => node.target),
+    })),
   ).toEqual([]);
 });
 
@@ -25,6 +25,6 @@ async function horizontalOverflow(page: Page): Promise<number> {
   return page.evaluate(
     () =>
       document.documentElement.scrollWidth -
-      document.documentElement.clientWidth
+      document.documentElement.clientWidth,
   );
 }

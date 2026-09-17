@@ -4,9 +4,10 @@ import { basename, join } from "node:path";
 import test from "node:test";
 
 const currentDirectory = process.cwd();
-const appRoot = basename(currentDirectory) === "web"
-  ? currentDirectory
-  : join(currentDirectory, "apps/web");
+const appRoot =
+  basename(currentDirectory) === "web"
+    ? currentDirectory
+    : join(currentDirectory, "apps/web");
 
 function source(relativePath: string) {
   return readFileSync(join(appRoot, relativePath), "utf8");
@@ -20,7 +21,10 @@ test("support route keeps indexable metadata and renders the real form", () => {
   assert.match(route, /loader: \(\{ context \}\) => context\.publicOrigin/);
   assert.match(route, /publicPageHead/);
   assert.doesNotMatch(route, /noIndex|supportMutationGap|migrated in Phase 4/);
-  assert.match(route, /<SupportTicketForm initialStatus=\{search\.support\} \/>/);
+  assert.match(
+    route,
+    /<SupportTicketForm initialStatus=\{search\.support\} \/>/,
+  );
 });
 
 test("support form preserves native constraints and accessible enhanced errors", () => {
@@ -50,5 +54,8 @@ test("support function derives trust and cookies server-side with safe native re
   assert.match(functions, /isNativeFormPost\(\)/);
   assert.match(functions, /statusCode: 303/);
   assert.match(functions, /\/support\?support=/);
-  assert.doesNotMatch(functions, /contact_email|x-cgn-visitor-ip|x-cgn-proxy-secret/);
+  assert.doesNotMatch(
+    functions,
+    /contact_email|x-cgn-visitor-ip|x-cgn-proxy-secret/,
+  );
 });

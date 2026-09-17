@@ -4,14 +4,14 @@ import {
   Outlet,
   Scripts,
   createRootRoute,
-  useRouter
+  useRouter,
 } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useState, type FormEvent, type ReactNode } from "react";
 import {
   DefaultError,
   DefaultNotFound,
-  DefaultPending
+  DefaultPending,
 } from "../components/route-boundaries";
 import { getAdminShellSession, logout } from "../features/session.functions";
 import appCSS from "../styles.css?url";
@@ -20,7 +20,7 @@ export const Route = createRootRoute({
   beforeLoad: async () => ({ admin: await getAdminShellSession() }),
   headers: () => ({
     "cache-control": "private, no-store",
-    vary: "Cookie"
+    vary: "Cookie",
   }),
   head: () => ({
     meta: [
@@ -28,15 +28,15 @@ export const Route = createRootRoute({
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { name: "application-name", content: "CGN Admin Console" },
       { name: "robots", content: "noindex,nofollow,noarchive,nosnippet" },
-      { name: "referrer", content: "no-referrer" }
+      { name: "referrer", content: "no-referrer" },
     ],
-    links: [{ rel: "stylesheet", href: appCSS }]
+    links: [{ rel: "stylesheet", href: appCSS }],
   }),
   component: RootComponent,
   pendingComponent: DefaultPending,
   errorComponent: DefaultError,
   notFoundComponent: DefaultNotFound,
-  shellComponent: RootDocument
+  shellComponent: RootDocument,
 });
 
 function RootComponent() {
@@ -80,7 +80,9 @@ function AuthenticatedShell({ email }: { email: string }) {
       </a>
       <aside className="sidebar">
         <Link className="brand" to="/" aria-label="CGN Admin Console home">
-          <span className="brand-mark" aria-hidden="true">CGN</span>
+          <span className="brand-mark" aria-hidden="true">
+            CGN
+          </span>
           <span>Admin Console</span>
         </Link>
         <nav aria-label="Admin navigation">
@@ -130,7 +132,7 @@ function LogoutForm() {
 function AccessState({
   eyebrow,
   heading,
-  message
+  message,
 }: {
   eyebrow: string;
   heading: string;

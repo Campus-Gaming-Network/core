@@ -15,7 +15,7 @@ const capabilitySchema = z.enum([
   "school_grants.manage",
   "trust_grants.manage",
   "site_grants.manage",
-  "audit.read"
+  "audit.read",
 ]);
 
 export const adminSessionSchema = z.object({
@@ -25,7 +25,7 @@ export const adminSessionSchema = z.object({
   capabilities: z.array(capabilitySchema),
   authenticated_at: z.iso.datetime({ offset: true }),
   step_up_at: z.iso.datetime({ offset: true }).optional(),
-  absolute_expires_at: z.iso.datetime({ offset: true })
+  absolute_expires_at: z.iso.datetime({ offset: true }),
 });
 
 export type AdminSession = z.output<typeof adminSessionSchema>;

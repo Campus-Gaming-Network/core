@@ -32,32 +32,32 @@
 
 ## Product principles
 
-| Principle | Meaning |
-|-----------|---------|
-| Keep it simple | Ship the smallest useful version; avoid premature complexity |
-| Server-first | Prefer server rendering and server-side logic; use the browser only when needed |
-| CSS over JS | Prefer CSS solutions when they work; avoid extra client JavaScript |
-| Accessible | Follow accessible patterns (gov.uk Design System is a good reference) |
-| Mobile-friendly | First-class mobile experience |
-| Cost-conscious | Single developer; minimize third-party spend and complexity |
+| Principle            | Meaning                                                                            |
+| -------------------- | ---------------------------------------------------------------------------------- |
+| Keep it simple       | Ship the smallest useful version; avoid premature complexity                       |
+| Server-first         | Prefer server rendering and server-side logic; use the browser only when needed    |
+| CSS over JS          | Prefer CSS solutions when they work; avoid extra client JavaScript                 |
+| Accessible           | Follow accessible patterns (gov.uk Design System is a good reference)              |
+| Mobile-friendly      | First-class mobile experience                                                      |
+| Cost-conscious       | Single developer; minimize third-party spend and complexity                        |
 | Minimal dependencies | Prefer fewer libraries; adopt ones that are clearly worth it, performant, and safe |
-| Log meaningfully | User actions and entity changes are visible to the right audiences |
-| Safe by default | Rate limits, XSS/SQL injection prevention, profanity filtering, soft deletes |
+| Log meaningfully     | User actions and entity changes are visible to the right audiences                 |
+| Safe by default      | Rate limits, XSS/SQL injection prevention, profanity filtering, soft deletes       |
 
 ## Personas
 
-| Persona | Description |
-|---------|-------------|
-| **Student (basic)** | Registered with any email; can browse, RSVP, create events/teams |
-| **Verified student** | Registered/verified with a `.edu` email |
-| **Staff / faculty** | Granted by site admin; may run esports programs or advise clubs |
-| **Alumni** | Can participate after graduation |
-| **School admin** | Edits school details, manages school teams/clubs, cannot remove other school admins |
-| **Club officer** | Manages a club; can create badge-eligible events |
-| **Team owner / captain** | Owns or captains a team; can invite members and register for team tournaments |
-| **Event organizer** | Creates/hosts events; may be one of several organizers |
-| **Site admin** | Later: creates schools via the Admin Console, manages users/ACLs, views reports, impersonates users |
-| **Admin Console operator** | Later: uses the Admin Console (not raw DB) to manage schools, users, ACLs |
+| Persona                    | Description                                                                                         |
+| -------------------------- | --------------------------------------------------------------------------------------------------- |
+| **Student (basic)**        | Registered with any email; can browse, RSVP, create events/teams                                    |
+| **Verified student**       | Registered/verified with a `.edu` email                                                             |
+| **Staff / faculty**        | Granted by site admin; may run esports programs or advise clubs                                     |
+| **Alumni**                 | Can participate after graduation                                                                    |
+| **School admin**           | Edits school details, manages school teams/clubs, cannot remove other school admins                 |
+| **Club officer**           | Manages a club; can create badge-eligible events                                                    |
+| **Team owner / captain**   | Owns or captains a team; can invite members and register for team tournaments                       |
+| **Event organizer**        | Creates/hosts events; may be one of several organizers                                              |
+| **Site admin**             | Later: creates schools via the Admin Console, manages users/ACLs, views reports, impersonates users |
+| **Admin Console operator** | Later: uses the Admin Console (not raw DB) to manage schools, users, ACLs                           |
 
 ## User verification levels
 
@@ -246,9 +246,9 @@ Signup also requires confirming **age 18+**. Alumni can participate. Faculty who
 
 ## Hosting URLs
 
-| App | URL |
-|-----|-----|
-| Main website | [campusgamingnetwork.com](https://campusgamingnetwork.com) |
+| App           | URL                                                                            |
+| ------------- | ------------------------------------------------------------------------------ |
+| Main website  | [campusgamingnetwork.com](https://campusgamingnetwork.com)                     |
 | Admin Console | [admin.campusgamingnetwork.com](https://admin.campusgamingnetwork.com) (later) |
 
 ## Success criteria (first release)
