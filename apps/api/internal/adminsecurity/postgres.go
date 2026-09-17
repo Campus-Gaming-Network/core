@@ -11,15 +11,27 @@ import (
 )
 
 type PostgresStore struct {
-	pool *pgxpool.Pool
+	executor postgresExecutor
 }
 
 func NewPostgresStore(pool *pgxpool.Pool) *PostgresStore {
-	return &PostgresStore{pool: pool}
+	return &PostgresStore{executor: pool}
+}
+
+// NewPostgresStoreForTransaction binds security-event inserts to the caller's
+// transaction so an event and the session/domain mutation it describes either
+// commit together or both roll back.
+func NewPostgresStoreForTransaction(tx pgx.Tx) *PostgresStore {
+	return &PostgresStore{executor: tx}
+}
+
+type postgresExecutor interface {
+	Query(context.Context, string, ...any) (pgx.Rows, error)
+	QueryRow(context.Context, string, ...any) pgx.Row
 }
 
 func (store *PostgresStore) Insert(ctx context.Context, input WriteInput) (Event, error) {
-	if store == nil || store.pool == nil || input.validate() != nil {
+	if store == nil || store.executor == nil || input.validate() != nil {
 		return Event{}, ErrInvalidEvent
 	}
 	metadata, err := json.Marshal(input.Metadata)
@@ -28,7 +40,7 @@ func (store *PostgresStore) Insert(ctx context.Context, input WriteInput) (Event
 	}
 	var event Event
 	var storedMetadata []byte
-	err = store.pool.QueryRow(ctx, `
+	err = store.executor.QueryRow(ctx, `
 		INSERT INTO admin_security_events (
 			event_type, outcome, actor_user_id, admin_session_id, request_id,
 			network_identifier_hash, metadata
@@ -55,14 +67,14 @@ func (store *PostgresStore) Insert(ctx context.Context, input WriteInput) (Event
 }
 
 func (store *PostgresStore) List(ctx context.Context, params ListParams) ([]Event, error) {
-	if store == nil || store.pool == nil || params.validate() != nil {
+	if store == nil || store.executor == nil || params.validate() != nil {
 		return nil, ErrInvalidEvent
 	}
 	limit := params.Limit
 	if limit == 0 {
 		limit = 50
 	}
-	rows, err := store.pool.Query(ctx, `
+	rows, err := store.executor.Query(ctx, `
 		SELECT id::text, event_type, outcome,
 		       COALESCE(actor_user_id::text, ''), COALESCE(admin_session_id::text, ''),
 		       COALESCE(request_id, ''), network_identifier_hash, metadata, occurred_at

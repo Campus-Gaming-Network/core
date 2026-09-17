@@ -38,11 +38,17 @@ func (finder *fakeUserFinder) FindByEmail(_ context.Context, email string) (user
 }
 
 type fakeGrantFinder struct {
-	grant adminaccess.Grant
-	err   error
+	grant      adminaccess.Grant
+	err        error
+	calls      int
+	lastUserID string
+	lastRole   adminaccess.Role
 }
 
-func (finder *fakeGrantFinder) ActiveGrant(_ context.Context, _ string, _ adminaccess.Role) (adminaccess.Grant, error) {
+func (finder *fakeGrantFinder) ActiveGrant(_ context.Context, userID string, role adminaccess.Role) (adminaccess.Grant, error) {
+	finder.calls++
+	finder.lastUserID = userID
+	finder.lastRole = role
 	return finder.grant, finder.err
 }
 
@@ -53,6 +59,7 @@ type fakeSessionManager struct {
 	rotatedToken string
 	revokedToken string
 	revokeReason string
+	stepUp       bool
 }
 
 func (manager *fakeSessionManager) Authenticate(_ context.Context, token string) (adminsession.Principal, error) {
@@ -70,11 +77,17 @@ func (manager *fakeSessionManager) Start(_ context.Context, input adminsession.S
 	return credential, nil
 }
 
-func (manager *fakeSessionManager) Rotate(_ context.Context, token string, input adminsession.StartInput, _ bool) (adminsession.Credential, error) {
+func (manager *fakeSessionManager) Rotate(_ context.Context, token string, input adminsession.StartInput, stepUp bool) (adminsession.Credential, error) {
 	manager.rotatedToken = token
 	manager.rotated = input
+	manager.stepUp = stepUp
 	credential := adminsession.Credential{Token: "rotated-token", CSRFToken: "rotated-csrf", ExpiresAt: time.Now().Add(8 * time.Hour)}
-	manager.principals[credential.Token] = testPrincipal(input.UserID, input.GrantID, credential.CSRFToken)
+	principal := testPrincipal(input.UserID, input.GrantID, credential.CSRFToken)
+	if stepUp {
+		now := time.Now().UTC()
+		principal.StepUpAt = &now
+	}
+	manager.principals[credential.Token] = principal
 	return credential, nil
 }
 
@@ -87,6 +100,24 @@ func (manager *fakeSessionManager) Revoke(_ context.Context, token string, reaso
 type fakeSecurityWriter struct {
 	events []adminsecurity.WriteInput
 	err    error
+}
+
+type fakeTransactionRunner struct {
+	sessions *fakeSessionManager
+	security *fakeSecurityWriter
+	err      error
+	runs     int
+}
+
+func (runner *fakeTransactionRunner) Run(
+	ctx context.Context,
+	operation func(adminsession.Manager, adminsecurity.Writer) error,
+) error {
+	runner.runs++
+	if runner.err != nil {
+		return runner.err
+	}
+	return operation(runner.sessions, runner.security)
 }
 
 func (writer *fakeSecurityWriter) Insert(_ context.Context, input adminsecurity.WriteInput) (adminsecurity.Event, error) {
@@ -164,6 +195,20 @@ func TestExchangeRotatesMatchingExistingSession(t *testing.T) {
 	}
 }
 
+func TestExchangeDoesNotIssueCookiesWhenSecurityTransactionFails(t *testing.T) {
+	handler, fixture := testHandler(true)
+	fixture.security.err = errors.New("security event unavailable")
+	req := trustedRequest(http.MethodPost, "/admin/v1/auth/exchange")
+	req.Header.Set("Origin", "https://admin.example.test")
+	req.Header.Set(AccessAssertionHeader, "signed-access-assertion")
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, req)
+
+	if response.Code != http.StatusServiceUnavailable || len(response.Result().Cookies()) != 0 {
+		t.Fatalf("failed exchange = %d cookies %#v", response.Code, response.Result().Cookies())
+	}
+}
+
 func TestExchangeDeniesInvalidIdentityAndOrigin(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -194,19 +239,26 @@ func TestExchangeDeniesInvalidIdentityAndOrigin(t *testing.T) {
 }
 
 func TestCurrentSessionRequiresSessionAndCapability(t *testing.T) {
-	handler, fixture := testHandler(true)
 	for _, test := range []struct {
 		name       string
 		token      string
 		grantID    string
+		grantRole  adminaccess.Role
+		grantErr   error
 		wantStatus int
 	}{
 		{name: "missing", wantStatus: 401},
-		{name: "grant mismatch", token: "current", grantID: "different-grant", wantStatus: 403},
-		{name: "allowed", token: "current", grantID: "grant-id", wantStatus: 200},
+		{name: "revoked session", token: "revoked", wantStatus: 401},
+		{name: "ordinary user", token: "current", grantErr: adminaccess.ErrGrantNotFound, wantStatus: 403},
+		{name: "school admin only", token: "current", grantID: "grant-id", grantRole: "school_admin", wantStatus: 403},
+		{name: "grant mismatch", token: "current", grantID: "different-grant", grantRole: adminaccess.RoleSiteAdmin, wantStatus: 403},
+		{name: "allowed", token: "current", grantID: "grant-id", grantRole: adminaccess.RoleSiteAdmin, wantStatus: 200},
 	} {
 		t.Run(test.name, func(t *testing.T) {
+			handler, fixture := testHandler(true)
 			fixture.grants.grant.ID = test.grantID
+			fixture.grants.grant.Role = test.grantRole
+			fixture.grants.err = test.grantErr
 			req := trustedRequest(http.MethodGet, "/admin/v1/session")
 			if test.token != "" {
 				req.AddCookie(&http.Cookie{Name: "admin_session", Value: test.token})
@@ -215,6 +267,12 @@ func TestCurrentSessionRequiresSessionAndCapability(t *testing.T) {
 			handler.ServeHTTP(response, req)
 			if response.Code != test.wantStatus {
 				t.Fatalf("status = %d body = %s", response.Code, response.Body.String())
+			}
+			if test.token == "current" &&
+				(fixture.grants.calls != 1 || fixture.grants.lastUserID != "user-id" ||
+					fixture.grants.lastRole != adminaccess.RoleSiteAdmin) {
+				t.Fatalf("active grant lookup = calls %d user %q role %q",
+					fixture.grants.calls, fixture.grants.lastUserID, fixture.grants.lastRole)
 			}
 		})
 	}
@@ -250,19 +308,132 @@ func TestLogoutRequiresExactOriginAndDoubleSubmitCSRF(t *testing.T) {
 	}
 }
 
+func TestMutationOriginFailsBeforeSessionAndHandlerWork(t *testing.T) {
+	handler, fixture := testHandler(true)
+	req := trustedRequest(http.MethodPost, "/admin/v1/logout")
+	req.Header.Set("Origin", "https://attacker.example")
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, req)
+
+	if response.Code != http.StatusForbidden || fixture.sessions.revokedToken != "" ||
+		fixture.grants.calls != 0 || len(fixture.security.events) != 1 ||
+		fixture.security.events[0].Metadata.ReasonCode != "origin_mismatch" {
+		t.Fatalf("origin boundary = status %d revoke %q grant calls %d events %#v",
+			response.Code, fixture.sessions.revokedToken, fixture.grants.calls, fixture.security.events)
+	}
+}
+
+func TestStepUpRotatesCredentialAndRecordsFreshAuthentication(t *testing.T) {
+	handler, fixture := testHandler(true)
+	now := time.Date(2026, time.September, 16, 12, 0, 0, 0, time.UTC)
+	handler.now = func() time.Time { return now }
+	principal := testPrincipal("user-id", "grant-id", "current-csrf")
+	principal.AuthenticatedAt = now.Add(-5 * time.Minute)
+	fixture.sessions.principals["current"] = principal
+	fixture.identities.identity.Authenticated = now.Add(-time.Minute)
+
+	req := trustedRequest(http.MethodPost, "/admin/v1/auth/step-up")
+	req.Header.Set("Origin", "https://admin.example.test")
+	req.Header.Set(CSRFHeader, "current-csrf")
+	req.Header.Set(AccessAssertionHeader, "fresh-step-up-assertion")
+	req.AddCookie(&http.Cookie{Name: "admin_session", Value: "current"})
+	req.AddCookie(&http.Cookie{Name: "admin_csrf", Value: "current-csrf"})
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, req)
+
+	if response.Code != http.StatusOK || fixture.sessions.rotatedToken != "current" ||
+		!fixture.sessions.stepUp || fixture.transactions.runs != 1 {
+		t.Fatalf("step-up = status %d token %q flag %t transactions %d body %s",
+			response.Code, fixture.sessions.rotatedToken, fixture.sessions.stepUp,
+			fixture.transactions.runs, response.Body.String())
+	}
+	if len(fixture.security.events) != 1 ||
+		fixture.security.events[0].Type != adminsecurity.EventStepUpSucceeded {
+		t.Fatalf("step-up security events = %#v", fixture.security.events)
+	}
+	if cookies := response.Result().Cookies(); len(cookies) != 2 ||
+		cookies[0].Value != "rotated-token" || cookies[1].Value != "rotated-csrf" {
+		t.Fatalf("step-up cookies = %#v", cookies)
+	}
+}
+
+func TestStepUpRejectsStaleOrChangedAccessIdentityBeforeRotation(t *testing.T) {
+	for _, test := range []struct {
+		name   string
+		mutate func(*handlerFixture, time.Time)
+	}{
+		{name: "stale assertion", mutate: func(fixture *handlerFixture, now time.Time) {
+			fixture.identities.identity.Authenticated = now.Add(-11 * time.Minute)
+		}},
+		{name: "changed subject", mutate: func(fixture *handlerFixture, now time.Time) {
+			fixture.identities.identity.Authenticated = now.Add(-time.Minute)
+			fixture.identities.identity.Subject = "different-subject"
+		}},
+		{name: "replayed assertion", mutate: func(fixture *handlerFixture, now time.Time) {
+			fixture.identities.identity.Authenticated = now.Add(-6 * time.Minute)
+		}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			handler, fixture := testHandler(true)
+			now := time.Date(2026, time.September, 16, 12, 0, 0, 0, time.UTC)
+			handler.now = func() time.Time { return now }
+			principal := testPrincipal("user-id", "grant-id", "current-csrf")
+			principal.AuthenticatedAt = now.Add(-5 * time.Minute)
+			fixture.sessions.principals["current"] = principal
+			test.mutate(&fixture, now)
+
+			req := trustedRequest(http.MethodPost, "/admin/v1/auth/step-up")
+			req.Header.Set("Origin", "https://admin.example.test")
+			req.Header.Set(CSRFHeader, "current-csrf")
+			req.AddCookie(&http.Cookie{Name: "admin_session", Value: "current"})
+			req.AddCookie(&http.Cookie{Name: "admin_csrf", Value: "current-csrf"})
+			response := httptest.NewRecorder()
+			handler.ServeHTTP(response, req)
+
+			if response.Code != http.StatusForbidden || fixture.sessions.rotatedToken != "" ||
+				len(fixture.security.events) != 1 ||
+				fixture.security.events[0].Type != adminsecurity.EventStepUpDenied {
+				t.Fatalf("step-up denial = status %d rotation %q events %#v",
+					response.Code, fixture.sessions.rotatedToken, fixture.security.events)
+			}
+		})
+	}
+}
+
+func TestLogoutFailsClosedWhenTransactionalSecurityEventFails(t *testing.T) {
+	handler, fixture := testHandler(true)
+	fixture.security.err = errors.New("security event unavailable")
+	req := trustedRequest(http.MethodPost, "/admin/v1/logout")
+	req.Header.Set("Origin", "https://admin.example.test")
+	req.Header.Set(CSRFHeader, "current-csrf")
+	req.AddCookie(&http.Cookie{Name: "admin_session", Value: "current"})
+	req.AddCookie(&http.Cookie{Name: "admin_csrf", Value: "current-csrf"})
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, req)
+
+	if response.Code != http.StatusServiceUnavailable || len(response.Result().Cookies()) != 0 {
+		t.Fatalf("failed transactional logout = %d cookies %#v",
+			response.Code, response.Result().Cookies())
+	}
+}
+
 func TestRouteRegistryIsExplicitUniqueAndDefaultDeny(t *testing.T) {
-	seen := make(map[string]struct{})
-	for _, route := range routes {
-		key := route.Method + " " + route.Path
-		if route.Method == "" || !strings.HasPrefix(route.Path, "/admin/v1/") {
-			t.Fatalf("invalid route = %#v", route)
-		}
-		if _, exists := seen[key]; exists {
-			t.Fatalf("duplicate route = %s", key)
-		}
-		seen[key] = struct{}{}
-		if route.Control == "" || (route.Control == controlCurrentSession && route.Capability == "") {
-			t.Fatalf("route lacks authorization policy = %#v", route)
+	if err := validateRoutePolicies(routes); err != nil {
+		t.Fatalf("route registry = %v", err)
+	}
+	for _, invalid := range [][]routePolicy{
+		{{Method: http.MethodGet, Path: "/admin/v1/uncontrolled"}},
+		{{Method: http.MethodGet, Path: "/admin/v1/read", Control: controlCapability}},
+		{{Method: http.MethodGet, Path: "/admin/v1/read", Control: controlCapability, Capability: "unknown"}},
+		{{Method: http.MethodPost, Path: "/admin/v1/auth/step-up", Control: controlStepUp, Mutation: true, RequiresRecentAuth: true}},
+		{{Method: http.MethodPost, Path: "/admin/v1/write", Control: controlCapability, Capability: adminaccess.CapabilityReportsManage}},
+		{
+			{Method: http.MethodGet, Path: "/admin/v1/read", Control: controlCapability, Capability: adminaccess.CapabilityReportsRead},
+			{Method: http.MethodGet, Path: "/admin/v1/read", Control: controlCapability, Capability: adminaccess.CapabilityReportsRead},
+		},
+	} {
+		if err := validateRoutePolicies(invalid); err == nil {
+			t.Fatalf("invalid route registry accepted = %#v", invalid)
 		}
 	}
 	handler, _ := testHandler(true)
@@ -273,12 +444,65 @@ func TestRouteRegistryIsExplicitUniqueAndDefaultDeny(t *testing.T) {
 	}
 }
 
+func TestAuthorizationMiddlewareEnforcesRecentAuthenticationBeforeHandler(t *testing.T) {
+	handler, fixture := testHandler(true)
+	now := time.Date(2026, time.September, 16, 12, 0, 0, 0, time.UTC)
+	handler.now = func() time.Time { return now }
+	called := false
+	protected := handler.withAuthorization(
+		adminaccess.CapabilitySiteGrantsManage,
+		true,
+		http.HandlerFunc(func(http.ResponseWriter, *http.Request) { called = true }),
+	)
+
+	for _, test := range []struct {
+		name       string
+		stepUpAt   *time.Time
+		wantStatus int
+		wantCalled bool
+	}{
+		{name: "missing", wantStatus: http.StatusForbidden},
+		{name: "stale", stepUpAt: timePointer(now.Add(-11 * time.Minute)), wantStatus: http.StatusForbidden},
+		{name: "future", stepUpAt: timePointer(now.Add(time.Second)), wantStatus: http.StatusForbidden},
+		{name: "recent", stepUpAt: timePointer(now.Add(-time.Minute)), wantStatus: http.StatusOK, wantCalled: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			called = false
+			fixture.security.events = nil
+			principal := testPrincipal("user-id", "grant-id", "csrf")
+			principal.StepUpAt = test.stepUpAt
+			req := trustedRequest(http.MethodPost, "/admin/v1/site-admin-grants")
+			response := httptest.NewRecorder()
+
+			// Exercise through the real session middleware to avoid manufacturing
+			// the package-private principal context used by authorization.
+			fixture.sessions.principals["recent-auth-test"] = principal
+			req.AddCookie(&http.Cookie{Name: "admin_session", Value: "recent-auth-test"})
+			handler.trusted = adminsession.WithSession(fixture.sessions, handler.config.Cookies)(protected)
+			handler.trusted.ServeHTTP(response, req)
+
+			if response.Code != test.wantStatus || called != test.wantCalled {
+				t.Fatalf("recent auth = status %d called %t", response.Code, called)
+			}
+			if !test.wantCalled && (len(fixture.security.events) != 1 ||
+				fixture.security.events[0].Metadata.ReasonCode != "recent_auth_required") {
+				t.Fatalf("recent-auth denial events = %#v", fixture.security.events)
+			}
+		})
+	}
+}
+
+func timePointer(value time.Time) *time.Time {
+	return &value
+}
+
 type handlerFixture struct {
-	identities *fakeIdentityValidator
-	users      *fakeUserFinder
-	grants     *fakeGrantFinder
-	sessions   *fakeSessionManager
-	security   *fakeSecurityWriter
+	identities   *fakeIdentityValidator
+	users        *fakeUserFinder
+	grants       *fakeGrantFinder
+	sessions     *fakeSessionManager
+	security     *fakeSecurityWriter
+	transactions *fakeTransactionRunner
 }
 
 func testHandler(enabled bool) (*Handler, handlerFixture) {
@@ -296,12 +520,17 @@ func testHandler(enabled bool) (*Handler, handlerFixture) {
 		}},
 		security: &fakeSecurityWriter{},
 	}
+	fixture.transactions = &fakeTransactionRunner{
+		sessions: fixture.sessions,
+		security: fixture.security,
+	}
 	handler := NewHandler(Config{
 		Enabled: enabled, SiteOrigin: "https://admin.example.test", ProxySecret: "proxy-secret",
 		Cookies: adminsession.CookieConfig{Name: "admin_session", CSRFName: "admin_csrf", Secure: true},
 	}, Dependencies{
 		Identities: fixture.identities, Users: fixture.users, Grants: fixture.grants,
 		Sessions: fixture.sessions, Security: fixture.security,
+		Transactions: fixture.transactions,
 	})
 	return handler, fixture
 }

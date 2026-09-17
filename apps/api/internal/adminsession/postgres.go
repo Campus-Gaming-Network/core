@@ -12,19 +12,25 @@ import (
 )
 
 type PostgresRepository struct {
-	pool *pgxpool.Pool
+	pool     *pgxpool.Pool
+	executor sessionExecutor
 }
 
 func NewPostgresRepository(pool *pgxpool.Pool) *PostgresRepository {
-	return &PostgresRepository{pool: pool}
+	return &PostgresRepository{pool: pool, executor: pool}
+}
+
+func newPostgresRepositoryForTransaction(tx pgx.Tx) *PostgresRepository {
+	return &PostgresRepository{executor: tx}
 }
 
 func (r *PostgresRepository) CreateSession(ctx context.Context, params CreateParams) error {
-	return createSession(ctx, r.pool, params)
+	return createSession(ctx, r.executor, params)
 }
 
 type sessionExecutor interface {
 	Exec(context.Context, string, ...any) (pgconn.CommandTag, error)
+	QueryRow(context.Context, string, ...any) pgx.Row
 }
 
 func createSession(ctx context.Context, executor sessionExecutor, params CreateParams) error {
@@ -68,12 +74,32 @@ func (r *PostgresRepository) RotateSession(
 	revokedAt time.Time,
 	reason string,
 ) error {
+	if r.pool == nil {
+		return rotateSession(ctx, r.executor, previousTokenHash, params, revokedAt, reason)
+	}
 	tx, err := r.pool.BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {
 		return fmt.Errorf("begin admin session rotation: %w", err)
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
-	commandTag, err := tx.Exec(ctx, `
+	if err := rotateSession(ctx, tx, previousTokenHash, params, revokedAt, reason); err != nil {
+		return err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("commit admin session rotation: %w", err)
+	}
+	return nil
+}
+
+func rotateSession(
+	ctx context.Context,
+	executor sessionExecutor,
+	previousTokenHash []byte,
+	params CreateParams,
+	revokedAt time.Time,
+	reason string,
+) error {
+	commandTag, err := executor.Exec(ctx, `
 		UPDATE admin_sessions
 		SET revoked_at = $4, revocation_reason = $5
 		WHERE token_hash = $1
@@ -87,11 +113,8 @@ func (r *PostgresRepository) RotateSession(
 	if commandTag.RowsAffected() != 1 {
 		return ErrUnauthenticated
 	}
-	if err := createSession(ctx, tx, params); err != nil {
+	if err := createSession(ctx, executor, params); err != nil {
 		return err
-	}
-	if err := tx.Commit(ctx); err != nil {
-		return fmt.Errorf("commit admin session rotation: %w", err)
 	}
 	return nil
 }
@@ -103,7 +126,7 @@ func (r *PostgresRepository) FindAndTouchSession(
 	idleExpiresAt time.Time,
 ) (Session, error) {
 	var session Session
-	err := r.pool.QueryRow(ctx, `
+	err := r.executor.QueryRow(ctx, `
 		UPDATE admin_sessions AS session
 		SET last_seen_at = $2,
 		    idle_expires_at = LEAST($3, session.absolute_expires_at)
@@ -148,7 +171,7 @@ func (r *PostgresRepository) RevokeSession(
 	revokedAt time.Time,
 	reason string,
 ) error {
-	_, err := r.pool.Exec(ctx, `
+	_, err := r.executor.Exec(ctx, `
 		UPDATE admin_sessions
 		SET revoked_at = $2, revocation_reason = $3
 		WHERE token_hash = $1 AND revoked_at IS NULL

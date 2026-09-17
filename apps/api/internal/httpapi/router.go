@@ -89,8 +89,14 @@ func NewRouter(cfg config.Config, pools ...*pgxpool.Pool) http.Handler {
 
 	adminDependencies := adminhttp.Dependencies{}
 	if router.db != nil && cfg.AdminEnabled {
+		adminSessionRepository := adminsession.NewPostgresRepository(router.db)
 		adminSessionService, sessionErr := adminsession.NewService(
-			adminsession.NewPostgresRepository(router.db),
+			adminSessionRepository,
+			cfg.AdminSessionIdleTTL,
+			cfg.AdminSessionAbsoluteTTL,
+		)
+		adminTransactions, transactionErr := adminsession.NewPostgresSecurityTransactionRunner(
+			router.db,
 			cfg.AdminSessionIdleTTL,
 			cfg.AdminSessionAbsoluteTTL,
 		)
@@ -98,13 +104,14 @@ func NewRouter(cfg config.Config, pools ...*pgxpool.Pool) http.Handler {
 			Issuer: cfg.CloudflareAccessTeamDomain, Audience: cfg.CloudflareAccessAudience,
 			JWKSURL: cfg.CloudflareAccessJWKSURL,
 		}, nil)
-		if sessionErr == nil && identityErr == nil {
+		if sessionErr == nil && transactionErr == nil && identityErr == nil {
 			adminDependencies = adminhttp.Dependencies{
-				Identities: identityValidator,
-				Users:      users.NewPostgresRepository(router.db),
-				Grants:     adminaccess.NewPostgresRepository(router.db),
-				Sessions:   adminSessionService,
-				Security:   adminsecurity.NewPostgresStore(router.db),
+				Identities:   identityValidator,
+				Users:        users.NewPostgresRepository(router.db),
+				Grants:       adminaccess.NewPostgresRepository(router.db),
+				Sessions:     adminSessionService,
+				Security:     adminsecurity.NewPostgresStore(router.db),
+				Transactions: adminTransactions,
 			}
 		}
 	}

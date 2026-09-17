@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -28,10 +29,11 @@ const (
 )
 
 type Config struct {
-	Enabled     bool
-	SiteOrigin  string
-	ProxySecret string
-	Cookies     adminsession.CookieConfig
+	Enabled      bool
+	SiteOrigin   string
+	ProxySecret  string
+	Cookies      adminsession.CookieConfig
+	StepUpMaxAge time.Duration
 }
 
 type IdentityValidator interface {
@@ -46,54 +48,52 @@ type GrantFinder interface {
 	ActiveGrant(context.Context, string, adminaccess.Role) (adminaccess.Grant, error)
 }
 
-type SessionManager interface {
-	adminsession.Authenticator
-	Start(context.Context, adminsession.StartInput) (adminsession.Credential, error)
-	Rotate(context.Context, string, adminsession.StartInput, bool) (adminsession.Credential, error)
-	Revoke(context.Context, string, string) error
-}
-
-type SecurityWriter interface {
-	Insert(context.Context, adminsecurity.WriteInput) (adminsecurity.Event, error)
-}
-
 type Dependencies struct {
-	Identities IdentityValidator
-	Users      UserFinder
-	Grants     GrantFinder
-	Sessions   SessionManager
-	Security   SecurityWriter
+	Identities   IdentityValidator
+	Users        UserFinder
+	Grants       GrantFinder
+	Sessions     adminsession.Manager
+	Security     adminsecurity.Writer
+	Transactions adminsession.SecurityTransactionRunner
 }
 
 type routeControl string
 
 const (
-	controlExchange       routeControl = "access_exchange"
-	controlCurrentSession routeControl = "current_session"
-	controlLogout         routeControl = "logout"
+	controlExchange   routeControl = "access_exchange"
+	controlStepUp     routeControl = "access_step_up"
+	controlCapability routeControl = "capability"
+	controlLogout     routeControl = "logout"
 )
 
 type routePolicy struct {
-	Method     string
-	Path       string
-	Control    routeControl
-	Capability adminaccess.Capability
+	Method             string
+	Path               string
+	Control            routeControl
+	Capability         adminaccess.Capability
+	RequiresRecentAuth bool
+	Mutation           bool
 }
 
 var routes = []routePolicy{
 	{Method: http.MethodPost, Path: "/admin/v1/auth/exchange", Control: controlExchange},
-	{Method: http.MethodGet, Path: "/admin/v1/session", Control: controlCurrentSession, Capability: adminaccess.CapabilityAdminSessionRead},
-	{Method: http.MethodPost, Path: "/admin/v1/logout", Control: controlLogout},
+	{Method: http.MethodPost, Path: "/admin/v1/auth/step-up", Control: controlStepUp, Mutation: true},
+	{Method: http.MethodGet, Path: "/admin/v1/session", Control: controlCapability, Capability: adminaccess.CapabilityAdminSessionRead},
+	{Method: http.MethodPost, Path: "/admin/v1/logout", Control: controlLogout, Mutation: true},
 }
 
 type Handler struct {
 	config       Config
 	dependencies Dependencies
 	trusted      http.Handler
+	now          func() time.Time
 }
 
 func NewHandler(config Config, dependencies Dependencies) *Handler {
-	handler := &Handler{config: config, dependencies: dependencies}
+	if config.StepUpMaxAge <= 0 || config.StepUpMaxAge > 10*time.Minute {
+		config.StepUpMaxAge = 10 * time.Minute
+	}
+	handler := &Handler{config: config, dependencies: dependencies, now: time.Now}
 	if dependencies.Sessions != nil {
 		handler.trusted = adminsession.WithSession(dependencies.Sessions, config.Cookies)(
 			http.HandlerFunc(handler.dispatch),
@@ -140,10 +140,34 @@ func (handler *Handler) dispatch(w http.ResponseWriter, req *http.Request) {
 	switch policy.Control {
 	case controlExchange:
 		handler.exchange(w, req)
-	case controlCurrentSession:
-		handler.currentSession(w, req, policy.Capability)
+	case controlStepUp:
+		next := handler.withCSRFBoundary(
+			adminsecurity.EventStepUpDenied,
+			http.HandlerFunc(handler.stepUp),
+		)
+		next = handler.withAuthorization("", false, next)
+		handler.withMutationOrigin(adminsecurity.EventStepUpDenied, next).ServeHTTP(w, req)
+	case controlCapability:
+		var next http.Handler = http.HandlerFunc(handler.currentSession)
+		if policy.Mutation {
+			next = handler.withCSRFBoundary(adminsecurity.EventAuthorizationDenied, next)
+		}
+		next = handler.withAuthorization(
+			policy.Capability,
+			policy.RequiresRecentAuth,
+			next,
+		)
+		if policy.Mutation {
+			next = handler.withMutationOrigin(adminsecurity.EventAuthorizationDenied, next)
+		}
+		next.ServeHTTP(w, req)
 	case controlLogout:
-		handler.logout(w, req)
+		next := handler.withCSRFBoundary(
+			adminsecurity.EventAuthorizationDenied,
+			http.HandlerFunc(handler.logout),
+		)
+		next = handler.withAuthorization("", false, next)
+		handler.withMutationOrigin(adminsecurity.EventAuthorizationDenied, next).ServeHTTP(w, req)
 	default:
 		http.NotFound(w, req)
 	}
@@ -151,24 +175,25 @@ func (handler *Handler) dispatch(w http.ResponseWriter, req *http.Request) {
 
 func (handler *Handler) exchange(w http.ResponseWriter, req *http.Request) {
 	if !handler.validOrigin(req) {
-		handler.recordDenied(req, "origin_mismatch", http.StatusForbidden)
+		handler.recordDenied(req, adminsecurity.EventExchangeDenied, "origin_mismatch", http.StatusForbidden)
 		writeError(w, http.StatusForbidden, "admin_origin_required")
 		return
 	}
 	if handler.dependencies.Identities == nil || handler.dependencies.Users == nil ||
-		handler.dependencies.Grants == nil || handler.dependencies.Sessions == nil || handler.dependencies.Security == nil {
+		handler.dependencies.Grants == nil || handler.dependencies.Sessions == nil ||
+		handler.dependencies.Security == nil || handler.dependencies.Transactions == nil {
 		writeError(w, http.StatusServiceUnavailable, "admin_unavailable")
 		return
 	}
 	identity, err := handler.dependencies.Identities.Validate(req.Context(), req.Header.Get(AccessAssertionHeader))
 	if err != nil {
-		handler.recordDenied(req, "invalid_access_assertion", http.StatusUnauthorized)
+		handler.recordDenied(req, adminsecurity.EventExchangeDenied, "invalid_access_assertion", http.StatusUnauthorized)
 		writeError(w, http.StatusUnauthorized, "admin_access_assertion_invalid")
 		return
 	}
 	profile, err := handler.dependencies.Users.FindByEmail(req.Context(), identity.Email)
 	if errors.Is(err, pgx.ErrNoRows) || (err == nil && profile.EmailVerifiedAt == nil) {
-		handler.recordDenied(req, "account_not_eligible", http.StatusForbidden)
+		handler.recordDenied(req, adminsecurity.EventExchangeDenied, "account_not_eligible", http.StatusForbidden)
 		writeError(w, http.StatusForbidden, "site_admin_required")
 		return
 	}
@@ -178,7 +203,7 @@ func (handler *Handler) exchange(w http.ResponseWriter, req *http.Request) {
 	}
 	grant, err := handler.dependencies.Grants.ActiveGrant(req.Context(), profile.ID, adminaccess.RoleSiteAdmin)
 	if errors.Is(err, adminaccess.ErrGrantNotFound) {
-		handler.recordDenied(req, "active_grant_missing", http.StatusForbidden)
+		handler.recordDenied(req, adminsecurity.EventExchangeDenied, "active_grant_missing", http.StatusForbidden)
 		writeError(w, http.StatusForbidden, "site_admin_required")
 		return
 	}
@@ -191,22 +216,28 @@ func (handler *Handler) exchange(w http.ResponseWriter, req *http.Request) {
 		UserID: profile.ID, GrantID: grant.ID, AccessIssuer: identity.Issuer,
 		AccessSubject: identity.Subject, AccessEmail: identity.Email,
 	}
-	credential, err := handler.startOrRotate(req, start)
+	var credential adminsession.Credential
+	var principal adminsession.Principal
+	err = handler.dependencies.Transactions.Run(req.Context(), func(
+		sessions adminsession.Manager,
+		security adminsecurity.Writer,
+	) error {
+		var operationErr error
+		credential, operationErr = handler.startOrRotate(req, sessions, start)
+		if operationErr != nil {
+			return operationErr
+		}
+		principal, operationErr = sessions.Authenticate(req.Context(), credential.Token)
+		if operationErr != nil {
+			return operationErr
+		}
+		_, operationErr = security.Insert(req.Context(), adminsecurity.WriteInput{
+			Type: adminsecurity.EventExchangeSucceeded, Outcome: adminsecurity.OutcomeSucceeded,
+			ActorUserID: profile.ID, AdminSessionID: principal.SessionID, RequestID: requestID(req),
+		})
+		return operationErr
+	})
 	if err != nil {
-		writeError(w, http.StatusServiceUnavailable, "admin_session_unavailable")
-		return
-	}
-	principal, err := handler.dependencies.Sessions.Authenticate(req.Context(), credential.Token)
-	if err != nil {
-		_ = handler.dependencies.Sessions.Revoke(req.Context(), credential.Token, "exchange verification failed")
-		writeError(w, http.StatusServiceUnavailable, "admin_session_unavailable")
-		return
-	}
-	if _, err := handler.dependencies.Security.Insert(req.Context(), adminsecurity.WriteInput{
-		Type: adminsecurity.EventExchangeSucceeded, Outcome: adminsecurity.OutcomeSucceeded,
-		ActorUserID: profile.ID, AdminSessionID: principal.SessionID, RequestID: requestID(req),
-	}); err != nil {
-		_ = handler.dependencies.Sessions.Revoke(req.Context(), credential.Token, "security event unavailable")
 		writeError(w, http.StatusServiceUnavailable, "admin_session_unavailable")
 		return
 	}
@@ -215,35 +246,37 @@ func (handler *Handler) exchange(w http.ResponseWriter, req *http.Request) {
 	writeJSON(w, http.StatusCreated, sessionResponse(principal, grant.Role))
 }
 
-func (handler *Handler) startOrRotate(req *http.Request, input adminsession.StartInput) (adminsession.Credential, error) {
+func (handler *Handler) startOrRotate(
+	req *http.Request,
+	sessions adminsession.Manager,
+	input adminsession.StartInput,
+) (adminsession.Credential, error) {
 	principal, authenticated := adminsession.FromContext(req.Context())
 	cookie, cookieErr := req.Cookie(sessionCookieName(handler.config.Cookies))
 	if authenticated && cookieErr == nil && principal.UserID == input.UserID && principal.GrantID == input.GrantID {
-		return handler.dependencies.Sessions.Rotate(req.Context(), cookie.Value, input, false)
+		return sessions.Rotate(req.Context(), cookie.Value, input, false)
 	}
 	if authenticated && cookieErr == nil {
-		_ = handler.dependencies.Sessions.Revoke(req.Context(), cookie.Value, "Access identity changed")
+		if err := sessions.Revoke(req.Context(), cookie.Value, "Access identity changed"); err != nil {
+			return adminsession.Credential{}, err
+		}
 	}
-	return handler.dependencies.Sessions.Start(req.Context(), input)
+	return sessions.Start(req.Context(), input)
 }
 
-func (handler *Handler) currentSession(w http.ResponseWriter, req *http.Request, capability adminaccess.Capability) {
-	principal, grant, ok := handler.authorize(w, req, capability)
+func (handler *Handler) currentSession(w http.ResponseWriter, req *http.Request) {
+	actor, ok := ActorFromContext(req.Context())
 	if !ok {
+		writeError(w, http.StatusServiceUnavailable, "admin_unavailable")
 		return
 	}
-	writeJSON(w, http.StatusOK, sessionResponse(principal, grant.Role))
+	writeJSON(w, http.StatusOK, sessionResponse(actor.Principal, actor.Grant.Role))
 }
 
-func (handler *Handler) logout(w http.ResponseWriter, req *http.Request) {
-	principal, err := adminsession.Require(req.Context())
-	if err != nil {
-		writeError(w, http.StatusUnauthorized, "admin_authentication_required")
-		return
-	}
-	if !handler.validOrigin(req) || !validCSRF(req, principal, handler.config.Cookies) {
-		handler.recordDenied(req, "csrf_failed", http.StatusForbidden)
-		writeError(w, http.StatusForbidden, "admin_csrf_invalid")
+func (handler *Handler) stepUp(w http.ResponseWriter, req *http.Request) {
+	actor, ok := ActorFromContext(req.Context())
+	if !ok {
+		writeError(w, http.StatusServiceUnavailable, "admin_unavailable")
 		return
 	}
 	cookie, err := req.Cookie(sessionCookieName(handler.config.Cookies))
@@ -251,72 +284,131 @@ func (handler *Handler) logout(w http.ResponseWriter, req *http.Request) {
 		writeError(w, http.StatusUnauthorized, "admin_authentication_required")
 		return
 	}
-	if err := handler.dependencies.Sessions.Revoke(req.Context(), cookie.Value, "operator logout"); err != nil {
+	if handler.dependencies.Identities == nil || handler.dependencies.Transactions == nil {
+		writeError(w, http.StatusServiceUnavailable, "admin_unavailable")
+		return
+	}
+	identity, err := handler.dependencies.Identities.Validate(req.Context(), req.Header.Get(AccessAssertionHeader))
+	if err != nil {
+		handler.recordDeniedForActor(req, actor, adminsecurity.EventStepUpDenied, "invalid_access_assertion", http.StatusUnauthorized)
+		writeError(w, http.StatusUnauthorized, "admin_access_assertion_invalid")
+		return
+	}
+	if !handler.validStepUpIdentity(actor.Principal, identity) {
+		handler.recordDeniedForActor(req, actor, adminsecurity.EventStepUpDenied, "fresh_identity_required", http.StatusForbidden)
+		writeError(w, http.StatusForbidden, "admin_step_up_required")
+		return
+	}
+
+	start := adminsession.StartInput{
+		UserID: actor.UserID, GrantID: actor.Grant.ID,
+		AccessIssuer: identity.Issuer, AccessSubject: identity.Subject, AccessEmail: identity.Email,
+	}
+	var credential adminsession.Credential
+	var principal adminsession.Principal
+	err = handler.dependencies.Transactions.Run(req.Context(), func(
+		sessions adminsession.Manager,
+		security adminsecurity.Writer,
+	) error {
+		var operationErr error
+		credential, operationErr = sessions.Rotate(req.Context(), cookie.Value, start, true)
+		if operationErr != nil {
+			return operationErr
+		}
+		principal, operationErr = sessions.Authenticate(req.Context(), credential.Token)
+		if operationErr != nil {
+			return operationErr
+		}
+		_, operationErr = security.Insert(req.Context(), adminsecurity.WriteInput{
+			Type: adminsecurity.EventStepUpSucceeded, Outcome: adminsecurity.OutcomeSucceeded,
+			ActorUserID: actor.UserID, AdminSessionID: principal.SessionID, RequestID: requestID(req),
+		})
+		return operationErr
+	})
+	if err != nil {
 		writeError(w, http.StatusServiceUnavailable, "admin_session_unavailable")
 		return
 	}
-	if handler.dependencies.Security != nil {
-		_, _ = handler.dependencies.Security.Insert(req.Context(), adminsecurity.WriteInput{
+	adminsession.SetCookie(w, handler.config.Cookies, credential)
+	adminsession.SetCSRFCookie(w, handler.config.Cookies, credential)
+	writeJSON(w, http.StatusOK, sessionResponse(principal, actor.Grant.Role))
+}
+
+func (handler *Handler) logout(w http.ResponseWriter, req *http.Request) {
+	actor, ok := ActorFromContext(req.Context())
+	if !ok {
+		writeError(w, http.StatusServiceUnavailable, "admin_unavailable")
+		return
+	}
+	cookie, err := req.Cookie(sessionCookieName(handler.config.Cookies))
+	if err != nil || cookie.Value == "" {
+		writeError(w, http.StatusUnauthorized, "admin_authentication_required")
+		return
+	}
+	if handler.dependencies.Transactions == nil {
+		writeError(w, http.StatusServiceUnavailable, "admin_unavailable")
+		return
+	}
+	err = handler.dependencies.Transactions.Run(req.Context(), func(
+		sessions adminsession.Manager,
+		security adminsecurity.Writer,
+	) error {
+		if revokeErr := sessions.Revoke(req.Context(), cookie.Value, "operator logout"); revokeErr != nil {
+			return revokeErr
+		}
+		_, eventErr := security.Insert(req.Context(), adminsecurity.WriteInput{
 			Type: adminsecurity.EventLogout, Outcome: adminsecurity.OutcomeSucceeded,
-			ActorUserID: principal.UserID, AdminSessionID: principal.SessionID, RequestID: requestID(req),
+			ActorUserID: actor.UserID, AdminSessionID: actor.SessionID, RequestID: requestID(req),
 		})
+		return eventErr
+	})
+	if err != nil {
+		writeError(w, http.StatusServiceUnavailable, "admin_session_unavailable")
+		return
 	}
 	adminsession.ClearCookie(w, handler.config.Cookies)
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (handler *Handler) authorize(
-	w http.ResponseWriter,
-	req *http.Request,
-	capability adminaccess.Capability,
-) (adminsession.Principal, adminaccess.Grant, bool) {
-	principal, err := adminsession.Require(req.Context())
-	if err != nil {
-		handler.recordDenied(req, "session_missing", http.StatusUnauthorized)
-		writeError(w, http.StatusUnauthorized, "admin_authentication_required")
-		return adminsession.Principal{}, adminaccess.Grant{}, false
-	}
-	if handler.dependencies.Grants == nil {
-		writeError(w, http.StatusServiceUnavailable, "admin_unavailable")
-		return adminsession.Principal{}, adminaccess.Grant{}, false
-	}
-	grant, err := handler.dependencies.Grants.ActiveGrant(req.Context(), principal.UserID, adminaccess.RoleSiteAdmin)
-	if errors.Is(err, adminaccess.ErrGrantNotFound) ||
-		(err == nil && (grant.ID != principal.GrantID || !adminaccess.Allows(grant.Role, capability))) {
-		handler.recordDeniedForPrincipal(req, principal, "capability_denied", http.StatusForbidden)
-		writeError(w, http.StatusForbidden, "site_admin_required")
-		return adminsession.Principal{}, adminaccess.Grant{}, false
-	}
-	if err != nil {
-		writeError(w, http.StatusServiceUnavailable, "admin_unavailable")
-		return adminsession.Principal{}, adminaccess.Grant{}, false
-	}
-	return principal, grant, true
+func (handler *Handler) validStepUpIdentity(principal adminsession.Principal, identity adminidentity.Identity) bool {
+	now := handler.now().UTC()
+	authenticatedAt := identity.Authenticated.UTC()
+	return identity.Issuer == principal.AccessIssuer &&
+		identity.Subject == principal.AccessSubject &&
+		strings.EqualFold(identity.Email, principal.AccessEmail) &&
+		!authenticatedAt.Before(now.Add(-handler.config.StepUpMaxAge)) &&
+		authenticatedAt.After(principal.AuthenticatedAt.UTC())
 }
 
 func (handler *Handler) validOrigin(req *http.Request) bool {
 	return handler.config.SiteOrigin != "" && req.Header.Get("Origin") == handler.config.SiteOrigin
 }
 
-func (handler *Handler) recordDenied(req *http.Request, reason string, status int) {
+func (handler *Handler) recordDenied(req *http.Request, eventType adminsecurity.EventType, reason string, status int) {
 	if handler.dependencies.Security == nil {
 		return
 	}
 	httpStatus := status
 	_, _ = handler.dependencies.Security.Insert(req.Context(), adminsecurity.WriteInput{
-		Type: adminsecurity.EventAuthorizationDenied, Outcome: adminsecurity.OutcomeDenied,
+		Type: eventType, Outcome: adminsecurity.OutcomeDenied,
 		RequestID: requestID(req), Metadata: adminsecurity.Metadata{ReasonCode: reason, HTTPStatus: &httpStatus},
 	})
 }
 
-func (handler *Handler) recordDeniedForPrincipal(req *http.Request, principal adminsession.Principal, reason string, status int) {
+func (handler *Handler) recordDeniedForActor(
+	req *http.Request,
+	actor Actor,
+	eventType adminsecurity.EventType,
+	reason string,
+	status int,
+) {
 	if handler.dependencies.Security == nil {
 		return
 	}
 	httpStatus := status
 	_, _ = handler.dependencies.Security.Insert(req.Context(), adminsecurity.WriteInput{
-		Type: adminsecurity.EventAuthorizationDenied, Outcome: adminsecurity.OutcomeDenied,
-		ActorUserID: principal.UserID, AdminSessionID: principal.SessionID,
+		Type: eventType, Outcome: adminsecurity.OutcomeDenied,
+		ActorUserID: actor.UserID, AdminSessionID: actor.SessionID,
 		RequestID: requestID(req), Metadata: adminsecurity.Metadata{ReasonCode: reason, HTTPStatus: &httpStatus},
 	})
 }
@@ -376,6 +468,46 @@ func allowedMethods(path string) string {
 		}
 	}
 	return strings.Join(methods, ", ")
+}
+
+func validateRoutePolicies(policies []routePolicy) error {
+	seen := make(map[string]struct{}, len(policies))
+	for _, policy := range policies {
+		if policy.Method == "" || !strings.HasPrefix(policy.Path, "/admin/v1/") {
+			return fmt.Errorf("invalid admin route registration")
+		}
+		key := policy.Method + " " + policy.Path
+		if _, exists := seen[key]; exists {
+			return fmt.Errorf("duplicate admin route registration")
+		}
+		seen[key] = struct{}{}
+
+		switch policy.Control {
+		case controlCapability:
+			if policy.Capability == "" || !adminaccess.Allows(adminaccess.RoleSiteAdmin, policy.Capability) {
+				return fmt.Errorf("admin route lacks a supported capability")
+			}
+			if isMutationMethod(policy.Method) != policy.Mutation {
+				return fmt.Errorf("admin capability route has an invalid mutation policy")
+			}
+		case controlExchange:
+			if policy.Capability != "" || policy.RequiresRecentAuth || policy.Mutation {
+				return fmt.Errorf("auth-control route must not declare a capability")
+			}
+		case controlStepUp, controlLogout:
+			if policy.Capability != "" || policy.RequiresRecentAuth || !policy.Mutation {
+				return fmt.Errorf("auth-control route has an invalid mutation policy")
+			}
+		default:
+			return fmt.Errorf("admin route lacks an authorization control")
+		}
+	}
+	return nil
+}
+
+func isMutationMethod(method string) bool {
+	return method == http.MethodPost || method == http.MethodPut ||
+		method == http.MethodPatch || method == http.MethodDelete
 }
 
 func setPrivateHeaders(w http.ResponseWriter) {

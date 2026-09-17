@@ -744,7 +744,7 @@ provisioning and a staging step-up proof remain.
 
 ### AC-005 — Implement Go admin sessions and CSRF boundary
 
-**Status:** In progress
+**Status:** Complete
 **Depends on:** AC-002, AC-003, AC-004
 **Deliverables:** Exchange, step-up, session, logout endpoints; admin cookie;
 session repository; BFF cookie mirroring; CSRF verification.
@@ -757,15 +757,19 @@ session repository; BFF cookie mirroring; CSRF verification.
 - Every mutation fails without exact origin and a valid session CSRF token.
 - Session responses are private/no-store and reveal no token material.
 
-Implemented so far: `/admin/v1/auth/exchange`, `/admin/v1/session`, and
-`/admin/v1/logout`; isolated host-only cookies; exact-origin and double-submit
-CSRF enforcement; atomic session-token rotation; a route-level kill switch; and
-private/no-store responses. Step-up, event/session transactional tightening,
-and the recovery CLI dependency remain.
+Implemented: `/admin/v1/auth/exchange`, `/admin/v1/auth/step-up`,
+`/admin/v1/session`, and `/admin/v1/logout`; isolated host-only cookies;
+exact-origin and double-submit CSRF enforcement; atomic session-token rotation;
+and private/no-store responses. Step-up requires a newer Access assertion for
+the same issuer, subject, and email, issued within the 10-minute recent-auth
+window. Exchange, successful step-up, and logout now commit their session
+mutation and security event in one PostgreSQL transaction. The Admin BFF
+validates the fresh assertion independently, forwards only the isolated admin
+cookies, and mirrors both rotated cookies atomically.
 
 ### AC-006 — Add capability authorization and route registration
 
-**Status:** In progress
+**Status:** Complete
 **Depends on:** AC-005
 **Deliverables:** Go role-to-capability map, authorization middleware, actor
 context, default-deny admin router, test matrix.
@@ -777,11 +781,16 @@ context, default-deny admin router, test matrix.
 - The active grant and user state are checked on every request.
 - A registration test fails when a new route lacks an authorization policy.
 
-Implemented so far: the initial Admin API uses an explicit, unique route-policy
-registry, default-denies unknown routes, resolves the current grant for protected
-requests, verifies exact grant binding, and tests missing-session, stale-grant,
-and capability-denial paths. The registry must expand alongside the remaining
-v1 endpoints before this ticket is complete.
+Implemented: the Admin API uses an explicit, unique route-policy registry and
+default-denies unknown routes. One authorization middleware resolves a verified
+actor from the isolated session plus a fresh active-grant lookup, verifies exact
+user/grant/role binding and the declared capability, enforces recent
+authentication where registered, and places only that actor in request context.
+Mutation registration automatically requires the exact configured origin and
+the session-bound CSRF token before handler work. Registry validation rejects
+duplicates, unsupported capabilities, uncontrolled routes, and unsafe methods
+without a mutation policy; the actor matrix covers missing, revoked,
+school-admin-only, stale-grant, and allowed cases.
 
 ### AC-007 — Harden transactional audit and security logging
 

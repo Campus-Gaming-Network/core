@@ -3,6 +3,7 @@
 package adminsecurity
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"strings"
@@ -93,6 +94,13 @@ type ListParams struct {
 	BeforeTime  *time.Time
 	BeforeID    string
 	Limit       int
+}
+
+// Writer is the append-only security-event surface used by transactional
+// Admin Console operations. Implementations intentionally expose no mutation
+// or deletion method.
+type Writer interface {
+	Insert(context.Context, WriteInput) (Event, error)
 }
 
 func (input WriteInput) validate() error {

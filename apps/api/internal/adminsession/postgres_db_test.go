@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminsecurity"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/dbtest"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -75,6 +76,7 @@ func newAdminSessionFixture(t *testing.T) adminSessionFixture {
 
 	t.Cleanup(func() {
 		cleanupCtx := context.Background()
+		_, _ = pool.Exec(cleanupCtx, `DELETE FROM admin_security_events WHERE actor_user_id = $1::uuid`, userID)
 		_, _ = pool.Exec(cleanupCtx, `DELETE FROM admin_sessions WHERE user_id = $1::uuid`, userID)
 		_, _ = pool.Exec(cleanupCtx, `DELETE FROM audit_logs WHERE entity_type = 'site_role_grant' AND entity_id IN (SELECT id FROM site_role_grants WHERE user_id = $1::uuid)`, userID)
 		_, _ = pool.Exec(cleanupCtx, `DELETE FROM site_role_grants WHERE user_id = $1::uuid`, userID)
@@ -83,6 +85,120 @@ func newAdminSessionFixture(t *testing.T) adminSessionFixture {
 	})
 
 	return adminSessionFixture{pool: pool, userID: userID, grantID: grantID, email: email}
+}
+
+func TestPostgresSecurityTransactionRunnerCommitsAndRollsBackSessionEvents(t *testing.T) {
+	fixture := newAdminSessionFixture(t)
+	ctx := context.Background()
+	runner, err := NewPostgresSecurityTransactionRunner(
+		fixture.pool, 30*time.Minute, 8*time.Hour,
+	)
+	if err != nil {
+		t.Fatalf("NewPostgresSecurityTransactionRunner() error = %v", err)
+	}
+	service, _ := NewService(NewPostgresRepository(fixture.pool), 30*time.Minute, 8*time.Hour)
+	start := StartInput{
+		UserID: fixture.userID, GrantID: fixture.grantID,
+		AccessIssuer:  "https://cgn.cloudflareaccess.com",
+		AccessSubject: "transaction-subject", AccessEmail: fixture.email,
+	}
+
+	var credential Credential
+	var principal Principal
+	err = runner.Run(ctx, func(sessions Manager, security adminsecurity.Writer) error {
+		var operationErr error
+		credential, operationErr = sessions.Start(ctx, start)
+		if operationErr != nil {
+			return operationErr
+		}
+		principal, operationErr = sessions.Authenticate(ctx, credential.Token)
+		if operationErr != nil {
+			return operationErr
+		}
+		_, operationErr = security.Insert(ctx, adminsecurity.WriteInput{
+			Type: adminsecurity.EventExchangeSucceeded, Outcome: adminsecurity.OutcomeSucceeded,
+			ActorUserID: fixture.userID, AdminSessionID: principal.SessionID,
+			RequestID: "transaction-exchange",
+		})
+		return operationErr
+	})
+	if err != nil {
+		t.Fatalf("exchange transaction error = %v", err)
+	}
+	if _, err := service.Authenticate(ctx, credential.Token); err != nil {
+		t.Fatalf("Authenticate(committed exchange) error = %v", err)
+	}
+
+	previousCredential := credential
+	err = runner.Run(ctx, func(sessions Manager, security adminsecurity.Writer) error {
+		var operationErr error
+		credential, operationErr = sessions.Rotate(ctx, previousCredential.Token, start, true)
+		if operationErr != nil {
+			return operationErr
+		}
+		principal, operationErr = sessions.Authenticate(ctx, credential.Token)
+		if operationErr != nil {
+			return operationErr
+		}
+		_, operationErr = security.Insert(ctx, adminsecurity.WriteInput{
+			Type: adminsecurity.EventStepUpSucceeded, Outcome: adminsecurity.OutcomeSucceeded,
+			ActorUserID: fixture.userID, AdminSessionID: principal.SessionID,
+			RequestID: "transaction-step-up",
+		})
+		return operationErr
+	})
+	if err != nil {
+		t.Fatalf("step-up transaction error = %v", err)
+	}
+	if _, err := service.Authenticate(ctx, previousCredential.Token); !errors.Is(err, ErrUnauthenticated) {
+		t.Fatalf("Authenticate(previous token) error = %v, want ErrUnauthenticated", err)
+	}
+	stepUpPrincipal, err := service.Authenticate(ctx, credential.Token)
+	if err != nil || stepUpPrincipal.StepUpAt == nil {
+		t.Fatalf("step-up principal = %#v error = %v", stepUpPrincipal, err)
+	}
+
+	err = runner.Run(ctx, func(sessions Manager, security adminsecurity.Writer) error {
+		if revokeErr := sessions.Revoke(ctx, credential.Token, "rollback test"); revokeErr != nil {
+			return revokeErr
+		}
+		_, eventErr := security.Insert(ctx, adminsecurity.WriteInput{})
+		return eventErr
+	})
+	if !errors.Is(err, adminsecurity.ErrInvalidEvent) {
+		t.Fatalf("rollback transaction error = %v, want ErrInvalidEvent", err)
+	}
+	if _, err := service.Authenticate(ctx, credential.Token); err != nil {
+		t.Fatalf("Authenticate(after event rollback) error = %v", err)
+	}
+
+	err = runner.Run(ctx, func(sessions Manager, security adminsecurity.Writer) error {
+		if revokeErr := sessions.Revoke(ctx, credential.Token, "operator logout"); revokeErr != nil {
+			return revokeErr
+		}
+		_, eventErr := security.Insert(ctx, adminsecurity.WriteInput{
+			Type: adminsecurity.EventLogout, Outcome: adminsecurity.OutcomeSucceeded,
+			ActorUserID: fixture.userID, AdminSessionID: stepUpPrincipal.SessionID,
+			RequestID: "transaction-logout",
+		})
+		return eventErr
+	})
+	if err != nil {
+		t.Fatalf("logout transaction error = %v", err)
+	}
+	if _, err := service.Authenticate(ctx, credential.Token); !errors.Is(err, ErrUnauthenticated) {
+		t.Fatalf("Authenticate(logged out token) error = %v, want ErrUnauthenticated", err)
+	}
+
+	var eventCount int
+	if err := fixture.pool.QueryRow(ctx, `
+		SELECT COUNT(*)
+		FROM admin_security_events
+		WHERE actor_user_id = $1::uuid
+		  AND request_id IN ('transaction-exchange', 'transaction-step-up', 'transaction-logout')
+	`, fixture.userID).Scan(&eventCount); err != nil || eventCount != 3 {
+		t.Fatalf("committed security event count = %d error = %v", eventCount, err)
+	}
 }
 
 func TestPostgresRepositorySessionLifecycleAndGrantBinding(t *testing.T) {

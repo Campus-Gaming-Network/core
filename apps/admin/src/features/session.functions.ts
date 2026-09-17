@@ -12,7 +12,8 @@ import { adminEnvironment } from "../server/environment.server.js";
 import {
   createSessionDependencies,
   establishAdminSession,
-  logoutAdminSession
+  logoutAdminSession,
+  stepUpAdminSession
 } from "../server/session.server.js";
 
 export const getAdminShellSession = createServerFn({ method: "GET" }).handler(
@@ -48,6 +49,23 @@ export const logout = createServerFn({ method: "POST" }).handler(async () => {
     throw redirect({ href: "/", statusCode: 303 });
   }
   return { status: "success" as const };
+});
+
+// Critical workflows call this server function after Cloudflare's dedicated
+// reauthentication policy has issued a fresh Access assertion. The Go API
+// independently verifies freshness and rotates both privileged cookies.
+export const stepUp = createServerFn({ method: "POST" }).handler(async () => {
+  setResponseHeader("cache-control", "private, no-store");
+  setResponseHeader("vary", "Cookie");
+  const environment = adminEnvironment();
+  const dependencies = createSessionDependencies(environment);
+  return stepUpAdminSession({
+    ...dependencies,
+    assertion: getRequestHeaders().get("Cf-Access-Jwt-Assertion") ?? "",
+    sessionCookieValue: getCookie(dependencies.sessionCookieName),
+    csrfCookieValue: getCookie(dependencies.csrfCookieName),
+    applyCookies
+  });
 });
 
 function applyCookies(mutations: CookieMutation[]): void {

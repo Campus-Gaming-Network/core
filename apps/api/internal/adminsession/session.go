@@ -102,6 +102,15 @@ type Repository interface {
 	RevokeSession(ctx context.Context, tokenHash []byte, revokedAt time.Time, reason string) error
 }
 
+// Manager is the complete privileged-session surface. Transaction runners
+// provide a Manager bound to their current database transaction.
+type Manager interface {
+	Authenticator
+	Start(context.Context, StartInput) (Credential, error)
+	Rotate(context.Context, string, StartInput, bool) (Credential, error)
+	Revoke(context.Context, string, string) error
+}
+
 type Service struct {
 	repository  Repository
 	idleTTL     time.Duration

@@ -141,6 +141,70 @@ export async function logoutAdminSession({
   }
 }
 
+export async function stepUpAdminSession({
+  api,
+  siteOrigin,
+  assertion,
+  sessionCookieName,
+  sessionCookieValue,
+  csrfCookieName,
+  csrfCookieValue,
+  strictDeployment,
+  validateAssertion,
+  applyCookies,
+  reportError = defaultErrorReporter
+}: {
+  api: ApiClient;
+  siteOrigin: string;
+  assertion: string;
+  sessionCookieName: string;
+  sessionCookieValue?: string;
+  csrfCookieName: string;
+  csrfCookieValue?: string;
+  strictDeployment: boolean;
+  validateAssertion: (assertion: string) => Promise<void>;
+  applyCookies: (mutations: CookieMutation[]) => void;
+  reportError?: (error: unknown) => void;
+}): Promise<AdminShellSession> {
+  if (!sessionCookieValue || !csrfCookieValue) {
+    return { status: "unauthorized" };
+  }
+
+  try {
+    await validateAssertion(assertion);
+    const { data, response } = await api({
+      path: "/admin/v1/auth/step-up",
+      method: "POST",
+      responseSchema: adminSessionSchema,
+      cookieHeader: adminCookieHeader(
+        sessionCookieName,
+        sessionCookieValue,
+        csrfCookieName,
+        csrfCookieValue
+      ),
+      headers: {
+        Origin: siteOrigin,
+        "Cf-Access-Jwt-Assertion": assertion,
+        "X-CGN-Admin-CSRF": csrfCookieValue
+      }
+    });
+    const cookies = mirroredAdminCookies(
+      response.headers,
+      { session: sessionCookieName, csrf: csrfCookieName },
+      strictDeployment
+    );
+    if (!cookies || cookies.some((cookie) => cookie.kind !== "set")) {
+      reportError(new Error("Admin step-up omitted secure session cookies"));
+      return { status: "unavailable" };
+    }
+    applyCookies(cookies);
+    return { status: "authenticated", session: data };
+  } catch (error) {
+    reportError(error);
+    return statusForError(error);
+  }
+}
+
 export function createSessionDependencies(environment: {
   apiInternalURL: string;
   apiProxySecret: string;
