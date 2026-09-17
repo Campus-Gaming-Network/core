@@ -50,6 +50,10 @@ export const Route = createRootRoute({
 });
 
 function RootComponent() {
+  useEffect(() => {
+    document.documentElement.dataset.appHydrated = "true";
+  }, []);
+
   return (
     <>
       <a className="skip-link" href="#main-content">

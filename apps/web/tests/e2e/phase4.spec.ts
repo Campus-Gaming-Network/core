@@ -1,4 +1,5 @@
-import { expect, test, type BrowserContext, type Page } from "@playwright/test";
+import { expect, test, type BrowserContext } from "@playwright/test";
+import { gotoApp, logIn } from "./fixtures/app-navigation.js";
 
 const apiURL = "http://127.0.0.1:18081";
 const password = "E2EPassword123!";
@@ -12,7 +13,7 @@ test("login rejects control-character redirect targets", async ({ page }) => {
   const unsafeNext = new URLSearchParams({
     next: "/\t/attacker.example"
   });
-  await page.goto(`/login?${unsafeNext}`);
+  await gotoApp(page, `/login?${unsafeNext}`);
   await page.getByLabel("Email").fill("safe-redirect@example.test");
   await page.getByLabel("Password").fill(password);
   await page.getByRole("button", { name: "Log in" }).click();
@@ -25,10 +26,7 @@ test("public auth recovery and private account mutations work through the runtim
 }, testInfo) => {
   const device = deviceName(testInfo.project.name);
 
-  await page.goto("/signup?q=Browser");
-  // The school picker replaces its server-rendered select after hydration.
-  // Wait for the enhanced picker so form interactions cannot land on the
-  // fallback controls while React is swapping them out.
+  await gotoApp(page, "/signup?q=Browser");
   await expect(page.getByLabel("Search schools")).toBeVisible();
   await page.getByLabel("Name").fill("New Browser Player");
   await page.getByLabel("Email").fill(`signup-${device}@example.test`);
@@ -38,20 +36,20 @@ test("public auth recovery and private account mutations work through the runtim
   await page.getByRole("button", { name: "Create account" }).click();
   await expect(page.getByText("Account created. Check your email")).toBeVisible();
 
-  await page.goto("/forgot-password");
+  await gotoApp(page, "/forgot-password");
   await page.getByLabel("Email").fill(`recovery-${device}@example.test`);
   await page.getByRole("button", { name: "Send reset link" }).click();
   await expect(page.getByRole("status")).toContainText(
     "If that account exists"
   );
 
-  await page.goto(`/auth/verify-email?token=valid-verification-${device}`);
+  await gotoApp(page, `/auth/verify-email?token=valid-verification-${device}`);
   await page.getByRole("button", { name: "Verify email" }).click();
   await expect(page.getByRole("status")).toContainText(
     "Your email is verified"
   );
 
-  await page.goto(`/auth/reset-password?token=valid-reset-${device}`);
+  await gotoApp(page, `/auth/reset-password?token=valid-reset-${device}`);
   await expect(page).toHaveURL(
     new RegExp(`/reset-password\\?token=valid-reset-${device}$`)
   );
@@ -159,7 +157,7 @@ test("support, user reporting, and school follow state work through the runtime"
 }, testInfo) => {
   const device = deviceName(testInfo.project.name);
 
-  await page.goto("/support");
+  await gotoApp(page, "/support");
   await page.getByLabel("Email").fill(`support-${device}@example.test`);
   await page.getByLabel("Name").fill("Browser Support Player");
   await page.getByLabel("Subject").fill("Production migration question");
@@ -176,7 +174,7 @@ test("support, user reporting, and school follow state work through the runtime"
   await page.getByRole("button", { name: "Submit report" }).click();
   await expect(page.getByText("Report submitted for review.")).toBeVisible();
 
-  await page.goto("/schools/follow-browser-university");
+  await gotoApp(page, "/schools/follow-browser-university");
   await page.getByRole("button", { name: "Follow school" }).click();
   await expect(page).toHaveURL(/\?follow=added$/);
   await expect(page.getByText("School followed.")).toBeVisible();
@@ -188,14 +186,6 @@ test("support, user reporting, and school follow state work through the runtime"
   await expect(page.getByRole("button", { name: "Follow school" })).toBeVisible();
 });
 
-async function logIn(page: Page, email: string, next: string) {
-  await page.goto(`/login?next=${encodeURIComponent(next)}`);
-  await page.getByLabel("Email").fill(email);
-  await page.getByLabel("Password").fill(password);
-  await page.getByRole("button", { name: "Log in" }).click();
-  await expect(page).toHaveURL(new RegExp(`${escapeRegularExpression(next)}$`));
-}
-
 function hasCookie(
   cookies: Awaited<ReturnType<BrowserContext["cookies"]>>,
   name: string
@@ -205,8 +195,4 @@ function hasCookie(
 
 function deviceName(projectName: string) {
   return projectName.startsWith("mobile") ? "mobile" : "desktop";
-}
-
-function escapeRegularExpression(value: string) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }

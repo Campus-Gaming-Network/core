@@ -1,4 +1,9 @@
 import { expect, test, type Page } from "@playwright/test";
+import {
+  gotoApp,
+  logIn,
+  waitForAppReady
+} from "./fixtures/app-navigation.js";
 
 const apiURL = "http://127.0.0.1:18081";
 const siteOrigin = "http://127.0.0.1:3200";
@@ -44,13 +49,13 @@ for (const expected of pages) {
   test(`${expected.path} has the complete metadata and cache contract`, async ({
     page
   }) => {
-    const response = await page.goto(expected.path);
+    const response = await gotoApp(page, expected.path);
     await assertMetadataContract(page, response, expected);
   });
 }
 
 test("authenticated pages keep complete private metadata", async ({ page }) => {
-  await logIn(page, "/account");
+  await logIn(page, "metadata@example.test", "/account");
 
   await visitAndAssertMetadata(page, {
     path: "/account",
@@ -74,7 +79,7 @@ test("authenticated pages keep complete private metadata", async ({ page }) => {
     openGraphPath: "/teams/new"
   });
 
-  await page.goto("/events/new");
+  await gotoApp(page, "/events/new");
   await page.getByLabel("Title").fill("Metadata Browser Event");
   await page
     .getByLabel("Description")
@@ -85,9 +90,10 @@ test("authenticated pages keep complete private metadata", async ({ page }) => {
   await page.getByLabel("Games").selectOption("game-e2e");
   await page.getByRole("button", { name: "Create event" }).click();
   await expect(page).toHaveURL(/\/events\/metadata-browser-event-[^?]+\?event=created$/);
+  await waitForAppReady(page);
 
   const editPath = `${new URL(page.url()).pathname}/edit`;
-  const editResponse = await page.goto(editPath);
+  const editResponse = await gotoApp(page, editPath);
   await assertMetadataContract(page, editResponse, {
     path: editPath,
     title: "Edit event | Campus Gaming Network",
@@ -106,7 +112,7 @@ for (const path of [
   test(`${path} keeps the complete noindex 404 metadata contract`, async ({
     page
   }) => {
-    const response = await page.goto(path);
+    const response = await gotoApp(page, path);
     expect(response?.status()).toBe(404);
     await expect(page).toHaveTitle(
       "Page not found | Campus Gaming Network"
@@ -144,7 +150,7 @@ async function visitAndAssertMetadata(
   page: Page,
   expected: MetadataContract
 ) {
-  const response = await page.goto(expected.path);
+  const response = await gotoApp(page, expected.path);
   await assertMetadataContract(page, response, expected);
 }
 
@@ -204,20 +210,8 @@ async function assertMetadataContract(
   }
 }
 
-async function logIn(page: Page, next: string) {
-  await page.goto(`/login?next=${encodeURIComponent(next)}`);
-  await page.getByLabel("Email").fill("metadata@example.test");
-  await page.getByLabel("Password").fill("E2EPassword123!");
-  await page.getByRole("button", { name: "Log in" }).click();
-  await expect(page).toHaveURL(new RegExp(`${escapeRegularExpression(next)}$`));
-}
-
 async function requiredMeta(page: Page, selector: string): Promise<string> {
   const content = await page.locator(selector).getAttribute("content");
   expect(content, `${selector} must have non-empty content`).toBeTruthy();
   return content ?? "";
-}
-
-function escapeRegularExpression(value: string) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }

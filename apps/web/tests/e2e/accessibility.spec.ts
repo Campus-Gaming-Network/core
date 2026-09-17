@@ -1,8 +1,8 @@
 import { AxeBuilder } from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
+import { gotoApp, logIn } from "./fixtures/app-navigation.js";
 
 const apiURL = "http://127.0.0.1:18081";
-const password = "E2EPassword123!";
 
 test.beforeEach(async ({ request }) => {
   const response = await request.post(`${apiURL}/__test/reset`);
@@ -12,7 +12,7 @@ test.beforeEach(async ({ request }) => {
 test("keyboard users can skip navigation and receive route-change focus", async ({
   page
 }) => {
-  await page.goto("/");
+  await gotoApp(page, "/");
 
   const skipLink = page.getByRole("link", { name: "Skip to main content" });
   await page.keyboard.press("Tab");
@@ -20,7 +20,6 @@ test("keyboard users can skip navigation and receive route-change focus", async 
   await page.keyboard.press("Enter");
   await expect(page.locator("#main-content")).toBeFocused();
 
-  await page.waitForFunction(() => "__TSR_ROUTER__" in window);
   await page.getByRole("link", { name: "Schools", exact: true }).click();
   await expect(page).toHaveURL(/\/schools$/);
   const heading = page.getByRole("heading", {
@@ -49,7 +48,7 @@ for (const path of [
     const pageErrors: string[] = [];
     page.on("pageerror", (error) => pageErrors.push(error.message));
 
-    const response = await page.goto(path);
+    const response = await gotoApp(page, path);
     expect(response?.status(), `${path} must render successfully`).toBe(200);
     await expect(
       page.getByRole("navigation", { name: "Main navigation" })
@@ -72,7 +71,7 @@ for (const path of [
 test("enhanced validation feedback identifies the invalid event field", async ({
   page
 }) => {
-  await logIn(page, "/events/new");
+  await logIn(page, "accessibility@example.test", "/events/new");
   await page.getByLabel("Title").fill("Accessible validation event");
   await page.getByLabel("Starts at").fill("2037-08-15T16:00");
   await page.getByLabel("Ends at").fill("2037-08-15T13:00");
@@ -97,7 +96,11 @@ test("enhanced validation feedback identifies the invalid event field", async ({
 test("event report API failures use an assertive error region", async ({
   page
 }) => {
-  await logIn(page, "/events/public-browser-event");
+  await logIn(
+    page,
+    "accessibility@example.test",
+    "/events/public-browser-event"
+  );
   await page.getByLabel("Reason").fill("Trigger report failure");
   await page.getByRole("button", { name: "Submit report" }).click();
 
@@ -110,7 +113,7 @@ test("event report API failures use an assertive error region", async ({
 test("owner roster controls include the affected member name", async ({
   page
 }) => {
-  await logIn(page, "/teams/new");
+  await logIn(page, "accessibility@example.test", "/teams/new");
   await page.getByLabel("Team name").fill("Accessible Owner Team");
   await page.getByRole("checkbox", { name: "Strategy Arena" }).check();
   await page.getByLabel("Join password").fill("BrowserTeamPass123!");
@@ -124,7 +127,7 @@ test("owner roster controls include the affected member name", async ({
 
 test("long user content reflows at a 320px viewport", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 568 });
-  const response = await page.goto("/events/long-content-event");
+  const response = await gotoApp(page, "/events/long-content-event");
   expect(response?.status()).toBe(200);
   expect(await horizontalOverflow(page)).toBeLessThanOrEqual(1);
   await expectAccessible(page);
@@ -134,16 +137,12 @@ for (const path of ["/account", "/events/new", "/teams/new"]) {
   test(`${path} keeps accessible authenticated forms and layouts`, async ({
     page
   }) => {
-    await page.goto("/login?next=/account");
-    await page.getByLabel("Email").fill("player@example.test");
-    await page.getByLabel("Password").fill(password);
-    await page.getByRole("button", { name: "Log in" }).click();
-    await expect(page).toHaveURL(/\/account$/);
+    await logIn(page, "player@example.test", "/account");
 
     const pageErrors: string[] = [];
     page.on("pageerror", (error) => pageErrors.push(error.message));
 
-    const response = await page.goto(path);
+    const response = await gotoApp(page, path);
     expect(response?.status(), `${path} must render successfully`).toBe(200);
     await expect(page.locator("main")).toHaveCount(1);
     await expect(page.locator("main h1")).toHaveCount(1);
@@ -168,16 +167,6 @@ async function expectAccessible(page: Page): Promise<void> {
       }))
     }))
   ).toEqual([]);
-}
-
-async function logIn(page: Page, next: string): Promise<void> {
-  await page.goto(`/login?next=${encodeURIComponent(next)}`);
-  await page.getByLabel("Email").fill("accessibility@example.test");
-  await page.getByLabel("Password").fill(password);
-  await page.getByRole("button", { name: "Log in" }).click();
-  await expect(page).toHaveURL(
-    new RegExp(`${next.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`)
-  );
 }
 
 async function horizontalOverflow(page: Page): Promise<number> {

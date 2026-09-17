@@ -1,4 +1,8 @@
 import { expect, test } from "@playwright/test";
+import {
+  gotoApp,
+  waitForAppReady
+} from "./fixtures/app-navigation.js";
 
 const apiURL = "http://127.0.0.1:18081";
 const eventPassword = "E2EEventPassword123!";
@@ -26,7 +30,7 @@ test("private event auth, RSVP, and logout survive runtime navigation", async ({
   const slug = `private-browser-${device}`;
   const email = `${device}-player@example.test`;
 
-  const lockedResponse = await page.goto(`/events/${slug}`);
+  const lockedResponse = await gotoApp(page, `/events/${slug}`);
   expect(lockedResponse?.status()).toBe(200);
   await expect(page).toHaveTitle("Private event | Campus Gaming Network");
   await expect(page.locator('meta[name="robots"]')).toHaveAttribute(
@@ -46,6 +50,7 @@ test("private event auth, RSVP, and logout survive runtime navigation", async ({
   await expect(page).toHaveURL(
     new RegExp(`/events/${slug}\\?event=unlocked$`)
   );
+  await waitForAppReady(page);
   await expect(
     page.getByRole("heading", { name: privateMarkers[0], level: 1 })
   ).toBeVisible();
@@ -63,11 +68,13 @@ test("private event auth, RSVP, and logout survive runtime navigation", async ({
     });
 
   await page.getByRole("link", { name: "Log in to RSVP" }).click();
+  await waitForAppReady(page);
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Password").fill(password);
   await page.getByRole("button", { name: "Log in" }).click();
 
   await expect(page).toHaveURL(new RegExp(`/events/${slug}$`));
+  await waitForAppReady(page);
   await expect
     .poll(async () => cookieShape(await context.cookies(), "cgn_session"))
     .toEqual({
@@ -81,6 +88,7 @@ test("private event auth, RSVP, and logout survive runtime navigation", async ({
   await expect(page.getByRole("button", { name: "Log out" })).toBeVisible();
 
   await page.reload();
+  await waitForAppReady(page);
   await expect(page).toHaveTitle(
     `${privateMarkers[0]} | Campus Gaming Network`
   );
@@ -93,14 +101,17 @@ test("private event auth, RSVP, and logout survive runtime navigation", async ({
   await expect(page).toHaveURL(
     new RegExp(`/events/${slug}\\?event=rsvp-updated$`)
   );
+  await waitForAppReady(page);
   await expect(page.getByRole("status")).toHaveText("RSVP saved.");
   await expect(page.getByText("Current RSVP:")).toContainText("Yes");
 
   await page.getByRole("link", { name: "Campus Gaming Network" }).click();
   await expect(page).toHaveURL(/\/$/);
+  await waitForAppReady(page);
   await expect(page.getByRole("button", { name: "Log out" })).toBeVisible();
   await page.getByRole("button", { name: "Log out" }).click();
   await expect(page).toHaveURL(/\/$/);
+  await waitForAppReady(page);
   await expect(page.getByRole("link", { name: "Log in" })).toBeVisible();
   await expect
     .poll(async () => cookieShape(await context.cookies(), "cgn_session"))

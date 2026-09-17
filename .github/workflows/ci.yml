@@ -89,11 +89,40 @@ jobs:
         working-directory: apps/docs
         run: npm run test:e2e
       - name: Development browser tests
+        id: development_browser_tests
+        continue-on-error: true
         working-directory: apps/web
         run: npm run test:e2e:dev
+      - name: Upload development browser failure artifacts
+        if: steps.development_browser_tests.outcome == 'failure'
+        uses: actions/upload-artifact@v7
+        with:
+          name: development-browser-failure
+          path: |
+            apps/web/test-results
+            apps/web/playwright-report
+          if-no-files-found: warn
+          retention-days: 7
       - name: Production browser tests
+        id: production_browser_tests
+        continue-on-error: true
         working-directory: apps/web
         run: npm run test:e2e
+      - name: Upload production browser failure artifacts
+        if: steps.production_browser_tests.outcome == 'failure'
+        uses: actions/upload-artifact@v7
+        with:
+          name: production-browser-failure
+          path: |
+            apps/web/test-results
+            apps/web/playwright-report
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Enforce browser test results
+        if: >-
+          steps.development_browser_tests.outcome == 'failure' ||
+          steps.production_browser_tests.outcome == 'failure'
+        run: exit 1
 
   real-stack:
     name: Real BFF → Go → Postgres browser tests

@@ -1,7 +1,11 @@
 import { expect, test, type Page } from "@playwright/test";
+import {
+  gotoApp,
+  logIn,
+  waitForAppReady
+} from "./fixtures/app-navigation.js";
 
 const apiURL = "http://127.0.0.1:18081";
-const password = "E2EPassword123!";
 
 test.beforeEach(async ({ request }) => {
   const response = await request.post(`${apiURL}/__test/reset`);
@@ -11,7 +15,7 @@ test.beforeEach(async ({ request }) => {
 test("back and forward preserve filtered team catalog navigation", async ({
   page
 }) => {
-  await page.goto("/teams");
+  await gotoApp(page, "/teams");
   await page.getByLabel("Filter teams by game").selectOption("strategy-arena");
   await page.getByLabel("School slug").fill("browser-test-university");
   await page.getByRole("button", { name: "Filter" }).click();
@@ -45,9 +49,13 @@ test("back and forward preserve filtered team catalog navigation", async ({
 test("follow redirect replaces the mutation page without repeating the POST", async ({
   page
 }) => {
-  await logIn(page, "history-player@example.test");
-  await page.goto("/schools");
-  await page.goto("/schools/follow-browser-university");
+  await logIn(
+    page,
+    "history-player@example.test",
+    "/schools/follow-browser-university"
+  );
+  await gotoApp(page, "/schools");
+  await gotoApp(page, "/schools/follow-browser-university");
 
   await page.getByRole("button", { name: "Follow school" }).click();
   await expect(page).toHaveURL(
@@ -56,9 +64,11 @@ test("follow redirect replaces the mutation page without repeating the POST", as
   await expect(page.getByText("School followed.")).toBeVisible();
   await expect(page.getByRole("button", { name: "Unfollow" })).toBeVisible();
   await expectFollowPostCount(page, 1);
+  await waitForAppReady(page);
 
   await page.goBack();
   await expect(page).toHaveURL(/\/schools$/);
+  await waitForAppReady(page);
   await expect(
     page.getByRole("heading", { name: "Browse schools", level: 1 })
   ).toBeVisible();
@@ -67,6 +77,7 @@ test("follow redirect replaces the mutation page without repeating the POST", as
   await expect(page).toHaveURL(
     /\/schools\/follow-browser-university\?follow=added$/
   );
+  await waitForAppReady(page);
   await expect(page.getByText("School followed.")).toBeVisible();
   await expect(page.getByRole("button", { name: "Unfollow" })).toBeVisible();
   await expectFollowPostCount(page, 1);
@@ -78,16 +89,6 @@ async function expectCatalogSearch(page: Page) {
     url.searchParams.get("game") === "strategy-arena" &&
     url.searchParams.get("school") === "browser-test-university"
   );
-}
-
-async function logIn(page: Page, email: string) {
-  await page.goto(
-    "/login?next=%2Fschools%2Ffollow-browser-university"
-  );
-  await page.getByLabel("Email").fill(email);
-  await page.getByLabel("Password").fill(password);
-  await page.getByRole("button", { name: "Log in" }).click();
-  await expect(page).toHaveURL(/\/schools\/follow-browser-university$/);
 }
 
 async function expectFollowPostCount(page: Page, expected: number) {
