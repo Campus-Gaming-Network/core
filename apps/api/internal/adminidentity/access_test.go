@@ -125,7 +125,12 @@ func TestValidatorRejectsMissingMalformedAndTamperedAssertions(t *testing.T) {
 		"iss": "https://cgn.cloudflareaccess.com", "sub": "subject", "email": "admin@example.test",
 		"aud": "admin-audience", "iat": now.Unix(), "exp": now.Add(time.Hour).Unix(),
 	})
-	tampered := token[:len(token)-20] + "A" + token[len(token)-19:]
+	tamperIndex := len(token) - 20
+	replacement := "A"
+	if token[tamperIndex] == 'A' {
+		replacement = "B"
+	}
+	tampered := token[:tamperIndex] + replacement + token[tamperIndex+1:]
 	if _, err := validator.Validate(context.Background(), tampered); !errors.Is(err, ErrInvalidAssertion) {
 		t.Fatalf("tampered assertion error = %v", err)
 	}
