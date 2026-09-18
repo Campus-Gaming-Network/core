@@ -25,6 +25,7 @@ import (
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/config"
 	eventstore "github.com/Campus-Gaming-Network/core/apps/api/internal/events"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/games"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/operations"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/ratelimit"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/safety"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/schools"
@@ -112,6 +113,7 @@ func NewRouter(cfg config.Config, pools ...*pgxpool.Pool) http.Handler {
 				Sessions:     adminSessionService,
 				Security:     adminsecurity.NewPostgresStore(router.db),
 				Transactions: adminTransactions,
+				Operations:   operations.NewPostgresRepository(router.db),
 			}
 		}
 	}

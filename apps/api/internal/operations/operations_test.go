@@ -32,7 +32,11 @@ func TestValidateQueuePatch(t *testing.T) {
 	status := QueueStatusInReview
 	actorID := "00000000-0000-4000-8000-000000000001"
 	sessionID := "00000000-0000-4000-8000-000000000002"
-	valid := QueuePatch{ActorUserID: actorID, AdminSessionID: sessionID, RequestID: "request-1", Status: &status}
+	updatedAt := time.Date(2026, time.September, 18, 10, 0, 0, 0, time.UTC)
+	valid := QueuePatch{
+		ActorUserID: actorID, AdminSessionID: sessionID, RequestID: "request-1",
+		ExpectedUpdatedAt: updatedAt, Status: &status,
+	}
 	if err := ValidateQueuePatch(valid); err != nil {
 		t.Fatalf("ValidateQueuePatch() error = %v", err)
 	}
@@ -43,15 +47,26 @@ func TestValidateQueuePatch(t *testing.T) {
 	if err := ValidateQueuePatch(QueuePatch{ActorUserID: actorID, Status: &status}); err == nil {
 		t.Fatal("ValidateQueuePatch() error = nil, want missing session/request error")
 	}
-	if err := ValidateQueuePatch(QueuePatch{ActorUserID: actorID, AdminSessionID: sessionID, RequestID: "request-1"}); !errors.Is(err, ErrNoChanges) {
+	missingVersion := valid
+	missingVersion.ExpectedUpdatedAt = time.Time{}
+	if err := ValidateQueuePatch(missingVersion); err == nil {
+		t.Fatal("ValidateQueuePatch() error = nil, want missing expected version error")
+	}
+	if err := ValidateQueuePatch(QueuePatch{ActorUserID: actorID, AdminSessionID: sessionID, RequestID: "request-1", ExpectedUpdatedAt: updatedAt}); !errors.Is(err, ErrNoChanges) {
 		t.Fatalf("ValidateQueuePatch() error = %v, want ErrNoChanges", err)
 	}
 	invalidStatus := QueueStatus("pending")
-	if err := ValidateQueuePatch(QueuePatch{ActorUserID: actorID, AdminSessionID: sessionID, RequestID: "request-1", Status: &invalidStatus}); err == nil {
+	if err := ValidateQueuePatch(QueuePatch{ActorUserID: actorID, AdminSessionID: sessionID, RequestID: "request-1", ExpectedUpdatedAt: updatedAt, Status: &invalidStatus}); err == nil {
 		t.Fatal("ValidateQueuePatch() error = nil, want invalid status error")
 	}
+	invalidAssignee := "not-a-uuid"
+	invalidAssignment := valid
+	invalidAssignment.AssignedToUserID = &invalidAssignee
+	if err := ValidateQueuePatch(invalidAssignment); err == nil {
+		t.Fatal("ValidateQueuePatch() error = nil, want invalid assignee error")
+	}
 	longNote := strings.Repeat("x", 5001)
-	if err := ValidateQueuePatch(QueuePatch{ActorUserID: actorID, AdminSessionID: sessionID, RequestID: "request-1", ResolutionNote: &longNote}); err == nil {
+	if err := ValidateQueuePatch(QueuePatch{ActorUserID: actorID, AdminSessionID: sessionID, RequestID: "request-1", ExpectedUpdatedAt: updatedAt, ResolutionNote: &longNote}); err == nil {
 		t.Fatal("ValidateQueuePatch() error = nil, want note length error")
 	}
 }

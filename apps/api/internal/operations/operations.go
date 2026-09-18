@@ -1,9 +1,7 @@
-// Package operations provides the database primitives used by the future
-// site-admin-facing Admin Console and by authenticated in-app notification endpoints.
-//
-// Queue and audit methods intentionally are not registered as public HTTP
-// routes here. A caller must enforce site-admin authorization before exposing
-// moderation data or applying a queue patch.
+// Package operations provides the database primitives used by the Admin
+// Console and by authenticated in-app notification endpoints. Callers must
+// enforce site-admin authorization before exposing moderation data or applying
+// a queue patch.
 package operations
 
 import (
@@ -16,15 +14,19 @@ import (
 	"time"
 
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminaudit"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/apperror"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/pagecursor"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 var (
-	ErrQueueItemNotFound       = errors.New("queue item not found")
+	ErrQueueItemNotFound       = apperror.New(apperror.KindNotFound, "queue_item_not_found", "queue item not found")
+	ErrQueueItemConflict       = apperror.New(apperror.KindConflict, "queue_item_conflict", "queue item changed since it was read")
 	ErrNotificationNotFound    = errors.New("notification not found")
 	ErrNotificationUserMissing = errors.New("notification user not found")
-	ErrNoChanges               = errors.New("no changes requested")
+	ErrNoChanges               = apperror.New(apperror.KindConflict, "queue_no_changes", "no queue changes requested")
 )
 
 type QueueStatus string
@@ -58,19 +60,23 @@ const notificationColumns = `
 `
 
 type QueueFilter struct {
-	Status QueueStatus
-	Limit  int
+	Status           QueueStatus
+	AssignedToUserID *string
+	Limit            int
+	After            *pagecursor.Cursor
+	Before           *pagecursor.Cursor
 }
 
 // QueuePatch is a partial update. A non-nil AssignedToUserID containing an
 // empty string clears the assignee; the same convention applies to the note.
 type QueuePatch struct {
-	ActorUserID      string
-	AdminSessionID   string
-	RequestID        string
-	Status           *QueueStatus
-	AssignedToUserID *string
-	ResolutionNote   *string
+	ActorUserID       string
+	AdminSessionID    string
+	RequestID         string
+	ExpectedUpdatedAt time.Time
+	Status            *QueueStatus
+	AssignedToUserID  *string
+	ResolutionNote    *string
 }
 
 type Report struct {
@@ -133,12 +139,20 @@ type NotificationFilter struct {
 	Limit      int
 }
 
+type AuditFilter struct {
+	Limit  int
+	After  *pagecursor.Cursor
+	Before *pagecursor.Cursor
+}
+
 type Repository interface {
 	ListReports(ctx context.Context, filter QueueFilter) ([]Report, error)
+	GetReport(ctx context.Context, id string) (Report, error)
 	PatchReport(ctx context.Context, id string, patch QueuePatch) (Report, error)
 	ListSupportTickets(ctx context.Context, filter QueueFilter) ([]SupportTicket, error)
+	GetSupportTicket(ctx context.Context, id string) (SupportTicket, error)
 	PatchSupportTicket(ctx context.Context, id string, patch QueuePatch) (SupportTicket, error)
-	ListAuditHistory(ctx context.Context, entityType string, entityID string, limit int) ([]AuditEntry, error)
+	ListAuditHistory(ctx context.Context, entityType string, entityID string, filter AuditFilter) ([]AuditEntry, error)
 	CreateNotification(ctx context.Context, input NotificationInput) (Notification, error)
 	ListNotifications(ctx context.Context, userID string, filter NotificationFilter) ([]Notification, error)
 	MarkNotificationRead(ctx context.Context, userID string, notificationID string) (Notification, error)
@@ -154,36 +168,48 @@ func NewPostgresRepository(pool *pgxpool.Pool) *PostgresRepository {
 
 func ValidateQueueFilter(filter QueueFilter) error {
 	if filter.Status != "" && !validQueueStatus(filter.Status) {
-		return errors.New("queue status must be open, in_review, resolved, or closed")
+		return apperror.Validation("queue status must be open, in_review, resolved, or closed")
 	}
-	if filter.Limit < 0 {
-		return errors.New("queue limit cannot be negative")
+	if filter.AssignedToUserID != nil && *filter.AssignedToUserID != "" && !validUUID(*filter.AssignedToUserID) {
+		return apperror.Validation("queue assignee must be a valid UUID or unassigned")
+	}
+	if filter.Limit < 0 || filter.Limit > maximumPageLimit+1 {
+		return apperror.Validation("queue limit is out of range")
+	}
+	if filter.After != nil && filter.Before != nil {
+		return apperror.Wrap(apperror.KindValidation, "invalid_cursor", pagecursor.ErrInvalid)
 	}
 	return nil
 }
 
 func ValidateQueuePatch(patch QueuePatch) error {
 	if strings.TrimSpace(patch.ActorUserID) == "" {
-		return errors.New("actor user is required")
+		return apperror.Validation("actor user is required")
 	}
 	if strings.TrimSpace(patch.AdminSessionID) == "" || strings.TrimSpace(patch.RequestID) == "" {
-		return errors.New("admin session and request id are required")
+		return apperror.Validation("admin session and request id are required")
 	}
 	if err := (adminaudit.Correlation{
 		ActorUserID:    patch.ActorUserID,
 		AdminSessionID: patch.AdminSessionID,
 		RequestID:      patch.RequestID,
 	}).Validate(); err != nil {
-		return errors.New("audit correlation is invalid")
+		return apperror.Validation("audit correlation is invalid")
+	}
+	if patch.ExpectedUpdatedAt.IsZero() {
+		return apperror.Validation("expected updated_at is required")
 	}
 	if patch.Status == nil && patch.AssignedToUserID == nil && patch.ResolutionNote == nil {
 		return ErrNoChanges
 	}
 	if patch.Status != nil && !validQueueStatus(*patch.Status) {
-		return errors.New("queue status must be open, in_review, resolved, or closed")
+		return apperror.Validation("queue status must be open, in_review, resolved, or closed")
+	}
+	if patch.AssignedToUserID != nil && *patch.AssignedToUserID != "" && !validUUID(*patch.AssignedToUserID) {
+		return apperror.Validation("queue assignee must be a valid UUID or empty")
 	}
 	if patch.ResolutionNote != nil && len(strings.TrimSpace(*patch.ResolutionNote)) > 5000 {
-		return errors.New("resolution note must be 5,000 characters or fewer")
+		return apperror.Validation("resolution note must be 5,000 characters or fewer")
 	}
 	return nil
 }
@@ -214,8 +240,14 @@ func ValidateNotification(input NotificationInput) error {
 }
 
 func (r *PostgresRepository) ListReports(ctx context.Context, filter QueueFilter) ([]Report, error) {
+	filter = normalizeQueueFilter(filter)
 	if err := ValidateQueueFilter(filter); err != nil {
 		return nil, err
+	}
+	cursorTime, cursorID, before := queueCursorValues(filter.After, filter.Before)
+	order := "ORDER BY created_at DESC, id DESC"
+	if before {
+		order = "ORDER BY created_at, id"
 	}
 
 	rows, err := r.pool.Query(ctx, `
@@ -223,9 +255,19 @@ func (r *PostgresRepository) ListReports(ctx context.Context, filter QueueFilter
 		FROM reports
 		WHERE deleted_at IS NULL
 		  AND ($1 = '' OR status = $1)
-		ORDER BY created_at, id
-		LIMIT $2
-	`, filter.Status, pageLimit(filter.Limit))
+		  AND (
+		      $2::text IS NULL
+		      OR ($2 = '' AND assigned_to_user_id IS NULL)
+		      OR assigned_to_user_id = NULLIF($2, '')::uuid
+		  )
+		  AND (
+		      $3::timestamptz IS NULL
+		      OR (NOT $5 AND (created_at, id) < ($3::timestamptz, $4::uuid))
+		      OR ($5 AND (created_at, id) > ($3::timestamptz, $4::uuid))
+		  )
+		`+order+`
+		LIMIT $6
+	`, filter.Status, assigneeArgument(filter.AssignedToUserID), cursorTime, cursorID, before, pageLimit(filter.Limit))
 	if err != nil {
 		return nil, fmt.Errorf("list reports: %w", err)
 	}
@@ -242,7 +284,25 @@ func (r *PostgresRepository) ListReports(ctx context.Context, filter QueueFilter
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("iterate reports: %w", err)
 	}
+	if before {
+		reverseQueuePage(reports)
+	}
 	return reports, nil
+}
+
+func (r *PostgresRepository) GetReport(ctx context.Context, id string) (Report, error) {
+	report, err := scanReport(r.pool.QueryRow(ctx, `
+		SELECT `+reportColumns+`
+		FROM reports
+		WHERE id = $1::uuid AND deleted_at IS NULL
+	`, strings.TrimSpace(id)))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return Report{}, ErrQueueItemNotFound
+	}
+	if err != nil {
+		return Report{}, fmt.Errorf("get report: %w", err)
+	}
+	return report, nil
 }
 
 func (r *PostgresRepository) PatchReport(ctx context.Context, id string, patch QueuePatch) (Report, error) {
@@ -272,6 +332,9 @@ func (r *PostgresRepository) PatchReport(ctx context.Context, id string, patch Q
 	}
 	if err != nil {
 		return Report{}, fmt.Errorf("get report for patch: %w", err)
+	}
+	if !current.UpdatedAt.Equal(patch.ExpectedUpdatedAt) {
+		return Report{}, ErrQueueItemConflict
 	}
 
 	nextStatus, nextAssignee, nextNote := applyQueuePatch(current.Status, current.AssignedToUserID, current.ResolutionNote, patch)
@@ -309,8 +372,14 @@ func (r *PostgresRepository) PatchReport(ctx context.Context, id string, patch Q
 }
 
 func (r *PostgresRepository) ListSupportTickets(ctx context.Context, filter QueueFilter) ([]SupportTicket, error) {
+	filter = normalizeQueueFilter(filter)
 	if err := ValidateQueueFilter(filter); err != nil {
 		return nil, err
+	}
+	cursorTime, cursorID, before := queueCursorValues(filter.After, filter.Before)
+	order := "ORDER BY created_at DESC, id DESC"
+	if before {
+		order = "ORDER BY created_at, id"
 	}
 
 	rows, err := r.pool.Query(ctx, `
@@ -318,9 +387,19 @@ func (r *PostgresRepository) ListSupportTickets(ctx context.Context, filter Queu
 		FROM support_tickets
 		WHERE deleted_at IS NULL
 		  AND ($1 = '' OR status = $1)
-		ORDER BY created_at, id
-		LIMIT $2
-	`, filter.Status, pageLimit(filter.Limit))
+		  AND (
+		      $2::text IS NULL
+		      OR ($2 = '' AND assigned_to_user_id IS NULL)
+		      OR assigned_to_user_id = NULLIF($2, '')::uuid
+		  )
+		  AND (
+		      $3::timestamptz IS NULL
+		      OR (NOT $5 AND (created_at, id) < ($3::timestamptz, $4::uuid))
+		      OR ($5 AND (created_at, id) > ($3::timestamptz, $4::uuid))
+		  )
+		`+order+`
+		LIMIT $6
+	`, filter.Status, assigneeArgument(filter.AssignedToUserID), cursorTime, cursorID, before, pageLimit(filter.Limit))
 	if err != nil {
 		return nil, fmt.Errorf("list support tickets: %w", err)
 	}
@@ -337,7 +416,25 @@ func (r *PostgresRepository) ListSupportTickets(ctx context.Context, filter Queu
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("iterate support tickets: %w", err)
 	}
+	if before {
+		reverseQueuePage(tickets)
+	}
 	return tickets, nil
+}
+
+func (r *PostgresRepository) GetSupportTicket(ctx context.Context, id string) (SupportTicket, error) {
+	ticket, err := scanSupportTicket(r.pool.QueryRow(ctx, `
+		SELECT `+supportTicketColumns+`
+		FROM support_tickets
+		WHERE id = $1::uuid AND deleted_at IS NULL
+	`, strings.TrimSpace(id)))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return SupportTicket{}, ErrQueueItemNotFound
+	}
+	if err != nil {
+		return SupportTicket{}, fmt.Errorf("get support ticket: %w", err)
+	}
+	return ticket, nil
 }
 
 func (r *PostgresRepository) PatchSupportTicket(ctx context.Context, id string, patch QueuePatch) (SupportTicket, error) {
@@ -367,6 +464,9 @@ func (r *PostgresRepository) PatchSupportTicket(ctx context.Context, id string, 
 	}
 	if err != nil {
 		return SupportTicket{}, fmt.Errorf("get support ticket for patch: %w", err)
+	}
+	if !current.UpdatedAt.Equal(patch.ExpectedUpdatedAt) {
+		return SupportTicket{}, ErrQueueItemConflict
 	}
 
 	nextStatus, nextAssignee, nextNote := applyQueuePatch(current.Status, current.AssignedToUserID, current.ResolutionNote, patch)
@@ -413,7 +513,7 @@ func (r *PostgresRepository) PatchSupportTicket(ctx context.Context, id string, 
 	return updated, nil
 }
 
-func (r *PostgresRepository) ListAuditHistory(ctx context.Context, entityType string, entityID string, limit int) ([]AuditEntry, error) {
+func (r *PostgresRepository) ListAuditHistory(ctx context.Context, entityType string, entityID string, filter AuditFilter) ([]AuditEntry, error) {
 	entityType = strings.TrimSpace(entityType)
 	entityID = strings.TrimSpace(entityID)
 	if entityType == "" || len(entityType) > 80 {
@@ -422,14 +522,19 @@ func (r *PostgresRepository) ListAuditHistory(ctx context.Context, entityType st
 	if entityID == "" {
 		return nil, errors.New("audit entity id is required")
 	}
-	if limit < 0 {
-		return nil, errors.New("audit limit cannot be negative")
+	if filter.Limit < 0 || filter.Limit > maximumPageLimit+1 {
+		return nil, apperror.Validation("audit limit is out of range")
+	}
+	if filter.After != nil && filter.Before != nil {
+		return nil, apperror.Wrap(apperror.KindValidation, "invalid_cursor", pagecursor.ErrInvalid)
 	}
 
 	return adminaudit.NewPostgresStore(r.pool).List(ctx, adminaudit.ListParams{
 		EntityType: adminaudit.EntityType(entityType),
 		EntityID:   entityID,
-		Limit:      pageLimit(limit),
+		Limit:      pageLimit(filter.Limit),
+		After:      filter.After,
+		Before:     filter.Before,
 	})
 }
 
@@ -551,6 +656,7 @@ func normalizeQueuePatch(patch QueuePatch) QueuePatch {
 	patch.ActorUserID = strings.TrimSpace(patch.ActorUserID)
 	patch.AdminSessionID = strings.TrimSpace(patch.AdminSessionID)
 	patch.RequestID = strings.TrimSpace(patch.RequestID)
+	patch.ExpectedUpdatedAt = patch.ExpectedUpdatedAt.UTC()
 	if patch.Status != nil {
 		status := QueueStatus(strings.TrimSpace(string(*patch.Status)))
 		patch.Status = &status
@@ -564,6 +670,15 @@ func normalizeQueuePatch(patch QueuePatch) QueuePatch {
 		patch.ResolutionNote = &note
 	}
 	return patch
+}
+
+func normalizeQueueFilter(filter QueueFilter) QueueFilter {
+	filter.Status = QueueStatus(strings.TrimSpace(string(filter.Status)))
+	if filter.AssignedToUserID != nil {
+		value := strings.TrimSpace(*filter.AssignedToUserID)
+		filter.AssignedToUserID = &value
+	}
+	return filter
 }
 
 func normalizeNotification(input NotificationInput) NotificationInput {
@@ -585,6 +700,34 @@ func pageLimit(limit int) int {
 		return maximumPageLimit
 	}
 	return limit
+}
+
+func queueCursorValues(after *pagecursor.Cursor, before *pagecursor.Cursor) (any, any, bool) {
+	if before != nil {
+		return before.Timestamp, before.ID, true
+	}
+	if after != nil {
+		return after.Timestamp, after.ID, false
+	}
+	return nil, nil, false
+}
+
+func assigneeArgument(assignedToUserID *string) any {
+	if assignedToUserID == nil {
+		return nil
+	}
+	return *assignedToUserID
+}
+
+func reverseQueuePage[T any](items []T) {
+	for left, right := 0, len(items)-1; left < right; left, right = left+1, right-1 {
+		items[left], items[right] = items[right], items[left]
+	}
+}
+
+func validUUID(value string) bool {
+	var parsed pgtype.UUID
+	return parsed.Scan(strings.TrimSpace(value)) == nil && parsed.Valid
 }
 
 func applyQueuePatch(status QueueStatus, assignee *string, note string, patch QueuePatch) (QueueStatus, *string, string) {

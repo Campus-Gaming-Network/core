@@ -1,7 +1,7 @@
 # 20 — Admin Console v1 engineering plan
 
 **Status:** Active — security foundation in progress
-**Last updated:** 2026-09-16
+**Last updated:** 2026-09-18
 **Audience:** Engineering, security, and operators
 **Target:** `admin.campusgamingnetwork.com`
 
@@ -21,13 +21,13 @@ The release is complete when an authorized site admin can, without raw SQL:
 - inspect entity audit history; and
 - have every privileged mutation authorized in Go and recorded transactionally.
 
-The existing operations repository and schema are a foundation, not an HTTP
-authorization boundary. [`internal/operations`](../apps/api/internal/operations/)
-is intentionally not routed today, and migration
+The operations repository and schema are storage primitives, not an HTTP
+authorization boundary. [`internal/adminhttp`](../apps/api/internal/adminhttp/)
+exposes the approved site-admin routes through the capability boundary, while
+[`internal/operations`](../apps/api/internal/operations/) and migration
 [`000010_operations_foundation.up.sql`](../db/migrations/000010_operations_foundation.up.sql)
-already provides assignable report/support queues, retention clocks,
-`audit_logs`, and notifications. This plan exposes only the site-admin portions
-after the security foundation is in place.
+provide assignable report/support queues, retention clocks, `audit_logs`, and
+notifications.
 
 ## Release principles
 
@@ -819,6 +819,7 @@ to application code.
 
 ### AC-008 — Expose reports, support, and audit history
 
+**Status:** Complete (2026-09-18)
 **Depends on:** AC-006, AC-007
 **Deliverables:** Paginated API handlers/services and database coverage for queue
 list/detail/patch and scoped audit history.
@@ -830,6 +831,14 @@ list/detail/patch and scoped audit history.
 - User-controlled text is transported as data, not markup.
 - Every mutation has a safe transactional audit and actor/session/request id.
 - Full actor and IDOR tests pass.
+
+Implemented: capability-gated report and support list/detail/patch routes plus
+entity-scoped audit history. Queue and audit lists use bounded keyset cursors
+with deterministic ordering and status/assignee filters. Patch requests carry
+an `updated_at` precondition, serialize through row locks, and return `409` for
+stale writes. Handler and PostgreSQL coverage verifies authenticated audit
+correlation, transactional rollback, hostile text as escaped JSON data, safe
+unknown-resource responses, reverse pagination, and concurrent updates.
 
 ### AC-009 — Add schools, games, users, and grant services
 

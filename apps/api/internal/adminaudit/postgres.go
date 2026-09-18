@@ -88,15 +88,34 @@ func (store *PostgresStore) List(ctx context.Context, params ListParams) ([]Entr
 	if limit == 0 {
 		limit = 50
 	}
+	var cursorTime any
+	var cursorID any
+	before := params.Before != nil
+	if before {
+		cursorTime = params.Before.Timestamp
+		cursorID = params.Before.ID
+	} else if params.After != nil {
+		cursorTime = params.After.Timestamp
+		cursorID = params.After.ID
+	}
+	order := "ORDER BY created_at DESC, id DESC"
+	if before {
+		order = "ORDER BY created_at, id"
+	}
 	rows, err := store.executor.Query(ctx, `
 		SELECT id::text, actor_user_id::text, admin_session_id::text,
 		       request_id, action, entity_type, entity_id::text,
 		       before_json, after_json, metadata, created_at
 		FROM audit_logs
 		WHERE entity_type = $1 AND entity_id = $2::uuid
-		ORDER BY created_at DESC, id DESC
-		LIMIT $3
-	`, params.EntityType, params.EntityID, limit)
+		  AND (
+		      $3::timestamptz IS NULL
+		      OR (NOT $5 AND (created_at, id) < ($3::timestamptz, $4::uuid))
+		      OR ($5 AND (created_at, id) > ($3::timestamptz, $4::uuid))
+		  )
+		`+order+`
+		LIMIT $6
+	`, params.EntityType, params.EntityID, cursorTime, cursorID, before, limit)
 	if err != nil {
 		return nil, fmt.Errorf("list admin audit history: %w", err)
 	}
@@ -112,6 +131,11 @@ func (store *PostgresStore) List(ctx context.Context, params ListParams) ([]Entr
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("iterate admin audit history: %w", err)
+	}
+	if before {
+		for left, right := 0, len(entries)-1; left < right; left, right = left+1, right-1 {
+			entries[left], entries[right] = entries[right], entries[left]
+		}
 	}
 	return entries, nil
 }

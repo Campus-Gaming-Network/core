@@ -17,6 +17,7 @@ import (
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminidentity"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminsecurity"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminsession"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/operations"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/users"
 	"github.com/jackc/pgx/v5"
 )
@@ -48,6 +49,16 @@ type GrantFinder interface {
 	ActiveGrant(context.Context, string, adminaccess.Role) (adminaccess.Grant, error)
 }
 
+type OperationsRepository interface {
+	ListReports(context.Context, operations.QueueFilter) ([]operations.Report, error)
+	GetReport(context.Context, string) (operations.Report, error)
+	PatchReport(context.Context, string, operations.QueuePatch) (operations.Report, error)
+	ListSupportTickets(context.Context, operations.QueueFilter) ([]operations.SupportTicket, error)
+	GetSupportTicket(context.Context, string) (operations.SupportTicket, error)
+	PatchSupportTicket(context.Context, string, operations.QueuePatch) (operations.SupportTicket, error)
+	ListAuditHistory(context.Context, string, string, operations.AuditFilter) ([]operations.AuditEntry, error)
+}
+
 type Dependencies struct {
 	Identities   IdentityValidator
 	Users        UserFinder
@@ -55,6 +66,7 @@ type Dependencies struct {
 	Sessions     adminsession.Manager
 	Security     adminsecurity.Writer
 	Transactions adminsession.SecurityTransactionRunner
+	Operations   OperationsRepository
 }
 
 type routeControl string
@@ -73,13 +85,36 @@ type routePolicy struct {
 	Capability         adminaccess.Capability
 	RequiresRecentAuth bool
 	Mutation           bool
+	Operation          routeOperation
 }
+
+type routeOperation string
+
+const (
+	operationCurrentSession   routeOperation = "current_session"
+	operationListReports      routeOperation = "list_reports"
+	operationGetReport        routeOperation = "get_report"
+	operationPatchReport      routeOperation = "patch_report"
+	operationListReportAudit  routeOperation = "list_report_audit"
+	operationListSupport      routeOperation = "list_support"
+	operationGetSupport       routeOperation = "get_support"
+	operationPatchSupport     routeOperation = "patch_support"
+	operationListSupportAudit routeOperation = "list_support_audit"
+)
 
 var routes = []routePolicy{
 	{Method: http.MethodPost, Path: "/admin/v1/auth/exchange", Control: controlExchange},
 	{Method: http.MethodPost, Path: "/admin/v1/auth/step-up", Control: controlStepUp, Mutation: true},
-	{Method: http.MethodGet, Path: "/admin/v1/session", Control: controlCapability, Capability: adminaccess.CapabilityAdminSessionRead},
+	{Method: http.MethodGet, Path: "/admin/v1/session", Control: controlCapability, Capability: adminaccess.CapabilityAdminSessionRead, Operation: operationCurrentSession},
 	{Method: http.MethodPost, Path: "/admin/v1/logout", Control: controlLogout, Mutation: true},
+	{Method: http.MethodGet, Path: "/admin/v1/reports", Control: controlCapability, Capability: adminaccess.CapabilityReportsRead, Operation: operationListReports},
+	{Method: http.MethodGet, Path: "/admin/v1/reports/{id}", Control: controlCapability, Capability: adminaccess.CapabilityReportsRead, Operation: operationGetReport},
+	{Method: http.MethodPatch, Path: "/admin/v1/reports/{id}", Control: controlCapability, Capability: adminaccess.CapabilityReportsManage, Mutation: true, Operation: operationPatchReport},
+	{Method: http.MethodGet, Path: "/admin/v1/reports/{id}/audit", Control: controlCapability, Capability: adminaccess.CapabilityAuditRead, Operation: operationListReportAudit},
+	{Method: http.MethodGet, Path: "/admin/v1/support-tickets", Control: controlCapability, Capability: adminaccess.CapabilitySupportRead, Operation: operationListSupport},
+	{Method: http.MethodGet, Path: "/admin/v1/support-tickets/{id}", Control: controlCapability, Capability: adminaccess.CapabilitySupportRead, Operation: operationGetSupport},
+	{Method: http.MethodPatch, Path: "/admin/v1/support-tickets/{id}", Control: controlCapability, Capability: adminaccess.CapabilitySupportManage, Mutation: true, Operation: operationPatchSupport},
+	{Method: http.MethodGet, Path: "/admin/v1/support-tickets/{id}/audit", Control: controlCapability, Capability: adminaccess.CapabilityAuditRead, Operation: operationListSupportAudit},
 }
 
 type Handler struct {
@@ -126,7 +161,7 @@ func (handler *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 }
 
 func (handler *Handler) dispatch(w http.ResponseWriter, req *http.Request) {
-	policy, pathKnown := findRoute(req.Method, req.URL.Path)
+	policy, entityID, pathKnown := findRoute(req.Method, req.URL.Path)
 	if !pathKnown {
 		http.NotFound(w, req)
 		return
@@ -148,7 +183,7 @@ func (handler *Handler) dispatch(w http.ResponseWriter, req *http.Request) {
 		next = handler.withAuthorization("", false, next)
 		handler.withMutationOrigin(adminsecurity.EventStepUpDenied, next).ServeHTTP(w, req)
 	case controlCapability:
-		var next http.Handler = http.HandlerFunc(handler.currentSession)
+		next := handler.operationHandler(policy.Operation, entityID)
 		if policy.Mutation {
 			next = handler.withCSRFBoundary(adminsecurity.EventAuthorizationDenied, next)
 		}
@@ -446,24 +481,25 @@ func validCSRF(req *http.Request, principal adminsession.Principal, config admin
 	return adminsession.VerifyCSRF(principal, header)
 }
 
-func findRoute(method, path string) (routePolicy, bool) {
+func findRoute(method, path string) (routePolicy, string, bool) {
 	pathKnown := false
 	for _, route := range routes {
-		if route.Path != path {
+		entityID, matches := matchRoutePath(route.Path, path)
+		if !matches {
 			continue
 		}
 		pathKnown = true
 		if route.Method == method {
-			return route, true
+			return route, entityID, true
 		}
 	}
-	return routePolicy{}, pathKnown
+	return routePolicy{}, "", pathKnown
 }
 
 func allowedMethods(path string) string {
 	methods := make([]string, 0, 2)
 	for _, route := range routes {
-		if route.Path == path {
+		if _, matches := matchRoutePath(route.Path, path); matches {
 			methods = append(methods, route.Method)
 		}
 	}
@@ -473,7 +509,7 @@ func allowedMethods(path string) string {
 func validateRoutePolicies(policies []routePolicy) error {
 	seen := make(map[string]struct{}, len(policies))
 	for _, policy := range policies {
-		if policy.Method == "" || !strings.HasPrefix(policy.Path, "/admin/v1/") {
+		if policy.Method == "" || !validRoutePattern(policy.Path) {
 			return fmt.Errorf("invalid admin route registration")
 		}
 		key := policy.Method + " " + policy.Path
@@ -490,12 +526,15 @@ func validateRoutePolicies(policies []routePolicy) error {
 			if isMutationMethod(policy.Method) != policy.Mutation {
 				return fmt.Errorf("admin capability route has an invalid mutation policy")
 			}
+			if !validRouteOperation(policy) {
+				return fmt.Errorf("admin capability route has an invalid operation")
+			}
 		case controlExchange:
-			if policy.Capability != "" || policy.RequiresRecentAuth || policy.Mutation {
+			if policy.Capability != "" || policy.RequiresRecentAuth || policy.Mutation || policy.Operation != "" {
 				return fmt.Errorf("auth-control route must not declare a capability")
 			}
 		case controlStepUp, controlLogout:
-			if policy.Capability != "" || policy.RequiresRecentAuth || !policy.Mutation {
+			if policy.Capability != "" || policy.RequiresRecentAuth || !policy.Mutation || policy.Operation != "" {
 				return fmt.Errorf("auth-control route has an invalid mutation policy")
 			}
 		default:
@@ -503,6 +542,44 @@ func validateRoutePolicies(policies []routePolicy) error {
 		}
 	}
 	return nil
+}
+
+func matchRoutePath(pattern string, path string) (string, bool) {
+	const identifier = "{id}"
+	if !strings.Contains(pattern, identifier) {
+		return "", pattern == path
+	}
+	prefix, suffix, _ := strings.Cut(pattern, identifier)
+	if !strings.HasPrefix(path, prefix) || !strings.HasSuffix(path, suffix) {
+		return "", false
+	}
+	value := strings.TrimSuffix(strings.TrimPrefix(path, prefix), suffix)
+	return value, value != "" && !strings.Contains(value, "/")
+}
+
+func validRoutePattern(path string) bool {
+	if !strings.HasPrefix(path, "/admin/v1/") || strings.Count(path, "{id}") > 1 {
+		return false
+	}
+	withoutID := strings.ReplaceAll(path, "{id}", "")
+	return !strings.ContainsAny(withoutID, "{}")
+}
+
+func validRouteOperation(policy routePolicy) bool {
+	expected := map[routeOperation]routePolicy{
+		operationCurrentSession:   {Method: http.MethodGet, Path: "/admin/v1/session", Capability: adminaccess.CapabilityAdminSessionRead},
+		operationListReports:      {Method: http.MethodGet, Path: "/admin/v1/reports", Capability: adminaccess.CapabilityReportsRead},
+		operationGetReport:        {Method: http.MethodGet, Path: "/admin/v1/reports/{id}", Capability: adminaccess.CapabilityReportsRead},
+		operationPatchReport:      {Method: http.MethodPatch, Path: "/admin/v1/reports/{id}", Capability: adminaccess.CapabilityReportsManage, Mutation: true},
+		operationListReportAudit:  {Method: http.MethodGet, Path: "/admin/v1/reports/{id}/audit", Capability: adminaccess.CapabilityAuditRead},
+		operationListSupport:      {Method: http.MethodGet, Path: "/admin/v1/support-tickets", Capability: adminaccess.CapabilitySupportRead},
+		operationGetSupport:       {Method: http.MethodGet, Path: "/admin/v1/support-tickets/{id}", Capability: adminaccess.CapabilitySupportRead},
+		operationPatchSupport:     {Method: http.MethodPatch, Path: "/admin/v1/support-tickets/{id}", Capability: adminaccess.CapabilitySupportManage, Mutation: true},
+		operationListSupportAudit: {Method: http.MethodGet, Path: "/admin/v1/support-tickets/{id}/audit", Capability: adminaccess.CapabilityAuditRead},
+	}
+	definition, ok := expected[policy.Operation]
+	return ok && definition.Method == policy.Method && definition.Path == policy.Path &&
+		definition.Capability == policy.Capability && definition.Mutation == policy.Mutation
 }
 
 func isMutationMethod(method string) bool {

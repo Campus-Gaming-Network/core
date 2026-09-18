@@ -503,6 +503,7 @@ type handlerFixture struct {
 	sessions     *fakeSessionManager
 	security     *fakeSecurityWriter
 	transactions *fakeTransactionRunner
+	operations   *fakeOperationsRepository
 }
 
 func testHandler(enabled bool) (*Handler, handlerFixture) {
@@ -518,7 +519,8 @@ func testHandler(enabled bool) (*Handler, handlerFixture) {
 		sessions: &fakeSessionManager{principals: map[string]adminsession.Principal{
 			"current": testPrincipal("user-id", "grant-id", "current-csrf"),
 		}},
-		security: &fakeSecurityWriter{},
+		security:   &fakeSecurityWriter{},
+		operations: &fakeOperationsRepository{},
 	}
 	fixture.transactions = &fakeTransactionRunner{
 		sessions: fixture.sessions,
@@ -530,7 +532,7 @@ func testHandler(enabled bool) (*Handler, handlerFixture) {
 	}, Dependencies{
 		Identities: fixture.identities, Users: fixture.users, Grants: fixture.grants,
 		Sessions: fixture.sessions, Security: fixture.security,
-		Transactions: fixture.transactions,
+		Transactions: fixture.transactions, Operations: fixture.operations,
 	})
 	return handler, fixture
 }

@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 	"unicode/utf8"
+
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/pagecursor"
 )
 
 type Action string
@@ -108,6 +110,8 @@ type ListParams struct {
 	EntityType EntityType
 	EntityID   string
 	Limit      int
+	After      *pagecursor.Cursor
+	Before     *pagecursor.Cursor
 }
 
 // Writer is the append-only domain-audit surface. Implementations
@@ -167,7 +171,10 @@ func (input WriteInput) validate() error {
 }
 
 func (params ListParams) validate() error {
-	if !validEntityType(params.EntityType) || !validUUID(params.EntityID) || params.Limit < 0 || params.Limit > 200 {
+	if !validEntityType(params.EntityType) || !validUUID(params.EntityID) || params.Limit < 0 || params.Limit > 201 {
+		return ErrInvalidAudit
+	}
+	if params.After != nil && params.Before != nil {
 		return ErrInvalidAudit
 	}
 	return nil
