@@ -390,8 +390,19 @@ func TestPostgresRepositoryQueuePaginationFiltersAndDetails(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetReport() error = %v", err)
 	}
-	if !reflect.DeepEqual(detail, firstPage[0]) {
-		t.Fatalf("GetReport() = %#v, want %#v", detail, firstPage[0])
+	wantReportSummary := ReportSummary{
+		ID:                 detail.ID,
+		ReporterUserID:     detail.ReporterUserID,
+		TargetType:         detail.TargetType,
+		TargetID:           detail.TargetID,
+		Status:             detail.Status,
+		AssignedToUserID:   detail.AssignedToUserID,
+		RetentionStartedAt: detail.RetentionStartedAt,
+		CreatedAt:          detail.CreatedAt,
+		UpdatedAt:          detail.UpdatedAt,
+	}
+	if !reflect.DeepEqual(firstPage[0], wantReportSummary) {
+		t.Fatalf("ListReports() = %#v, want summary %#v", firstPage[0], wantReportSummary)
 	}
 
 	if _, err := fixture.pool.Exec(ctx, `
@@ -410,8 +421,19 @@ func TestPostgresRepositoryQueuePaginationFiltersAndDetails(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetSupportTicket() error = %v", err)
 	}
-	if !reflect.DeepEqual(ticket, tickets[0]) {
-		t.Fatalf("GetSupportTicket() = %#v, want %#v", ticket, tickets[0])
+	wantTicketSummary := SupportTicketSummary{
+		ID:                 ticket.ID,
+		SubmitterUserID:    ticket.SubmitterUserID,
+		SubmitterDeletedAt: ticket.SubmitterDeletedAt,
+		Subject:            ticket.Subject,
+		Status:             ticket.Status,
+		AssignedToUserID:   ticket.AssignedToUserID,
+		RetentionStartedAt: ticket.RetentionStartedAt,
+		CreatedAt:          ticket.CreatedAt,
+		UpdatedAt:          ticket.UpdatedAt,
+	}
+	if !reflect.DeepEqual(tickets[0], wantTicketSummary) {
+		t.Fatalf("ListSupportTickets() = %#v, want summary %#v", tickets[0], wantTicketSummary)
 	}
 }
 
@@ -810,7 +832,7 @@ func TestPostgresRepositoryNotificationsAreUserScoped(t *testing.T) {
 	}
 }
 
-func containsReport(reports []Report, id string) bool {
+func containsReport(reports []ReportSummary, id string) bool {
 	for _, report := range reports {
 		if report.ID == id {
 			return true
@@ -819,7 +841,7 @@ func containsReport(reports []Report, id string) bool {
 	return false
 }
 
-func containsSupportTicket(tickets []SupportTicket, id string) bool {
+func containsSupportTicket(tickets []SupportTicketSummary, id string) bool {
 	for _, ticket := range tickets {
 		if ticket.ID == id {
 			return true
@@ -828,7 +850,7 @@ func containsSupportTicket(tickets []SupportTicket, id string) bool {
 	return false
 }
 
-func findReport(reports []Report, id string) *Report {
+func findReport(reports []ReportSummary, id string) *ReportSummary {
 	for i := range reports {
 		if reports[i].ID == id {
 			return &reports[i]
@@ -837,7 +859,7 @@ func findReport(reports []Report, id string) *Report {
 	return nil
 }
 
-func findSupportTicket(tickets []SupportTicket, id string) *SupportTicket {
+func findSupportTicket(tickets []SupportTicketSummary, id string) *SupportTicketSummary {
 	for i := range tickets {
 		if tickets[i].ID == id {
 			return &tickets[i]

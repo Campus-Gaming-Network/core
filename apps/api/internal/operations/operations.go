@@ -47,11 +47,21 @@ const reportColumns = `
 	retention_started_at, created_at, updated_at
 `
 
+const reportSummaryColumns = `
+	id::text, reporter_user_id::text, target_type, target_id::text,
+	status, assigned_to_user_id::text, retention_started_at, created_at, updated_at
+`
+
 const supportTicketColumns = `
 	id::text, submitter_user_id::text, submitter_deleted_at,
 	contact_email, name, subject, message, status,
 	assigned_to_user_id::text, resolution_note,
 	retention_started_at, created_at, updated_at
+`
+
+const supportTicketSummaryColumns = `
+	id::text, submitter_user_id::text, submitter_deleted_at, subject, status,
+	assigned_to_user_id::text, retention_started_at, created_at, updated_at
 `
 
 const notificationColumns = `
@@ -93,6 +103,18 @@ type Report struct {
 	UpdatedAt          time.Time   `json:"updated_at"`
 }
 
+type ReportSummary struct {
+	ID                 string      `json:"id"`
+	ReporterUserID     string      `json:"reporter_user_id"`
+	TargetType         string      `json:"target_type"`
+	TargetID           string      `json:"target_id"`
+	Status             QueueStatus `json:"status"`
+	AssignedToUserID   *string     `json:"assigned_to_user_id,omitempty"`
+	RetentionStartedAt *time.Time  `json:"retention_started_at"`
+	CreatedAt          time.Time   `json:"created_at"`
+	UpdatedAt          time.Time   `json:"updated_at"`
+}
+
 type SupportTicket struct {
 	ID                 string      `json:"id"`
 	SubmitterUserID    *string     `json:"submitter_user_id,omitempty"`
@@ -104,6 +126,18 @@ type SupportTicket struct {
 	Status             QueueStatus `json:"status"`
 	AssignedToUserID   *string     `json:"assigned_to_user_id,omitempty"`
 	ResolutionNote     string      `json:"resolution_note"`
+	RetentionStartedAt *time.Time  `json:"retention_started_at"`
+	CreatedAt          time.Time   `json:"created_at"`
+	UpdatedAt          time.Time   `json:"updated_at"`
+}
+
+type SupportTicketSummary struct {
+	ID                 string      `json:"id"`
+	SubmitterUserID    *string     `json:"submitter_user_id,omitempty"`
+	SubmitterDeletedAt *time.Time  `json:"submitter_deleted_at,omitempty"`
+	Subject            string      `json:"subject"`
+	Status             QueueStatus `json:"status"`
+	AssignedToUserID   *string     `json:"assigned_to_user_id,omitempty"`
 	RetentionStartedAt *time.Time  `json:"retention_started_at"`
 	CreatedAt          time.Time   `json:"created_at"`
 	UpdatedAt          time.Time   `json:"updated_at"`
@@ -146,10 +180,10 @@ type AuditFilter struct {
 }
 
 type Repository interface {
-	ListReports(ctx context.Context, filter QueueFilter) ([]Report, error)
+	ListReports(ctx context.Context, filter QueueFilter) ([]ReportSummary, error)
 	GetReport(ctx context.Context, id string) (Report, error)
 	PatchReport(ctx context.Context, id string, patch QueuePatch) (Report, error)
-	ListSupportTickets(ctx context.Context, filter QueueFilter) ([]SupportTicket, error)
+	ListSupportTickets(ctx context.Context, filter QueueFilter) ([]SupportTicketSummary, error)
 	GetSupportTicket(ctx context.Context, id string) (SupportTicket, error)
 	PatchSupportTicket(ctx context.Context, id string, patch QueuePatch) (SupportTicket, error)
 	ListAuditHistory(ctx context.Context, entityType string, entityID string, filter AuditFilter) ([]AuditEntry, error)
@@ -239,7 +273,7 @@ func ValidateNotification(input NotificationInput) error {
 	return nil
 }
 
-func (r *PostgresRepository) ListReports(ctx context.Context, filter QueueFilter) ([]Report, error) {
+func (r *PostgresRepository) ListReports(ctx context.Context, filter QueueFilter) ([]ReportSummary, error) {
 	filter = normalizeQueueFilter(filter)
 	if err := ValidateQueueFilter(filter); err != nil {
 		return nil, err
@@ -251,7 +285,7 @@ func (r *PostgresRepository) ListReports(ctx context.Context, filter QueueFilter
 	}
 
 	rows, err := r.pool.Query(ctx, `
-		SELECT `+reportColumns+`
+		SELECT `+reportSummaryColumns+`
 		FROM reports
 		WHERE deleted_at IS NULL
 		  AND ($1 = '' OR status = $1)
@@ -273,9 +307,9 @@ func (r *PostgresRepository) ListReports(ctx context.Context, filter QueueFilter
 	}
 	defer rows.Close()
 
-	reports := make([]Report, 0)
+	reports := make([]ReportSummary, 0)
 	for rows.Next() {
-		report, scanErr := scanReport(rows)
+		report, scanErr := scanReportSummary(rows)
 		if scanErr != nil {
 			return nil, fmt.Errorf("scan report: %w", scanErr)
 		}
@@ -371,7 +405,7 @@ func (r *PostgresRepository) PatchReport(ctx context.Context, id string, patch Q
 	return updated, nil
 }
 
-func (r *PostgresRepository) ListSupportTickets(ctx context.Context, filter QueueFilter) ([]SupportTicket, error) {
+func (r *PostgresRepository) ListSupportTickets(ctx context.Context, filter QueueFilter) ([]SupportTicketSummary, error) {
 	filter = normalizeQueueFilter(filter)
 	if err := ValidateQueueFilter(filter); err != nil {
 		return nil, err
@@ -383,7 +417,7 @@ func (r *PostgresRepository) ListSupportTickets(ctx context.Context, filter Queu
 	}
 
 	rows, err := r.pool.Query(ctx, `
-		SELECT `+supportTicketColumns+`
+		SELECT `+supportTicketSummaryColumns+`
 		FROM support_tickets
 		WHERE deleted_at IS NULL
 		  AND ($1 = '' OR status = $1)
@@ -405,9 +439,9 @@ func (r *PostgresRepository) ListSupportTickets(ctx context.Context, filter Queu
 	}
 	defer rows.Close()
 
-	tickets := make([]SupportTicket, 0)
+	tickets := make([]SupportTicketSummary, 0)
 	for rows.Next() {
-		ticket, scanErr := scanSupportTicket(rows)
+		ticket, scanErr := scanSupportTicketSummary(rows)
 		if scanErr != nil {
 			return nil, fmt.Errorf("scan support ticket: %w", scanErr)
 		}
@@ -850,6 +884,22 @@ func scanReport(row pgx.Row) (Report, error) {
 	return report, err
 }
 
+func scanReportSummary(row pgx.Row) (ReportSummary, error) {
+	var report ReportSummary
+	err := row.Scan(
+		&report.ID,
+		&report.ReporterUserID,
+		&report.TargetType,
+		&report.TargetID,
+		&report.Status,
+		&report.AssignedToUserID,
+		&report.RetentionStartedAt,
+		&report.CreatedAt,
+		&report.UpdatedAt,
+	)
+	return report, err
+}
+
 func scanSupportTicket(row pgx.Row) (SupportTicket, error) {
 	var ticket SupportTicket
 	err := row.Scan(
@@ -863,6 +913,22 @@ func scanSupportTicket(row pgx.Row) (SupportTicket, error) {
 		&ticket.Status,
 		&ticket.AssignedToUserID,
 		&ticket.ResolutionNote,
+		&ticket.RetentionStartedAt,
+		&ticket.CreatedAt,
+		&ticket.UpdatedAt,
+	)
+	return ticket, err
+}
+
+func scanSupportTicketSummary(row pgx.Row) (SupportTicketSummary, error) {
+	var ticket SupportTicketSummary
+	err := row.Scan(
+		&ticket.ID,
+		&ticket.SubmitterUserID,
+		&ticket.SubmitterDeletedAt,
+		&ticket.Subject,
+		&ticket.Status,
+		&ticket.AssignedToUserID,
 		&ticket.RetentionStartedAt,
 		&ticket.CreatedAt,
 		&ticket.UpdatedAt,

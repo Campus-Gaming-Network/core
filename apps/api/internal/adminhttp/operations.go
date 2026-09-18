@@ -95,7 +95,7 @@ func (handler *Handler) listReports(w http.ResponseWriter, req *http.Request) {
 		writeAdminApplicationError(w, err, "reports_unavailable")
 		return
 	}
-	page := makeCursorPage(reports, limit, filter.After, filter.Before, func(report operations.Report) (time.Time, string) {
+	page := makeCursorPage(reports, limit, filter.After, filter.Before, func(report operations.ReportSummary) (time.Time, string) {
 		return report.CreatedAt, report.ID
 	})
 	if err := handler.recordSensitiveRead(req, actor, operationsEntityReport, "list"); err != nil {
@@ -176,7 +176,7 @@ func (handler *Handler) listSupportTickets(w http.ResponseWriter, req *http.Requ
 		writeAdminApplicationError(w, err, "support_tickets_unavailable")
 		return
 	}
-	page := makeCursorPage(tickets, limit, filter.After, filter.Before, func(ticket operations.SupportTicket) (time.Time, string) {
+	page := makeCursorPage(tickets, limit, filter.After, filter.Before, func(ticket operations.SupportTicketSummary) (time.Time, string) {
 		return ticket.CreatedAt, ticket.ID
 	})
 	if err := handler.recordSensitiveRead(req, actor, operationsEntitySupportTicket, "list"); err != nil {

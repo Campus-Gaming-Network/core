@@ -50,10 +50,10 @@ type GrantFinder interface {
 }
 
 type OperationsRepository interface {
-	ListReports(context.Context, operations.QueueFilter) ([]operations.Report, error)
+	ListReports(context.Context, operations.QueueFilter) ([]operations.ReportSummary, error)
 	GetReport(context.Context, string) (operations.Report, error)
 	PatchReport(context.Context, string, operations.QueuePatch) (operations.Report, error)
-	ListSupportTickets(context.Context, operations.QueueFilter) ([]operations.SupportTicket, error)
+	ListSupportTickets(context.Context, operations.QueueFilter) ([]operations.SupportTicketSummary, error)
 	GetSupportTicket(context.Context, string) (operations.SupportTicket, error)
 	PatchSupportTicket(context.Context, string, operations.QueuePatch) (operations.SupportTicket, error)
 	ListAuditHistory(context.Context, string, string, operations.AuditFilter) ([]operations.AuditEntry, error)

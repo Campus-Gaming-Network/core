@@ -23,9 +23,9 @@ const (
 )
 
 type fakeOperationsRepository struct {
-	reports             []operations.Report
+	reports             []operations.ReportSummary
 	report              operations.Report
-	tickets             []operations.SupportTicket
+	tickets             []operations.SupportTicketSummary
 	ticket              operations.SupportTicket
 	audit               []operations.AuditEntry
 	listReportFilter    operations.QueueFilter
@@ -47,7 +47,7 @@ type fakeOperationsRepository struct {
 	err                 error
 }
 
-func (repository *fakeOperationsRepository) ListReports(_ context.Context, filter operations.QueueFilter) ([]operations.Report, error) {
+func (repository *fakeOperationsRepository) ListReports(_ context.Context, filter operations.QueueFilter) ([]operations.ReportSummary, error) {
 	repository.listReportCalls++
 	repository.listReportFilter = filter
 	return repository.reports, repository.err
@@ -66,7 +66,7 @@ func (repository *fakeOperationsRepository) PatchReport(_ context.Context, id st
 	return repository.report, repository.err
 }
 
-func (repository *fakeOperationsRepository) ListSupportTickets(_ context.Context, filter operations.QueueFilter) ([]operations.SupportTicket, error) {
+func (repository *fakeOperationsRepository) ListSupportTickets(_ context.Context, filter operations.QueueFilter) ([]operations.SupportTicketSummary, error) {
 	repository.listSupportCalls++
 	repository.listSupportFilter = filter
 	return repository.tickets, repository.err
@@ -101,10 +101,10 @@ func (repository *fakeOperationsRepository) ListAuditHistory(
 func TestOperationsListsAreFilteredPaginatedJSONData(t *testing.T) {
 	handler, fixture := testHandler(true)
 	createdAt := time.Date(2026, time.September, 18, 9, 0, 0, 0, time.UTC)
-	reports := []operations.Report{
-		{ID: testReportID, Reason: `<img src=x onerror="alert(1)">`, Status: operations.QueueStatusOpen, CreatedAt: createdAt},
-		{ID: "00000000-0000-4000-8000-000000000103", Reason: "second", Status: operations.QueueStatusOpen, CreatedAt: createdAt.Add(-time.Minute)},
-		{ID: "00000000-0000-4000-8000-000000000104", Reason: "lookahead", Status: operations.QueueStatusOpen, CreatedAt: createdAt.Add(-2 * time.Minute)},
+	reports := []operations.ReportSummary{
+		{ID: testReportID, Status: operations.QueueStatusOpen, CreatedAt: createdAt},
+		{ID: "00000000-0000-4000-8000-000000000103", Status: operations.QueueStatusOpen, CreatedAt: createdAt.Add(-time.Minute)},
+		{ID: "00000000-0000-4000-8000-000000000104", Status: operations.QueueStatusOpen, CreatedAt: createdAt.Add(-2 * time.Minute)},
 	}
 	fixture.operations.reports = reports
 
@@ -117,9 +117,9 @@ func TestOperationsListsAreFilteredPaginatedJSONData(t *testing.T) {
 		t.Fatalf("response = %d %q body %s", response.Code, response.Header().Get("Content-Type"), response.Body.String())
 	}
 	var payload struct {
-		Reports        []operations.Report `json:"reports"`
-		NextCursor     string              `json:"next_cursor"`
-		PreviousCursor string              `json:"previous_cursor"`
+		Reports        []operations.ReportSummary `json:"reports"`
+		NextCursor     string                     `json:"next_cursor"`
+		PreviousCursor string                     `json:"previous_cursor"`
 	}
 	if err := json.Unmarshal(response.Body.Bytes(), &payload); err != nil {
 		t.Fatalf("decode response: %v", err)
@@ -127,8 +127,10 @@ func TestOperationsListsAreFilteredPaginatedJSONData(t *testing.T) {
 	if !reflect.DeepEqual(payload.Reports, reports[:2]) || payload.NextCursor == "" || payload.PreviousCursor != "" {
 		t.Fatalf("page = %#v, want first two reports and next cursor", payload)
 	}
-	if strings.Contains(response.Body.String(), "<img") || payload.Reports[0].Reason != reports[0].Reason {
-		t.Fatalf("hostile text was not transported as inert JSON data: %s", response.Body.String())
+	for _, detailOnlyField := range []string{"reason", "resolution_note"} {
+		if strings.Contains(response.Body.String(), `"`+detailOnlyField+`"`) {
+			t.Fatalf("report list exposed detail-only field %q: %s", detailOnlyField, response.Body.String())
+		}
 	}
 	emptyAssignee := ""
 	wantFilter := operations.QueueFilter{
@@ -147,9 +149,9 @@ func TestOperationsListsAreFilteredPaginatedJSONData(t *testing.T) {
 		t.Fatalf("security events = %#v, want %#v", fixture.security.events, wantEvent)
 	}
 
-	tickets := []operations.SupportTicket{
-		{ID: testTicketID, Message: `<script>alert("ticket")</script>`, Status: operations.QueueStatusOpen, CreatedAt: createdAt},
-		{ID: "00000000-0000-4000-8000-000000000105", Message: "lookahead", Status: operations.QueueStatusOpen, CreatedAt: createdAt.Add(-time.Minute)},
+	tickets := []operations.SupportTicketSummary{
+		{ID: testTicketID, Subject: `<script>alert("ticket")</script>`, Status: operations.QueueStatusOpen, CreatedAt: createdAt},
+		{ID: "00000000-0000-4000-8000-000000000105", Subject: "lookahead", Status: operations.QueueStatusOpen, CreatedAt: createdAt.Add(-time.Minute)},
 	}
 	fixture.operations.tickets = tickets
 	req = trustedRequest(http.MethodGet, "/admin/v1/support-tickets?limit=1")
@@ -160,8 +162,8 @@ func TestOperationsListsAreFilteredPaginatedJSONData(t *testing.T) {
 		t.Fatalf("support response = %d body %s", response.Code, response.Body.String())
 	}
 	var supportPayload struct {
-		Tickets    []operations.SupportTicket `json:"support_tickets"`
-		NextCursor string                     `json:"next_cursor"`
+		Tickets    []operations.SupportTicketSummary `json:"support_tickets"`
+		NextCursor string                            `json:"next_cursor"`
 	}
 	if err := json.Unmarshal(response.Body.Bytes(), &supportPayload); err != nil {
 		t.Fatalf("decode support response: %v", err)
@@ -169,6 +171,11 @@ func TestOperationsListsAreFilteredPaginatedJSONData(t *testing.T) {
 	if !reflect.DeepEqual(supportPayload.Tickets, tickets[:1]) || supportPayload.NextCursor == "" ||
 		strings.Contains(response.Body.String(), "<script") {
 		t.Fatalf("support page did not preserve hostile text as inert JSON data: %#v %s", supportPayload, response.Body.String())
+	}
+	for _, detailOnlyField := range []string{"contact_email", "name", "message", "resolution_note"} {
+		if strings.Contains(response.Body.String(), `"`+detailOnlyField+`"`) {
+			t.Fatalf("support list exposed detail-only field %q: %s", detailOnlyField, response.Body.String())
+		}
 	}
 	if !reflect.DeepEqual(fixture.operations.listSupportFilter, operations.QueueFilter{Limit: 2}) {
 		t.Fatalf("support filter = %#v, want limit 2", fixture.operations.listSupportFilter)
