@@ -1,6 +1,7 @@
 package operations
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -9,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminaudit"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -16,6 +18,7 @@ type operationsFixture struct {
 	pool       *pgxpool.Pool
 	repository *PostgresRepository
 	actorID    string
+	sessionID  string
 	reporterID string
 	otherID    string
 	reportID   string
@@ -61,6 +64,36 @@ func newOperationsFixture(t *testing.T) operationsFixture {
 	actorID := insertUser("operator")
 	reporterID := insertUser("reporter")
 	otherID := insertUser("other")
+	if _, err := pool.Exec(ctx, `
+		UPDATE users SET email_verified_at = NOW() WHERE id = $1::uuid
+	`, actorID); err != nil {
+		t.Fatalf("verify operator: %v", err)
+	}
+	var grantID, sessionID string
+	if err := pool.QueryRow(ctx, `
+		INSERT INTO site_role_grants (user_id, role, granted_by_user_id, grant_reason)
+		VALUES ($1::uuid, 'site_admin', $1::uuid, 'Operations test administrator')
+		RETURNING id::text
+	`, actorID).Scan(&grantID); err != nil {
+		t.Fatalf("insert operator grant: %v", err)
+	}
+	if err := pool.QueryRow(ctx, `
+		INSERT INTO admin_sessions (
+			user_id, grant_id, token_hash, csrf_token_hash, authn_method,
+			access_issuer, access_subject, access_email, authenticated_at,
+			last_seen_at, idle_expires_at, absolute_expires_at
+		)
+		VALUES (
+			$1::uuid, $2::uuid, $3, $4, 'cloudflare_access',
+			'https://access.example.test', $5, $6, NOW(), NOW(),
+			NOW() + INTERVAL '30 minutes', NOW() + INTERVAL '8 hours'
+		)
+		RETURNING id::text
+	`, actorID, grantID, make([]byte, 32),
+		make([]byte, 32), "operations-subject-"+suffix,
+		"operator-"+suffix+"@example.test").Scan(&sessionID); err != nil {
+		t.Fatalf("insert operator session: %v", err)
+	}
 
 	var reportID string
 	if err := pool.QueryRow(ctx, `
@@ -88,6 +121,8 @@ func newOperationsFixture(t *testing.T) operationsFixture {
 		_, _ = pool.Exec(cleanupCtx, `DELETE FROM audit_logs WHERE entity_id IN ($1::uuid, $2::uuid)`, reportID, ticketID)
 		_, _ = pool.Exec(cleanupCtx, `DELETE FROM reports WHERE id = $1::uuid`, reportID)
 		_, _ = pool.Exec(cleanupCtx, `DELETE FROM support_tickets WHERE id = $1::uuid`, ticketID)
+		_, _ = pool.Exec(cleanupCtx, `DELETE FROM admin_sessions WHERE id = $1::uuid`, sessionID)
+		_, _ = pool.Exec(cleanupCtx, `DELETE FROM site_role_grants WHERE id = $1::uuid`, grantID)
 		_, _ = pool.Exec(cleanupCtx, `DELETE FROM users WHERE id IN ($1::uuid, $2::uuid, $3::uuid)`, actorID, reporterID, otherID)
 		_, _ = pool.Exec(cleanupCtx, `DELETE FROM schools WHERE id = $1::uuid`, schoolID)
 	})
@@ -96,11 +131,25 @@ func newOperationsFixture(t *testing.T) operationsFixture {
 		pool:       pool,
 		repository: NewPostgresRepository(pool),
 		actorID:    actorID,
+		sessionID:  sessionID,
 		reporterID: reporterID,
 		otherID:    otherID,
 		reportID:   reportID,
 		ticketID:   ticketID,
 	}
+}
+
+func (fixture operationsFixture) queuePatch(patch QueuePatch) QueuePatch {
+	if patch.ActorUserID == "" {
+		patch.ActorUserID = fixture.actorID
+	}
+	if patch.AdminSessionID == "" {
+		patch.AdminSessionID = fixture.sessionID
+	}
+	if patch.RequestID == "" {
+		patch.RequestID = "operations-test-request"
+	}
+	return patch
 }
 
 func TestPostgresRepositoryQueuesWriteAuditHistory(t *testing.T) {
@@ -117,12 +166,14 @@ func TestPostgresRepositoryQueuesWriteAuditHistory(t *testing.T) {
 
 	inReview := QueueStatusInReview
 	note := "Reviewing the reported chat context."
-	updatedReport, err := fixture.repository.PatchReport(ctx, fixture.reportID, QueuePatch{
+	updatedReport, err := fixture.repository.PatchReport(ctx, fixture.reportID, fixture.queuePatch(QueuePatch{
 		ActorUserID:      fixture.actorID,
+		AdminSessionID:   fixture.sessionID,
+		RequestID:        "report-update-request",
 		Status:           &inReview,
 		AssignedToUserID: &fixture.actorID,
 		ResolutionNote:   &note,
-	})
+	}))
 	if err != nil {
 		t.Fatalf("PatchReport() error = %v", err)
 	}
@@ -130,10 +181,9 @@ func TestPostgresRepositoryQueuesWriteAuditHistory(t *testing.T) {
 		t.Fatalf("PatchReport() = %#v, want in-review report assigned to actor", updatedReport)
 	}
 
-	if _, err := fixture.repository.PatchReport(ctx, fixture.reportID, QueuePatch{
-		ActorUserID: fixture.actorID,
-		Status:      &inReview,
-	}); !errors.Is(err, ErrNoChanges) {
+	if _, err := fixture.repository.PatchReport(ctx, fixture.reportID, fixture.queuePatch(QueuePatch{
+		Status: &inReview,
+	})); !errors.Is(err, ErrNoChanges) {
 		t.Fatalf("no-op PatchReport() error = %v, want ErrNoChanges", err)
 	}
 
@@ -147,28 +197,39 @@ func TestPostgresRepositoryQueuesWriteAuditHistory(t *testing.T) {
 	if reportHistory[0].ActorUserID == nil || *reportHistory[0].ActorUserID != fixture.actorID {
 		t.Fatalf("audit actor = %v, want %s", reportHistory[0].ActorUserID, fixture.actorID)
 	}
-	var before, after queueAuditState
+	if reportHistory[0].AdminSessionID == nil || *reportHistory[0].AdminSessionID != fixture.sessionID ||
+		reportHistory[0].RequestID == nil || *reportHistory[0].RequestID != "report-update-request" {
+		t.Fatalf("audit correlation = %#v, want session and request ids", reportHistory[0])
+	}
+	var before, after adminaudit.QueueState
 	if err := json.Unmarshal(reportHistory[0].Before, &before); err != nil {
 		t.Fatalf("decode audit before: %v", err)
 	}
 	if err := json.Unmarshal(reportHistory[0].After, &after); err != nil {
 		t.Fatalf("decode audit after: %v", err)
 	}
-	if before.Status != QueueStatusOpen || after.Status != QueueStatusInReview {
+	if before.Status != string(QueueStatusOpen) || after.Status != string(QueueStatusInReview) {
 		t.Fatalf("audit transition = %q -> %q, want open -> in_review", before.Status, after.Status)
 	}
 	if before.RetentionStartedAt != nil || after.RetentionStartedAt != nil {
 		t.Fatalf("in-review audit retention transition = %v -> %v, want nil -> nil", before.RetentionStartedAt, after.RetentionStartedAt)
 	}
+	if bytes.Contains(reportHistory[0].Before, []byte(note)) || bytes.Contains(reportHistory[0].After, []byte(note)) ||
+		bytes.Contains(reportHistory[0].Before, []byte("Harassment in event chat")) ||
+		bytes.Contains(reportHistory[0].After, []byte("Harassment in event chat")) {
+		t.Fatal("report audit copied moderation text")
+	}
 
 	resolved := QueueStatusResolved
 	ticketNote := "Sent account recovery guidance."
-	updatedTicket, err := fixture.repository.PatchSupportTicket(ctx, fixture.ticketID, QueuePatch{
+	updatedTicket, err := fixture.repository.PatchSupportTicket(ctx, fixture.ticketID, fixture.queuePatch(QueuePatch{
 		ActorUserID:      fixture.actorID,
+		AdminSessionID:   fixture.sessionID,
+		RequestID:        "support-update-request",
 		Status:           &resolved,
 		AssignedToUserID: &fixture.actorID,
 		ResolutionNote:   &ticketNote,
-	})
+	}))
 	if err != nil {
 		t.Fatalf("PatchSupportTicket() error = %v", err)
 	}
@@ -205,6 +266,33 @@ func TestPostgresRepositoryQueuesWriteAuditHistory(t *testing.T) {
 			updatedTicket.RetentionStartedAt,
 		)
 	}
+	var metadata adminaudit.Metadata
+	if err := json.Unmarshal(ticketHistory[0].Metadata, &metadata); err != nil {
+		t.Fatalf("decode support ticket audit metadata: %v", err)
+	}
+	if metadata != (adminaudit.Metadata{ResolutionNoteChanged: true}) {
+		t.Fatalf("support ticket audit metadata = %#v, want note-change marker", metadata)
+	}
+	if err := adminaudit.ValidateSafeDocuments(
+		ticketHistory[0].Before,
+		ticketHistory[0].After,
+		ticketHistory[0].Metadata,
+	); err != nil {
+		t.Fatalf("support ticket audit contains prohibited fields: %v", err)
+	}
+	for _, prohibited := range []string{
+		ticketNote,
+		updatedTicket.ContactEmail,
+		updatedTicket.Name,
+		updatedTicket.Subject,
+		updatedTicket.Message,
+	} {
+		if bytes.Contains(ticketHistory[0].Before, []byte(prohibited)) ||
+			bytes.Contains(ticketHistory[0].After, []byte(prohibited)) ||
+			bytes.Contains(ticketHistory[0].Metadata, []byte(prohibited)) {
+			t.Fatalf("support ticket audit copied prohibited text %q", prohibited)
+		}
+	}
 }
 
 func TestPostgresRepositoryQueueRetentionLifecycle(t *testing.T) {
@@ -214,10 +302,10 @@ func TestPostgresRepositoryQueueRetentionLifecycle(t *testing.T) {
 	closed := QueueStatusClosed
 	open := QueueStatusOpen
 
-	resolvedReport, err := fixture.repository.PatchReport(ctx, fixture.reportID, QueuePatch{
+	resolvedReport, err := fixture.repository.PatchReport(ctx, fixture.reportID, fixture.queuePatch(QueuePatch{
 		ActorUserID: fixture.actorID,
 		Status:      &resolved,
-	})
+	}))
 	if err != nil {
 		t.Fatalf("resolve report: %v", err)
 	}
@@ -226,10 +314,10 @@ func TestPostgresRepositoryQueueRetentionLifecycle(t *testing.T) {
 	}
 	firstReportClock := *resolvedReport.RetentionStartedAt
 
-	closedReport, err := fixture.repository.PatchReport(ctx, fixture.reportID, QueuePatch{
+	closedReport, err := fixture.repository.PatchReport(ctx, fixture.reportID, fixture.queuePatch(QueuePatch{
 		ActorUserID: fixture.actorID,
 		Status:      &closed,
-	})
+	}))
 	if err != nil {
 		t.Fatalf("close resolved report: %v", err)
 	}
@@ -237,17 +325,17 @@ func TestPostgresRepositoryQueueRetentionLifecycle(t *testing.T) {
 		t.Fatalf("closed report retention_started_at = %v, want preserved %v", closedReport.RetentionStartedAt, firstReportClock)
 	}
 
-	if _, err := fixture.repository.PatchReport(ctx, fixture.reportID, QueuePatch{
+	if _, err := fixture.repository.PatchReport(ctx, fixture.reportID, fixture.queuePatch(QueuePatch{
 		ActorUserID: fixture.actorID,
 		Status:      &closed,
-	}); !errors.Is(err, ErrNoChanges) {
+	})); !errors.Is(err, ErrNoChanges) {
 		t.Fatalf("no-op closed report patch error = %v, want ErrNoChanges", err)
 	}
 
-	reopenedReport, err := fixture.repository.PatchReport(ctx, fixture.reportID, QueuePatch{
+	reopenedReport, err := fixture.repository.PatchReport(ctx, fixture.reportID, fixture.queuePatch(QueuePatch{
 		ActorUserID: fixture.actorID,
 		Status:      &open,
-	})
+	}))
 	if err != nil {
 		t.Fatalf("reopen report: %v", err)
 	}
@@ -255,10 +343,10 @@ func TestPostgresRepositoryQueueRetentionLifecycle(t *testing.T) {
 		t.Fatalf("reopened report retention_started_at = %v, want nil", reopenedReport.RetentionStartedAt)
 	}
 
-	reclosedReport, err := fixture.repository.PatchReport(ctx, fixture.reportID, QueuePatch{
+	reclosedReport, err := fixture.repository.PatchReport(ctx, fixture.reportID, fixture.queuePatch(QueuePatch{
 		ActorUserID: fixture.actorID,
 		Status:      &closed,
-	})
+	}))
 	if err != nil {
 		t.Fatalf("close reopened report: %v", err)
 	}
@@ -319,10 +407,10 @@ func TestPostgresRepositoryQueueRetentionLifecycle(t *testing.T) {
 		&firstReportClock,
 	)
 
-	resolvedTicket, err := fixture.repository.PatchSupportTicket(ctx, fixture.ticketID, QueuePatch{
+	resolvedTicket, err := fixture.repository.PatchSupportTicket(ctx, fixture.ticketID, fixture.queuePatch(QueuePatch{
 		ActorUserID: fixture.actorID,
 		Status:      &resolved,
-	})
+	}))
 	if err != nil {
 		t.Fatalf("resolve support ticket: %v", err)
 	}
@@ -331,10 +419,10 @@ func TestPostgresRepositoryQueueRetentionLifecycle(t *testing.T) {
 	}
 	firstTicketClock := *resolvedTicket.RetentionStartedAt
 
-	reopenedTicket, err := fixture.repository.PatchSupportTicket(ctx, fixture.ticketID, QueuePatch{
+	reopenedTicket, err := fixture.repository.PatchSupportTicket(ctx, fixture.ticketID, fixture.queuePatch(QueuePatch{
 		ActorUserID: fixture.actorID,
 		Status:      &open,
-	})
+	}))
 	if err != nil {
 		t.Fatalf("reopen support ticket: %v", err)
 	}
@@ -342,10 +430,10 @@ func TestPostgresRepositoryQueueRetentionLifecycle(t *testing.T) {
 		t.Fatalf("reopened support ticket retention_started_at = %v, want nil", reopenedTicket.RetentionStartedAt)
 	}
 
-	reclosedTicket, err := fixture.repository.PatchSupportTicket(ctx, fixture.ticketID, QueuePatch{
+	reclosedTicket, err := fixture.repository.PatchSupportTicket(ctx, fixture.ticketID, fixture.queuePatch(QueuePatch{
 		ActorUserID: fixture.actorID,
 		Status:      &closed,
-	})
+	}))
 	if err != nil {
 		t.Fatalf("close reopened support ticket: %v", err)
 	}
@@ -366,10 +454,10 @@ func TestPostgresRepositoryQueueRetentionLifecycle(t *testing.T) {
 		t.Fatalf("listed support ticket = %#v, want retention_started_at %v", listedTicket, reclosedTicket.RetentionStartedAt)
 	}
 
-	if _, err := fixture.repository.PatchSupportTicket(ctx, fixture.ticketID, QueuePatch{
+	if _, err := fixture.repository.PatchSupportTicket(ctx, fixture.ticketID, fixture.queuePatch(QueuePatch{
 		ActorUserID: fixture.actorID,
 		Status:      &closed,
-	}); !errors.Is(err, ErrNoChanges) {
+	})); !errors.Is(err, ErrNoChanges) {
 		t.Fatalf("no-op closed support ticket patch error = %v, want ErrNoChanges", err)
 	}
 }
@@ -387,10 +475,10 @@ func TestPostgresRepositoryTerminalTicketScrubsDeletedSubmitterContact(t *testin
 	}
 
 	resolved := QueueStatusResolved
-	ticket, err := fixture.repository.PatchSupportTicket(ctx, fixture.ticketID, QueuePatch{
+	ticket, err := fixture.repository.PatchSupportTicket(ctx, fixture.ticketID, fixture.queuePatch(QueuePatch{
 		ActorUserID: fixture.actorID,
 		Status:      &resolved,
-	})
+	}))
 	if err != nil {
 		t.Fatalf("resolve deleted-submitter ticket: %v", err)
 	}
@@ -408,8 +496,10 @@ func TestPostgresRepositoryAuditFailureRollsBackQueuePatch(t *testing.T) {
 	inReview := QueueStatusInReview
 
 	_, err := fixture.repository.PatchReport(ctx, fixture.reportID, QueuePatch{
-		ActorUserID: "00000000-0000-0000-0000-000000000001",
-		Status:      &inReview,
+		ActorUserID:    fixture.actorID,
+		AdminSessionID: "00000000-0000-4000-8000-000000000001",
+		RequestID:      "forced-audit-failure",
+		Status:         &inReview,
 	})
 	if err == nil {
 		t.Fatal("PatchReport() error = nil, want audit foreign-key error")
@@ -570,14 +660,14 @@ func assertRetentionAuditTransition(
 	wantAfterRetentionStartedAt *time.Time,
 ) {
 	t.Helper()
-	var before, after queueAuditState
+	var before, after adminaudit.QueueState
 	if err := json.Unmarshal(entry.Before, &before); err != nil {
 		t.Fatalf("decode retention audit before: %v", err)
 	}
 	if err := json.Unmarshal(entry.After, &after); err != nil {
 		t.Fatalf("decode retention audit after: %v", err)
 	}
-	if before.Status != wantBeforeStatus || !optionalTimeEqual(before.RetentionStartedAt, wantBeforeRetentionStartedAt) {
+	if before.Status != string(wantBeforeStatus) || !optionalTimeEqual(before.RetentionStartedAt, wantBeforeRetentionStartedAt) {
 		t.Fatalf(
 			"audit before = (%q, %v), want (%q, %v)",
 			before.Status,
@@ -586,7 +676,7 @@ func assertRetentionAuditTransition(
 			wantBeforeRetentionStartedAt,
 		)
 	}
-	if after.Status != wantAfterStatus || !optionalTimeEqual(after.RetentionStartedAt, wantAfterRetentionStartedAt) {
+	if after.Status != string(wantAfterStatus) || !optionalTimeEqual(after.RetentionStartedAt, wantAfterRetentionStartedAt) {
 		t.Fatalf(
 			"audit after = (%q, %v), want (%q, %v)",
 			after.Status,

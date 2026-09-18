@@ -794,6 +794,7 @@ school-admin-only, stale-grant, and allowed cases.
 
 ### AC-007 — Harden transactional audit and security logging
 
+**Status:** Complete (2026-09-17)
 **Depends on:** AC-002, AC-006
 **Deliverables:** Shared audit writer, request/session correlation, safe
 before/after schemas, security-event writer, redaction tests.
@@ -805,6 +806,16 @@ before/after schemas, security-event writer, redaction tests.
 - Queue audits no longer duplicate resolution-note text.
 - Sensitive-field scanning finds no prohibited data in audit/log fixtures.
 - Audit/security records are not editable through application repositories.
+
+Implemented with a shared append-only audit store and closed schemas for queue
+and site-role-grant history. Queue mutations require actor, admin-session, and
+request correlation, store only safe state plus a
+`resolution_note_changed` marker, and commit their domain and audit writes in
+one transaction. Site-role grants use the same transactional writer, bootstrap
+uses the typed security-event store, and forced foreign-key failures verify
+that report and grant domain writes roll back. Runtime privilege checks and
+insert/list-only repository surfaces keep audit and security records immutable
+to application code.
 
 ### AC-008 — Expose reports, support, and audit history
 

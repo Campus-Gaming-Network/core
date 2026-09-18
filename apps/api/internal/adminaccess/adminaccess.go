@@ -4,7 +4,6 @@ package adminaccess
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/mail"
@@ -12,6 +11,8 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminaudit"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminsecurity"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/apperror"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -142,17 +143,21 @@ type Grant struct {
 }
 
 type GrantInput struct {
-	UserID      string
-	Role        Role
-	ActorUserID string
-	Reason      string
+	UserID         string
+	Role           Role
+	ActorUserID    string
+	AdminSessionID string
+	RequestID      string
+	Reason         string
 }
 
 type RevokeInput struct {
-	UserID      string
-	Role        Role
-	ActorUserID string
-	Reason      string
+	UserID         string
+	Role           Role
+	ActorUserID    string
+	AdminSessionID string
+	RequestID      string
+	Reason         string
 }
 
 // BootstrapInput is deliberately separate from GrantInput: it is the only
@@ -190,6 +195,9 @@ func ValidateGrantInput(input GrantInput) error {
 	if err := validateUserID(input.ActorUserID, "site role actor"); err != nil {
 		return err
 	}
+	if err := validateAuditCorrelation(input.ActorUserID, input.AdminSessionID, input.RequestID); err != nil {
+		return err
+	}
 	return validateReason(input.Reason)
 }
 
@@ -216,6 +224,9 @@ func ValidateRevokeInput(input RevokeInput) error {
 		return err
 	}
 	if err := validateUserID(input.ActorUserID, "site role actor"); err != nil {
+		return err
+	}
+	if err := validateAuditCorrelation(input.ActorUserID, input.AdminSessionID, input.RequestID); err != nil {
 		return err
 	}
 	return validateReason(input.Reason)
@@ -293,9 +304,16 @@ func (r *PostgresRepository) BootstrapSiteAdmin(ctx context.Context, input Boots
 	if err != nil {
 		return Grant{}, fmt.Errorf("insert bootstrap site administrator: %w", err)
 	}
-	if err := insertGrantAudit(ctx, tx, "", "site_role_grant.bootstrapped", Grant{}, grant, grantAuditMetadata{
-		Bootstrap:        true,
-		OperatorIdentity: input.OperatorIdentity,
+	if _, err := adminaudit.NewPostgresStoreForTransaction(tx).Insert(ctx, adminaudit.WriteInput{
+		Action:     adminaudit.ActionSiteRoleGrantBootstrap,
+		EntityType: adminaudit.EntitySiteRoleGrant,
+		EntityID:   grant.ID,
+		Before:     adminaudit.EmptyState{},
+		After:      grantAuditState(grant),
+		Metadata: adminaudit.Metadata{
+			Bootstrap:        true,
+			OperatorIdentity: input.OperatorIdentity,
+		},
 	}); err != nil {
 		return Grant{}, err
 	}
@@ -362,7 +380,18 @@ func (r *PostgresRepository) GrantRole(ctx context.Context, input GrantInput) (G
 		}
 		return Grant{}, fmt.Errorf("insert site role grant: %w", err)
 	}
-	if err := insertGrantAudit(ctx, tx, input.ActorUserID, "site_role_grant.granted", Grant{}, grant, grantAuditMetadata{}); err != nil {
+	if _, err := adminaudit.NewPostgresStoreForTransaction(tx).Insert(ctx, adminaudit.WriteInput{
+		Correlation: adminaudit.Correlation{
+			ActorUserID:    input.ActorUserID,
+			AdminSessionID: input.AdminSessionID,
+			RequestID:      input.RequestID,
+		},
+		Action:     adminaudit.ActionSiteRoleGrantGranted,
+		EntityType: adminaudit.EntitySiteRoleGrant,
+		EntityID:   grant.ID,
+		Before:     adminaudit.EmptyState{},
+		After:      grantAuditState(grant),
+	}); err != nil {
 		return Grant{}, err
 	}
 	if err := tx.Commit(ctx); err != nil {
@@ -442,7 +471,18 @@ func (r *PostgresRepository) RevokeRole(ctx context.Context, input RevokeInput) 
 	`, revoked.ID, revoked.RevokedAt); err != nil {
 		return Grant{}, fmt.Errorf("revoke site role grant sessions: %w", err)
 	}
-	if err := insertGrantAudit(ctx, tx, input.ActorUserID, "site_role_grant.revoked", current, revoked, grantAuditMetadata{}); err != nil {
+	if _, err := adminaudit.NewPostgresStoreForTransaction(tx).Insert(ctx, adminaudit.WriteInput{
+		Correlation: adminaudit.Correlation{
+			ActorUserID:    input.ActorUserID,
+			AdminSessionID: input.AdminSessionID,
+			RequestID:      input.RequestID,
+		},
+		Action:     adminaudit.ActionSiteRoleGrantRevoked,
+		EntityType: adminaudit.EntitySiteRoleGrant,
+		EntityID:   revoked.ID,
+		Before:     grantAuditState(current),
+		After:      grantAuditState(revoked),
+	}); err != nil {
 		return Grant{}, err
 	}
 	if err := tx.Commit(ctx); err != nil {
@@ -454,6 +494,8 @@ func (r *PostgresRepository) RevokeRole(ctx context.Context, input RevokeInput) 
 func normalizeGrantInput(input GrantInput) GrantInput {
 	input.UserID = strings.TrimSpace(input.UserID)
 	input.ActorUserID = strings.TrimSpace(input.ActorUserID)
+	input.AdminSessionID = strings.TrimSpace(input.AdminSessionID)
+	input.RequestID = strings.TrimSpace(input.RequestID)
 	input.Reason = strings.TrimSpace(input.Reason)
 	return input
 }
@@ -468,6 +510,8 @@ func normalizeBootstrapInput(input BootstrapInput) BootstrapInput {
 func normalizeRevokeInput(input RevokeInput) RevokeInput {
 	input.UserID = strings.TrimSpace(input.UserID)
 	input.ActorUserID = strings.TrimSpace(input.ActorUserID)
+	input.AdminSessionID = strings.TrimSpace(input.AdminSessionID)
+	input.RequestID = strings.TrimSpace(input.RequestID)
 	input.Reason = strings.TrimSpace(input.Reason)
 	return input
 }
@@ -491,6 +535,17 @@ func validateReason(reason string) error {
 	reason = strings.TrimSpace(reason)
 	if reason == "" || utf8.RuneCountInString(reason) > maximumReasonLength {
 		return apperror.Validation("site role reason is required and must be 1,000 characters or fewer")
+	}
+	return nil
+}
+
+func validateAuditCorrelation(actorUserID string, adminSessionID string, requestID string) error {
+	if err := (adminaudit.Correlation{
+		ActorUserID:    actorUserID,
+		AdminSessionID: adminSessionID,
+		RequestID:      requestID,
+	}).Validate(); err != nil {
+		return apperror.Validation("site role audit correlation is invalid")
 	}
 	return nil
 }
@@ -537,71 +592,34 @@ func requireSiteGrantManager(ctx context.Context, tx pgx.Tx, actorUserID string)
 	return nil
 }
 
-type grantAuditMetadata struct {
-	Bootstrap        bool   `json:"bootstrap,omitempty"`
-	OperatorIdentity string `json:"operator_identity,omitempty"`
-}
-
-func insertGrantAudit(
-	ctx context.Context,
-	tx pgx.Tx,
-	actorUserID string,
-	action string,
-	before Grant,
-	after Grant,
-	metadata grantAuditMetadata,
-) error {
-	beforeJSON := []byte(`{}`)
-	var err error
-	if before.ID != "" {
-		beforeJSON, err = json.Marshal(before)
-		if err != nil {
-			return fmt.Errorf("marshal site role grant audit before state: %w", err)
-		}
-	}
-	afterJSON, err := json.Marshal(after)
-	if err != nil {
-		return fmt.Errorf("marshal site role grant audit after state: %w", err)
-	}
-	metadataJSON, err := json.Marshal(metadata)
-	if err != nil {
-		return fmt.Errorf("marshal site role grant audit metadata: %w", err)
-	}
-	if _, err := tx.Exec(ctx, `
-		INSERT INTO audit_logs (
-			actor_user_id, action, entity_type, entity_id,
-			before_json, after_json, metadata
-		)
-		VALUES (
-			NULLIF($1, '')::uuid, $2, 'site_role_grant', $3::uuid,
-			$4::jsonb, $5::jsonb, $6::jsonb
-		)
-	`, actorUserID, action, after.ID, beforeJSON, afterJSON, metadataJSON); err != nil {
-		return fmt.Errorf("write site role grant audit: %w", err)
-	}
-	return nil
-}
-
 func insertBootstrapSecurityEvent(ctx context.Context, tx pgx.Tx, grant Grant, operatorIdentity string) error {
-	metadata, err := json.Marshal(struct {
-		TargetUserID     string `json:"target_user_id"`
-		TargetGrantID    string `json:"target_grant_id"`
-		OperatorIdentity string `json:"operator_identity"`
-		Bootstrap        bool   `json:"bootstrap"`
-	}{
-		TargetUserID: grant.UserID, TargetGrantID: grant.ID,
-		OperatorIdentity: operatorIdentity, Bootstrap: true,
-	})
-	if err != nil {
-		return fmt.Errorf("marshal site administrator bootstrap security event: %w", err)
-	}
-	if _, err := tx.Exec(ctx, `
-		INSERT INTO admin_security_events (event_type, outcome, metadata)
-		VALUES ('admin.access.bootstrap', 'succeeded', $1::jsonb)
-	`, metadata); err != nil {
+	if _, err := adminsecurity.NewPostgresStoreForTransaction(tx).Insert(ctx, adminsecurity.WriteInput{
+		Type:    adminsecurity.EventBootstrap,
+		Outcome: adminsecurity.OutcomeSucceeded,
+		Metadata: adminsecurity.Metadata{
+			TargetUserID:     grant.UserID,
+			TargetGrantID:    grant.ID,
+			OperatorIdentity: operatorIdentity,
+			Bootstrap:        true,
+		},
+	}); err != nil {
 		return fmt.Errorf("write site administrator bootstrap security event: %w", err)
 	}
 	return nil
+}
+
+func grantAuditState(grant Grant) adminaudit.SiteRoleGrantState {
+	return adminaudit.SiteRoleGrantState{
+		ID:              grant.ID,
+		UserID:          grant.UserID,
+		Role:            string(grant.Role),
+		GrantedByUserID: grant.GrantedByUserID,
+		GrantReason:     grant.GrantReason,
+		GrantedAt:       grant.GrantedAt,
+		RevokedAt:       grant.RevokedAt,
+		RevokedByUserID: grant.RevokedByUserID,
+		RevokeReason:    grant.RevokeReason,
+	}
 }
 
 func scanGrant(row pgx.Row) (Grant, error) {

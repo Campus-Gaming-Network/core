@@ -9,6 +9,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminaudit"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminsecurity"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/dbtest"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -124,7 +126,7 @@ func TestPostgresRepositoryGrantLookupRevokeAndAudit(t *testing.T) {
 	`, first.ID).Scan(&bootstrapActor, &bootstrapMetadata); err != nil {
 		t.Fatalf("query bootstrap audit: %v", err)
 	}
-	var bootstrapDetails grantAuditMetadata
+	var bootstrapDetails adminaudit.Metadata
 	if err := json.Unmarshal(bootstrapMetadata, &bootstrapDetails); err != nil {
 		t.Fatalf("decode bootstrap audit metadata: %v", err)
 	}
@@ -141,18 +143,16 @@ func TestPostgresRepositoryGrantLookupRevokeAndAudit(t *testing.T) {
 	`, first.ID).Scan(&securityMetadata); err != nil {
 		t.Fatalf("query bootstrap security event: %v", err)
 	}
-	var securityDetails struct {
-		TargetUserID     string `json:"target_user_id"`
-		TargetGrantID    string `json:"target_grant_id"`
-		OperatorIdentity string `json:"operator_identity"`
-		Bootstrap        bool   `json:"bootstrap"`
-	}
+	var securityDetails adminsecurity.Metadata
 	if err := json.Unmarshal(securityMetadata, &securityDetails); err != nil {
 		t.Fatalf("decode bootstrap security metadata: %v", err)
 	}
 	if !securityDetails.Bootstrap || securityDetails.TargetUserID != fixture.actorID ||
 		securityDetails.TargetGrantID != first.ID || securityDetails.OperatorIdentity != "deployment-operator@example.test" {
 		t.Fatalf("bootstrap security metadata = %#v", securityDetails)
+	}
+	if err := adminaudit.ValidateSafeDocuments(bootstrapMetadata, securityMetadata); err != nil {
+		t.Fatalf("bootstrap audit/security metadata contains prohibited fields: %v", err)
 	}
 
 	lookedUp, err := fixture.repository.ActiveGrant(ctx, fixture.actorID, RoleSiteAdmin)
@@ -307,6 +307,44 @@ func TestPostgresRepositoryGrantLookupRevokeAndAudit(t *testing.T) {
 	}
 	if beforeGrant.RevokedAt != nil || afterGrant.RevokedAt == nil {
 		t.Fatalf("revocation audit transition = %#v -> %#v", beforeGrant, afterGrant)
+	}
+}
+
+func TestPostgresRepositoryAuditFailureRollsBackGrant(t *testing.T) {
+	fixture := newAdminAccessFixture(t)
+	ctx := context.Background()
+	if _, err := fixture.repository.BootstrapSiteAdmin(ctx, BootstrapInput{
+		UserID:           fixture.actorID,
+		OperatorIdentity: "deployment-operator@example.test",
+		Reason:           "Initial administrator bootstrap",
+	}); err != nil {
+		t.Fatalf("BootstrapSiteAdmin() error = %v", err)
+	}
+
+	_, err := fixture.repository.GrantRole(ctx, GrantInput{
+		UserID:         fixture.otherID,
+		Role:           RoleSiteAdmin,
+		ActorUserID:    fixture.actorID,
+		AdminSessionID: "00000000-0000-4000-8000-000000000001",
+		RequestID:      "forced-audit-failure",
+		Reason:         "This domain write must roll back",
+	})
+	if err == nil {
+		t.Fatal("GrantRole() error = nil, want audit foreign-key error")
+	}
+	if _, err := fixture.repository.ActiveGrant(ctx, fixture.otherID, RoleSiteAdmin); !errors.Is(err, ErrGrantNotFound) {
+		t.Fatalf("ActiveGrant() after failed audit error = %v, want ErrGrantNotFound", err)
+	}
+
+	var auditCount int
+	if err := fixture.pool.QueryRow(ctx, `
+		SELECT COUNT(*) FROM audit_logs
+		WHERE action = 'site_role_grant.granted' AND actor_user_id = $1::uuid
+	`, fixture.actorID).Scan(&auditCount); err != nil {
+		t.Fatalf("count grant audits after rollback: %v", err)
+	}
+	if auditCount != 0 {
+		t.Fatalf("grant audits after rollback = %d, want 0", auditCount)
 	}
 }
 

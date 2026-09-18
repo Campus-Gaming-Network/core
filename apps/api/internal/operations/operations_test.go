@@ -30,7 +30,9 @@ func TestValidateQueueFilter(t *testing.T) {
 
 func TestValidateQueuePatch(t *testing.T) {
 	status := QueueStatusInReview
-	valid := QueuePatch{ActorUserID: "operator-id", Status: &status}
+	actorID := "00000000-0000-4000-8000-000000000001"
+	sessionID := "00000000-0000-4000-8000-000000000002"
+	valid := QueuePatch{ActorUserID: actorID, AdminSessionID: sessionID, RequestID: "request-1", Status: &status}
 	if err := ValidateQueuePatch(valid); err != nil {
 		t.Fatalf("ValidateQueuePatch() error = %v", err)
 	}
@@ -38,15 +40,18 @@ func TestValidateQueuePatch(t *testing.T) {
 	if err := ValidateQueuePatch(QueuePatch{Status: &status}); err == nil {
 		t.Fatal("ValidateQueuePatch() error = nil, want missing actor error")
 	}
-	if err := ValidateQueuePatch(QueuePatch{ActorUserID: "operator-id"}); !errors.Is(err, ErrNoChanges) {
+	if err := ValidateQueuePatch(QueuePatch{ActorUserID: actorID, Status: &status}); err == nil {
+		t.Fatal("ValidateQueuePatch() error = nil, want missing session/request error")
+	}
+	if err := ValidateQueuePatch(QueuePatch{ActorUserID: actorID, AdminSessionID: sessionID, RequestID: "request-1"}); !errors.Is(err, ErrNoChanges) {
 		t.Fatalf("ValidateQueuePatch() error = %v, want ErrNoChanges", err)
 	}
 	invalidStatus := QueueStatus("pending")
-	if err := ValidateQueuePatch(QueuePatch{ActorUserID: "operator-id", Status: &invalidStatus}); err == nil {
+	if err := ValidateQueuePatch(QueuePatch{ActorUserID: actorID, AdminSessionID: sessionID, RequestID: "request-1", Status: &invalidStatus}); err == nil {
 		t.Fatal("ValidateQueuePatch() error = nil, want invalid status error")
 	}
 	longNote := strings.Repeat("x", 5001)
-	if err := ValidateQueuePatch(QueuePatch{ActorUserID: "operator-id", ResolutionNote: &longNote}); err == nil {
+	if err := ValidateQueuePatch(QueuePatch{ActorUserID: actorID, AdminSessionID: sessionID, RequestID: "request-1", ResolutionNote: &longNote}); err == nil {
 		t.Fatal("ValidateQueuePatch() error = nil, want note length error")
 	}
 }

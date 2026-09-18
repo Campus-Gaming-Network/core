@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminaudit"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -65,6 +66,8 @@ type QueueFilter struct {
 // empty string clears the assignee; the same convention applies to the note.
 type QueuePatch struct {
 	ActorUserID      string
+	AdminSessionID   string
+	RequestID        string
 	Status           *QueueStatus
 	AssignedToUserID *string
 	ResolutionNote   *string
@@ -100,17 +103,7 @@ type SupportTicket struct {
 	UpdatedAt          time.Time   `json:"updated_at"`
 }
 
-type AuditEntry struct {
-	ID          string          `json:"id"`
-	ActorUserID *string         `json:"actor_user_id,omitempty"`
-	Action      string          `json:"action"`
-	EntityType  string          `json:"entity_type"`
-	EntityID    string          `json:"entity_id"`
-	Before      json.RawMessage `json:"before"`
-	After       json.RawMessage `json:"after"`
-	Metadata    json.RawMessage `json:"metadata"`
-	CreatedAt   time.Time       `json:"created_at"`
-}
+type AuditEntry = adminaudit.Entry
 
 type Notification struct {
 	ID         string          `json:"id"`
@@ -172,6 +165,16 @@ func ValidateQueueFilter(filter QueueFilter) error {
 func ValidateQueuePatch(patch QueuePatch) error {
 	if strings.TrimSpace(patch.ActorUserID) == "" {
 		return errors.New("actor user is required")
+	}
+	if strings.TrimSpace(patch.AdminSessionID) == "" || strings.TrimSpace(patch.RequestID) == "" {
+		return errors.New("admin session and request id are required")
+	}
+	if err := (adminaudit.Correlation{
+		ActorUserID:    patch.ActorUserID,
+		AdminSessionID: patch.AdminSessionID,
+		RequestID:      patch.RequestID,
+	}).Validate(); err != nil {
+		return errors.New("audit correlation is invalid")
 	}
 	if patch.Status == nil && patch.AssignedToUserID == nil && patch.ResolutionNote == nil {
 		return ErrNoChanges
@@ -291,9 +294,12 @@ func (r *PostgresRepository) PatchReport(ctx context.Context, id string, patch Q
 	if err != nil {
 		return Report{}, fmt.Errorf("patch report: %w", err)
 	}
-	if err := insertQueueAudit(ctx, tx, patch.ActorUserID, "report.updated", "report", id,
-		current.Status, current.AssignedToUserID, current.ResolutionNote, current.RetentionStartedAt,
-		updated.Status, updated.AssignedToUserID, updated.ResolutionNote, updated.RetentionStartedAt); err != nil {
+	if err := insertQueueAudit(
+		ctx, tx, patch, adminaudit.ActionReportUpdated, adminaudit.EntityReport, id,
+		current.Status, current.AssignedToUserID, current.RetentionStartedAt,
+		updated.Status, updated.AssignedToUserID, updated.RetentionStartedAt,
+		current.ResolutionNote != updated.ResolutionNote,
+	); err != nil {
 		return Report{}, err
 	}
 	if err := tx.Commit(ctx); err != nil {
@@ -393,9 +399,12 @@ func (r *PostgresRepository) PatchSupportTicket(ctx context.Context, id string, 
 	if err != nil {
 		return SupportTicket{}, fmt.Errorf("patch support ticket: %w", err)
 	}
-	if err := insertQueueAudit(ctx, tx, patch.ActorUserID, "support_ticket.updated", "support_ticket", id,
-		current.Status, current.AssignedToUserID, current.ResolutionNote, current.RetentionStartedAt,
-		updated.Status, updated.AssignedToUserID, updated.ResolutionNote, updated.RetentionStartedAt); err != nil {
+	if err := insertQueueAudit(
+		ctx, tx, patch, adminaudit.ActionSupportTicketUpdated, adminaudit.EntitySupportTicket, id,
+		current.Status, current.AssignedToUserID, current.RetentionStartedAt,
+		updated.Status, updated.AssignedToUserID, updated.RetentionStartedAt,
+		current.ResolutionNote != updated.ResolutionNote,
+	); err != nil {
 		return SupportTicket{}, err
 	}
 	if err := tx.Commit(ctx); err != nil {
@@ -417,31 +426,11 @@ func (r *PostgresRepository) ListAuditHistory(ctx context.Context, entityType st
 		return nil, errors.New("audit limit cannot be negative")
 	}
 
-	rows, err := r.pool.Query(ctx, `
-		SELECT id::text, actor_user_id::text, action, entity_type, entity_id::text,
-		       before_json, after_json, metadata, created_at
-		FROM audit_logs
-		WHERE entity_type = $1 AND entity_id = $2::uuid
-		ORDER BY created_at DESC, id DESC
-		LIMIT $3
-	`, entityType, entityID, pageLimit(limit))
-	if err != nil {
-		return nil, fmt.Errorf("list audit history: %w", err)
-	}
-	defer rows.Close()
-
-	entries := make([]AuditEntry, 0)
-	for rows.Next() {
-		entry, scanErr := scanAuditEntry(rows)
-		if scanErr != nil {
-			return nil, fmt.Errorf("scan audit entry: %w", scanErr)
-		}
-		entries = append(entries, entry)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("iterate audit history: %w", err)
-	}
-	return entries, nil
+	return adminaudit.NewPostgresStore(r.pool).List(ctx, adminaudit.ListParams{
+		EntityType: adminaudit.EntityType(entityType),
+		EntityID:   entityID,
+		Limit:      pageLimit(limit),
+	})
 }
 
 func (r *PostgresRepository) CreateNotification(ctx context.Context, input NotificationInput) (Notification, error) {
@@ -560,6 +549,8 @@ func validQueueStatus(status QueueStatus) bool {
 
 func normalizeQueuePatch(patch QueuePatch) QueuePatch {
 	patch.ActorUserID = strings.TrimSpace(patch.ActorUserID)
+	patch.AdminSessionID = strings.TrimSpace(patch.AdminSessionID)
+	patch.RequestID = strings.TrimSpace(patch.RequestID)
 	if patch.Status != nil {
 		status := QueueStatus(strings.TrimSpace(string(*patch.Status)))
 		patch.Status = &status
@@ -657,49 +648,42 @@ func optionalStringEqual(left *string, right *string) bool {
 	return *left == *right
 }
 
-type queueAuditState struct {
-	Status             QueueStatus `json:"status"`
-	AssignedToUserID   *string     `json:"assigned_to_user_id"`
-	ResolutionNote     string      `json:"resolution_note"`
-	RetentionStartedAt *time.Time  `json:"retention_started_at"`
-}
-
 func insertQueueAudit(
 	ctx context.Context,
 	tx pgx.Tx,
-	actorUserID string,
-	action string,
-	entityType string,
+	patch QueuePatch,
+	action adminaudit.Action,
+	entityType adminaudit.EntityType,
 	entityID string,
 	beforeStatus QueueStatus,
 	beforeAssignee *string,
-	beforeNote string,
 	beforeRetentionStartedAt *time.Time,
 	afterStatus QueueStatus,
 	afterAssignee *string,
-	afterNote string,
 	afterRetentionStartedAt *time.Time,
+	resolutionNoteChanged bool,
 ) error {
-	before, err := json.Marshal(queueAuditState{
-		Status: beforeStatus, AssignedToUserID: beforeAssignee, ResolutionNote: beforeNote,
-		RetentionStartedAt: beforeRetentionStartedAt,
-	})
-	if err != nil {
-		return fmt.Errorf("marshal audit before state: %w", err)
-	}
-	after, err := json.Marshal(queueAuditState{
-		Status: afterStatus, AssignedToUserID: afterAssignee, ResolutionNote: afterNote,
-		RetentionStartedAt: afterRetentionStartedAt,
-	})
-	if err != nil {
-		return fmt.Errorf("marshal audit after state: %w", err)
-	}
-	if _, err := tx.Exec(ctx, `
-		INSERT INTO audit_logs (
-			actor_user_id, action, entity_type, entity_id, before_json, after_json
-		)
-		VALUES ($1::uuid, $2, $3, $4::uuid, $5::jsonb, $6::jsonb)
-	`, actorUserID, action, entityType, entityID, before, after); err != nil {
+	if _, err := adminaudit.NewPostgresStoreForTransaction(tx).Insert(ctx, adminaudit.WriteInput{
+		Correlation: adminaudit.Correlation{
+			ActorUserID:    patch.ActorUserID,
+			AdminSessionID: patch.AdminSessionID,
+			RequestID:      patch.RequestID,
+		},
+		Action:     action,
+		EntityType: entityType,
+		EntityID:   entityID,
+		Before: adminaudit.QueueState{
+			Status:             string(beforeStatus),
+			AssignedToUserID:   beforeAssignee,
+			RetentionStartedAt: beforeRetentionStartedAt,
+		},
+		After: adminaudit.QueueState{
+			Status:             string(afterStatus),
+			AssignedToUserID:   afterAssignee,
+			RetentionStartedAt: afterRetentionStartedAt,
+		},
+		Metadata: adminaudit.Metadata{ResolutionNoteChanged: resolutionNoteChanged},
+	}); err != nil {
 		return fmt.Errorf("write queue audit: %w", err)
 	}
 	return nil
@@ -741,26 +725,6 @@ func scanSupportTicket(row pgx.Row) (SupportTicket, error) {
 		&ticket.UpdatedAt,
 	)
 	return ticket, err
-}
-
-func scanAuditEntry(row pgx.Row) (AuditEntry, error) {
-	var entry AuditEntry
-	var before, after, metadata []byte
-	err := row.Scan(
-		&entry.ID,
-		&entry.ActorUserID,
-		&entry.Action,
-		&entry.EntityType,
-		&entry.EntityID,
-		&before,
-		&after,
-		&metadata,
-		&entry.CreatedAt,
-	)
-	entry.Before = json.RawMessage(before)
-	entry.After = json.RawMessage(after)
-	entry.Metadata = json.RawMessage(metadata)
-	return entry, err
 }
 
 func scanNotification(row pgx.Row) (Notification, error) {
