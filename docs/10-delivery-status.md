@@ -176,14 +176,14 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 
 - [x] Add operations data/repository foundation for assignable reports/support queues with terminal retention clocks, transactional audit history, and user-scoped notifications
 - [ ] Bootstrap first site admin (CLI / env seed)
-- [ ] Add site-admin-authorized reports, support, and audit API endpoints
-- [ ] TanStack Start Admin Console (separate deploy, shared Go API)
+- [x] Add site-admin-authorized reports, support, and audit API endpoints
+- [x] TanStack Start Admin Console (separate deploy, shared Go API)
 - [ ] Schools: create / edit / soft-delete, logos (**Admin Console-only** R2 PNG/JPG ≤500 MB), activation (`unitid` optional)
 - [ ] Review/deactivate bad seed schools
 - [ ] Manage/grant school admins in the Admin Console (grant storage and indicators implemented)
 - [ ] Games catalog management (start from the six launch games; IGDB later)
-- [ ] Reports queue
-- [ ] Support tickets queue
+- [x] Reports queue
+- [x] Support tickets queue
 - [ ] User notification API and in-app inbox
 - [ ] Placeholder school logos until Admin Console upload
 

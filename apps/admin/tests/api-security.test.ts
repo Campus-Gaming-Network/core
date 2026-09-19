@@ -47,3 +47,35 @@ test("unexpected privileged response fields fail the explicit contract", async (
     AdminApiContractError,
   );
 });
+
+test("the Admin API client serializes PATCH bodies without forwarding trust headers", async () => {
+  let request:
+    | { input: string | URL | Request; init?: RequestInit }
+    | undefined;
+  const api = createAdminApiClient({
+    baseURL: "http://api.internal",
+    proxySecret: "server-owned-secret",
+    fetcher: async (input, init) => {
+      request = { input, init };
+      return Response.json({ status: "closed" });
+    },
+  });
+
+  await api({
+    path: "/admin/v1/reports/report-id",
+    method: "PATCH",
+    body: { status: "closed" },
+    responseSchema: z.object({ status: z.literal("closed") }),
+    headers: {
+      "X-CGN-Admin-Proxy-Secret": "browser-controlled",
+      "X-CGN-Admin-CSRF": "server-read-csrf",
+    },
+  });
+
+  assert.equal(request?.init?.method, "PATCH");
+  assert.equal(request?.init?.body, JSON.stringify({ status: "closed" }));
+  const headers = new Headers(request?.init?.headers);
+  assert.equal(headers.get("content-type"), "application/json");
+  assert.equal(headers.get("x-cgn-admin-csrf"), "server-read-csrf");
+  assert.equal(headers.get("x-cgn-admin-proxy-secret"), "server-owned-secret");
+});

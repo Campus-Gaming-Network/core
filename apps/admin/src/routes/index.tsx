@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -45,13 +45,29 @@ function AdminOverview() {
         </article>
       </section>
 
-      <section className="empty-panel" aria-labelledby="workspace-heading">
-        <p className="eyebrow">Next milestone</p>
-        <h2 id="workspace-heading">Moderation and audit workspace</h2>
-        <p>
-          Report, support, and audit screens remain intentionally unavailable
-          until their server-enforced read and mutation endpoints are ready.
-        </p>
+      <section aria-labelledby="workspace-heading">
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">Operations</p>
+            <h2 id="workspace-heading">Moderation workspace</h2>
+          </div>
+        </div>
+        <div className="workspace-grid">
+          {admin.session.capabilities.includes("reports.read") ? (
+            <Link className="workspace-card" to="/reports">
+              <span>Safety</span>
+              <strong>Review reports</strong>
+              <small>Filter, assign, resolve, and inspect audit history.</small>
+            </Link>
+          ) : null}
+          {admin.session.capabilities.includes("support.read") ? (
+            <Link className="workspace-card" to="/support-tickets">
+              <span>Support</span>
+              <strong>Review support tickets</strong>
+              <small>Handle requests with scoped access to contact data.</small>
+            </Link>
+          ) : null}
+        </div>
       </section>
     </div>
   );

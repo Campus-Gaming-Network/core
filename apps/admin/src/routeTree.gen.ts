@@ -11,6 +11,10 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiHealthRouteImport } from './routes/api.health'
+import { Route as ReportsIndexRouteImport } from './routes/reports.index'
+import { Route as ReportsReportIdRouteImport } from './routes/reports.$reportId'
+import { Route as SupportTicketsIndexRouteImport } from './routes/support-tickets.index'
+import { Route as SupportTicketsTicketIdRouteImport } from './routes/support-tickets.$ticketId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -22,31 +26,86 @@ const ApiHealthRoute = ApiHealthRouteImport.update({
   path: '/api/health',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ReportsIndexRoute = ReportsIndexRouteImport.update({
+  id: '/reports/',
+  path: '/reports/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReportsReportIdRoute = ReportsReportIdRouteImport.update({
+  id: '/reports/$reportId',
+  path: '/reports/$reportId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SupportTicketsIndexRoute = SupportTicketsIndexRouteImport.update({
+  id: '/support-tickets/',
+  path: '/support-tickets/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SupportTicketsTicketIdRoute = SupportTicketsTicketIdRouteImport.update({
+  id: '/support-tickets/$ticketId',
+  path: '/support-tickets/$ticketId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/api/health': typeof ApiHealthRoute
+  '/reports/$reportId': typeof ReportsReportIdRoute
+  '/support-tickets/$ticketId': typeof SupportTicketsTicketIdRoute
+  '/reports/': typeof ReportsIndexRoute
+  '/support-tickets/': typeof SupportTicketsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/api/health': typeof ApiHealthRoute
+  '/reports/$reportId': typeof ReportsReportIdRoute
+  '/support-tickets/$ticketId': typeof SupportTicketsTicketIdRoute
+  '/reports': typeof ReportsIndexRoute
+  '/support-tickets': typeof SupportTicketsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/api/health': typeof ApiHealthRoute
+  '/reports/$reportId': typeof ReportsReportIdRoute
+  '/support-tickets/$ticketId': typeof SupportTicketsTicketIdRoute
+  '/reports/': typeof ReportsIndexRoute
+  '/support-tickets/': typeof SupportTicketsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/api/health'
+  fullPaths:
+    | '/'
+    | '/api/health'
+    | '/reports/$reportId'
+    | '/support-tickets/$ticketId'
+    | '/reports/'
+    | '/support-tickets/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/api/health'
-  id: '__root__' | '/' | '/api/health'
+  to:
+    | '/'
+    | '/api/health'
+    | '/reports/$reportId'
+    | '/support-tickets/$ticketId'
+    | '/reports'
+    | '/support-tickets'
+  id:
+    | '__root__'
+    | '/'
+    | '/api/health'
+    | '/reports/$reportId'
+    | '/support-tickets/$ticketId'
+    | '/reports/'
+    | '/support-tickets/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ApiHealthRoute: typeof ApiHealthRoute
+  ReportsReportIdRoute: typeof ReportsReportIdRoute
+  SupportTicketsTicketIdRoute: typeof SupportTicketsTicketIdRoute
+  ReportsIndexRoute: typeof ReportsIndexRoute
+  SupportTicketsIndexRoute: typeof SupportTicketsIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -65,12 +124,44 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiHealthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reports/': {
+      id: '/reports/'
+      path: '/reports'
+      fullPath: '/reports/'
+      preLoaderRoute: typeof ReportsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reports/$reportId': {
+      id: '/reports/$reportId'
+      path: '/reports/$reportId'
+      fullPath: '/reports/$reportId'
+      preLoaderRoute: typeof ReportsReportIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/support-tickets/': {
+      id: '/support-tickets/'
+      path: '/support-tickets'
+      fullPath: '/support-tickets/'
+      preLoaderRoute: typeof SupportTicketsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/support-tickets/$ticketId': {
+      id: '/support-tickets/$ticketId'
+      path: '/support-tickets/$ticketId'
+      fullPath: '/support-tickets/$ticketId'
+      preLoaderRoute: typeof SupportTicketsTicketIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ApiHealthRoute: ApiHealthRoute,
+  ReportsReportIdRoute: ReportsReportIdRoute,
+  SupportTicketsTicketIdRoute: SupportTicketsTicketIdRoute,
+  ReportsIndexRoute: ReportsIndexRoute,
+  SupportTicketsIndexRoute: SupportTicketsIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

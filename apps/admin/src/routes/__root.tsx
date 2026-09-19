@@ -14,6 +14,7 @@ import {
   DefaultPending,
 } from "../components/route-boundaries";
 import { getAdminShellSession, logout } from "../features/session.functions";
+import type { AdminSession } from "../server/contracts.server";
 import appCSS from "../styles.css?url";
 
 export const Route = createRootRoute({
@@ -69,10 +70,12 @@ function RootComponent() {
     );
   }
 
-  return <AuthenticatedShell email={admin.session.email} />;
+  return <AuthenticatedShell session={admin.session} />;
 }
 
-function AuthenticatedShell({ email }: { email: string }) {
+function AuthenticatedShell({ session }: { session: AdminSession }) {
+  const canReadReports = session.capabilities.includes("reports.read");
+  const canReadSupport = session.capabilities.includes("support.read");
   return (
     <div className="app-shell">
       <a className="skip-link" href="#main-content">
@@ -89,10 +92,14 @@ function AuthenticatedShell({ email }: { email: string }) {
           <Link to="/" activeOptions={{ exact: true }}>
             Overview
           </Link>
+          {canReadReports ? <Link to="/reports">Reports</Link> : null}
+          {canReadSupport ? (
+            <Link to="/support-tickets">Support tickets</Link>
+          ) : null}
         </nav>
         <div className="operator-card">
           <span>Signed in as</span>
-          <strong>{email}</strong>
+          <strong>{session.email}</strong>
           <LogoutForm />
         </div>
       </aside>

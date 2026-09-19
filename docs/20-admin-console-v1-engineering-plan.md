@@ -871,6 +871,7 @@ admin endpoints, failure cleanup, image-security fixtures.
 
 ### AC-011 — Scaffold and secure `apps/admin`
 
+**Status:** Complete (2026-09-16)
 **Depends on:** AC-004, AC-005, AC-006
 **Deliverables:** TanStack Start app, root/session layout, server-only API client,
 validated contracts, Dockerfile, optional Compose service, root scripts, security
@@ -887,6 +888,7 @@ headers, error boundaries.
 
 ### AC-012 — Build moderation and audit UI
 
+**Status:** Complete (2026-09-18)
 **Depends on:** AC-008, AC-011
 **Deliverables:** Report/support queues, details, filters, assignment/status/note
 forms, audit panels, accessible feedback.
@@ -897,6 +899,18 @@ forms, audit panels, accessible feedback.
 - Hostile stored content remains inert under the production CSP.
 - Stale conflicts preserve the operator's input and show the current state.
 - Desktop, mobile, keyboard, and screen-reader smoke journeys pass.
+
+Implemented: capability-aware report and support navigation, bounded queue
+filters and pagination, scoped detail views, assignment/status/resolution forms,
+and safe append-only audit timelines. A server-only BFF contract validates and
+strips every response, forwards only isolated Admin cookies, and attaches the
+server-read Origin and CSRF value to mutations. Enhanced stale-write handling
+keeps operator input, displays the newly loaded state, advances the version
+precondition, and permits a reviewed retry. Native forms execute the same
+validated PATCH operation and redirect to accessible status feedback. The
+production-browser suite covers hostile stored markup, keyboard navigation,
+desktop/mobile axe scans, conflict recovery, and a no-JavaScript mutation with
+rendered audit history.
 
 ### AC-013 — Build catalog, user, and access UI
 

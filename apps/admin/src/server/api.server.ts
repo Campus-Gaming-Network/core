@@ -8,7 +8,8 @@ export type Fetcher = (
 export type ApiClient = <TSchema extends z.ZodType>(options: {
   path: string;
   responseSchema: TSchema;
-  method?: "GET" | "POST";
+  method?: "GET" | "POST" | "PATCH" | "DELETE";
+  body?: unknown;
   cookieHeader?: string;
   headers?: HeadersInit;
 }) => Promise<{ data: z.output<TSchema>; response: Response }>;
@@ -48,6 +49,7 @@ export function createAdminApiClient({
     path,
     responseSchema,
     method = "GET",
+    body,
     cookieHeader,
     headers,
   }) => {
@@ -57,9 +59,11 @@ export function createAdminApiClient({
     outgoing.delete("X-CGN-Admin-Proxy-Secret");
     outgoing.set("X-CGN-Admin-Proxy-Secret", proxySecret);
     if (cookieHeader) outgoing.set("Cookie", cookieHeader);
+    if (body !== undefined) outgoing.set("Content-Type", "application/json");
 
     const response = await fetcher(buildAPIURL(baseURL, path), {
       method,
+      body: body === undefined ? undefined : JSON.stringify(body),
       headers: outgoing,
       cache: "no-store",
       redirect: "error",
