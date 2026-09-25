@@ -186,7 +186,7 @@ test("Railway staging config uses the production image entry and health path", (
   assert.match(config, /healthcheckPath = "\/api\/health"/);
   assert.doesNotMatch(
     config,
-    /npm run dev|vite dev|apps\/web-start\/Dockerfile/,
+    /pnpm run dev|vite dev|apps\/web-start\/Dockerfile/,
   );
 });
 

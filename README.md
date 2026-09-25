@@ -50,12 +50,12 @@ rendered Mermaid diagrams:
 
 ```bash
 nvm use
-npm install
-npm run dev:docs
+pnpm install --frozen-lockfile
+pnpm run dev:docs
 ```
 
 Then open http://localhost:3001. The command renders the current Markdown and
-serves it on localhost only with live reload. Use `npm run build:docs` to verify
+serves it on localhost only with live reload. Use `pnpm run build:docs` to verify
 the production documentation bundle.
 
 To run the viewer through Docker Desktop instead, create its optional Compose
@@ -83,19 +83,20 @@ when the Postgres volume already exists.
 
 ## Local commands
 
-When adding or updating npm packages, pin exact versions in `package.json` so installs do not silently drift.
+Use Node.js 24 and the pnpm version pinned in `package.json`. When adding or
+updating packages, pin exact versions so installs do not silently drift.
 
 ```bash
-npm run dev:web
-npm run check:apps-compose
-npm run lint:web
-npm run typecheck:web
-npm run test:web
-npm run test:e2e:web
-npm run test:e2e:real
-npm run fmt:check:api
-npm run vet:api
-npm run test:api
+pnpm run dev:web
+pnpm run check:apps-compose
+pnpm run lint:web
+pnpm run typecheck:web
+pnpm run test:web
+pnpm run test:e2e:web
+pnpm run test:e2e:real
+pnpm run fmt:check:api
+pnpm run vet:api
+pnpm run test:api
 ```
 
 Every frontend and backend change should include or update regression tests.
@@ -108,17 +109,17 @@ browser first:
 
 ```bash
 nvm use
-npm ci
-npx playwright install chromium
+pnpm install --frozen-lockfile
+pnpm exec playwright install chromium
 ```
 
 The fast browser suite starts an isolated API fixture and the built Nitro production
 server, then runs the primary journeys in desktop, mobile, and JavaScript-disabled
-Chromium. Use `npm run test:e2e:web:dev` to run the same suite
+Chromium. Use `pnpm run test:e2e:web:dev` to run the same suite
 against the Vite development server. Neither variant requires Docker or a
 populated development database.
 
-`npm run test:e2e:real` runs a focused launch-proof suite through the built Nitro
+`pnpm run test:e2e:real` runs a focused launch-proof suite through the built Nitro
 BFF, real Go API, PostgreSQL, and an in-process Resend HTTP stub. By default it
 starts a dedicated `cgn_e2e` PostgreSQL container on port `55432`, applies all
 migrations, resets and seeds a small deterministic fixture, and always removes
@@ -130,7 +131,7 @@ in that mode the command does not manage that database's lifecycle.
 The API needs Go 1.27.1 or newer (set by the `go` directive in `apps/api/go.mod`).
 CI and the API Docker build use Go 1.27.1. With Go 1.21 or newer and the default
 `GOTOOLCHAIN=auto`, commands inside `apps/api` select and download the required
-toolchain automatically. The npm formatting scripts use that toolchain's `gofmt`.
+toolchain automatically. The pnpm formatting scripts use that toolchain's `gofmt`.
 Go module commands also download the PostgreSQL driver dependency as needed:
 
 ```bash

@@ -18,8 +18,7 @@ const databaseURL =
   externalDatabaseURL ||
   "postgres://cgn:cgn@127.0.0.1:55432/cgn_e2e?sslmode=disable";
 const manageDatabase = !externalDatabaseURL;
-const npmCommand = process.platform === "win32" ? "npm.cmd" : "npm";
-const npxCommand = process.platform === "win32" ? "npx.cmd" : "npx";
+const pnpmCommand = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
 const goCommand = process.env.REAL_E2E_GO_EXECUTABLE?.trim() || "go";
 const childEnvironment = {
   ...process.env,
@@ -53,10 +52,11 @@ try {
     apiDirectory,
   );
   await run(goCommand, ["run", "./cmd/e2e-seed"], apiDirectory);
-  await run(npmCommand, ["run", "build"], webDirectory);
+  await run(pnpmCommand, ["run", "build"], webDirectory);
   await run(
-    npxCommand,
+    pnpmCommand,
     [
+      "exec",
       "playwright",
       "test",
       "--config=playwright.real.config.ts",

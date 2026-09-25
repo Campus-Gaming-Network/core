@@ -1,0 +1,7 @@
+packages:
+  - "apps/admin"
+  - "apps/docs"
+  - "apps/web"
+  - "packages/*"
+allowBuilds:
+  esbuild: true
