@@ -71,7 +71,7 @@ func (r *Router) handleSignup(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	normalizedEmail := users.NormalizeEmail(input.Email)
-	if validEmail(normalizedEmail) && !r.allowVisitor("signup-email:"+normalizedEmail, req) {
+	if validEmail(normalizedEmail) && !r.allowTarget("signup-email:"+normalizedEmail) {
 		rateLimitExceeded(w, r)
 		return
 	}
@@ -112,7 +112,7 @@ func (r *Router) handleLogin(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	if normalizedEmail := users.NormalizeEmail(input.Email); validEmail(normalizedEmail) &&
-		!r.allowVisitor("login-email:"+normalizedEmail, req) {
+		!r.allowTarget("login-email:"+normalizedEmail) {
 		rateLimitExceeded(w, r)
 		return
 	}
@@ -189,7 +189,7 @@ func (r *Router) handleResendVerification(w http.ResponseWriter, req *http.Reque
 		writeError(w, http.StatusBadRequest, "invalid_request")
 		return
 	}
-	if !r.allowVisitor("resend-verification-email:"+users.NormalizeEmail(input.Email), req) {
+	if !r.allowTarget("resend-verification-email:" + users.NormalizeEmail(input.Email)) {
 		rateLimitExceeded(w, r)
 		return
 	}
@@ -221,7 +221,7 @@ func (r *Router) handleForgotPassword(w http.ResponseWriter, req *http.Request) 
 		writeError(w, http.StatusBadRequest, "invalid_request")
 		return
 	}
-	if !r.allowVisitor("forgot-password-email:"+users.NormalizeEmail(input.Email), req) {
+	if !r.allowTarget("forgot-password-email:" + users.NormalizeEmail(input.Email)) {
 		rateLimitExceeded(w, r)
 		return
 	}
@@ -249,7 +249,7 @@ func (r *Router) handleResetPassword(w http.ResponseWriter, req *http.Request) {
 	if !decodeJSON(w, req, &input) {
 		return
 	}
-	if !r.allowVisitor("reset-password-token:"+opaqueRateLimitTarget(input.Token), req) {
+	if !r.allowTarget("reset-password-token:" + opaqueRateLimitTarget(input.Token)) {
 		rateLimitExceeded(w, r)
 		return
 	}
@@ -384,6 +384,15 @@ func (r *Router) allowVisitor(action string, req *http.Request) bool {
 		return true
 	}
 	return r.limiter.Allow(action + ":visitor:" + clientKey(req, r.cfg.ProxySharedSecret))
+}
+
+// allowTarget caps attempts against one email address, token, or private event
+// across every visitor. Callers check the visitor's own quota first.
+func (r *Router) allowTarget(action string) bool {
+	if r.targetLimiter == nil {
+		return true
+	}
+	return r.targetLimiter.Allow(action)
 }
 
 func (r *Router) allowAccount(action, userID string) bool {

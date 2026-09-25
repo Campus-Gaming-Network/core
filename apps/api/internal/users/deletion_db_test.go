@@ -534,29 +534,54 @@ func TestDeleteAccountSkipsInactiveTeamSuccessor(t *testing.T) {
 	}
 }
 
-func TestDeleteAccountRevokesSchoolAdminGrant(t *testing.T) {
+func TestDeleteAccountRevokesAdministrativeGrants(t *testing.T) {
 	pool, schoolID := newDeletionFixture(t)
 	ctx := context.Background()
 	userID := insertUser(t, pool, schoolID, "school-admin-delete@example.test")
+	otherAdminID := insertUser(t, pool, schoolID, "other-site-admin-delete@example.test")
+	t.Cleanup(func() {
+		pool.Exec(context.Background(), `DELETE FROM site_role_grants WHERE user_id = ANY($1::uuid[])`, []string{userID, otherAdminID})
+	})
+	if _, err := pool.Exec(ctx, `
+		UPDATE users SET email_verified_at = NOW() WHERE id = $1::uuid
+	`, otherAdminID); err != nil {
+		t.Fatalf("verify other admin: %v", err)
+	}
 	if _, err := pool.Exec(ctx, `
 		INSERT INTO school_admins (school_id, user_id)
 		VALUES ($1::uuid, $2::uuid)
 	`, schoolID, userID); err != nil {
 		t.Fatalf("insert school admin: %v", err)
 	}
+	if _, err := pool.Exec(ctx, `
+		INSERT INTO site_role_grants (user_id, role, grant_reason)
+		SELECT id, 'site_admin', 'deletion test' FROM users WHERE id = ANY($1::uuid[])
+	`, []string{userID, otherAdminID}); err != nil {
+		t.Fatalf("insert site admin grants: %v", err)
+	}
 
 	if err := NewPostgresRepository(pool).DeleteAccount(ctx, userID); err != nil {
 		t.Fatalf("DeleteAccount() error = %v", err)
 	}
 
-	var grants int
-	if err := pool.QueryRow(ctx, `
-		SELECT COUNT(*) FROM school_admins WHERE user_id = $1::uuid
-	`, userID).Scan(&grants); err != nil {
-		t.Fatalf("count school admin grants: %v", err)
+	type grantState struct {
+		SchoolGrantRevoked bool
+		SiteGrantRevoked   bool
+		SiteGrantRevokedBy string
+		SiteGrantReason    string
 	}
-	if grants != 0 {
-		t.Fatalf("school admin grants = %d, want 0", grants)
+	var got grantState
+	if err := pool.QueryRow(ctx, `
+		SELECT s.deleted_at IS NOT NULL, g.revoked_at IS NOT NULL, g.revoked_by_user_id::text, g.revoke_reason
+		FROM school_admins s
+		JOIN site_role_grants g ON g.user_id = s.user_id
+		WHERE s.user_id = $1::uuid
+	`, userID).Scan(&got.SchoolGrantRevoked, &got.SiteGrantRevoked, &got.SiteGrantRevokedBy, &got.SiteGrantReason); err != nil {
+		t.Fatalf("read administrative grants: %v", err)
+	}
+	want := grantState{SchoolGrantRevoked: true, SiteGrantRevoked: true, SiteGrantRevokedBy: userID, SiteGrantReason: "account deleted"}
+	if got != want {
+		t.Fatalf("grants = %+v, want %+v", got, want)
 	}
 }
 

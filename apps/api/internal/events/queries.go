@@ -204,15 +204,16 @@ func (r *PostgresRepository) ListPublic(ctx context.Context, params ListParams) 
 		AND ($3 = '' OR e.format = $3)
 	`
 	arguments := []any{params.GameSlug, params.SchoolSlug, params.Format}
-	order := "ORDER BY e.starts_at, e.id"
+	// Newest start times first; a previous page reads forward and is reversed.
+	order := "ORDER BY e.starts_at DESC, e.id DESC"
 	if params.After != nil {
-		whereClause += fmt.Sprintf(" AND (e.starts_at, e.id) > ($%d, $%d::uuid)", len(arguments)+1, len(arguments)+2)
+		whereClause += fmt.Sprintf(" AND (e.starts_at, e.id) < ($%d, $%d::uuid)", len(arguments)+1, len(arguments)+2)
 		arguments = append(arguments, params.After.Timestamp, params.After.ID)
 	}
 	if params.Before != nil {
-		whereClause += fmt.Sprintf(" AND (e.starts_at, e.id) < ($%d, $%d::uuid)", len(arguments)+1, len(arguments)+2)
+		whereClause += fmt.Sprintf(" AND (e.starts_at, e.id) > ($%d, $%d::uuid)", len(arguments)+1, len(arguments)+2)
 		arguments = append(arguments, params.Before.Timestamp, params.Before.ID)
-		order = "ORDER BY e.starts_at DESC, e.id DESC"
+		order = "ORDER BY e.starts_at, e.id"
 	}
 	arguments = append(arguments, params.Limit)
 	tailClause := fmt.Sprintf(" %s LIMIT $%d", order, len(arguments))

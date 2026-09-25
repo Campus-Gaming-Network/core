@@ -251,7 +251,7 @@ func (r *Router) handleUnlockEvent(w http.ResponseWriter, req *http.Request, slu
 		writeError(w, http.StatusServiceUnavailable, "database_unavailable")
 		return
 	}
-	if !r.allowVisitor("event-unlock-event:"+slug, req) {
+	if !r.allowVisitor("event-unlock-event:"+slug, req) || !r.allowTarget("event-unlock-event:"+slug) {
 		rateLimitExceeded(w, r)
 		return
 	}

@@ -295,6 +295,10 @@ func (r *Router) handleSetTeamCaptain(w http.ResponseWriter, req *http.Request, 
 	if !decodeJSON(w, req, &request) {
 		return
 	}
+	if !looksLikeUUID(strings.TrimSpace(request.UserID)) {
+		writeError(w, http.StatusBadRequest, "invalid_id")
+		return
+	}
 	team, err := r.teams.SetCaptain(req.Context(), slug, userID, request.UserID, request.Captain)
 	if err != nil {
 		writeApplicationError(w, err, "team_captain_failed")
@@ -316,6 +320,10 @@ func (r *Router) handleTransferTeamOwnership(w http.ResponseWriter, req *http.Re
 
 	var request transferTeamOwnershipRequest
 	if !decodeJSON(w, req, &request) {
+		return
+	}
+	if !looksLikeUUID(strings.TrimSpace(request.NewOwnerUserID)) {
+		writeError(w, http.StatusBadRequest, "invalid_id")
 		return
 	}
 	team, err := r.teams.TransferOwnership(req.Context(), slug, userID, request.NewOwnerUserID)

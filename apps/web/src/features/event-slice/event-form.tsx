@@ -57,6 +57,12 @@ export function EventForm({
   )
     ? eventTimeZones
     : ([{ id: timeZone, label: timeZone }, ...eventTimeZones] as const);
+  // The picker lists active games only. Keep an event's retired games
+  // selectable so saving other changes does not drop them.
+  const retiredGames =
+    event?.games.filter(
+      (eventGame) => !games.some((game) => game.id === eventGame.id),
+    ) ?? [];
 
   async function submit(formEvent: FormEvent<HTMLFormElement>) {
     formEvent.preventDefault();
@@ -320,6 +326,11 @@ export function EventForm({
             {games.map((game) => (
               <option key={game.id} value={game.id}>
                 {game.name}
+              </option>
+            ))}
+            {retiredGames.map((game) => (
+              <option key={game.id} value={game.id}>
+                {game.name} (no longer offered)
               </option>
             ))}
           </select>

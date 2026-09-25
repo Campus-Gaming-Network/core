@@ -873,7 +873,8 @@ event/team references. Reference insertion and deletion coordinate through row
 locks, including inserts that started before a soft delete. School mutations
 invalidate and refresh the serving API process's catalog after commit; a failed
 refresh falls back to database reads. Inactive games leave the public picker
-while existing event/team associations remain readable.
+while existing event/team associations remain readable, and editing an event
+keeps its inactive games.
 
 API contracts for AC-013:
 

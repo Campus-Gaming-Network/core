@@ -3,6 +3,7 @@ package httpapi
 import (
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -165,6 +166,38 @@ func TestPrivateEventQuotaIsScopedByEventAndVisitor(t *testing.T) {
 	}
 	if router.allowVisitor("event-unlock-event:first", visitorOne) {
 		t.Fatal("repeated attempt for the same event and visitor was allowed")
+	}
+}
+
+func TestTargetQuotaIsSharedAcrossVisitors(t *testing.T) {
+	router := &Router{
+		cfg: config.Config{
+			AuthRateWindow:    time.Minute,
+			ProxySharedSecret: "shared-secret",
+		},
+		account:       newPassV0ContractAccountService(&passV0ContractUsers{}),
+		limiter:       ratelimit.New(1, time.Minute),
+		targetLimiter: ratelimit.New(2, time.Minute),
+	}
+	handler := http.HandlerFunc(router.handleForgotPassword)
+
+	var statuses []int
+	for _, attempt := range []struct{ visitorIP, email string }{
+		{visitorIP: "198.51.100.10", email: "target@example.com"},
+		{visitorIP: "198.51.100.11", email: "Target@Example.com"},
+		{visitorIP: "198.51.100.12", email: "target@example.com"},
+		{visitorIP: "198.51.100.13", email: "other@example.com"},
+	} {
+		request := httptest.NewRequest(http.MethodPost, "/auth/forgot-password", strings.NewReader(`{"email":"`+attempt.email+`"}`))
+		request.RemoteAddr = "10.0.0.8:4321"
+		request.Header.Set(visitorIPHeader, attempt.visitorIP)
+		request.Header.Set(proxySecretHeader, "shared-secret")
+		statuses = append(statuses, serveContractRequest(handler, request).Code)
+	}
+
+	want := []int{http.StatusAccepted, http.StatusAccepted, http.StatusTooManyRequests, http.StatusAccepted}
+	if !reflect.DeepEqual(statuses, want) {
+		t.Fatalf("statuses = %v, want %v", statuses, want)
 	}
 }
 

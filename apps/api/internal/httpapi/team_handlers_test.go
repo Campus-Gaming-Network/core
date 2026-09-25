@@ -433,6 +433,31 @@ func TestHandleTransferTeamOwnershipTransfersToMember(t *testing.T) {
 	}
 }
 
+func TestHandleTeamMemberCommandsRejectMalformedUserIDs(t *testing.T) {
+	for _, test := range []struct {
+		name string
+		path string
+		body string
+	}{
+		{name: "captain", path: "/teams/varsity-rocket-league/captains", body: `{"user_id":"not-a-uuid","captain":true}`},
+		{name: "transfer", path: "/teams/varsity-rocket-league/transfer-ownership", body: `{"new_owner_user_id":"not-a-uuid"}`},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			repository := &fakeTeamRepository{detail: testTeam()}
+			response := httptest.NewRecorder()
+
+			authenticatedTeamPathHandler(repository).ServeHTTP(response, authenticatedEventRequest(http.MethodPost, test.path, test.body))
+
+			if response.Code != http.StatusBadRequest || !strings.Contains(response.Body.String(), "invalid_id") {
+				t.Fatalf("response = %d %s, want 400 invalid_id", response.Code, response.Body.String())
+			}
+			if repository.setCaptainCalled || repository.transferCalled {
+				t.Fatal("repository was called with a malformed user ID")
+			}
+		})
+	}
+}
+
 func TestHandleTransferTeamOwnershipMapsMissingMember(t *testing.T) {
 	repository := &fakeTeamRepository{detail: testTeam(), err: teamstore.ErrTeamMemberNotFound}
 	handler := authenticatedTeamPathHandler(repository)

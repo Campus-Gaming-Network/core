@@ -36,21 +36,29 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+// targetRateLimitMultiplier keeps a target's quota above any one visitor's, so
+// a single visitor cannot lock an account or event out, while guessing spread
+// across many visitors is still capped.
+const targetRateLimitMultiplier = 4
+
 type Router struct {
-	cfg          config.Config
-	mux          *http.ServeMux
-	db           *pgxpool.Pool
-	schools      schools.Repository
-	follows      schools.FollowRepository
-	games        games.Repository
-	events       eventstore.Repository
-	teams        teamstore.Repository
-	safety       safety.Repository
-	users        users.Repository
-	account      *auth.AccountService
-	limiter      *ratelimit.Limiter
-	sessionStore *auth.SessionRepository
-	catalog      *schools.CachedRepository
+	cfg     config.Config
+	mux     *http.ServeMux
+	db      *pgxpool.Pool
+	schools schools.Repository
+	follows schools.FollowRepository
+	games   games.Repository
+	events  eventstore.Repository
+	teams   teamstore.Repository
+	safety  safety.Repository
+	users   users.Repository
+	account *auth.AccountService
+	limiter *ratelimit.Limiter
+	// targetLimiter counts attempts against one email address, token, or
+	// private event across every visitor.
+	targetLimiter *ratelimit.Limiter
+	sessionStore  *auth.SessionRepository
+	catalog       *schools.CachedRepository
 }
 
 func NewRouter(cfg config.Config, pools ...*pgxpool.Pool) http.Handler {
@@ -86,6 +94,7 @@ func NewRouter(cfg config.Config, pools ...*pgxpool.Pool) http.Handler {
 			cfg.ResetTTL,
 		)
 		router.limiter = ratelimit.New(cfg.AuthRateLimit, cfg.AuthRateWindow)
+		router.targetLimiter = ratelimit.New(cfg.AuthRateLimit*targetRateLimitMultiplier, cfg.AuthRateWindow)
 		router.sessionStore = sessionRepository
 	}
 

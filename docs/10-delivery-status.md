@@ -76,7 +76,7 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 - [x] Panic recovery middleware, HTTP server timeouts, configurable database pool ceiling
 - [x] School catalog served from memory with HTTP caching; dead trigram indexes dropped (search 9.4 ms → 1.0 ms)
 - [x] Operations foundation: assignable report/support queues with retention clocks, transactional audit history, user-scoped notifications, and PostgreSQL-backed CI tests
-- [x] Account deletion transfers future events to an active co-organizer or archives them, archives orphan/past events and their child records, detaches support cases, scrubs terminal contact fields, removes personal notifications/roles, and unassigns operations queues
+- [x] Account deletion transfers future events to an active co-organizer or archives them, archives orphan/past events and their child records, detaches support cases, scrubs terminal contact fields, removes personal notifications and team/event roles, revokes school-admin and site-admin grants while keeping their audited history, and unassigns operations queues
 - [ ] Notify active yes/maybe attendees when account deletion archives an orphaned future event
 - [ ] Replace placeholder Terms/Privacy, obtain legal review, and require versioned Terms agreement/Privacy acknowledgement at signup
 - [ ] Confirm retention windows and legal-hold ownership; document the manual retention runbook before enabling purge automation

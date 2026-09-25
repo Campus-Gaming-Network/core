@@ -231,7 +231,12 @@ func (r *PostgresRepository) DeleteAccount(ctx context.Context, userID string) e
 		`UPDATE support_tickets SET assigned_to_user_id = NULL WHERE assigned_to_user_id = $1::uuid`,
 		`DELETE FROM team_members WHERE user_id = $1::uuid`,
 		`DELETE FROM event_organizers WHERE user_id = $1::uuid`,
-		`DELETE FROM school_admins WHERE user_id = $1::uuid`,
+		// Administrative grants are revoked rather than deleted so their
+		// audited history stays addressable.
+		`UPDATE school_admins SET deleted_at = NOW() WHERE user_id = $1::uuid AND deleted_at IS NULL`,
+		`UPDATE site_role_grants
+		 SET revoked_at = GREATEST(NOW(), granted_at), revoked_by_user_id = $1::uuid, revoke_reason = 'account deleted'
+		 WHERE user_id = $1::uuid AND revoked_at IS NULL`,
 		`DELETE FROM user_social_links WHERE user_id = $1::uuid`,
 		`DELETE FROM user_school_follows WHERE user_id = $1::uuid`,
 		`DELETE FROM event_rsvps WHERE user_id = $1::uuid`,

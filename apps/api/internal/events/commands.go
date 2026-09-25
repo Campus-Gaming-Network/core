@@ -112,14 +112,24 @@ func (r *PostgresRepository) Update(ctx context.Context, params UpdateParams) (E
 		return Event{}, fmt.Errorf("update event: %w", err)
 	}
 
-	if _, err := tx.Exec(ctx, `DELETE FROM event_games WHERE event_id = $1::uuid`, eventID); err != nil {
+	// Retained links may name games deactivated since they were chosen; only
+	// newly added games must be active.
+	if _, err := tx.Exec(ctx, `
+		DELETE FROM event_games
+		WHERE event_id = $1::uuid AND NOT (game_id::text = ANY($2))
+	`, eventID, params.GameIDs); err != nil {
 		return Event{}, fmt.Errorf("delete event games: %w", err)
 	}
-	insertedGameCount, err := insertEventGames(ctx, tx, eventID, params.GameIDs)
-	if err != nil {
+	if _, err := insertEventGames(ctx, tx, eventID, params.GameIDs); err != nil {
 		return Event{}, err
 	}
-	if insertedGameCount != len(params.GameIDs) {
+	var linkedGameCount int
+	if err := tx.QueryRow(ctx, `
+		SELECT COUNT(*) FROM event_games WHERE event_id = $1::uuid
+	`, eventID).Scan(&linkedGameCount); err != nil {
+		return Event{}, fmt.Errorf("count event games: %w", err)
+	}
+	if linkedGameCount != len(params.GameIDs) {
 		return Event{}, ErrGameNotFound
 	}
 

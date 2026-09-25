@@ -42,7 +42,7 @@ func (r *Router) handleSupportTickets(w http.ResponseWriter, req *http.Request) 
 		return
 	}
 	if normalizedEmail := users.NormalizeEmail(request.ContactEmail); normalizedEmail != "" &&
-		!r.allowVisitor("support-ticket-email:"+normalizedEmail, req) {
+		!r.allowTarget("support-ticket-email:"+normalizedEmail) {
 		rateLimitExceeded(w, r)
 		return
 	}
