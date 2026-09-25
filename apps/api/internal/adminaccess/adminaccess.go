@@ -12,6 +12,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminaudit"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminmutation"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminsecurity"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/apperror"
 	"github.com/jackc/pgx/v5"
@@ -143,21 +144,24 @@ type Grant struct {
 }
 
 type GrantInput struct {
-	UserID         string
-	Role           Role
-	ActorUserID    string
-	AdminSessionID string
-	RequestID      string
-	Reason         string
+	ExpectedUserUpdatedAt *time.Time
+	UserID                string
+	Role                  Role
+	ActorUserID           string
+	AdminSessionID        string
+	RequestID             string
+	Reason                string
 }
 
 type RevokeInput struct {
-	UserID         string
-	Role           Role
-	ActorUserID    string
-	AdminSessionID string
-	RequestID      string
-	Reason         string
+	ExpectedGrantID   string
+	ExpectedGrantedAt *time.Time
+	UserID            string
+	Role              Role
+	ActorUserID       string
+	AdminSessionID    string
+	RequestID         string
+	Reason            string
 }
 
 // BootstrapInput is deliberately separate from GrantInput: it is the only
@@ -346,6 +350,15 @@ func (r *PostgresRepository) GrantRole(ctx context.Context, input GrantInput) (G
 	if err := requireSiteGrantManager(ctx, tx, input.ActorUserID); err != nil {
 		return Grant{}, err
 	}
+	if input.ExpectedUserUpdatedAt != nil {
+		var updatedAt time.Time
+		if err := tx.QueryRow(ctx, `SELECT updated_at FROM users WHERE id=$1::uuid FOR UPDATE`, input.UserID).Scan(&updatedAt); err != nil {
+			return Grant{}, adminmutation.Error(err)
+		}
+		if !updatedAt.Equal(*input.ExpectedUserUpdatedAt) {
+			return Grant{}, adminmutation.ErrConflict
+		}
+	}
 	if eligible, err := eligibleAdminUserExists(ctx, tx, input.UserID); err != nil {
 		return Grant{}, err
 	} else if !eligible {
@@ -363,6 +376,11 @@ func (r *PostgresRepository) GrantRole(ctx context.Context, input GrantInput) (G
 	}
 	if alreadyActive {
 		return Grant{}, ErrGrantAlreadyActive
+	}
+	// A user-detail version also protects a grant's absence. Advancing it here
+	// prevents an old grant form being replayed after a later revocation.
+	if _, err := tx.Exec(ctx, `UPDATE users SET updated_at=clock_timestamp() WHERE id=$1::uuid`, input.UserID); err != nil {
+		return Grant{}, err
 	}
 
 	grant, err := scanGrant(tx.QueryRow(ctx, `
@@ -435,14 +453,19 @@ func (r *PostgresRepository) RevokeRole(ctx context.Context, input RevokeInput) 
 	}
 
 	if input.Role == RoleSiteAdmin {
+		if (input.ExpectedGrantID != "" && input.ExpectedGrantID != current.ID) ||
+			(input.ExpectedGrantedAt != nil && !input.ExpectedGrantedAt.Equal(current.GrantedAt)) {
+			return Grant{}, adminmutation.ErrConflict
+		}
 		var activeAdmins int
 		if err := tx.QueryRow(ctx, `
-			SELECT COUNT(*) FROM site_role_grants
-			WHERE role = $1 AND revoked_at IS NULL
-		`, RoleSiteAdmin).Scan(&activeAdmins); err != nil {
+			SELECT COUNT(*) FROM site_role_grants g JOIN users u ON u.id=g.user_id
+			WHERE g.role = $1 AND g.revoked_at IS NULL AND g.id<>$2::uuid
+			  AND u.deleted_at IS NULL AND u.account_status='active' AND u.email_verified_at IS NOT NULL
+		`, RoleSiteAdmin, current.ID).Scan(&activeAdmins); err != nil {
 			return Grant{}, fmt.Errorf("count active site administrators: %w", err)
 		}
-		if activeAdmins <= 1 {
+		if activeAdmins == 0 {
 			return Grant{}, ErrLastActiveSiteAdmin
 		}
 	}
@@ -467,9 +490,12 @@ func (r *PostgresRepository) RevokeRole(ctx context.Context, input RevokeInput) 
 		UPDATE admin_sessions
 		SET revoked_at = $2,
 		    revocation_reason = 'site role grant revoked'
-		WHERE grant_id = $1::uuid AND revoked_at IS NULL
-	`, revoked.ID, revoked.RevokedAt); err != nil {
+		WHERE user_id = $1::uuid AND revoked_at IS NULL
+	`, revoked.UserID, revoked.RevokedAt); err != nil {
 		return Grant{}, fmt.Errorf("revoke site role grant sessions: %w", err)
+	}
+	if _, err := tx.Exec(ctx, `UPDATE users SET updated_at=clock_timestamp() WHERE id=$1::uuid`, input.UserID); err != nil {
+		return Grant{}, err
 	}
 	if _, err := adminaudit.NewPostgresStoreForTransaction(tx).Insert(ctx, adminaudit.WriteInput{
 		Correlation: adminaudit.Correlation{

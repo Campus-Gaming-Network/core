@@ -178,7 +178,8 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 - [ ] Bootstrap first site admin (CLI / env seed)
 - [x] Add site-admin-authorized reports, support, and audit API endpoints
 - [x] TanStack Start Admin Console (separate deploy, shared Go API)
-- [ ] Schools: create / edit / soft-delete, logos (**Admin Console-only** R2 PNG/JPG ≤500 MB), activation (`unitid` optional)
+- [x] AC-009 API: school/game lifecycle, bounded user queries, school/site grants, staff/faculty trust, and stepped-up account status changes with transactional audits and session revocation
+- [ ] Schools: create / edit / soft-delete, logos (**Admin Console-only** R2 PNG/JPG ≤5 MB), activation (`unitid` optional)
 - [ ] Review/deactivate bad seed schools
 - [ ] Manage/grant school admins in the Admin Console (grant storage and indicators implemented)
 - [ ] Games catalog management (start from the six launch games; IGDB later)

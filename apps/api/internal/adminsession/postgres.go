@@ -54,6 +54,7 @@ func createSession(ctx context.Context, executor sessionExecutor, params CreateP
 		  AND account.email_verified_at IS NOT NULL
 		  AND account.account_status = 'active'
 		  AND account.deleted_at IS NULL
+		FOR SHARE OF account, role_grant
 	`, params.UserID, params.GrantID, params.TokenHash, params.CSRFTokenHash,
 		params.AuthnMethod, params.AccessIssuer, params.AccessSubject, params.AccessEmail,
 		params.AuthenticatedAt, params.StepUpAt, params.LastSeenAt,

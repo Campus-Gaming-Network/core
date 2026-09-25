@@ -251,7 +251,7 @@ func insertEventGames(ctx context.Context, tx eventGameInserter, eventID string,
 		SELECT $1::uuid, g.id
 		FROM games g
 		WHERE g.id::text = ANY($2)
-		  AND g.deleted_at IS NULL
+		  AND g.deleted_at IS NULL AND g.is_active = TRUE
 		ON CONFLICT (event_id, game_id) DO NOTHING
 		RETURNING game_id::text
 	`, eventID, gameIDs)

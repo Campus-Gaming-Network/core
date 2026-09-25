@@ -1,4 +1,4 @@
-// Package games provides game catalog reads.
+// Package games provides public catalog reads and named administrative commands.
 package games
 
 import (
@@ -39,7 +39,7 @@ func (r *PostgresRepository) List(ctx context.Context) ([]Game, error) {
 	rows, err := r.pool.Query(ctx, `
 		SELECT `+gameColumns+`
 		FROM games
-		WHERE deleted_at IS NULL
+		WHERE deleted_at IS NULL AND is_active = TRUE
 		ORDER BY name, id
 	`)
 	if err != nil {
@@ -65,7 +65,7 @@ func (r *PostgresRepository) GetBySlug(ctx context.Context, slug string) (Game, 
 	return scanGame(r.pool.QueryRow(ctx, `
 		SELECT `+gameColumns+`
 		FROM games
-		WHERE slug = $1 AND deleted_at IS NULL
+		WHERE slug = $1 AND deleted_at IS NULL AND is_active = TRUE
 	`, strings.TrimSpace(slug)))
 }
 

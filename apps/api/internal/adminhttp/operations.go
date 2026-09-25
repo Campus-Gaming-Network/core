@@ -68,7 +68,7 @@ func (handler *Handler) operationHandler(operation routeOperation, entityID stri
 			handler.listAuditHistory(w, req, operationsEntitySupportTicket, entityID)
 		})
 	default:
-		return http.NotFoundHandler()
+		return handler.catalogHandler(operation, entityID)
 	}
 }
 

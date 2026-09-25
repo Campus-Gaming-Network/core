@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminaccess"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminaudit"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminhttp"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminidentity"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminsecurity"
@@ -114,6 +115,11 @@ func NewRouter(cfg config.Config, pools ...*pgxpool.Pool) http.Handler {
 				Security:     adminsecurity.NewPostgresStore(router.db),
 				Transactions: adminTransactions,
 				Operations:   operations.NewPostgresRepository(router.db),
+				Catalog: &adminhttp.CatalogDependencies{
+					Schools: schools.NewPostgresRepository(router.db), Games: games.NewPostgresRepository(router.db),
+					Users: users.NewPostgresRepository(router.db), SiteGrants: adminaccess.NewPostgresRepository(router.db),
+					Cache: router.catalog, Audit: adminaudit.NewPostgresStore(router.db),
+				},
 			}
 		}
 	}

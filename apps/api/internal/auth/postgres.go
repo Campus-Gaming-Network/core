@@ -50,10 +50,15 @@ func (r *SessionRepository) FindSession(ctx context.Context, tokenHash []byte) (
 }
 
 func (r *SessionRepository) CreateSession(ctx context.Context, userID string, tokenHash []byte, expiresAt time.Time) error {
-	_, err := r.pool.Exec(ctx, `
+	tag, err := r.pool.Exec(ctx, `
 		INSERT INTO auth_sessions (user_id, token_hash, expires_at)
-		VALUES ($1::uuid, $2, $3)
+		SELECT id, $2, $3 FROM users
+		WHERE id=$1::uuid AND account_status='active' AND deleted_at IS NULL
+		FOR SHARE
 	`, userID, tokenHash, expiresAt)
+	if err == nil && tag.RowsAffected() != 1 {
+		return pgx.ErrNoRows
+	}
 	return err
 }
 

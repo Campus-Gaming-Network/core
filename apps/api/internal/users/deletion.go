@@ -3,6 +3,8 @@ package users
 import (
 	"context"
 	"fmt"
+
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminaccess"
 )
 
 // DeletedNamePlaceholder is what a deleted account renders as anywhere a name
@@ -40,6 +42,11 @@ func (r *PostgresRepository) DeleteAccount(ctx context.Context, userID string) e
 		return fmt.Errorf("begin account deletion: %w", err)
 	}
 	defer tx.Rollback(ctx)
+	// Account deletion must participate in the same last-admin invariant as
+	// suspension and grant revocation.
+	if _, err := tx.Exec(ctx, `LOCK TABLE site_role_grants IN SHARE ROW EXCLUSIVE MODE`); err != nil {
+		return err
+	}
 
 	var exists bool
 	if err := tx.QueryRow(ctx, `
@@ -48,6 +55,16 @@ func (r *PostgresRepository) DeleteAccount(ctx context.Context, userID string) e
 		FOR UPDATE
 	`, userID).Scan(&exists); err != nil {
 		return fmt.Errorf("lock account for deletion: %w", err)
+	}
+	var lastAdmin bool
+	if err := tx.QueryRow(ctx, `SELECT
+	 EXISTS(SELECT 1 FROM site_role_grants WHERE user_id=$1::uuid AND revoked_at IS NULL)
+	 AND NOT EXISTS(SELECT 1 FROM site_role_grants g JOIN users u ON u.id=g.user_id
+	 WHERE g.user_id<>$1::uuid AND g.revoked_at IS NULL AND u.deleted_at IS NULL AND u.account_status='active' AND u.email_verified_at IS NOT NULL)`, userID).Scan(&lastAdmin); err != nil {
+		return err
+	}
+	if lastAdmin {
+		return adminaccess.ErrLastActiveSiteAdmin
 	}
 
 	// Promote a successor for each owned team. ROW_NUMBER picks captains ahead

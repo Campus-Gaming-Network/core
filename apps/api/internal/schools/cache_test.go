@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"reflect"
 	"testing"
 )
 
@@ -191,5 +192,23 @@ func TestCacheKeepsPreviousSnapshotWhenRefreshFails(t *testing.T) {
 	}
 	if len(found) != 10 {
 		t.Fatalf("catalog holds %d rows after a failed refresh, want the previous 10", len(found))
+	}
+}
+
+func TestCommittedInvalidationCannotServeOldSnapshotAfterRefreshFailure(t *testing.T) {
+	cache, source := loadedCache(t, testCatalog(2))
+	cache.Invalidate()
+	source.err = errors.New("database unavailable")
+	if err := cache.Refresh(t.Context()); err == nil {
+		t.Fatal("expected refresh failure")
+	}
+	if _, err := cache.List(t.Context(), ListParams{}); !errors.Is(err, source.err) {
+		t.Fatalf("invalidated cache served stale data: %v", err)
+	}
+	source.err = nil
+	source.all = []School{{ID: "changed", Name: "Committed catalog", Slug: "committed"}}
+	actual, err := cache.List(t.Context(), ListParams{})
+	if err != nil || !reflect.DeepEqual(actual, source.all) {
+		t.Fatalf("fallback: %#v %v", actual, err)
 	}
 }

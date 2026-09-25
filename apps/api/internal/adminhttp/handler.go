@@ -60,6 +60,7 @@ type OperationsRepository interface {
 }
 
 type Dependencies struct {
+	Catalog      *CatalogDependencies
 	Identities   IdentityValidator
 	Users        UserFinder
 	Grants       GrantFinder
@@ -102,7 +103,7 @@ const (
 	operationListSupportAudit routeOperation = "list_support_audit"
 )
 
-var routes = []routePolicy{
+var routes = append([]routePolicy{
 	{Method: http.MethodPost, Path: "/admin/v1/auth/exchange", Control: controlExchange},
 	{Method: http.MethodPost, Path: "/admin/v1/auth/step-up", Control: controlStepUp, Mutation: true},
 	{Method: http.MethodGet, Path: "/admin/v1/session", Control: controlCapability, Capability: adminaccess.CapabilityAdminSessionRead, Operation: operationCurrentSession},
@@ -115,7 +116,7 @@ var routes = []routePolicy{
 	{Method: http.MethodGet, Path: "/admin/v1/support-tickets/{id}", Control: controlCapability, Capability: adminaccess.CapabilitySupportRead, Operation: operationGetSupport},
 	{Method: http.MethodPatch, Path: "/admin/v1/support-tickets/{id}", Control: controlCapability, Capability: adminaccess.CapabilitySupportManage, Mutation: true, Operation: operationPatchSupport},
 	{Method: http.MethodGet, Path: "/admin/v1/support-tickets/{id}/audit", Control: controlCapability, Capability: adminaccess.CapabilityAuditRead, Operation: operationListSupportAudit},
-}
+}, catalogRoutes...)
 
 type Handler struct {
 	config       Config
@@ -170,6 +171,11 @@ func (handler *Handler) dispatch(w http.ResponseWriter, req *http.Request) {
 		w.Header().Set("Allow", allowedMethods(req.URL.Path))
 		writeError(w, http.StatusMethodNotAllowed, "method_not_allowed")
 		return
+	}
+	for index, part := range strings.Split(policy.Path, "/") {
+		if part == "{grant_id}" {
+			req.SetPathValue("grant_id", strings.Split(req.URL.Path, "/")[index])
+		}
 	}
 
 	switch policy.Control {
@@ -545,16 +551,24 @@ func validateRoutePolicies(policies []routePolicy) error {
 }
 
 func matchRoutePath(pattern string, path string) (string, bool) {
-	const identifier = "{id}"
-	if !strings.Contains(pattern, identifier) {
-		return "", pattern == path
-	}
-	prefix, suffix, _ := strings.Cut(pattern, identifier)
-	if !strings.HasPrefix(path, prefix) || !strings.HasSuffix(path, suffix) {
+	parts, values := strings.Split(pattern, "/"), strings.Split(path, "/")
+	if len(parts) != len(values) {
 		return "", false
 	}
-	value := strings.TrimSuffix(strings.TrimPrefix(path, prefix), suffix)
-	return value, value != "" && !strings.Contains(value, "/")
+	id := ""
+	for index, part := range parts {
+		if part == "{id}" || part == "{grant_id}" {
+			if values[index] == "" {
+				return "", false
+			}
+			if part == "{id}" {
+				id = values[index]
+			}
+		} else if part != values[index] {
+			return "", false
+		}
+	}
+	return id, true
 }
 
 func validRoutePattern(path string) bool {
@@ -562,6 +576,10 @@ func validRoutePattern(path string) bool {
 		return false
 	}
 	withoutID := strings.ReplaceAll(path, "{id}", "")
+	if strings.Count(withoutID, "{grant_id}") > 1 {
+		return false
+	}
+	withoutID = strings.ReplaceAll(withoutID, "{grant_id}", "")
 	return !strings.ContainsAny(withoutID, "{}")
 }
 
@@ -578,8 +596,16 @@ func validRouteOperation(policy routePolicy) bool {
 		operationListSupportAudit: {Method: http.MethodGet, Path: "/admin/v1/support-tickets/{id}/audit", Capability: adminaccess.CapabilityAuditRead},
 	}
 	definition, ok := expected[policy.Operation]
+	if !ok {
+		for _, candidate := range catalogRoutes {
+			if candidate.Operation == policy.Operation {
+				definition, ok = candidate, true
+				break
+			}
+		}
+	}
 	return ok && definition.Method == policy.Method && definition.Path == policy.Path &&
-		definition.Capability == policy.Capability && definition.Mutation == policy.Mutation
+		definition.Capability == policy.Capability && definition.Mutation == policy.Mutation && definition.RequiresRecentAuth == policy.RequiresRecentAuth
 }
 
 func isMutationMethod(method string) bool {

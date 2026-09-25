@@ -21,6 +21,19 @@ const (
 	ActionSiteRoleGrantBootstrap Action = "site_role_grant.bootstrapped"
 	ActionSiteRoleGrantGranted   Action = "site_role_grant.granted"
 	ActionSiteRoleGrantRevoked   Action = "site_role_grant.revoked"
+	ActionSchoolCreated          Action = "school.created"
+	ActionSchoolUpdated          Action = "school.updated"
+	ActionSchoolDeactivated      Action = "school.deactivated"
+	ActionSchoolReactivated      Action = "school.reactivated"
+	ActionSchoolDeleted          Action = "school.deleted"
+	ActionGameCreated            Action = "game.created"
+	ActionGameUpdated            Action = "game.updated"
+	ActionGameDeleted            Action = "game.deleted"
+	ActionUserSuspended          Action = "user.suspended"
+	ActionUserReactivated        Action = "user.reactivated"
+	ActionTrustChanged           Action = "user.trust_changed"
+	ActionSchoolGrantGranted     Action = "school_admin.granted"
+	ActionSchoolGrantRevoked     Action = "school_admin.revoked"
 )
 
 type EntityType string
@@ -29,6 +42,10 @@ const (
 	EntityReport        EntityType = "report"
 	EntitySupportTicket EntityType = "support_ticket"
 	EntitySiteRoleGrant EntityType = "site_role_grant"
+	EntitySchool        EntityType = "school"
+	EntityGame          EntityType = "game"
+	EntityUser          EntityType = "user"
+	EntitySchoolGrant   EntityType = "school_admin"
 )
 
 var (
@@ -74,12 +91,40 @@ type SiteRoleGrantState struct {
 
 func (SiteRoleGrantState) auditState() {}
 
+// CatalogState contains public catalog identity and lifecycle state only.
+// The version records other field edits without duplicating arbitrary text.
+type CatalogState struct {
+	Slug      string     `json:"slug"`
+	Active    bool       `json:"is_active"`
+	DeletedAt *time.Time `json:"deleted_at"`
+	UpdatedAt time.Time  `json:"updated_at"`
+}
+
+func (CatalogState) auditState() {}
+
+type AccountState struct {
+	Status            string `json:"account_status"`
+	VerificationLevel string `json:"verification_level"`
+}
+
+func (AccountState) auditState() {}
+
+type SchoolGrantState struct {
+	SchoolID  string     `json:"school_id"`
+	UserID    string     `json:"user_id"`
+	RevokedAt *time.Time `json:"revoked_at"`
+	UpdatedAt time.Time  `json:"updated_at"`
+}
+
+func (SchoolGrantState) auditState() {}
+
 // Metadata is closed so queue text, request bodies, and arbitrary values
 // cannot be copied into durable audit history.
 type Metadata struct {
 	ResolutionNoteChanged bool   `json:"resolution_note_changed,omitempty"`
 	Bootstrap             bool   `json:"bootstrap,omitempty"`
 	OperatorIdentity      string `json:"operator_identity,omitempty"`
+	OperatorReason        string `json:"operator_reason,omitempty"`
 }
 
 type WriteInput struct {
@@ -151,6 +196,14 @@ func (input WriteInput) validate() error {
 		if input.Correlation.ActorUserID == "" {
 			return ErrInvalidAudit
 		}
+	}
+	if input.EntityType == EntitySchool || input.EntityType == EntityGame || input.EntityType == EntityUser || input.EntityType == EntitySchoolGrant {
+		if input.Correlation.ActorUserID == "" || input.Correlation.AdminSessionID == "" || input.Correlation.RequestID == "" || strings.TrimSpace(input.Metadata.OperatorReason) == "" {
+			return ErrInvalidAudit
+		}
+	}
+	if utf8.RuneCountInString(input.Metadata.OperatorReason) > 1000 {
+		return ErrInvalidAudit
 	}
 	if utf8.RuneCountInString(strings.TrimSpace(input.Metadata.OperatorIdentity)) > 320 ||
 		(input.Metadata.OperatorIdentity != "" && strings.TrimSpace(input.Metadata.OperatorIdentity) == "") {
@@ -246,13 +299,22 @@ func validActionEntity(action Action, entityType EntityType) bool {
 		return entityType == EntitySupportTicket
 	case ActionSiteRoleGrantBootstrap, ActionSiteRoleGrantGranted, ActionSiteRoleGrantRevoked:
 		return entityType == EntitySiteRoleGrant
+	case ActionSchoolCreated, ActionSchoolUpdated, ActionSchoolDeactivated, ActionSchoolReactivated, ActionSchoolDeleted:
+		return entityType == EntitySchool
+	case ActionGameCreated, ActionGameUpdated, ActionGameDeleted:
+		return entityType == EntityGame
+	case ActionUserSuspended, ActionUserReactivated, ActionTrustChanged:
+		return entityType == EntityUser
+	case ActionSchoolGrantGranted, ActionSchoolGrantRevoked:
+		return entityType == EntitySchoolGrant
 	default:
 		return false
 	}
 }
 
 func validEntityType(entityType EntityType) bool {
-	return entityType == EntityReport || entityType == EntitySupportTicket || entityType == EntitySiteRoleGrant
+	return entityType == EntityReport || entityType == EntitySupportTicket || entityType == EntitySiteRoleGrant ||
+		entityType == EntitySchool || entityType == EntityGame || entityType == EntityUser || entityType == EntitySchoolGrant
 }
 
 func validState(entityType EntityType, state State, allowEmpty bool) bool {
@@ -261,6 +323,13 @@ func validState(entityType EntityType, state State, allowEmpty bool) bool {
 		return false
 	case EmptyState:
 		return allowEmpty
+	case CatalogState:
+		return (entityType == EntitySchool || entityType == EntityGame) && typed.Slug != "" && !typed.UpdatedAt.IsZero()
+	case AccountState:
+		return entityType == EntityUser && (typed.Status == "active" || typed.Status == "suspended" || typed.Status == "deleted") &&
+			(typed.VerificationLevel == "basic" || typed.VerificationLevel == "verified" || typed.VerificationLevel == "staff_faculty")
+	case SchoolGrantState:
+		return entityType == EntitySchoolGrant && validUUID(typed.SchoolID) && validUUID(typed.UserID) && !typed.UpdatedAt.IsZero()
 	case QueueState:
 		return (entityType == EntityReport || entityType == EntitySupportTicket) &&
 			validQueueStatus(typed.Status) && validOptionalUUIDPointer(typed.AssignedToUserID)

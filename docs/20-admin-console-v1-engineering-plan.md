@@ -1,7 +1,7 @@
 # 20 — Admin Console v1 engineering plan
 
-**Status:** Active — security foundation in progress
-**Last updated:** 2026-09-18
+**Status:** Active — moderation UI and catalog/access APIs complete
+**Last updated:** 2026-09-22
 **Audience:** Engineering, security, and operators
 **Target:** `admin.campusgamingnetwork.com`
 
@@ -842,6 +842,7 @@ unknown-resource responses, reverse pagination, and concurrent updates.
 
 ### AC-009 — Add schools, games, users, and grant services
 
+**Status:** Complete (2026-09-22)
 **Depends on:** AC-006, AC-007
 **Deliverables:** Named Go commands/queries and handlers for the in-scope catalog,
 account-status, trust, school-admin, and site-admin operations.
@@ -854,6 +855,59 @@ account-status, trust, school-admin, and site-admin operations.
 - Site grant changes and account suspension require step-up and reason.
 - Revocation closes sessions in the same transaction.
 - Version conflicts and the last-site-admin invariant are tested.
+
+Implemented: capability-gated, bounded school/game/user and grant queries;
+named catalog lifecycle, school-admin, staff/faculty, account-status, and
+site-admin commands; and scoped audit routes. Each command commits its safe
+audit entry with the domain write. Suspensions and school/trust revocations
+also revoke public and admin sessions transactionally. Site-grant revocation
+ends all of the target user's admin sessions. Suspending or revoking an admin
+counts only active, verified, nondeleted administrators; public account deletion
+uses the same last-administrator lock and invariant.
+
+Migration `000015_admin_catalog_commands.up.sql` adds game activation, a stable
+school-grant ID without replacing its composite key, pagination/search indexes,
+monotonic mutation timestamps, and database reference guards. Deletion refuses
+schools with user/event/team history or active follows/grants, and games with
+event/team references. Reference insertion and deletion coordinate through row
+locks, including inserts that started before a soft delete. School mutations
+invalidate and refresh the serving API process's catalog after commit; a failed
+refresh falls back to database reads. Inactive games leave the public picker
+while existing event/team associations remain readable.
+
+API contracts for AC-013:
+
+- Lists accept `limit` (1–100), `after` or `before`, and applicable `state`
+  filters. Catalog and user searches accept a literal, case-insensitive `q`
+  prefix; wildcard characters do not expand the search. School/game states are
+  `active`, `inactive`, and `deleted`; user states are `active`, `suspended`, and
+  `deleted`; grant states are `active` and `revoked`.
+- Catalog create/edit bodies contain the complete typed editable form plus
+  `reason`. School fields exclude logo and lifecycle state; game fields include
+  `is_active`. Mutations of existing records require `expected_updated_at`.
+  Stale school/game/account writes return `409 admin_record_conflict` with
+  `current`; clients reload grant detail/history after grant conflicts.
+- A first school grant accepts `user_id` and `reason` without a version.
+  Re-grant restores the existing row and requires its last `updated_at` value.
+  Revocation uses the stable grant ID scoped to its school. Every transition
+  remains available in the grant's append-only audit history.
+- Site-grant creation uses the target user's `updated_at` precondition. Grant
+  and revoke advance that user version, so an old grant form cannot silently
+  restore revoked access. Site-grant revocation uses `granted_at` as the
+  `expected_updated_at` value and checks the exact grant ID. Both site-grant
+  mutations and account-status changes require recent step-up and a reason.
+- Trust changes accept only the named `staff_faculty` boolean. Removing that
+  grant restores the account's email-derived baseline verification level.
+- Entity audit routes are `/schools/:id/audit`, `/games/:id/audit`,
+  `/users/:id/audit`, `/site-admin-grants/:id/audit`, and
+  `/schools/:id/admin-grants/:grant_id/audit`, all under `/admin/v1`.
+
+Validation includes PostgreSQL-backed HTTP journeys, the actor/CSRF/step-up
+matrix, audit-failure rollback, stale/concurrent writes, literal search and
+bidirectional pagination, grant reactivation history, session revocation,
+last-admin concurrency, and concurrent catalog-reference/deletion protection.
+The full Go suite and `go vet` pass in Docker. Production enablement and the
+external Access step-up policy proof remain part of AC-014/AC-015.
 
 ### AC-010 — Implement the 5 MB R2 school-logo pipeline
 

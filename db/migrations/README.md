@@ -20,6 +20,11 @@ history. These tables do not expose an HTTP surface by
 themselves; Cloudflare Access validation, admin-only proxy trust, session
 exchange, and capability middleware must land before any operations route is
 registered.
+Migration `000015_admin_catalog_commands.up.sql` adds game activation, stable
+school-grant IDs, admin query indexes, strictly advancing record versions, and
+row-locking guards against references to soft-deleted catalog records. Existing
+school-grant composite keys and history are retained. Apply it before deploying
+the AC-009 API, since public game queries also use the new activation column.
 Do not add clubs, tournaments, feature flags, site announcements, on-site
 payment tables, IGDB sync tables, or Admin Console-only workflow tables until those
 phases are active.

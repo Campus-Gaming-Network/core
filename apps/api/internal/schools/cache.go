@@ -27,8 +27,9 @@ type CachedRepository struct {
 	source Repository
 	logger *slog.Logger
 
-	mu       sync.RWMutex
-	snapshot *snapshot
+	mu        sync.RWMutex
+	refreshMu sync.Mutex
+	snapshot  *snapshot
 }
 
 type snapshot struct {
@@ -51,6 +52,8 @@ func NewCachedRepository(source Repository, logger *slog.Logger) *CachedReposito
 // previous snapshot is left in place, so a database blip degrades to stale data
 // rather than an empty catalog.
 func (c *CachedRepository) Refresh(ctx context.Context) error {
+	c.refreshMu.Lock()
+	defer c.refreshMu.Unlock()
 	// Page through the source rather than assuming a single unbounded read,
 	// since List caps the limit it will honor.
 	const page = 100
@@ -84,6 +87,17 @@ func (c *CachedRepository) Refresh(ctx context.Context) error {
 
 	c.logger.Info("school catalog cached", "schools", len(all))
 	return nil
+}
+
+// Invalidate discards a committed catalog's obsolete snapshot. Waiting for an
+// in-flight refresh prevents an older load from republishing stale data. Reads
+// fall back to PostgreSQL until the next successful refresh.
+func (c *CachedRepository) Invalidate() {
+	c.refreshMu.Lock()
+	defer c.refreshMu.Unlock()
+	c.mu.Lock()
+	c.snapshot = nil
+	c.mu.Unlock()
 }
 
 // Start performs the first load and then refreshes on every tick until ctx is
