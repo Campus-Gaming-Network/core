@@ -136,6 +136,19 @@ async function handleRequest(request, response) {
     return;
   }
 
+  if (
+    method === "GET" &&
+    url.pathname === "/schools" &&
+    respondToBrowseTrigger(response, url.searchParams.get("q"), {
+      schools: [],
+      limit: 25,
+      offset: 0,
+      has_more: false,
+    })
+  ) {
+    return;
+  }
+
   if (method === "GET" && url.pathname === "/schools") {
     const limit = Number.parseInt(url.searchParams.get("limit") ?? "25", 10);
     const offset = Number.parseInt(url.searchParams.get("offset") ?? "0", 10);
@@ -376,6 +389,19 @@ async function handleRequest(request, response) {
     return;
   }
 
+  if (
+    method === "GET" &&
+    url.pathname === "/events" &&
+    respondToBrowseTrigger(response, url.searchParams.get("school"), {
+      events: [],
+      limit: 25,
+      has_more: false,
+      has_previous: false,
+    })
+  ) {
+    return;
+  }
+
   if (method === "GET" && url.pathname === "/events") {
     json(response, 200, {
       events: [...createdEvents.values()]
@@ -530,6 +556,19 @@ async function handleRequest(request, response) {
     }
     rsvps.set(rsvpKey(sessionToken, slug), body.response);
     json(response, 200, eventFor(slug, body.response));
+    return;
+  }
+
+  if (
+    method === "GET" &&
+    url.pathname === "/teams" &&
+    respondToBrowseTrigger(response, url.searchParams.get("school"), {
+      teams: [],
+      limit: 25,
+      has_more: false,
+      has_previous: false,
+    })
+  ) {
     return;
   }
 
@@ -809,6 +848,25 @@ function dashboardEvent(title, viewerRsvp) {
     games: [{ name: game.name }],
     ...(viewerRsvp ? { viewer_rsvp: viewerRsvp } : {}),
   };
+}
+
+// Browse filters equal to these values make a list endpoint fail, violate its
+// response contract, or return no results, so pages can prove they tell the
+// states apart.
+function respondToBrowseTrigger(response, filter, emptyPage) {
+  if (filter === "unavailable-browse") {
+    json(response, 503, { error: "database_unavailable" });
+    return true;
+  }
+  if (filter === "malformed-browse") {
+    json(response, 200, { unexpected: "shape" });
+    return true;
+  }
+  if (filter === "empty-browse") {
+    json(response, 200, emptyPage);
+    return true;
+  }
+  return false;
 }
 
 function slugify(value) {

@@ -1,5 +1,5 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { RoutePending } from "../components/route-boundaries";
+import { ListUnavailable, RoutePending } from "../components/route-boundaries";
 import { getEventViewerSession } from "../features/event-slice/auth.functions";
 import {
   teamsBrowseInput,
@@ -98,6 +98,9 @@ function TeamsPage() {
               </option>
             ))}
           </select>
+          {catalog.gamesUnavailable ? (
+            <small>Game filters are unavailable right now.</small>
+          ) : null}
         </label>
         <label>
           School slug
@@ -110,7 +113,9 @@ function TeamsPage() {
         <button type="submit">Filter</button>
       </form>
 
-      {catalog.teams.length > 0 ? (
+      {catalog.teamsUnavailable ? (
+        <ListUnavailable heading="Teams are unavailable right now" />
+      ) : catalog.teams.length > 0 ? (
         <div className="list">
           {catalog.teams.map((team) => (
             <Link

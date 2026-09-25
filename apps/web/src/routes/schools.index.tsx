@@ -1,5 +1,5 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { RoutePending } from "../components/route-boundaries";
+import { ListUnavailable, RoutePending } from "../components/route-boundaries";
 import { getSchoolsCatalog } from "../features/school-slice/catalog.functions";
 import {
   catalogClientStaleTime,
@@ -71,7 +71,9 @@ function SchoolsPage() {
         <button type="submit">Search</button>
       </form>
 
-      {catalog.schools.length > 0 ? (
+      {catalog.unavailable ? (
+        <ListUnavailable heading="Schools are unavailable right now" />
+      ) : catalog.schools.length > 0 ? (
         <div className="list">
           {catalog.schools.map((school) => (
             <Link
@@ -91,10 +93,7 @@ function SchoolsPage() {
       ) : (
         <section className="empty-state">
           <h2>No schools found</h2>
-          <p>
-            Try a broader school name or clear the state filter. If this keeps
-            happening, the API may still be starting.
-          </p>
+          <p>Try a broader school name or clear the state filter.</p>
         </section>
       )}
 

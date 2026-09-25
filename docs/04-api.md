@@ -48,7 +48,7 @@ transactions, rate limits, content policy, and persistence validation.
 
 ## Cross-cutting API requirements
 
-- **AuthN** — frontend auth uses opaque server-side session cookies (not JWTs); every mutating call validates the session or an explicit non-frontend service credential
+- **AuthN** — frontend auth uses opaque server-side session cookies (not JWTs); every mutating call validates the session or an explicit non-frontend service credential. A missing or expired session clears the cookie; a failed session lookup returns `503 session_unavailable` and keeps it
 - **AuthZ** — enforce roles from [07 — Permissions](./07-permissions.md)
 - **Rate limiting** — especially signup, login, verification resend, password reset, `POST /events`, private event unlocks, report endpoints, and `POST /support-tickets`. Anonymous flows are limited per visitor and per target (email address, reset token, or event) across all visitors; see [11 — Implementation decisions](./11-implementation-decisions.md)
 - **Idempotency** — consider keys for RSVP and registration emails

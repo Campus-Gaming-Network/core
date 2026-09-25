@@ -3,7 +3,11 @@ import {
   createFileRoute,
   type ErrorComponentProps,
 } from "@tanstack/react-router";
-import { RouteErrorView, RoutePending } from "../components/route-boundaries";
+import {
+  ListUnavailable,
+  RouteErrorView,
+  RoutePending,
+} from "../components/route-boundaries";
 import {
   getEventViewerSession,
   logout,
@@ -122,6 +126,9 @@ function EventsPage() {
               </option>
             ))}
           </select>
+          {browse.gamesUnavailable ? (
+            <small>Game filters are unavailable right now.</small>
+          ) : null}
         </label>
         <label>
           School slug
@@ -147,7 +154,9 @@ function EventsPage() {
         <button type="submit">Filter</button>
       </form>
 
-      {browse.events.length > 0 ? (
+      {browse.eventsUnavailable ? (
+        <ListUnavailable heading="Events are unavailable right now" />
+      ) : browse.events.length > 0 ? (
         <div className="list">
           {browse.events.map((event) => (
             <Link

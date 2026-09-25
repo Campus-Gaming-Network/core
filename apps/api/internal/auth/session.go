@@ -6,10 +6,12 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
+	"errors"
 	"net/http"
 	"time"
 
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/apperror"
+	"github.com/jackc/pgx/v5"
 )
 
 var ErrUnauthenticated = apperror.New(
@@ -58,16 +60,25 @@ func HashToken(raw string) []byte {
 }
 
 // WithSession adds the authenticated user to the request context when present.
+// A missing or expired session clears the cookie. A failed lookup proves
+// nothing about the session, so it keeps the cookie and answers 503 instead of
+// serving a signed-in user as anonymous.
 func WithSession(store SessionStore, cookieConfig SessionCookieConfig) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			cookie, err := req.Cookie(cookieConfig.Name)
 			if err == nil && cookie.Value != "" {
 				session, lookupErr := store.FindSession(req.Context(), HashToken(cookie.Value))
-				if lookupErr == nil && session.ExpiresAt.After(time.Now()) {
+				switch {
+				case lookupErr == nil && session.ExpiresAt.After(time.Now()):
 					req = req.WithContext(context.WithValue(req.Context(), userIDContextKey, session.UserID))
-				} else {
+				case lookupErr == nil || errors.Is(lookupErr, pgx.ErrNoRows):
 					ClearSessionCookie(w, cookieConfig)
+				default:
+					w.Header().Set("Content-Type", "application/json")
+					w.WriteHeader(http.StatusServiceUnavailable)
+					_, _ = w.Write([]byte(`{"error":"session_unavailable"}` + "\n"))
+					return
 				}
 			}
 

@@ -1,5 +1,6 @@
 import {
   Link,
+  useLocation,
   useRouter,
   type ErrorComponentProps,
 } from "@tanstack/react-router";
@@ -65,6 +66,27 @@ export function RouteErrorView({
         retryButton
       )}
     </main>
+  );
+}
+
+// A list whose API request failed, kept distinct from an empty result so an
+// outage never reads as "nothing here". Retrying reloads the same URL, so it
+// also works without JavaScript.
+export function ListUnavailable({ heading }: { heading: string }) {
+  const href = useLocation({ select: (location) => location.href });
+
+  return (
+    <section className="empty-state" role="alert">
+      <h2>{heading}</h2>
+      <p>
+        This is usually temporary. Try again in a moment, and contact support if
+        it keeps happening.
+      </p>
+      <div className="actions">
+        <a href={href}>Try again</a>
+        <Link to="/support">Contact support</Link>
+      </div>
+    </section>
   );
 }
 

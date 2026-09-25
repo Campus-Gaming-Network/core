@@ -83,7 +83,7 @@ the engineering queue, but all P1 work must be complete before public access.
 |    19 | `CGN-016` | P2       | Multi-organizer scope matches the product promise.                        |
 |    20 | `CGN-018` | P3       | Large modules are split before product expansion.                         |
 
-`CGN-014` is next, followed by `CGN-020`. Before `CGN-016`, decide whether
+`CGN-020` is next. Before `CGN-016`, decide whether
 multi-organizer management belongs in the first release.
 
 ### Implementation map
@@ -678,8 +678,20 @@ cover the strict-mode matrix.
 
 **Priority:** P2  
 **Size:** S  
-**Status:** Ready  
+**Status:** Done (2026-09-25)  
 **Depends on:** `CGN-011` recommended
+
+**Completed:** The events, teams, and schools browse pages now render a
+distinct unavailable alert with a no-JavaScript retry link when their list
+request fails or violates its contract, and keep "no results" for real empty
+queries; game filters say when they could not load. The homepage keeps its
+degraded content and separates an empty catalog from an unavailable one.
+Contract violations were already reported with only the endpoint path and
+schema issues. The API session middleware now answers `503
+session_unavailable` when a session lookup fails, instead of serving the
+request as anonymous and clearing the cookie, so an outage no longer looks like
+a logout. Browser tests cover unavailable, malformed, and empty responses on
+each browse page; existing tests cover success.
 
 **Problem**
 

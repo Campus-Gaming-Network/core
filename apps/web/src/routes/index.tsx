@@ -44,16 +44,18 @@ function HomePage() {
         <section className="feature-board" aria-label="Launch games">
           <p className="board-kicker">Launch games</p>
           <div className="game-grid">
-            {catalog.games.length > 0 ? (
+            {catalog.gamesUnavailable ? (
+              <span className="chip">
+                Games will appear when the API is available.
+              </span>
+            ) : catalog.games.length > 0 ? (
               catalog.games.map((game) => (
                 <span className="chip" key={game.id}>
                   {game.name}
                 </span>
               ))
             ) : (
-              <span className="chip">
-                Games will appear when the API is available.
-              </span>
+              <span className="chip">No launch games are listed yet.</span>
             )}
           </div>
         </section>
@@ -65,7 +67,12 @@ function HomePage() {
           <h2 id="schools-title">Start with a campus.</h2>
           <Link to="/schools">Search all schools</Link>
         </div>
-        {catalog.schools.length > 0 ? (
+        {catalog.schoolsUnavailable ? (
+          <p className="empty-state">
+            School results are unavailable right now. The API may still be
+            starting.
+          </p>
+        ) : catalog.schools.length > 0 ? (
           <div className="card-grid">
             {catalog.schools.map((school) => (
               <Link
@@ -80,10 +87,7 @@ function HomePage() {
             ))}
           </div>
         ) : (
-          <p className="empty-state">
-            School results are unavailable right now. The API may still be
-            starting.
-          </p>
+          <p className="empty-state">No schools are listed yet.</p>
         )}
       </section>
 

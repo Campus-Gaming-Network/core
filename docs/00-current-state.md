@@ -31,10 +31,10 @@ verification steps.
 
 ## Next three tasks
 
-1. Complete `CGN-014`: distinguish an empty result from an upstream failure.
-2. Complete `CGN-020`: give redirect notices truthful, typed severity.
-3. Complete `AC-010`: the 5 MB school-logo upload pipeline, which unblocks the
-   Admin Console catalog UI (`AC-013`).
+1. Complete `CGN-020`: give redirect notices truthful, typed severity.
+2. Complete `AC-010`: the 5 MB school-logo upload pipeline, which unblocks the
+   Admin Console catalog UI.
+3. Complete `AC-013`: the Admin Console catalog, user, and access UI.
 
 After those, follow the ordered queue in doc 17. Legal, DiceBear, and external
 launch rehearsal remain P1 launch gates. Admin Console work continues under
@@ -57,6 +57,9 @@ the moderation workspace (`AC-012`) and the catalog, user, and grant APIs
 
 ## Recently completed
 
+- Browse pages now tell an API outage or malformed response apart from an
+  empty result and offer a retry, and a failed session lookup answers `503`
+  instead of logging the user out (`CGN-014`).
 - Stopped writing the public session's unused `last_seen_at` on every
   authenticated request, so lookups are read-only and a failed touch can no
   longer log out a valid user (`CGN-012`).
