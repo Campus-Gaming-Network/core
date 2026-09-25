@@ -8,7 +8,7 @@
 
 Quality regression checklist for the primary events-and-teams loop on `next`.
 Tracks request and response coverage across the BFF→Go boundary. Product status
-still lives in [10 — Delivery status](./10-delivery-status.md).
+still lives in [10 — Delivery status](../10-delivery-status.md).
 
 **Owner:** Quality  
 **Branch baseline:** `next` @ post-#12 (`d47d243`)  

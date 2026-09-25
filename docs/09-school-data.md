@@ -76,7 +76,7 @@ schools
   slug            -- unique
   city, state, zip
   website_url
-  logo_url        -- NOT from Scorecard; later Admin Console-only upload (PNG/JPG ≤500 MB)
+  logo_url        -- NOT from Scorecard; later Admin Console-only upload (PNG/JPG ≤5 MB)
   latitude, longitude
   is_main_campus
   num_branches

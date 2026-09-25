@@ -239,10 +239,12 @@ Recommended web watch paths:
 
 ```text
 .dockerignore
+apps/admin/package.json
 apps/docs/package.json
 apps/web/**
 package.json
 pnpm-lock.yaml
+pnpm-workspace.yaml
 ```
 
 Railway injects `PORT` and uses the same port for health checks. Both CGN services already listen on that variable, so do not create or hard-code a `PORT` variable.<sup>[[19]](#source-19)</sup>

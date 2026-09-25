@@ -4,7 +4,7 @@ Quick re-entry point for Campus Gaming Network. Read this first after time away;
 the detailed product and engineering context remains in the other documents in
 this folder.
 
-**Last updated:** 2026-09-15
+**Last updated:** 2026-09-25
 
 ## Where we are
 
@@ -37,7 +37,11 @@ verification steps.
 
 After those, follow the ordered queue in doc 17. Legal, DiceBear,
 account-deletion notifications, and external launch rehearsal remain P1 launch
-gates. Admin Console UI work moves behind the review's P1 queue.
+gates. Admin Console work continues under
+[20 — Admin Console v1 engineering plan](./20-admin-console-v1-engineering-plan.md):
+the moderation workspace (`AC-012`) and the catalog, user, and grant APIs
+(`AC-009`) are complete; the school-logo pipeline (`AC-010`) and catalog UI
+(`AC-013`) are next.
 
 ## Blockers and decisions
 
@@ -53,6 +57,10 @@ gates. Admin Console UI work moves behind the review's P1 queue.
 
 ## Recently completed
 
+- Completed the Admin Console moderation workspace (report and support queues
+  with audit history, `AC-012`) and the catalog, user, and grant APIs with
+  transactional audits and session revocation (`AC-009`).
+- Migrated the JavaScript workspaces from npm to pnpm.
 - Replaced HTTP error classification based on message fragments with typed,
   code-bearing application errors and one centralized mapper. Validation,
   missing-resource, conflict, authentication, and authorization behavior now

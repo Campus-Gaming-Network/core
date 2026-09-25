@@ -43,6 +43,8 @@ export default defineConfig({
   titleTemplate: ":title · CGN Docs",
   description: "Campus Gaming Network product and engineering reference",
   srcDir: "../../docs",
+  // Archived records keep repository-relative links that only resolve on GitHub.
+  srcExclude: ["archive/**"],
   outDir: "build",
   cacheDir: ".cache",
   cleanUrls: true,

@@ -40,7 +40,7 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 | Topic           | Decision                                                                                           |
 | --------------- | -------------------------------------------------------------------------------------------------- |
 | Event slug hash | **8** Base64URL chars                                                                              |
-| Images          | **PNG or JPG only**; max **500 MB**                                                                |
+| Images          | **PNG or JPG only**; max **5 MB**                                                                  |
 | Event banners   | Default placeholder image/background — **no user uploads yet**                                     |
 | School logos    | Placeholder for now; Admin Console upload via R2 later                                             |
 | Email From      | Now: `events@` / `account@`; later workflows: `notifications@` / `support@campusgamingnetwork.com` |

@@ -2,11 +2,11 @@
 
 Phased delivery for a single developer. Each phase should be shippable. Do not pull later-phase work forward without a clear need.
 
-**URLs:** first release = `campusgamingnetwork.com` · Admin Console = `admin.campusgamingnetwork.com` (later TanStack Start release in `apps/admin`).
+**URLs:** first release = `campusgamingnetwork.com` · Admin Console = `admin.campusgamingnetwork.com` (separate TanStack Start release in `apps/admin`; in progress and release-gated).
 
 **Infra:** Railway (TanStack Start web, Go API, PostgreSQL) · Cloudflare DNS/protection · Resend email (`events@` / `account@`) · curated launch games (6 titles). `notifications@` and `support@` workflows, plus Cloudflare R2 for Admin Console logo uploads, are later.
 
-**Not yet scheduled:** Sentry/error monitoring, Admin Console, clubs, tournaments, on-site payments, usernames, waitlists, team invite links, feature flags, near-you, custom event banner uploads.
+**Not yet scheduled:** Sentry/error monitoring, clubs, tournaments, on-site payments, usernames, waitlists, team invite links, feature flags, near-you, custom event banner uploads. Admin Console v1 is in progress but remains release-gated and undeployed.
 
 **School seed:** import all 6,243 operating schools (4,943 main · 1,300 branch) as `is_active=true`; branch campuses use the same UI/UX; review later in the Admin Console.
 
@@ -33,7 +33,7 @@ service, and PostgreSQL database, with Cloudflare for DNS/protection.
 
 **Goal:** Users can register and browse schools.
 
-**Detailed plan:** [12 — Phase 1 plan](./12-phase-1-plan.md)
+**Detailed plan:** [12 — Phase 1 plan](../docs/archive/12-phase-1-plan.md)
 
 - Signup / login / logout
 - Signup sends verification email; link click verifies inbox
@@ -42,7 +42,7 @@ service, and PostgreSQL database, with Cloudflare for DNS/protection.
 - Verification levels: email verified → verified student (`.edu`) → staff/faculty
 - Profile: single **name** field, bio, social links, timezone, DiceBear Critters with initials fallback; URL `/users/:id`
 - Home school selected on signup; follow additional schools afterward
-- One-time import of **all** `data/schools_seed.csv` rows as `is_active=true` (`unitid` optional on later Admin Console creates)
+- One-time import of **all** `data/schools_seed.csv` rows as `is_active=true` (`unitid` optional on Admin Console creates)
 - Public search/browse schools (Postgres `pg_trgm`); school detail by slug (no clubs list until later)
 - Rate limit signups + resend verification (Resend)
 - Seed launch games: Rocket League, Valorant, League of Legends, Overwatch 2, Super Smash Bros. Ultimate, CSGO
@@ -108,12 +108,14 @@ reliable enough for real users before expanding into clubs and tournaments.
 receive trustworthy product feedback and notifications without the main flows
 feeling unfinished.
 
-## Phase 4 — Admin Console (TanStack Start, separate later release)
+## Phase 4 — Admin Console (TanStack Start, separate release)
+
+**Status:** In progress — the moderation UI and the catalog/access APIs are complete; the catalog UI and logo uploads remain. Ticket status lives in [20 — Admin Console v1 engineering plan](./20-admin-console-v1-engineering-plan.md).
 
 **Goal:** After the first release, operators manage the catalog without SQL. Deploy `apps/admin` to `admin.campusgamingnetwork.com`.
 
 - **TanStack Start** Admin Console in `apps/admin` (not shipped in the first release)
-- Schools: create/edit/soft-delete, logos (**Admin Console-only** R2 PNG/JPG ≤500 MB), activation, school admins
+- Schools: create/edit/soft-delete, logos (**Admin Console-only** R2 PNG/JPG ≤5 MB), activation, school admins
 - Games: manage the curated set; IGDB enrichment later; Admin Console-only edits
 - Users / ACL grants (school admin, staff/faculty)
 - **Reports** queue

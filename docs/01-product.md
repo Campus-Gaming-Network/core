@@ -111,7 +111,7 @@ Signup also requires confirming **age 18+**. Alumni can participate. Faculty who
 ### Schools
 
 - Search and browse schools (including while logged out); popular schools (high event volume)
-- School logo comes later via the Admin Console only (PNG/JPG ≤500 MB); placeholder until set; slug URL (duplicate names get auto-increment suffix)
+- School logo comes later via the Admin Console only (PNG/JPG ≤5 MB); placeholder until set; slug URL (duplicate names get auto-increment suffix)
 - School names need not be unique
 - School catalog bootstrapped **once** from College Scorecard — import **all** seed rows (main + branch), `is_active=true`; branch campuses use the same UI/UX as other schools; review/deactivate later in the Admin Console
 - Afterward only site admins create/edit/delete schools via the Admin Console (users cannot create schools); `unitid` optional

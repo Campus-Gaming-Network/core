@@ -745,12 +745,14 @@ func looksLikeUUID(value string) bool {
 	return true
 }
 
-// handleRefreshCatalog reloads the cached school catalog immediately, so an
-// edit does not have to wait out the refresh interval. Intended for the future
-// Admin Console and for operator use.
+// handleRefreshCatalog reloads the cached school catalog immediately, so a
+// direct database change does not have to wait out the refresh interval.
+// Admin Console school commands refresh the catalog themselves; this endpoint
+// is for operators.
 //
-// Guarded by a shared secret rather than a session, because there is no admin
-// role yet. The endpoint stays disabled unless API_MAINTENANCE_TOKEN is set.
+// Guarded by a shared secret rather than an admin session so it works without
+// the Admin Console. The endpoint stays disabled unless API_MAINTENANCE_TOKEN
+// is set.
 func (r *Router) handleRefreshCatalog(w http.ResponseWriter, req *http.Request) {
 	if r.catalog == nil || r.cfg.MaintenanceToken == "" {
 		http.NotFound(w, req)

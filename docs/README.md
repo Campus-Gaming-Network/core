@@ -2,37 +2,38 @@
 
 Central hub for collegiate gamers: find events, teams, and school gaming info across the United States.
 
-**Sites:** [campusgamingnetwork.com](https://campusgamingnetwork.com) (main site) · [admin.campusgamingnetwork.com](https://admin.campusgamingnetwork.com) (later Admin Console)
+**Sites:** [campusgamingnetwork.com](https://campusgamingnetwork.com) (main site) · [admin.campusgamingnetwork.com](https://admin.campusgamingnetwork.com) (Admin Console, in progress and release-gated)
 
 These docs are the source of truth for product intent, domain rules, architecture, and delivery order. Use them when implementing features or asking an LLM to generate code.
 
 ## Reading order
 
-| Doc                                                                                                       | Purpose                                                                                                                  |
-| --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| [00 — Current state](./00-current-state.md)                                                               | Quick re-entry point: where we are, what is next, and what is blocked                                                    |
-| [01 — Product](./01-product.md)                                                                           | Vision, principles, personas, feature inventory, launch scope                                                            |
-| [02 — Domain model](./02-domain-model.md)                                                                 | Entities, relationships, and business rules                                                                              |
-| [03 — Database](./03-database.md)                                                                         | Schema conventions, tables, soft deletes, audit/system logs                                                              |
-| [04 — API](./04-api.md)                                                                                   | BFF pattern, Go services, endpoint surface                                                                               |
-| [05 — Roadmap](./05-roadmap.md)                                                                           | Phased delivery from first release → production → later                                                                  |
-| [06 — Architecture](./06-architecture.md)                                                                 | Stack, hosting, Docker, observability, security                                                                          |
-| [07 — Permissions](./07-permissions.md)                                                                   | Roles, ACLs, impersonation, and the Admin Console                                                                        |
-| [08 — Open questions](./08-open-questions.md)                                                             | Unresolved product/tech decisions                                                                                        |
-| [09 — School data](./09-school-data.md)                                                                   | One-time College Scorecard seed → later Admin Console owns catalog after                                                 |
-| [10 — Delivery status](./10-delivery-status.md)                                                           | Status tracker and remaining Now/Next/Later work                                                                         |
-| [11 — Implementation decisions](./11-implementation-decisions.md)                                         | Concrete engineering choices for Phase 0 and early implementation work                                                   |
-| [12 — Phase 1 plan](./12-phase-1-plan.md)                                                                 | Reviewable Phase 1A–1D breakdown for auth, profiles, schools, and games                                                  |
-| [13 — Railway deployment guide](./13-deployment-plan.md)                                                  | Step-by-step Railway, PostgreSQL, Resend, Cloudflare, backup, launch, and rollback runbook                               |
-| [14 — Architecture diagrams](./14-architecture-diagrams.md)                                               | Mermaid overviews of the frontend, backend, and complete system                                                          |
-| [15 — Pass v0 quality checklist](./15-pass-v0-checklist.md)                                               | Regression checklist for signup → event → RSVP → team → dashboard                                                        |
-| [16 — Legal and data-lifecycle plan](./16-legal-and-data-lifecycle-plan.md)                               | Pre-launch policy blockers, retention targets, account deletion, and operations follow-up                                |
-| [17 — Codebase review action plan](./17-codebase-review-action-plan.md)                                   | Prioritized engineering backlog from the 2026-09-05 architecture, correctness, reliability, and product-readiness review |
-| [18 — TanStack Start main-frontend migration guide](./18-tanstack-start-main-frontend-migration-guide.md) | Completed repository migration plan, historical execution record, remaining deployment acceptance, and rollback posture  |
-| [19 — TanStack Start parity manifest](./19-tanstack-start-parity-manifest.md)                             | Route, mutation, security, browser, and cutover evidence for the canonical Start frontend                                |
-| [20 — Admin Console v1 engineering plan](./20-admin-console-v1-engineering-plan.md)                       | Security architecture, implementation tickets, release gates, and rollout plan for the separate privileged surface       |
-| [21 — Admin Console security test plan](./21-admin-console-security-test-plan.md)                         | Threat-driven automated and staging test matrix required before the Admin Console can ship                               |
-| [22 — Admin Console access runbook](./22-admin-console-access-runbook.md)                                 | Cloudflare Access, first-admin bootstrap, recovery, revocation, and emergency-disable procedures                         |
+| Doc                                                                                 | Purpose                                                                                                                  |
+| ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| [00 — Current state](./00-current-state.md)                                         | Quick re-entry point: where we are, what is next, and what is blocked                                                    |
+| [01 — Product](./01-product.md)                                                     | Vision, principles, personas, feature inventory, launch scope                                                            |
+| [02 — Domain model](./02-domain-model.md)                                           | Entities, relationships, and business rules                                                                              |
+| [03 — Database](./03-database.md)                                                   | Schema conventions, tables, soft deletes, audit/system logs                                                              |
+| [04 — API](./04-api.md)                                                             | BFF pattern, Go services, endpoint surface                                                                               |
+| [05 — Roadmap](./05-roadmap.md)                                                     | Phased delivery from first release → production → later                                                                  |
+| [06 — Architecture](./06-architecture.md)                                           | Stack, hosting, Docker, observability, security                                                                          |
+| [07 — Permissions](./07-permissions.md)                                             | Roles, ACLs, impersonation, and the Admin Console                                                                        |
+| [08 — Open questions](./08-open-questions.md)                                       | Unresolved product/tech decisions                                                                                        |
+| [09 — School data](./09-school-data.md)                                             | One-time College Scorecard seed; the Admin Console owns the catalog after it                                             |
+| [10 — Delivery status](./10-delivery-status.md)                                     | Status tracker and remaining Now/Next/Later work                                                                         |
+| [11 — Implementation decisions](./11-implementation-decisions.md)                   | Concrete engineering choices for Phase 0 and early implementation work                                                   |
+| [13 — Railway deployment guide](./13-deployment-plan.md)                            | Step-by-step Railway, PostgreSQL, Resend, Cloudflare, backup, launch, and rollback runbook                               |
+| [14 — Architecture diagrams](./14-architecture-diagrams.md)                         | Mermaid overviews of the frontend, backend, and complete system                                                          |
+| [16 — Legal and data-lifecycle plan](./16-legal-and-data-lifecycle-plan.md)         | Pre-launch policy blockers, retention targets, account deletion, and operations follow-up                                |
+| [17 — Codebase review action plan](./17-codebase-review-action-plan.md)             | Prioritized engineering backlog from the 2026-09-05 architecture, correctness, reliability, and product-readiness review |
+| [20 — Admin Console v1 engineering plan](./20-admin-console-v1-engineering-plan.md) | Security architecture, implementation tickets, release gates, and rollout plan for the separate privileged surface       |
+| [21 — Admin Console security test plan](./21-admin-console-security-test-plan.md)   | Threat-driven automated and staging test matrix required before the Admin Console can ship                               |
+| [22 — Admin Console access runbook](./22-admin-console-access-runbook.md)           | Cloudflare Access, first-admin bootstrap, recovery, revocation, and emergency-disable procedures                         |
+| [Go style](./go-style.md)                                                           | Go conventions for the API                                                                                               |
+
+Completed plans and evidence records (the Phase 1 plan, Pass v0 checklist, and
+TanStack Start migration records) are kept in [`archive/`](../docs/archive/) for
+history only.
 
 ## How to use with AI / LLMs
 
@@ -61,7 +62,7 @@ These docs are the source of truth for product intent, domain rules, architectur
 - **Trust indicators** — public profiles expose verified-student, staff/faculty, and active school-admin indicators; event details expose applicable organizer indicators.
 - **Content filtering** — reject a small word-boundary blocked-term list in user-authored names, bios, event/team text, reports, and support messages before persistence.
 - **Page metadata** — every route sets its own title/description/Open Graph tags; authenticated, token, private, and unlisted routes are `noindex`. A locked private event exposes only a generic title.
-- **Not-found routes** — missing entities must return HTTP 404, never a soft 404; never put a `loading.tsx` above a `notFound()` route.
+- **Not-found routes** — missing entities must return HTTP 404, never a soft 404.
 - **Infra** — Railway hosts TanStack Start, the Go API, and production Postgres for the main site; Cloudflare manages DNS/protection; Resend handles email. The separate TanStack Start Admin Console and Cloudflare R2 remain undeployed until their security and release gates pass.
 - **Search** — Postgres full-text / trigram first; no Elasticsearch until proven necessary.
 - **Soft deletes** — use `deleted_at`; never hard-delete user-facing content without an explicit policy.

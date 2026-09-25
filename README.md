@@ -4,7 +4,6 @@ Central hub for collegiate gamers: discover schools, events, teams, and campus g
 
 The product/domain docs live in [`docs/`](./docs/README.md). This root README
 covers the local scaffold and current implementation status.
-This file also works well for lightweight integration smoke-test changes.
 
 ## Current status
 
@@ -12,11 +11,12 @@ The feature slices through events, teams, dashboard, and basic
 safety intake are implemented locally:
 
 - `apps/web` — TanStack Start main site with public pages, auth forms, profiles, schools, events, teams, dashboard, support, and report UI, plus route metadata and pending, error, and not-found boundaries
-- `apps/api` — Go API with health, auth/session middleware, schools/games, events, teams, dashboard helpers, support tickets, and reports
+- `apps/api` — Go API with health, auth/session middleware, schools/games, events, teams, dashboard helpers, support tickets, reports, and the Admin Console API
+- `apps/admin` — TanStack Start Admin Console (in progress and release-gated; see [`docs/20-admin-console-v1-engineering-plan.md`](./docs/20-admin-console-v1-engineering-plan.md))
 - `apps/docs` — VitePress viewer for the Markdown product and engineering documentation
 - `db/migrations` — versioned SQL migrations
 - `docker-compose.yml` — web + API + Postgres
-- `.github/workflows/ci.yml` — initial CI checks
+- `.github/workflows/ci.yml` — Go format, vet, and PostgreSQL-backed tests; workspace format, audit, typecheck, lint, unit, build, and browser tests
 
 Implemented locally: identity/profile, 18+ and home-school signup enforcement,
 email verification, password reset, all 6,243 seeded schools, six launch games,
@@ -88,12 +88,17 @@ updating packages, pin exact versions so installs do not silently drift.
 
 ```bash
 pnpm run dev:web
+pnpm run dev:admin
 pnpm run check:apps-compose
 pnpm run lint:web
 pnpm run typecheck:web
 pnpm run test:web
 pnpm run test:e2e:web
 pnpm run test:e2e:real
+pnpm run typecheck:admin
+pnpm run lint:admin
+pnpm run test:admin
+pnpm run test:e2e:admin
 pnpm run fmt:check:api
 pnpm run vet:api
 pnpm run test:api
@@ -161,6 +166,7 @@ Docker Compose provides sensible local defaults.
 
 ```text
 apps/
+  admin/    TanStack Start Admin Console and admin BFF
   api/      Go API
   docs/     Local documentation viewer
   web/      TanStack Start main site and BFF
@@ -169,10 +175,3 @@ db/         SQL migrations and database notes
 docs/       Product, architecture, API, and roadmap docs
 scripts/    Utility scripts
 ```
-
-## Phase 0 exit criteria
-
-- `docker compose up --build` starts web, API, and Postgres.
-- `GET /health` returns API liveness.
-- `GET /ready` confirms the API can reach Postgres.
-- The web shell renders and exposes a BFF health route at `/api/health`.

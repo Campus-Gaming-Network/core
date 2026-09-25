@@ -61,7 +61,7 @@ SiteAnnouncement ── global banner                        (later)
 | Name            | Not required to be unique                                                       |
 | Slug            | URL identity; on collision append auto-increment (`-2`, `-3`, …)                |
 | UNITID          | Optional (set on Scorecard-seeded rows; Admin Console-created schools may omit) |
-| Logo            | Later Admin Console upload only (PNG/JPG ≤500 MB); placeholder until set        |
+| Logo            | Later Admin Console upload only (PNG/JPG ≤5 MB); placeholder until set          |
 | Location        | City, state, zip, lat/lng (from seed or Admin Console)                          |
 | Admins          | Many; a user may admin many schools                                             |
 | Clubs           | Listed on school page when clubs ship (later)                                   |
@@ -254,7 +254,7 @@ Used for: browse/filter events (and later tournaments) by game; popular games by
 | Timestamps        | Every table: `created_at`, `updated_at`, `deleted_at`                                                                                   |
 | Soft deletes      | Default for user-facing entities (esp. events)                                                                                          |
 | Slugs             | Schools: name + numeric suffix on collision. Events: `slugify(title)-` + first **8** Base64URL chars of SHA-256(creatorId\|date\|title) |
-| Images            | Event banners default placeholder for now; school logos later via Admin Console upload (PNG or JPG only; max 500 MB)                    |
+| Images            | Event banners default placeholder for now; school logos later via Admin Console upload (PNG or JPG only; max 5 MB)                      |
 | Search            | Postgres (`tsvector` / `pg_trgm`) before any external search service                                                                    |
 | Profanity         | Block bad words in user-entered text                                                                                                    |
 | XSS / SQLi        | Prevent via parameterized queries + output encoding / sanitization                                                                      |

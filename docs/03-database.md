@@ -12,7 +12,7 @@ PostgreSQL is the system of record. Conventions first; then core tables. Exact c
 | Time storage    | Store instants in UTC (`timestamptz`); display in user timezone in app layer                                                                                                                                                                    |
 | Money           | May list paid/off-site-payment events, but CGN does not process payment. Store only lightweight display fields such as `is_paid`, `payment_note`, and optional `payment_url`; use integer cents + currency only if on-site payments ship later. |
 | Slugs           | Unique URL keys: `schools.slug`; `events.slug` — events use `slugify(title)-` + **8** Base64URL chars of SHA-256(creatorId\|date\|title)                                                                                                        |
-| Images          | Event banners use default placeholder for now; school `logo_url` comes later via Admin Console upload (PNG/JPG only; max 500 MB)                                                                                                                |
+| Images          | Event banners use default placeholder for now; school `logo_url` comes later via Admin Console upload (PNG/JPG only; max 5 MB)                                                                                                                  |
 | Audit vs system | `audit_logs` holds domain change history and remains separate from system/ops logs.                                                                                                                                                             |
 | Nightly backups | Required in production                                                                                                                                                                                                                          |
 
@@ -20,7 +20,7 @@ PostgreSQL is the system of record. Conventions first; then core tables. Exact c
 
 Keep the first migration set scoped to shipped features. Create only the tables needed for auth/profile, home school and follows, schools seed, launch games, events, teams, reports/support tickets, and operational needs.
 
-Do **not** create first-pass tables for clubs, tournaments, user activity history, feature flags, site announcements, on-site payments, IGDB sync, or broader Admin Console-only workflows until those phases are actively being built. The operations foundation now includes audit history and per-user notifications; their HTTP and UI surfaces remain gated on site-admin authorization and the later Admin Console.
+Do **not** create first-pass tables for clubs, tournaments, user activity history, feature flags, site announcements, on-site payments, IGDB sync, or broader Admin Console-only workflows until those phases are actively being built. The operations foundation includes audit history and per-user notifications. Audit history is readable through capability-gated Admin Console API routes; notifications have no HTTP or UI surface yet.
 
 ## Core tables (logical)
 
@@ -53,8 +53,23 @@ user_school_affiliations
   user_id, school_id, role_context (student|alumni|faculty|...), ...
 
 school_admins
-  school_id, user_id, created_at, updated_at, deleted_at
-  -- school-scoped role grant; soft-revocable; future Admin Console owns assignment
+  id (stable grant ID), school_id, user_id, created_at, updated_at, deleted_at
+  -- school-scoped role grant; soft-revocable and re-grantable; site admins assign it in the Admin Console
+```
+
+### Sessions & account tokens
+
+```text
+auth_sessions
+  id, user_id, token_hash, expires_at, last_seen_at, revoked_at, ...
+  -- public-site sessions; only the SHA-256 token hash is stored
+
+email_verification_tokens
+  id, user_id, token_hash, expires_at, consumed_at, ...
+
+password_reset_tokens
+  id, user_id, token_hash, expires_at, consumed_at, ...
+  -- a successful reset consumes the token and revokes the user's sessions
 ```
 
 ### Schools & clubs
@@ -62,7 +77,7 @@ school_admins
 ```text
 schools
   id, unitid nullable (unique when present; College Scorecard/IPEDS),
-  name, alias, slug (unique), logo_url,  -- later Admin Console upload (PNG/JPG ≤500 MB); placeholder until set
+  name, alias, slug (unique), logo_url,  -- later Admin Console upload (PNG/JPG ≤5 MB); placeholder until set
   city, state, zip, website_url,
   latitude, longitude,
   is_main_campus, num_branches, is_active,
@@ -71,7 +86,7 @@ schools
   -- catalog bootstrapped once from data/schools_seed.csv; Admin Console owns create/edit/delete after that
   -- unitid optional/unique when present; Admin Console-created schools may omit
   -- one-time seed imports ALL rows as is_active=true (main + branch); branch campuses use same UI/UX
-  -- logo_url is later Admin Console-only (PNG/JPG ≤500 MB), not Scorecard; not uploadable from main site
+  -- logo_url is later Admin Console-only (PNG/JPG ≤5 MB), not Scorecard; not uploadable from main site
 
 clubs
   id, school_id (required), name, is_official, status (pending|approved|...), ...
@@ -134,6 +149,10 @@ event_rsvps
 event_interests
   event_id, user_id, created_at, ...
   -- favorite/bookmark; independent of RSVP
+
+event_private_unlocks
+  id, event_id, token_hash, expires_at, ...
+  -- 24-hour unlock grants for private events; archived when the password or visibility changes
 ```
 
 ### Tournaments
@@ -156,8 +175,9 @@ tournament_registrations
 
 ```text
 games
-  id, igdb_id nullable, name, slug, cover_url, raw_payload jsonb?, last_synced_at, ...
-  -- end users cannot edit; curated seeded with 6 launch games; later enriched from IGDB through the Admin Console
+  id, igdb_id nullable, name, slug, cover_url, is_active, raw_payload jsonb?, last_synced_at, ...
+  -- end users cannot edit; curated seeded with 6 launch games; site admins manage it in the Admin Console
+  -- inactive games leave the public picker but stay on events/teams that already use them; IGDB enrichment later
 ```
 
 **Launch game seed:** Rocket League, Valorant, League of Legends, Overwatch 2, Super Smash Bros. Ultimate, CSGO.
@@ -173,7 +193,7 @@ support_tickets
   id, submitter_user_id nullable, contact_email, name, subject, message, status,
   assigned_to_user_id nullable, resolution_note, submitter_deleted_at nullable,
   retention_started_at nullable, ...
-  -- anyone can submit (logged out OK); viewed/managed in the later Admin Console
+  -- anyone can submit (logged out OK); viewed/managed in the Admin Console
 
 notifications
   id, user_id, type, title, body,
@@ -201,9 +221,35 @@ audit_logs
   -- append-oriented domain history; queue mutations write before/after state
   -- shared by school, event, team, club, etc. as those workflows adopt it
 
+email_outbox
+  id, kind, recipient, payload jsonb, idempotency_key, attempts, next_attempt_at,
+  locked_at, locked_by, delivered_at, failed_at, provider_message_id, last_error, ...
+  -- durable delivery intent written in the same transaction as the domain change;
+  -- the payload is cleared once delivery succeeds or fails permanently
+
 activity_logs  (optional separate from audit)
   id, user_id, action, metadata jsonb, created_at
   -- "users can see their activities logged"
+```
+
+### Admin access
+
+```text
+site_role_grants
+  id, user_id, role (site_admin), granted_by_user_id nullable, grant_reason, granted_at,
+  revoked_at, revoked_by_user_id, revoke_reason
+  -- append-only grant history; at most one active grant per user and role
+
+admin_sessions
+  id, user_id, grant_id, token_hash, csrf_token_hash, authn_method, access_issuer,
+  access_subject, access_email, authenticated_at, step_up_at, last_seen_at,
+  idle_expires_at, absolute_expires_at, revoked_at, revocation_reason, created_at
+  -- isolated from public-site sessions; bound to one active site-role grant
+
+admin_security_events
+  id, event_type, outcome, actor_user_id, admin_session_id, request_id,
+  network_identifier_hash, metadata jsonb, occurred_at
+  -- bounded security telemetry, separate from audit_logs domain history
 ```
 
 If activity and audit can share one table with a clear `kind` discriminator, prefer one table — but **system/ops logs stay out of the database audit table** (or in a separate store).
@@ -231,11 +277,11 @@ Do not list `unlisted` or `private` events in discovery search. Unlisted is reac
 
 ## Soft delete & anonymization
 
-| Case                 | Behavior                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Event cancelled      | Soft delete; public URL shows “no longer exists”; best-effort cancellation email to active yes/maybe RSVPs                                                                                                                                                                                                                                                                                                                                 |
-| User deletes account | Scrub the account row; delete personal follows, memberships, RSVPs, interests, tokens, and notifications; unassign moderation/support work; detach submitted support tickets and scrub direct contact fields on terminal tickets; transfer created events to the longest-tenured active co-organizer or soft-cancel them; keep required domain FKs and audit history. Free-text retention and final purge policy remain tracked in doc 16. |
-| Hard delete          | Avoid for domain entities unless legally required                                                                                                                                                                                                                                                                                                                                                                                          |
+| Case                 | Behavior                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Event cancelled      | Soft delete; public URL shows “no longer exists”; best-effort cancellation email to active yes/maybe RSVPs                                                                                                                                                                                                                                                                                                                                                                                                        |
+| User deletes account | Scrub the account row; delete personal follows, memberships, RSVPs, interests, tokens, and notifications; revoke school-admin and site-admin grants while keeping their history; unassign moderation/support work; detach submitted support tickets and scrub direct contact fields on terminal tickets; transfer created events to the longest-tenured active co-organizer or soft-cancel them; keep required domain FKs and audit history. Free-text retention and final purge policy remain tracked in doc 16. |
+| Hard delete          | Avoid for domain entities unless legally required                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 
 ## Backups
 
@@ -248,4 +294,4 @@ Do not list `unlisted` or `private` events in discovery search. Unlisted is reac
 - First migrations stay scoped to shipped features; defer schema for clubs, tournaments, feature flags, site announcements, on-site payments, IGDB sync, and Admin Console-only workflows.
 - In Railway production, run the Go migrator as a pre-deploy command or dedicated migration service/job before the API serves traffic
 - Never rely on manual prod SQL for schema changes
-- The Admin Console exists later so operators are not editing rows by hand for routine ACL/school work
+- The Admin Console exists so operators are not editing rows by hand for routine ACL/school work

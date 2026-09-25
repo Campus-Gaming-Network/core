@@ -6,7 +6,7 @@ Stack, runtime, ops, and engineering constraints for a single-developer, cost-co
 
 ```text
 Main site:  campusgamingnetwork.com
-Admin Console:  admin.campusgamingnetwork.com   (later separate app + separate release)
+Admin Console:  admin.campusgamingnetwork.com   (separate app + release; in progress, release-gated)
 
 Browser (React UI, TanStack Router, SSR)
         │
@@ -25,7 +25,7 @@ Go API / services         ── domain logic, Postgres access
 Railway PostgreSQL
 
 Side paths:
-  Later Admin Console (TanStack Start, separate deploy) ──► Go API
+  Admin Console (TanStack Start, separate deploy; release-gated) ──► Go API
   Resend ──► transactional mail + ICS
   Cloudflare R2 ──► school logos (Admin Console, later); other uploads after that
   Sentry ──► errors (later)
@@ -52,9 +52,9 @@ See [14 — Architecture diagrams](./14-architecture-diagrams.md) for Mermaid vi
 | Local dev        | Docker                                                  | Works on all systems; develop on M1 MacBook                                                        |
 | App host         | Railway                                                 | Hosts the TanStack Start web service and Go API                                                    |
 | DNS / edge       | Cloudflare                                              | DNS and edge protection for campusgamingnetwork.com                                                |
-| Admin Console    | TanStack Start                                          | Later `apps/admin` app/release at admin.campusgamingnetwork.com                                    |
+| Admin Console    | TanStack Start                                          | `apps/admin`, a separate release at admin.campusgamingnetwork.com; in progress and release-gated   |
 | Email            | Resend                                                  | Verification, password reset, RSVP+ICS, etc.                                                       |
-| Object storage   | Cloudflare R2                                           | School logos via Admin Console (PNG/JPG ≤500 MB), then custom event banners — both later           |
+| Object storage   | Cloudflare R2                                           | School logos via Admin Console (PNG/JPG ≤5 MB), then custom event banners — both later             |
 | Errors           | Sentry                                                  | Later bug reporting; not required for launch                                                       |
 | Avatars          | DiceBear Critters default preset with initials fallback | Custom avatars later                                                                               |
 | Maps             | Google Maps embed (mini)                                | Later nicety; address text first                                                                   |
@@ -143,7 +143,7 @@ The school and game catalogs are effectively static — roughly 6,200 schools gr
 ## Catalog mutations
 
 - Schools are bootstrapped once from the Scorecard seed; users cannot create schools.
-- Later Admin Console: schools create/edit/delete, logo uploads, school admins, games catalog, and IGDB enrichment.
+- Admin Console: school create/edit/activation/delete, school admins, and the games catalog (API complete, UI in progress). School commands refresh the serving process's in-memory catalog after they commit. Logo uploads and IGDB enrichment come later.
 - Games: Uses the curated seed; **not** editable by end users.
 
 ## Auth & security
@@ -207,7 +207,7 @@ The school and game catalogs are effectively static — roughly 6,200 schools gr
 - **Later:** school logos uploaded via the **Admin Console** (not the main site)
 - **Event banners:** use a default placeholder image/background — no user uploads yet (custom banners later with strict moderation)
 - Allowed types: **PNG or JPG only**
-- **Max size:** 500 MB per image
+- **Max size:** 5 MB per image
 - Enforce type + size server-side
 
 ## Local development

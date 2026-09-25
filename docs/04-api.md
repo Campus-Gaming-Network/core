@@ -1,26 +1,26 @@
 # 04 — API
 
 The public UI talks to a **TanStack Start BFF**; the BFF calls **Go** services
-that own domain logic and Postgres. The later Admin Console also calls Go (directly
-or via an admin BFF).
+that own domain logic and Postgres. The Admin Console calls the Go Admin API
+through its own admin BFF.
 
 ## Pattern: Backend for Frontend (BFF)
 
 ```text
 UI route / server function  →  TanStack Start BFF  →  Go API  →  Postgres
-Later Admin Console screens →  (admin BFF or direct) →  Go Admin API  →  Postgres
+Admin Console screens      →  Admin BFF           →  Go Admin API (/admin/v1)  →  Postgres
 ```
 
 | Layer              | Responsibility                                                                                                                       |
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
 | TanStack Start BFF | Opaque server-side session cookies, CSRF, route-loader data, DTO mapping, server routes, server functions, and native-form redirects |
-| Go API             | AuthZ checks, validation, transactions, email triggers, rate limits, and future audit writes                                         |
+| Go API             | AuthZ checks, validation, transactions, email triggers, rate limits, and transactional audit writes                                  |
 | Browser            | Progressive enhancement only; no core business rules                                                                                 |
 
 Prefer server-rendered routes and server functions over exposing a wide public
 JSON surface. Core forms also retain native POST behavior for progressive
 enhancement. Where JSON is needed (mobile later, Admin Console, TanStack Query), version
-it (`/api/v1/...`).
+it; the Admin API uses `/admin/v1/...`.
 
 ### BFF validation boundaries
 
@@ -50,16 +50,18 @@ transactions, rate limits, content policy, and persistence validation.
 
 - **AuthN** — frontend auth uses opaque server-side session cookies (not JWTs); every mutating call validates the session or an explicit non-frontend service credential
 - **AuthZ** — enforce roles from [07 — Permissions](./07-permissions.md)
-- **Rate limiting** — especially `POST /auth/signup`, `POST /auth/resend-verification`, `POST /events`, private event unlocks, report endpoints, and `POST /support-tickets`
+- **Rate limiting** — especially signup, login, verification resend, password reset, `POST /events`, private event unlocks, report endpoints, and `POST /support-tickets`. Anonymous flows are limited per visitor and per target (email address, reset token, or event) across all visitors; see [11 — Implementation decisions](./11-implementation-decisions.md)
 - **Idempotency** — consider keys for RSVP and registration emails
 - **Health** — `GET /health` (liveness) and `GET /ready` (DB connectivity)
 - **Errors** — structured error codes; no stack traces to clients
-- **Audit/activity** — later; keep operational logs now, then add database-backed domain history as its own slice
+- **Audit/activity** — administrative changes write `audit_logs` entries in the same transaction as the change; user-facing activity history is later
 - **Feature flags** — later; when added, evaluate server-side
 
 ## Endpoint surface (v1 intent)
 
-Not every path must exist on day one — align with [05 — Roadmap](./05-roadmap.md). Names are indicative.
+Paths marked **(planned)**, and every path in a section marked (later), are not
+implemented yet; align them with [05 — Roadmap](./05-roadmap.md) when they are built.
+All other paths exist in the Go API.
 
 ### Auth
 
@@ -75,17 +77,17 @@ Not every path must exist on day one — align with [05 — Roadmap](./05-roadma
 
 ### Users / profile
 
-| Method | Path                | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| ------ | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| GET    | `/me`               | Profile + timezone + home school summary + role indicators                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| PATCH  | `/me`               | Name, bio, socials, timezone, majors, graduation                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| DELETE | `/me`               | Anonymize the account in place and return 204. Scrubs email, name, bio, and timezone; marks `account_status = 'deleted'`; hard-deletes social links, school follows, RSVPs, and interests; revokes sessions and drops outstanding tokens. Teams they own pass to the longest-tenured captain, else the longest-tenured member, else are soft-deleted. Events they created stay published; the deleted organizer is omitted from public organizer summaries. The scrubbed email releases the original address for re-registration. |
-| GET    | `/me/schools`       | Followed schools                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| GET    | `/me/events`        | Dashboard event sections: upcoming RSVPs + followed-school public events                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| GET    | `/me/teams`         | Dashboard team activity                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| GET    | `/me/activity`      | Future full user activity log                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| GET    | `/users/:id`        | Public profile (database id), including `home_school_id`, display-ready `home_school`, verification level, and role indicators when available                                                                                                                                                                                                                                                                                                                                                                                     |
-| POST   | `/users/:id/report` | Rate limited                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| Method | Path                | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| ------ | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/me`               | Profile + timezone + home school summary + role indicators                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| PATCH  | `/me`               | Name, bio, social links, timezone                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| DELETE | `/me`               | Anonymize the account in place and return 204. Scrubs email, name, bio, and timezone; marks `account_status = 'deleted'`; hard-deletes social links, school follows, RSVPs, interests, notifications, and team/event roles; revokes sessions and drops outstanding tokens and queued email; revokes school-admin and site-admin grants while keeping their history. Teams they own pass to the longest-tenured captain, else the longest-tenured member, else are soft-deleted. Events they created that have not ended pass to the longest-tenured active co-organizer; the rest are archived, and active yes/maybe RSVPs to those that have not ended get a best-effort cancellation email. Returns `409 last_site_admin` when the account is the last active site admin. The scrubbed email releases the original address for re-registration. See [16 — Legal and data-lifecycle plan](./16-legal-and-data-lifecycle-plan.md). |
+| GET    | `/me/schools`       | Followed schools                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| GET    | `/me/events`        | Dashboard event sections: upcoming RSVPs + followed-school public events                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| GET    | `/me/teams`         | Dashboard team activity                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| GET    | `/me/activity`      | **(planned)** Full user activity log                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| GET    | `/users/:id`        | Public profile (database id), including `home_school_id`, display-ready `home_school`, verification level, and role indicators when available                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| POST   | `/users/:id/report` | Rate limited                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 
 ### Schools
 
@@ -95,9 +97,8 @@ Not every path must exist on day one — align with [05 — Roadmap](./05-roadma
 | GET    | `/schools/:slug`             | Public school page (clubs list when clubs ship)                                                                              |
 | POST   | `/schools/:id/follow`        | Auth required                                                                                                                |
 | DELETE | `/schools/:id/follow`        |                                                                                                                              |
-| GET    | `/schools/:id/games/popular` |                                                                                                                              |
-| PATCH  | `/schools/:id`               | School admin only                                                                                                            |
-| POST   | `/admin/schools`             | Later site admin / Admin Console only                                                                                        |
+| GET    | `/schools/:id/games/popular` | **(planned)**                                                                                                                |
+| PATCH  | `/schools/:id`               | **(planned)** School admin only; site admins edit schools through the [Admin API](#admin-api)                                |
 
 ### Clubs (later)
 
@@ -120,13 +121,13 @@ Not every path must exist on day one — align with [05 — Roadmap](./05-roadma
 | POST   | `/teams/:slug/join`               | Password required to join/interact                                                                                             |
 | POST   | `/teams/:slug/transfer-ownership` | Owner                                                                                                                          |
 | POST   | `/teams/:slug/captains`           | Assign captains                                                                                                                |
-| GET    | `/teams/:slug/audit`              | Later team change history                                                                                                      |
+| GET    | `/teams/:slug/audit`              | **(planned)** Team change history                                                                                              |
 
 ### Events
 
 | Method | Path                     | Notes                                                                                                                                                                                                                               |
 | ------ | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| GET    | `/events`                | Search/browse **public only**; `game`, `school`, `format`, `limit`, and opaque `after`/`before` cursors; response includes `has_more` and `has_previous`                                                                            |
+| GET    | `/events`                | Search/browse **public only**, newest start time first; `game`, `school`, `format`, `limit`, and opaque `after`/`before` cursors; response includes `has_more` and `has_previous`                                                   |
 | GET    | `/events/:slug`          | Public & unlisted return full page; private returns gated shell until unlocked                                                                                                                                                      |
 | POST   | `/events/:slug/unlock`   | Password for private events; unlock session required before details/RSVP                                                                                                                                                            |
 | POST   | `/events`                | Auth; no approval; rate limited; 8-char slug hash; optional capacity; optional off-site payment fields; default banner only; optional `recurrence_rule` (`weekly`, `biweekly`, `monthly`) and `recurrence_until` (`YYYY-MM-DD`)     |
@@ -136,7 +137,7 @@ Not every path must exist on day one — align with [05 — Roadmap](./05-roadma
 | POST   | `/events/:slug/interest` | Favorite/bookmark; independent of RSVP                                                                                                                                                                                              |
 | DELETE | `/events/:slug/interest` | Remove favorite                                                                                                                                                                                                                     |
 | POST   | `/events/:slug/report`   | Rate limited                                                                                                                                                                                                                        |
-| GET    | `/events/:slug/audit`    | Later event change history                                                                                                                                                                                                          |
+| GET    | `/events/:slug/audit`    | **(planned)** Event change history                                                                                                                                                                                                  |
 
 Discovery lists only `visibility = public`. Unlisted is link/slug only. Private: do not leak event details in HTML/JSON before unlock — blurred shell + password modal only. Capacity = count of RSVP `yes`; full → cannot RSVP yes (no waitlist). Paid events are allowed only as off-site-payment listings: no checkout, payment intent, refund, tax, payout, or ledger behavior in CGN.
 
@@ -175,13 +176,14 @@ Event detail responses include `organizers`, with each organizer's name, role,
 
 ### Games
 
-| Method | Path                       | Notes                                                  |
-| ------ | -------------------------- | ------------------------------------------------------ |
-| GET    | `/games`                   | Browse (public); currently the 6 curated launch games  |
-| GET    | `/games/:slug/events`      | Public events for game + filters                       |
-| GET    | `/games/:slug/tournaments` | Tournaments for game + filters (later)                 |
-| POST   | `/admin/games/sync`        | IGDB import (later; Admin Console / cron)              |
-| PATCH  | `/admin/games/:id`         | Later Admin Console only — end users cannot edit games |
+| Method | Path                       | Notes                                          |
+| ------ | -------------------------- | ---------------------------------------------- |
+| GET    | `/games`                   | Browse (public); active games only             |
+| GET    | `/games/:slug/events`      | **(planned)** Public events for game + filters |
+| GET    | `/games/:slug/tournaments` | **(planned)** Tournaments for game + filters   |
+
+End users cannot edit games; site admins manage them through the
+[Admin API](#admin-api). IGDB import is later.
 
 ### Notifications & announcements (later)
 
@@ -191,20 +193,34 @@ Event detail responses include `organizers`, with each organizer's name, role,
 | POST   | `/me/notifications/:id/read` |                  |
 | GET    | `/announcements/active`      | Site-wide banner |
 
-### Moderation & admin (Admin Console, later — admin.campusgamingnetwork.com)
+### Support & safety
 
-| Method | Path                         | Notes                                                      |
-| ------ | ---------------------------- | ---------------------------------------------------------- |
-| POST   | `/support-tickets`           | Main site: anyone can submit (logged out OK); rate limited |
-| GET    | `/admin/reports`             | All reports                                                |
-| PATCH  | `/admin/reports/:id`         |                                                            |
-| GET    | `/admin/support-tickets`     | Support tickets from main site                             |
-| PATCH  | `/admin/support-tickets/:id` |                                                            |
-| POST   | `/admin/impersonate`         | Site admin; heavily audited (later)                        |
-| POST   | `/admin/impersonate/stop`    |                                                            |
-| CRUD   | `/admin/feature-flags`       | Later                                                      |
-| CRUD   | `/admin/users`               | ACL management                                             |
-| CRUD   | `/admin/announcements`       | Later                                                      |
+| Method | Path               | Notes                                                      |
+| ------ | ------------------ | ---------------------------------------------------------- |
+| POST   | `/support-tickets` | Main site: anyone can submit (logged out OK); rate limited |
+
+Reports are submitted through `POST /events/:slug/report` and
+`POST /users/:id/report`.
+
+### Admin API
+
+All routes are under `/admin/v1`. They are served only when `ADMIN_ENABLED` is set, and only to the admin BFF: requests
+must carry the admin proxy secret, an Admin Console session, a matching
+capability, and CSRF protection on mutations. Request and response contracts,
+capabilities, and step-up rules live in
+[20 — Admin Console v1 engineering plan](./20-admin-console-v1-engineering-plan.md).
+
+| Area                | Routes                                                                                                            |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Session             | `POST /auth/exchange`, `POST /auth/step-up`, `GET /session`, `POST /logout`                                       |
+| Reports and support | `GET`/`PATCH` `/reports` and `/support-tickets` (list, detail, update) plus `GET …/:id/audit`                     |
+| Schools             | List, create, get, update, `deactivate`, `reactivate`, and delete under `/schools`, plus `GET /schools/:id/audit` |
+| School admins       | `GET`/`POST /schools/:id/admin-grants`, `POST …/:grant_id/revoke`, and `GET …/:grant_id/audit`                    |
+| Games               | List, create, get, update, and delete under `/games`, plus `GET /games/:id/audit`                                 |
+| Users               | List, get, `suspend`, `reactivate`, `PATCH /users/:id/trust-grants`, and `GET /users/:id/audit`                   |
+| Site admins         | `GET`/`POST /site-admin-grants`, `POST /site-admin-grants/:id/revoke`, and `GET /site-admin-grants/:id/audit`     |
+
+Impersonation, feature flags, and site announcements are later.
 
 ### Health
 
@@ -212,6 +228,12 @@ Event detail responses include `organizers`, with each organizer's name, role,
 | ------ | --------- | --------------- |
 | GET    | `/health` | Process up      |
 | GET    | `/ready`  | Dependencies up |
+
+### Internal
+
+| Method | Path                        | Notes                                                                                                      |
+| ------ | --------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| POST   | `/internal/schools/refresh` | Operator-only reload of the in-memory school catalog; bearer `API_MAINTENANCE_TOKEN`; 404 when it is unset |
 
 ## Email side effects
 
@@ -238,9 +260,9 @@ Event detail responses include `organizers`, with each organizer's name, role,
 
 ## TanStack usage
 
-- **TanStack Start and TanStack Router** — main site in `apps/web`; the later Admin Console in `apps/admin`
-  may use the same framework in a separate deployment.
-- **TanStack Query / Table / Form** — fine in the later Admin Console or selective
+- **TanStack Start and TanStack Router** — main site in `apps/web`; the Admin Console in `apps/admin`
+  uses the same framework in a separate deployment.
+- **TanStack Query / Table / Form** — fine in the Admin Console or selective
   main-site features when a measured need exists.
 - Do not add client data libraries by default to routes that work with loaders,
   server functions, and normal HTML forms.
