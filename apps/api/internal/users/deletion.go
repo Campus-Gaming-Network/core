@@ -151,7 +151,8 @@ func (r *PostgresRepository) DeleteAccount(ctx context.Context, userID string) e
 
 	// Events still owned by this account have no eligible successor and are
 	// cancelled below. Persist one independent notification per active attendee
-	// before RSVP rows and the owner's identity are scrubbed.
+	// of each event that has not ended, before RSVP rows and the owner's
+	// identity are scrubbed.
 	if _, err := tx.Exec(ctx, `
 		INSERT INTO email_outbox (kind, recipient, payload, idempotency_key)
 		SELECT 'event_cancellation',
@@ -167,6 +168,7 @@ func (r *PostgresRepository) DeleteAccount(ctx context.Context, userID string) e
 		JOIN users attendee ON attendee.id = r.user_id
 		WHERE e.creator_user_id = $1::uuid
 		  AND e.deleted_at IS NULL
+		  AND e.ends_at > NOW()
 		  AND r.deleted_at IS NULL
 		  AND r.response IN ('yes', 'maybe')
 		  AND attendee.id <> $1::uuid

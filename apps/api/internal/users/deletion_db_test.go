@@ -369,6 +369,9 @@ func TestDeleteAccountArchivesPastEventAndChildRecords(t *testing.T) {
 	creatorID := insertUser(t, pool, schoolID, "past-event-creator@example.test")
 	organizerID := insertUser(t, pool, schoolID, "past-event-organizer@example.test")
 	eventID := insertDeletionEvent(t, pool, creatorID, schoolID, "deletion-event-past")
+	t.Cleanup(func() {
+		_, _ = pool.Exec(context.Background(), `DELETE FROM email_outbox WHERE payload -> 'event' ->> 'id' = $1`, eventID)
+	})
 	addEventOrganizer(t, pool, eventID, organizerID, time.Now().Add(-2*time.Hour).UTC())
 
 	seeds := []struct {
@@ -419,6 +422,16 @@ func TestDeleteAccountArchivesPastEventAndChildRecords(t *testing.T) {
 	}
 	if deletedAt == nil {
 		t.Fatal("past event was not soft deleted")
+	}
+	var cancellationMessages int
+	if err := pool.QueryRow(ctx, `
+		SELECT COUNT(*) FROM email_outbox
+		WHERE kind = 'event_cancellation' AND payload -> 'event' ->> 'id' = $1
+	`, eventID).Scan(&cancellationMessages); err != nil {
+		t.Fatalf("count past-event cancellation messages: %v", err)
+	}
+	if cancellationMessages != 0 {
+		t.Fatalf("past-event cancellation messages = %d, want 0", cancellationMessages)
 	}
 
 	for _, table := range []string{
