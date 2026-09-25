@@ -173,13 +173,15 @@ Items marked **pre-launch** should not wait until after a public release.
 
 - [x] Transfer future events with another active organizer; archive future
       events without one and archive past events without rewriting ownership.
-- [ ] Return the newly cancelled event ids and active `yes`/`maybe` recipients
-      from the deletion transaction, then send the existing best-effort
-      cancellation email after commit. Email failure must not roll back deletion.
+- [x] Queue one cancellation email per active `yes`/`maybe` recipient of each
+      cancelled event that has not ended, in the deletion transaction's email
+      outbox. The outbox worker delivers and retries after commit, so email
+      failure cannot roll back deletion.
 - [x] Add database tests for active successor selection, orphan cancellation,
       child-record archival, past-event archival, and account-related support data.
-- [ ] Add handler/service tests for attendee selection and mail failure once
-      deletion returns the cancelled-event notification work.
+- [x] Test attendee selection (active `yes`/`maybe` recipients, no email for
+      ended events) against PostgreSQL; outbox tests cover retry, poison
+      messages, and delivery after commit.
 
 ### DiceBear disclosure and opt-out — pre-launch
 

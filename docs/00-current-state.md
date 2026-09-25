@@ -31,13 +31,13 @@ verification steps.
 
 ## Next three tasks
 
-1. Complete `CGN-012`: stop writing `last_seen_at` on every authenticated read.
-2. Complete `CGN-014`: distinguish an empty result from an upstream failure.
-3. Complete `CGN-020`: give redirect notices truthful, typed severity.
+1. Complete `CGN-014`: distinguish an empty result from an upstream failure.
+2. Complete `CGN-020`: give redirect notices truthful, typed severity.
+3. Complete `AC-010`: the 5 MB school-logo upload pipeline, which unblocks the
+   Admin Console catalog UI (`AC-013`).
 
-After those, follow the ordered queue in doc 17. Legal, DiceBear,
-account-deletion notifications, and external launch rehearsal remain P1 launch
-gates. Admin Console work continues under
+After those, follow the ordered queue in doc 17. Legal, DiceBear, and external
+launch rehearsal remain P1 launch gates. Admin Console work continues under
 [20 — Admin Console v1 engineering plan](./20-admin-console-v1-engineering-plan.md):
 the moderation workspace (`AC-012`) and the catalog, user, and grant APIs
 (`AC-009`) are complete; the school-logo pipeline (`AC-010`) and catalog UI
@@ -57,6 +57,11 @@ the moderation workspace (`AC-012`) and the catalog, user, and grant APIs
 
 ## Recently completed
 
+- Stopped writing the public session's unused `last_seen_at` on every
+  authenticated request, so lookups are read-only and a failed touch can no
+  longer log out a valid user (`CGN-012`).
+- Account deletion now queues cancellation emails only for events that have
+  not ended; the deletion-notification launch gate is complete.
 - Completed the Admin Console moderation workspace (report and support queues
   with audit history, `AC-012`) and the catalog, user, and grant APIs with
   transactional audits and session revocation (`AC-009`).

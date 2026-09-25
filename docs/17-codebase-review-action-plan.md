@@ -83,7 +83,7 @@ the engineering queue, but all P1 work must be complete before public access.
 |    19 | `CGN-016` | P2       | Multi-organizer scope matches the product promise.                        |
 |    20 | `CGN-018` | P3       | Large modules are split before product expansion.                         |
 
-`CGN-012` is next, followed by `CGN-014` and `CGN-020`. Before `CGN-016`, decide whether
+`CGN-014` is next, followed by `CGN-020`. Before `CGN-016`, decide whether
 multi-organizer management belongs in the first release.
 
 ### Implementation map
@@ -596,8 +596,16 @@ session lookup to every authenticated navigation.
 
 **Priority:** P2  
 **Size:** S  
-**Status:** Ready  
+**Status:** Done (2026-09-25)  
 **Depends on:** `CGN-011` recommended
+
+**Completed:** Nothing reads the public session's `last_seen_at` (the admin
+session's separate column still drives its idle timeout), so session lookup no
+longer writes it. Lookup is now a single read, which also removes the touch
+failure that could log out a valid user; expiry is unchanged. A PostgreSQL test
+proves repeated lookups leave the row version untouched. The column remains at
+its creation default and can be dropped in a later release, after no running
+version still writes it.
 
 **Problem**
 

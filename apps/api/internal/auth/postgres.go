@@ -2,7 +2,6 @@ package auth
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -17,6 +16,8 @@ func NewSessionRepository(pool *pgxpool.Pool) *SessionRepository {
 	return &SessionRepository{pool: pool}
 }
 
+// FindSession is read-only. Nothing consumes a last-seen time for public
+// sessions, so authenticated reads do not write.
 func (r *SessionRepository) FindSession(ctx context.Context, tokenHash []byte) (Session, error) {
 	var session Session
 	// The join is redundant with revoking sessions on account deletion, but it
@@ -33,20 +34,7 @@ func (r *SessionRepository) FindSession(ctx context.Context, tokenHash []byte) (
 		  AND u.deleted_at IS NULL
 		  AND u.account_status = 'active'
 	`, tokenHash).Scan(&session.ID, &session.UserID, &session.ExpiresAt)
-	if err != nil {
-		return Session{}, err
-	}
-
-	_, err = r.pool.Exec(ctx, `
-		UPDATE auth_sessions
-		SET last_seen_at = NOW()
-		WHERE id = $1::uuid
-	`, session.ID)
-	if err != nil {
-		return Session{}, fmt.Errorf("touch auth session: %w", err)
-	}
-
-	return session, nil
+	return session, err
 }
 
 func (r *SessionRepository) CreateSession(ctx context.Context, userID string, tokenHash []byte, expiresAt time.Time) error {

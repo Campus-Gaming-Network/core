@@ -63,6 +63,7 @@ school_admins
 auth_sessions
   id, user_id, token_hash, expires_at, last_seen_at, revoked_at, ...
   -- public-site sessions; only the SHA-256 token hash is stored
+  -- last_seen_at is no longer maintained (CGN-012) and can be dropped later
 
 email_verification_tokens
   id, user_id, token_hash, expires_at, consumed_at, ...
