@@ -16,27 +16,27 @@
   same-named service in `docker-compose.yml` that builds that Dockerfile.
 - Use a Compose profile for an optional application that should not start with
   the core stack.
-- Run `npm run check:apps-compose` after adding or renaming an application or
+- Run `pnpm run check:apps-compose` after adding or renaming an application or
   changing its Docker/Compose configuration.
 
 ## Code formatting
 
-- After making any code changes, run `npm run fmt` before validation or
-  committing. Use `npm run fmt:check` when a non-writing check is needed.
+- After making any code changes, run `pnpm run fmt` before validation or
+  committing. Use `pnpm run fmt:check` when a non-writing check is needed.
 - Do not format dependencies, generated sources, build artifacts, or test
   output. Keep `.oxfmtrc.json` ignore patterns aligned with `.gitignore`,
   including `node_modules`, generated `routeTree.gen.ts` files, build output,
   coverage output, and Playwright artifacts.
-- For Go code, also run `npm run fmt:api` because Oxfmt does not format Go.
+- For Go code, also run `pnpm run fmt:api` because Oxfmt does not format Go.
 
 ## Web validation
 
 - Use Node.js 24.x for all JavaScript and TypeScript commands.
-- After changing `apps/web`, run `npm run typecheck:web`, `npm run lint:web`,
-  and `npm run test:web`.
+- After changing `apps/web`, run `pnpm run typecheck:web`, `pnpm run lint:web`,
+  and `pnpm run test:web`.
 - For browser-visible or navigation changes, also run
-  `npm run test:e2e:web:dev`, `npm run build:web`, and
-  `npm run test:e2e:web`.
+  `pnpm run test:e2e:web:dev`, `pnpm run build:web`, and
+  `pnpm run test:e2e:web`.
 - The production Playwright suite serves the existing `apps/web/.output`
   bundle, so always rebuild immediately before running it.
 

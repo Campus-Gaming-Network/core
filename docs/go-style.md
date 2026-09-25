@@ -29,9 +29,9 @@ an existing inconsistency in new code.
 From the repository root:
 
 ```bash
-npm run fmt:check:api
-npm run vet:api
-npm run test:api
+pnpm run fmt:check:api
+pnpm run vet:api
+pnpm run test:api
 ```
 
 `go test ./...` remains the source of truth for the API test suite. The style

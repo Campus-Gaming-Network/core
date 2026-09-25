@@ -1,22 +1,24 @@
 FROM node:24-alpine AS base
 
 WORKDIR /app
+RUN npm install --global pnpm@12.6.0
 
 FROM base AS deps
-COPY package.json package-lock.json ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/admin/package.json ./apps/admin/package.json
 COPY apps/docs/package.json ./apps/docs/package.json
 COPY apps/web/package.json ./apps/web/package.json
-RUN npm ci --workspace @campus-gaming-network/web
+RUN pnpm install --filter @campus-gaming-network/web --frozen-lockfile
 
 FROM deps AS dev
 COPY apps/web ./apps/web
 WORKDIR /app/apps/web
 EXPOSE 3000
-CMD ["npm", "run", "dev", "--", "--port", "3000"]
+CMD ["pnpm", "run", "dev", "--", "--port", "3000"]
 
 FROM deps AS build
 COPY apps/web ./apps/web
-RUN npm --prefix apps/web run build
+RUN pnpm --filter @campus-gaming-network/web run build
 
 FROM base AS runner
 ENV NODE_ENV=production \

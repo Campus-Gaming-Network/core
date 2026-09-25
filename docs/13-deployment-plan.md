@@ -242,7 +242,7 @@ Recommended web watch paths:
 apps/docs/package.json
 apps/web/**
 package.json
-package-lock.json
+pnpm-lock.yaml
 ```
 
 Railway injects `PORT` and uses the same port for health checks. Both CGN services already listen on that variable, so do not create or hard-code a `PORT` variable.<sup>[[19]](#source-19)</sup>
@@ -527,18 +527,18 @@ Never edit a migration already applied to staging or production, and do not use 
 
 ## Troubleshooting
 
-| Symptom                                                                        | Most likely cause                                                                     | Resolution                                                                                                                   |
-| ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| Docker build cannot find `package-lock.json`, `db/migrations`, or the seed CSV | Root Directory points at an app subdirectory                                          | Reset Root Directory to `/`; keep the custom Dockerfile path                                                                 |
-| API pre-deploy fails with `unsafe staging configuration`                       | A strict-mode API variable is missing or invalid                                      | Correct every variable named in the log; Resend and site variables are required even for the migrator                        |
-| API health check fails                                                         | API cannot reach PostgreSQL, wrong `API_DATABASE_URL`, or process did not bind `PORT` | Confirm `${{postgres.DATABASE_URL}}`, same environment/region, and do not override `PORT`                                    |
-| Web reports `api_unreachable`                                                  | Wrong private URL or service name                                                     | Service must be named `api`; use `http://${{api.RAILWAY_PRIVATE_DOMAIN}}:${{api.PORT}}`                                      |
-| Seed logs `school seed skipped`                                                | Schools table was already populated                                                   | Treat as expected only on a rerun; investigate if a supposedly fresh environment was not empty                               |
-| Resend returns 403                                                             | Key invalid, domain unverified, or From domain mismatch                               | Verify domain status, key scope, and exact sender domain<sup>[[29]](#source-29)</sup>                                        |
-| Custom domain returns 404                                                      | Railway TXT record is absent or incorrect                                             | Add both Railway-provided CNAME and TXT records and wait for verification                                                    |
-| Cloudflare shows too many redirects                                            | Proxy or SSL/TLS mode is incorrect                                                    | Keep apex CNAME proxied and use SSL/TLS mode Full per Railway guidance                                                       |
-| Deployment never starts after a push                                           | Wrong branch, failed CI, watch path mismatch, or GitHub permissions                   | Check skipped deployments, Wait for CI, source branch, Railway GitHub App access, and watch paths<sup>[[8]](#source-8)</sup> |
-| Unexpected bill growth                                                         | Both environments running, excess replicas, or public inter-service traffic           | Review usage by service, use private URLs, remove `seed`, and tune limits                                                    |
+| Symptom                                                                     | Most likely cause                                                                     | Resolution                                                                                                                   |
+| --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Docker build cannot find `pnpm-lock.yaml`, `db/migrations`, or the seed CSV | Root Directory points at an app subdirectory                                          | Reset Root Directory to `/`; keep the custom Dockerfile path                                                                 |
+| API pre-deploy fails with `unsafe staging configuration`                    | A strict-mode API variable is missing or invalid                                      | Correct every variable named in the log; Resend and site variables are required even for the migrator                        |
+| API health check fails                                                      | API cannot reach PostgreSQL, wrong `API_DATABASE_URL`, or process did not bind `PORT` | Confirm `${{postgres.DATABASE_URL}}`, same environment/region, and do not override `PORT`                                    |
+| Web reports `api_unreachable`                                               | Wrong private URL or service name                                                     | Service must be named `api`; use `http://${{api.RAILWAY_PRIVATE_DOMAIN}}:${{api.PORT}}`                                      |
+| Seed logs `school seed skipped`                                             | Schools table was already populated                                                   | Treat as expected only on a rerun; investigate if a supposedly fresh environment was not empty                               |
+| Resend returns 403                                                          | Key invalid, domain unverified, or From domain mismatch                               | Verify domain status, key scope, and exact sender domain<sup>[[29]](#source-29)</sup>                                        |
+| Custom domain returns 404                                                   | Railway TXT record is absent or incorrect                                             | Add both Railway-provided CNAME and TXT records and wait for verification                                                    |
+| Cloudflare shows too many redirects                                         | Proxy or SSL/TLS mode is incorrect                                                    | Keep apex CNAME proxied and use SSL/TLS mode Full per Railway guidance                                                       |
+| Deployment never starts after a push                                        | Wrong branch, failed CI, watch path mismatch, or GitHub permissions                   | Check skipped deployments, Wait for CI, source branch, Railway GitHub App access, and watch paths<sup>[[8]](#source-8)</sup> |
+| Unexpected bill growth                                                      | Both environments running, excess replicas, or public inter-service traffic           | Review usage by service, use private URLs, remove `seed`, and tune limits                                                    |
 
 ## Launch record
 

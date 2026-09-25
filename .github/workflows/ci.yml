@@ -35,11 +35,15 @@ jobs:
           cache-dependency-path: |
             apps/api/go.mod
             apps/api/go.sum
+      - uses: pnpm/setup@c9883cc79df532ad1a7b81bf9ab944ceb090d65c # v2.0.0
+        with:
+          runtime: node@24
+          install: false
       - name: Go version
         working-directory: apps/api
         run: go version
       - name: Format check
-        run: npm run fmt:check:api
+        run: pnpm run fmt:check:api
       - name: Vet
         working-directory: apps/api
         run: go vet ./...
@@ -55,46 +59,48 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: pnpm/setup@c9883cc79df532ad1a7b81bf9ab944ceb090d65c # v2.0.0
         with:
-          node-version: 24
+          runtime: node@24
+          cache: true
+          install: false
       - name: Validate application containers
-        run: npm run check:apps-compose
+        run: pnpm run check:apps-compose
       - name: Production container gate
         run: node scripts/web_docker_gate.mjs
       - name: Install
-        run: npm ci
+        run: pnpm install --frozen-lockfile
       - name: Format check
-        run: npm run fmt:check
+        run: pnpm run fmt:check
       - name: Audit production dependencies
-        run: npm audit --workspace @campus-gaming-network/web --omit=dev --omit=optional --audit-level=high
+        run: pnpm --filter @campus-gaming-network/web audit --prod --no-optional --audit-level high
       - name: Typecheck
         working-directory: apps/web
-        run: npm run typecheck
+        run: pnpm run typecheck
       - name: Lint
         working-directory: apps/web
-        run: npm run lint
+        run: pnpm run lint
       - name: Test
         working-directory: apps/web
-        run: npm run test
+        run: pnpm run test
       - name: Build
         working-directory: apps/web
-        run: npm run build
+        run: pnpm run build
       - name: Client privacy and framework-boundary scan
-        run: npm run privacy:web
+        run: pnpm run privacy:web
       - name: Production HTTP smoke test
-        run: npm run smoke:web
+        run: pnpm run smoke:web
       - name: Install Playwright browser
         working-directory: apps/web
-        run: npx playwright install --with-deps chromium
+        run: pnpm exec playwright install --with-deps chromium
       - name: Documentation browser tests
         working-directory: apps/docs
-        run: npm run test:e2e
+        run: pnpm run test:e2e
       - name: Development browser tests
         id: development_browser_tests
         continue-on-error: true
         working-directory: apps/web
-        run: npm run test:e2e:dev
+        run: pnpm run test:e2e:dev
       - name: Upload development browser failure artifacts
         if: steps.development_browser_tests.outcome == 'failure'
         uses: actions/upload-artifact@v7
@@ -109,7 +115,7 @@ jobs:
         id: production_browser_tests
         continue-on-error: true
         working-directory: apps/web
-        run: npm run test:e2e
+        run: pnpm run test:e2e
       - name: Upload production browser failure artifacts
         if: steps.production_browser_tests.outcome == 'failure'
         uses: actions/upload-artifact@v7
@@ -153,14 +159,15 @@ jobs:
           cache-dependency-path: |
             apps/api/go.mod
             apps/api/go.sum
-      - uses: actions/setup-node@v7
+      - uses: pnpm/setup@c9883cc79df532ad1a7b81bf9ab944ceb090d65c # v2.0.0
         with:
-          node-version: 24
-          cache: npm
+          runtime: node@24
+          cache: true
+          install: false
       - name: Install
-        run: npm ci
+        run: pnpm install --frozen-lockfile
       - name: Install Playwright browser
         working-directory: apps/web
-        run: npx playwright install --with-deps chromium
+        run: pnpm exec playwright install --with-deps chromium
       - name: Run repeatable real-stack browser suite
-        run: npm run test:e2e:real
+        run: pnpm run test:e2e:real
