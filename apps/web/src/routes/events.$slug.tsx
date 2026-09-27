@@ -11,6 +11,10 @@ import {
   fieldErrorProps,
   useEnhancedMutation,
 } from "../components/enhanced-mutation";
+import {
+  newIdempotencyKey,
+  useIdempotencyKey,
+} from "../components/idempotency-key";
 import { RouteErrorView, RoutePending } from "../components/route-boundaries";
 import {
   cancelEvent,
@@ -57,6 +61,8 @@ export type EventRouteData = {
   event: EventDetailDTO;
   authenticated: boolean;
   publicOrigin: string;
+  /** Server-rendered report key; see useIdempotencyKey. */
+  idempotencyKey: string;
 };
 
 type EventSearch = {
@@ -92,6 +98,7 @@ export const Route = createFileRoute("/events/$slug")({
       event: detail.event,
       authenticated: session.authenticated,
       publicOrigin: context.publicOrigin,
+      idempotencyKey: newIdempotencyKey(),
     };
   },
   headers: () => ({
@@ -453,6 +460,9 @@ function CancelEventForm({ slug }: { slug: string }) {
 
 function ReportEventForm({ slug }: { slug: string }) {
   const runReportEvent = useServerFn(reportEvent);
+  const idempotency = useIdempotencyKey(
+    Route.useLoaderData({ select: (data) => data.idempotencyKey }),
+  );
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState("");
   const [failed, setFailed] = useState(false);
@@ -468,7 +478,11 @@ function ReportEventForm({ slug }: { slug: string }) {
     setReasonErrors(undefined);
     try {
       const result = await runReportEvent({
-        data: { slug, reason: String(form.get("reason") ?? "") },
+        data: {
+          slug,
+          reason: String(form.get("reason") ?? ""),
+          idempotency_key: idempotency.key,
+        },
       });
       if (result.status === "error") {
         setFailed(true);
@@ -481,6 +495,7 @@ function ReportEventForm({ slug }: { slug: string }) {
       } else {
         setMessage(result.message);
         formElement.reset();
+        idempotency.rotate();
       }
     } catch {
       setFailed(true);
@@ -498,6 +513,7 @@ function ReportEventForm({ slug }: { slug: string }) {
       onSubmit={submit}
     >
       <input name="slug" type="hidden" value={slug} />
+      <input name="idempotency_key" type="hidden" value={idempotency.key} />
       {message ? (
         <p role={failed ? "alert" : "status"} aria-live="polite">
           {message}

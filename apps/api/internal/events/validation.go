@@ -215,6 +215,7 @@ func normalizeCreateParams(params CreateParams) CreateParams {
 	params.PaymentNote = strings.TrimSpace(params.PaymentNote)
 	params.PaymentURL = strings.TrimSpace(params.PaymentURL)
 	params.RecurrenceRule = strings.TrimSpace(params.RecurrenceRule)
+	params.IdempotencyKey = strings.TrimSpace(params.IdempotencyKey)
 	return params
 }
 

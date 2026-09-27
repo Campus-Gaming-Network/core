@@ -36,6 +36,10 @@ func (r *Router) handleSupportTickets(w http.ResponseWriter, req *http.Request) 
 		rateLimitExceeded(w, r)
 		return
 	}
+	key, ok := idempotencyKey(w, req)
+	if !ok {
+		return
+	}
 
 	var request supportTicketRequest
 	if !decodeJSON(w, req, &request) {
@@ -53,6 +57,7 @@ func (r *Router) handleSupportTickets(w http.ResponseWriter, req *http.Request) 
 		Name:            request.Name,
 		Subject:         request.Subject,
 		Message:         request.Message,
+		IdempotencyKey:  key,
 	})
 	if err != nil {
 		writeApplicationError(w, err, "support_ticket_failed")
@@ -75,12 +80,16 @@ func (r *Router) handleReportEvent(w http.ResponseWriter, req *http.Request, slu
 		rateLimitExceeded(w, r)
 		return
 	}
+	key, ok := idempotencyKey(w, req)
+	if !ok {
+		return
+	}
 
 	var request reportRequest
 	if !decodeJSON(w, req, &request) {
 		return
 	}
-	report, err := r.safety.ReportEvent(req.Context(), userID, slug, request.Reason)
+	report, err := r.safety.ReportEvent(req.Context(), userID, slug, request.Reason, key)
 	if err != nil {
 		writeApplicationError(w, err, "report_failed")
 		return
@@ -102,12 +111,16 @@ func (r *Router) handleReportUser(w http.ResponseWriter, req *http.Request, targ
 		rateLimitExceeded(w, r)
 		return
 	}
+	key, ok := idempotencyKey(w, req)
+	if !ok {
+		return
+	}
 
 	var request reportRequest
 	if !decodeJSON(w, req, &request) {
 		return
 	}
-	report, err := r.safety.ReportUser(req.Context(), userID, targetUserID, request.Reason)
+	report, err := r.safety.ReportUser(req.Context(), userID, targetUserID, request.Reason, key)
 	if err != nil {
 		writeApplicationError(w, err, "report_failed")
 		return

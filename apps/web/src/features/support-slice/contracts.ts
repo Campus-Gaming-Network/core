@@ -18,6 +18,7 @@ export const supportTicketInputSchema = z.object({
   name: z.string().trim().max(120, "Name must be 120 characters or fewer."),
   subject: requiredText("Subject", 160),
   message: requiredText("Message", 5000),
+  idempotency_key: z.uuid("Reload the page and try again."),
 });
 
 export const supportTicketIdDtoSchema = z.object({
@@ -54,6 +55,7 @@ export function validateSupportTicketServerInput(
     name: inputValue(input, "name"),
     subject: inputValue(input, "subject"),
     message: inputValue(input, "message"),
+    idempotency_key: inputValue(input, "idempotency_key"),
   };
   const parsed = supportTicketInputSchema.safeParse(candidate);
   if (parsed.success) return { valid: true, value: parsed.data };

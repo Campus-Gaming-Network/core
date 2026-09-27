@@ -105,7 +105,7 @@ test("static routes are SSR loader-backed and do not fetch viewer state themselv
     );
     assert.match(
       routeSource,
-      /loader: \(\{ context \}\) => context\.publicOrigin/,
+      /loader: \(\{ context \}\) =>[\s\S]*?context\.publicOrigin/,
     );
     assert.match(
       routeSource,

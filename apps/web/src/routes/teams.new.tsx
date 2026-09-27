@@ -11,6 +11,10 @@ import {
   fieldErrorProps,
   useEnhancedMutation,
 } from "../components/enhanced-mutation";
+import {
+  newIdempotencyKey,
+  useIdempotencyKey,
+} from "../components/idempotency-key";
 import { RouteErrorView, RoutePending } from "../components/route-boundaries";
 import {
   newTeamPageInputSchema,
@@ -41,7 +45,11 @@ export const Route = createFileRoute("/teams/new")({
     if (result.status !== "ready") {
       throw new Error("Team creation is unavailable");
     }
-    return { ...result, publicOrigin: context.publicOrigin };
+    return {
+      ...result,
+      publicOrigin: context.publicOrigin,
+      idempotencyKey: newIdempotencyKey(),
+    };
   },
   staleTime: 0,
   headers: () => ({
@@ -76,6 +84,7 @@ function NewTeamPage() {
       <CreateTeamForm
         defaultSchoolID={data.defaultSchoolID}
         games={data.games}
+        idempotencyKey={data.idempotencyKey}
         initialFailure={search.team === "create-failed"}
         schools={data.schools}
       />
@@ -124,14 +133,17 @@ function SchoolSearch({
 function CreateTeamForm({
   defaultSchoolID,
   games,
+  idempotencyKey,
   initialFailure,
   schools,
 }: {
   defaultSchoolID: string;
   games: GameSummaryDTO[];
+  idempotencyKey: string;
   initialFailure: boolean;
   schools: SchoolSummaryDTO[];
 }) {
+  const idempotency = useIdempotencyKey(idempotencyKey);
   const runCreateTeam = useServerFn(createTeam);
   const mutation = useEnhancedMutation(
     "We could not create that team. Please try again.",
@@ -150,6 +162,7 @@ function CreateTeamForm({
             .getAll("game_ids")
             .filter((value): value is string => typeof value === "string"),
           password: String(form.get("password") ?? ""),
+          idempotency_key: idempotency.key,
         },
       }),
     );
@@ -169,6 +182,7 @@ function CreateTeamForm({
       method="post"
       onSubmit={submit}
     >
+      <input name="idempotency_key" type="hidden" value={idempotency.key} />
       {mutation.message || initialFailure ? (
         <p role="alert" aria-live="polite">
           {mutation.message ||

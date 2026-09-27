@@ -727,6 +727,19 @@ func writeError(w http.ResponseWriter, status int, code string) {
 	writeJSON(w, status, map[string]string{"error": code})
 }
 
+// idempotencyKey reads the required Idempotency-Key header of a create request.
+// A repeated key returns the record the first request created instead of
+// inserting another. It writes a 400 response when the key is missing or is
+// not a UUID.
+func idempotencyKey(w http.ResponseWriter, req *http.Request) (string, bool) {
+	key := strings.TrimSpace(req.Header.Get("Idempotency-Key"))
+	if !looksLikeUUID(key) {
+		writeError(w, http.StatusBadRequest, "invalid_idempotency_key")
+		return "", false
+	}
+	return key, true
+}
+
 func looksLikeUUID(value string) bool {
 	if len(value) != 36 {
 		return false

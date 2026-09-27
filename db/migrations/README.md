@@ -25,6 +25,9 @@ school-grant IDs, admin query indexes, strictly advancing record versions, and
 row-locking guards against references to soft-deleted catalog records. Existing
 school-grant composite keys and history are retained. Apply it before deploying
 the AC-009 API, since public game queries also use the new activation column.
+Migration `000016_create_idempotency_keys.up.sql` adds nullable, unique
+`idempotency_key` columns to events, teams, reports, and support tickets so a
+repeated create request returns the original row.
 Do not add clubs, tournaments, feature flags, site announcements, on-site
 payment tables, IGDB sync tables, or Admin Console-only workflow tables until those
 phases are active.

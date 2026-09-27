@@ -4,16 +4,20 @@ import {
   FieldError,
   fieldErrorProps,
 } from "../../components/enhanced-mutation";
+import { useIdempotencyKey } from "../../components/idempotency-key";
 import type { SupportFieldErrors } from "./contracts";
 import { submitSupportTicket } from "./support.functions";
 
 const emptyErrors: SupportFieldErrors = {};
 
 export function SupportTicketForm({
+  idempotencyKey,
   initialStatus,
 }: {
+  idempotencyKey: string;
   initialStatus?: "failed" | "submitted";
 }) {
+  const idempotency = useIdempotencyKey(idempotencyKey);
   const runSubmission = useServerFn(submitSupportTicket);
   const [pending, setPending] = useState(false);
   const [result, setResult] = useState<{
@@ -38,6 +42,7 @@ export function SupportTicketForm({
             ? (next.fieldErrors ?? emptyErrors)
             : emptyErrors,
       });
+      if (next.status === "success") idempotency.rotate();
     } catch {
       setResult({
         status: "error",
@@ -70,6 +75,7 @@ export function SupportTicketForm({
       method="post"
       onSubmit={submit}
     >
+      <input name="idempotency_key" type="hidden" value={idempotency.key} />
       {result.message || initialMessage ? (
         <p aria-live="polite" role={status === "error" ? "alert" : "status"}>
           {result.message || initialMessage}

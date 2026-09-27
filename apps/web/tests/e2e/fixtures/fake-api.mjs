@@ -112,9 +112,10 @@ async function handleRequest(request, response) {
 
   if (method === "GET" && url.pathname === "/__test/upstream-calls") {
     json(response, 200, {
-      calls: calls.map(({ method: callMethod, pathname }) => ({
+      calls: calls.map(({ method: callMethod, pathname, idempotencyKey }) => ({
         method: callMethod,
         pathname,
+        idempotencyKey,
       })),
     });
     return;
@@ -128,6 +129,7 @@ async function handleRequest(request, response) {
     pathname: url.pathname,
     hadValidSession: Boolean(session),
     hadUnlockToken: Boolean(request.headers["x-cgn-event-unlock"]),
+    idempotencyKey: request.headers["idempotency-key"] ?? null,
   };
   calls.push(call);
 

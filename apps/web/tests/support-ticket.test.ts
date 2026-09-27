@@ -17,6 +17,7 @@ const validInput = {
   name: "Player One",
   subject: "Event listing question",
   message: "Could you help me correct an event listing?",
+  idempotency_key: "5b0e7f5c-3f4d-4d8e-9a71-6c2b1e0f9d34",
 };
 
 function client(fetcher: Fetcher) {
@@ -29,6 +30,7 @@ test("support validation accepts typed and native values and trims every field",
   form.set("name", " Player One ");
   form.set("subject", " Event listing question ");
   form.set("message", " Could you help me correct an event listing? ");
+  form.set("idempotency_key", ` ${validInput.idempotency_key} `);
 
   assert.deepEqual(validateSupportTicketServerInput(form), {
     valid: true,
@@ -48,6 +50,7 @@ test("support validation returns bounded accessible errors without echoing PII",
     name: "x".repeat(121),
     subject: "",
     message: privateMessage,
+    idempotency_key: validInput.idempotency_key,
   });
 
   assert.equal(result.valid, false);
@@ -90,7 +93,12 @@ test("support operation works anonymously and strips its upstream response", asy
   assert.equal(requestInit?.method, "POST");
   assert.equal(requestInit?.cache, "no-store");
   assert.equal(new Headers(requestInit?.headers).get("cookie"), null);
-  assert.deepEqual(JSON.parse(String(requestInit?.body)), validInput);
+  const { idempotency_key: idempotencyKey, ...ticket } = validInput;
+  assert.equal(
+    new Headers(requestInit?.headers).get("idempotency-key"),
+    idempotencyKey,
+  );
+  assert.deepEqual(JSON.parse(String(requestInit?.body)), ticket);
   assert.deepEqual(result, {
     status: "success",
     message: "Support ticket submitted. We will review it soon.",

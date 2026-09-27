@@ -50,7 +50,7 @@ func TestPassV0SuccessResponseContracts(t *testing.T) {
 		repository := &fakeEventRepository{}
 		response := serveContractRequest(
 			authenticatedEventsHandler(repository),
-			authenticatedEventRequest(http.MethodPost, "/events", validCreateEventJSON(eventstore.VisibilityPublic, "")),
+			withIdempotencyKey(authenticatedEventRequest(http.MethodPost, "/events", validCreateEventJSON(eventstore.VisibilityPublic, ""))),
 		)
 
 		payload := requireJSONContract(t, response, http.StatusCreated, eventContractKeys)
@@ -314,7 +314,7 @@ func TestPassV0ErrorResponseContracts(t *testing.T) {
 		body := strings.Replace(validCreateEventJSON(eventstore.VisibilityPublic, ""), "Campus Scrim Night", "Bullshit Tournament", 1)
 		response := serveContractRequest(
 			authenticatedEventsHandler(repository),
-			authenticatedEventRequest(http.MethodPost, "/events", body),
+			withIdempotencyKey(authenticatedEventRequest(http.MethodPost, "/events", body)),
 		)
 
 		requireErrorContract(t, response, http.StatusBadRequest, "invalid_request")

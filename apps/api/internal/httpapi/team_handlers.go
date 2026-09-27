@@ -146,6 +146,10 @@ func (r *Router) handleCreateTeam(w http.ResponseWriter, req *http.Request) {
 		rateLimitExceeded(w, r)
 		return
 	}
+	key, ok := idempotencyKey(w, req)
+	if !ok {
+		return
+	}
 
 	var request createTeamRequest
 	if !decodeJSON(w, req, &request) {
@@ -153,12 +157,13 @@ func (r *Router) handleCreateTeam(w http.ResponseWriter, req *http.Request) {
 	}
 
 	input := teamstore.CreateInput{
-		Name:        request.Name,
-		Description: request.Description,
-		OwnerUserID: userID,
-		SchoolID:    request.SchoolID,
-		GameIDs:     request.GameIDs,
-		Password:    request.Password,
+		Name:           request.Name,
+		Description:    request.Description,
+		OwnerUserID:    userID,
+		SchoolID:       request.SchoolID,
+		GameIDs:        request.GameIDs,
+		Password:       request.Password,
+		IdempotencyKey: key,
 	}
 	if err := teamstore.ValidateCreateInput(input); err != nil {
 		writeApplicationError(w, err, "team_create_failed")

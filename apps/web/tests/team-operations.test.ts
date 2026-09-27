@@ -29,6 +29,7 @@ import {
   teamsHead,
 } from "../src/features/team-slice/presentation.js";
 
+const idempotencyKey = "5b0e7f5c-3f4d-4d8e-9a71-6c2b1e0f9d34";
 const team = {
   id: "team-1",
   name: "Varsity Rocket League",
@@ -422,6 +423,7 @@ test("team write validators normalize typed and native inputs without accepting 
   createForm.append("game_ids", " game-1 ");
   createForm.append("game_ids", "game-2");
   createForm.set("password", " TeamPass8 ");
+  createForm.set("idempotency_key", idempotencyKey);
   createForm.set("cookieHeader", "must-not-be-accepted");
   assert.deepEqual(validateCreateTeamServerInput(createForm), {
     valid: true,
@@ -431,6 +433,7 @@ test("team write validators normalize typed and native inputs without accepting 
       school_id: "school-1",
       game_ids: ["game-1", "game-2"],
       password: "TeamPass8",
+      idempotency_key: idempotencyKey,
     },
   });
 
@@ -471,6 +474,7 @@ test("team mutations use exact Go endpoints, request cookies, and minimal respon
   const calls: Array<{
     body: unknown;
     cookie: string | null;
+    idempotencyKey: string | null;
     method: string | undefined;
     url: string;
   }> = [];
@@ -480,6 +484,7 @@ test("team mutations use exact Go endpoints, request cookies, and minimal respon
     calls.push({
       body: init?.body ? JSON.parse(String(init.body)) : undefined,
       cookie: new Headers(init?.headers).get("cookie"),
+      idempotencyKey: new Headers(init?.headers).get("idempotency-key"),
       method: init?.method,
       url,
     });
@@ -503,6 +508,7 @@ test("team mutations use exact Go endpoints, request cookies, and minimal respon
         school_id: "school-1",
         game_ids: ["game-1"],
         password: "TeamPass8",
+        idempotency_key: idempotencyKey,
       },
       dependencies,
     ),
@@ -531,6 +537,12 @@ test("team mutations use exact Go endpoints, request cookies, and minimal respon
     ["POST", "POST", "POST", "POST"],
   );
   assert.ok(calls.every(({ cookie }) => cookie === "cgn_session=server-only"));
+  assert.deepEqual(
+    calls.map((call) => call.idempotencyKey),
+    [idempotencyKey, null, null, null],
+  );
+  assert.ok(calls[0]);
+  assert.equal("idempotency_key" in (calls[0].body as object), false);
   assert.deepEqual(calls[1]?.body, { password: "TeamPass8" });
   assert.deepEqual(calls[2]?.body, { user_id: "member-1", captain: true });
   assert.deepEqual(calls[3]?.body, { new_owner_user_id: "member-2" });

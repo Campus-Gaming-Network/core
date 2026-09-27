@@ -46,6 +46,7 @@ export const publicProfileInputSchema = z.object({
 export const reportUserInputSchema = z.object({
   userID: reportTargetSchema,
   reason: reportReasonSchema,
+  idempotency_key: z.uuid("Reload the page and try again."),
 });
 
 const reportNotices = new Set(["submitted", "failed"] as const);
@@ -91,6 +92,7 @@ export function validateReportUserServerInput(
   const candidate = {
     userID: normalizedInputValue(input, "user_id", "userID"),
     reason: normalizedInputValue(input, "reason"),
+    idempotency_key: normalizedInputValue(input, "idempotency_key"),
   };
   const parsed = reportUserInputSchema.safeParse(candidate);
   if (parsed.success) {

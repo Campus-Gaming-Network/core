@@ -39,6 +39,9 @@ func (r *PostgresRepository) Create(ctx context.Context, params CreateParams) (E
 		if errors.Is(err, ErrSlugUnavailable) {
 			continue
 		}
+		if errors.Is(err, errIdempotencyKeyTaken) {
+			return r.eventForIdempotencyKey(ctx, params.IdempotencyKey, params.CreatorUserID)
+		}
 		if err != nil {
 			return Event{}, err
 		}

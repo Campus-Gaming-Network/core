@@ -18,12 +18,15 @@ test("support route keeps indexable metadata and renders the real form", () => {
 
   assert.match(route, /createFileRoute\("\/support"\)/);
   assert.match(route, /validateSearch: validateSupportSearch/);
-  assert.match(route, /loader: \(\{ context \}\) => context\.publicOrigin/);
+  assert.match(
+    route,
+    /loader: \(\{ context \}\) => \(\{\s*publicOrigin: context\.publicOrigin/,
+  );
   assert.match(route, /publicPageHead/);
   assert.doesNotMatch(route, /noIndex|supportMutationGap|migrated in Phase 4/);
   assert.match(
     route,
-    /<SupportTicketForm initialStatus=\{search\.support\} \/>/,
+    /<SupportTicketForm\s+idempotencyKey=\{idempotencyKey\}\s+initialStatus=\{search\.support\}\s*\/>/,
   );
 });
 

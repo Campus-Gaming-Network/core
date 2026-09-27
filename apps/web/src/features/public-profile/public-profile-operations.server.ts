@@ -83,7 +83,7 @@ export async function getPublicProfilePageOperation(
 }
 
 export async function reportUserOperation(
-  { userID, reason }: ReportUserInput,
+  { userID, reason, idempotency_key }: ReportUserInput,
   { api, cookieHeader, reportError = defaultErrorReporter }: ReportDependencies,
 ): Promise<ReportUserResult> {
   try {
@@ -91,6 +91,7 @@ export async function reportUserOperation(
       path: `/users/${encodeURIComponent(userID)}/report`,
       method: "POST",
       cookieHeader,
+      headers: { "idempotency-key": idempotency_key },
       body: { reason },
       cache: "no-store",
       responseSchema: idResponseSchema,

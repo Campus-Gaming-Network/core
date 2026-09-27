@@ -16,7 +16,7 @@ type Dependencies = {
 };
 
 export async function submitSupportTicketOperation(
-  input: SupportTicketInput,
+  { idempotency_key, ...input }: SupportTicketInput,
   { api, cookieHeader, reportError = defaultErrorReporter }: Dependencies,
 ): Promise<SupportTicketResult> {
   try {
@@ -24,6 +24,7 @@ export async function submitSupportTicketOperation(
       path: "/support-tickets",
       method: "POST",
       cookieHeader,
+      headers: { "idempotency-key": idempotency_key },
       body: input,
       responseSchema: supportTicketIdDtoSchema,
     });
@@ -44,6 +45,8 @@ export function supportErrorMessage(error: unknown): string {
 
   const messages: Record<string, string> = {
     database_unavailable: "The service is starting up. Try again in a moment.",
+    idempotency_key_reused:
+      "This form was already submitted. Reload the page and try again.",
     invalid_request: "Check the form fields and try again.",
     rate_limited: "Too many attempts. Give it a minute, then try again.",
     support_ticket_failed:

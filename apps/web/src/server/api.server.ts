@@ -138,6 +138,8 @@ export function safeApiErrorMessage(error: unknown): string {
       "Your RSVP was saved, but we could not send the confirmation email.",
     event_rsvp_failed: "We could not save your RSVP. Please try again.",
     event_unlock_failed: "We could not unlock that event. Please try again.",
+    idempotency_key_reused:
+      "This form was already submitted. Reload the page and try again.",
     invalid_credentials: "The email or password did not match.",
     invalid_private_password: "That event password did not match.",
     invalid_request: "Check the form fields and try again.",

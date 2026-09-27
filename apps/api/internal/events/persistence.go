@@ -24,25 +24,25 @@ func (r *PostgresRepository) createWithSlug(ctx context.Context, params CreatePa
 			creator_user_id, host_school_id, title, slug, description, visibility,
 			format, starts_at, ends_at, timezone, location_name, address, online_url,
 			private_password_hash, capacity, is_paid, payment_note, payment_url,
-			recurrence_rule, recurrence_until
+			recurrence_rule, recurrence_until, idempotency_key
 		)
 		SELECT $1::uuid, s.id, $3, $4, $5, $6, $7, $8, $9, $10,
 		       NULLIF($11, ''), NULLIF($12, ''), NULLIF($13, ''),
 		       NULLIF($14, ''), $15, $16, NULLIF($17, ''), NULLIF($18, ''),
-		       NULLIF($19, ''), $20
+		       NULLIF($19, ''), $20, NULLIF($21, '')::uuid
 		FROM schools s
 		WHERE s.id = $2::uuid
 		  AND s.deleted_at IS NULL
 		  AND s.is_active = TRUE
-		ON CONFLICT (slug) DO NOTHING
+		ON CONFLICT DO NOTHING
 		RETURNING id::text
 	`, params.CreatorUserID, params.HostSchoolID, params.Title, slug, params.Description,
 		params.Visibility, params.Format, params.StartsAt, params.EndsAt, params.Timezone,
 		params.LocationName, params.Address, params.OnlineURL, params.PrivatePasswordHash,
 		nullableInt(params.Capacity), params.IsPaid, params.PaymentNote, params.PaymentURL,
-		params.RecurrenceRule, nullableTime(params.RecurrenceUntil)).Scan(&eventID)
+		params.RecurrenceRule, nullableTime(params.RecurrenceUntil), params.IdempotencyKey).Scan(&eventID)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return "", r.createNoRowsError(ctx, tx, params.HostSchoolID)
+		return "", r.createNoRowsError(ctx, tx, params.HostSchoolID, params.IdempotencyKey)
 	}
 	if err != nil {
 		return "", fmt.Errorf("insert event: %w", err)
@@ -88,7 +88,7 @@ func (r *PostgresRepository) createSeriesWithSlug(ctx context.Context, params Cr
 
 	rootID, err := insertRecurringOccurrence(ctx, tx, params, slug, params.StartsAt, params.EndsAt, "")
 	if errors.Is(err, pgx.ErrNoRows) {
-		return "", r.createNoRowsError(ctx, tx, params.HostSchoolID)
+		return "", r.createNoRowsError(ctx, tx, params.HostSchoolID, params.IdempotencyKey)
 	}
 	if err != nil {
 		return "", err
@@ -124,29 +124,34 @@ func (r *PostgresRepository) createSeriesWithSlug(ctx context.Context, params Cr
 }
 
 func insertRecurringOccurrence(ctx context.Context, tx pgx.Tx, params CreateParams, slug string, startsAt time.Time, endsAt time.Time, parentID string) (string, error) {
+	// Only the series root carries the request's idempotency key.
+	idempotencyKey := ""
+	if parentID == "" {
+		idempotencyKey = params.IdempotencyKey
+	}
 	var eventID string
 	err := tx.QueryRow(ctx, `
 		INSERT INTO events (
 			creator_user_id, host_school_id, title, slug, description, visibility,
 			format, starts_at, ends_at, timezone, location_name, address, online_url,
 			private_password_hash, capacity, is_paid, payment_note, payment_url,
-			recurrence_rule, recurrence_until, recurrence_parent_id
+			recurrence_rule, recurrence_until, recurrence_parent_id, idempotency_key
 		)
 		SELECT $1::uuid, s.id, $3, $4, $5, $6, $7, $8, $9, $10,
 		       NULLIF($11, ''), NULLIF($12, ''), NULLIF($13, ''),
 		       NULLIF($14, ''), $15, $16, NULLIF($17, ''), NULLIF($18, ''),
-		       NULLIF($19, ''), $20, NULLIF($21, '')::uuid
+		       NULLIF($19, ''), $20, NULLIF($21, '')::uuid, NULLIF($22, '')::uuid
 		FROM schools s
 		WHERE s.id = $2::uuid
 		  AND s.deleted_at IS NULL
 		  AND s.is_active = TRUE
-		ON CONFLICT (slug) DO NOTHING
+		ON CONFLICT DO NOTHING
 		RETURNING id::text
 	`, params.CreatorUserID, params.HostSchoolID, params.Title, slug, params.Description,
 		params.Visibility, params.Format, startsAt, endsAt, params.Timezone,
 		params.LocationName, params.Address, params.OnlineURL, params.PrivatePasswordHash,
 		nullableInt(params.Capacity), params.IsPaid, params.PaymentNote, params.PaymentURL,
-		params.RecurrenceRule, nullableTime(params.RecurrenceUntil), parentID).Scan(&eventID)
+		params.RecurrenceRule, nullableTime(params.RecurrenceUntil), parentID, idempotencyKey).Scan(&eventID)
 	if err != nil {
 		return "", fmt.Errorf("insert recurring event occurrence: %w", err)
 	}
@@ -209,7 +214,22 @@ func lockEditableEvent(ctx context.Context, locker editableEventLocker, slug str
 	return eventID, currentPrivatePasswordHash, nil
 }
 
-func (r *PostgresRepository) createNoRowsError(ctx context.Context, checker schoolExistenceChecker, hostSchoolID string) error {
+// errIdempotencyKeyTaken reports that an insert did nothing because an earlier
+// request already created an event with the same idempotency key.
+var errIdempotencyKeyTaken = errors.New("event idempotency key taken")
+
+func (r *PostgresRepository) createNoRowsError(ctx context.Context, checker schoolExistenceChecker, hostSchoolID string, idempotencyKey string) error {
+	if idempotencyKey != "" {
+		var keyTaken bool
+		if err := checker.QueryRow(ctx, `
+			SELECT EXISTS (SELECT 1 FROM events WHERE idempotency_key = $1::uuid)
+		`, idempotencyKey).Scan(&keyTaken); err != nil {
+			return fmt.Errorf("check event idempotency key: %w", err)
+		}
+		if keyTaken {
+			return errIdempotencyKeyTaken
+		}
+	}
 	var schoolExists bool
 	if err := checker.QueryRow(ctx, `
 		SELECT EXISTS (
@@ -226,6 +246,28 @@ func (r *PostgresRepository) createNoRowsError(ctx context.Context, checker scho
 		return ErrHostSchoolNotFound
 	}
 	return ErrSlugUnavailable
+}
+
+// eventForIdempotencyKey returns the event an earlier request created with
+// key. The key must belong to the same creator and the event must still exist.
+func (r *PostgresRepository) eventForIdempotencyKey(ctx context.Context, key string, creatorUserID string) (Event, error) {
+	var slug string
+	var replayable bool
+	err := r.pool.QueryRow(ctx, `
+		SELECT slug, COALESCE(creator_user_id = $2::uuid AND deleted_at IS NULL, FALSE)
+		FROM events
+		WHERE idempotency_key = $1::uuid
+	`, key, creatorUserID).Scan(&slug, &replayable)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return Event{}, ErrIdempotencyKeyReused
+	}
+	if err != nil {
+		return Event{}, fmt.Errorf("load event by idempotency key: %w", err)
+	}
+	if !replayable {
+		return Event{}, ErrIdempotencyKeyReused
+	}
+	return r.GetBySlug(ctx, slug)
 }
 
 func (r *PostgresRepository) eventIDBySlug(ctx context.Context, slug string) (string, error) {

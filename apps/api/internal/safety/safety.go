@@ -17,6 +17,9 @@ import (
 var (
 	ErrReportTargetNotFound = apperror.New(apperror.KindNotFound, "report_target_not_found", "report target not found")
 	ErrCannotReportSelf     = apperror.New(apperror.KindValidation, "cannot_report_self", "cannot report self")
+	// ErrIdempotencyKeyReused reports a key whose original record belongs to a
+	// different submitter or target, or has since been deleted.
+	ErrIdempotencyKeyReused = apperror.New(apperror.KindConflict, "idempotency_key_reused", "idempotency key was used by another request")
 )
 
 const (
@@ -42,6 +45,9 @@ type SupportTicketInput struct {
 	Name            string
 	Subject         string
 	Message         string
+	// IdempotencyKey is required by the HTTP API. A repeated key returns the
+	// ticket the first request created instead of inserting another.
+	IdempotencyKey string
 }
 
 type Report struct {
@@ -56,12 +62,15 @@ type ReportInput struct {
 	TargetType     string
 	TargetID       string
 	Reason         string
+	// IdempotencyKey is required by the HTTP API. A repeated key returns the
+	// report the first request created instead of inserting another.
+	IdempotencyKey string
 }
 
 type Repository interface {
 	CreateSupportTicket(ctx context.Context, input SupportTicketInput) (SupportTicket, error)
-	ReportEvent(ctx context.Context, reporterUserID string, eventSlug string, reason string) (Report, error)
-	ReportUser(ctx context.Context, reporterUserID string, targetUserID string, reason string) (Report, error)
+	ReportEvent(ctx context.Context, reporterUserID string, eventSlug string, reason string, idempotencyKey string) (Report, error)
+	ReportUser(ctx context.Context, reporterUserID string, targetUserID string, reason string, idempotencyKey string) (Report, error)
 }
 
 type PostgresRepository struct {
@@ -152,21 +161,55 @@ func (r *PostgresRepository) CreateSupportTicket(ctx context.Context, input Supp
 
 	var ticket SupportTicket
 	err := r.pool.QueryRow(ctx, `
-		INSERT INTO support_tickets (submitter_user_id, contact_email, name, subject, message)
-		VALUES (NULLIF($1, '')::uuid, $2, $3, $4, $5)
+		INSERT INTO support_tickets (submitter_user_id, contact_email, name, subject, message, idempotency_key)
+		VALUES (NULLIF($1, '')::uuid, $2, $3, $4, $5, NULLIF($6, '')::uuid)
+		ON CONFLICT (idempotency_key) DO NOTHING
 		RETURNING id::text, contact_email, status
-	`, input.SubmitterUserID, input.ContactEmail, input.Name, input.Subject, input.Message).Scan(
+	`, input.SubmitterUserID, input.ContactEmail, input.Name, input.Subject, input.Message, input.IdempotencyKey).Scan(
 		&ticket.ID,
 		&ticket.ContactEmail,
 		&ticket.Status,
 	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return r.supportTicketForIdempotencyKey(ctx, input)
+	}
 	if err != nil {
 		return SupportTicket{}, fmt.Errorf("create support ticket: %w", err)
 	}
 	return ticket, nil
 }
 
-func (r *PostgresRepository) ReportEvent(ctx context.Context, reporterUserID string, eventSlug string, reason string) (Report, error) {
+// supportTicketForIdempotencyKey returns the ticket an earlier request created
+// with the input's key. The submitter and contact email must match.
+func (r *PostgresRepository) supportTicketForIdempotencyKey(ctx context.Context, input SupportTicketInput) (SupportTicket, error) {
+	var ticket SupportTicket
+	var replayable bool
+	err := r.pool.QueryRow(ctx, `
+		SELECT id::text, contact_email, status,
+		       submitter_user_id IS NOT DISTINCT FROM NULLIF($2, '')::uuid
+		       AND contact_email = $3
+		       AND deleted_at IS NULL
+		FROM support_tickets
+		WHERE idempotency_key = $1::uuid
+	`, input.IdempotencyKey, input.SubmitterUserID, input.ContactEmail).Scan(
+		&ticket.ID,
+		&ticket.ContactEmail,
+		&ticket.Status,
+		&replayable,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return SupportTicket{}, ErrIdempotencyKeyReused
+	}
+	if err != nil {
+		return SupportTicket{}, fmt.Errorf("load support ticket by idempotency key: %w", err)
+	}
+	if !replayable {
+		return SupportTicket{}, ErrIdempotencyKeyReused
+	}
+	return ticket, nil
+}
+
+func (r *PostgresRepository) ReportEvent(ctx context.Context, reporterUserID string, eventSlug string, reason string, idempotencyKey string) (Report, error) {
 	eventID, err := r.eventIDBySlug(ctx, eventSlug)
 	if err != nil {
 		return Report{}, err
@@ -176,10 +219,11 @@ func (r *PostgresRepository) ReportEvent(ctx context.Context, reporterUserID str
 		TargetType:     ReportTargetEvent,
 		TargetID:       eventID,
 		Reason:         reason,
+		IdempotencyKey: idempotencyKey,
 	})
 }
 
-func (r *PostgresRepository) ReportUser(ctx context.Context, reporterUserID string, targetUserID string, reason string) (Report, error) {
+func (r *PostgresRepository) ReportUser(ctx context.Context, reporterUserID string, targetUserID string, reason string, idempotencyKey string) (Report, error) {
 	reporterUserID = strings.TrimSpace(reporterUserID)
 	targetUserID = strings.TrimSpace(targetUserID)
 	if reporterUserID == targetUserID {
@@ -193,6 +237,7 @@ func (r *PostgresRepository) ReportUser(ctx context.Context, reporterUserID stri
 		TargetType:     ReportTargetUser,
 		TargetID:       targetUserID,
 		Reason:         reason,
+		IdempotencyKey: idempotencyKey,
 	})
 }
 
@@ -204,17 +249,53 @@ func (r *PostgresRepository) createReport(ctx context.Context, input ReportInput
 
 	var report Report
 	err := r.pool.QueryRow(ctx, `
-		INSERT INTO reports (reporter_user_id, target_type, target_id, reason)
-		VALUES ($1::uuid, $2, $3::uuid, $4)
+		INSERT INTO reports (reporter_user_id, target_type, target_id, reason, idempotency_key)
+		VALUES ($1::uuid, $2, $3::uuid, $4, NULLIF($5, '')::uuid)
+		ON CONFLICT (idempotency_key) DO NOTHING
 		RETURNING id::text, target_type, target_id::text, status
-	`, input.ReporterUserID, input.TargetType, input.TargetID, input.Reason).Scan(
+	`, input.ReporterUserID, input.TargetType, input.TargetID, input.Reason, input.IdempotencyKey).Scan(
 		&report.ID,
 		&report.TargetType,
 		&report.TargetID,
 		&report.Status,
 	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return r.reportForIdempotencyKey(ctx, input)
+	}
 	if err != nil {
 		return Report{}, fmt.Errorf("create report: %w", err)
+	}
+	return report, nil
+}
+
+// reportForIdempotencyKey returns the report an earlier request created with
+// the input's key. The reporter and target must match.
+func (r *PostgresRepository) reportForIdempotencyKey(ctx context.Context, input ReportInput) (Report, error) {
+	var report Report
+	var replayable bool
+	err := r.pool.QueryRow(ctx, `
+		SELECT id::text, target_type, target_id::text, status,
+		       reporter_user_id = $2::uuid
+		       AND target_type = $3
+		       AND target_id = $4::uuid
+		       AND deleted_at IS NULL
+		FROM reports
+		WHERE idempotency_key = $1::uuid
+	`, input.IdempotencyKey, input.ReporterUserID, input.TargetType, input.TargetID).Scan(
+		&report.ID,
+		&report.TargetType,
+		&report.TargetID,
+		&report.Status,
+		&replayable,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return Report{}, ErrIdempotencyKeyReused
+	}
+	if err != nil {
+		return Report{}, fmt.Errorf("load report by idempotency key: %w", err)
+	}
+	if !replayable {
+		return Report{}, ErrIdempotencyKeyReused
 	}
 	return report, nil
 }
@@ -261,6 +342,7 @@ func normalizeSupportTicket(input SupportTicketInput) SupportTicketInput {
 	input.Name = strings.TrimSpace(input.Name)
 	input.Subject = strings.TrimSpace(input.Subject)
 	input.Message = strings.TrimSpace(input.Message)
+	input.IdempotencyKey = strings.TrimSpace(input.IdempotencyKey)
 	return input
 }
 
@@ -277,5 +359,6 @@ func normalizeReport(input ReportInput) ReportInput {
 	input.TargetType = strings.TrimSpace(input.TargetType)
 	input.TargetID = strings.TrimSpace(input.TargetID)
 	input.Reason = strings.TrimSpace(input.Reason)
+	input.IdempotencyKey = strings.TrimSpace(input.IdempotencyKey)
 	return input
 }

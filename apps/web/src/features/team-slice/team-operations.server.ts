@@ -151,7 +151,7 @@ export async function newTeamPageOperation(
 }
 
 export async function createTeamOperation(
-  input: CreateTeamInput,
+  { idempotency_key, ...input }: CreateTeamInput,
   dependencies: AuthorizedDependencies,
 ): Promise<TeamMutationResult> {
   return authorizedTeamMutation(
@@ -159,6 +159,7 @@ export async function createTeamOperation(
     () => ({
       path: "/teams",
       method: "POST" as const,
+      headers: { "idempotency-key": idempotency_key },
       body: input,
     }),
     "created",
@@ -220,6 +221,7 @@ async function authorizedTeamMutation(
   request: () => {
     path: string;
     method: "POST";
+    headers?: HeadersInit;
     body: unknown;
   },
   notice: "created" | "joined" | "captain-updated" | "ownership-transferred",
@@ -287,6 +289,8 @@ export function safeTeamMutationMessage(error: unknown): string {
   const messages: Record<string, string> = {
     authentication_required: "Please log in to continue.",
     database_unavailable: "The service is starting up. Try again in a moment.",
+    idempotency_key_reused:
+      "This form was already submitted. Reload the page and try again.",
     invalid_request: "Check the form fields and try again.",
     invalid_team_password: "That team password did not match.",
     invalid_team_role: "Choose a valid team member and role.",

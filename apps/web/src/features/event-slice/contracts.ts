@@ -7,6 +7,7 @@ const nonNegativeIntegerSchema = z.number().int().nonnegative();
 const eventFilterSchema = z.string().trim().min(1).max(200);
 const eventCursorSchema = z.string().trim().min(1).max(1024);
 const eventSchoolQuerySchema = z.string().trim().min(1).max(120);
+const idempotencyKeySchema = z.uuid("Reload the page and try again.");
 
 export const eventRSVPSchema = z.enum(["yes", "maybe", "no"]);
 export const eventFormatSchema = z.enum(["online", "in_person", "hybrid"]);
@@ -210,6 +211,7 @@ const eventMutableInputSchema = z.object({
 });
 
 const createEventInputSchema = eventMutableInputSchema.extend({
+  idempotency_key: idempotencyKeySchema,
   recurrence_rule: z.union([recurrenceRuleSchema, z.literal("")]),
   recurrence_until: z
     .union([z.iso.date("Repeat-until date must be valid."), z.literal("")])
@@ -241,6 +243,7 @@ export const updateEventMutationInputSchema = updateEventInputSchema
 
 export const reportEventInputSchema = eventSlugInputSchema.extend({
   reason: requiredText("Reason", 2000),
+  idempotency_key: idempotencyKeySchema,
 });
 
 export const eventInterestInputSchema = eventSlugInputSchema.extend({
@@ -282,6 +285,9 @@ export type CreateEventInput = z.input<typeof createEventMutationInputSchema>;
 export type EventMutationPayload = z.output<typeof eventMutableInputSchema> & {
   recurrence_rule?: z.output<typeof recurrenceRuleSchema> | "";
   recurrence_until?: string;
+};
+export type CreateEventPayload = EventMutationPayload & {
+  idempotency_key: string;
 };
 export type UpdateEventInput = z.input<
   typeof updateEventMutationInputSchema
@@ -522,10 +528,11 @@ export function validateRSVPServerInput(
 
 export function validateCreateEventServerInput(
   input: CreateEventInput | FormData,
-): ValidatedServerInput<EventMutationPayload> {
-  const parsed = createEventMutationInputSchema.safeParse(
-    eventWriteCandidate(input),
-  );
+): ValidatedServerInput<CreateEventPayload> {
+  const parsed = createEventMutationInputSchema.safeParse({
+    ...eventWriteCandidate(input),
+    idempotency_key: normalizedInputValue(input, "idempotency_key"),
+  });
   return parsed.success
     ? { valid: true, value: parsed.data }
     : validationFailure(parsed.error);
@@ -562,6 +569,7 @@ export function validateReportEventServerInput(
   const candidate = {
     slug: normalizedInputValue(input, "slug"),
     reason: normalizedInputValue(input, "reason"),
+    idempotency_key: normalizedInputValue(input, "idempotency_key"),
   };
   const parsed = reportEventInputSchema.safeParse(candidate);
   return parsed.success

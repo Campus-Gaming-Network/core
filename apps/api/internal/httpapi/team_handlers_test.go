@@ -167,7 +167,7 @@ func TestHandleCreateTeamRequiresAuthentication(t *testing.T) {
 func TestHandleCreateTeamCreatesTeam(t *testing.T) {
 	repository := &fakeTeamRepository{}
 	handler := authenticatedTeamsHandler(repository)
-	request := authenticatedEventRequest(http.MethodPost, "/teams", validCreateTeamJSON())
+	request := withIdempotencyKey(authenticatedEventRequest(http.MethodPost, "/teams", validCreateTeamJSON()))
 	response := httptest.NewRecorder()
 
 	handler.ServeHTTP(response, request)
@@ -204,7 +204,7 @@ func TestHandleCreateTeamMapsMissingSchoolAndGame(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			repository := &fakeTeamRepository{err: tc.err}
 			handler := authenticatedTeamsHandler(repository)
-			request := authenticatedEventRequest(http.MethodPost, "/teams", validCreateTeamJSON())
+			request := withIdempotencyKey(authenticatedEventRequest(http.MethodPost, "/teams", validCreateTeamJSON()))
 			response := httptest.NewRecorder()
 
 			handler.ServeHTTP(response, request)

@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { newIdempotencyKey } from "../components/idempotency-key";
 import { publicPageHead } from "../components/public-page-head";
 import { validateSupportSearch } from "../features/support-slice/contracts";
 import { SupportTicketForm } from "../features/support-slice/support-ticket-form";
@@ -8,9 +9,15 @@ const description =
 
 export const Route = createFileRoute("/support")({
   validateSearch: validateSupportSearch,
-  loader: ({ context }) => context.publicOrigin,
+  loader: ({ context }) => ({
+    publicOrigin: context.publicOrigin,
+    idempotencyKey: newIdempotencyKey(),
+  }),
+  // The form's idempotency key is per visitor, so shared caches must not
+  // reuse this page.
+  headers: () => ({ "cache-control": "private, no-store", vary: "Cookie" }),
   head: ({ loaderData }) =>
-    publicPageHead(loaderData, {
+    publicPageHead(loaderData?.publicOrigin, {
       title: "Support",
       description,
       path: "/support",
@@ -20,6 +27,7 @@ export const Route = createFileRoute("/support")({
 
 function SupportPage() {
   const search = Route.useSearch();
+  const { idempotencyKey } = Route.useLoaderData();
 
   return (
     <main className="narrow">
@@ -31,7 +39,10 @@ function SupportPage() {
           investigate. Never send passwords or payment information.
         </p>
       </section>
-      <SupportTicketForm initialStatus={search.support} />
+      <SupportTicketForm
+        idempotencyKey={idempotencyKey}
+        initialStatus={search.support}
+      />
     </main>
   );
 }

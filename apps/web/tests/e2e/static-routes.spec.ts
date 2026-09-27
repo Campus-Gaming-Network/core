@@ -6,6 +6,7 @@ const siteOrigin = "http://127.0.0.1:3200";
 const pages = [
   {
     path: "/about",
+    cache: "public, max-age=0, must-revalidate",
     title: "About",
     description:
       "How Campus Gaming Network connects collegiate gamers with events, teams, and campus activity.",
@@ -13,6 +14,7 @@ const pages = [
   },
   {
     path: "/faq",
+    cache: "public, max-age=0, must-revalidate",
     title: "FAQ",
     description:
       "Answers to common questions about accounts, events, teams, and schools on Campus Gaming Network.",
@@ -20,6 +22,7 @@ const pages = [
   },
   {
     path: "/privacy",
+    cache: "public, max-age=0, must-revalidate",
     title: "Privacy",
     description:
       "How Campus Gaming Network collects, uses, and protects your information.",
@@ -27,12 +30,15 @@ const pages = [
   },
   {
     path: "/terms",
+    cache: "public, max-age=0, must-revalidate",
     title: "Terms",
     description: "The terms of service for using Campus Gaming Network.",
     heading: "Terms placeholder",
   },
   {
     path: "/support",
+    // The support form's idempotency key is per visitor.
+    cache: "private, no-store",
     title: "Support",
     description:
       "Get help with Campus Gaming Network or send the team a support request.",
@@ -52,9 +58,7 @@ for (const expected of pages) {
 
     expect(response?.status()).toBe(200);
     expect(response?.headers()["content-type"]).toContain("text/html");
-    expect(response?.headers()["cache-control"]).toBe(
-      "public, max-age=0, must-revalidate",
-    );
+    expect(response?.headers()["cache-control"]).toBe(expected.cache);
     expect(response?.headers().vary).toContain("Cookie");
     await expect(page).toHaveTitle(`${expected.title} | Campus Gaming Network`);
     await expect(page.locator('meta[name="description"]')).toHaveAttribute(

@@ -214,7 +214,7 @@ func TestHandleCreateEventRequiresAuthentication(t *testing.T) {
 func TestHandleCreateEventCreatesPublicEvent(t *testing.T) {
 	repository := &fakeEventRepository{}
 	handler := authenticatedEventsHandler(repository)
-	request := authenticatedEventRequest(http.MethodPost, "/events", validCreateEventJSON(eventstore.VisibilityPublic, ""))
+	request := withIdempotencyKey(authenticatedEventRequest(http.MethodPost, "/events", validCreateEventJSON(eventstore.VisibilityPublic, "")))
 	response := httptest.NewRecorder()
 
 	handler.ServeHTTP(response, request)
@@ -251,7 +251,7 @@ func TestHandleCreateEventCreatesPublicEvent(t *testing.T) {
 func TestHandleCreateEventHashesPrivatePassword(t *testing.T) {
 	repository := &fakeEventRepository{}
 	handler := authenticatedEventsHandler(repository)
-	request := authenticatedEventRequest(http.MethodPost, "/events", validCreateEventJSON(eventstore.VisibilityPrivate, "PrivatePass8"))
+	request := withIdempotencyKey(authenticatedEventRequest(http.MethodPost, "/events", validCreateEventJSON(eventstore.VisibilityPrivate, "PrivatePass8")))
 	response := httptest.NewRecorder()
 
 	handler.ServeHTTP(response, request)
@@ -285,11 +285,11 @@ func TestHandleCreateEventAcceptsSupportedRecurrenceRules(t *testing.T) {
 		t.Run(rule, func(t *testing.T) {
 			repository := &fakeEventRepository{}
 			handler := authenticatedEventsHandler(repository)
-			request := authenticatedEventRequest(
+			request := withIdempotencyKey(authenticatedEventRequest(
 				http.MethodPost,
 				"/events",
 				recurringCreateEventJSON(rule, "2026-10-15"),
-			)
+			))
 			response := httptest.NewRecorder()
 
 			handler.ServeHTTP(response, request)
@@ -311,11 +311,11 @@ func TestHandleCreateEventEnforcesOneYearRecurrenceDateBoundary(t *testing.T) {
 	t.Run("same calendar date next year", func(t *testing.T) {
 		repository := &fakeEventRepository{}
 		handler := authenticatedEventsHandler(repository)
-		request := authenticatedEventRequest(
+		request := withIdempotencyKey(authenticatedEventRequest(
 			http.MethodPost,
 			"/events",
 			recurringCreateEventJSON(eventstore.RecurrenceMonthly, "2027-08-15"),
-		)
+		))
 		response := httptest.NewRecorder()
 
 		handler.ServeHTTP(response, request)
@@ -331,11 +331,11 @@ func TestHandleCreateEventEnforcesOneYearRecurrenceDateBoundary(t *testing.T) {
 	t.Run("next calendar date", func(t *testing.T) {
 		repository := &fakeEventRepository{}
 		handler := authenticatedEventsHandler(repository)
-		request := authenticatedEventRequest(
+		request := withIdempotencyKey(authenticatedEventRequest(
 			http.MethodPost,
 			"/events",
 			recurringCreateEventJSON(eventstore.RecurrenceMonthly, "2027-08-16"),
-		)
+		))
 		response := httptest.NewRecorder()
 
 		handler.ServeHTTP(response, request)
@@ -352,7 +352,7 @@ func TestHandleCreateEventEnforcesOneYearRecurrenceDateBoundary(t *testing.T) {
 func TestHandleCreateEventRejectsInvalidInput(t *testing.T) {
 	repository := &fakeEventRepository{}
 	handler := authenticatedEventsHandler(repository)
-	request := authenticatedEventRequest(http.MethodPost, "/events", validCreateEventJSON(eventstore.VisibilityPrivate, "short"))
+	request := withIdempotencyKey(authenticatedEventRequest(http.MethodPost, "/events", validCreateEventJSON(eventstore.VisibilityPrivate, "short")))
 	response := httptest.NewRecorder()
 
 	handler.ServeHTTP(response, request)
@@ -377,7 +377,7 @@ func TestHandleCreateEventMapsMissingSchoolAndGame(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			repository := &fakeEventRepository{err: tc.err}
 			handler := authenticatedEventsHandler(repository)
-			request := authenticatedEventRequest(http.MethodPost, "/events", validCreateEventJSON(eventstore.VisibilityPublic, ""))
+			request := withIdempotencyKey(authenticatedEventRequest(http.MethodPost, "/events", validCreateEventJSON(eventstore.VisibilityPublic, "")))
 			response := httptest.NewRecorder()
 
 			handler.ServeHTTP(response, request)

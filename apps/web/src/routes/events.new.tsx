@@ -3,6 +3,7 @@ import {
   redirect,
   type ErrorComponentProps,
 } from "@tanstack/react-router";
+import { newIdempotencyKey } from "../components/idempotency-key";
 import { RouteErrorView, RoutePending } from "../components/route-boundaries";
 import {
   validateNewEventSearch,
@@ -15,6 +16,7 @@ import eventCSS from "../features/event-slice/events.css?url";
 
 type ReadyNewEvent = Extract<NewEventPageResult, { status: "ready" }> & {
   publicOrigin: string;
+  idempotencyKey: string;
 };
 
 export const Route = createFileRoute("/events/new")({
@@ -28,7 +30,11 @@ export const Route = createFileRoute("/events/new")({
     if (result.status !== "ready") {
       throw new Error("Event creation is unavailable");
     }
-    return { ...result, publicOrigin: context.publicOrigin };
+    return {
+      ...result,
+      publicOrigin: context.publicOrigin,
+      idempotencyKey: newIdempotencyKey(),
+    };
   },
   headers: () => ({ "cache-control": "private, no-store", vary: "Cookie" }),
   head: ({ loaderData }) => ({
@@ -94,6 +100,7 @@ function NewEventPage() {
         defaultSchoolID={data.defaultSchoolID}
         defaultTimeZone={data.defaultTimeZone}
         games={data.games}
+        idempotencyKey={data.idempotencyKey}
         initialSchoolQuery={schoolQuery}
         initialSchoolSearchFailed={data.schoolSearchFailed}
         mode="create"

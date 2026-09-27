@@ -103,6 +103,7 @@ export const createTeamInputSchema = z.object({
     .min(1, "Choose at least one game.")
     .max(25, "Choose 25 games or fewer."),
   password: teamPasswordSchema,
+  idempotency_key: z.uuid("Reload the page and try again."),
 });
 
 export const joinTeamInputSchema = teamSlugInputSchema.extend({
@@ -268,6 +269,7 @@ export function validateCreateTeamServerInput(
     school_id: inputValue(input, "school_id"),
     game_ids: inputValues(input, "game_ids"),
     password: inputValue(input, "password"),
+    idempotency_key: inputValue(input, "idempotency_key"),
   };
   return validationResult(createTeamInputSchema.safeParse(candidate));
 }

@@ -7,6 +7,10 @@ import {
 import { useServerFn } from "@tanstack/react-start";
 import { type FormEvent, useState } from "react";
 import { FieldError, fieldErrorProps } from "../components/enhanced-mutation";
+import {
+  newIdempotencyKey,
+  useIdempotencyKey,
+} from "../components/idempotency-key";
 import { RouteErrorView, RoutePending } from "../components/route-boundaries";
 import type {
   PublicProfileDTO,
@@ -35,6 +39,8 @@ export type PublicProfileRouteData = {
   publicOrigin: string;
   viewer: ViewerRelationship;
   hasSessionCookie: boolean;
+  /** Server-rendered report key; see useIdempotencyKey. */
+  idempotencyKey: string;
 };
 
 export const Route = createFileRoute("/users/$id")({
@@ -55,6 +61,7 @@ export const Route = createFileRoute("/users/$id")({
       publicOrigin: context.publicOrigin,
       viewer: result.viewer,
       hasSessionCookie: result.hasSessionCookie,
+      idempotencyKey: newIdempotencyKey(),
     };
   },
   headers: ({ loaderData }) => ({
@@ -239,6 +246,9 @@ function ProfileSafety({
 
 function ReportUserForm({ userID }: { userID: string }) {
   const runReportUser = useServerFn(reportUser);
+  const idempotency = useIdempotencyKey(
+    Route.useLoaderData({ select: (data) => data.idempotencyKey }),
+  );
   const [pending, setPending] = useState(false);
   const [result, setResult] = useState<ReportUserResult>();
   const reasonErrors =
@@ -255,10 +265,14 @@ function ReportUserForm({ userID }: { userID: string }) {
         data: {
           userID,
           reason: String(formData.get("reason") ?? ""),
+          idempotency_key: idempotency.key,
         },
       });
       setResult(next);
-      if (next.status === "success") formElement.reset();
+      if (next.status === "success") {
+        formElement.reset();
+        idempotency.rotate();
+      }
     } catch {
       setResult({
         status: "error",
@@ -277,6 +291,7 @@ function ReportUserForm({ userID }: { userID: string }) {
       onSubmit={submit}
     >
       <input name="user_id" type="hidden" value={userID} />
+      <input name="idempotency_key" type="hidden" value={idempotency.key} />
       {result ? (
         <p
           aria-live="polite"

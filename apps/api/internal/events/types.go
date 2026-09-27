@@ -18,6 +18,9 @@ var (
 	ErrOrganizerRequired  = apperror.New(apperror.KindAuthorization, "not_event_organizer", "event organizer required")
 	ErrEventFull          = apperror.New(apperror.KindConflict, "event_full", "event is full")
 	ErrRSVPClosed         = apperror.New(apperror.KindConflict, "event_rsvp_closed", "event rsvp is closed")
+	// ErrIdempotencyKeyReused reports a key whose original event belongs to
+	// another creator or has since been cancelled.
+	ErrIdempotencyKeyReused = apperror.New(apperror.KindConflict, "idempotency_key_reused", "idempotency key was used by another request")
 )
 
 const (
@@ -131,6 +134,9 @@ type CreateInput struct {
 	PaymentURL      string
 	RecurrenceRule  string
 	RecurrenceUntil time.Time
+	// IdempotencyKey is required by the HTTP API. A repeated key returns the
+	// event the first request created instead of inserting another.
+	IdempotencyKey string
 }
 
 type CreateParams struct {

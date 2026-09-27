@@ -48,7 +48,7 @@ const pages: MetadataContract[] = [
   {
     path: "/support",
     title: "Support | Campus Gaming Network",
-    cache: publicCache,
+    cache: privateCache,
     openGraphPath: "/support",
   },
   {

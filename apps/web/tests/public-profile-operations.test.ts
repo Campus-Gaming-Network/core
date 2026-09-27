@@ -20,6 +20,7 @@ import {
   verificationLabel,
 } from "../src/features/public-profile/presentation.js";
 
+const idempotencyKey = "5b0e7f5c-3f4d-4d8e-9a71-6c2b1e0f9d34";
 const publicProfile = {
   id: "user/e2e",
   name: "Player One",
@@ -285,6 +286,7 @@ test("report-user validation trims allowed fields and rejects missing or oversiz
   const form = new FormData();
   form.set("user_id", " user/e2e ");
   form.set("reason", " Harassing other players. ");
+  form.set("idempotency_key", idempotencyKey);
   form.set("cookieHeader", "browser-controlled-session");
 
   assert.deepEqual(validateReportUserServerInput(form), {
@@ -292,6 +294,7 @@ test("report-user validation trims allowed fields and rejects missing or oversiz
     value: {
       userID: "user/e2e",
       reason: "Harassing other players.",
+      idempotency_key: idempotencyKey,
     },
   });
 
@@ -340,15 +343,26 @@ test("report-user native destinations and notices stay on bounded local routes",
 
 test("report-user mutation encodes its target and forwards only server-derived auth", async () => {
   let request:
-    | { body: unknown; cookie: string | null; method?: string; url: string }
+    | {
+        body: unknown;
+        cookie: string | null;
+        idempotencyKey: string | null;
+        method?: string;
+        url: string;
+      }
     | undefined;
   const result = await reportUserOperation(
-    { userID: "user/e2e", reason: "Harassing other players." },
+    {
+      userID: "user/e2e",
+      reason: "Harassing other players.",
+      idempotency_key: idempotencyKey,
+    },
     {
       api: client(async (input, init) => {
         request = {
           body: JSON.parse(String(init?.body)),
           cookie: new Headers(init?.headers).get("cookie"),
+          idempotencyKey: new Headers(init?.headers).get("idempotency-key"),
           method: init?.method,
           url: String(input),
         };
@@ -365,6 +379,7 @@ test("report-user mutation encodes its target and forwards only server-derived a
   assert.deepEqual(request, {
     body: { reason: "Harassing other players." },
     cookie: "cgn_session=server-only-value; analytics=present",
+    idempotencyKey,
     method: "POST",
     url: "http://api:8080/users/user%2Fe2e/report",
   });
@@ -380,7 +395,7 @@ test("report-user mutation encodes its target and forwards only server-derived a
 test("report-user mutation leaves auth enforcement at the API and returns safe errors", async () => {
   const reported: unknown[] = [];
   const unauthorized = await reportUserOperation(
-    { userID: "target-user", reason: "Spam" },
+    { userID: "target-user", reason: "Spam", idempotency_key: idempotencyKey },
     {
       api: client(async () =>
         Response.json(
@@ -393,7 +408,7 @@ test("report-user mutation leaves auth enforcement at the API and returns safe e
     },
   );
   const malformedSuccess = await reportUserOperation(
-    { userID: "target-user", reason: "Spam" },
+    { userID: "target-user", reason: "Spam", idempotency_key: idempotencyKey },
     {
       api: client(async () =>
         Response.json({ id: "", database_detail: "private-contract-detail" }),

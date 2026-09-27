@@ -6,6 +6,7 @@ import {
   validateNewEventSearch,
   validateReportEventServerInput,
   validateUpdateEventServerInput,
+  type CreateEventPayload,
   type EventMutationPayload,
 } from "../src/features/event-slice/contracts.js";
 import {
@@ -27,6 +28,7 @@ const school = {
   state: "CA",
 };
 const game = { id: "game-1", name: "Example Game", slug: "example-game" };
+const idempotencyKey = "5b0e7f5c-3f4d-4d8e-9a71-6c2b1e0f9d34";
 const event = {
   id: "event-1",
   title: "Campus tournament",
@@ -71,6 +73,7 @@ function validEventForm(): FormData {
   form.set("is_paid", "on");
   form.set("payment_note", "");
   form.set("payment_url", "");
+  form.set("idempotency_key", idempotencyKey);
   return form;
 }
 
@@ -102,6 +105,7 @@ test("event create validation normalizes payloads, local times, and recurrence",
     payment_url: "",
     recurrence_rule: "weekly",
     recurrence_until: "2037-03-19",
+    idempotency_key: idempotencyKey,
   });
 });
 
@@ -398,11 +402,15 @@ test("event writes forward exact auth, method, payload, and safe returned DTOs",
     cookieHeader: "cgn_session=value",
   });
   const updated = await updateEventOperation(
-    { slug: "old/event", ...withoutRecurrence(payload) },
+    { slug: "old/event", ...withoutCreateOnlyFields(payload) },
     { api, cookieHeader: "cgn_session=value" },
   );
   const reported = await reportEventOperation(
-    { slug: "event/one", reason: "Spam listing" },
+    {
+      slug: "event/one",
+      reason: "Spam listing",
+      idempotency_key: idempotencyKey,
+    },
     { api, cookieHeader: "cgn_session=value" },
   );
   const interested = await eventInterestOperation(
@@ -447,6 +455,7 @@ test("event writes forward exact auth, method, payload, and safe returned DTOs",
       method: init?.method,
       cookie: new Headers(init?.headers).get("cookie"),
       unlock: new Headers(init?.headers).get("x-cgn-event-unlock"),
+      idempotencyKey: new Headers(init?.headers).get("idempotency-key"),
     })),
     [
       {
@@ -454,36 +463,42 @@ test("event writes forward exact auth, method, payload, and safe returned DTOs",
         method: "POST",
         cookie: "cgn_session=value",
         unlock: null,
+        idempotencyKey,
       },
       {
         path: "/events/old%2Fevent",
         method: "PATCH",
         cookie: "cgn_session=value",
         unlock: null,
+        idempotencyKey: null,
       },
       {
         path: "/events/event%2Fone/report",
         method: "POST",
         cookie: "cgn_session=value",
         unlock: null,
+        idempotencyKey,
       },
       {
         path: "/events/event%2Fone/interest",
         method: "POST",
         cookie: "cgn_session=value",
         unlock: "unlock-value",
+        idempotencyKey: null,
       },
       {
         path: "/events/event%2Fone/interest",
         method: "DELETE",
         cookie: "cgn_session=value",
         unlock: null,
+        idempotencyKey: null,
       },
       {
         path: "/events/event%2Fone",
         method: "DELETE",
         cookie: "cgn_session=value",
         unlock: null,
+        idempotencyKey: null,
       },
     ],
   );
@@ -491,6 +506,9 @@ test("event writes forward exact auth, method, payload, and safe returned DTOs",
   assert.ok(requests[1]);
   assert.equal("slug" in (requests[1].body as object), false);
   assert.equal("recurrence_rule" in (requests[1].body as object), false);
+  assert.ok(requests[0]);
+  assert.equal("idempotency_key" in (requests[0].body as object), false);
+  assert.equal("idempotency_key" in (requests[1].body as object), false);
 });
 
 test("event write failures never expose backend error strings", async () => {
@@ -501,13 +519,16 @@ test("event write failures never expose backend error strings", async () => {
     ),
   );
   const payload = validPayload();
-  const created = await createEventOperation(payload, {
-    api,
-    cookieHeader: "cgn_session=value",
-    reportError: () => undefined,
-  });
+  const created = await createEventOperation(
+    { ...payload, idempotency_key: idempotencyKey },
+    {
+      api,
+      cookieHeader: "cgn_session=value",
+      reportError: () => undefined,
+    },
+  );
   const report = await reportEventOperation(
-    { slug: "event", reason: "Spam" },
+    { slug: "event", reason: "Spam", idempotency_key: idempotencyKey },
     { api, cookieHeader: "cgn_session=value", reportError: () => undefined },
   );
   const interest = await eventInterestOperation(
@@ -539,12 +560,13 @@ test("event write failures never expose backend error strings", async () => {
   );
 });
 
-function withoutRecurrence(
-  payload: EventMutationPayload,
+function withoutCreateOnlyFields(
+  payload: CreateEventPayload,
 ): EventMutationPayload {
   const {
     recurrence_rule: _rule,
     recurrence_until: _until,
+    idempotency_key: _key,
     ...eventPayload
   } = payload;
   return eventPayload;

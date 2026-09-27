@@ -5,6 +5,7 @@ import {
   fieldErrorProps,
   useEnhancedMutation,
 } from "../../components/enhanced-mutation.js";
+import { useIdempotencyKey } from "../../components/idempotency-key.js";
 import type {
   EventDTO,
   EventFormSchoolDTO,
@@ -29,6 +30,8 @@ type Props = {
   defaultTimeZone?: string;
   initialSchoolQuery: string;
   initialSchoolSearchFailed: boolean;
+  /** Server-rendered key for create mode; see useIdempotencyKey. */
+  idempotencyKey?: string;
 };
 
 export function EventForm({
@@ -41,7 +44,9 @@ export function EventForm({
   defaultTimeZone,
   initialSchoolQuery,
   initialSchoolSearchFailed,
+  idempotencyKey = "",
 }: Props) {
+  const idempotency = useIdempotencyKey(idempotencyKey);
   const runCreateEvent = useServerFn(createEvent);
   const runUpdateEvent = useServerFn(updateEvent);
   const mutation = useEnhancedMutation(
@@ -84,6 +89,9 @@ export function EventForm({
       onSubmit={submit}
     >
       {event ? <input name="slug" type="hidden" value={event.slug} /> : null}
+      {mode === "create" ? (
+        <input name="idempotency_key" type="hidden" value={idempotency.key} />
+      ) : null}
       {mutation.message ? (
         <p role="alert" aria-live="polite">
           {mutation.message}

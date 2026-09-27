@@ -124,6 +124,10 @@ func (r *Router) handleCreateEvent(w http.ResponseWriter, req *http.Request) {
 		rateLimitExceeded(w, r)
 		return
 	}
+	key, ok := idempotencyKey(w, req)
+	if !ok {
+		return
+	}
 
 	var request createEventRequest
 	if !decodeJSON(w, req, &request) {
@@ -131,6 +135,7 @@ func (r *Router) handleCreateEvent(w http.ResponseWriter, req *http.Request) {
 	}
 
 	input := createEventInputFromRequest(request, userID)
+	input.IdempotencyKey = key
 	if request.RecurrenceUntil.present && strings.TrimSpace(request.RecurrenceUntil.value) != "" {
 		parsed, err := recurrenceEndOfDate(
 			strings.TrimSpace(request.RecurrenceUntil.value),

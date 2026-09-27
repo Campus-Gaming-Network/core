@@ -18,12 +18,12 @@ import (
 func TestHandleSupportTicketsAllowsAnonymousSubmission(t *testing.T) {
 	repository := &fakeSafetyRepository{}
 	router := &Router{safety: repository}
-	request := httptest.NewRequest(http.MethodPost, "/support-tickets", strings.NewReader(`{
+	request := withIdempotencyKey(httptest.NewRequest(http.MethodPost, "/support-tickets", strings.NewReader(`{
 		"contact_email":"player@example.com",
 		"name":"Player One",
 		"subject":"Need help",
 		"message":"I need help with my account."
-	}`))
+	}`)))
 	response := httptest.NewRecorder()
 
 	router.handleSupportTickets(response, request)
@@ -46,10 +46,10 @@ func TestHandleSupportTicketsAllowsAnonymousSubmission(t *testing.T) {
 func TestHandleSupportTicketsMapsValidationError(t *testing.T) {
 	repository := &fakeSafetyRepository{err: apperror.Validation("subject is required")}
 	router := &Router{safety: repository}
-	request := httptest.NewRequest(http.MethodPost, "/support-tickets", strings.NewReader(`{
+	request := withIdempotencyKey(httptest.NewRequest(http.MethodPost, "/support-tickets", strings.NewReader(`{
 		"contact_email":"player@example.com",
 		"message":"I need help."
-	}`))
+	}`)))
 	response := httptest.NewRecorder()
 
 	router.handleSupportTickets(response, request)
@@ -74,9 +74,9 @@ func TestHandleSupportTicketsRateLimitsSubmissions(t *testing.T) {
 	}
 	body := `{"contact_email":"player@example.com","subject":"Need help","message":"Please help."}`
 	first := httptest.NewRecorder()
-	router.handleSupportTickets(first, httptest.NewRequest(http.MethodPost, "/support-tickets", strings.NewReader(body)))
+	router.handleSupportTickets(first, withIdempotencyKey(httptest.NewRequest(http.MethodPost, "/support-tickets", strings.NewReader(body))))
 	second := httptest.NewRecorder()
-	router.handleSupportTickets(second, httptest.NewRequest(http.MethodPost, "/support-tickets", strings.NewReader(body)))
+	router.handleSupportTickets(second, withIdempotencyKey(httptest.NewRequest(http.MethodPost, "/support-tickets", strings.NewReader(body))))
 
 	if first.Code != http.StatusCreated {
 		t.Fatalf("first status = %d, want %d", first.Code, http.StatusCreated)
@@ -108,7 +108,7 @@ func TestHandleReportEventRequiresAuthentication(t *testing.T) {
 func TestHandleReportEventCreatesReport(t *testing.T) {
 	repository := &fakeSafetyRepository{}
 	handler := authenticatedEventReportHandler(repository)
-	request := authenticatedEventRequest(http.MethodPost, "/events/campus-scrim-night/report", `{"reason":"Spam listing"}`)
+	request := withIdempotencyKey(authenticatedEventRequest(http.MethodPost, "/events/campus-scrim-night/report", `{"reason":"Spam listing"}`))
 	response := httptest.NewRecorder()
 
 	handler.ServeHTTP(response, request)
@@ -153,9 +153,9 @@ func TestHandleReportEventRateLimitsSubmissions(t *testing.T) {
 	})(http.HandlerFunc(router.handleEventPath))
 	body := `{"reason":"Spam listing"}`
 	first := httptest.NewRecorder()
-	handler.ServeHTTP(first, authenticatedEventRequest(http.MethodPost, "/events/campus-scrim-night/report", body))
+	handler.ServeHTTP(first, withIdempotencyKey(authenticatedEventRequest(http.MethodPost, "/events/campus-scrim-night/report", body)))
 	second := httptest.NewRecorder()
-	handler.ServeHTTP(second, authenticatedEventRequest(http.MethodPost, "/events/campus-scrim-night/report", body))
+	handler.ServeHTTP(second, withIdempotencyKey(authenticatedEventRequest(http.MethodPost, "/events/campus-scrim-night/report", body)))
 
 	if first.Code != http.StatusCreated {
 		t.Fatalf("first status = %d, want %d; body = %s", first.Code, http.StatusCreated, first.Body.String())
@@ -168,7 +168,7 @@ func TestHandleReportEventRateLimitsSubmissions(t *testing.T) {
 func TestHandleReportUserCreatesReport(t *testing.T) {
 	repository := &fakeSafetyRepository{}
 	handler := authenticatedUserReportHandler(repository)
-	request := authenticatedEventRequest(http.MethodPost, "/users/22222222-2222-2222-2222-222222222222/report", `{"reason":"Harassment"}`)
+	request := withIdempotencyKey(authenticatedEventRequest(http.MethodPost, "/users/22222222-2222-2222-2222-222222222222/report", `{"reason":"Harassment"}`))
 	response := httptest.NewRecorder()
 
 	handler.ServeHTTP(response, request)
@@ -192,7 +192,7 @@ func TestHandleReportUserCreatesReport(t *testing.T) {
 func TestHandleReportUserMapsSelfReport(t *testing.T) {
 	repository := &fakeSafetyRepository{err: safety.ErrCannotReportSelf}
 	handler := authenticatedUserReportHandler(repository)
-	request := authenticatedEventRequest(http.MethodPost, "/users/22222222-2222-2222-2222-222222222222/report", `{"reason":"Oops"}`)
+	request := withIdempotencyKey(authenticatedEventRequest(http.MethodPost, "/users/22222222-2222-2222-2222-222222222222/report", `{"reason":"Oops"}`))
 	response := httptest.NewRecorder()
 
 	handler.ServeHTTP(response, request)

@@ -66,6 +66,16 @@ test("public auth and support forms complete without JavaScript", async ({
   await page.getByRole("button", { name: "Submit support ticket" }).click();
   await expect(page).toHaveURL(/\/support\?support=submitted$/);
   await expect(page.getByText("Support ticket submitted.")).toBeVisible();
+
+  const upstream = await page.request.get(`${apiURL}/__test/upstream-calls`);
+  const { calls } = (await upstream.json()) as {
+    calls: Array<{ pathname: string; idempotencyKey: string | null }>;
+  };
+  expect(
+    calls
+      .filter((call) => call.pathname === "/support-tickets")
+      .map((call) => call.idempotencyKey),
+  ).toEqual([expect.stringMatching(/^[0-9a-f-]{36}$/)]);
 });
 
 test("account, safety, and school forms complete without JavaScript", async ({

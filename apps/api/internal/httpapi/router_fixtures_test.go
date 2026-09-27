@@ -98,10 +98,12 @@ type fakeSafetyRepository struct {
 	reportEventUserID  string
 	reportEventSlug    string
 	reportEventReason  string
+	reportEventKey     string
 	reportUserCalled   bool
 	reportUserReporter string
 	reportUserTarget   string
 	reportUserReason   string
+	reportUserKey      string
 	report             safety.Report
 	err                error
 }
@@ -122,22 +124,24 @@ func (r *fakeSafetyRepository) CreateSupportTicket(_ context.Context, input safe
 	}, nil
 }
 
-func (r *fakeSafetyRepository) ReportEvent(_ context.Context, reporterUserID string, eventSlug string, reason string) (safety.Report, error) {
+func (r *fakeSafetyRepository) ReportEvent(_ context.Context, reporterUserID string, eventSlug string, reason string, idempotencyKey string) (safety.Report, error) {
 	r.reportEventCalled = true
 	r.reportEventUserID = reporterUserID
 	r.reportEventSlug = eventSlug
 	r.reportEventReason = reason
+	r.reportEventKey = idempotencyKey
 	if r.err != nil {
 		return safety.Report{}, r.err
 	}
 	return r.reportOrDefault(safety.ReportTargetEvent)
 }
 
-func (r *fakeSafetyRepository) ReportUser(_ context.Context, reporterUserID string, targetUserID string, reason string) (safety.Report, error) {
+func (r *fakeSafetyRepository) ReportUser(_ context.Context, reporterUserID string, targetUserID string, reason string, idempotencyKey string) (safety.Report, error) {
 	r.reportUserCalled = true
 	r.reportUserReporter = reporterUserID
 	r.reportUserTarget = targetUserID
 	r.reportUserReason = reason
+	r.reportUserKey = idempotencyKey
 	if r.err != nil {
 		return safety.Report{}, r.err
 	}
@@ -823,4 +827,12 @@ func testTeamMembers() []teamstore.MemberSummary {
 			Role:   teamstore.RoleMember,
 		},
 	}
+}
+
+const testIdempotencyKey = "5b0e7f5c-3f4d-4d8e-9a71-6c2b1e0f9d34"
+
+// withIdempotencyKey adds the header that create endpoints require.
+func withIdempotencyKey(request *http.Request) *http.Request {
+	request.Header.Set("Idempotency-Key", testIdempotencyKey)
+	return request
 }

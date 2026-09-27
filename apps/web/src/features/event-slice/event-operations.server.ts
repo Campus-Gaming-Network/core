@@ -19,6 +19,7 @@ import {
   eventsBrowseResponseDtoSchema,
   gamesBrowseResponseDtoSchema,
   idResponseDtoSchema,
+  type CreateEventPayload,
   type EditEventPageResult,
   type EventInterestInput,
   type EventMutationPayload,
@@ -305,7 +306,7 @@ export async function rsvpEventOperation(
 }
 
 export async function reportEventOperation(
-  { slug, reason }: ReportEventInput,
+  { slug, reason, idempotency_key }: ReportEventInput,
   {
     api,
     cookieHeader,
@@ -317,6 +318,7 @@ export async function reportEventOperation(
       path: `/events/${encodeURIComponent(slug)}/report`,
       method: "POST",
       cookieHeader,
+      headers: { "idempotency-key": idempotency_key },
       body: { reason },
       responseSchema: idResponseDtoSchema,
     });
@@ -328,7 +330,7 @@ export async function reportEventOperation(
 }
 
 export async function createEventOperation(
-  input: EventMutationPayload,
+  { idempotency_key, ...input }: CreateEventPayload,
   {
     api,
     cookieHeader,
@@ -340,6 +342,7 @@ export async function createEventOperation(
       path: "/events",
       method: "POST",
       cookieHeader,
+      headers: { "idempotency-key": idempotency_key },
       body: input,
       responseSchema: eventDtoSchema,
     });

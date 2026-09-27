@@ -26,7 +26,14 @@ var (
 	ErrNotTeamOwner       = apperror.New(apperror.KindAuthorization, "not_team_owner", "not team owner")
 	ErrTeamMemberNotFound = apperror.New(apperror.KindUnprocessable, "team_member_not_found", "team member not found")
 	ErrInvalidTeamRole    = apperror.New(apperror.KindValidation, "invalid_team_role", "invalid team role")
+	// ErrIdempotencyKeyReused reports a key whose original team belongs to
+	// another owner or has since been deleted.
+	ErrIdempotencyKeyReused = apperror.New(apperror.KindConflict, "idempotency_key_reused", "idempotency key was used by another request")
 )
+
+// errIdempotencyKeyTaken reports that an insert did nothing because an earlier
+// request already created a team with the same idempotency key.
+var errIdempotencyKeyTaken = errors.New("team idempotency key taken")
 
 const (
 	RoleOwner   = "owner"
@@ -83,6 +90,9 @@ type CreateInput struct {
 	SchoolID    string
 	GameIDs     []string
 	Password    string
+	// IdempotencyKey is required by the HTTP API. A repeated key returns the
+	// team the first request created instead of inserting another.
+	IdempotencyKey string
 }
 
 type CreateParams struct {
@@ -211,6 +221,9 @@ func (r *PostgresRepository) Create(ctx context.Context, params CreateParams) (T
 		createdSlug, err := r.createWithSlug(ctx, params, slug)
 		if errors.Is(err, ErrSlugUnavailable) {
 			continue
+		}
+		if errors.Is(err, errIdempotencyKeyTaken) {
+			return r.teamForIdempotencyKey(ctx, params.IdempotencyKey, params.OwnerUserID)
 		}
 		if err != nil {
 			return Team{}, err
@@ -540,18 +553,18 @@ func (r *PostgresRepository) createWithSlug(ctx context.Context, params CreatePa
 
 	var teamID string
 	err = tx.QueryRow(ctx, `
-		INSERT INTO teams (owner_user_id, school_id, name, slug, description, password_hash)
-		SELECT $1::uuid, s.id, $3, $4, $5, $6
+		INSERT INTO teams (owner_user_id, school_id, name, slug, description, password_hash, idempotency_key)
+		SELECT $1::uuid, s.id, $3, $4, $5, $6, NULLIF($7, '')::uuid
 		FROM (SELECT NULLIF($2, '')::uuid AS school_id) input
 		LEFT JOIN schools s ON s.id = input.school_id
 		                   AND s.deleted_at IS NULL
 		                   AND s.is_active = TRUE
 		WHERE input.school_id IS NULL OR s.id IS NOT NULL
-		ON CONFLICT (slug) DO NOTHING
+		ON CONFLICT DO NOTHING
 		RETURNING id::text
-	`, params.OwnerUserID, params.SchoolID, params.Name, slug, params.Description, params.PasswordHash).Scan(&teamID)
+	`, params.OwnerUserID, params.SchoolID, params.Name, slug, params.Description, params.PasswordHash, params.IdempotencyKey).Scan(&teamID)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return "", r.createNoRowsError(ctx, tx, params.SchoolID)
+		return "", r.createNoRowsError(ctx, tx, params.SchoolID, params.IdempotencyKey)
 	}
 	if err != nil {
 		return "", fmt.Errorf("insert team: %w", err)
@@ -776,7 +789,18 @@ type teamQueryer interface {
 	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
 }
 
-func (r *PostgresRepository) createNoRowsError(ctx context.Context, checker schoolExistenceChecker, schoolID string) error {
+func (r *PostgresRepository) createNoRowsError(ctx context.Context, checker schoolExistenceChecker, schoolID string, idempotencyKey string) error {
+	if idempotencyKey != "" {
+		var keyTaken bool
+		if err := checker.QueryRow(ctx, `
+			SELECT EXISTS (SELECT 1 FROM teams WHERE idempotency_key = $1::uuid)
+		`, idempotencyKey).Scan(&keyTaken); err != nil {
+			return fmt.Errorf("check team idempotency key: %w", err)
+		}
+		if keyTaken {
+			return errIdempotencyKeyTaken
+		}
+	}
 	schoolID = strings.TrimSpace(schoolID)
 	if schoolID == "" {
 		return ErrSlugUnavailable
@@ -797,6 +821,28 @@ func (r *PostgresRepository) createNoRowsError(ctx context.Context, checker scho
 		return ErrSchoolNotFound
 	}
 	return ErrSlugUnavailable
+}
+
+// teamForIdempotencyKey returns the team an earlier request created with key.
+// The key must belong to the same owner and the team must still exist.
+func (r *PostgresRepository) teamForIdempotencyKey(ctx context.Context, key string, ownerUserID string) (Team, error) {
+	var slug string
+	var replayable bool
+	err := r.pool.QueryRow(ctx, `
+		SELECT slug, owner_user_id = $2::uuid AND deleted_at IS NULL
+		FROM teams
+		WHERE idempotency_key = $1::uuid
+	`, key, ownerUserID).Scan(&slug, &replayable)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return Team{}, ErrIdempotencyKeyReused
+	}
+	if err != nil {
+		return Team{}, fmt.Errorf("load team by idempotency key: %w", err)
+	}
+	if !replayable {
+		return Team{}, ErrIdempotencyKeyReused
+	}
+	return r.GetBySlug(ctx, slug)
 }
 
 func (r *PostgresRepository) teamIDBySlug(ctx context.Context, slug string) (string, error) {
@@ -938,6 +984,7 @@ func normalizeCreateParams(params CreateParams) CreateParams {
 	params.SchoolID = strings.TrimSpace(params.SchoolID)
 	params.GameIDs = normalizeIDs(params.GameIDs)
 	params.PasswordHash = strings.TrimSpace(params.PasswordHash)
+	params.IdempotencyKey = strings.TrimSpace(params.IdempotencyKey)
 	return params
 }
 
