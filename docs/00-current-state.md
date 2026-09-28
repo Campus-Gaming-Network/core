@@ -34,8 +34,8 @@ verification steps.
 1. Complete `AC-010`: the 5 MB school-logo upload pipeline, which unblocks the
    Admin Console catalog UI.
 2. Complete `AC-013`: the Admin Console catalog, user, and access UI.
-3. Decide whether multi-organizer management belongs in the first release, which
-   unblocks `CGN-016`, the last open review item.
+3. Complete the mobile and accessibility pass on the primary journeys (open in
+   [10 — Delivery status](./10-delivery-status.md)).
 
 Legal, DiceBear, and external launch rehearsal remain P1 launch gates. Admin
 Console work continues under

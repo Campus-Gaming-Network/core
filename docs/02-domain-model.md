@@ -119,7 +119,7 @@ SiteAnnouncement ── global banner                        (later)
 | Field / concept    | Notes                                                                                             |
 | ------------------ | ------------------------------------------------------------------------------------------------- |
 | Creator            | Shown on event                                                                                    |
-| Hosts / organizers | Multiple; shown on event                                                                          |
+| Hosts / organizers | The creator only; the schema allows several, but adding co-organizers comes later                 |
 | Slug               | `slugify(title) + "-" + shortHash` — see slug algorithm below                                     |
 | Visibility         | `public` \| `unlisted` \| `private` (all supported)                                               |
 | Password           | Required when `visibility = private` (stored hashed); share URL + password manually               |

@@ -195,6 +195,7 @@ Tracked ticket by ticket in [20 — Admin Console v1 engineering plan](./20-admi
 ### Near-term candidates
 
 - [ ] Google Maps embed (address text is enough first)
+- [ ] Event co-organizers: invite, permissions, removal, and creator transfer (schema and account-deletion succession already exist)
 - [ ] Richer profile fields (majors, graduation automation, faculty extras)
 - [x] Database-backed audit-history foundation (broader domain adoption and UIs remain)
 - [ ] User-visible activity history and notification inbox

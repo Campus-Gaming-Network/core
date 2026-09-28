@@ -96,7 +96,7 @@ The two past-event rows are the intended rule; neither is enforced yet, so organ
 ## Event rules
 
 - Anyone authenticated (email-verified) can create an event — **no approval required**
-- Multiple organizers allowed
+- The creator is the only organizer; co-organizers come after the first release
 - Event pages show organizer names and school-admin/staff-faculty role indicators
   when applicable
 - Visibility: **public** · **unlisted** · **private** (password modal; content gated/blurred until unlock)

@@ -84,8 +84,7 @@ the engineering queue, but all P1 work must be complete before public access.
 |    19 | `CGN-016` | P2       | Multi-organizer scope matches the product promise.                        |
 |    20 | `CGN-018` | P3       | Large modules are split before product expansion.                         |
 
-Only `CGN-016` remains. It needs a product decision on whether multi-organizer
-management belongs in the first release.
+All review items are done or deliberately deferred.
 
 ### Implementation map
 
@@ -794,8 +793,16 @@ gates.
 
 **Priority:** P2  
 **Size:** L  
-**Status:** Needs product rule confirmation  
+**Status:** Done (2026-09-28) — deferred past the first release  
 **Depends on:** Site-admin and notification direction
+
+**Completed:** Organizer management is deferred until after the first release.
+Product, domain, roadmap, and permission docs now say the creator is the only
+organizer and list co-organizers as later work. The `event_organizers` schema,
+the organizer list in event responses, and account-deletion succession stay as
+preparation. When the feature is scheduled, its invitation, permission,
+removal, creator-transfer, notification, and recurring-series rules need to be
+defined first.
 
 **Problem**
 

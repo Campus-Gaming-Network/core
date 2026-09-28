@@ -55,7 +55,7 @@
 | **School admin**           | Edits school details, manages school teams/clubs, cannot remove other school admins                 |
 | **Club officer**           | Manages a club; can create badge-eligible events                                                    |
 | **Team owner / captain**   | Owns or captains a team; can invite members and register for team tournaments                       |
-| **Event organizer**        | Creates/hosts events; may be one of several organizers                                              |
+| **Event organizer**        | Creates/hosts events; co-organizers come later                                                      |
 | **Site admin**             | Later: creates schools via the Admin Console, manages users/ACLs, views reports, impersonates users |
 | **Admin Console operator** | Later: uses the Admin Console (not raw DB) to manage schools, users, ACLs                           |
 
@@ -95,7 +95,7 @@ Signup also requires confirming **age 18+**. Alumni can participate. Faculty who
 - Event visibility: **public**, **unlisted**, or **private**
 - Private events: page content is **not visible/inspectable** until unlocked; show blurred shell + **password modal** (share URL + password manually)
 - Optional **capacity** on events; counts **RSVP yes only**; when full, no more yes RSVPs
-- Multiple organizers per event
+- One organizer per event, its creator; co-organizer management comes after the first release
 - Transfer team ownership; assign captains
 
 ### Trust & safety
@@ -144,7 +144,7 @@ Signup also requires confirming **age 18+**. Alumni can participate. Faculty who
 
 ### Events
 
-- Created by users or schools; multiple organizers; **no approval needed** to create
+- Created by users or schools; the creator is the only organizer until co-organizer management ships; **no approval needed** to create
 - Slug = `slugify(title) + "-" +` first **8** Base64URL chars of SHA-256(creatorId + createdDate + title)
 - Online, in-person, or hybrid; recurring supported
 - Paid events are allowed as informational/off-site-payment events only; no checkout, money handling, refunds, tax, or payout logic on CGN

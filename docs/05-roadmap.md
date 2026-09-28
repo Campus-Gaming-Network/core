@@ -63,7 +63,7 @@ service, and PostgreSQL database, with Cloudflare for DNS/protection.
 - Optional capacity; counts **RSVP yes only**; when full, block yes (**no waitlist**)
 - Online/in-person; description limit; **default banner placeholder** (no custom uploads); paid events allowed with off-site payment instructions only
 - Location address (+ mini map optional/later)
-- Organizers (multi); show creator and hosts
+- Show the creator as the event organizer
 - RSVP yes/no/maybe; separate **interested** favorite
 - Registration auto-close; lifecycle UI (upcoming / now / ended / full)
 - Browse/filter public events by the six launch games (**no near-you**)
@@ -171,6 +171,7 @@ feeling unfinished.
 
 ## Later (not yet scheduled)
 
+- Event co-organizers (invite, permissions, removal, creator transfer)
 - Clubs
 - Tournaments
 - On-site payments
