@@ -179,8 +179,11 @@ may otherwise bypass Cloudflare.
 - Do not use identity headers unless they are derived from a locally validated
   Access JWT.
 - Configure a path-specific, short-lived reauthentication policy for the step-up
-  route. The implementation spike must prove that a newly issued Access
-  assertion can be distinguished before enabling UI-based site-admin grants.
+  route, `/step-up`. Its page (GET) explains the confirmation, and its form posts
+  back to the same path, where the Admin BFF forwards the fresh assertion to
+  `/admin/v1/auth/step-up`. The implementation spike must prove that a newly
+  issued Access assertion can be distinguished before enabling UI-based
+  site-admin grants.
 - Production and staging use different audiences and secrets.
 
 ### Separate opaque session
@@ -460,7 +463,9 @@ Required route groups:
 - `/schools`, `/schools/new`, `/schools/$id`;
 - `/games`, `/games/$id`;
 - `/users`, `/users/$id`;
-- `/access/site-admins`; and
+- `/access/site-admins`;
+- `/step-up`, which confirms recent authentication and returns to the page the
+  operator came from; and
 - entity-local audit-history panels.
 
 Implementation rules:
@@ -969,6 +974,7 @@ rendered audit history.
 
 ### AC-013 — Build catalog, user, and access UI
 
+**Status:** In progress — logo upload waits for AC-010
 **Depends on:** AC-009, AC-010, AC-011
 **Deliverables:** School/game/user/access screens, confirmation/reason flows,
 step-up redirect/return, logo upload, session-revocation feedback.
@@ -980,6 +986,25 @@ step-up redirect/return, logo upload, session-revocation feedback.
 - Site-grant actions require verified recent authentication or remain CLI-only.
 - Valid logo workflow and all rejected-file states are accessible.
 - Revoked admin sessions stop navigating/mutating immediately.
+
+Implemented: capability-gated school, game, user, and site-admin screens with
+state and prefix search, cursor pagination, and entity audit panels that show
+each change's reason and changed field names but not the audited values. Record
+forms edit only the documented fields, and every other change is a named
+command with a required reason; deactivation, deletion, grant revocation,
+suspension, and site-admin grants also require an explicit confirmation.
+Enhanced and native forms run the same validated operation. A stale write keeps
+the operator's input and advances the version for a reviewed retry. Suspension,
+reactivation, and site-admin grant changes show a link to `/step-up` until the
+session's step-up is under 10 minutes old; that route posts the fresh Access
+assertion from its own path, checks the request is same-origin, and returns to
+the originating page, while the Go API still enforces recency. A mutation that
+finds its session ended reloads the shell, which then shows the access boundary
+instead of protected content. Unit tests cover contracts, command mapping, and
+error routing; browser tests cover each workflow, the step-up gate, self-revocation,
+a no-JavaScript create, and desktop/mobile axe scans. Remaining: the logo
+upload workflow, which depends on AC-010, and the staging step-up proof in
+AC-004 before UI site-admin grants are enabled in production.
 
 ### AC-014 — Production hardening and independent security review
 

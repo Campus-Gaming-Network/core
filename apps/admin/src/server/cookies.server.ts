@@ -144,3 +144,22 @@ function parseSetCookie(header: string): ParsedCookie | null {
   }
   return parsed;
 }
+
+/** Serializes a cookie mutation for a raw Response's Set-Cookie header. */
+export function setCookieHeader(mutation: CookieMutation): string {
+  if (mutation.kind === "delete") {
+    return `${mutation.name}=; Path=/; Max-Age=0`;
+  }
+  const { options } = mutation;
+  return [
+    `${mutation.name}=${mutation.value}`,
+    "Path=/",
+    options.maxAge !== undefined ? `Max-Age=${options.maxAge}` : "",
+    options.expires ? `Expires=${options.expires.toUTCString()}` : "",
+    options.httpOnly ? "HttpOnly" : "",
+    options.secure ? "Secure" : "",
+    "SameSite=Strict",
+  ]
+    .filter(Boolean)
+    .join("; ");
+}

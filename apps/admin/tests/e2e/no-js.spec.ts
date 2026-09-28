@@ -1,6 +1,26 @@
 import { expect, test } from "@playwright/test";
 import { authenticateAdmin, ticketID } from "./fixtures/admin-session.js";
 
+test("the native catalog form creates a game", async ({
+  context,
+  page,
+  request,
+}) => {
+  const reset = await request.post("http://127.0.0.1:18082/__test/reset");
+  expect(reset.ok()).toBe(true);
+  await authenticateAdmin(context);
+  await page.goto("/games");
+  const create = page.getByRole("region", { name: "Add a game" });
+  await create.getByLabel("Name").fill("Native Tactics");
+  await create.getByLabel("Slug").fill("native-tactics");
+  await create.getByLabel("Reason").fill("Added without JavaScript");
+  await create.getByRole("button", { name: "Create game" }).click();
+
+  await expect(page).toHaveURL(/\/games\/[0-9a-f-]{36}\?notice=created$/);
+  await expect(page.getByText("Created.")).toBeVisible();
+  await expect(page.getByText("Game created")).toBeVisible();
+});
+
 test("the access boundary renders without JavaScript", async ({ page }) => {
   const response = await page.goto("/");
   expect(response?.status()).toBe(200);

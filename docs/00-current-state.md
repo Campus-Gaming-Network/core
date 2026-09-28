@@ -31,9 +31,9 @@ verification steps.
 
 ## Next three tasks
 
-1. Complete `AC-010`: the 5 MB school-logo upload pipeline, which unblocks the
-   Admin Console catalog UI.
-2. Complete `AC-013`: the Admin Console catalog, user, and access UI.
+1. Complete `AC-010`: the 5 MB school-logo upload pipeline.
+2. Finish `AC-013` by adding the logo upload workflow to the Admin Console
+   school screen.
 3. Complete the mobile and accessibility pass on the primary journeys (open in
    [10 — Delivery status](./10-delivery-status.md)).
 

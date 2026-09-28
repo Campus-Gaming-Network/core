@@ -388,7 +388,13 @@ function ConflictState({ item }: { item: Report | SupportTicket }) {
   );
 }
 
-function FieldError({ id, messages }: { id: string; messages?: string[] }) {
+export function FieldError({
+  id,
+  messages,
+}: {
+  id: string;
+  messages?: string[];
+}) {
   if (!messages?.length) return null;
   return (
     <span className="form-error" id={id}>

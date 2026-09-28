@@ -599,6 +599,64 @@ code {
   outline-offset: 3px;
 }
 
+.record-state--active {
+  border-color: #2f735e;
+  color: #b8f1dc;
+  background: #10261f;
+}
+.record-state--inactive,
+.record-state--revoked {
+  color: #aeb8cc;
+  background: #151b26;
+}
+.record-state--suspended,
+.record-state--deleted {
+  border-color: #824b52;
+  color: #ffc3c8;
+  background: #2b171b;
+}
+.record-list {
+  display: grid;
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.record-list > li {
+  display: grid;
+  gap: 0.6rem;
+  padding: 1rem;
+  border: 1px solid #273249;
+  border-radius: 0.75rem;
+  background: #101622;
+}
+.record-list p {
+  margin: 0;
+}
+.command-panel {
+  display: grid;
+  gap: 0.75rem;
+  padding-top: 1rem;
+  border-top: 1px solid #20283a;
+}
+.command-panel h3 {
+  margin: 0;
+}
+.checkbox-field {
+  display: flex !important;
+  align-items: center;
+  gap: 0.6rem;
+}
+.checkbox-field input {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+.moderation-form > .danger-button {
+  color: #ffe4e6;
+  border-color: #c25d68;
+  background: #6d2630;
+}
+
 @media (max-width: 760px) {
   .app-shell {
     grid-template-columns: 1fr;
@@ -612,6 +670,7 @@ code {
   }
   .sidebar nav {
     display: flex;
+    flex-wrap: wrap;
   }
   .operator-card {
     margin-top: 0;

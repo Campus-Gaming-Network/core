@@ -10,20 +10,49 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as StepUpRouteImport } from './routes/step-up'
+import { Route as AccessSiteAdminsRouteImport } from './routes/access.site-admins'
 import { Route as ApiHealthRouteImport } from './routes/api.health'
+import { Route as GamesIndexRouteImport } from './routes/games.index'
+import { Route as GamesGameIdRouteImport } from './routes/games.$gameId'
 import { Route as ReportsIndexRouteImport } from './routes/reports.index'
 import { Route as ReportsReportIdRouteImport } from './routes/reports.$reportId'
+import { Route as SchoolsIndexRouteImport } from './routes/schools.index'
+import { Route as SchoolsSchoolIdRouteImport } from './routes/schools.$schoolId'
+import { Route as SchoolsNewRouteImport } from './routes/schools.new'
 import { Route as SupportTicketsIndexRouteImport } from './routes/support-tickets.index'
 import { Route as SupportTicketsTicketIdRouteImport } from './routes/support-tickets.$ticketId'
+import { Route as UsersIndexRouteImport } from './routes/users.index'
+import { Route as UsersUserIdRouteImport } from './routes/users.$userId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StepUpRoute = StepUpRouteImport.update({
+  id: '/step-up',
+  path: '/step-up',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AccessSiteAdminsRoute = AccessSiteAdminsRouteImport.update({
+  id: '/access/site-admins',
+  path: '/access/site-admins',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiHealthRoute = ApiHealthRouteImport.update({
   id: '/api/health',
   path: '/api/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GamesIndexRoute = GamesIndexRouteImport.update({
+  id: '/games/',
+  path: '/games/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GamesGameIdRoute = GamesGameIdRouteImport.update({
+  id: '/games/$gameId',
+  path: '/games/$gameId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ReportsIndexRoute = ReportsIndexRouteImport.update({
@@ -36,6 +65,21 @@ const ReportsReportIdRoute = ReportsReportIdRouteImport.update({
   path: '/reports/$reportId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SchoolsIndexRoute = SchoolsIndexRouteImport.update({
+  id: '/schools/',
+  path: '/schools/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SchoolsSchoolIdRoute = SchoolsSchoolIdRouteImport.update({
+  id: '/schools/$schoolId',
+  path: '/schools/$schoolId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SchoolsNewRoute = SchoolsNewRouteImport.update({
+  id: '/schools/new',
+  path: '/schools/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SupportTicketsIndexRoute = SupportTicketsIndexRouteImport.update({
   id: '/support-tickets/',
   path: '/support-tickets/',
@@ -46,66 +90,139 @@ const SupportTicketsTicketIdRoute = SupportTicketsTicketIdRouteImport.update({
   path: '/support-tickets/$ticketId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const UsersIndexRoute = UsersIndexRouteImport.update({
+  id: '/users/',
+  path: '/users/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UsersUserIdRoute = UsersUserIdRouteImport.update({
+  id: '/users/$userId',
+  path: '/users/$userId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/step-up': typeof StepUpRoute
+  '/access/site-admins': typeof AccessSiteAdminsRoute
   '/api/health': typeof ApiHealthRoute
+  '/games/$gameId': typeof GamesGameIdRoute
   '/reports/$reportId': typeof ReportsReportIdRoute
+  '/schools/$schoolId': typeof SchoolsSchoolIdRoute
+  '/schools/new': typeof SchoolsNewRoute
   '/support-tickets/$ticketId': typeof SupportTicketsTicketIdRoute
+  '/users/$userId': typeof UsersUserIdRoute
+  '/games/': typeof GamesIndexRoute
   '/reports/': typeof ReportsIndexRoute
+  '/schools/': typeof SchoolsIndexRoute
   '/support-tickets/': typeof SupportTicketsIndexRoute
+  '/users/': typeof UsersIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/step-up': typeof StepUpRoute
+  '/access/site-admins': typeof AccessSiteAdminsRoute
   '/api/health': typeof ApiHealthRoute
+  '/games/$gameId': typeof GamesGameIdRoute
   '/reports/$reportId': typeof ReportsReportIdRoute
+  '/schools/$schoolId': typeof SchoolsSchoolIdRoute
+  '/schools/new': typeof SchoolsNewRoute
   '/support-tickets/$ticketId': typeof SupportTicketsTicketIdRoute
+  '/users/$userId': typeof UsersUserIdRoute
+  '/games': typeof GamesIndexRoute
   '/reports': typeof ReportsIndexRoute
+  '/schools': typeof SchoolsIndexRoute
   '/support-tickets': typeof SupportTicketsIndexRoute
+  '/users': typeof UsersIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/step-up': typeof StepUpRoute
+  '/access/site-admins': typeof AccessSiteAdminsRoute
   '/api/health': typeof ApiHealthRoute
+  '/games/$gameId': typeof GamesGameIdRoute
   '/reports/$reportId': typeof ReportsReportIdRoute
+  '/schools/$schoolId': typeof SchoolsSchoolIdRoute
+  '/schools/new': typeof SchoolsNewRoute
   '/support-tickets/$ticketId': typeof SupportTicketsTicketIdRoute
+  '/users/$userId': typeof UsersUserIdRoute
+  '/games/': typeof GamesIndexRoute
   '/reports/': typeof ReportsIndexRoute
+  '/schools/': typeof SchoolsIndexRoute
   '/support-tickets/': typeof SupportTicketsIndexRoute
+  '/users/': typeof UsersIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/step-up'
+    | '/access/site-admins'
     | '/api/health'
+    | '/games/$gameId'
     | '/reports/$reportId'
+    | '/schools/$schoolId'
+    | '/schools/new'
     | '/support-tickets/$ticketId'
+    | '/users/$userId'
+    | '/games/'
     | '/reports/'
+    | '/schools/'
     | '/support-tickets/'
+    | '/users/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/step-up'
+    | '/access/site-admins'
     | '/api/health'
+    | '/games/$gameId'
     | '/reports/$reportId'
+    | '/schools/$schoolId'
+    | '/schools/new'
     | '/support-tickets/$ticketId'
+    | '/users/$userId'
+    | '/games'
     | '/reports'
+    | '/schools'
     | '/support-tickets'
+    | '/users'
   id:
     | '__root__'
     | '/'
+    | '/step-up'
+    | '/access/site-admins'
     | '/api/health'
+    | '/games/$gameId'
     | '/reports/$reportId'
+    | '/schools/$schoolId'
+    | '/schools/new'
     | '/support-tickets/$ticketId'
+    | '/users/$userId'
+    | '/games/'
     | '/reports/'
+    | '/schools/'
     | '/support-tickets/'
+    | '/users/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  StepUpRoute: typeof StepUpRoute
+  AccessSiteAdminsRoute: typeof AccessSiteAdminsRoute
   ApiHealthRoute: typeof ApiHealthRoute
+  GamesGameIdRoute: typeof GamesGameIdRoute
   ReportsReportIdRoute: typeof ReportsReportIdRoute
+  SchoolsSchoolIdRoute: typeof SchoolsSchoolIdRoute
+  SchoolsNewRoute: typeof SchoolsNewRoute
   SupportTicketsTicketIdRoute: typeof SupportTicketsTicketIdRoute
+  UsersUserIdRoute: typeof UsersUserIdRoute
+  GamesIndexRoute: typeof GamesIndexRoute
   ReportsIndexRoute: typeof ReportsIndexRoute
+  SchoolsIndexRoute: typeof SchoolsIndexRoute
   SupportTicketsIndexRoute: typeof SupportTicketsIndexRoute
+  UsersIndexRoute: typeof UsersIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -117,11 +234,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/step-up': {
+      id: '/step-up'
+      path: '/step-up'
+      fullPath: '/step-up'
+      preLoaderRoute: typeof StepUpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/access/site-admins': {
+      id: '/access/site-admins'
+      path: '/access/site-admins'
+      fullPath: '/access/site-admins'
+      preLoaderRoute: typeof AccessSiteAdminsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/health': {
       id: '/api/health'
       path: '/api/health'
       fullPath: '/api/health'
       preLoaderRoute: typeof ApiHealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/games/': {
+      id: '/games/'
+      path: '/games'
+      fullPath: '/games/'
+      preLoaderRoute: typeof GamesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/games/$gameId': {
+      id: '/games/$gameId'
+      path: '/games/$gameId'
+      fullPath: '/games/$gameId'
+      preLoaderRoute: typeof GamesGameIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reports/': {
@@ -138,6 +283,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReportsReportIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/schools/': {
+      id: '/schools/'
+      path: '/schools'
+      fullPath: '/schools/'
+      preLoaderRoute: typeof SchoolsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/schools/$schoolId': {
+      id: '/schools/$schoolId'
+      path: '/schools/$schoolId'
+      fullPath: '/schools/$schoolId'
+      preLoaderRoute: typeof SchoolsSchoolIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/schools/new': {
+      id: '/schools/new'
+      path: '/schools/new'
+      fullPath: '/schools/new'
+      preLoaderRoute: typeof SchoolsNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/support-tickets/': {
       id: '/support-tickets/'
       path: '/support-tickets'
@@ -152,16 +318,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SupportTicketsTicketIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/users/': {
+      id: '/users/'
+      path: '/users'
+      fullPath: '/users/'
+      preLoaderRoute: typeof UsersIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/users/$userId': {
+      id: '/users/$userId'
+      path: '/users/$userId'
+      fullPath: '/users/$userId'
+      preLoaderRoute: typeof UsersUserIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  StepUpRoute: StepUpRoute,
+  AccessSiteAdminsRoute: AccessSiteAdminsRoute,
   ApiHealthRoute: ApiHealthRoute,
+  GamesGameIdRoute: GamesGameIdRoute,
   ReportsReportIdRoute: ReportsReportIdRoute,
+  SchoolsSchoolIdRoute: SchoolsSchoolIdRoute,
+  SchoolsNewRoute: SchoolsNewRoute,
   SupportTicketsTicketIdRoute: SupportTicketsTicketIdRoute,
+  UsersUserIdRoute: UsersUserIdRoute,
+  GamesIndexRoute: GamesIndexRoute,
   ReportsIndexRoute: ReportsIndexRoute,
+  SchoolsIndexRoute: SchoolsIndexRoute,
   SupportTicketsIndexRoute: SupportTicketsIndexRoute,
+  UsersIndexRoute: UsersIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

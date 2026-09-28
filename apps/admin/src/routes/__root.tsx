@@ -74,8 +74,8 @@ function RootComponent() {
 }
 
 function AuthenticatedShell({ session }: { session: AdminSession }) {
-  const canReadReports = session.capabilities.includes("reports.read");
-  const canReadSupport = session.capabilities.includes("support.read");
+  const can = (capability: AdminSession["capabilities"][number]) =>
+    session.capabilities.includes(capability);
   return (
     <div className="app-shell">
       <a className="skip-link" href="#main-content">
@@ -92,9 +92,15 @@ function AuthenticatedShell({ session }: { session: AdminSession }) {
           <Link to="/" activeOptions={{ exact: true }}>
             Overview
           </Link>
-          {canReadReports ? <Link to="/reports">Reports</Link> : null}
-          {canReadSupport ? (
+          {can("reports.read") ? <Link to="/reports">Reports</Link> : null}
+          {can("support.read") ? (
             <Link to="/support-tickets">Support tickets</Link>
+          ) : null}
+          {can("schools.read") ? <Link to="/schools">Schools</Link> : null}
+          {can("games.manage") ? <Link to="/games">Games</Link> : null}
+          {can("users.read") ? <Link to="/users">Users</Link> : null}
+          {can("site_grants.manage") ? (
+            <Link to="/access/site-admins">Site admins</Link>
           ) : null}
         </nav>
         <div className="operator-card">
