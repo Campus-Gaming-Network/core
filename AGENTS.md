@@ -19,6 +19,13 @@
 - Run `pnpm run check:apps-compose` after adding or renaming an application or
   changing its Docker/Compose configuration.
 
+## Documentation
+
+- When a change alters documented behavior, update the doc that owns that fact
+  in the same change. The owners and a short checklist are in
+  `docs/README.md` under "Sources of truth" and "Keeping docs current".
+- Run `pnpm run check:docs-links` after editing documentation.
+
 ## Code formatting
 
 - After making any code changes, run `pnpm run fmt` before validation or

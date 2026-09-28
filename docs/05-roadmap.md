@@ -16,7 +16,7 @@ Phased delivery for a single developer. Each phase should be shippable. Do not p
 
 - Docker Compose: TanStack Start, Go API, Postgres (M1-friendly)
 - TypeScript + Go project skeletons; BFF pattern wired
-- HeroUI + base layout; accessibility baseline
+- Base layout (hand-written CSS); accessibility baseline
 - `created_at` / `updated_at` / `deleted_at` conventions
 - Health (`/health`, `/ready`)
 - System logging vs audit logging distinction established
@@ -156,7 +156,6 @@ feeling unfinished.
   user-visible activity history and the notification API/inbox
 - Broader rate limiting
 - Impersonation for site admins (audited)
-- Account deletion anonymization path tested
 - Past-event edit restrictions enforced
 - On-site payments decision (paid events currently remain off-site-payment listings)
 - Event/tournament **waitlists**

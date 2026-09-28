@@ -191,7 +191,7 @@ Signup also requires confirming **age 18+**. Alumni can participate. Faculty who
 - Single **name** field (no usernames; no separate first/last/display)
 - Profile URL: `/users/:id` (database id)
 - Bio + social links
-- School affiliation(s), majors (multiple), expected graduation
+- Later: school affiliation(s), majors (multiple), and expected graduation (see [08 — Open questions](./08-open-questions.md))
 - Support graduate students, alumni, faculty
 - Visible indicators for school admin and faculty roles
 - Users can report other users from profiles
@@ -216,12 +216,12 @@ Signup also requires confirming **age 18+**. Alumni can participate. Faculty who
 - Basic notifications from `notifications@campusgamingnetwork.com` (later)
 - Support / report follow-up email from `support@campusgamingnetwork.com` (later Admin Console workflow)
 - Account emails (verify, reset password) from `account@campusgamingnetwork.com`
-- Support tickets: **anyone** can submit (logged out OK); queued for later Admin Console review
+- Support tickets: **anyone** can submit (logged out OK); reviewed in the Admin Console support queue
 - Site-wide announcement banner deployable to every page (later)
 
-### Admin Console (later)
+### Admin Console (in progress, release-gated)
 
-- Separate **TanStack Start** app in `apps/admin` at **admin.campusgamingnetwork.com**, released after the first public release
+- Separate **TanStack Start** app in `apps/admin` at **admin.campusgamingnetwork.com**, released after the first public release; ticket status lives in [20 — Admin Console v1 engineering plan](./20-admin-console-v1-engineering-plan.md)
 - Manage schools, users, ACLs, games (no raw DB required)
 - Site admins create/edit schools (after one-time Scorecard seed)
 - View **reports** and **support tickets**
@@ -236,7 +236,7 @@ Signup also requires confirming **age 18+**. Alumni can participate. Faculty who
 
 ## UX / design direction
 
-- Component library: **HeroUI**
+- No component library: hand-written CSS in each app
 - Accessibility reference: [GOV.UK Design System](https://design-system.service.gov.uk/components/)
 - Mobile-friendly; no IE
 - Prefer CSS over extra JS
@@ -261,4 +261,4 @@ An email-verified user (18+) can:
 4. Create or join a team (URL + password)
 5. See a simple dashboard of upcoming activity
 
-Later Admin Console: site admins manage schools, view reports and support tickets.
+After the first release, the Admin Console lets site admins manage schools and work the report and support queues.

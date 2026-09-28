@@ -15,7 +15,7 @@ Authorization rules for the public site and the Admin Console. Enforce in **Go**
 | **Club officer**       | Later club workflow                                                 | Manage club; future badge-eligible events                                                                                                    |
 | **Team owner**         | Creator or transfer                                                 | Manage team; transfer ownership; assign captains                                                                                             |
 | **Team captain**       | Owner assigns                                                       | Register team for tournaments; limited team mgmt                                                                                             |
-| **Event organizer**    | Creator or assigned                                                 | Edit event (with past-event limits); manage RSVPs as needed                                                                                  |
+| **Event organizer**    | Creator or assigned                                                 | Edit event (past-event limits planned); manage RSVPs as needed                                                                               |
 | **Approved organizer** | Explicit grant                                                      | Badge-eligible events                                                                                                                        |
 | **Site admin**         | Bootstrap, then Admin Console                                       | Schools; games; reports; support tickets; staff grants; impersonation and feature flags later                                                |
 
@@ -71,6 +71,8 @@ Verification is not a substitute for school admin or site admin.
 | Impersonate user                         |           |                 |              |              |            |                 | ✓                 |
 | Manage feature flags                     |           |                 |              |              |            |                 | ✓ (later)         |
 | Sync IGDB / manage games                 |           |                 |              |              |            |                 | ✓ / cron          |
+
+The two past-event rows are the intended rule; neither is enforced yet, so organizers can currently edit every field of an ended event.
 
 \* Anonymous may open a private event link and submit the password via modal; pre-unlock responses must not leak event details. Still no account mutations without login where required (e.g. RSVP). Anyone (including anonymous) may submit a support ticket.
 

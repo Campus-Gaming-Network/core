@@ -35,6 +35,46 @@ Completed plans and evidence records (the Phase 1 plan, Pass v0 checklist, and
 TanStack Start migration records) are kept in [`archive/`](../docs/archive/) for
 history only.
 
+## Sources of truth
+
+Each kind of fact has one owner. Other docs link to the owner instead of
+restating the fact, so a change needs one edit.
+
+| Fact                                          | Owner                                                                                               |
+| --------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Product scope and user-facing rules           | [01 — Product](./01-product.md)                                                                     |
+| Entities and business rules                   | [02 — Domain model](./02-domain-model.md)                                                           |
+| Schema                                        | [03 — Database](./03-database.md), with `db/migrations` authoritative                               |
+| Endpoints, fields, status codes, error codes  | [04 — API](./04-api.md)                                                                             |
+| Roles and permissions                         | [07 — Permissions](./07-permissions.md)                                                             |
+| Engineering decisions and cross-cutting rules | [11 — Implementation decisions](./11-implementation-decisions.md)                                   |
+| Feature and launch-gate checklist             | [10 — Delivery status](./10-delivery-status.md)                                                     |
+| Review backlog items and their status         | [17 — Codebase review action plan](./17-codebase-review-action-plan.md)                             |
+| Admin Console tickets and their status        | [20 — Admin Console v1 engineering plan](./20-admin-console-v1-engineering-plan.md)                 |
+| Current milestone, next tasks, and blockers   | [00 — Current state](./00-current-state.md)                                                         |
+| Toolchain versions                            | `apps/api/go.mod`, `.node-version`, `packageManager` in `package.json`, and each app's `Dockerfile` |
+
+Completed work is recorded where it is tracked (10, 17, or 20) and in the git
+history rather than in a separate changelog.
+
+## Keeping docs current
+
+When a change alters documented behavior, update the owning doc in the same
+change:
+
+- Endpoint, request field, status code, or error code: 04, and 03 for schema.
+- Product rule or user-visible behavior: 01 or 02; roles and access: 07.
+- New cross-cutting rule: a row in 11.
+- Feature shipped or launch gate cleared: its checkbox in 10.
+- Backlog item or Admin Console ticket status: its entry in 17 or 20, plus 00's
+  next tasks when the order changes.
+- Toolchain bump: the configuration files only; docs point at them.
+- Run `pnpm run check:docs-links` to verify relative links and heading anchors.
+
+Generating the endpoint reference from code was considered and not adopted: the
+Go router has no route or schema annotations to generate from, so a generator
+would add a second description of each endpoint to maintain.
+
 ## How to use with AI / LLMs
 
 1. Point the model at this folder (or the specific doc for the task).

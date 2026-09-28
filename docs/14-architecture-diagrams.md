@@ -161,7 +161,7 @@ flowchart LR
         Database --> Backups
     end
 
-    Admin["Later Admin Console<br/>TanStack Start"]
+    Admin["Admin Console (release-gated)<br/>TanStack Start"]
     R2["Later Cloudflare R2<br/>school logos"]
     IGDB["Later IGDB<br/>game enrichment"]
     Sentry["Later Sentry"]

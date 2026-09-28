@@ -177,9 +177,9 @@ The school and game catalogs are effectively static — roughly 6,200 schools gr
 - Targeting: at least specific users and specific schools
 - Evaluated server-side when possible so UI and API stay consistent
 
-## Admin Console (later)
+## Admin Console (in progress, release-gated)
 
-- **TanStack Start** app in `apps/admin`, separate deploy/release after the first release
+- **TanStack Start** app in `apps/admin`, separate deploy/release after the first release; ticket status lives in [20 — Admin Console v1 engineering plan](./20-admin-console-v1-engineering-plan.md)
 - URLs: main = `campusgamingnetwork.com`; Admin Console = `admin.campusgamingnetwork.com`
 - Shared Go API with the main site
 - Manage schools, users, ACLs, games without touching the database directly

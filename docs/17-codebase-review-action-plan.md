@@ -27,9 +27,10 @@ rehearsal has passed.
 - Add or update regression coverage with every behavior change.
 - Do not mark an item complete until all acceptance criteria and verification
   steps pass.
-- Update this document, [00 — Current state](./00-current-state.md), and the
-  corresponding entry in [10 — Delivery status](./10-delivery-status.md), if
-  one exists, when an item changes status.
+- Record an item's status only in this document. Update the next tasks in
+  [00 — Current state](./00-current-state.md) when the queue order changes, and
+  tick the matching [10 — Delivery status](./10-delivery-status.md) checkbox
+  when an item ships a user-facing feature.
 - Record a short decision in [11 — Implementation decisions](./11-implementation-decisions.md)
   when a fix establishes a new cross-cutting rule.
 
@@ -83,8 +84,8 @@ the engineering queue, but all P1 work must be complete before public access.
 |    19 | `CGN-016` | P2       | Multi-organizer scope matches the product promise.                        |
 |    20 | `CGN-018` | P3       | Large modules are split before product expansion.                         |
 
-`CGN-019` is next. Before `CGN-016`, decide whether
-multi-organizer management belongs in the first release.
+Only `CGN-016` remains. It needs a product decision on whether multi-organizer
+management belongs in the first release.
 
 ### Implementation map
 
@@ -906,8 +907,40 @@ and review harder.
 
 **Priority:** P2  
 **Size:** M  
-**Status:** Ready  
+**Status:** Done (2026-09-28)  
 **Depends on:** None
+
+**Completed:** [The docs index](./README.md#sources-of-truth) now names one
+owner for each kind of fact and has a short checklist for changes that alter
+documented behavior; `AGENTS.md` points to it. The current-state doc no longer
+keeps its own changelog, delivery status points to 00 for the milestone and to
+20 for Admin Console tickets, and the legal plan points to 20 for operations
+surfaces. The audit read 00, 04, 10, and 16 in full, checked the configuration
+in 06, 13, and 22 against the code, and searched every top-level doc for the
+topics below; doc 15 is archived.
+
+- Endpoints: every public route, method, and request struct in the Go router
+  matches 04. Corrected claims that `PATCH /events/:slug` restricts past-event
+  edits (organizers can edit every field; the rule in 07 is now marked planned),
+  that the rate-limit list was complete (it omitted password recovery and team
+  create/join), and that every list paginates (`GET /games` returns the whole
+  curated list).
+- Profile: majors, expected graduation, degree level, and school affiliations
+  were described as current in 01, 02, and 03; none exist in the schema, and
+  they are now marked later.
+- Account deletion: 00 and 10 said deletion soft-cancels events, and 16 still
+  listed attendee email as a known gap and omitted site-admin revocation. They
+  now match the code, which archives events, queues attendee email, and
+  revokes both grant types.
+- Verification and recurrence: the docs already matched the code.
+- Go version: the numbers matched `go.mod`; the README and 11 now point at it
+  instead of repeating it. HeroUI was listed as the component library but is
+  not used, and several docs still labeled the Admin Console "later".
+- Configuration: every variable named in 06, 13, and 22 is read by the code or
+  is a Railway platform variable.
+- `pnpm run check:docs-links` verifies relative links and heading anchors and
+  runs in CI. Generating the endpoint reference from code was not adopted
+  because the router has nothing to generate from.
 
 **Problem**
 

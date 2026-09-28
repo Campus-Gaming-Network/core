@@ -69,11 +69,11 @@ The current deletion transaction:
 - [x] Unassigns report/support work assigned to the deleted user and retains
       domain audit history. Reports can remain linked to the now-anonymized user row.
 - [x] Ignores suspended/deleted team and event successor candidates, scopes role
-      updates to the affected records, and removes active school-admin grants.
-
-Known limit: an event soft-cancelled by account deletion does not currently use
-the normal cancellation-mail path, so active `yes`/`maybe` attendees are not
-notified. That is tracked below as pre-launch work.
+      updates to the affected records, and revokes active school-admin and
+      site-admin grants while keeping their history. Deleting the last active
+      site admin is refused with `409 last_site_admin`.
+- [x] Queues a cancellation email to active `yes`/`maybe` attendees of each
+      archived event that has not ended (see the event lifecycle section below).
 
 Retained records may still contain incidental personal information in support
 messages, report reasons, resolution notes, notification payloads, or audit JSON.
@@ -207,14 +207,10 @@ Items marked **pre-launch** should not wait until after a public release.
 
 ### Operations surfaces
 
-- [ ] Bootstrap and authorize the first `site_admin`; define revocation and
-      least-privilege checks before exposing operations data.
-- [ ] Add site-admin-only report queue, support queue, and entity audit-history
-      endpoints. Test unauthenticated, ordinary-user, revoked-admin, school-admin,
-      and site-admin access, plus audit writes for every mutation.
-- [ ] Build the Admin Console report/support queue UI on those endpoints, including
-      assignment, status, notes, hold visibility, retention status, and safe
-      rendering of user-supplied text.
+Site-admin bootstrap, the report/support queue and audit endpoints, and the
+queue UI are tracked as `AC-003`, `AC-008`, and `AC-012` in
+[20 — Admin Console v1 engineering plan](./20-admin-console-v1-engineering-plan.md).
+
 - [ ] Add authenticated user notification list/unread/mark-read endpoints and an
       in-app notification inbox. Do not expose the repository directly.
 - [ ] Adopt audit writes for deletion-triggered queue unassignment and other
@@ -228,12 +224,11 @@ Items marked **pre-launch** should not wait until after a public release.
       and mixed case qualify, lookalike suffixes do not, and staff/faculty grants
       are preserved. The product copy treats this as a limited domain trust signal,
       not proof of enrollment, current affiliation, or identity.
-- [ ] **Forwarded-IP rate limits:** deployment routes traffic through the web
-      service/proxies, while the API limiter keys only on `RemoteAddr`. In that
-      topology unrelated users may share one limiter bucket. Define the trusted
-      proxy chain, forward the original client address, accept a provider header
-      only from trusted immediate peers, and test spoofed/multiple forwarded values.
-      Replace the process-local limiter before running more than one API instance.
+- [x] **Forwarded-IP rate limits:** the BFF forwards an authenticated,
+      normalized visitor address from Railway or Cloudflare, and the API keys
+      limits by visitor, target, and account (`CGN-001` in
+      [17](./17-codebase-review-action-plan.md)). The limiter is still
+      process-local, so run one API instance until it is replaced.
 
 ## Completion gate
 

@@ -6,7 +6,7 @@ Canonical entities and business rules. Schema details live in [03 — Database](
 
 ```text
 User ──< follows >── School
-User ──< majors >── Major (or free-text; TBD)
+User ──< majors >── Major (later; free-text or curated list is open)
 User ── home school + affiliation(s) ── School
 User ── roles ── SchoolAdmin | Faculty | ClubOfficer | TeamOwner/Captain | EventOrganizer | SiteAdmin
 
@@ -42,10 +42,10 @@ SiteAnnouncement ── global banner                        (later)
 | Bio, social links   | Profile                                                                                     |
 | Timezone            | Default from system; used to display event times                                            |
 | School affiliations | Selects one home school during signup; can follow additional schools afterward              |
-| Majors              | Multiple allowed                                                                            |
-| Graduation          | Expected graduation date; alumni still participate                                          |
-| Degree level        | Undergrad / graduate / etc. (open question)                                                 |
-| Role context        | Student, alumni, faculty advisor, etc.                                                      |
+| Majors              | Later: multiple allowed (open question in [08](./08-open-questions.md))                     |
+| Graduation          | Later: expected graduation date; alumni still participate                                   |
+| Degree level        | Later: undergrad / graduate / etc. (open question)                                          |
+| Role context        | Later: student, alumni, faculty advisor, etc.                                               |
 | Role indicators     | School-admin grants and staff/faculty status produce visible role indicators                |
 
 **Rules**

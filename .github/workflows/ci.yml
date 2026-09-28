@@ -72,6 +72,8 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Format check
         run: pnpm run fmt:check
+      - name: Documentation link check
+        run: pnpm run check:docs-links
       - name: Audit production dependencies
         run: pnpm --filter @campus-gaming-network/web audit --prod --no-optional --audit-level high
       - name: Typecheck

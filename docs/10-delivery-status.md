@@ -1,15 +1,10 @@
 # 10 — Delivery status
 
-Status tracker for Campus Gaming Network. Locked product decisions live in the other docs (`01`, `05`, `08`) — not repeated here.
+Feature and launch-gate checklist for Campus Gaming Network. Locked product decisions live in the other docs (`01`, `05`, `08`), and each fact has one owner listed in the [docs index](./README.md#sources-of-truth) — not repeated here.
 
 Work is grouped **Now** (building toward the first public release), **Next** (planned immediately after), and **Later** (planned, not yet scheduled). Nothing here is written off — Later means "not scheduled yet", not "out of scope".
 
-**Current focus:** continue product refinement and production-readiness
-hardening on the TanStack Start main frontend. The local repository cutover is
-complete; Railway staging, Cloudflare validation, and production deployment
-remain deferred until those external environments are provisioned.
-
-**Active milestone:** make the existing events-and-teams product polished and reliable enough for real users.
+**Current focus, milestone, and next tasks:** see [00 — Current state](./00-current-state.md).
 
 **Priority order:**
 
@@ -21,11 +16,8 @@ remain deferred until those external environments are provisioned.
 
 **First release slice:** auth → home school on signup → schools search/follow → events + curated games → teams → dashboard.
 
-**Active engineering backlog:** [17 — Codebase review action plan](./17-codebase-review-action-plan.md)
-is the ordered queue for production-boundary, discovery, recurrence,
-reliability, integration, and maintainability findings from the 2026-09-05
-codebase review. Complete its P1 items before beginning the Admin Console UI or another
-major product area.
+**Engineering backlog:** [17 — Codebase review action plan](./17-codebase-review-action-plan.md)
+orders the 2026-09-05 review findings and records each item's status.
 
 **School seed:** 6,243 operating schools (4,943 main · **1,300 branch**). Import all, `is_active=true`; branch campuses use the same UI/UX; review later in the Admin Console.
 
@@ -81,13 +73,14 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 - [ ] Replace placeholder Terms/Privacy, obtain legal review, and require versioned Terms agreement/Privacy acknowledgement at signup
 - [ ] Confirm retention windows and legal-hold ownership; document the manual retention runbook before enabling purge automation
 - [ ] Decide and implement DiceBear disclosure/opt-out defaults
-- [x] Promote verified `.edu` inboxes to the limited verified-student trust tier without downgrading staff/faculty grants
+- [x] Promote verified `.edu` inboxes to the limited verified-student trust tier, shown as a badge, without downgrading staff/faculty grants
 - [x] Preserve authenticated visitor identity through Cloudflare/Railway and the BFF; scope rate limits by visitor, target, and account
 - [x] Require explicit POST confirmation before consuming an email-verification token; scanner-style GET requests cannot verify accounts
 - [x] Fail web and API startup on unsafe staging/production configuration while preserving deliberate local Compose defaults
 - [x] Run a focused real-stack browser suite through built TanStack Start, the Go API, disposable PostgreSQL, the email outbox, and a Resend HTTP stub; repeat every journey twice in CI while retaining the fast fake-API suite
 - [x] Replace message-fragment HTTP error classification with typed, stable application errors and one centralized mapper (`CGN-017`)
 - [x] Split the event domain and HTTP router tests into capability and route-family files without changing public behavior (`CGN-018`)
+- [x] Make event, team, report, and support-ticket creation idempotent, so a double submit or a retry after a timeout returns the original record
 - [x] Give redirect notices a typed per-page allowlist with correct alert/status severity (`CGN-020`)
 
 ### Auth & profiles
@@ -134,7 +127,7 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 - [x] RSVP yes/no/maybe
 - [x] RSVP confirmation email + ICS on yes (Resend)
 - [x] Interested (favorite) separate from RSVP
-- [x] Browse/filter public events by game (no near-you yet)
+- [x] Browse/filter public events by game, school, and format (no near-you yet)
 - [x] Bidirectional cursor pagination that preserves game, school, and format filters
 - [x] Lifecycle UI: upcoming / happening now / ended / full
 - [x] Missing/deleted event page
@@ -165,7 +158,8 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 
 ### Safety (baseline)
 
-- [x] Rate limits: signup, resend verification, event create, reports, private unlock, support tickets
+- [x] Rate limits: signup, login, resend verification, password recovery, event create, private unlock, team create and join, reports, support tickets
+- [x] Basic blocked-language filtering on user-authored text
 - [x] Report event + report user (queued for Admin Console review)
 - [x] New-account abuse limits (basic)
 
@@ -175,25 +169,14 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 
 ### Admin Console (`admin.campusgamingnetwork.com` — TanStack Start in `apps/admin`)
 
-- [x] Add operations data/repository foundation for assignable reports/support queues with terminal retention clocks, transactional audit history, and user-scoped notifications
-- [ ] Bootstrap first site admin (CLI / env seed)
-- [x] Add site-admin-authorized reports, support, and audit API endpoints
-- [x] TanStack Start Admin Console (separate deploy, shared Go API)
-- [x] AC-009 API: school/game lifecycle, bounded user queries, school/site grants, staff/faculty trust, and stepped-up account status changes with transactional audits and session revocation
-- [ ] Schools: create / edit / soft-delete, logos (**Admin Console-only** R2 PNG/JPG ≤5 MB), activation (`unitid` optional)
-- [ ] Review/deactivate bad seed schools
-- [ ] Manage/grant school admins in the Admin Console (grant storage and indicators implemented)
-- [ ] Games catalog management (start from the six launch games; IGDB later)
-- [x] Reports queue
-- [x] Support tickets queue
-- [ ] User notification API and in-app inbox
-- [ ] Placeholder school logos until Admin Console upload
+Tracked ticket by ticket in [20 — Admin Console v1 engineering plan](./20-admin-console-v1-engineering-plan.md).
+
+- [ ] Review and deactivate bad seed schools once catalog management ships
 
 ### Product polish
 
 - [ ] Sentry/error monitoring
 - [ ] Analytics (non-GA: Plausible or Cloudflare Web Analytics)
-- [x] Define and apply basic blocked-language filtering
 - [x] Frontend regression coverage for routes, components, server functions, native forms, and the built Nitro runtime
 - [ ] Open Graph share image, favicon, `robots.txt`, and `sitemap.xml`
 
@@ -202,14 +185,8 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 - [x] Complete frontend regression coverage for signup, event creation, RSVP, team joining, and dashboard flows
 - [ ] Complete mobile and accessibility pass on the primary journeys
 - [x] Define initial support/report/audit retention targets and track legal-hold/purge follow-up
-- [x] Transfer or soft-cancel organizer-owned events during account deletion; detach support records and scrub terminal contact fields
-- [x] Add timezone-aware recurring events with defined DST and month-end behavior (weekly, biweekly, or monthly; max one year)
-- [x] Add cancellation notifications to active yes/maybe RSVPs
-- [x] Improve event discovery filters (game, school, and format)
-- [x] Add `.edu` verified-student badge UX
 - [x] Add school admin/faculty role indicators
 - [x] Add event organizer badges
-- [x] Define and apply basic blocked-language filtering
 
 ---
 

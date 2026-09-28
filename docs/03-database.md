@@ -35,7 +35,7 @@ users
   name,                       -- single public name field
   bio, timezone,
   home_school_id,             -- selected during signup; user may follow additional schools
-  expected_graduation_on, degree_level, account_status,
+  account_status,             -- active | suspended | deleted
   age_confirmed_at,           -- signup checkbox: 18+
   created_at, updated_at, deleted_at
   -- profile URL: /users/:id (database id); no usernames
@@ -44,13 +44,13 @@ users
 user_social_links
   id, user_id, label, url, ...
 
-user_majors
+user_majors  (later)
   id, user_id, major_name (or major_id FK if normalized)
 
 user_school_follows
   user_id, school_id, created_at, ...
 
-user_school_affiliations
+user_school_affiliations  (later)
   user_id, school_id, role_context (student|alumni|faculty|...), ...
 
 school_admins

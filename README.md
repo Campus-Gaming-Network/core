@@ -133,8 +133,9 @@ command refuses to reset a database whose name does not contain `e2e`. Set
 `REAL_E2E_DATABASE_URL` to use an already-provisioned disposable test database;
 in that mode the command does not manage that database's lifecycle.
 
-The API needs Go 1.27.1 or newer (set by the `go` directive in `apps/api/go.mod`).
-CI and the API Docker build use Go 1.27.1. With Go 1.21 or newer and the default
+The API needs the Go version set by the `go` directive in `apps/api/go.mod`; CI
+reads that file, and the API Dockerfile's builder image matches it. With Go 1.21
+or newer and the default
 `GOTOOLCHAIN=auto`, commands inside `apps/api` select and download the required
 toolchain automatically. The pnpm formatting scripts use that toolchain's `gofmt`.
 Go module commands also download the PostgreSQL driver dependency as needed:
