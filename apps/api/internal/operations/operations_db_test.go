@@ -8,13 +8,18 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminaudit"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/migrate"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/pagecursor"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
+
+var operationsSchemaSequence atomic.Uint64
 
 type operationsFixture struct {
 	pool       *pgxpool.Pool
@@ -35,11 +40,36 @@ func newOperationsFixture(t *testing.T) operationsFixture {
 	}
 
 	ctx := context.Background()
-	pool, err := pgxpool.New(ctx, databaseURL)
+	owner, err := pgxpool.New(ctx, databaseURL)
 	if err != nil {
 		t.Fatalf("connect: %v", err)
 	}
+	t.Cleanup(owner.Close)
+	// Each test has its own schema. Queue listings then see only this
+	// fixture's reports and tickets, and the operator's site-admin grant cannot
+	// block bootstrap fixtures that other packages run concurrently.
+	schema := pgx.Identifier{fmt.Sprintf("operations_%d_%d", os.Getpid(), operationsSchemaSequence.Add(1))}.Sanitize()
+	if _, err := owner.Exec(ctx, `CREATE SCHEMA `+schema); err != nil {
+		t.Fatalf("create schema: %v", err)
+	}
+	t.Cleanup(func() {
+		if _, err := owner.Exec(context.Background(), `DROP SCHEMA `+schema+` CASCADE`); err != nil {
+			t.Errorf("drop schema: %v", err)
+		}
+	})
+	config, err := pgxpool.ParseConfig(databaseURL)
+	if err != nil {
+		t.Fatalf("parse database URL: %v", err)
+	}
+	config.ConnConfig.RuntimeParams["search_path"] = schema + ",public"
+	pool, err := pgxpool.NewWithConfig(ctx, config)
+	if err != nil {
+		t.Fatalf("connect to schema: %v", err)
+	}
 	t.Cleanup(pool.Close)
+	if err := migrate.Run(ctx, pool, "../../../../db/migrations"); err != nil {
+		t.Fatalf("migrate schema: %v", err)
+	}
 
 	suffix := fmt.Sprint(time.Now().UnixNano())
 	var schoolID string
@@ -119,18 +149,6 @@ func newOperationsFixture(t *testing.T) operationsFixture {
 	`, reporterID, "reporter-"+suffix+"@example.test").Scan(&ticketID); err != nil {
 		t.Fatalf("insert support ticket: %v", err)
 	}
-
-	t.Cleanup(func() {
-		cleanupCtx := context.Background()
-		_, _ = pool.Exec(cleanupCtx, `DELETE FROM notifications WHERE user_id IN ($1::uuid, $2::uuid, $3::uuid)`, actorID, reporterID, otherID)
-		_, _ = pool.Exec(cleanupCtx, `DELETE FROM audit_logs WHERE entity_id IN ($1::uuid, $2::uuid)`, reportID, ticketID)
-		_, _ = pool.Exec(cleanupCtx, `DELETE FROM reports WHERE id = $1::uuid`, reportID)
-		_, _ = pool.Exec(cleanupCtx, `DELETE FROM support_tickets WHERE id = $1::uuid`, ticketID)
-		_, _ = pool.Exec(cleanupCtx, `DELETE FROM admin_sessions WHERE id = $1::uuid`, sessionID)
-		_, _ = pool.Exec(cleanupCtx, `DELETE FROM site_role_grants WHERE id = $1::uuid`, grantID)
-		_, _ = pool.Exec(cleanupCtx, `DELETE FROM users WHERE id IN ($1::uuid, $2::uuid, $3::uuid)`, actorID, reporterID, otherID)
-		_, _ = pool.Exec(cleanupCtx, `DELETE FROM schools WHERE id = $1::uuid`, schoolID)
-	})
 
 	return operationsFixture{
 		pool:       pool,

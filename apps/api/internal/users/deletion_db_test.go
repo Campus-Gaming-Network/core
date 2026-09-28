@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/dbtest"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -550,6 +551,17 @@ func TestDeleteAccountSkipsInactiveTeamSuccessor(t *testing.T) {
 func TestDeleteAccountRevokesAdministrativeGrants(t *testing.T) {
 	pool, schoolID := newDeletionFixture(t)
 	ctx := context.Background()
+	// The other administrator's active site-admin grant would make concurrent
+	// bootstrap fixtures fail.
+	unlock, err := dbtest.LockSiteRoleGrantTests(ctx, pool)
+	if err != nil {
+		t.Fatalf("lock site-role grant tests: %v", err)
+	}
+	t.Cleanup(func() {
+		if err := unlock(context.Background()); err != nil {
+			t.Errorf("unlock site-role grant tests: %v", err)
+		}
+	})
 	userID := insertUser(t, pool, schoolID, "school-admin-delete@example.test")
 	otherAdminID := insertUser(t, pool, schoolID, "other-site-admin-delete@example.test")
 	t.Cleanup(func() {
