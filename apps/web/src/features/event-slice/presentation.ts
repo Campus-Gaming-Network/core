@@ -1,9 +1,5 @@
-import type {
-  EventBrowseItemDTO,
-  EventDTO,
-  EventNotice,
-  EventRSVP,
-} from "./contracts.js";
+import type { PageNotice } from "../../components/page-notice.js";
+import type { EventBrowseItemDTO, EventDTO, EventRSVP } from "./contracts.js";
 
 export const eventsDescription =
   "Browse upcoming collegiate gaming events and filter them by game or school.";
@@ -134,31 +130,59 @@ export function roleIndicatorLabel(role: string): string {
   return labels[role] ?? "Community role";
 }
 
-export function eventNoticeMessage(notice: EventNotice): string {
-  const notices: Record<EventNotice, string> = {
-    "cancel-failed": "We could not cancel that event. Please try again.",
-    cancelled: "Event cancelled.",
-    created: "Event created.",
-    "delete-failed": "We could not cancel that event. Please try again.",
-    deleted: "Event cancelled.",
-    failed: "We could not update that event. Please try again.",
-    "interest-added": "Marked as interested.",
-    "interest-failed": "We could not update your interest. Please try again.",
-    "interest-removed": "Removed from interested events.",
-    "report-failed": "We could not submit that report. Please try again.",
-    "report-submitted": "Report submitted for review.",
-    "rsvp-failed": "We could not save your RSVP. Please try again.",
-    "rsvp-updated": "RSVP saved.",
-    "unlock-failed": "That password did not unlock the event. Try again.",
-    unlocked: "Event unlocked.",
-    updated: "Event updated.",
-  };
-  return notices[notice];
-}
+// Native event forms redirect failures to the event page, or to the browse
+// page when the submitted slug was unusable.
+const eventFailureNotices = {
+  "cancel-failed": {
+    message: "We could not cancel that event. Please try again.",
+    severity: "danger",
+  },
+  "interest-failed": {
+    message: "We could not update your interest. Please try again.",
+    severity: "danger",
+  },
+  "report-failed": {
+    message: "We could not submit that report. Please try again.",
+    severity: "danger",
+  },
+  "rsvp-failed": {
+    message: "We could not save your RSVP. Please try again.",
+    severity: "danger",
+  },
+  "unlock-failed": {
+    message: "That password did not unlock the event. Try again.",
+    severity: "danger",
+  },
+} as const satisfies Record<string, PageNotice>;
 
-export function isFailureNotice(notice: EventNotice): boolean {
-  return notice === "failed" || notice.endsWith("-failed");
-}
+export const eventBrowseNotices = {
+  ...eventFailureNotices,
+  cancelled: { message: "Event cancelled.", severity: "success" },
+  failed: {
+    message: "We could not update that event. Please try again.",
+    severity: "danger",
+  },
+} as const satisfies Record<string, PageNotice>;
+
+export const eventDetailNotices = {
+  ...eventFailureNotices,
+  created: { message: "Event created.", severity: "success" },
+  "interest-added": { message: "Marked as interested.", severity: "success" },
+  "interest-removed": {
+    message: "Removed from interested events.",
+    severity: "success",
+  },
+  "report-submitted": {
+    message: "Report submitted for review.",
+    severity: "success",
+  },
+  "rsvp-updated": { message: "RSVP saved.", severity: "success" },
+  unlocked: { message: "Event unlocked.", severity: "success" },
+  updated: { message: "Event updated.", severity: "success" },
+} as const satisfies Record<string, PageNotice>;
+
+export type EventBrowseNotice = keyof typeof eventBrowseNotices;
+export type EventDetailNotice = keyof typeof eventDetailNotices;
 
 export function safeExternalEventUrl(
   value: string | undefined,

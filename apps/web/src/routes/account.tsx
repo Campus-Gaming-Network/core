@@ -16,11 +16,16 @@ import {
   getAccountDashboard,
   updateAccountProfile,
 } from "../features/account-slice/account.functions";
-import { accountHead } from "../features/account-slice/presentation";
+import {
+  accountHead,
+  accountNotices,
+} from "../features/account-slice/presentation";
 import {
   type AccountProfileDTO,
   type DashboardEventDTO,
 } from "../features/account-slice/contracts";
+import { pageNoticeKey } from "../components/page-notice";
+import { PageNoticeView } from "../components/page-notice-view";
 import { RouteErrorView, RoutePending } from "../components/route-boundaries";
 import {
   eventLifecycleLabel,
@@ -31,18 +36,10 @@ import { schoolLocation } from "../features/school-slice/presentation";
 import { teamRoleLabel } from "../features/team-slice/presentation";
 import accountCSS from "../features/account-slice/account.css?url";
 
-type AccountNotice = "delete-failed" | "profile-failed" | "profile-updated";
-
 export const Route = createFileRoute("/account")({
   validateSearch: (search: Record<string, unknown>) => {
-    const value = Array.isArray(search.account)
-      ? search.account[0]
-      : search.account;
-    return value === "delete-failed" ||
-      value === "profile-failed" ||
-      value === "profile-updated"
-      ? { account: value as AccountNotice }
-      : {};
+    const account = pageNoticeKey(accountNotices, search.account);
+    return account ? { account } : {};
   },
   loader: async ({ context }) => {
     const dashboard = await getAccountDashboard();
@@ -83,7 +80,9 @@ function AccountPage() {
         </div>
       </section>
 
-      {search.account ? <AccountNoticeView notice={search.account} /> : null}
+      <PageNoticeView
+        notice={search.account ? accountNotices[search.account] : undefined}
+      />
 
       <section className="summary-strip" aria-label="Account summary">
         <article className="card">
@@ -448,21 +447,6 @@ function AccountAvatar({ profile }: { profile: AccountProfileDTO }) {
     <span className="avatar avatar--large" aria-hidden="true">
       {profile.name.trim().slice(0, 1).toUpperCase() || "C"}
     </span>
-  );
-}
-
-function AccountNoticeView({ notice }: { notice: AccountNotice }) {
-  const failed = notice.endsWith("failed");
-  const message =
-    notice === "profile-updated"
-      ? "Profile updated."
-      : notice === "profile-failed"
-        ? "We could not update your profile. Please try again."
-        : "We could not delete your account. Please try again.";
-  return (
-    <p role={failed ? "alert" : "status"} aria-live="polite">
-      {message}
-    </p>
   );
 }
 

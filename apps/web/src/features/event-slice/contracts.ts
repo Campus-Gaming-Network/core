@@ -1,5 +1,7 @@
 import * as z from "zod";
+import { pageNoticeKey } from "../../components/page-notice.js";
 import { localDateTimeToInstant } from "./event-time.js";
+import { eventBrowseNotices, type EventBrowseNotice } from "./presentation.js";
 
 const identifierSchema = z.string().trim().min(1).max(200);
 const timestampSchema = z.iso.datetime({ offset: true });
@@ -402,46 +404,9 @@ export type EventsBrowseResult = {
   gamesUnavailable: boolean;
 };
 
-export type EventNotice =
-  | "cancel-failed"
-  | "cancelled"
-  | "created"
-  | "delete-failed"
-  | "deleted"
-  | "failed"
-  | "interest-added"
-  | "interest-failed"
-  | "interest-removed"
-  | "report-failed"
-  | "report-submitted"
-  | "rsvp-failed"
-  | "rsvp-updated"
-  | "unlock-failed"
-  | "unlocked"
-  | "updated";
-
 export type EventsSearch = EventsBrowseInput & {
-  event?: EventNotice;
+  event?: EventBrowseNotice;
 };
-
-const eventNotices = new Set<EventNotice>([
-  "cancel-failed",
-  "cancelled",
-  "created",
-  "delete-failed",
-  "deleted",
-  "failed",
-  "interest-added",
-  "interest-failed",
-  "interest-removed",
-  "report-failed",
-  "report-submitted",
-  "rsvp-failed",
-  "rsvp-updated",
-  "unlock-failed",
-  "unlocked",
-  "updated",
-]);
 
 export function validateEventsSearch(
   search: Record<string, unknown>,
@@ -452,7 +417,7 @@ export function validateEventsSearch(
   const format = eventFormatSchema.safeParse(formatCandidate);
   const after = boundedSearchValue(search.after, eventCursorSchema);
   const before = boundedSearchValue(search.before, eventCursorSchema);
-  const event = boundedSearchValue(search.event, eventFilterSchema);
+  const event = pageNoticeKey(eventBrowseNotices, search.event);
 
   return {
     ...(game ? { game } : {}),
@@ -460,9 +425,7 @@ export function validateEventsSearch(
     ...(format.success ? { format: format.data } : {}),
     ...(after ? { after } : {}),
     ...(before ? { before } : {}),
-    ...(event && eventNotices.has(event as EventNotice)
-      ? { event: event as EventNotice }
-      : {}),
+    ...(event ? { event } : {}),
   };
 }
 

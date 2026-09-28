@@ -1,4 +1,5 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
+import { PageNoticeView } from "../components/page-notice-view";
 import { ListUnavailable, RoutePending } from "../components/route-boundaries";
 import { getSchoolsCatalog } from "../features/school-slice/catalog.functions";
 import {
@@ -8,6 +9,7 @@ import {
   type SchoolsSearch,
 } from "../features/school-slice/contracts";
 import {
+  schoolBrowseNotices,
   schoolLocation,
   schoolsHead,
 } from "../features/school-slice/presentation";
@@ -48,7 +50,9 @@ function SchoolsPage() {
         </p>
       </section>
 
-      {search.follow ? <FollowNotice status={search.follow} /> : null}
+      <PageNoticeView
+        notice={search.follow ? schoolBrowseNotices[search.follow] : undefined}
+      />
 
       <form action="/schools" className="search-bar" method="get">
         <label>
@@ -124,24 +128,6 @@ function catalogSearch(search: SchoolsSearch, page?: number): SchoolsSearch {
     ...(search.state ? { state: search.state } : {}),
     ...(page && page > 1 ? { page } : {}),
   };
-}
-
-function FollowNotice({
-  status,
-}: {
-  status: NonNullable<SchoolsSearch["follow"]>;
-}) {
-  const messages = {
-    added: "School followed.",
-    failed: "We could not update this school follow. Please try again.",
-    removed: "School unfollowed.",
-  } as const;
-
-  return (
-    <p role={status === "failed" ? "alert" : "status"} aria-live="polite">
-      {messages[status]}
-    </p>
-  );
 }
 
 function SchoolsPending() {

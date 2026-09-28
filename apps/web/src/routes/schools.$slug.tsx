@@ -7,6 +7,7 @@ import {
 import { useServerFn } from "@tanstack/react-start";
 import { type FormEvent } from "react";
 import { useEnhancedMutation } from "../components/enhanced-mutation";
+import { PageNoticeView } from "../components/page-notice-view";
 import { RouteErrorView, RoutePending } from "../components/route-boundaries";
 import {
   getSchoolCatalog,
@@ -17,11 +18,11 @@ import {
   unfollowSchool,
 } from "../features/school-slice/school-follow.functions";
 import {
-  validateSchoolsSearch,
+  validateSchoolSearch,
   type SchoolDTO,
-  type SchoolsSearch,
 } from "../features/school-slice/contracts";
 import {
+  schoolDetailNotices,
   schoolHead,
   schoolLocation,
   safeSchoolWebsite,
@@ -34,7 +35,7 @@ export type SchoolRouteData = {
 };
 
 export const Route = createFileRoute("/schools/$slug")({
-  validateSearch: validateSchoolsSearch,
+  validateSearch: validateSchoolSearch,
   loader: async ({ context, params }): Promise<SchoolRouteData> => {
     const catalog = await getSchoolCatalog({ data: { slug: params.slug } });
     if (catalog.status === "not_found") {
@@ -79,7 +80,9 @@ function SchoolPage() {
         </p>
       </section>
 
-      {search.follow ? <FollowNotice status={search.follow} /> : null}
+      <PageNoticeView
+        notice={search.follow ? schoolDetailNotices[search.follow] : undefined}
+      />
 
       <section className="detail-grid" aria-label="School details">
         <div className="detail-row">
@@ -190,23 +193,6 @@ function SchoolFollowForm({
             : "Follow school"}
       </button>
     </form>
-  );
-}
-
-function FollowNotice({
-  status,
-}: {
-  status: NonNullable<SchoolsSearch["follow"]>;
-}) {
-  const messages = {
-    added: "School followed.",
-    failed: "We could not update this school follow. Please try again.",
-    removed: "School unfollowed.",
-  } as const;
-  return (
-    <p role={status === "failed" ? "alert" : "status"} aria-live="polite">
-      {messages[status]}
-    </p>
   );
 }
 

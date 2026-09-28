@@ -56,7 +56,7 @@ test("school search normalization is tolerant and keeps notices out of catalog k
     q: ["  example  ", "ignored"],
     state: " CA ",
     page: "2",
-    follow: "added",
+    follow: "failed",
     untrusted: { nested: true },
   });
 
@@ -64,7 +64,7 @@ test("school search normalization is tolerant and keeps notices out of catalog k
     q: "example",
     state: "CA",
     page: 2,
-    follow: "added",
+    follow: "failed",
   });
   assert.deepEqual(schoolsBrowseInput(search), {
     query: "example",

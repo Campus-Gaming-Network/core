@@ -4,7 +4,7 @@ Quick re-entry point for Campus Gaming Network. Read this first after time away;
 the detailed product and engineering context remains in the other documents in
 this folder.
 
-**Last updated:** 2026-09-25
+**Last updated:** 2026-09-28
 
 ## Where we are
 
@@ -31,7 +31,7 @@ verification steps.
 
 ## Next three tasks
 
-1. Complete `CGN-020`: give redirect notices truthful, typed severity.
+1. Complete `CGN-019`: one source of truth per status fact, and repair doc drift.
 2. Complete `AC-010`: the 5 MB school-logo upload pipeline, which unblocks the
    Admin Console catalog UI.
 3. Complete `AC-013`: the Admin Console catalog, user, and access UI.
@@ -57,6 +57,10 @@ the moderation workspace (`AC-012`) and the catalog, user, and grant APIs
 
 ## Recently completed
 
+- Redirect notices are now typed per page: failures always render as alerts,
+  unknown values render nothing, and failures that were silently dropped (a
+  wrong private-event password without JavaScript, failures redirected to the
+  events and teams lists, and account deletion) now show (`CGN-020`).
 - Browse pages now tell an API outage or malformed response apart from an
   empty result and offer a retry, and a failed session lookup answers `503`
   instead of logging the user out (`CGN-014`).

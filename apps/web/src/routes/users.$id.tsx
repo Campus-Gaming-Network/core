@@ -11,10 +11,10 @@ import {
   newIdempotencyKey,
   useIdempotencyKey,
 } from "../components/idempotency-key";
+import { PageNoticeView } from "../components/page-notice-view";
 import { RouteErrorView, RoutePending } from "../components/route-boundaries";
 import type {
   PublicProfileDTO,
-  ReportUserNotice,
   ReportUserResult,
   ViewerRelationship,
 } from "../features/public-profile/contracts";
@@ -26,10 +26,12 @@ import {
 import {
   publicProfileHomeSchool,
   publicProfileMetadata,
+  reportUserNotices,
   roleIndicatorLabel,
   safeHTTPURL,
   userInitials,
   verificationLabel,
+  type ReportUserNotice,
 } from "../features/public-profile/presentation";
 
 const siteName = "Campus Gaming Network";
@@ -210,7 +212,9 @@ function ProfileSafety({
   profileID: string;
   viewer: ViewerRelationship;
 }) {
-  const noticeView = notice ? <ReportUserNoticeView notice={notice} /> : null;
+  const noticeView = (
+    <PageNoticeView notice={notice ? reportUserNotices[notice] : undefined} />
+  );
 
   if (viewer === "self") {
     return (
@@ -316,17 +320,6 @@ function ReportUserForm({ userID }: { userID: string }) {
         {pending ? "Submitting…" : "Submit report"}
       </button>
     </form>
-  );
-}
-
-function ReportUserNoticeView({ notice }: { notice: ReportUserNotice }) {
-  const failed = notice === "failed";
-  return (
-    <p aria-live="polite" role={failed ? "alert" : "status"}>
-      {failed
-        ? "We could not submit that report. Please try again."
-        : "Report submitted for review."}
-    </p>
   );
 }
 

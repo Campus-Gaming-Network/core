@@ -15,6 +15,8 @@ import {
   newIdempotencyKey,
   useIdempotencyKey,
 } from "../components/idempotency-key";
+import { pageNoticeKey } from "../components/page-notice";
+import { PageNoticeView } from "../components/page-notice-view";
 import { RouteErrorView, RoutePending } from "../components/route-boundaries";
 import {
   cancelEvent,
@@ -32,21 +34,19 @@ import { EventBanner } from "../features/event-slice/event-banner";
 import type {
   EventDTO,
   EventDetailDTO,
-  EventNotice,
   LockedEventDTO,
 } from "../features/event-slice/contracts";
-import { validateEventsSearch } from "../features/event-slice/contracts";
 import {
+  eventDetailNotices,
   eventFormatLabel,
   eventLifecycleLabel,
   eventLocation,
-  eventNoticeMessage,
   eventRSVPLabel,
   eventTimeRange,
   eventVisibilityLabel,
   formatEventDate,
-  isFailureNotice,
   recurrenceRuleLabel,
+  type EventDetailNotice,
   roleIndicatorLabel,
   safeExternalEventUrl,
   verificationLabel,
@@ -66,7 +66,7 @@ export type EventRouteData = {
 };
 
 type EventSearch = {
-  event?: EventNotice;
+  event?: EventDetailNotice;
 };
 
 export const Route = createFileRoute("/events/$slug")({
@@ -117,7 +117,7 @@ export const Route = createFileRoute("/events/$slug")({
 export function validateEventSearch(
   search: Record<string, unknown>,
 ): EventSearch {
-  const event = validateEventsSearch(search).event;
+  const event = pageNoticeKey(eventDetailNotices, search.event);
   return event ? { event } : {};
 }
 
@@ -175,7 +175,13 @@ function EventPage() {
   const search = Route.useSearch();
 
   if (isLockedEvent(event)) {
-    return <LockedEventView slug={event.slug} authenticated={authenticated} />;
+    return (
+      <LockedEventView
+        slug={event.slug}
+        authenticated={authenticated}
+        notice={search.event}
+      />
+    );
   }
 
   return (
@@ -190,9 +196,11 @@ function EventPage() {
 export function LockedEventView({
   slug,
   authenticated,
+  notice,
 }: {
   slug: string;
   authenticated: boolean;
+  notice?: EventDetailNotice;
 }) {
   return (
     <main className="narrow">
@@ -205,6 +213,9 @@ export function LockedEventView({
           sent to the browser until the password checks out.
         </p>
       </section>
+      <PageNoticeView
+        notice={notice ? eventDetailNotices[notice] : undefined}
+      />
       <UnlockEventForm slug={slug} />
       <NativeLogoutFallback authenticated={authenticated} />
       <div className="actions">
@@ -258,14 +269,9 @@ function VisibleEventView({
 
       <NativeLogoutFallback authenticated={authenticated} />
 
-      {notice ? (
-        <p
-          role={isFailureNotice(notice) ? "alert" : "status"}
-          aria-live="polite"
-        >
-          {eventNoticeMessage(notice)}
-        </p>
-      ) : null}
+      <PageNoticeView
+        notice={notice ? eventDetailNotices[notice] : undefined}
+      />
 
       <section className="detail-grid" aria-label="Event details">
         <div className="detail-row">

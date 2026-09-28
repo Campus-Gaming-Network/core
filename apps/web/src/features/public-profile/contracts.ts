@@ -1,4 +1,6 @@
 import * as z from "zod";
+import { pageNoticeKey } from "../../components/page-notice.js";
+import { reportUserNotices, type ReportUserNotice } from "./presentation.js";
 
 const identifierSchema = z.string().trim().min(1);
 const reportTargetSchema = z
@@ -49,12 +51,9 @@ export const reportUserInputSchema = z.object({
   idempotency_key: z.uuid("Reload the page and try again."),
 });
 
-const reportNotices = new Set(["submitted", "failed"] as const);
-
 export type PublicProfileDTO = z.output<typeof publicProfileDtoSchema>;
 export type PublicProfileInput = z.output<typeof publicProfileInputSchema>;
 export type ReportUserInput = z.output<typeof reportUserInputSchema>;
-export type ReportUserNotice = "submitted" | "failed";
 export type ViewerRelationship = "anonymous" | "self" | "other";
 
 export type ReportUserResult =
@@ -119,11 +118,8 @@ export function validateReportUserServerInput(
 export function validatePublicProfileSearch(search: Record<string, unknown>): {
   report?: ReportUserNotice;
 } {
-  const value = Array.isArray(search.report) ? search.report[0] : search.report;
-  return typeof value === "string" &&
-    reportNotices.has(value as ReportUserNotice)
-    ? { report: value as ReportUserNotice }
-    : {};
+  const report = pageNoticeKey(reportUserNotices, search.report);
+  return report ? { report } : {};
 }
 
 export function reportUserNativeDestination(

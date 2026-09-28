@@ -1,4 +1,23 @@
+import type { PageNotice } from "../../components/page-notice.js";
 import type { SchoolDTO } from "./contracts.js";
+
+// Native follow forms redirect failures to the school page, or to the browse
+// page when the submitted slug was unusable.
+export const schoolBrowseNotices = {
+  failed: {
+    message: "We could not update this school follow. Please try again.",
+    severity: "danger",
+  },
+} as const satisfies Record<string, PageNotice>;
+
+export const schoolDetailNotices = {
+  ...schoolBrowseNotices,
+  added: { message: "School followed.", severity: "success" },
+  removed: { message: "School unfollowed.", severity: "success" },
+} as const satisfies Record<string, PageNotice>;
+
+export type SchoolBrowseNotice = keyof typeof schoolBrowseNotices;
+export type SchoolDetailNotice = keyof typeof schoolDetailNotices;
 
 export const siteName = "Campus Gaming Network";
 export const homeDescription =

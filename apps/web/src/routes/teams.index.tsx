@@ -1,4 +1,5 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
+import { PageNoticeView } from "../components/page-notice-view";
 import { ListUnavailable, RoutePending } from "../components/route-boundaries";
 import { getEventViewerSession } from "../features/event-slice/auth.functions";
 import {
@@ -7,7 +8,10 @@ import {
   type TeamsSearch,
 } from "../features/team-slice/contracts";
 import { getTeamsBrowse } from "../features/team-slice/team.functions";
-import { teamsHead } from "../features/team-slice/presentation";
+import {
+  teamBrowseNotices,
+  teamsHead,
+} from "../features/team-slice/presentation";
 import teamCSS from "../features/team-slice/teams.css?url";
 
 export const Route = createFileRoute("/teams/")({
@@ -82,6 +86,10 @@ function TeamsPage() {
           )}
         </div>
       </section>
+
+      <PageNoticeView
+        notice={search.team ? teamBrowseNotices[search.team] : undefined}
+      />
 
       <form action="/teams" className="search-bar" method="get">
         <label>

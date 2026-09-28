@@ -1,4 +1,11 @@
 import * as z from "zod";
+import { pageNoticeKey } from "../../components/page-notice.js";
+import {
+  schoolBrowseNotices,
+  schoolDetailNotices,
+  type SchoolBrowseNotice,
+  type SchoolDetailNotice,
+} from "./presentation.js";
 
 const identifierSchema = z.string().trim().min(1).max(200);
 const nonNegativeIntegerSchema = z.number().int().nonnegative();
@@ -101,7 +108,7 @@ export type SchoolsSearch = {
   q?: string;
   state?: string;
   page?: number;
-  follow?: "added" | "failed" | "removed";
+  follow?: SchoolBrowseNotice;
 };
 
 export function validateSchoolsSearch(
@@ -110,16 +117,23 @@ export function validateSchoolsSearch(
   const q = firstString(search.q).trim();
   const state = firstString(search.state).trim();
   const page = pageNumber(firstString(search.page));
-  const follow = firstString(search.follow);
+  const follow = pageNoticeKey(schoolBrowseNotices, search.follow);
 
   return {
     ...(q ? { q } : {}),
     ...(state ? { state } : {}),
     ...(page > 1 ? { page } : {}),
-    ...(follow === "added" || follow === "failed" || follow === "removed"
-      ? { follow }
-      : {}),
+    ...(follow ? { follow } : {}),
   };
+}
+
+export type SchoolSearch = { follow?: SchoolDetailNotice };
+
+export function validateSchoolSearch(
+  search: Record<string, unknown>,
+): SchoolSearch {
+  const follow = pageNoticeKey(schoolDetailNotices, search.follow);
+  return follow ? { follow } : {};
 }
 
 export function schoolsBrowseInput(search: SchoolsSearch): SchoolsBrowseInput {

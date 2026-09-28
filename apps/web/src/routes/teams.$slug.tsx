@@ -12,6 +12,7 @@ import {
   fieldErrorProps,
   useEnhancedMutation,
 } from "../components/enhanced-mutation";
+import { PageNoticeView } from "../components/page-notice-view";
 import { RouteErrorView, RoutePending } from "../components/route-boundaries";
 import { getEventViewerSession } from "../features/event-slice/auth.functions";
 import {
@@ -19,7 +20,6 @@ import {
   type TeamDTO,
   type TeamMemberDTO,
   type TeamMutationResult,
-  type TeamNotice,
   type TeamViewerState,
 } from "../features/team-slice/contracts";
 import {
@@ -28,7 +28,11 @@ import {
   setTeamCaptain,
   transferTeamOwnership,
 } from "../features/team-slice/team.functions";
-import { teamHead, teamRoleLabel } from "../features/team-slice/presentation";
+import {
+  teamDetailNotices,
+  teamHead,
+  teamRoleLabel,
+} from "../features/team-slice/presentation";
 import teamCSS from "../features/team-slice/teams.css?url";
 
 export type TeamRouteData = {
@@ -103,7 +107,9 @@ function TeamPage() {
         </div>
       </section>
 
-      {search.team ? <TeamNoticeMessage status={search.team} /> : null}
+      <PageNoticeView
+        notice={search.team ? teamDetailNotices[search.team] : undefined}
+      />
 
       <section className="detail-grid" aria-label="Team details">
         <div className="detail-row">
@@ -430,29 +436,6 @@ async function finishManagementMutation(
         : `/teams/${encodeURIComponent(slug)}?team=manage-failed`,
     replace: true,
   });
-}
-
-function TeamNoticeMessage({ status }: { status: TeamNotice }) {
-  const messages: Record<TeamNotice, string> = {
-    "captain-updated": "Captain role updated.",
-    created: "Team created.",
-    joined: "You joined the team.",
-    "join-failed": "We could not join that team. Please try again.",
-    "manage-failed": "We could not update team management. Please try again.",
-    "ownership-transferred": "Ownership transferred.",
-  };
-  return (
-    <p
-      role={
-        status === "join-failed" || status === "manage-failed"
-          ? "alert"
-          : "status"
-      }
-      aria-live="polite"
-    >
-      {messages[status]}
-    </p>
-  );
 }
 
 function TeamPending() {

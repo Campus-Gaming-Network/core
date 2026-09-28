@@ -1,6 +1,17 @@
+import type { PageNotice } from "../../components/page-notice.js";
 import type { PublicProfileDTO } from "./contracts.js";
 
 const siteName = "Campus Gaming Network";
+
+export const reportUserNotices = {
+  failed: {
+    message: "We could not submit that report. Please try again.",
+    severity: "danger",
+  },
+  submitted: { message: "Report submitted for review.", severity: "success" },
+} as const satisfies Record<string, PageNotice>;
+
+export type ReportUserNotice = keyof typeof reportUserNotices;
 
 export function publicProfileMetadata(
   profile: PublicProfileDTO,

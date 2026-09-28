@@ -61,7 +61,7 @@ test("team detail has real 404, same-DTO head, bounded notices, and typed links"
   assert.match(detailSource, /to="\/schools\/\$slug"/);
   assert.match(detailSource, /to="\/login"/);
   assert.match(detailSource, /search=\{\{ next: `\/teams\/\$\{slug\}` \}\}/);
-  assert.match(detailSource, /TeamNoticeMessage/);
+  assert.match(detailSource, /<PageNoticeView/);
   assert.doesNotMatch(detailSource, /result\.message/);
 });
 

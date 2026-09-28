@@ -11,7 +11,6 @@ import {
   eventFormatLabel,
   eventLifecycleLabel,
   eventLocation,
-  eventNoticeMessage,
   eventsHead,
   safeExternalEventUrl,
 } from "../src/features/event-slice/presentation.js";
@@ -88,9 +87,6 @@ test("event search accepts bounded filters and opaque cursors without loading no
     }),
     {},
   );
-  assert.deepEqual(validateEventsSearch({ event: "report-submitted" }), {
-    event: "report-submitted",
-  });
 });
 
 test("event browse reads public no-store DTOs and strips viewer/private fields", async () => {
@@ -221,11 +217,6 @@ test("event read presentation matches labels, notices, indexable head, and safe 
   assert.equal(
     eventLocation(browseEvent),
     "Student Union · 100 Campus Drive + online",
-  );
-  assert.equal(eventNoticeMessage("interest-added"), "Marked as interested.");
-  assert.equal(
-    eventNoticeMessage("report-submitted"),
-    "Report submitted for review.",
   );
   assert.equal(safeExternalEventUrl("javascript:alert(1)"), undefined);
   assert.equal(

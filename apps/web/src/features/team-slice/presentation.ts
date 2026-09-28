@@ -1,4 +1,32 @@
+import type { PageNotice } from "../../components/page-notice.js";
 import type { TeamDTO, TeamRole } from "./contracts.js";
+
+// Native team forms redirect failures to the team page, or to the browse page
+// when the submitted slug was unusable.
+export const teamBrowseNotices = {
+  "join-failed": {
+    message: "We could not join that team. Please try again.",
+    severity: "danger",
+  },
+  "manage-failed": {
+    message: "We could not update team management. Please try again.",
+    severity: "danger",
+  },
+} as const satisfies Record<string, PageNotice>;
+
+export const teamDetailNotices = {
+  ...teamBrowseNotices,
+  "captain-updated": { message: "Captain role updated.", severity: "success" },
+  created: { message: "Team created.", severity: "success" },
+  joined: { message: "You joined the team.", severity: "success" },
+  "ownership-transferred": {
+    message: "Ownership transferred.",
+    severity: "success",
+  },
+} as const satisfies Record<string, PageNotice>;
+
+export type TeamBrowseNotice = keyof typeof teamBrowseNotices;
+export type TeamDetailNotice = keyof typeof teamDetailNotices;
 
 const siteName = "Campus Gaming Network";
 export const teamsDescription =

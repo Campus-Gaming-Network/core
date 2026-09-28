@@ -88,6 +88,7 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 - [x] Run a focused real-stack browser suite through built TanStack Start, the Go API, disposable PostgreSQL, the email outbox, and a Resend HTTP stub; repeat every journey twice in CI while retaining the fast fake-API suite
 - [x] Replace message-fragment HTTP error classification with typed, stable application errors and one centralized mapper (`CGN-017`)
 - [x] Split the event domain and HTTP router tests into capability and route-family files without changing public behavior (`CGN-018`)
+- [x] Give redirect notices a typed per-page allowlist with correct alert/status severity (`CGN-020`)
 
 ### Auth & profiles
 

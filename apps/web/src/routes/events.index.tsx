@@ -8,6 +8,7 @@ import {
   RouteErrorView,
   RoutePending,
 } from "../components/route-boundaries";
+import { PageNoticeView } from "../components/page-notice-view";
 import {
   getEventViewerSession,
   logout,
@@ -17,16 +18,14 @@ import { getEventsBrowse } from "../features/event-slice/event.functions";
 import {
   eventsBrowseInput,
   validateEventsSearch,
-  type EventNotice,
   type EventsSearch,
 } from "../features/event-slice/contracts";
 import {
+  eventBrowseNotices,
   eventLifecycleLabel,
   eventLocation,
-  eventNoticeMessage,
   eventTimeRange,
   eventsHead,
-  isFailureNotice,
 } from "../features/event-slice/presentation";
 import eventCSS from "../features/event-slice/events.css?url";
 
@@ -76,7 +75,6 @@ function EventsPage() {
     browse.has_more && browse.next_cursor
       ? paginationSearch(search, { after: browse.next_cursor })
       : undefined;
-  const notice = browseNotice(search.event);
 
   return (
     <main className="narrow">
@@ -109,7 +107,9 @@ function EventsPage() {
         )}
       </section>
 
-      {notice ? <EventNoticeView notice={notice} /> : null}
+      <PageNoticeView
+        notice={search.event ? eventBrowseNotices[search.event] : undefined}
+      />
 
       <form action="/events" className="search-bar" method="get">
         <label>
@@ -217,25 +217,6 @@ function paginationSearch(
     ...(search.format ? { format: search.format } : {}),
     ...cursor,
   };
-}
-
-function browseNotice(
-  notice: EventNotice | undefined,
-): EventNotice | undefined {
-  return notice === "cancelled" ||
-    notice === "cancel-failed" ||
-    notice === "deleted" ||
-    notice === "failed"
-    ? notice
-    : undefined;
-}
-
-function EventNoticeView({ notice }: { notice: EventNotice }) {
-  return (
-    <p role={isFailureNotice(notice) ? "alert" : "status"} aria-live="polite">
-      {eventNoticeMessage(notice)}
-    </p>
-  );
 }
 
 function EventsPending() {

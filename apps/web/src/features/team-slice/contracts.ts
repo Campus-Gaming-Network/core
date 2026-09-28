@@ -1,4 +1,11 @@
 import * as z from "zod";
+import { pageNoticeKey } from "../../components/page-notice.js";
+import {
+  teamDetailNotices,
+  teamBrowseNotices,
+  type TeamDetailNotice,
+  type TeamBrowseNotice,
+} from "./presentation.js";
 
 const identifierSchema = z.string().trim().min(1).max(200);
 const nonNegativeIntegerSchema = z.number().int().nonnegative();
@@ -146,18 +153,10 @@ export type TeamsSearch = {
   school?: string;
   after?: string;
   before?: string;
-  team?: "manage-failed";
+  team?: TeamBrowseNotice;
 };
 
-export type TeamNotice =
-  | "captain-updated"
-  | "created"
-  | "joined"
-  | "join-failed"
-  | "manage-failed"
-  | "ownership-transferred";
-
-export type TeamDetailSearch = { team?: TeamNotice };
+export type TeamDetailSearch = { team?: TeamDetailNotice };
 
 export type NewTeamSearch = {
   school_q?: string;
@@ -215,14 +214,14 @@ export function validateTeamsSearch(
   const school = tolerantSearchValue(search.school, 200);
   const after = tolerantSearchValue(search.after, 2048);
   const before = tolerantSearchValue(search.before, 2048);
-  const team = tolerantSearchValue(search.team, 64);
+  const team = pageNoticeKey(teamBrowseNotices, search.team);
 
   return {
     ...(game ? { game } : {}),
     ...(school ? { school } : {}),
     ...(after ? { after } : {}),
     ...(before ? { before } : {}),
-    ...(team === "manage-failed" ? { team } : {}),
+    ...(team ? { team } : {}),
   };
 }
 
@@ -238,15 +237,8 @@ export function teamsBrowseInput(search: TeamsSearch): TeamsBrowseInput {
 export function validateTeamDetailSearch(
   search: Record<string, unknown>,
 ): TeamDetailSearch {
-  const team = tolerantSearchValue(search.team, 64);
-  return team === "captain-updated" ||
-    team === "created" ||
-    team === "joined" ||
-    team === "join-failed" ||
-    team === "manage-failed" ||
-    team === "ownership-transferred"
-    ? { team }
-    : {};
+  const team = pageNoticeKey(teamDetailNotices, search.team);
+  return team ? { team } : {};
 }
 
 export function validateNewTeamSearch(

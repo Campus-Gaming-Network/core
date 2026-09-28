@@ -1,4 +1,7 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
+import { pageNoticeKey } from "../components/page-notice";
+import { PageNoticeView } from "../components/page-notice-view";
+import { homeAccountNotices } from "../features/account-slice/presentation";
 import { getHomeCatalog } from "../features/school-slice/catalog.functions";
 import { catalogClientStaleTime } from "../features/school-slice/contracts";
 import {
@@ -7,6 +10,10 @@ import {
 } from "../features/school-slice/presentation";
 
 export const Route = createFileRoute("/")({
+  validateSearch: (search: Record<string, unknown>) => {
+    const account = pageNoticeKey(homeAccountNotices, search.account);
+    return account ? { account } : {};
+  },
   loader: async ({ context }) => ({
     catalog: await getHomeCatalog(),
     publicOrigin: context.publicOrigin,
@@ -18,9 +25,13 @@ export const Route = createFileRoute("/")({
 
 function HomePage() {
   const { catalog } = Route.useLoaderData();
+  const search = Route.useSearch();
 
   return (
     <main>
+      <PageNoticeView
+        notice={search.account ? homeAccountNotices[search.account] : undefined}
+      />
       <section className="hero" aria-labelledby="page-title">
         <div className="hero-copy">
           <p className="eyebrow">Campus Gaming Network</p>

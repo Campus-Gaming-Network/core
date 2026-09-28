@@ -83,7 +83,7 @@ the engineering queue, but all P1 work must be complete before public access.
 |    19 | `CGN-016` | P2       | Multi-organizer scope matches the product promise.                        |
 |    20 | `CGN-018` | P3       | Large modules are split before product expansion.                         |
 
-`CGN-020` is next. Before `CGN-016`, decide whether
+`CGN-019` is next. Before `CGN-016`, decide whether
 multi-organizer management belongs in the first release.
 
 ### Implementation map
@@ -945,8 +945,24 @@ appear in multiple files.
 
 **Priority:** P2  
 **Size:** S  
-**Status:** Ready  
+**Status:** Done (2026-09-28)  
 **Depends on:** None
+
+**Completed:** Each page now lists the query-string notices it can receive,
+with a message and severity for each, and accepts only those values. Unknown,
+empty, and other pages' values render nothing, every `failed` or `*-failed`
+notice renders as an alert, and every other notice as a status. The event,
+team, school, account, home, and profile pages share the pattern. The change
+also fixed notices that were silently dropped: a wrong password on a private
+event now shows on the locked page, `/events` shows RSVP, interest, unlock, and
+report failures redirected there, `/teams` shows join and management failures,
+and the home page confirms a deleted account. A crafted link can no longer show
+"Event cancelled." or "School followed." on a page that never produces it. Unit
+tests render every notice and reject unknown values; browser tests cover the
+newly shown notices, ignored values, and the no-JavaScript failed unlock.
+Forms that merge a redirect failure with their own error message (login,
+signup, password recovery, email verification, support, new event, new team)
+already accepted only known values with the correct role and were left as is.
 
 **Problem**
 

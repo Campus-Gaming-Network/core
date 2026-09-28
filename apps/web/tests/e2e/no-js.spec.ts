@@ -120,6 +120,15 @@ test("event forms complete without JavaScript", async ({ context, page }) => {
   const privateSlug = "private-no-js";
 
   await page.goto(`/events/${privateSlug}`);
+  await page.getByLabel("Event password").fill("WrongPassword123!");
+  await page.getByRole("button", { name: "Unlock event" }).click();
+  await expect(page).toHaveURL(
+    new RegExp(`/events/${privateSlug}\\?event=unlock-failed$`),
+  );
+  await expect(page.getByRole("alert")).toHaveText(
+    "That password did not unlock the event. Try again.",
+  );
+
   await page.getByLabel("Event password").fill(eventPassword);
   await page.getByRole("button", { name: "Unlock event" }).click();
   await expect(page).toHaveURL(
