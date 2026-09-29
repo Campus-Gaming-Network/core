@@ -5,7 +5,6 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminaccess"
@@ -165,10 +164,8 @@ func (handler *Handler) catalogHandler(operation routeOperation, id string) http
 				break
 			}
 			// Rejected before the body is read, so over-limit attempts cost nothing.
-			if !handler.logoUploads.Allow(actor.UserID) {
-				// The window starts at the first attempt, so this is an upper bound.
-				w.Header().Set("Retry-After", strconv.Itoa(int(logoUploadWindow.Seconds())))
-				writeError(w, http.StatusTooManyRequests, "rate_limited")
+			if allowed, retryAfter := handler.limits.logoUploads.Take(actor.UserID); !allowed {
+				writeRateLimited(w, retryAfter)
 				return
 			}
 			var file []byte

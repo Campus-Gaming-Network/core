@@ -311,11 +311,19 @@ Initial v1 defaults:
 
 | Bucket                                  |             Limit | Key                                |
 | --------------------------------------- | ----------------: | ---------------------------------- |
-| Session bootstrap/step-up failures      |  5 per 15 minutes | Access subject + trusted client IP |
-| Admin reads                             |    120 per minute | Admin user + trusted client IP     |
-| Admin writes                            |     30 per minute | Admin user + trusted client IP     |
-| Grant changes and other critical writes | 10 per 15 minutes | Admin user + trusted client IP     |
-| Logo upload attempts                    | 10 per 15 minutes | Admin user (implemented in AC-010) |
+| Session bootstrap/step-up failures      |  5 per 15 minutes | Verified Access issuer and subject |
+| Admin reads                             |    120 per minute | Admin user                         |
+| Admin writes                            |     30 per minute | Admin user                         |
+| Grant changes and other critical writes | 10 per 15 minutes | Admin user                         |
+| Logo upload attempts                    | 10 per 15 minutes | Admin user                         |
+
+Every bucket is keyed by a verified identity, which spoofed forwarded headers
+cannot vary (RATE-02) and which keeps one operator's usage from exhausting
+another's (RATE-03). The Admin BFF does not yet forward a trusted client IP, so
+no bucket has a per-IP dimension. The limits are constants rather than
+configuration, so RATE-06 has no settings to validate. The behavior and the
+routes each bucket covers are in
+[20 — Admin Console v1 engineering plan](./20-admin-console-v1-engineering-plan.md#rate-limits).
 
 | ID      | Automated test                                                                                   | Pass condition                                                                                                                 | Layer               |
 | ------- | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------ | ------------------- |

@@ -585,7 +585,7 @@ test("rejected logos explain the reason and name a no-JavaScript notice", async 
     },
     {
       status: "error",
-      message: "Too many attempts. Wait 15 minutes, then try again.",
+      message: "Too many attempts. Wait up to 15 minutes, then try again.",
       notice: "rate-limited",
     },
     {

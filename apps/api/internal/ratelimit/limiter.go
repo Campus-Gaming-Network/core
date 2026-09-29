@@ -14,6 +14,7 @@ type Limiter struct {
 	mu        sync.Mutex
 	limit     int
 	window    time.Duration
+	now       func() time.Time
 	entries   map[string]entry
 	lastSweep time.Time
 }
@@ -24,6 +25,11 @@ type entry struct {
 }
 
 func New(limit int, window time.Duration) *Limiter {
+	return NewWithClock(limit, window, time.Now)
+}
+
+// NewWithClock lets tests cross window boundaries without sleeping.
+func NewWithClock(limit int, window time.Duration, now func() time.Time) *Limiter {
 	if limit < 1 {
 		limit = 1
 	}
@@ -33,13 +39,21 @@ func New(limit int, window time.Duration) *Limiter {
 	return &Limiter{
 		limit:     limit,
 		window:    window,
+		now:       now,
 		entries:   make(map[string]entry),
-		lastSweep: time.Now(),
+		lastSweep: now(),
 	}
 }
 
 func (l *Limiter) Allow(key string) bool {
-	now := time.Now()
+	allowed, _ := l.Take(key)
+	return allowed
+}
+
+// Take counts one attempt against key. When the window is already exhausted
+// it returns false and how long remains until the window resets.
+func (l *Limiter) Take(key string) (bool, time.Duration) {
+	now := l.now()
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
@@ -48,14 +62,29 @@ func (l *Limiter) Allow(key string) bool {
 	current, ok := l.entries[key]
 	if !ok || now.Sub(current.started) >= l.window {
 		l.entries[key] = entry{started: now, count: 1}
-		return true
+		return true, 0
 	}
 	if current.count >= l.limit {
-		return false
+		return false, current.started.Add(l.window).Sub(now)
 	}
 	current.count++
 	l.entries[key] = current
-	return true
+	return true, 0
+}
+
+// Blocked reports whether key has no attempts left in its current window
+// without counting an attempt. Callers that only count failures use it to
+// refuse work before the failure-producing operation runs.
+func (l *Limiter) Blocked(key string) (bool, time.Duration) {
+	now := l.now()
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	current, ok := l.entries[key]
+	if !ok || now.Sub(current.started) >= l.window || current.count < l.limit {
+		return false, 0
+	}
+	return true, current.started.Add(l.window).Sub(now)
 }
 
 // sweepLocked drops entries whose window has closed. Without it the map retains

@@ -18,7 +18,6 @@ import (
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminsecurity"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminsession"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/operations"
-	"github.com/Campus-Gaming-Network/core/apps/api/internal/ratelimit"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/users"
 	"github.com/jackc/pgx/v5"
 )
@@ -124,17 +123,17 @@ type Handler struct {
 	dependencies Dependencies
 	trusted      http.Handler
 	now          func() time.Time
-	logoUploads  *ratelimit.Limiter
+	limits       limiters
 }
 
 func NewHandler(config Config, dependencies Dependencies) *Handler {
 	if config.StepUpMaxAge <= 0 || config.StepUpMaxAge > 10*time.Minute {
 		config.StepUpMaxAge = 10 * time.Minute
 	}
-	handler := &Handler{
-		config: config, dependencies: dependencies, now: time.Now,
-		logoUploads: ratelimit.New(logoUploadLimit, logoUploadWindow),
-	}
+	handler := &Handler{config: config, dependencies: dependencies, now: time.Now}
+	// Read handler.now on each call so tests can move the clock after
+	// construction.
+	handler.limits = newLimiters(func() time.Time { return handler.now() })
 	if dependencies.Sessions != nil {
 		handler.trusted = adminsession.WithSession(dependencies.Sessions, config.Cookies)(
 			http.HandlerFunc(handler.dispatch),
@@ -198,6 +197,7 @@ func (handler *Handler) dispatch(w http.ResponseWriter, req *http.Request) {
 		if policy.Mutation {
 			next = handler.withCSRFBoundary(adminsecurity.EventAuthorizationDenied, next)
 		}
+		next = handler.withRateLimit(policy, next)
 		next = handler.withAuthorization(
 			policy.Capability,
 			policy.RequiresRecentAuth,
@@ -237,8 +237,17 @@ func (handler *Handler) exchange(w http.ResponseWriter, req *http.Request) {
 		writeError(w, http.StatusUnauthorized, "admin_access_assertion_invalid")
 		return
 	}
+	// The Admin BFF verifies the assertion before calling exchange, so only a
+	// verified identity is counted; an unverified one has no trustworthy key.
+	failureKey := accessFailureKey(identity.Issuer, identity.Subject)
+	if blocked, retryAfter := handler.limits.accessFailures.Blocked(failureKey); blocked {
+		handler.recordDenied(req, adminsecurity.EventExchangeDenied, rateLimitedReasonCode, http.StatusTooManyRequests)
+		writeRateLimited(w, retryAfter)
+		return
+	}
 	profile, err := handler.dependencies.Users.FindByEmail(req.Context(), identity.Email)
 	if errors.Is(err, pgx.ErrNoRows) || (err == nil && profile.EmailVerifiedAt == nil) {
+		handler.limits.accessFailures.Take(failureKey)
 		handler.recordDenied(req, adminsecurity.EventExchangeDenied, "account_not_eligible", http.StatusForbidden)
 		writeError(w, http.StatusForbidden, "site_admin_required")
 		return
@@ -249,6 +258,7 @@ func (handler *Handler) exchange(w http.ResponseWriter, req *http.Request) {
 	}
 	grant, err := handler.dependencies.Grants.ActiveGrant(req.Context(), profile.ID, adminaccess.RoleSiteAdmin)
 	if errors.Is(err, adminaccess.ErrGrantNotFound) {
+		handler.limits.accessFailures.Take(failureKey)
 		handler.recordDenied(req, adminsecurity.EventExchangeDenied, "active_grant_missing", http.StatusForbidden)
 		writeError(w, http.StatusForbidden, "site_admin_required")
 		return
@@ -334,13 +344,21 @@ func (handler *Handler) stepUp(w http.ResponseWriter, req *http.Request) {
 		writeError(w, http.StatusServiceUnavailable, "admin_unavailable")
 		return
 	}
+	failureKey := accessFailureKey(actor.AccessIssuer, actor.AccessSubject)
+	if blocked, retryAfter := handler.limits.accessFailures.Blocked(failureKey); blocked {
+		handler.recordDeniedForActor(req, actor, adminsecurity.EventStepUpDenied, rateLimitedReasonCode, http.StatusTooManyRequests)
+		writeRateLimited(w, retryAfter)
+		return
+	}
 	identity, err := handler.dependencies.Identities.Validate(req.Context(), req.Header.Get(AccessAssertionHeader))
 	if err != nil {
+		handler.limits.accessFailures.Take(failureKey)
 		handler.recordDeniedForActor(req, actor, adminsecurity.EventStepUpDenied, "invalid_access_assertion", http.StatusUnauthorized)
 		writeError(w, http.StatusUnauthorized, "admin_access_assertion_invalid")
 		return
 	}
 	if !handler.validStepUpIdentity(actor.Principal, identity) {
+		handler.limits.accessFailures.Take(failureKey)
 		handler.recordDeniedForActor(req, actor, adminsecurity.EventStepUpDenied, "fresh_identity_required", http.StatusForbidden)
 		writeError(w, http.StatusForbidden, "admin_step_up_required")
 		return

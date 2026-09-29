@@ -590,6 +590,26 @@ API-generated key.
 - Request logs include a generated request id but never cookies, authorization
   assertions, proxy secrets, request bodies, contact emails, or notes.
 
+### Rate limits
+
+The Go Admin API applies fixed-window limits. An over-limit request returns
+`429 rate_limited` with `Retry-After` (seconds until the window resets) and
+records a denied security event with reason `rate_limited`.
+
+| Bucket                                   |             Limit | Key                      | Applies to                                                                                |
+| ---------------------------------------- | ----------------: | ------------------------ | ----------------------------------------------------------------------------------------- |
+| Reads                                    |    120 per minute | Admin user               | Every capability `GET`                                                                    |
+| Writes                                   |     30 per minute | Admin user               | Every capability mutation                                                                 |
+| Critical writes (also counted as writes) | 10 per 15 minutes | Admin user               | Recent-auth operations plus school-admin grant/revoke and trust-grant changes             |
+| Session exchange and step-up failures    |  5 per 15 minutes | Verified Access identity | Ineligible account, missing grant, or rejected step-up; a locked identity cannot exchange |
+| Logo uploads                             | 10 per 15 minutes | Admin user               | `POST /schools/:id/logo`                                                                  |
+
+Authenticated buckets count after authorization and before CSRF and the
+handler, so rejected and malformed attempts spend the operator's budget. The
+Admin BFF verifies the Access assertion before calling exchange, so the API
+counts only failures for a verified identity. The limiters are process-local:
+the API must run a single replica until a shared store replaces them.
+
 ### Observability
 
 Emit safe counters and structured events for:
@@ -1052,6 +1072,7 @@ site-admin grants are enabled in production.
 
 ### AC-014 — Production hardening and independent security review
 
+**Status:** In progress
 **Depends on:** AC-003 through AC-013
 **Deliverables:** Real-stack E2E suite, configuration validation, rate limits,
 alerts/dashboard, dependency and secret review, operator runbooks, staging
@@ -1065,6 +1086,13 @@ penetration pass.
 - Backup/restore, grant recovery, session revocation, and kill-switch drills pass.
 - No unresolved critical/high security findings remain; medium findings have an
   owner and documented release decision.
+
+Implemented so far: the read, write, critical-write, and exchange/step-up
+failure [rate limits](#rate-limits), with an injectable clock so boundary tests
+do not sleep. The Admin Console shows one "wait up to 15 minutes" message for
+any `429`. Remaining locally: the `e2e-real` BFF→API→PostgreSQL suite, the
+remaining security-matrix gaps, alerts, dependency and secret review, and
+operator runbooks. The staging penetration pass and drills wait on staging.
 
 ### AC-015 — Deploy and roll out Admin Console v1
 

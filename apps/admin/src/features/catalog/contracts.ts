@@ -1,4 +1,5 @@
 import * as z from "zod";
+import { rateLimitedMessage } from "../moderation/contracts.js";
 
 const uuidSchema = z.string().uuid();
 const timestampSchema = z.iso.datetime({ offset: true });
@@ -245,7 +246,7 @@ export const logoErrorMessages = {
     "The file could not be read as a complete PNG or JPEG image. Export it again and retry.",
   logo_dimensions_exceeded:
     "The image is larger than 4096 × 4096 pixels or 16 megapixels. Resize it and try again.",
-  rate_limited: "Too many attempts. Wait 15 minutes, then try again.",
+  rate_limited: rateLimitedMessage,
   logo_storage_unavailable:
     "Logo storage is unavailable right now. Try again later.",
 } as const;

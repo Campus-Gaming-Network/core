@@ -5,6 +5,7 @@ import {
 } from "../../server/api.server.js";
 import {
   auditPageSchema,
+  rateLimitedMessage,
   reportSchema,
   reportsPageSchema,
   supportTicketSchema,
@@ -165,6 +166,9 @@ export async function updateQueueItemOperation(
         status: "error",
         message: "Check the submitted values and try again.",
       };
+    }
+    if (error instanceof AdminApiError && error.status === 429) {
+      return { status: "error", message: rateLimitedMessage };
     }
 
     reportError(error);

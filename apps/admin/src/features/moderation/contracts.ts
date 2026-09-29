@@ -130,6 +130,11 @@ export type AuditPage = z.output<typeof auditPageSchema>;
 export type QueueMutationInput = z.output<typeof queueMutationSchema>;
 export type ModerationFieldErrors = Record<string, string[] | undefined>;
 
+// Every Admin API limit resets within 15 minutes, so this bound is truthful for
+// reads, writes, critical changes, and logo uploads alike.
+export const rateLimitedMessage =
+  "Too many attempts. Wait up to 15 minutes, then try again.";
+
 export type QueueMutationResult =
   | { status: "success"; redirectTo: string }
   | {

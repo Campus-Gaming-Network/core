@@ -211,3 +211,36 @@ test("stale updates return current state while preserving submitted form data", 
     { method: undefined, body: undefined },
   ]);
 });
+
+test("rate-limited queue updates tell the operator to wait without reporting an error", async () => {
+  const reported: unknown[] = [];
+  const result = await updateQueueItemOperation(
+    {
+      kind: "report",
+      id: reportID,
+      expected_updated_at: updatedAt,
+      status: "closed",
+      assigned_to_user_id: assigneeID,
+      resolution_note: "Keep this operator input",
+    },
+    {
+      api: (async () => {
+        throw new AdminApiError(429, "rate_limited");
+      }) as ApiClient,
+      cookieHeader: "admin_session=opaque; admin_csrf=csrf",
+      headers: { Origin: "https://admin.example.test" },
+      reportError: (error) => reported.push(error),
+    },
+  );
+
+  assert.deepEqual(
+    { result, reported },
+    {
+      result: {
+        status: "error",
+        message: "Too many attempts. Wait up to 15 minutes, then try again.",
+      },
+      reported: [],
+    },
+  );
+});
