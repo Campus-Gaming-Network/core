@@ -18,8 +18,7 @@ const securityHeadersMiddleware = createMiddleware().server(
     const headers = new Headers(response.headers);
     const defaults = {
       "cache-control": "private, no-store",
-      "content-security-policy":
-        "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'",
+      "content-security-policy": `default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src ${imageSources()}; font-src 'self'; connect-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'`,
       "permissions-policy":
         "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
       "referrer-policy": "no-referrer",
@@ -55,6 +54,20 @@ const securityHeadersMiddleware = createMiddleware().server(
 export const startInstance = createStart(() => ({
   requestMiddleware: [securityHeadersMiddleware, csrfMiddleware],
 }));
+
+// School-logo previews load from the separate asset origin, and nowhere else.
+function imageSources(): string {
+  const base = process.env.R2_PUBLIC_ASSET_ORIGIN?.trim();
+  if (!base) return "'self' data:";
+  try {
+    const { origin, protocol } = new URL(base);
+    return protocol === "https:" || protocol === "http:"
+      ? `'self' data: ${origin}`
+      : "'self' data:";
+  } catch {
+    return "'self' data:";
+  }
+}
 
 function adminOrigin(): string {
   if (typeof window !== "undefined") return window.location.origin;

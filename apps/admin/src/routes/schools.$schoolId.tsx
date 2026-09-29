@@ -3,6 +3,7 @@ import {
   CatalogAuditPanel,
   CatalogNoticeView,
   CommandForm,
+  LogoUploadForm,
   SchoolForm,
   StateBadge,
   recordState,
@@ -36,12 +37,13 @@ export const Route = createFileRoute("/schools/$schoolId")({
 });
 
 function SchoolDetailPage() {
-  const { school, audit, grants } = Route.useLoaderData();
+  const { school, audit, grants, logoPreviewURL } = Route.useLoaderData();
   const search = Route.useSearch();
   const { admin } = Route.useRouteContext();
   const capabilities =
     admin.status === "authenticated" ? admin.session.capabilities : [];
   const canManage = capabilities.includes("schools.manage");
+  const canManageLogo = capabilities.includes("school_logos.manage");
   const state = recordState(school);
   const path = `/schools/${encodeURIComponent(school.id)}`;
 
@@ -87,15 +89,50 @@ function SchoolDetailPage() {
           <DetailFact label="Website">
             {school.website_url || "Not set"}
           </DetailFact>
-          <DetailFact label="Logo">
-            {school.logo_url ? "Set" : "Placeholder"}
-          </DetailFact>
           <DetailFact label="Last changed">
             <time dateTime={school.updated_at}>
               {formatTimestamp(school.updated_at)}
             </time>
           </DetailFact>
         </dl>
+      </section>
+
+      <section className="detail-panel" aria-labelledby="school-logo">
+        <div className="panel-heading">
+          <div>
+            <p className="eyebrow">Public image</p>
+            <h2 id="school-logo">Logo</h2>
+          </div>
+        </div>
+        {logoPreviewURL ? (
+          <img
+            alt={`${school.name} logo`}
+            className="logo-preview"
+            src={logoPreviewURL}
+          />
+        ) : (
+          <p className="empty-copy">
+            {school.logo_url
+              ? "The stored logo is not on the approved asset host, so it is not shown. Upload a replacement."
+              : "No logo yet. The school shows the placeholder."}
+          </p>
+        )}
+        {canManageLogo && state !== "deleted" ? (
+          <>
+            <LogoUploadForm school={school} />
+            {school.logo_url ? (
+              <CommandForm
+                command="school.logo_remove"
+                description="Removes the logo from the school's public pages; the placeholder shows instead."
+                expectedUpdatedAt={school.updated_at}
+                id={school.id}
+                returnPath={path}
+                submitLabel="Remove logo"
+                title="Remove logo"
+              />
+            ) : null}
+          </>
+        ) : null}
       </section>
 
       {canManage && state !== "deleted" ? (

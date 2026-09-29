@@ -1,5 +1,11 @@
 import { expect, test } from "@playwright/test";
-import { authenticateAdmin, ticketID } from "./fixtures/admin-session.js";
+import {
+  authenticateAdmin,
+  catalogSchoolID,
+  disguisedSVGLogo,
+  pngLogo,
+  ticketID,
+} from "./fixtures/admin-session.js";
 
 test("the native catalog form creates a game", async ({
   context,
@@ -19,6 +25,35 @@ test("the native catalog form creates a game", async ({
   await expect(page).toHaveURL(/\/games\/[0-9a-f-]{36}\?notice=created$/);
   await expect(page.getByText("Created.")).toBeVisible();
   await expect(page.getByText("Game created")).toBeVisible();
+});
+
+test("the native logo form explains a rejection and uploads a logo", async ({
+  context,
+  page,
+  request,
+}) => {
+  const reset = await request.post("http://127.0.0.1:18082/__test/reset");
+  expect(reset.ok()).toBe(true);
+  await authenticateAdmin(context);
+  await page.goto(`/schools/${catalogSchoolID}`);
+  const logo = page.getByRole("region", { name: "Logo", exact: true });
+  await logo.getByLabel("Logo file").setInputFiles(disguisedSVGLogo);
+  await logo.getByLabel("Reason").fill("Uploaded without JavaScript");
+  await logo.getByRole("button", { name: "Upload logo" }).click();
+
+  await expect(page).toHaveURL(/notice=logo-unsupported$/);
+  await expect(page.getByRole("alert")).toHaveText(
+    "Upload a PNG or JPEG image. SVG, GIF, WebP, and animated images are not accepted.",
+  );
+
+  await logo.getByLabel("Logo file").setInputFiles(pngLogo);
+  await logo.getByLabel("Reason").fill("Uploaded without JavaScript");
+  await logo.getByRole("button", { name: "Upload logo" }).click();
+  await expect(page).toHaveURL(/notice=logo-updated$/);
+  await expect(page.getByText("Logo updated.")).toBeVisible();
+  await expect(
+    logo.getByRole("img", { name: "Browser Test University logo" }),
+  ).toBeVisible();
 });
 
 test("the access boundary renders without JavaScript", async ({ page }) => {

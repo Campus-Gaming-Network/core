@@ -221,5 +221,5 @@ func (r *PostgresRepository) changeAdmin(ctx context.Context, id string, command
 }
 
 func (school AdminSchool) auditState() adminaudit.CatalogState {
-	return adminaudit.CatalogState{Slug: school.Slug, Active: school.IsActive, DeletedAt: school.DeletedAt, UpdatedAt: school.UpdatedAt}
+	return adminaudit.CatalogState{Slug: school.Slug, Active: school.IsActive, DeletedAt: school.DeletedAt, UpdatedAt: school.UpdatedAt, LogoURL: school.LogoURL}
 }

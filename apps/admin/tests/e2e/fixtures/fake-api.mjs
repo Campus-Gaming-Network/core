@@ -21,6 +21,7 @@ const session = {
     "support.manage",
     "schools.read",
     "schools.manage",
+    "school_logos.manage",
     "school_grants.manage",
     "games.manage",
     "users.read",
@@ -56,6 +57,9 @@ let users;
 let siteGrants;
 let catalogAudit;
 let catalogSequence;
+// Uploaded logo bytes, served from the asset path like the public R2 origin.
+let logoObjects;
+const assetBase = `http://127.0.0.1:${port}/assets`;
 
 // Restores the seeded catalog so each browser test starts from the same state.
 function resetCatalog() {
@@ -137,6 +141,7 @@ function resetCatalog() {
   }));
   catalogAudit = new Map();
   catalogSequence = 0;
+  logoObjects = new Map();
   revokedSessions.clear();
 }
 resetCatalog();
@@ -188,6 +193,21 @@ const server = http.createServer(async (request, response) => {
   if (request.method === "POST" && requestURL.pathname === "/__test/reset") {
     resetCatalog();
     respond(response, 200, { reset: true });
+    return;
+  }
+  if (request.method === "GET" && requestURL.pathname.startsWith("/assets/")) {
+    const object = logoObjects.get(
+      requestURL.pathname.slice("/assets/".length),
+    );
+    if (!object) {
+      respond(response, 404, { error: "not_found" });
+      return;
+    }
+    response.writeHead(200, {
+      "content-type": object.type,
+      "x-content-type-options": "nosniff",
+    });
+    response.end(object.bytes);
     return;
   }
   if (
@@ -349,6 +369,14 @@ async function handleCatalog(request, response, requestURL, sessionValue) {
     respond(response, 403, { error: "admin_csrf_invalid" });
     return;
   }
+  if (
+    collection === "schools" &&
+    action === "logo" &&
+    request.method === "POST"
+  ) {
+    await uploadLogo(request, response, id);
+    return;
+  }
   const body = JSON.parse((await readBody(request)) || "{}");
   const recentAuth =
     (collection === "users" &&
@@ -437,6 +465,29 @@ async function handleCatalog(request, response, requestURL, sessionValue) {
       body.reason,
     );
     respond(response, 201, grant);
+    return;
+  }
+  if (collection === "schools" && action === "logo") {
+    const school = schools.get(id);
+    if (!school || school.updated_at !== body.expected_updated_at) {
+      respond(response, 409, { error: "admin_record_conflict" });
+      return;
+    }
+    if (!school.logo_url) {
+      respond(response, 409, { error: "invalid_admin_transition" });
+      return;
+    }
+    const before = { logo_url: school.logo_url };
+    school.logo_url = "";
+    school.updated_at = nextTimestamp();
+    recordAudit(
+      id,
+      "school.logo_removed",
+      before,
+      { logo_url: "" },
+      body.reason,
+    );
+    respond(response, 200, school);
     return;
   }
   if (collection === "schools") {
@@ -697,6 +748,55 @@ function recordAudit(entityID, action, before, after, reason) {
     created_at: nextTimestamp(),
   });
   catalogAudit.set(entityID, entries);
+}
+
+// Mirrors the Go API's byte-level decision: the file's name and declared type
+// are ignored, and anything but a PNG or JPEG signature is rejected.
+async function uploadLogo(request, response, id) {
+  const chunks = [];
+  for await (const chunk of request) chunks.push(chunk);
+  const form = await new Request("http://fake.test/", {
+    method: "POST",
+    headers: { "content-type": request.headers["content-type"] ?? "" },
+    body: Buffer.concat(chunks),
+  }).formData();
+  const school = schools.get(id);
+  const file = form.get("file");
+  if (!form.get("reason") || !(file instanceof Blob)) {
+    respond(response, 400, { error: "invalid_request" });
+    return;
+  }
+  if (!school || school.updated_at !== form.get("expected_updated_at")) {
+    respond(response, 409, { error: "admin_record_conflict" });
+    return;
+  }
+  const bytes = Buffer.from(await file.arrayBuffer());
+  if (bytes.length > 5 * 1024 * 1024) {
+    respond(response, 413, { error: "logo_too_large" });
+    return;
+  }
+  const png = bytes
+    .subarray(0, 8)
+    .equals(Buffer.from("89504e470d0a1a0a", "hex"));
+  const jpeg = bytes.subarray(0, 3).equals(Buffer.from("ffd8ff", "hex"));
+  if (!png && !jpeg) {
+    respond(response, 415, { error: "logo_unsupported_type" });
+    return;
+  }
+  catalogSequence += 1;
+  const key = `school-logos/${id}/${String(catalogSequence).padStart(32, "0")}.${png ? "png" : "jpg"}`;
+  logoObjects.set(key, { bytes, type: png ? "image/png" : "image/jpeg" });
+  const before = { logo_url: school.logo_url };
+  school.logo_url = `${assetBase}/${key}`;
+  school.updated_at = nextTimestamp();
+  recordAudit(
+    id,
+    "school.logo_updated",
+    before,
+    { logo_url: school.logo_url },
+    form.get("reason"),
+  );
+  respond(response, 200, school);
 }
 
 function nextID() {

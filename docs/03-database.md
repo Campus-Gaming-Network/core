@@ -252,6 +252,12 @@ admin_security_events
   id, event_type, outcome, actor_user_id, admin_session_id, request_id,
   network_identifier_hash, metadata jsonb, occurred_at
   -- bounded security telemetry, separate from audit_logs domain history
+
+school_logo_objects
+  id, school_id, object_key (unique), state (pending | current | retired),
+  created_at, updated_at
+  -- every stored R2 logo object; at most one current per school. Retired and
+  -- abandoned pending objects are deleted from R2, then their rows removed
 ```
 
 If activity and audit can share one table with a clear `kind` discriminator, prefer one table — but **system/ops logs stay out of the database audit table** (or in a separate store).

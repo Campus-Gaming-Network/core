@@ -8,6 +8,8 @@ import {
 import {
   catalogCommands,
   catalogNotices,
+  logoErrorMessages,
+  maximumLogoBytes,
   type AdminGame,
   type AdminSchool,
   type CatalogAuditEntry,
@@ -19,7 +21,12 @@ import {
   type CatalogNotice,
   type CatalogSearch,
 } from "./contracts";
-import { runCatalogCommand, saveGame, saveSchool } from "./catalog.functions";
+import {
+  runCatalogCommand,
+  saveGame,
+  saveSchool,
+  uploadSchoolLogo,
+} from "./catalog.functions";
 
 export function CatalogNoticeView({ notice }: { notice?: CatalogNotice }) {
   if (!notice) return null;
@@ -378,6 +385,69 @@ export function GameForm({ game }: { game?: AdminGame }) {
 }
 
 /**
+ * Uploads a replacement logo. The browser checks only the size, so an
+ * oversized file fails before it is sent; the Go API decides whether the
+ * bytes are an acceptable image and explains any rejection.
+ */
+export function LogoUploadForm({ school }: { school: AdminSchool }) {
+  const runUpload = useServerFn(uploadSchoolLogo);
+  const { submit, pending, version, feedback } = useCatalogSubmit(
+    runUpload,
+    school.updated_at,
+  );
+  const [sizeError, setSizeError] = useState("");
+  const fileErrors = sizeError ? [sizeError] : feedback.fieldErrors.file;
+
+  return (
+    <form
+      action={uploadSchoolLogo.url}
+      className="moderation-form"
+      encType="multipart/form-data"
+      method="post"
+      onSubmit={(event) => {
+        if (sizeError) {
+          event.preventDefault();
+          return;
+        }
+        void submit(event);
+      }}
+    >
+      <FormFeedback message={feedback.message} />
+      <input name="id" type="hidden" value={school.id} />
+      <input name="expected_updated_at" type="hidden" value={version} />
+      <label>
+        Logo file
+        <input
+          accept="image/png,image/jpeg"
+          aria-describedby={`logo-file-help${fileErrors?.length ? " logo-file-error" : ""}`}
+          aria-invalid={fileErrors?.length ? true : undefined}
+          name="file"
+          onChange={(event) => {
+            const file = event.currentTarget.files?.[0];
+            setSizeError(
+              file && file.size > maximumLogoBytes
+                ? logoErrorMessages.logo_too_large
+                : "",
+            );
+          }}
+          required
+          type="file"
+        />
+        <span className="field-help" id="logo-file-help">
+          PNG or JPEG, up to 5 MB and 4096 × 4096 pixels. The image is
+          re-encoded without metadata and scaled to at most 512 pixels.
+        </span>
+        <FieldError id="logo-file-error" messages={fileErrors} />
+      </label>
+      <ReasonField errors={feedback.fieldErrors.reason} idPrefix="logo" />
+      <button type="submit" disabled={pending}>
+        {pending ? "Uploading…" : "Upload logo"}
+      </button>
+    </form>
+  );
+}
+
+/**
  * One named operation with its audit reason. Destructive commands add an
  * explicit confirmation; step-up commands send the operator to confirm their
  * identity first when their last step-up is no longer recent.
@@ -549,6 +619,8 @@ const auditActionLabels: Record<CatalogAuditEntry["action"], string> = {
   "school.deactivated": "School deactivated",
   "school.reactivated": "School reactivated",
   "school.deleted": "School deleted",
+  "school.logo_updated": "Logo updated",
+  "school.logo_removed": "Logo removed",
   "school_admin.granted": "School-admin access granted",
   "school_admin.revoked": "School-admin access revoked",
   "game.created": "Game created",

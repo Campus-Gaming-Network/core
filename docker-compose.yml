@@ -86,6 +86,12 @@ services:
       CLOUDFLARE_ACCESS_TEAM_DOMAIN: ${CLOUDFLARE_ACCESS_TEAM_DOMAIN:-}
       CLOUDFLARE_ACCESS_AUDIENCE: ${CLOUDFLARE_ACCESS_AUDIENCE:-}
       CLOUDFLARE_ACCESS_JWKS_URL: ${CLOUDFLARE_ACCESS_JWKS_URL:-}
+      R2_ENDPOINT: ${R2_ENDPOINT:-http://object-storage:9090}
+      R2_ACCOUNT_ID: ${R2_ACCOUNT_ID:-}
+      R2_SCHOOL_LOGOS_BUCKET: ${R2_SCHOOL_LOGOS_BUCKET:-cgn-school-logos}
+      R2_ACCESS_KEY_ID: ${R2_ACCESS_KEY_ID:-cgn-local}
+      R2_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY:-cgn-local-secret}
+      R2_PUBLIC_ASSET_ORIGIN: ${R2_PUBLIC_ASSET_ORIGIN:-http://localhost:9090/cgn-school-logos}
     ports:
       - "8080:8080"
     depends_on:
@@ -138,6 +144,7 @@ services:
       CLOUDFLARE_ACCESS_TEAM_DOMAIN: ${CLOUDFLARE_ACCESS_TEAM_DOMAIN:-}
       CLOUDFLARE_ACCESS_AUDIENCE: ${CLOUDFLARE_ACCESS_AUDIENCE:-}
       CLOUDFLARE_ACCESS_JWKS_URL: ${CLOUDFLARE_ACCESS_JWKS_URL:-}
+      R2_PUBLIC_ASSET_ORIGIN: ${R2_PUBLIC_ASSET_ORIGIN:-http://localhost:9090/cgn-school-logos}
       HOST: 0.0.0.0
       PORT: 3002
     ports:
@@ -145,11 +152,23 @@ services:
     depends_on:
       api:
         condition: service_healthy
+      object-storage:
+        condition: service_started
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:3002/api/health"]
       interval: 10s
       timeout: 5s
       retries: 10
+
+  # Local S3-compatible stand-in for the R2 school-logo bucket. It accepts any
+  # credentials and serves objects anonymously, as the public asset origin does.
+  object-storage:
+    profiles: ["admin"]
+    image: adobe/s3mock:5.2.3
+    environment:
+      COM_ADOBE_TESTING_S3MOCK_STORE_INITIAL_BUCKETS: ${R2_SCHOOL_LOGOS_BUCKET:-cgn-school-logos}
+    ports:
+      - "9090:9090"
 
   docs:
     profiles: ["docs"]

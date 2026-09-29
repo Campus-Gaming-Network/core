@@ -79,3 +79,27 @@ test("the Admin API client serializes PATCH bodies without forwarding trust head
   assert.equal(headers.get("x-cgn-admin-csrf"), "server-read-csrf");
   assert.equal(headers.get("x-cgn-admin-proxy-secret"), "server-owned-secret");
 });
+
+test("the Admin API client forwards a multipart body with its own boundary", async () => {
+  let request: RequestInit | undefined;
+  const api = createAdminApiClient({
+    baseURL: "http://api.internal",
+    proxySecret: "server-owned-secret",
+    fetcher: async (_input, init) => {
+      request = init;
+      return Response.json({ ok: true });
+    },
+  });
+  const body = new FormData();
+  body.set("reason", "Official logo");
+
+  await api({
+    path: "/admin/v1/schools/id/logo",
+    method: "POST",
+    body,
+    responseSchema: z.object({ ok: z.literal(true) }),
+  });
+
+  assert.equal(request?.body, body);
+  assert.equal(new Headers(request?.headers).has("Content-Type"), false);
+});

@@ -31,11 +31,12 @@ verification steps.
 
 ## Next three tasks
 
-1. Complete `AC-010`: the 5 MB school-logo upload pipeline.
-2. Finish `AC-013` by adding the logo upload workflow to the Admin Console
-   school screen.
-3. Complete the mobile and accessibility pass on the primary journeys (open in
+1. Complete the mobile and accessibility pass on the primary journeys (open in
    [10 — Delivery status](./10-delivery-status.md)).
+2. Start `AC-014`: Admin Console production hardening and the independent
+   security review.
+3. Show school logos on the main site, adding the asset hostname to the web
+   CSP.
 
 Legal, DiceBear, and external launch rehearsal remain P1 launch gates. Admin
 Console work continues under

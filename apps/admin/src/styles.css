@@ -454,6 +454,17 @@ code {
   margin: 0;
   color: #edf2fb;
 }
+/* A checkerboard shows where a logo is transparent. */
+.logo-preview {
+  width: 8rem;
+  height: 8rem;
+  object-fit: contain;
+  padding: 0.5rem;
+  border: 1px solid #323c51;
+  border-radius: 0.65rem;
+  background: repeating-conic-gradient(#1a2233 0% 25%, #0b1019 0% 50%) 0 0 /
+    1rem 1rem;
+}
 .stored-content {
   padding: 1rem;
   border: 1px solid #323c51;

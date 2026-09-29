@@ -26,6 +26,8 @@ const (
 	ActionSchoolDeactivated      Action = "school.deactivated"
 	ActionSchoolReactivated      Action = "school.reactivated"
 	ActionSchoolDeleted          Action = "school.deleted"
+	ActionSchoolLogoUpdated      Action = "school.logo_updated"
+	ActionSchoolLogoRemoved      Action = "school.logo_removed"
 	ActionGameCreated            Action = "game.created"
 	ActionGameUpdated            Action = "game.updated"
 	ActionGameDeleted            Action = "game.deleted"
@@ -98,6 +100,8 @@ type CatalogState struct {
 	Active    bool       `json:"is_active"`
 	DeletedAt *time.Time `json:"deleted_at"`
 	UpdatedAt time.Time  `json:"updated_at"`
+	// LogoURL is a public asset URL; games never set it.
+	LogoURL string `json:"logo_url,omitempty"`
 }
 
 func (CatalogState) auditState() {}
@@ -299,7 +303,8 @@ func validActionEntity(action Action, entityType EntityType) bool {
 		return entityType == EntitySupportTicket
 	case ActionSiteRoleGrantBootstrap, ActionSiteRoleGrantGranted, ActionSiteRoleGrantRevoked:
 		return entityType == EntitySiteRoleGrant
-	case ActionSchoolCreated, ActionSchoolUpdated, ActionSchoolDeactivated, ActionSchoolReactivated, ActionSchoolDeleted:
+	case ActionSchoolCreated, ActionSchoolUpdated, ActionSchoolDeactivated, ActionSchoolReactivated, ActionSchoolDeleted,
+		ActionSchoolLogoUpdated, ActionSchoolLogoRemoved:
 		return entityType == EntitySchool
 	case ActionGameCreated, ActionGameUpdated, ActionGameDeleted:
 		return entityType == EntityGame

@@ -7,6 +7,7 @@ import (
 	"net/mail"
 	"net/url"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -66,6 +67,19 @@ type Config struct {
 	CloudflareAccessTeamDomain string
 	CloudflareAccessAudience   string
 	CloudflareAccessJWKSURL    string
+	// R2 holds school logos. R2Endpoint replaces the account endpoint for
+	// local S3-compatible storage only.
+	R2Endpoint          string
+	R2AccountID         string
+	R2SchoolLogosBucket string
+	R2AccessKeyID       string
+	R2SecretAccessKey   string
+	R2PublicAssetOrigin string
+}
+
+// LogoStorageConfigured reports whether school-logo uploads can be served.
+func (cfg Config) LogoStorageConfigured() bool {
+	return cfg.R2SchoolLogosBucket != ""
 }
 
 // Load reads and validates API configuration from the environment.
@@ -180,6 +194,12 @@ func Load() (Config, error) {
 		CloudflareAccessTeamDomain: os.Getenv("CLOUDFLARE_ACCESS_TEAM_DOMAIN"),
 		CloudflareAccessAudience:   os.Getenv("CLOUDFLARE_ACCESS_AUDIENCE"),
 		CloudflareAccessJWKSURL:    os.Getenv("CLOUDFLARE_ACCESS_JWKS_URL"),
+		R2Endpoint:                 os.Getenv("R2_ENDPOINT"),
+		R2AccountID:                os.Getenv("R2_ACCOUNT_ID"),
+		R2SchoolLogosBucket:        os.Getenv("R2_SCHOOL_LOGOS_BUCKET"),
+		R2AccessKeyID:              os.Getenv("R2_ACCESS_KEY_ID"),
+		R2SecretAccessKey:          os.Getenv("R2_SECRET_ACCESS_KEY"),
+		R2PublicAssetOrigin:        os.Getenv("R2_PUBLIC_ASSET_ORIGIN"),
 	}
 
 	if err := cfg.validate(); err != nil {
@@ -242,6 +262,38 @@ func (cfg Config) validate() error {
 	}
 	if !validCookieName(cfg.AdminCSRFCookie) {
 		issues = append(issues, "ADMIN_CSRF_COOKIE must be a valid cookie name")
+	}
+
+	// Logo storage is optional locally, all-or-nothing, and required for a
+	// strict deployment with the Admin Console enabled.
+	r2Values := []string{cfg.R2AccountID + cfg.R2Endpoint, cfg.R2SchoolLogosBucket, cfg.R2AccessKeyID, cfg.R2SecretAccessKey, cfg.R2PublicAssetOrigin}
+	if slices.ContainsFunc(r2Values, func(value string) bool { return strings.TrimSpace(value) != "" }) ||
+		(cfg.AdminEnabled && cfg.DeploymentEnvironment.Strict()) {
+		if slices.ContainsFunc(r2Values, func(value string) bool { return strings.TrimSpace(value) == "" }) {
+			issues = append(issues, "R2_ACCOUNT_ID (or local R2_ENDPOINT), R2_SCHOOL_LOGOS_BUCKET, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, and R2_PUBLIC_ASSET_ORIGIN must be set together")
+		}
+		// Locally the base may carry the bucket path; R2 serves a custom domain
+		// at its root.
+		assetOrigin, assetOriginValid := parseHTTPURL(cfg.R2PublicAssetOrigin)
+		if cfg.R2PublicAssetOrigin != "" && (!assetOriginValid || assetOrigin.RawQuery != "" || strings.HasSuffix(assetOrigin.Path, "/")) {
+			issues = append(issues, "R2_PUBLIC_ASSET_ORIGIN must be an absolute HTTP(S) URL without a query or trailing slash")
+		}
+		if cfg.R2Endpoint != "" {
+			if _, valid := parseSiteURL(cfg.R2Endpoint); !valid {
+				issues = append(issues, "R2_ENDPOINT must be an absolute HTTP(S) origin")
+			}
+		}
+		if cfg.DeploymentEnvironment.Strict() {
+			if cfg.R2Endpoint != "" {
+				issues = append(issues, "R2_ENDPOINT must not be set; use R2_ACCOUNT_ID")
+			}
+			// A separate hostname keeps uploaded bytes away from cookies and
+			// scripts on the site and Admin Console origins.
+			if assetOriginValid && (!strings.EqualFold(assetOrigin.Scheme, "https") || assetOrigin.Path != "" || isLocalHostname(assetOrigin.Hostname()) ||
+				strings.EqualFold(assetOrigin.Hostname(), hostname(cfg.SiteURL)) || strings.EqualFold(assetOrigin.Hostname(), hostname(cfg.AdminSiteURL))) {
+				issues = append(issues, "R2_PUBLIC_ASSET_ORIGIN must be an HTTPS origin on its own non-local hostname")
+			}
+		}
 	}
 
 	if cfg.AdminEnabled {
@@ -373,6 +425,14 @@ func parseSiteURL(raw string) (*url.URL, bool) {
 		return nil, false
 	}
 	return parsed, true
+}
+
+func hostname(raw string) string {
+	parsed, err := url.Parse(raw)
+	if err != nil {
+		return ""
+	}
+	return parsed.Hostname()
 }
 
 func parseHTTPURL(raw string) (*url.URL, bool) {

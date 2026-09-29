@@ -88,6 +88,8 @@ export const catalogAuditEntrySchema = z
       "school.deactivated",
       "school.reactivated",
       "school.deleted",
+      "school.logo_updated",
+      "school.logo_removed",
       "school_admin.granted",
       "school_admin.revoked",
       "game.created",
@@ -232,6 +234,32 @@ export const catalogDetailInputSchema = z.object({
   audit_before: cursorSchema.optional(),
 });
 
+// The Admin API's reasons for rejecting a logo, and the redirect notice a
+// no-JavaScript upload shows for each.
+export const logoErrorMessages = {
+  logo_too_large:
+    "The file is larger than 5 MB. Export a smaller PNG or JPEG and try again.",
+  logo_unsupported_type:
+    "Upload a PNG or JPEG image. SVG, GIF, WebP, and animated images are not accepted.",
+  logo_invalid_image:
+    "The file could not be read as a complete PNG or JPEG image. Export it again and retry.",
+  logo_dimensions_exceeded:
+    "The image is larger than 4096 × 4096 pixels or 16 megapixels. Resize it and try again.",
+  rate_limited: "Too many attempts. Wait 15 minutes, then try again.",
+  logo_storage_unavailable:
+    "Logo storage is unavailable right now. Try again later.",
+} as const;
+
+export const logoErrorNotices: Partial<
+  Record<keyof typeof logoErrorMessages, CatalogNotice>
+> = {
+  logo_too_large: "logo-too-large",
+  logo_unsupported_type: "logo-unsupported",
+  logo_invalid_image: "logo-invalid",
+  logo_dimensions_exceeded: "logo-dimensions",
+  rate_limited: "rate-limited",
+};
+
 // Redirect notices shown after a catalog form. Failures render as alerts.
 export const catalogNotices = {
   created: { message: "Created.", severity: "success" },
@@ -259,6 +287,31 @@ export const catalogNotices = {
   "site-admin-revoked": {
     message: "Site-admin access revoked and its admin sessions ended.",
     severity: "success",
+  },
+  "logo-updated": { message: "Logo updated.", severity: "success" },
+  "logo-removed": {
+    message: "Logo removed. The school shows the placeholder again.",
+    severity: "success",
+  },
+  "logo-too-large": {
+    message: logoErrorMessages.logo_too_large,
+    severity: "danger",
+  },
+  "logo-unsupported": {
+    message: logoErrorMessages.logo_unsupported_type,
+    severity: "danger",
+  },
+  "logo-invalid": {
+    message: logoErrorMessages.logo_invalid_image,
+    severity: "danger",
+  },
+  "logo-dimensions": {
+    message: logoErrorMessages.logo_dimensions_exceeded,
+    severity: "danger",
+  },
+  "rate-limited": {
+    message: logoErrorMessages.rate_limited,
+    severity: "danger",
   },
   "stepped-up": {
     message:
@@ -406,6 +459,7 @@ export type Validated<T> =
       id: string;
       message: string;
       fieldErrors: CatalogFieldErrors;
+      notice?: CatalogNotice;
     };
 
 export function validateSchoolFormInput(
@@ -468,6 +522,11 @@ export const catalogCommands = {
   "school.deactivate": { confirm: true, stepUp: false, notice: "deactivated" },
   "school.reactivate": { confirm: false, stepUp: false, notice: "reactivated" },
   "school.delete": { confirm: true, stepUp: false, notice: "deleted" },
+  "school.logo_remove": {
+    confirm: true,
+    stepUp: false,
+    notice: "logo-removed",
+  },
   "school_grant.grant": {
     confirm: false,
     stepUp: false,
@@ -618,7 +677,82 @@ export type CatalogMutationResult =
       fieldErrors?: CatalogFieldErrors;
       /** The current version after a stale write, so a retry can proceed. */
       currentUpdatedAt?: string;
+      /** The notice a no-JavaScript form shows instead of the generic one. */
+      notice?: CatalogNotice;
     };
+
+/** The encoded upload limit the Go API enforces. */
+export const maximumLogoBytes = 5 * 1024 * 1024;
+
+export type LogoUploadInput = {
+  id: string;
+  expected_updated_at: string;
+  reason: string;
+  file: File;
+};
+
+const logoTargetSchema = z.object({
+  id: uuidSchema,
+  expected_updated_at: timestampSchema,
+  reason: reasonSchema,
+});
+
+/**
+ * Checks the form around a logo file and its size. Whether the bytes are an
+ * acceptable image is decided by the Go API alone, never by the file's name
+ * or declared type.
+ */
+export function validateLogoUploadInput(
+  input: FormData | object,
+): Validated<LogoUploadInput> {
+  const id = inputValue(input, "id");
+  const target = logoTargetSchema.safeParse({
+    id,
+    expected_updated_at: inputValue(input, "expected_updated_at"),
+    reason: inputValue(input, "reason"),
+  });
+  const file = input instanceof FormData ? input.get("file") : null;
+  const issues: z.core.$ZodIssue[] = target.success ? [] : target.error.issues;
+  const fileMessage =
+    !(file instanceof File) || file.size === 0
+      ? "Choose a PNG or JPEG file."
+      : file.size > maximumLogoBytes
+        ? logoErrorMessages.logo_too_large
+        : "";
+  if (fileMessage) {
+    issues.push({
+      code: "custom",
+      path: ["file"],
+      message: fileMessage,
+      input: undefined,
+    });
+  }
+  if (target.success && file instanceof File && !fileMessage) {
+    return { valid: true, value: { ...target.data, file } };
+  }
+  const result = invalid(id, issues);
+  return file instanceof File && file.size > maximumLogoBytes && !result.valid
+    ? { ...result, notice: "logo-too-large" }
+    : result;
+}
+
+const logoKeyPattern =
+  /^school-logos\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/[0-9a-f]{32}\.(?:png|jpg)$/;
+
+/**
+ * A stored logo URL is shown as an image only when it is an object key the
+ * API generates, under the configured asset origin. Anything else is not
+ * rendered, so a tampered record cannot load content from elsewhere.
+ */
+export function approvedLogoURL(
+  logoURL: string,
+  assetBase: string | undefined,
+): string {
+  if (!assetBase || !logoURL.startsWith(`${assetBase}/`)) return "";
+  return logoKeyPattern.test(logoURL.slice(assetBase.length + 1))
+    ? logoURL
+    : "";
+}
 
 /** The Go API accepts a step-up for 10 minutes. */
 export const recentAuthenticationWindowMs = 10 * 60 * 1000;

@@ -315,7 +315,7 @@ Initial v1 defaults:
 | Admin reads                             |    120 per minute | Admin user + trusted client IP     |
 | Admin writes                            |     30 per minute | Admin user + trusted client IP     |
 | Grant changes and other critical writes | 10 per 15 minutes | Admin user + trusted client IP     |
-| Logo upload attempts                    | 10 per 15 minutes | Admin user + trusted client IP     |
+| Logo upload attempts                    | 10 per 15 minutes | Admin user (implemented in AC-010) |
 
 | ID      | Automated test                                                                                   | Pass condition                                                                                                                 | Layer               |
 | ------- | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------ | ------------------- |

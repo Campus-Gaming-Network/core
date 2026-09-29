@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminaccess"
@@ -12,6 +13,7 @@ import (
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminmutation"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/apperror"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/games"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/logoimage"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/operations"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/schools"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/users"
@@ -64,6 +66,8 @@ type CatalogDependencies struct {
 	SiteGrants AdminSiteGrants
 	Cache      CatalogCache
 	Audit      AuditReader
+	// Logos is nil when logo storage is not configured.
+	Logos AdminLogos
 }
 
 var catalogRoutes = []routePolicy{
@@ -75,6 +79,8 @@ var catalogRoutes = []routePolicy{
 	{Method: "POST", Path: "/admin/v1/schools/{id}/deactivate", Control: controlCapability, Capability: adminaccess.CapabilitySchoolsManage, Mutation: true, Operation: "schools.deactivate"},
 	{Method: "POST", Path: "/admin/v1/schools/{id}/reactivate", Control: controlCapability, Capability: adminaccess.CapabilitySchoolsManage, Mutation: true, Operation: "schools.reactivate"},
 	{Method: "DELETE", Path: "/admin/v1/schools/{id}", Control: controlCapability, Capability: adminaccess.CapabilitySchoolsManage, Mutation: true, Operation: "schools.delete"},
+	{Method: "POST", Path: "/admin/v1/schools/{id}/logo", Control: controlCapability, Capability: adminaccess.CapabilitySchoolLogosManage, Mutation: true, Operation: "school_logos.upload"},
+	{Method: "DELETE", Path: "/admin/v1/schools/{id}/logo", Control: controlCapability, Capability: adminaccess.CapabilitySchoolLogosManage, Mutation: true, Operation: "school_logos.remove"},
 	{Method: "GET", Path: "/admin/v1/schools/{id}/admin-grants", Control: controlCapability, Capability: adminaccess.CapabilitySchoolGrantsManage, Operation: "school_grants.list"},
 	{Method: "POST", Path: "/admin/v1/schools/{id}/admin-grants", Control: controlCapability, Capability: adminaccess.CapabilitySchoolGrantsManage, Mutation: true, Operation: "school_grants.grant"},
 	{Method: "POST", Path: "/admin/v1/schools/{id}/admin-grants/{grant_id}/revoke", Control: controlCapability, Capability: adminaccess.CapabilitySchoolGrantsManage, Mutation: true, Operation: "school_grants.revoke"},
@@ -144,6 +150,40 @@ func (handler *Handler) catalogHandler(operation routeOperation, id string) http
 			} else {
 				result, err = deps.Games.UpdateAdmin(req.Context(), id, input)
 			}
+		case "school_logos.upload", "school_logos.remove":
+			if deps.Logos == nil {
+				writeError(w, http.StatusServiceUnavailable, "logo_storage_unavailable")
+				return
+			}
+			var command adminmutation.Command
+			if operation == "school_logos.remove" {
+				if err = decodeAdminJSON(w, req, &command); err != nil {
+					break
+				}
+				command.Correlation = correlation
+				result, err = deps.Logos.RemoveLogo(req.Context(), id, command)
+				break
+			}
+			// Rejected before the body is read, so over-limit attempts cost nothing.
+			if !handler.logoUploads.Allow(actor.UserID) {
+				// The window starts at the first attempt, so this is an upper bound.
+				w.Header().Set("Retry-After", strconv.Itoa(int(logoUploadWindow.Seconds())))
+				writeError(w, http.StatusTooManyRequests, "rate_limited")
+				return
+			}
+			var file []byte
+			if command, file, err = readLogoUpload(w, req); err != nil {
+				break
+			}
+			command.Correlation = correlation
+			if err = command.Validate(true); err != nil {
+				break
+			}
+			var logo logoimage.Image
+			if logo, err = logoimage.Process(file); err != nil {
+				break
+			}
+			result, err = deps.Logos.ReplaceLogo(req.Context(), id, command, logo)
 		case "school_grants.grant":
 			var input schools.GrantAdminInput
 			if err = decodeAdminJSON(w, req, &input); err != nil {
@@ -215,11 +255,25 @@ func (handler *Handler) catalogHandler(operation routeOperation, id string) http
 			}
 		}
 		if err != nil {
+			switch {
+			case errors.Is(err, errLogoRequestTooLarge), errors.Is(err, logoimage.ErrTooLarge):
+				writeError(w, http.StatusRequestEntityTooLarge, "logo_too_large")
+				return
+			case errors.Is(err, logoimage.ErrUnsupported):
+				writeError(w, http.StatusUnsupportedMediaType, "logo_unsupported_type")
+				return
+			case errors.Is(err, logoimage.ErrInvalid):
+				writeError(w, http.StatusUnprocessableEntity, "logo_invalid_image")
+				return
+			case errors.Is(err, logoimage.ErrDimensions):
+				writeError(w, http.StatusUnprocessableEntity, "logo_dimensions_exceeded")
+				return
+			}
 			if errors.Is(err, adminmutation.ErrConflict) {
 				var current any
 				var readErr error
 				switch operation {
-				case "schools.update", "schools.deactivate", "schools.reactivate", "schools.delete":
+				case "schools.update", "schools.deactivate", "schools.reactivate", "schools.delete", "school_logos.upload", "school_logos.remove":
 					current, readErr = deps.Schools.GetAdmin(req.Context(), id)
 				case "games.update", "games.delete":
 					current, readErr = deps.Games.GetAdmin(req.Context(), id)

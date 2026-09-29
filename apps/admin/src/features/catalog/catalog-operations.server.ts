@@ -12,6 +12,8 @@ import {
   catalogCommandPage,
   catalogCommands,
   gamesPageSchema,
+  logoErrorMessages,
+  logoErrorNotices,
   schoolGrantSchema,
   schoolGrantsPageSchema,
   schoolsPageSchema,
@@ -22,6 +24,7 @@ import {
   type CatalogMutationResult,
   type CatalogSearch,
   type GameFormInput,
+  type LogoUploadInput,
   type SchoolFormInput,
 } from "./contracts.js";
 
@@ -203,6 +206,30 @@ export async function saveGameOperation(
   });
 }
 
+export async function uploadSchoolLogoOperation(
+  { id, expected_updated_at, reason, file }: LogoUploadInput,
+  dependencies: MutationDependencies,
+): Promise<CatalogMutationResult> {
+  const school = `/admin/v1/schools/${encodeURIComponent(id)}`;
+  // Only the bytes travel on. The Go API ignores the name and declared type,
+  // so neither is forwarded.
+  const body = new FormData();
+  body.set("expected_updated_at", expected_updated_at);
+  body.set("reason", reason);
+  body.set("file", new Blob([await file.arrayBuffer()]), "logo");
+  return mutate(dependencies, {
+    request: {
+      path: `${school}/logo`,
+      method: "POST",
+      body,
+      responseSchema: adminSchoolSchema,
+    },
+    destination: () => `/schools/${encodeURIComponent(id)}?notice=logo-updated`,
+    returnPath: `/schools/${encodeURIComponent(id)}`,
+    reload: { path: school },
+  });
+}
+
 export async function runCatalogCommandOperation(
   input: CatalogCommandInput,
   dependencies: MutationDependencies,
@@ -253,6 +280,16 @@ function commandRequest(input: CatalogCommandInput): {
       return {
         request: {
           path: school,
+          method: "DELETE",
+          body: command,
+          responseSchema: adminSchoolSchema,
+        },
+        reload: { path: school },
+      };
+    case "school.logo_remove":
+      return {
+        request: {
+          path: `${school}/logo`,
           method: "DELETE",
           body: command,
           responseSchema: adminSchoolSchema,
@@ -331,6 +368,7 @@ function commandRequest(input: CatalogCommandInput): {
 
 // Messages for the stable Admin API error codes an operator can act on.
 const errorMessages: Record<string, string> = {
+  ...logoErrorMessages,
   admin_record_already_exists:
     "Another record already uses that slug or IPEDS unit ID.",
   catalog_dependencies_exist:
@@ -409,7 +447,14 @@ async function mutate<TSchema extends z.ZodType>(
       };
     }
     if (errorMessages[error.code]) {
-      return { status: "error", message: errorMessages[error.code] };
+      const notice = Object.hasOwn(logoErrorNotices, error.code)
+        ? logoErrorNotices[error.code as keyof typeof logoErrorNotices]
+        : undefined;
+      return {
+        status: "error",
+        message: errorMessages[error.code],
+        ...(notice ? { notice } : {}),
+      };
     }
     if (error.status === 400) {
       return {

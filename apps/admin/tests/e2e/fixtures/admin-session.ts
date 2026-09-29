@@ -8,6 +8,21 @@ export const memberID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 export const gatedMemberID = "ffffffff-ffff-4fff-8fff-ffffffffffff";
 export const operatorID = "33333333-3333-4333-8333-333333333333";
 
+/** A 1×1 PNG and an SVG disguised with a PNG name and type. */
+export const pngLogo = {
+  name: "logo.png",
+  mimeType: "image/png",
+  buffer: Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
+    "base64",
+  ),
+};
+export const disguisedSVGLogo = {
+  name: "logo.png",
+  mimeType: "image/png",
+  buffer: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"/>'),
+};
+
 /**
  * Signs the browser in with the fake API's admin cookies. Session values that
  * start with "stepped-up" carry a recent identity confirmation.

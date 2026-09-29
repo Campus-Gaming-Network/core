@@ -59,11 +59,19 @@ export function createAdminApiClient({
     outgoing.delete("X-CGN-Admin-Proxy-Secret");
     outgoing.set("X-CGN-Admin-Proxy-Secret", proxySecret);
     if (cookieHeader) outgoing.set("Cookie", cookieHeader);
-    if (body !== undefined) outgoing.set("Content-Type", "application/json");
+    // A FormData body is sent as multipart; fetch supplies its boundary.
+    const multipart = body instanceof FormData;
+    if (body !== undefined && !multipart) {
+      outgoing.set("Content-Type", "application/json");
+    }
 
     const response = await fetcher(buildAPIURL(baseURL, path), {
       method,
-      body: body === undefined ? undefined : JSON.stringify(body),
+      body: multipart
+        ? body
+        : body === undefined
+          ? undefined
+          : JSON.stringify(body),
       headers: outgoing,
       cache: "no-store",
       redirect: "error",

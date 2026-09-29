@@ -1,17 +1,21 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  approvedLogoURL,
   catalogAuditPageSchema,
   hasRecentStepUp,
+  maximumLogoBytes,
   safeReturnPath,
   validateCatalogCommandInput,
   validateCatalogSearch,
+  validateLogoUploadInput,
   validateSchoolFormInput,
   type CatalogCommandInput,
 } from "../src/features/catalog/contracts.js";
 import {
   runCatalogCommandOperation,
   saveSchoolOperation,
+  uploadSchoolLogoOperation,
 } from "../src/features/catalog/catalog-operations.server.js";
 import { AdminApiError, type ApiClient } from "../src/server/api.server.js";
 
@@ -169,6 +173,15 @@ test("each command calls its named Admin API operation and returns to its page",
         body: { expected_updated_at: version, reason: "Reason" },
       },
       redirectTo: `/schools/${schoolID}?notice=deleted`,
+    },
+    {
+      input: { command: "school.logo_remove" },
+      request: {
+        path: `/admin/v1/schools/${schoolID}/logo`,
+        method: "DELETE",
+        body: { expected_updated_at: version, reason: "Reason" },
+      },
+      redirectTo: `/schools/${schoolID}?notice=logo-removed`,
     },
     {
       input: {
@@ -439,4 +452,163 @@ test("step-up returns stay on this app and last ten minutes", () => {
   assert.equal(hasRecentStepUp(stepUpAt, start + 9 * 60_000), true);
   assert.equal(hasRecentStepUp(stepUpAt, start + 10 * 60_000), false);
   assert.equal(hasRecentStepUp(undefined, start), false);
+});
+
+test("logo uploads need a version, a reason, and a file within 5 MB", () => {
+  const form = new FormData();
+  form.set("id", schoolID);
+  form.set("expected_updated_at", version);
+  form.set("reason", " Official logo ");
+  const file = new File([new Uint8Array(8)], "logo.gif", { type: "text/html" });
+  form.set("file", file);
+  assert.deepEqual(validateLogoUploadInput(form), {
+    valid: true,
+    value: {
+      id: schoolID,
+      expected_updated_at: version,
+      reason: "Official logo",
+      file,
+    },
+  });
+
+  const missing = new FormData();
+  missing.set("id", schoolID);
+  missing.set("expected_updated_at", version);
+  assert.deepEqual(validateLogoUploadInput(missing), {
+    valid: false,
+    id: schoolID,
+    message: "Check the highlighted fields and try again.",
+    fieldErrors: {
+      reason: ["Give a reason for the audit log."],
+      file: ["Choose a PNG or JPEG file."],
+    },
+  });
+
+  form.set("file", new File([new Uint8Array(maximumLogoBytes + 1)], "big.png"));
+  assert.deepEqual(validateLogoUploadInput(form), {
+    valid: false,
+    id: schoolID,
+    message: "Check the highlighted fields and try again.",
+    fieldErrors: {
+      file: [
+        "The file is larger than 5 MB. Export a smaller PNG or JPEG and try again.",
+      ],
+    },
+    notice: "logo-too-large",
+  });
+});
+
+test("an upload forwards only the bytes, version, and reason", async () => {
+  const { api, calls } = recordingApi(() => ({ id: schoolID }));
+  const result = await uploadSchoolLogoOperation(
+    {
+      id: schoolID,
+      expected_updated_at: version,
+      reason: "Official logo",
+      file: new File(["png-bytes"], "../evil.svg", { type: "image/svg+xml" }),
+    },
+    { api, ...mutation },
+  );
+  const [call] = calls;
+  const body = call?.body as FormData;
+  const file = body.get("file") as File;
+  assert.deepEqual(
+    {
+      result,
+      path: call?.path,
+      method: call?.method,
+      fields: [...body.keys()],
+      reason: body.get("reason"),
+      version: body.get("expected_updated_at"),
+      file: { name: file.name, type: file.type, text: await file.text() },
+    },
+    {
+      result: {
+        status: "success",
+        redirectTo: `/schools/${schoolID}?notice=logo-updated`,
+      },
+      path: `/admin/v1/schools/${schoolID}/logo`,
+      method: "POST",
+      fields: ["expected_updated_at", "reason", "file"],
+      reason: "Official logo",
+      version,
+      file: { name: "logo", type: "", text: "png-bytes" },
+    },
+  );
+});
+
+test("rejected logos explain the reason and name a no-JavaScript notice", async () => {
+  const outcomes = await Promise.all(
+    [
+      new AdminApiError(413, "logo_too_large"),
+      new AdminApiError(415, "logo_unsupported_type"),
+      new AdminApiError(422, "logo_invalid_image"),
+      new AdminApiError(422, "logo_dimensions_exceeded"),
+      new AdminApiError(429, "rate_limited"),
+      new AdminApiError(503, "logo_storage_unavailable"),
+    ].map((error) =>
+      uploadSchoolLogoOperation(
+        {
+          id: schoolID,
+          expected_updated_at: version,
+          reason: "Official logo",
+          file: new File(["x"], "logo.png"),
+        },
+        { api: recordingApi(() => error).api, ...mutation },
+      ),
+    ),
+  );
+  assert.deepEqual(outcomes, [
+    {
+      status: "error",
+      message:
+        "The file is larger than 5 MB. Export a smaller PNG or JPEG and try again.",
+      notice: "logo-too-large",
+    },
+    {
+      status: "error",
+      message:
+        "Upload a PNG or JPEG image. SVG, GIF, WebP, and animated images are not accepted.",
+      notice: "logo-unsupported",
+    },
+    {
+      status: "error",
+      message:
+        "The file could not be read as a complete PNG or JPEG image. Export it again and retry.",
+      notice: "logo-invalid",
+    },
+    {
+      status: "error",
+      message:
+        "The image is larger than 4096 × 4096 pixels or 16 megapixels. Resize it and try again.",
+      notice: "logo-dimensions",
+    },
+    {
+      status: "error",
+      message: "Too many attempts. Wait 15 minutes, then try again.",
+      notice: "rate-limited",
+    },
+    {
+      status: "error",
+      message: "Logo storage is unavailable right now. Try again later.",
+    },
+  ]);
+});
+
+test("only API-generated keys under the asset origin render as logos", () => {
+  const base = "https://assets.example.test";
+  const key = `school-logos/${schoolID}/${"a1".repeat(16)}.png`;
+  assert.equal(approvedLogoURL(`${base}/${key}`, base), `${base}/${key}`);
+  for (const unsafe of [
+    `https://assets.example.test.evil.example/${key}`,
+    `https://evil.example/${key}`,
+    `javascript:alert(1)//${base}/${key}`,
+    `${base}/school-logos/../${key}`,
+    `${base}/${key}?download=1`,
+    `${base}/${key.replace(".png", ".svg")}`,
+    "",
+  ]) {
+    assert.equal(approvedLogoURL(unsafe, base), "", unsafe);
+  }
+  assert.equal(approvedLogoURL(`${base}/${key}`, undefined), "");
 });

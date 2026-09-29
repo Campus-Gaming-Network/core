@@ -516,10 +516,22 @@ Processing order:
 4. Normalize orientation, strip metadata, and re-encode server-side to a known
    PNG or JPEG profile.
 5. Generate the R2 key server-side using a random/object-version component.
-6. Upload to a temporary key, commit the school logo reference and audit entry,
-   then promote/retain the new object and clean up the old object best-effort.
+6. Record the key as `pending` in `school_logo_objects`, upload the object, then
+   in one transaction point the school at it, mark it `current`, retire the
+   previous object, and write the audit entry. A failed upload, database write,
+   or audit insert deletes the new object; if that delete also fails, the
+   pending row keeps it traceable. Retired objects are deleted after commit,
+   and a reconciliation loop in the API retries both kinds of deletion every
+   15 minutes, so no stored object outlives its row. Keys are never reused,
+   so an unreferenced object is never linked from anywhere.
 7. Serve it from a separate asset hostname with an immutable content type and
    without active-content sniffing.
+
+Stored logos are scaled to at most 512 pixels on the longest side, keep their
+input format (PNG stays PNG for transparency, JPEG stays JPEG), and have EXIF
+orientation applied before metadata is dropped. Uploading or removing a logo
+does not require a recent step-up. Uploads are limited to 10 attempts per
+operator in 15 minutes, counted before the body is read.
 
 R2 credentials stay in the Go API. The browser does not receive broad R2
 credentials. If direct presigned upload is introduced later, a finalize endpoint
@@ -534,6 +546,9 @@ must still verify and re-encode the object before it becomes public.
   enabled.
 - PostgreSQL: existing database with additive migrations and verified backup.
 - R2: dedicated school-logo bucket/prefix and narrowly scoped service token.
+  Its public custom domain must be a separate hostname from the site and
+  Admin Console, and a Cloudflare response-header rule on that hostname adds
+  `X-Content-Type-Options: nosniff`, which R2 cannot set per object.
 
 ### Configuration contract
 
@@ -557,6 +572,12 @@ R2_ACCESS_KEY_ID
 R2_SECRET_ACCESS_KEY
 R2_PUBLIC_ASSET_ORIGIN
 ```
+
+`R2_ENDPOINT` replaces the account endpoint for local S3-compatible storage
+and is rejected in staging and production. Locally, `R2_PUBLIC_ASSET_ORIGIN`
+may include the bucket path. The Admin BFF reads `R2_PUBLIC_ASSET_ORIGIN` to
+add it to the CSP `img-src` and shows a preview only for a URL under it with an
+API-generated key.
 
 - The admin and public BFF proxy secrets are different, randomly generated, and
   rotated independently.
@@ -917,6 +938,7 @@ external Access step-up policy proof remain part of AC-014/AC-015.
 
 ### AC-010 — Implement the 5 MB R2 school-logo pipeline
 
+**Status:** Complete (2026-09-28)
 **Depends on:** AC-009
 **Deliverables:** R2 client, server-side validation/re-encoding, object lifecycle,
 admin endpoints, failure cleanup, image-security fixtures.
@@ -928,6 +950,24 @@ admin endpoints, failure cleanup, image-security fixtures.
 - Dimension/pixel limits, SVG/polyglot, malformed, and metadata tests pass.
 - Database/audit failure cannot publish an unreferenced final object.
 - R2 credentials never reach the browser.
+
+Implemented: `POST` and `DELETE /admin/v1/schools/{id}/logo` behind
+`school_logos.manage`, CSRF, and the stale-version check. The multipart body is
+streamed under a 5 MiB file limit and a small framing allowance; only
+`expected_updated_at`, `reason`, and `file` are accepted, and the file's name
+and declared type are ignored. The `logoimage` package walks PNG chunks and
+JPEG segments before decoding, rejecting animation, anything after the image
+end (polyglots and MPO frames), and headers over 4096 px or 16 megapixels
+before a full decode. The `objectstore` package writes to R2 with the S3 SDK;
+credentials stay in the Go API. Rejections return `413 logo_too_large`,
+`415 logo_unsupported_type`, `422 logo_invalid_image`,
+`422 logo_dimensions_exceeded`, or `429 rate_limited` with `Retry-After`;
+an unconfigured store returns `503 logo_storage_unavailable`. Go tests cover
+the byte limit at, one over, and far over 5 MiB with a chunked body, spoofed
+names and types, SVG/HTML/GIF/WebP/ZIP/executable/APNG/truncated/polyglot
+inputs, image bombs, EXIF stripping and orientation, the rate limit, and
+storage, audit, and cleanup failures with reconciliation. Serving headers on
+the asset hostname (`UPLOAD-07`) are verified at deployment in AC-015.
 
 ### AC-011 — Scaffold and secure `apps/admin`
 
@@ -974,7 +1014,7 @@ rendered audit history.
 
 ### AC-013 — Build catalog, user, and access UI
 
-**Status:** In progress — logo upload waits for AC-010
+**Status:** Complete (2026-09-28)
 **Depends on:** AC-009, AC-010, AC-011
 **Deliverables:** School/game/user/access screens, confirmation/reason flows,
 step-up redirect/return, logo upload, session-revocation feedback.
@@ -1002,9 +1042,13 @@ the originating page, while the Go API still enforces recency. A mutation that
 finds its session ended reloads the shell, which then shows the access boundary
 instead of protected content. Unit tests cover contracts, command mapping, and
 error routing; browser tests cover each workflow, the step-up gate, self-revocation,
-a no-JavaScript create, and desktop/mobile axe scans. Remaining: the logo
-upload workflow, which depends on AC-010, and the staging step-up proof in
-AC-004 before UI site-admin grants are enabled in production.
+a no-JavaScript create, and desktop/mobile axe scans. The school page shows the
+current logo, uploads a replacement with enhanced or native multipart forms,
+and removes it with a confirmed command. A file over 5 MB is flagged before it
+is sent, each API rejection has its own message and no-JavaScript notice, and
+browser tests cover a disguised SVG, the size check, the preview under the CSP,
+and removal. The staging step-up proof in AC-004 must still pass before UI
+site-admin grants are enabled in production.
 
 ### AC-014 — Production hardening and independent security review
 

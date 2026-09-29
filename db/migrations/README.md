@@ -28,6 +28,9 @@ the AC-009 API, since public game queries also use the new activation column.
 Migration `000016_create_idempotency_keys.up.sql` adds nullable, unique
 `idempotency_key` columns to events, teams, reports, and support tickets so a
 repeated create request returns the original row.
+Migration `000017_school_logo_objects.up.sql` tracks every stored school-logo
+object as pending, current, or retired so the API can delete objects that a
+failed or replaced upload leaves behind.
 Do not add clubs, tournaments, feature flags, site announcements, on-site
 payment tables, IGDB sync tables, or Admin Console-only workflow tables until those
 phases are active.

@@ -10,7 +10,9 @@ import {
   catalogCommandPage,
   catalogDetailInputSchema,
   validateCatalogCommandInput,
+  approvedLogoURL,
   validateGameFormInput,
+  validateLogoUploadInput,
   validateSchoolFormInput,
   type CatalogMutationResult,
   type Validated,
@@ -26,7 +28,9 @@ import {
   runCatalogCommandOperation,
   saveGameOperation,
   saveSchoolOperation,
+  uploadSchoolLogoOperation,
 } from "./catalog-operations.server.js";
+import { adminEnvironment } from "../../server/environment.server.js";
 
 export const getSchools = createServerFn({ method: "GET" })
   .validator(catalogBrowseInputSchema)
@@ -36,13 +40,20 @@ export const getSchools = createServerFn({ method: "GET" })
 
 export const getSchoolDetail = createServerFn({ method: "GET" })
   .validator(catalogDetailInputSchema.extend({ include_grants: z.boolean() }))
-  .handler(({ data }) =>
-    getSchoolDetailOperation(
+  .handler(async ({ data }) => {
+    const detail = await getSchoolDetailOperation(
       data,
       currentAdminRequest(false),
       data.include_grants,
-    ),
-  );
+    );
+    return {
+      ...detail,
+      logoPreviewURL: approvedLogoURL(
+        detail.school.logo_url,
+        adminEnvironment().logoAssetBase,
+      ),
+    };
+  });
 
 export const getGames = createServerFn({ method: "GET" })
   .validator(catalogBrowseInputSchema)
@@ -96,6 +107,19 @@ export const saveGame = createServerFn({
     ),
   );
 
+export const uploadSchoolLogo = createServerFn({
+  method: "POST",
+  strict: { input: false },
+})
+  .validator((input: FormData | object) => validateLogoUploadInput(input))
+  .handler(({ data }) =>
+    respond(
+      data,
+      (id) => (id ? `/schools/${id}` : "/schools"),
+      (value) => uploadSchoolLogoOperation(value, currentAdminRequest(true)),
+    ),
+  );
+
 export const runCatalogCommand = createServerFn({
   method: "POST",
   strict: { input: false },
@@ -132,7 +156,8 @@ async function respond<T>(
       ? candidate
       : "";
   if (!data.valid) {
-    if (nativeForm) nativeRedirect(`${page(id)}?notice=failed`);
+    if (nativeForm)
+      nativeRedirect(`${page(id)}?notice=${data.notice ?? "failed"}`);
     return {
       status: "error",
       message: data.message,
@@ -147,7 +172,7 @@ async function respond<T>(
         ? result.redirectTo
         : result.status === "session-ended"
           ? "/"
-          : `${page(id)}?notice=${result.currentUpdatedAt ? "conflict" : "failed"}`,
+          : `${page(id)}?notice=${result.notice ?? (result.currentUpdatedAt ? "conflict" : "failed")}`,
     );
   }
   return result;

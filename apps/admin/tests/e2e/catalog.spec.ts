@@ -2,9 +2,11 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 import {
   authenticateAdmin,
   catalogSchoolID,
+  disguisedSVGLogo,
   gatedMemberID,
   memberID,
   operatorID,
+  pngLogo,
 } from "./fixtures/admin-session.js";
 
 const apiURL = "http://127.0.0.1:18082";
@@ -201,4 +203,63 @@ test("revoking your own site-admin access ends the session immediately", async (
   await expect(
     page.getByRole("navigation", { name: "Admin navigation" }),
   ).toHaveCount(0);
+});
+
+test("a logo is uploaded after rejected files, previewed, and removed", async ({
+  context,
+  page,
+}) => {
+  await authenticateAdmin(context);
+  await page.goto(`/schools/${catalogSchoolID}`);
+  const logo = panel(page, "Logo");
+  await expect(
+    logo.getByText("No logo yet. The school shows the placeholder."),
+  ).toBeVisible();
+  const file = logo.getByLabel("Logo file");
+
+  // An oversized file is refused in the browser before it is sent.
+  await file.setInputFiles({
+    name: "huge.png",
+    mimeType: "image/png",
+    buffer: Buffer.alloc(5 * 1024 * 1024 + 1),
+  });
+  await expect(file).toHaveAttribute("aria-invalid", "true");
+  await expect(logo.locator("#logo-file-error")).toHaveText(
+    "The file is larger than 5 MB. Export a smaller PNG or JPEG and try again.",
+  );
+
+  // The server judges the bytes, not the name or declared type.
+  await file.setInputFiles(disguisedSVGLogo);
+  await logo.getByLabel("Reason").fill("Official logo from the school");
+  await logo.getByRole("button", { name: "Upload logo" }).click();
+  await expect(logo.getByRole("alert")).toHaveText(
+    "Upload a PNG or JPEG image. SVG, GIF, WebP, and animated images are not accepted.",
+  );
+
+  await file.setInputFiles(pngLogo);
+  await logo.getByRole("button", { name: "Upload logo" }).click();
+  await expect(page).toHaveURL(/notice=logo-updated$/);
+  await expect(page.getByRole("status")).toHaveText("Logo updated.");
+  const preview = logo.getByRole("img", {
+    name: "Browser Test University logo",
+  });
+  await expect(preview).toBeVisible();
+  // The image loads under the Admin Console's content security policy.
+  await expect
+    .poll(() =>
+      preview.evaluate((image: HTMLImageElement) => image.naturalWidth),
+    )
+    .toBe(1);
+
+  await runCommand(
+    panel(page, "Remove logo"),
+    "Rebrand pending",
+    "Remove logo",
+  );
+  await expect(page.getByRole("status")).toHaveText(
+    "Logo removed. The school shows the placeholder again.",
+  );
+  await expect(logo.getByRole("img")).toHaveCount(0);
+  await expect(page.getByText("Logo updated", { exact: true })).toBeVisible();
+  await expect(page.getByText("Logo removed", { exact: true })).toBeVisible();
 });

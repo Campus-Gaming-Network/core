@@ -27,7 +27,7 @@ Railway PostgreSQL
 Side paths:
   Admin Console (TanStack Start, separate deploy; release-gated) ──► Go API
   Resend ──► transactional mail + ICS
-  Cloudflare R2 ──► school logos (Admin Console, later); other uploads after that
+  Cloudflare R2 ──► school logos (Admin Console); other uploads later
   Sentry ──► errors (later)
   Cloudflare ──► DNS / edge protection
   IGDB ──► later game enrichment (via Admin Console / cron); uses the curated seed list
@@ -54,7 +54,7 @@ See [14 — Architecture diagrams](./14-architecture-diagrams.md) for Mermaid vi
 | DNS / edge       | Cloudflare                                              | DNS and edge protection for campusgamingnetwork.com                                                |
 | Admin Console    | TanStack Start                                          | `apps/admin`, a separate release at admin.campusgamingnetwork.com; in progress and release-gated   |
 | Email            | Resend                                                  | Verification, password reset, RSVP+ICS, etc.                                                       |
-| Object storage   | Cloudflare R2                                           | School logos via Admin Console (PNG/JPG ≤5 MB), then custom event banners — both later             |
+| Object storage   | Cloudflare R2                                           | School logos via Admin Console (PNG/JPG ≤5 MB); custom event banners later                         |
 | Errors           | Sentry                                                  | Later bug reporting; not required for launch                                                       |
 | Avatars          | DiceBear Critters default preset with initials fallback | Custom avatars later                                                                               |
 | Maps             | Google Maps embed (mini)                                | Later nicety; address text first                                                                   |
@@ -143,7 +143,7 @@ The school and game catalogs are effectively static — roughly 6,200 schools gr
 ## Catalog mutations
 
 - Schools are bootstrapped once from the Scorecard seed; users cannot create schools.
-- Admin Console: school create/edit/activation/delete, school admins, and the games catalog (API complete, UI in progress). School commands refresh the serving process's in-memory catalog after they commit. Logo uploads and IGDB enrichment come later.
+- Admin Console: school create/edit/activation/delete, school logos, school admins, and the games catalog. School commands refresh the serving process's in-memory catalog after they commit. IGDB enrichment comes later.
 - Games: Uses the curated seed; **not** editable by end users.
 
 ## Auth & security
@@ -203,8 +203,13 @@ The school and game catalogs are effectively static — roughly 6,200 schools gr
 ## Object storage (Cloudflare R2)
 
 - Provider: **Cloudflare R2**
-- **Now:** no user uploads; school logos use placeholders
-- **Later:** school logos uploaded via the **Admin Console** (not the main site)
+- **School logos:** uploaded through the **Admin Console** only (not the main site).
+  The Go API validates and re-encodes each image, then writes it to a dedicated
+  bucket served from its own asset hostname. The main site still shows the
+  placeholder; displaying logos there is a separate change that must add the
+  asset hostname to the web CSP.
+- **Local:** the `object-storage` Compose service (Adobe S3Mock, `admin`
+  profile) stands in for R2.
 - **Event banners:** use a default placeholder image/background — no user uploads yet (custom banners later with strict moderation)
 - Allowed types: **PNG or JPG only**
 - **Max size:** 5 MB per image

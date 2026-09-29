@@ -18,6 +18,7 @@ import (
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminsecurity"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminsession"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/operations"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/ratelimit"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/users"
 	"github.com/jackc/pgx/v5"
 )
@@ -123,13 +124,17 @@ type Handler struct {
 	dependencies Dependencies
 	trusted      http.Handler
 	now          func() time.Time
+	logoUploads  *ratelimit.Limiter
 }
 
 func NewHandler(config Config, dependencies Dependencies) *Handler {
 	if config.StepUpMaxAge <= 0 || config.StepUpMaxAge > 10*time.Minute {
 		config.StepUpMaxAge = 10 * time.Minute
 	}
-	handler := &Handler{config: config, dependencies: dependencies, now: time.Now}
+	handler := &Handler{
+		config: config, dependencies: dependencies, now: time.Now,
+		logoUploads: ratelimit.New(logoUploadLimit, logoUploadWindow),
+	}
 	if dependencies.Sessions != nil {
 		handler.trusted = adminsession.WithSession(dependencies.Sessions, config.Cookies)(
 			http.HandlerFunc(handler.dispatch),

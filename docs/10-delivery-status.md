@@ -34,7 +34,7 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 | Event slug hash | **8** Base64URL chars                                                                              |
 | Images          | **PNG or JPG only**; max **5 MB**                                                                  |
 | Event banners   | Default placeholder image/background — **no user uploads yet**                                     |
-| School logos    | Placeholder for now; Admin Console upload via R2 later                                             |
+| School logos    | Admin Console upload to R2 implemented; the main site still shows the placeholder                  |
 | Email From      | Now: `events@` / `account@`; later workflows: `notifications@` / `support@campusgamingnetwork.com` |
 | Paid events     | Off-site-payment listings only; no CGN checkout/payments                                           |
 | Deploy path     | Railway hosts TanStack Start, Go API, and PostgreSQL; Cloudflare manages DNS/protection            |

@@ -17,6 +17,7 @@ const safeProduction = {
   CLOUDFLARE_ACCESS_AUDIENCE: "admin-audience",
   CLOUDFLARE_ACCESS_JWKS_URL:
     "https://cgn.cloudflareaccess.com/cdn-cgi/access/certs",
+  R2_PUBLIC_ASSET_ORIGIN: "https://assets.campusgamingnetwork.com",
 };
 
 test("accepts a separate production Admin Console boundary", () => {
@@ -51,4 +52,30 @@ test("validation messages never contain credential values", () => {
   });
   assert.ok(issues.length > 0);
   assert.equal(issues.join(" ").includes(canary), false);
+});
+
+test("logo previews load only from an HTTPS asset origin outside local", () => {
+  assert.deepEqual(
+    [
+      { R2_PUBLIC_ASSET_ORIGIN: "" },
+      { R2_PUBLIC_ASSET_ORIGIN: "http://assets.campusgamingnetwork.com" },
+      {
+        R2_PUBLIC_ASSET_ORIGIN: "https://assets.campusgamingnetwork.com/logos",
+      },
+    ].map((override) =>
+      environmentValidationIssues({ ...safeProduction, ...override }),
+    ),
+    [
+      ["R2_PUBLIC_ASSET_ORIGIN must be set"],
+      ["R2_PUBLIC_ASSET_ORIGIN must be an HTTPS origin"],
+      ["R2_PUBLIC_ASSET_ORIGIN must be an HTTPS origin"],
+    ],
+  );
+  // Locally the base may carry the storage bucket's path.
+  assert.equal(
+    adminEnvironment({
+      R2_PUBLIC_ASSET_ORIGIN: "http://localhost:9090/cgn-school-logos",
+    }).logoAssetBase,
+    "http://localhost:9090/cgn-school-logos",
+  );
 });

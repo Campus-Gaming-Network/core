@@ -57,6 +57,7 @@ export default defineConfig({
         ADMIN_SITE_URL: adminURL,
         ADMIN_SESSION_COOKIE: "cgn_admin_session",
         ADMIN_CSRF_COOKIE: "cgn_admin_csrf",
+        R2_PUBLIC_ASSET_ORIGIN: `${apiURL}/assets`,
         HOST: "127.0.0.1",
         NITRO_HOST: "127.0.0.1",
         PORT: "3202",

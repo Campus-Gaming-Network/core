@@ -26,6 +26,7 @@ import (
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/config"
 	eventstore "github.com/Campus-Gaming-Network/core/apps/api/internal/events"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/games"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/objectstore"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/operations"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/ratelimit"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/safety"
@@ -40,6 +41,10 @@ import (
 // a single visitor cannot lock an account or event out, while guessing spread
 // across many visitors is still capped.
 const targetRateLimitMultiplier = 4
+
+// logoReconcileInterval bounds how long an abandoned or replaced logo object
+// can remain stored after its row became eligible for deletion.
+const logoReconcileInterval = 15 * time.Minute
 
 type Router struct {
 	cfg     config.Config
@@ -116,6 +121,16 @@ func NewRouter(cfg config.Config, pools ...*pgxpool.Pool) http.Handler {
 			JWKSURL: cfg.CloudflareAccessJWKSURL,
 		}, nil)
 		if sessionErr == nil && transactionErr == nil && identityErr == nil {
+			var logos adminhttp.AdminLogos
+			if cfg.LogoStorageConfigured() {
+				logoRepository := schools.NewLogoRepository(router.db, objectstore.NewS3Store(objectstore.Config{
+					Endpoint: cfg.R2Endpoint, AccountID: cfg.R2AccountID, Bucket: cfg.R2SchoolLogosBucket,
+					AccessKeyID: cfg.R2AccessKeyID, SecretAccessKey: cfg.R2SecretAccessKey,
+				}), cfg.R2PublicAssetOrigin, slog.Default())
+				// Like the catalog refresh, reconciliation runs for the life of the process.
+				go logoRepository.Start(context.Background(), logoReconcileInterval)
+				logos = logoRepository
+			}
 			adminDependencies = adminhttp.Dependencies{
 				Identities:   identityValidator,
 				Users:        users.NewPostgresRepository(router.db),
@@ -127,7 +142,7 @@ func NewRouter(cfg config.Config, pools ...*pgxpool.Pool) http.Handler {
 				Catalog: &adminhttp.CatalogDependencies{
 					Schools: schools.NewPostgresRepository(router.db), Games: games.NewPostgresRepository(router.db),
 					Users: users.NewPostgresRepository(router.db), SiteGrants: adminaccess.NewPostgresRepository(router.db),
-					Cache: router.catalog, Audit: adminaudit.NewPostgresStore(router.db),
+					Cache: router.catalog, Audit: adminaudit.NewPostgresStore(router.db), Logos: logos,
 				},
 			}
 		}

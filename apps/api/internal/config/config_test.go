@@ -41,6 +41,12 @@ var configurationEnvironmentKeys = []string{
 	"CLOUDFLARE_ACCESS_TEAM_DOMAIN",
 	"CLOUDFLARE_ACCESS_AUDIENCE",
 	"CLOUDFLARE_ACCESS_JWKS_URL",
+	"R2_ENDPOINT",
+	"R2_ACCOUNT_ID",
+	"R2_SCHOOL_LOGOS_BUCKET",
+	"R2_ACCESS_KEY_ID",
+	"R2_SECRET_ACCESS_KEY",
+	"R2_PUBLIC_ASSET_ORIGIN",
 }
 
 func TestLoadAllowsDeliberateLocalDefaults(t *testing.T) {
@@ -121,6 +127,11 @@ func TestLoadRejectsUnsafeEnabledAdminConsoleSettings(t *testing.T) {
 		{name: "missing audience", values: map[string]string{"CLOUDFLARE_ACCESS_AUDIENCE": ""}, wantErr: "CLOUDFLARE_ACCESS_AUDIENCE"},
 		{name: "insecure JWKS URL", values: map[string]string{"CLOUDFLARE_ACCESS_JWKS_URL": "http://access.example.com/certs"}, wantErr: "CLOUDFLARE_ACCESS_JWKS_URL must use HTTPS"},
 		{name: "wrong JWKS host", values: map[string]string{"CLOUDFLARE_ACCESS_JWKS_URL": "https://attacker.example/cdn-cgi/access/certs"}, wantErr: "must use the configured team domain"},
+		{name: "missing logo storage", values: map[string]string{"R2_SECRET_ACCESS_KEY": ""}, wantErr: "must be set together"},
+		{name: "local storage endpoint", values: map[string]string{"R2_ENDPOINT": "http://object-storage:9090"}, wantErr: "R2_ENDPOINT must not be set"},
+		{name: "insecure asset origin", values: map[string]string{"R2_PUBLIC_ASSET_ORIGIN": "http://assets.campusgamingnetwork.com"}, wantErr: "R2_PUBLIC_ASSET_ORIGIN must be an HTTPS origin on its own non-local hostname"},
+		{name: "asset origin shared with the site", values: map[string]string{"R2_PUBLIC_ASSET_ORIGIN": "https://campusgamingnetwork.com"}, wantErr: "R2_PUBLIC_ASSET_ORIGIN must be an HTTPS origin on its own non-local hostname"},
+		{name: "asset origin with a path", values: map[string]string{"R2_PUBLIC_ASSET_ORIGIN": "https://assets.campusgamingnetwork.com/logos"}, wantErr: "R2_PUBLIC_ASSET_ORIGIN must be an HTTPS origin on its own non-local hostname"},
 		{name: "wrong JWKS path", values: map[string]string{"CLOUDFLARE_ACCESS_JWKS_URL": "https://campusgamingnetwork.cloudflareaccess.com/keys"}, wantErr: "must use the configured team domain"},
 	}
 
@@ -302,6 +313,28 @@ func TestLoadAcceptsLegacyResendAPIKey(t *testing.T) {
 	}
 }
 
+func TestLoadAllowsLocalLogoStorageEndpoint(t *testing.T) {
+	clearConfigurationEnvironment(t)
+	setConfigurationEnvironment(t, map[string]string{
+		"R2_ENDPOINT": "http://object-storage:9090", "R2_SCHOOL_LOGOS_BUCKET": "cgn-school-logos",
+		"R2_ACCESS_KEY_ID": "cgn-local", "R2_SECRET_ACCESS_KEY": "cgn-local-secret",
+		"R2_PUBLIC_ASSET_ORIGIN": "http://localhost:9090/cgn-school-logos",
+	})
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	if !cfg.LogoStorageConfigured() {
+		t.Fatal("LogoStorageConfigured() = false, want true")
+	}
+
+	t.Setenv("R2_ACCESS_KEY_ID", "")
+	if _, err := Load(); err == nil || !strings.Contains(err.Error(), "must be set together") {
+		t.Fatalf("Load() error = %v, want partial storage rejected", err)
+	}
+}
+
 func TestLoadReadsBFFProxySharedSecret(t *testing.T) {
 	clearConfigurationEnvironment(t)
 	t.Setenv("API_PROXY_SHARED_SECRET", "test-shared-secret")
@@ -342,6 +375,11 @@ func validStrictAdminEnvironment() map[string]string {
 		"CLOUDFLARE_ACCESS_TEAM_DOMAIN": "https://campusgamingnetwork.cloudflareaccess.com",
 		"CLOUDFLARE_ACCESS_AUDIENCE":    "admin-audience",
 		"CLOUDFLARE_ACCESS_JWKS_URL":    "https://campusgamingnetwork.cloudflareaccess.com/cdn-cgi/access/certs",
+		"R2_ACCOUNT_ID":                 "account-id",
+		"R2_SCHOOL_LOGOS_BUCKET":        "cgn-school-logos",
+		"R2_ACCESS_KEY_ID":              "access-key",
+		"R2_SECRET_ACCESS_KEY":          "secret-key",
+		"R2_PUBLIC_ASSET_ORIGIN":        "https://assets.campusgamingnetwork.com",
 	}
 }
 

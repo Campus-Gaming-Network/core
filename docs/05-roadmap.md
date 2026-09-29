@@ -110,7 +110,7 @@ feeling unfinished.
 
 ## Phase 4 — Admin Console (TanStack Start, separate release)
 
-**Status:** In progress — the moderation UI and the catalog/access APIs are complete; the catalog UI and logo uploads remain. Ticket status lives in [20 — Admin Console v1 engineering plan](./20-admin-console-v1-engineering-plan.md).
+**Status:** In progress — the moderation, catalog, access, and logo workflows are complete; production hardening and rollout remain. Ticket status lives in [20 — Admin Console v1 engineering plan](./20-admin-console-v1-engineering-plan.md).
 
 **Goal:** After the first release, operators manage the catalog without SQL. Deploy `apps/admin` to `admin.campusgamingnetwork.com`.
 

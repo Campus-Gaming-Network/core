@@ -20,6 +20,8 @@ export type AdminEnvironment = {
   accessIssuer?: string;
   accessAudience?: string;
   accessJWKSURL?: string;
+  /** Where the API publishes school logos; previews load only from here. */
+  logoAssetBase?: string;
 };
 
 export function environmentValidationIssues(
@@ -65,6 +67,17 @@ export function environmentValidationIssues(
     if (strict && !configuredValue(environment, key)) {
       issues.push(`${key} must be set`);
     }
+  }
+
+  const logoAssetBase = configuredValue(environment, "R2_PUBLIC_ASSET_ORIGIN");
+  if (strict && !logoAssetBase) {
+    issues.push("R2_PUBLIC_ASSET_ORIGIN must be set");
+  } else if (logoAssetBase && !parseLogoAssetBase(logoAssetBase, strict)) {
+    issues.push(
+      strict
+        ? "R2_PUBLIC_ASSET_ORIGIN must be an HTTPS origin"
+        : "R2_PUBLIC_ASSET_ORIGIN must be an absolute HTTP(S) URL without a query or trailing slash",
+    );
   }
 
   const accessIssuer = configuredValue(
@@ -127,7 +140,30 @@ export function adminEnvironment(
     accessIssuer: configuredValue(environment, "CLOUDFLARE_ACCESS_TEAM_DOMAIN"),
     accessAudience: configuredValue(environment, "CLOUDFLARE_ACCESS_AUDIENCE"),
     accessJWKSURL: configuredValue(environment, "CLOUDFLARE_ACCESS_JWKS_URL"),
+    logoAssetBase: configuredValue(environment, "R2_PUBLIC_ASSET_ORIGIN"),
   };
+}
+
+/**
+ * The asset base is an origin in staging and production. Locally it may add
+ * the storage bucket's path.
+ */
+function parseLogoAssetBase(value: string, strict: boolean): URL | undefined {
+  try {
+    const parsed = new URL(value);
+    const valid =
+      (parsed.protocol === "https:" ||
+        (!strict && parsed.protocol === "http:")) &&
+      !parsed.username &&
+      !parsed.password &&
+      !parsed.search &&
+      !parsed.hash &&
+      !value.endsWith("/") &&
+      (!strict || parsed.pathname === "/");
+    return valid ? parsed : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 function validateInternalURL(
