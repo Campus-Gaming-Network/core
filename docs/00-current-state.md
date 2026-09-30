@@ -36,11 +36,10 @@ is done. Engineering work now comes from the open items in
 2. Continue `AC-014`: Admin Console production hardening. Rate limits and the
    `e2e-real` journeys are in; next are the remaining security-matrix gaps,
    alerts, dependency and secret review, and operator runbooks.
-3. Show school logos on the main site, adding the asset hostname to the web
-   CSP.
+3. Clear the P1 launch gates that need outside input: legal copy, the
+   DiceBear decision, and the external launch rehearsal.
 
-Legal, DiceBear, and external launch rehearsal remain P1 launch gates. Admin
-Console work continues under
+Admin Console work continues under
 [20 — Admin Console v1 engineering plan](./20-admin-console-v1-engineering-plan.md).
 
 ## Blockers and decisions

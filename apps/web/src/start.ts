@@ -17,8 +17,7 @@ const securityHeadersMiddleware = createMiddleware().server(
     const response = result.response;
     const headers = new Headers(response.headers);
     const defaults = {
-      "content-security-policy":
-        "frame-ancestors 'none'; base-uri 'self'; object-src 'none'",
+      "content-security-policy": `frame-ancestors 'none'; base-uri 'self'; object-src 'none'; img-src ${imageSources()}`,
       "permissions-policy":
         "camera=(), microphone=(), geolocation=(), payment=()",
       "referrer-policy": "strict-origin-when-cross-origin",
@@ -53,6 +52,21 @@ const securityHeadersMiddleware = createMiddleware().server(
 export const startInstance = createStart(() => ({
   requestMiddleware: [securityHeadersMiddleware, csrfMiddleware],
 }));
+
+// School logos load from the separate asset origin, and images from nowhere
+// else.
+function imageSources(): string {
+  const base = process.env.R2_PUBLIC_ASSET_ORIGIN?.trim();
+  if (!base) return "'self' data:";
+  try {
+    const { origin, protocol } = new URL(base);
+    return protocol === "https:" || protocol === "http:"
+      ? `'self' data: ${origin}`
+      : "'self' data:";
+  } catch {
+    return "'self' data:";
+  }
+}
 
 function publicOrigin(): string {
   if (typeof window !== "undefined") {

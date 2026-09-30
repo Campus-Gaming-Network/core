@@ -94,7 +94,7 @@ All other paths exist in the Go API.
 | Method | Path                         | Notes                                                                                                                        |
 | ------ | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
 | GET    | `/schools`                   | Search/browse (public, incl. logged out); `q`, `state`, `limit`, and `offset`; response includes `has_more` (no total count) |
-| GET    | `/schools/:slug`             | Public school page (clubs list when clubs ship)                                                                              |
+| GET    | `/schools/:slug`             | Public school page (clubs list when clubs ship). School objects include `logo_url` when a logo is set                        |
 | POST   | `/schools/:id/follow`        | Auth required                                                                                                                |
 | DELETE | `/schools/:id/follow`        |                                                                                                                              |
 | GET    | `/schools/:id/games/popular` | **(planned)**                                                                                                                |

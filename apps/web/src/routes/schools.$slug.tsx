@@ -9,6 +9,7 @@ import { type FormEvent } from "react";
 import { useEnhancedMutation } from "../components/enhanced-mutation";
 import { PageNoticeView } from "../components/page-notice-view";
 import { RouteErrorView, RoutePending } from "../components/route-boundaries";
+import { SchoolLogo } from "../components/school-logo";
 import {
   getSchoolCatalog,
   getSchoolViewerState,
@@ -73,6 +74,11 @@ function SchoolPage() {
     <main className="narrow">
       <section className="page-heading">
         <p className="eyebrow">School</p>
+        <SchoolLogo
+          alt={`${school.name} logo`}
+          logoURL={school.logo_url}
+          size={96}
+        />
         <h1>{school.name}</h1>
         <p className="lede">
           {[school.city, school.state, school.zip].filter(Boolean).join(", ") ||

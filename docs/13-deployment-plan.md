@@ -260,10 +260,13 @@ API_SESSION_COOKIE=cgn_session
 API_PROXY_SHARED_SECRET=REPLACE-WITH-STAGING-SHARED-SECRET
 CLOUDFLARE_ORIGIN_SECRET=REPLACE-WITH-STAGING-CLOUDFLARE-SECRET
 SITE_URL=https://REPLACE-WITH-STAGING-WEB-DOMAIN
+R2_PUBLIC_ASSET_ORIGIN=https://REPLACE-WITH-STAGING-ASSET-DOMAIN
 NODE_ENV=production
 ```
 
 Return to the API variables and replace `https://REPLACE-WITH-STAGING-WEB-DOMAIN` with the same exact origin. The two `API_PROXY_SHARED_SECRET` values must match exactly.
+
+`R2_PUBLIC_ASSET_ORIGIN` is the same value the API uses for its logo asset hostname. The web app treats it as optional: without it, schools show no logo.
 
 Staging does not need a Cloudflare header transform when it uses the Railway domain directly. Nevertheless, the application requires a unique `CLOUDFLARE_ORIGIN_SECRET` in strict staging mode so an unsafe configuration can never be promoted silently.
 
@@ -424,6 +427,7 @@ API_SESSION_COOKIE=cgn_session
 API_PROXY_SHARED_SECRET=REPLACE-WITH-PRODUCTION-SHARED-SECRET
 CLOUDFLARE_ORIGIN_SECRET=REPLACE-WITH-PRODUCTION-CLOUDFLARE-SECRET
 SITE_URL=https://campusgamingnetwork.com
+R2_PUBLIC_ASSET_ORIGIN=https://REPLACE-WITH-PRODUCTION-ASSET-DOMAIN
 NODE_ENV=production
 ```
 

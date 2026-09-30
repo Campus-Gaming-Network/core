@@ -1,6 +1,7 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { PageNoticeView } from "../components/page-notice-view";
 import { ListUnavailable, RoutePending } from "../components/route-boundaries";
+import { SchoolLogo } from "../components/school-logo";
 import { getSchoolsCatalog } from "../features/school-slice/catalog.functions";
 import {
   catalogClientStaleTime,
@@ -86,9 +87,12 @@ function SchoolsPage() {
               to="/schools/$slug"
               params={{ slug: school.slug }}
             >
-              <span>
-                <strong>{school.name}</strong>
-                {school.alias ? <small>{school.alias}</small> : null}
+              <span className="school-identity">
+                <SchoolLogo logoURL={school.logo_url} size={40} />
+                <span>
+                  <strong>{school.name}</strong>
+                  {school.alias ? <small>{school.alias}</small> : null}
+                </span>
               </span>
               <span>{schoolLocation(school)}</span>
             </Link>

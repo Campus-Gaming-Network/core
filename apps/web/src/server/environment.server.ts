@@ -82,7 +82,30 @@ export function environmentValidationIssues(
     }
   }
 
+  const logoBase = configuredValue(environment, "R2_PUBLIC_ASSET_ORIGIN");
+  if (logoBase && !parseSchoolLogoBase(logoBase, strict)) {
+    issues.push(
+      strict
+        ? "R2_PUBLIC_ASSET_ORIGIN must be an HTTPS origin"
+        : "R2_PUBLIC_ASSET_ORIGIN must be an absolute HTTP(S) URL without a query or trailing slash",
+    );
+  }
+
   return issues;
+}
+
+/**
+ * Where school logos are served from, or undefined when logos are not
+ * configured or the value is unsafe. The main site loads logo images from this
+ * address only; without it every school shows no logo.
+ */
+export function schoolLogoBase(
+  environment: Environment = process.env,
+): string | undefined {
+  const value = configuredValue(environment, "R2_PUBLIC_ASSET_ORIGIN");
+  const strict =
+    parseDeploymentEnvironment(environment.DEPLOYMENT_ENV) !== "local";
+  return value && parseSchoolLogoBase(value, strict) ? value : undefined;
 }
 
 export function assertSafeEnvironment(
@@ -150,6 +173,28 @@ function parseHTTPOrigin(value: string): URL | undefined {
       return undefined;
     }
     return parsed;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * The asset base is an HTTPS origin in staging and production. Locally it may
+ * be plain HTTP and carry the storage bucket's path.
+ */
+function parseSchoolLogoBase(value: string, strict: boolean): URL | undefined {
+  try {
+    const parsed = new URL(value);
+    const valid =
+      (parsed.protocol === "https:" ||
+        (!strict && parsed.protocol === "http:")) &&
+      !parsed.username &&
+      !parsed.password &&
+      !parsed.search &&
+      !parsed.hash &&
+      !value.endsWith("/") &&
+      (!strict || parsed.pathname === "/");
+    return valid ? parsed : undefined;
   } catch {
     return undefined;
   }

@@ -115,6 +115,7 @@ services:
       API_SESSION_COOKIE: ${API_SESSION_COOKIE:-cgn_session}
       CLOUDFLARE_ORIGIN_SECRET: ${CLOUDFLARE_ORIGIN_SECRET:-}
       SITE_URL: ${SITE_URL:-http://localhost:3000}
+      R2_PUBLIC_ASSET_ORIGIN: ${R2_PUBLIC_ASSET_ORIGIN:-http://localhost:9090/cgn-school-logos}
       HOST: 0.0.0.0
       PORT: 3000
     ports:

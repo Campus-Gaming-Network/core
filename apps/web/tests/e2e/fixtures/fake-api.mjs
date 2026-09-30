@@ -16,6 +16,13 @@ const transferredOwners = new Set();
 const consumedVerificationTokens = new Set();
 const calls = [];
 
+// Stands in for the public R2 asset host; the web server's
+// R2_PUBLIC_ASSET_ORIGIN points here.
+const logoPNG = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
+  "base64",
+);
+
 const school = {
   id: "school-e2e",
   unitid: 12345,
@@ -30,6 +37,7 @@ const school = {
   longitude: -117.84,
   is_main_campus: true,
   num_branches: 0,
+  logo_url: `http://127.0.0.1:${port}/assets/school-logos/school-e2e/logo.png`,
 };
 
 const followableSchool = {
@@ -135,6 +143,15 @@ async function handleRequest(request, response) {
 
   if (method === "GET" && url.pathname === "/games") {
     json(response, 200, { games: [game] });
+    return;
+  }
+
+  if (method === "GET" && url.pathname.startsWith("/assets/")) {
+    response.writeHead(200, {
+      "content-type": "image/png",
+      "content-length": logoPNG.length,
+    });
+    response.end(logoPNG);
     return;
   }
 

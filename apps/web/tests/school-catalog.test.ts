@@ -290,3 +290,63 @@ test("school metadata is dynamic and external website links allow only HTTP(S)",
     "https://example.edu/gaming",
   );
 });
+
+test("school pages render only logos served from the configured asset location", async () => {
+  const logoBase = "https://assets.example.test";
+  const withLogo = (logo_url?: string) => ({ ...school, logo_url });
+  const trusted = `${logoBase}/school-logos/school-1/logo.png`;
+  const cases = [
+    { name: "trusted", logo: trusted, base: logoBase, rendered: true },
+    {
+      name: "other host",
+      logo: "https://evil.example/logo.png",
+      base: logoBase,
+      rendered: false,
+    },
+    {
+      name: "host-prefix lookalike",
+      logo: "https://assets.example.test.evil.example/logo.png",
+      base: logoBase,
+      rendered: false,
+    },
+    {
+      name: "credentials",
+      logo: "https://user:pass@assets.example.test/logo.png",
+      base: logoBase,
+      rendered: false,
+    },
+    {
+      name: "query string",
+      logo: `${trusted}?redirect=1`,
+      base: logoBase,
+      rendered: false,
+    },
+    {
+      name: "no configured base",
+      logo: trusted,
+      base: undefined,
+      rendered: false,
+    },
+    { name: "no logo", logo: undefined, base: logoBase, rendered: false },
+  ];
+
+  const results = await Promise.all(
+    cases.map(({ logo, base }) =>
+      schoolCatalogOperation(
+        { slug: school.slug },
+        {
+          api: client(async () => Response.json(withLogo(logo))),
+          logoBase: base,
+        },
+      ),
+    ),
+  );
+
+  assert.deepEqual(
+    results,
+    cases.map(({ logo, rendered }) => ({
+      status: "found",
+      school: rendered ? withLogo(logo) : school,
+    })),
+  );
+});

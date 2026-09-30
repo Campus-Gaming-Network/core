@@ -179,6 +179,17 @@ func TestSchoolLogoHTTPReplacesRemovesAndCleansUp(t *testing.T) {
 	if got := objects.snapshot(); !reflect.DeepEqual(got, map[string]string{firstKey: "image/png"}) {
 		t.Fatalf("objects = %v", got)
 	}
+	publicLogo := func() string {
+		t.Helper()
+		public, err := schools.NewPostgresRepository(f.pool).GetByID(t.Context(), catalogSchoolID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return public.LogoURL
+	}
+	if got := publicLogo(); got != first.LogoURL {
+		t.Fatalf("public logo = %q, want %q", got, first.LogoURL)
+	}
 
 	// A stale form keeps the stored logo and discards the new upload.
 	conflict := decodeCatalog[struct {
@@ -207,6 +218,9 @@ func TestSchoolLogoHTTPReplacesRemovesAndCleansUp(t *testing.T) {
 	removed := decodeCatalog[schools.AdminSchool](t, f.request(t, "DELETE", "/admin/v1/schools/"+catalogSchoolID+"/logo", command, 200))
 	if removed.LogoURL != "" || len(objects.snapshot()) != 0 || len(f.logoRows(t)) != 0 {
 		t.Fatalf("after removal logo=%q objects=%v rows=%v", removed.LogoURL, objects.snapshot(), f.logoRows(t))
+	}
+	if got := publicLogo(); got != "" {
+		t.Fatalf("public logo after removal = %q", got)
 	}
 	command.ExpectedUpdatedAt = removed.UpdatedAt
 	f.request(t, "DELETE", "/admin/v1/schools/"+catalogSchoolID+"/logo", command, 409)

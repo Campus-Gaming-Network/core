@@ -170,6 +170,23 @@ main {
   color: #c9c9d2;
 }
 
+.school-logo {
+  flex: none;
+  border-radius: 0.5rem;
+  background: #fff;
+  object-fit: contain;
+}
+
+.list-item > .school-identity {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.school-identity > span {
+  display: grid;
+}
+
 .search-bar {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(6rem, 0.25fr) auto;

@@ -24,6 +24,7 @@ type School struct {
 	Longitude    *float64 `json:"longitude,omitempty"`
 	IsMainCampus bool     `json:"is_main_campus"`
 	NumBranches  int      `json:"num_branches"`
+	LogoURL      string   `json:"logo_url,omitempty"`
 }
 
 type ListParams struct {
@@ -73,7 +74,7 @@ const schoolColumns = `
 	s.id::text, s.unitid, s.name, COALESCE(s.alias, ''), s.slug,
 	COALESCE(s.city, ''), COALESCE(s.state, ''), COALESCE(s.zip, ''),
 	COALESCE(s.website_url, ''), s.latitude, s.longitude,
-	s.is_main_campus, s.num_branches
+	s.is_main_campus, s.num_branches, COALESCE(s.logo_url, '')
 `
 
 type schoolScanner interface {
@@ -215,6 +216,7 @@ func scanSchool(scanner schoolScanner) (School, error) {
 		&school.ID, &school.UnitID, &school.Name, &school.Alias, &school.Slug,
 		&school.City, &school.State, &school.Zip, &school.WebsiteURL,
 		&school.Latitude, &school.Longitude, &school.IsMainCampus, &school.NumBranches,
+		&school.LogoURL,
 	)
 	if err != nil {
 		return School{}, err

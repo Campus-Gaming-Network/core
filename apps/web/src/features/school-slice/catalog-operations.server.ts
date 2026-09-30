@@ -3,6 +3,7 @@ import {
   ApiError,
   type ApiClient,
 } from "../../server/api.server.js";
+import { schoolLogoBase } from "../../server/environment.server.js";
 import { optionalViewerProfile } from "../../server/viewer.server.js";
 import {
   followedSchoolsResponseDtoSchema,
@@ -12,6 +13,7 @@ import {
   schoolsResponseDtoSchema,
   type HomeCatalogResult,
   type SchoolCatalogResult,
+  type SchoolDTO,
   type SchoolSlugInput,
   type SchoolsBrowseInput,
   type SchoolsCatalogResult,
@@ -21,6 +23,8 @@ import {
 
 type CatalogDependencies = {
   api: ApiClient;
+  /** Where school logos are served from; defaults to the configured base. */
+  logoBase?: string;
   reportError?: (error: unknown) => void;
 };
 
@@ -31,11 +35,17 @@ type ViewerDependencies = CatalogDependencies & {
 
 export async function homeCatalogOperation({
   api,
+  logoBase = schoolLogoBase(),
   reportError = defaultErrorReporter,
 }: CatalogDependencies): Promise<HomeCatalogResult> {
   const [schools, games] = await Promise.all([
     readSchools(api, { limit: 6 })
-      .then((result) => ({ data: result.schools, unavailable: false }))
+      .then((result) => ({
+        data: result.schools.map((school) =>
+          withVerifiedLogo(school, logoBase),
+        ),
+        unavailable: false,
+      }))
       .catch((error: unknown) => {
         reportError(error);
         return { data: [], unavailable: true };
@@ -62,18 +72,24 @@ export async function homeCatalogOperation({
 
 export async function schoolsCatalogOperation(
   input: SchoolsBrowseInput,
-  { api, reportError = defaultErrorReporter }: CatalogDependencies,
+  {
+    api,
+    logoBase = schoolLogoBase(),
+    reportError = defaultErrorReporter,
+  }: CatalogDependencies,
 ): Promise<SchoolsCatalogResult> {
   const offset = (input.page - 1) * schoolsPageSize;
 
   try {
+    const page = await readSchools(api, {
+      query: input.query,
+      state: input.state,
+      limit: schoolsPageSize,
+      offset,
+    });
     return {
-      ...(await readSchools(api, {
-        query: input.query,
-        state: input.state,
-        limit: schoolsPageSize,
-        offset,
-      })),
+      ...page,
+      schools: page.schools.map((school) => withVerifiedLogo(school, logoBase)),
       unavailable: false,
     };
   } catch (error) {
@@ -90,7 +106,11 @@ export async function schoolsCatalogOperation(
 
 export async function schoolCatalogOperation(
   { slug }: SchoolSlugInput,
-  { api, reportError = defaultErrorReporter }: CatalogDependencies,
+  {
+    api,
+    logoBase = schoolLogoBase(),
+    reportError = defaultErrorReporter,
+  }: CatalogDependencies,
 ): Promise<SchoolCatalogResult> {
   try {
     const { data } = await api({
@@ -98,7 +118,7 @@ export async function schoolCatalogOperation(
       cache: "no-store",
       responseSchema: schoolDtoSchema,
     });
-    return { status: "found", school: data };
+    return { status: "found", school: withVerifiedLogo(data, logoBase) };
   } catch (error) {
     if (error instanceof ApiError && error.status === 404) {
       return { status: "not_found" };
@@ -177,6 +197,31 @@ export async function readSchools(
     responseSchema: schoolsResponseDtoSchema,
   });
   return data;
+}
+
+// The API stores absolute logo URLs. The page renders one only when it points
+// into the configured asset location, so a stray or tampered value never
+// becomes an image request to another host.
+function withVerifiedLogo(
+  school: SchoolDTO,
+  logoBase: string | undefined,
+): SchoolDTO {
+  const { logo_url: logoURL, ...rest } = school;
+  if (!logoURL || !logoBase || !logoURL.startsWith(`${logoBase}/`)) {
+    return rest;
+  }
+  try {
+    const parsed = new URL(logoURL);
+    const valid =
+      parsed.origin === new URL(logoBase).origin &&
+      !parsed.username &&
+      !parsed.password &&
+      !parsed.search &&
+      !parsed.hash;
+    return valid ? school : rest;
+  } catch {
+    return rest;
+  }
 }
 
 function defaultErrorReporter(error: unknown): void {

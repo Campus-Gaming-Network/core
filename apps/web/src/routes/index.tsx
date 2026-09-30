@@ -2,6 +2,7 @@ import { Link, createFileRoute } from "@tanstack/react-router";
 import { pageNoticeKey } from "../components/page-notice";
 import { PageNoticeView } from "../components/page-notice-view";
 import { homeAccountNotices } from "../features/account-slice/presentation";
+import { SchoolLogo } from "../components/school-logo";
 import { getHomeCatalog } from "../features/school-slice/catalog.functions";
 import { catalogClientStaleTime } from "../features/school-slice/contracts";
 import {
@@ -92,6 +93,7 @@ function HomePage() {
                 to="/schools/$slug"
                 params={{ slug: school.slug }}
               >
+                <SchoolLogo logoURL={school.logo_url} size={40} />
                 <span>{school.name}</span>
                 <small>{schoolLocation(school)}</small>
               </Link>

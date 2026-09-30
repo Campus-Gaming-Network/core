@@ -27,6 +27,7 @@ export const schoolDtoSchema = z.object({
   longitude: z.number().finite().optional(),
   is_main_campus: z.boolean(),
   num_branches: nonNegativeIntegerSchema,
+  logo_url: z.string().optional(),
 });
 
 export const schoolsResponseDtoSchema = z.object({

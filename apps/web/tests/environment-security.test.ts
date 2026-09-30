@@ -5,6 +5,7 @@ import test from "node:test";
 import {
   assertSafeEnvironment,
   environmentValidationIssues,
+  schoolLogoBase,
   validatedPublicOrigin,
 } from "../src/server/environment.server.js";
 
@@ -199,3 +200,42 @@ function validStrictEnvironment(
     SITE_URL: "https://campusgamingnetwork.com",
   };
 }
+
+test("the school logo location is an optional HTTPS origin outside local", () => {
+  const strict = {
+    DEPLOYMENT_ENV: "production",
+    API_INTERNAL_URL: "http://api.railway.internal:8080",
+    SITE_URL: "https://campusgamingnetwork.com",
+    API_SESSION_COOKIE: "__Host-cgn_session",
+    API_PROXY_SHARED_SECRET: "a".repeat(48),
+    CLOUDFLARE_ORIGIN_SECRET: "b".repeat(48),
+  };
+  const cases = [
+    { R2_PUBLIC_ASSET_ORIGIN: "https://assets.campusgamingnetwork.com" },
+    {},
+    { R2_PUBLIC_ASSET_ORIGIN: "http://assets.campusgamingnetwork.com" },
+    { R2_PUBLIC_ASSET_ORIGIN: "https://assets.campusgamingnetwork.com/logos" },
+  ];
+
+  assert.deepEqual(
+    cases.map((override) =>
+      environmentValidationIssues({ ...strict, ...override }),
+    ),
+    [
+      [],
+      [],
+      ["R2_PUBLIC_ASSET_ORIGIN must be an HTTPS origin"],
+      ["R2_PUBLIC_ASSET_ORIGIN must be an HTTPS origin"],
+    ],
+  );
+  // Locally the base may be plain HTTP and carry the bucket's path.
+  const localBase = "http://localhost:9090/cgn-school-logos";
+  assert.equal(
+    schoolLogoBase({ R2_PUBLIC_ASSET_ORIGIN: localBase }),
+    localBase,
+  );
+  assert.equal(
+    schoolLogoBase({ ...strict, R2_PUBLIC_ASSET_ORIGIN: localBase }),
+    undefined,
+  );
+});

@@ -205,9 +205,10 @@ The school and game catalogs are effectively static — roughly 6,200 schools gr
 - Provider: **Cloudflare R2**
 - **School logos:** uploaded through the **Admin Console** only (not the main site).
   The Go API validates and re-encodes each image, then writes it to a dedicated
-  bucket served from its own asset hostname. The main site still shows the
-  placeholder; displaying logos there is a separate change that must add the
-  asset hostname to the web CSP.
+  bucket served from its own asset hostname. The main site shows a logo when a
+  school has one. The web app reads `R2_PUBLIC_ASSET_ORIGIN` (optional; HTTPS
+  origin in staging and production), adds it to the CSP `img-src`, and renders
+  a `logo_url` only when it points under that location.
 - **Local:** the `object-storage` Compose service (Adobe S3Mock, `admin`
   profile) stands in for R2.
 - **Event banners:** use a default placeholder image/background — no user uploads yet (custom banners later with strict moderation)

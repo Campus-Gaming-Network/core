@@ -62,6 +62,7 @@ export default defineConfig({
         API_PROXY_SHARED_SECRET: "browser-test-proxy-secret-00000000",
         CLOUDFLARE_ORIGIN_SECRET: "browser-test-origin-secret-0000000",
         SITE_URL: webURL,
+        R2_PUBLIC_ASSET_ORIGIN: `${apiURL}/assets`,
         HOST: "127.0.0.1",
         NITRO_HOST: "127.0.0.1",
         PORT: "3200",

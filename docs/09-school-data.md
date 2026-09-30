@@ -84,7 +84,7 @@ schools
   created_at, updated_at, deleted_at
 ```
 
-Logos are **not** in Scorecard and **cannot** be uploaded from the main site. Placeholder for now; later a site admin can set one in the Admin Console.
+Logos are **not** in Scorecard and **cannot** be uploaded from the main site. A site admin sets one in the Admin Console; until then the main site shows no logo.
 
 ## One-time import (implemented)
 
