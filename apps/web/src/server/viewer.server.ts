@@ -7,7 +7,6 @@ export const profileDtoSchema = z.object({
   email_verified_at: z.iso.datetime({ offset: true }).optional(),
   verification_level: z.string().min(1),
   name: z.string(),
-  avatar_url: z.string().optional(),
   bio: z.string().optional(),
   timezone: z.string().min(1),
   home_school_id: z.string().min(1),

@@ -11,6 +11,7 @@ import {
   newIdempotencyKey,
   useIdempotencyKey,
 } from "../components/idempotency-key";
+import { Avatar } from "../components/avatar";
 import { PageNoticeView } from "../components/page-notice-view";
 import { RouteErrorView, RoutePending } from "../components/route-boundaries";
 import type {
@@ -29,7 +30,6 @@ import {
   reportUserNotices,
   roleIndicatorLabel,
   safeHTTPURL,
-  userInitials,
   verificationLabel,
   type ReportUserNotice,
 } from "../features/public-profile/presentation";
@@ -113,7 +113,6 @@ function PublicProfilePage() {
   const { profile, viewer } = Route.useLoaderData();
   const search = Route.useSearch();
   const homeSchool = publicProfileHomeSchool(profile);
-  const avatarURL = safeHTTPURL(profile.avatar_url);
   const socialLinks = (profile.social_links ?? []).flatMap((link) => {
     const url = safeHTTPURL(link.url);
     return url ? [{ ...link, url }] : [];
@@ -122,13 +121,7 @@ function PublicProfilePage() {
   return (
     <main className="narrow">
       <section className="profile-hero">
-        <span className="user-avatar" aria-hidden="true">
-          {avatarURL ? (
-            <img src={avatarURL} alt="" />
-          ) : (
-            userInitials(profile.name)
-          )}
-        </span>
+        <Avatar id={profile.id} name={profile.name} />
         <div>
           <p className="eyebrow">Public profile</p>
           <h1>{profile.name}</h1>

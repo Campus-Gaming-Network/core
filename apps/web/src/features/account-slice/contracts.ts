@@ -30,7 +30,6 @@ export const accountProfileDtoSchema = z.object({
   email_verified_at: timestampSchema.optional(),
   verification_level: identifierSchema,
   name: z.string(),
-  avatar_url: z.string().optional(),
   bio: z.string().optional(),
   timezone: identifierSchema,
   home_school_id: identifierSchema,

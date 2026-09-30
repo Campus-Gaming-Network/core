@@ -18,7 +18,6 @@ const profile = {
   email_verified_at: "2037-08-01T12:00:00Z",
   verification_level: "verified_student",
   name: "Player One",
-  avatar_url: "https://images.example.test/player.png",
   bio: "Captain",
   timezone: "America/Los_Angeles",
   home_school_id: "school-1",

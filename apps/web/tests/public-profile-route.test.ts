@@ -60,7 +60,10 @@ test("profile UI renders public verification and viewer-safe report controls", (
     routeSource,
     /params=\{\{ slug: profile\.home_school\.slug \}\}/,
   );
-  assert.match(routeSource, /safeHTTPURL\(profile\.avatar_url\)/);
+  assert.match(
+    routeSource,
+    /<Avatar id=\{profile\.id\} name=\{profile\.name\} \/>/,
+  );
   assert.match(routeSource, /safeHTTPURL\(link\.url\)/);
   assert.match(routeSource, /viewer === "self"/);
   assert.match(routeSource, /This is your profile\./);

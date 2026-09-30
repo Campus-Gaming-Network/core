@@ -89,7 +89,6 @@ func TestProfilePublicIncludesHomeSchoolSummary(t *testing.T) {
 	profile := Profile{
 		ID:                "user-id",
 		Name:              "Player",
-		AvatarURL:         "https://api.dicebear.com/10.x/critters/svg?seed=user-id",
 		VerificationLevel: "basic",
 		HomeSchoolID:      "school-id",
 		HomeSchool: &HomeSchool{
@@ -113,21 +112,7 @@ func TestProfilePublicIncludesHomeSchoolSummary(t *testing.T) {
 	if public.HomeSchoolID != "school-id" {
 		t.Fatalf("Public() HomeSchoolID = %q, want original ID", public.HomeSchoolID)
 	}
-	if public.AvatarURL != profile.AvatarURL {
-		t.Fatalf("Public() AvatarURL = %q, want profile avatar URL", public.AvatarURL)
-	}
 	if len(public.SocialLinks) != 1 {
 		t.Fatalf("Public() SocialLinks = %#v, want social links preserved", public.SocialLinks)
-	}
-}
-
-func TestDiceBearURL(t *testing.T) {
-	got := DiceBearURL(" Player ID/1 ")
-	want := "https://api.dicebear.com/10.x/critters/svg?seed=Player+ID%2F1"
-	if got != want {
-		t.Fatalf("DiceBearURL() = %q, want %q", got, want)
-	}
-	if DiceBearURL("") != "" {
-		t.Fatal("DiceBearURL(\"\") returned a URL, want empty string")
 	}
 }

@@ -24,7 +24,6 @@ const idempotencyKey = "5b0e7f5c-3f4d-4d8e-9a71-6c2b1e0f9d34";
 const publicProfile = {
   id: "user/e2e",
   name: "Player One",
-  avatar_url: "https://images.example/player.png",
   bio: "Campus competitor",
   verification_level: "verified",
   home_school_id: "school-1",
@@ -80,7 +79,6 @@ test("public profile is a no-store public allowlist and skips /me without the co
     profile: {
       id: "user/e2e",
       name: "Player One",
-      avatar_url: "https://images.example/player.png",
       bio: "Campus competitor",
       verification_level: "verified",
       home_school_id: "school-1",

@@ -21,7 +21,7 @@
 - Near-you / geo discovery (later)
 - Schools outside the United States
 - Live updates via WebSockets
-- Custom user avatars (use DiceBear Critters first)
+- Custom user avatars (the drawn DiceBear Critters avatar comes first)
 - Custom event banner uploads (default placeholder for now; moderated uploads later)
 - Usernames or split first/last/display — single **name** field only
 - Google Analytics
@@ -187,7 +187,7 @@ Signup also requires confirming **age 18+**. Alumni can participate. Faculty who
 
 ### Profiles & social
 
-- DiceBear Critters avatars at launch using the default preset, with initials fallback when the image is unavailable
+- DiceBear Critters avatars at launch, drawn by this site from the user id (no avatar service is contacted), with initials showing when the picture cannot load
 - Single **name** field (no usernames; no separate first/last/display)
 - Profile URL: `/users/:id` (database id)
 - Bio + social links

@@ -37,6 +37,7 @@ import { Route as TeamsIndexRouteImport } from './routes/teams.index'
 import { Route as TeamsSlugRouteImport } from './routes/teams.$slug'
 import { Route as TeamsNewRouteImport } from './routes/teams.new'
 import { Route as UsersIdRouteImport } from './routes/users.$id'
+import { Route as ApiAvatarsIdRouteImport } from './routes/api.avatars.$id'
 import { Route as EventsSlugEditRouteImport } from './routes/events.$slug_.edit'
 
 const IndexRoute = IndexRouteImport.update({
@@ -179,6 +180,11 @@ const UsersIdRoute = UsersIdRouteImport.update({
   path: '/users/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAvatarsIdRoute = ApiAvatarsIdRouteImport.update({
+  id: '/api/avatars/$id',
+  path: '/api/avatars/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const EventsSlugEditRoute = EventsSlugEditRouteImport.update({
   id: '/$slug_/edit',
   path: '/$slug/edit',
@@ -214,6 +220,7 @@ export interface FileRoutesByFullPath {
   '/events/': typeof EventsIndexRoute
   '/schools/': typeof SchoolsIndexRoute
   '/teams/': typeof TeamsIndexRoute
+  '/api/avatars/$id': typeof ApiAvatarsIdRoute
   '/events/$slug/edit': typeof EventsSlugEditRoute
 }
 export interface FileRoutesByTo {
@@ -242,6 +249,7 @@ export interface FileRoutesByTo {
   '/events': typeof EventsIndexRoute
   '/schools': typeof SchoolsIndexRoute
   '/teams': typeof TeamsIndexRoute
+  '/api/avatars/$id': typeof ApiAvatarsIdRoute
   '/events/$slug/edit': typeof EventsSlugEditRoute
 }
 export interface FileRoutesById {
@@ -274,6 +282,7 @@ export interface FileRoutesById {
   '/events/': typeof EventsIndexRoute
   '/schools/': typeof SchoolsIndexRoute
   '/teams/': typeof TeamsIndexRoute
+  '/api/avatars/$id': typeof ApiAvatarsIdRoute
   '/events/$slug_/edit': typeof EventsSlugEditRoute
 }
 export interface FileRouteTypes {
@@ -307,6 +316,7 @@ export interface FileRouteTypes {
     | '/events/'
     | '/schools/'
     | '/teams/'
+    | '/api/avatars/$id'
     | '/events/$slug/edit'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -335,6 +345,7 @@ export interface FileRouteTypes {
     | '/events'
     | '/schools'
     | '/teams'
+    | '/api/avatars/$id'
     | '/events/$slug/edit'
   id:
     | '__root__'
@@ -366,6 +377,7 @@ export interface FileRouteTypes {
     | '/events/'
     | '/schools/'
     | '/teams/'
+    | '/api/avatars/$id'
     | '/events/$slug_/edit'
   fileRoutesById: FileRoutesById
 }
@@ -390,6 +402,7 @@ export interface RootRouteChildren {
   AuthResetPasswordRoute: typeof AuthResetPasswordRoute
   AuthVerifyEmailRoute: typeof AuthVerifyEmailRoute
   UsersIdRoute: typeof UsersIdRoute
+  ApiAvatarsIdRoute: typeof ApiAvatarsIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -590,6 +603,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UsersIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/avatars/$id': {
+      id: '/api/avatars/$id'
+      path: '/api/avatars/$id'
+      fullPath: '/api/avatars/$id'
+      preLoaderRoute: typeof ApiAvatarsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/events/$slug_/edit': {
       id: '/events/$slug_/edit'
       path: '/$slug/edit'
@@ -665,6 +685,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthResetPasswordRoute: AuthResetPasswordRoute,
   AuthVerifyEmailRoute: AuthVerifyEmailRoute,
   UsersIdRoute: UsersIdRoute,
+  ApiAvatarsIdRoute: ApiAvatarsIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

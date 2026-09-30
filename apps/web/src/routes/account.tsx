@@ -25,6 +25,7 @@ import {
   type DashboardEventDTO,
 } from "../features/account-slice/contracts";
 import { pageNoticeKey } from "../components/page-notice";
+import { Avatar } from "../components/avatar";
 import { PageNoticeView } from "../components/page-notice-view";
 import { RouteErrorView, RoutePending } from "../components/route-boundaries";
 import {
@@ -69,7 +70,7 @@ function AccountPage() {
   return (
     <main className="narrow">
       <section className="profile-hero">
-        <AccountAvatar profile={data.profile} />
+        <Avatar id={data.profile.id} name={data.profile.name} />
         <div>
           <p className="eyebrow">Account</p>
           <h1>{data.profile.name}</h1>
@@ -438,29 +439,6 @@ function DeleteAccountForm() {
       </form>
     </section>
   );
-}
-
-function AccountAvatar({ profile }: { profile: AccountProfileDTO }) {
-  const avatar = safeHTTPURL(profile.avatar_url);
-  return avatar ? (
-    <img className="avatar avatar--large" src={avatar} alt="" />
-  ) : (
-    <span className="avatar avatar--large" aria-hidden="true">
-      {profile.name.trim().slice(0, 1).toUpperCase() || "C"}
-    </span>
-  );
-}
-
-function safeHTTPURL(value: string | undefined): string | undefined {
-  if (!value) return undefined;
-  try {
-    const url = new URL(value);
-    return url.protocol === "http:" || url.protocol === "https:"
-      ? url.toString()
-      : undefined;
-  } catch {
-    return undefined;
-  }
 }
 
 function AccountPending() {

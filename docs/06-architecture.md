@@ -41,26 +41,26 @@ See [14 — Architecture diagrams](./14-architecture-diagrams.md) for Mermaid vi
 
 ## Technology choices
 
-| Layer            | Choice                                                  | Notes                                                                                              |
-| ---------------- | ------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| Frontend         | TanStack Start + React + TypeScript                     | TanStack Router, Vite, Nitro SSR, code-split routes                                                |
-| UI               | Semantic React + application CSS                        | Keep the runtime dependency surface small and accessible                                           |
-| BFF validation   | Zod                                                     | Runtime Go-response contracts and server-function/native-form input errors; server-only operations |
-| A11y / patterns  | GOV.UK Design System (reference)                        | Prefer accessible, clear components                                                                |
-| Server / API     | Go                                                      | All server domain code in Go                                                                       |
-| Database         | Railway PostgreSQL                                      | Backups required before public launch                                                              |
-| Local dev        | Docker                                                  | Works on all systems; develop on M1 MacBook                                                        |
-| App host         | Railway                                                 | Hosts the TanStack Start web service and Go API                                                    |
-| DNS / edge       | Cloudflare                                              | DNS and edge protection for campusgamingnetwork.com                                                |
-| Admin Console    | TanStack Start                                          | `apps/admin`, a separate release at admin.campusgamingnetwork.com; in progress and release-gated   |
-| Email            | Resend                                                  | Verification, password reset, RSVP+ICS, etc.                                                       |
-| Object storage   | Cloudflare R2                                           | School logos via Admin Console (PNG/JPG ≤5 MB); custom event banners later                         |
-| Errors           | Sentry                                                  | Later bug reporting; not required for launch                                                       |
-| Avatars          | DiceBear Critters default preset with initials fallback | Custom avatars later                                                                               |
-| Maps             | Google Maps embed (mini)                                | Later nicety; address text first                                                                   |
-| Games data       | Curated seed; IGDB later                                | Not user-editable; Admin Console takes over management                                             |
-| Analytics        | Non-GA tool (TBD)                                       | No Google Analytics (perf)                                                                         |
-| Client data libs | TanStack where justified                                | Main site uses Start/Router; Query/Table remain optional                                           |
+| Layer            | Choice                                                      | Notes                                                                                              |
+| ---------------- | ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| Frontend         | TanStack Start + React + TypeScript                         | TanStack Router, Vite, Nitro SSR, code-split routes                                                |
+| UI               | Semantic React + application CSS                            | Keep the runtime dependency surface small and accessible                                           |
+| BFF validation   | Zod                                                         | Runtime Go-response contracts and server-function/native-form input errors; server-only operations |
+| A11y / patterns  | GOV.UK Design System (reference)                            | Prefer accessible, clear components                                                                |
+| Server / API     | Go                                                          | All server domain code in Go                                                                       |
+| Database         | Railway PostgreSQL                                          | Backups required before public launch                                                              |
+| Local dev        | Docker                                                      | Works on all systems; develop on M1 MacBook                                                        |
+| App host         | Railway                                                     | Hosts the TanStack Start web service and Go API                                                    |
+| DNS / edge       | Cloudflare                                                  | DNS and edge protection for campusgamingnetwork.com                                                |
+| Admin Console    | TanStack Start                                              | `apps/admin`, a separate release at admin.campusgamingnetwork.com; in progress and release-gated   |
+| Email            | Resend                                                      | Verification, password reset, RSVP+ICS, etc.                                                       |
+| Object storage   | Cloudflare R2                                               | School logos via Admin Console (PNG/JPG ≤5 MB); custom event banners later                         |
+| Errors           | Sentry                                                      | Later bug reporting; not required for launch                                                       |
+| Avatars          | DiceBear Critters drawn by the web app (`/api/avatars/:id`) | No avatar service is contacted; custom avatars later                                               |
+| Maps             | Google Maps embed (mini)                                    | Later nicety; address text first                                                                   |
+| Games data       | Curated seed; IGDB later                                    | Not user-editable; Admin Console takes over management                                             |
+| Analytics        | Non-GA tool (TBD)                                           | No Google Analytics (perf)                                                                         |
+| Client data libs | TanStack where justified                                    | Main site uses Start/Router; Query/Table remain optional                                           |
 
 ## Frontend guidelines
 

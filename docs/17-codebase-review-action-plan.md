@@ -776,7 +776,7 @@ is complete:
 
 - Replace placeholder Terms and Privacy content and persist versioned signup
   acceptance.
-- Decide DiceBear disclosure, default, and opt-out behavior.
+- Decide DiceBear disclosure, default, and opt-out behavior (resolved: avatars are drawn by this site, so no third party is contacted).
 - Notify active yes/maybe attendees when account deletion archives their event.
 - Confirm retention windows, legal-hold ownership, and the manual purge runbook.
 - Configure staging/production, backups, restore rehearsal, DNS, real Resend,

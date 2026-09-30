@@ -35,8 +35,8 @@ is done. Engineering work now comes from the open items in
    security review, then the staging penetration pass, drills, and deployment
    smoke checks once staging exists
    ([24](./24-admin-console-security-review.md#still-owed-before-production-is-enabled)).
-2. Clear the P1 launch gates that need outside input: legal copy, the
-   DiceBear decision, and the external launch rehearsal.
+2. Clear the P1 launch gates that need outside input: legal copy and the
+   external launch rehearsal.
 
 Admin Console work continues under
 [20 — Admin Console v1 engineering plan](./20-admin-console-v1-engineering-plan.md).

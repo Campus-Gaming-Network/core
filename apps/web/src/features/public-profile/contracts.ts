@@ -32,7 +32,6 @@ const socialLinkSchema = z.object({
 export const publicProfileDtoSchema = z.object({
   id: identifierSchema,
   name: z.string(),
-  avatar_url: z.string().optional(),
   bio: z.string().optional(),
   verification_level: z.string().min(1),
   home_school_id: identifierSchema,
