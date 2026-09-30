@@ -1,5 +1,7 @@
 import { spawn } from "node:child_process";
 import { generateKeyPairSync } from "node:crypto";
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
@@ -28,6 +30,9 @@ const goCommand = process.env.REAL_E2E_GO_EXECUTABLE?.trim() || "go";
 // specs sign assertions with the private half.
 const keyPair = generateKeyPairSync("rsa", { modulusLength: 2048 });
 const keyID = "admin-real-e2e-key";
+// The API and BFF write their logs here so the suite can prove that secrets
+// never reach them.
+const logDirectory = mkdtempSync(path.join(tmpdir(), "cgn-admin-real-logs-"));
 const childEnvironment = {
   ...process.env,
   API_DATABASE_URL: databaseURL,
@@ -37,6 +42,7 @@ const childEnvironment = {
     .join(path.delimiter),
   REAL_E2E_DATABASE_URL: databaseURL,
   ADMIN_REAL_E2E_KEY_ID: keyID,
+  ADMIN_REAL_E2E_LOG_DIR: logDirectory,
   ADMIN_REAL_E2E_PUBLIC_JWK: JSON.stringify({
     ...keyPair.publicKey.export({ format: "jwk" }),
     kid: keyID,
@@ -52,6 +58,13 @@ const childEnvironment = {
 const operator = "operator@admin-real.test";
 const former = "former@admin-real.test";
 const bootstrapReason = "Real-stack suite bootstrap";
+const securitySuiteAdmins = [
+  "limited@admin-real.test",
+  "loggedout@admin-real.test",
+  "suspended@admin-real.test",
+  "revoked@admin-real.test",
+  "bystander@admin-real.test",
+];
 
 try {
   if (manageDatabase) {
@@ -86,6 +99,18 @@ try {
     "-reason",
     bootstrapReason,
   ]);
+  for (const email of securitySuiteAdmins) {
+    // Sequential: each grant is one audited operation by the bootstrap admin.
+    await grant([
+      "grant-site-admin",
+      "-email",
+      email,
+      "-actor-email",
+      operator,
+      "-reason",
+      "Security suite operator",
+    ]);
+  }
   await grant([
     "grant-site-admin",
     "-email",

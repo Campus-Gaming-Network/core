@@ -129,17 +129,20 @@ func TestHandlerConcealsDisabledAndUntrustedAdminSurface(t *testing.T) {
 	for _, test := range []struct {
 		name    string
 		enabled bool
-		secret  string
+		secrets []string
 	}{
-		{name: "disabled", enabled: false, secret: "proxy-secret"},
-		{name: "missing proxy proof", enabled: true, secret: ""},
-		{name: "wrong proxy proof", enabled: true, secret: "wrong"},
+		{name: "disabled", enabled: false, secrets: []string{"proxy-secret"}},
+		{name: "missing proxy proof", enabled: true},
+		{name: "wrong proxy proof", enabled: true, secrets: []string{"wrong"}},
+		{name: "repeated correct proof", enabled: true, secrets: []string{"proxy-secret", "proxy-secret"}},
+		{name: "correct proof then another value", enabled: true, secrets: []string{"proxy-secret", "wrong"}},
+		{name: "another value then correct proof", enabled: true, secrets: []string{"wrong", "proxy-secret"}},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			handler, _ := testHandler(test.enabled)
 			req := httptest.NewRequest(http.MethodGet, "/admin/v1/session", nil)
-			if test.secret != "" {
-				req.Header.Set(ProxySecretHeader, test.secret)
+			for _, secret := range test.secrets {
+				req.Header.Add(ProxySecretHeader, secret)
 			}
 			response := httptest.NewRecorder()
 			handler.ServeHTTP(response, req)

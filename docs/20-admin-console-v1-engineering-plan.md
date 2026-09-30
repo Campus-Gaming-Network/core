@@ -1095,9 +1095,10 @@ any `429`. The `e2e-real` suite (`pnpm run test:e2e:admin:real`) runs the eight
 Go API, and PostgreSQL, with a local Access signing-key stub and an S3-compatible
 bucket stub. Journey 8 covers the local forms of its attempts: a missing or
 public proxy credential, a public cookie, a revoked grant, and forged origins
-and CSRF tokens; the direct Railway origin itself waits on staging. Remaining
-locally: the security-matrix gaps the suite does not yet cover, alerts,
-dependency and secret review, and operator runbooks. The staging penetration
+and CSRF tokens; the direct Railway origin itself waits on staging. The suite
+also covers the real-stack cases of the [security matrix](./21-admin-console-security-test-plan.md#real-stack-coverage).
+Remaining locally: the matrix cases that are not real-stack, alerts, dependency
+and secret review, and operator runbooks. The staging penetration
 pass and drills wait on staging.
 
 ### AC-015 — Deploy and roll out Admin Console v1

@@ -150,7 +150,10 @@ func (handler *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		http.NotFound(w, req)
 		return
 	}
-	if handler.config.ProxySecret == "" || !secretEqual(req.Header.Get(ProxySecretHeader), handler.config.ProxySecret) {
+	// Exactly one proof: a repeated header could hide a wrong value behind the
+	// right one, and only the trusted BFF sets it.
+	proofs := req.Header.Values(ProxySecretHeader)
+	if handler.config.ProxySecret == "" || len(proofs) != 1 || !secretEqual(proofs[0], handler.config.ProxySecret) {
 		// Conceal the privileged surface from direct-origin traffic.
 		http.NotFound(w, req)
 		return

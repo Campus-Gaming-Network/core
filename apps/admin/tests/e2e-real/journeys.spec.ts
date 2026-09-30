@@ -1,11 +1,6 @@
-import {
-  expect,
-  test,
-  type BrowserContext,
-  type Locator,
-  type Page,
-} from "@playwright/test";
+import { expect, test } from "@playwright/test";
 import { accessAssertion, signInThroughAccess } from "./fixtures/access.js";
+import { panel, runCommand, signInSteppedUp } from "./fixtures/console.js";
 
 const apiURL = "http://127.0.0.1:18090";
 const primarySchoolID = "10000000-0000-4000-8000-000000000001";
@@ -56,37 +51,6 @@ test("journey 2: a support ticket with hostile markup stays inert text", async (
   await expect(page.getByRole("status")).toHaveText("Changes saved.");
   expect(await page.locator("body").getAttribute("data-xss")).toBeNull();
 });
-
-function panel(page: Page, name: string): Locator {
-  return page.getByRole("region", { name, exact: true });
-}
-
-async function runCommand(form: Locator, reason: string, submit: string) {
-  await form.getByLabel("Reason").fill(reason);
-  const confirmation = form.getByLabel(
-    "I understand this change takes effect immediately.",
-  );
-  if (await confirmation.count()) await confirmation.check();
-  await form.getByRole("button", { name: submit }).click();
-}
-
-// Establishes a session, then confirms identity with an assertion issued after
-// it. The API requires the confirmation to be newer than the session, and the
-// validators allow a few seconds of clock skew, so an assertion issued slightly
-// ahead of now is deterministically newer without waiting for the clock.
-async function signInSteppedUp(
-  context: BrowserContext,
-  page: Page,
-  email: string,
-) {
-  await signInThroughAccess(context, email);
-  await page.goto("/");
-  await expect(page.getByText(email, { exact: true })).toBeVisible();
-  await signInThroughAccess(context, email, { issuedSecondsAgo: -5 });
-  await page.goto("/step-up?return=%2F");
-  await page.getByRole("button", { name: "Confirm identity" }).click();
-  await expect(page).toHaveURL(/notice=stepped-up/);
-}
 
 async function publicSchoolNames(
   request: Parameters<Parameters<typeof test>[2]>[0]["request"],

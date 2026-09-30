@@ -23,13 +23,20 @@ var (
 
 const (
 	// Admin Console fixtures, seeded only with the "admin" argument.
-	operatorID      = "30000000-0000-4000-8000-000000000001"
-	peerID          = "30000000-0000-4000-8000-000000000002"
-	memberID        = "30000000-0000-4000-8000-000000000003"
-	schoolAdminID   = "30000000-0000-4000-8000-000000000004"
-	formerAdminID   = "30000000-0000-4000-8000-000000000005"
-	reportID        = "40000000-0000-4000-8000-000000000001"
-	supportTicketID = "40000000-0000-4000-8000-000000000002"
+	operatorID    = "30000000-0000-4000-8000-000000000001"
+	peerID        = "30000000-0000-4000-8000-000000000002"
+	memberID      = "30000000-0000-4000-8000-000000000003"
+	schoolAdminID = "30000000-0000-4000-8000-000000000004"
+	formerAdminID = "30000000-0000-4000-8000-000000000005"
+	// Site admins the security suite sacrifices one test each: reads to the
+	// rate limit, logout, suspension, and grant revocation.
+	limitedAdminID   = "30000000-0000-4000-8000-000000000006"
+	loggedOutAdminID = "30000000-0000-4000-8000-000000000007"
+	suspendedAdminID = "30000000-0000-4000-8000-000000000008"
+	revokedAdminID   = "30000000-0000-4000-8000-000000000009"
+	bystanderAdminID = "30000000-0000-4000-8000-000000000010"
+	reportID         = "40000000-0000-4000-8000-000000000001"
+	supportTicketID  = "40000000-0000-4000-8000-000000000002"
 )
 
 func main() {
@@ -118,8 +125,14 @@ func seedAdminConsole(ctx context.Context, tx pgx.Tx) error {
 			($2::uuid, 'peer@admin-real.test', 'unused', 'Peer Operator', $6::uuid, NOW(), NOW()),
 			($3::uuid, 'member@admin-real.test', 'unused', 'Member', $6::uuid, NOW(), NOW()),
 			($4::uuid, 'schooladmin@admin-real.test', 'unused', 'School Admin', $6::uuid, NOW(), NOW()),
-			($5::uuid, 'former@admin-real.test', 'unused', 'Former Operator', $6::uuid, NOW(), NOW())
-	`, operatorID, peerID, memberID, schoolAdminID, formerAdminID, primarySchoolID); err != nil {
+			($5::uuid, 'former@admin-real.test', 'unused', 'Former Operator', $6::uuid, NOW(), NOW()),
+			($7::uuid, 'limited@admin-real.test', 'unused', 'Limited Operator', $6::uuid, NOW(), NOW()),
+			($8::uuid, 'loggedout@admin-real.test', 'unused', 'Logout Operator', $6::uuid, NOW(), NOW()),
+			($9::uuid, 'suspended@admin-real.test', 'unused', 'Suspended Operator', $6::uuid, NOW(), NOW()),
+			($10::uuid, 'revoked@admin-real.test', 'unused', 'Revoked Operator', $6::uuid, NOW(), NOW()),
+			($11::uuid, 'bystander@admin-real.test', 'unused', 'Bystander Operator', $6::uuid, NOW(), NOW())
+	`, operatorID, peerID, memberID, schoolAdminID, formerAdminID, primarySchoolID,
+		limitedAdminID, loggedOutAdminID, suspendedAdminID, revokedAdminID, bystanderAdminID); err != nil {
 		return err
 	}
 	if _, err := tx.Exec(ctx, `

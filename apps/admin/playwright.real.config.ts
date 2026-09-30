@@ -12,9 +12,10 @@ const apiDirectory = fileURLToPath(new URL("../api", import.meta.url));
 const adminProxySecret = "real-e2e-admin-proxy-secret-0000000";
 const accessAudience = "admin-real-e2e-audience";
 const bucket = "cgn-school-logos";
+const logDirectory = process.env.ADMIN_REAL_E2E_LOG_DIR ?? "";
 const assetOrigin = `${objectStoreURL}/${bucket}`;
 
-if (!databaseURL || !process.env.ADMIN_REAL_E2E_PUBLIC_JWK) {
+if (!databaseURL || !process.env.ADMIN_REAL_E2E_PUBLIC_JWK || !logDirectory) {
   throw new Error(
     "Run this suite through `pnpm run test:e2e:admin:real`; it provisions the database and Access key",
   );
@@ -65,7 +66,8 @@ export default defineConfig({
       timeout: 30_000,
     },
     {
-      command: `${goExecutable} run ./cmd/api`,
+      // Logs go to files so the suite can search them for leaked secrets.
+      command: `${goExecutable} run ./cmd/api > ${JSON.stringify(`${logDirectory}/api.log`)} 2>&1`,
       cwd: apiDirectory,
       url: `${apiURL}/ready`,
       env: {
@@ -93,7 +95,7 @@ export default defineConfig({
       timeout: 60_000,
     },
     {
-      command: `${nodeExecutable} src/production-preflight.ts`,
+      command: `${nodeExecutable} src/production-preflight.ts > ${JSON.stringify(`${logDirectory}/admin.log`)} 2>&1`,
       url: `${adminURL}/api/health`,
       env: {
         NODE_ENV: "production",

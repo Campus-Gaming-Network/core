@@ -166,6 +166,25 @@ The test must enumerate the runtime route registry and fail if a new
 Expected status semantics are `401` for no currently valid admin identity and
 `403` for a valid admin identity lacking permission/recent authentication.
 
+## Real-stack coverage
+
+`pnpm run test:e2e:admin:real` covers these cases in
+`apps/admin/tests/e2e-real/`. Cases tagged real-stack in the matrix below that
+are not listed here are still open.
+
+| ID         | Where                                | What it proves                                                                                                                                                                                                                                                                     |
+| ---------- | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ACCESS-02  | `security-matrix.spec.ts`            | Arbitrary text, a self-signed token, a valid signature from another key, `alg:none`, an HS256 token keyed with the public key, an unknown `kid`, and expired, wrong-audience, wrong-issuer, and not-yet-valid tokens are refused by the API and the console, with no cookie issued |
+| ACCESS-06  | `security-matrix.spec.ts`            | Forged identity, forwarding, principal, and proxy headers never create a session, and never override the identity in a genuine assertion                                                                                                                                           |
+| SESSION-02 | `security-matrix.spec.ts`            | Public, unlock, and sibling cookies create no admin principal; an admin token is not a public session                                                                                                                                                                              |
+| SESSION-07 | `security-matrix.spec.ts`, journey 7 | Logout, suspension, and grant revocation end an open session; replay returns `401`                                                                                                                                                                                                 |
+| SESSION-10 | `security-matrix.spec.ts`            | A mutation with a previously valid token is refused after its grant is revoked, and the record is unchanged. The suite cannot separate this from session revocation, which revocation also triggers                                                                                |
+| CSRF-03    | `security-matrix.spec.ts`            | Lookalike, sibling, user-info, and `null` origins are refused by the API and the console                                                                                                                                                                                           |
+| TRUST-02   | `security-matrix.spec.ts`, journey 8 | A missing, empty, wrong, public-site, or repeated proxy credential gets one generic `404`                                                                                                                                                                                          |
+| TRUST-03   | `security-matrix.spec.ts`            | Neither proxy secret appears in any page, script, header, or cookie the browser receives                                                                                                                                                                                           |
+| RATE-02    | `security-rate-limits.spec.ts`       | Failed-exchange and read limits follow the verified identity, not claimed client addresses, and one operator's limit does not affect another                                                                                                                                       |
+| LOG-01     | `security-logs.spec.ts`              | Canary cookies, tokens, assertions, proxy secrets, the signing key, request bodies, and upload bytes, across success and rejection paths, never appear in the API or console logs. Timeout and panic paths are not exercised                                                       |
+
 ## Security acceptance matrix
 
 ### A. Cloudflare Access and direct-origin resistance
