@@ -310,8 +310,8 @@ test("journey 8: direct-origin, public-cookie, and forged requests fail closed",
   });
   expect(anonymous.status()).toBe(401);
 
-  // A public `cgn_session` cookie alone never creates an admin principal, and
-  // the console asks the visitor to sign in through Access.
+  // A public `cgn_session` cookie alone never creates an admin principal. With
+  // no Access assertion the request is refused before anything renders.
   const publicContext = await browser.newContext();
   await publicContext.addCookies([
     {
@@ -322,13 +322,9 @@ test("journey 8: direct-origin, public-cookie, and forged requests fail closed",
     },
   ]);
   const publicPage = await publicContext.newPage();
-  await publicPage.goto("/reports");
-  await expect(
-    publicPage.getByRole("heading", {
-      name: "Sign in through Cloudflare Access.",
-    }),
-  ).toBeVisible();
-  await expect(publicPage.getByText("Reports", { exact: true })).toHaveCount(0);
+  const refused = await publicPage.goto("/reports");
+  expect(refused?.status()).toBe(403);
+  await expect(publicPage.locator("body")).toBeEmpty();
   await publicContext.close();
 
   // A revoked grant, a school admin, and an ordinary member all pass Access
@@ -408,7 +404,12 @@ test("journey 8: an established session rejects forged origins and missing CSRF"
   await Promise.all(
     forgedRequests.map(async (forged) => {
       const response = await request.patch(target, {
-        headers: { ...headers, Cookie: cookieHeader, ...forged },
+        headers: {
+          ...headers,
+          "X-CGN-Admin-Access-Email": operatorEmail,
+          Cookie: cookieHeader,
+          ...forged,
+        },
         data: body,
       });
       expect(response.status()).toBe(403);

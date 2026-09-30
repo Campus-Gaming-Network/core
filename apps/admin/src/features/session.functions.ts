@@ -39,6 +39,8 @@ export const logout = createServerFn({ method: "POST" }).handler(async () => {
   await logoutAdminSession({
     api: dependencies.api,
     siteOrigin: dependencies.siteOrigin,
+    assertion: getRequestHeaders().get("Cf-Access-Jwt-Assertion") ?? "",
+    validateAssertion: dependencies.validateAssertion,
     sessionCookieName: dependencies.sessionCookieName,
     sessionCookieValue: getCookie(dependencies.sessionCookieName),
     csrfCookieName: dependencies.csrfCookieName,

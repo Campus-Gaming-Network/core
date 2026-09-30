@@ -486,13 +486,27 @@ func (r *PostgresRepository) RevokeRole(ctx context.Context, input RevokeInput) 
 	if err != nil {
 		return Grant{}, fmt.Errorf("revoke site role grant: %w", err)
 	}
-	if _, err := tx.Exec(ctx, `
+	ended, err := tx.Exec(ctx, `
 		UPDATE admin_sessions
 		SET revoked_at = $2,
 		    revocation_reason = 'site role grant revoked'
 		WHERE user_id = $1::uuid AND revoked_at IS NULL
-	`, revoked.UserID, revoked.RevokedAt); err != nil {
+	`, revoked.UserID, revoked.RevokedAt)
+	if err != nil {
 		return Grant{}, fmt.Errorf("revoke site role grant sessions: %w", err)
+	}
+	// Ending sessions is audited in its own right: who, whose, which grant, and
+	// how many, never a token.
+	endedCount := int(ended.RowsAffected())
+	if _, err := adminsecurity.NewPostgresStoreForTransaction(tx).Insert(ctx, adminsecurity.WriteInput{
+		Type: adminsecurity.EventSessionRevoked, Outcome: adminsecurity.OutcomeSucceeded,
+		ActorUserID: input.ActorUserID, AdminSessionID: input.AdminSessionID, RequestID: input.RequestID,
+		Metadata: adminsecurity.Metadata{
+			TargetUserID: revoked.UserID, TargetGrantID: revoked.ID,
+			ReasonCode: "site_grant_revoked", RevokedSessionCount: &endedCount,
+		},
+	}); err != nil {
+		return Grant{}, fmt.Errorf("record site role grant session revocation: %w", err)
 	}
 	if _, err := tx.Exec(ctx, `UPDATE users SET updated_at=clock_timestamp() WHERE id=$1::uuid`, input.UserID); err != nil {
 		return Grant{}, err

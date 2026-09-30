@@ -51,7 +51,10 @@ const (
 )
 
 var (
-	ErrInvalidAudit       = errors.New("invalid admin audit record")
+	ErrInvalidAudit = errors.New("invalid admin audit record")
+	// ErrWriteFailed marks any failure to record an audit row, so the request
+	// log can raise the "no audit, no mutation" alert without parsing messages.
+	ErrWriteFailed        = errors.New("admin audit write failed")
 	ErrSensitiveAuditData = errors.New("sensitive data is prohibited in admin audit records")
 )
 

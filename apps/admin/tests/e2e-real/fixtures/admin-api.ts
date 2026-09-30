@@ -19,6 +19,8 @@ export function setCookies(response: APIResponse): string[] {
 export type ApiSession = {
   cookieHeader: string;
   csrf: string;
+  /** The session's raw cookies, for seeding a browser. */
+  cookies: { name: string; value: string }[];
   /** Headers for a state-changing request from the console's own origin. */
   mutationHeaders: Record<string, string>;
   /** Headers for a read. */
@@ -46,15 +48,21 @@ export async function exchangeSession(
       .find((cookie) => cookie.startsWith("cgn_admin_csrf="))
       ?.split("=")[1] ?? "";
   const cookieHeader = cookies.join("; ");
+  // The BFF vouches for the Access identity on every request after the first.
+  const vouched = { ...proxyHeaders, "X-CGN-Admin-Access-Email": email };
   return {
     cookieHeader,
     csrf,
+    cookies: cookies.map((cookie) => {
+      const [name, ...value] = cookie.split("=");
+      return { name, value: value.join("=") };
+    }),
     mutationHeaders: {
-      ...proxyHeaders,
+      ...vouched,
       Cookie: cookieHeader,
       Origin: adminOrigin,
       "X-CGN-Admin-CSRF": csrf,
     },
-    readHeaders: { ...proxyHeaders, Cookie: cookieHeader },
+    readHeaders: { ...vouched, Cookie: cookieHeader },
   };
 }

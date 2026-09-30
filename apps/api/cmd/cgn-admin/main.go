@@ -15,11 +15,18 @@ import (
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/db"
 )
 
+// errAlertsFiring marks a security-report run with at least one rule over its
+// threshold, so a scheduled job can alert on the exit status alone.
+var errAlertsFiring = errors.New("security alerts firing")
+
 func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	if err := run(ctx, os.Args[1:], os.Stdout, os.Stderr); err != nil {
 		fmt.Fprintln(os.Stderr, "cgn-admin:", err)
+		if errors.Is(err, errAlertsFiring) {
+			os.Exit(3)
+		}
 		os.Exit(1)
 	}
 }
@@ -43,7 +50,7 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 		return nil
 	}
 	switch args[0] {
-	case "grant-site-admin", "revoke-site-admin", "list-site-admins", "revoke-sessions":
+	case "grant-site-admin", "revoke-site-admin", "list-site-admins", "revoke-sessions", "security-report":
 	default:
 		return usageError()
 	}
@@ -121,6 +128,30 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 		}
 		return nil
 
+	case "security-report":
+		if len(args) != 1 {
+			return usageError()
+		}
+		findings, err := service.SecurityReport(ctx, admincommand.DefaultAlertRules, time.Now())
+		if err != nil {
+			return err
+		}
+		firing := 0
+		for _, finding := range findings {
+			status := "ok"
+			if finding.Firing {
+				status, firing = "FIRING", firing+1
+			}
+			fmt.Fprintf(
+				stdout, "%s\t%d\t%d\t%s\t%s\n",
+				finding.Rule.Name, finding.Count, finding.Rule.Threshold, finding.Rule.Window, status,
+			)
+		}
+		if firing > 0 {
+			return fmt.Errorf("%w: %d of %d rules firing", errAlertsFiring, firing, len(findings))
+		}
+		return nil
+
 	case "revoke-sessions":
 		flags := flag.NewFlagSet(args[0], flag.ContinueOnError)
 		flags.SetOutput(stderr)
@@ -145,5 +176,5 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 }
 
 func usageError() error {
-	return errors.New("usage: cgn-admin <grant-site-admin|revoke-site-admin|list-site-admins|revoke-sessions|validate-access-config> [options]")
+	return errors.New("usage: cgn-admin <grant-site-admin|revoke-site-admin|list-site-admins|revoke-sessions|security-report|validate-access-config> [options]")
 }

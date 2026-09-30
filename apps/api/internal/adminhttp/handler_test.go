@@ -553,6 +553,7 @@ func testPrincipal(userID, grantID, csrf string) adminsession.Principal {
 func trustedRequest(method, path string) *http.Request {
 	req := httptest.NewRequest(method, path, nil)
 	req.Header.Set(ProxySecretHeader, "proxy-secret")
+	req.Header.Set(AccessEmailHeader, "admin@example.test")
 	return req
 }
 
@@ -561,5 +562,50 @@ func assertPrivateHeaders(t *testing.T, header http.Header) {
 	if header.Get("Cache-Control") != "private, no-store" || header.Get("X-Robots-Tag") == "" ||
 		header.Get("Referrer-Policy") != "no-referrer" {
 		t.Fatalf("private headers = %#v", header)
+	}
+}
+
+// A session is bound to the Access identity it was issued to: a request the
+// BFF did not vouch for, or vouched for under another identity, is refused
+// even though its session token is valid.
+func TestSessionIsBoundToTheAccessIdentityItWasIssuedTo(t *testing.T) {
+	for _, test := range []struct {
+		name       string
+		emails     []string
+		wantStatus int
+	}{
+		{name: "the issuing identity", emails: []string{"admin@example.test"}, wantStatus: http.StatusOK},
+		{name: "the issuing identity in another case", emails: []string{"Admin@Example.TEST"}, wantStatus: http.StatusOK},
+		{name: "no vouched identity", wantStatus: http.StatusUnauthorized},
+		{name: "another identity", emails: []string{"other@example.test"}, wantStatus: http.StatusUnauthorized},
+		{name: "a blank identity", emails: []string{" "}, wantStatus: http.StatusUnauthorized},
+		{name: "the right identity repeated", emails: []string{"admin@example.test", "admin@example.test"}, wantStatus: http.StatusUnauthorized},
+		{name: "the right identity beside another", emails: []string{"admin@example.test", "other@example.test"}, wantStatus: http.StatusUnauthorized},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			handler, fixture := testHandler(true)
+			req := trustedRequest(http.MethodGet, "/admin/v1/session")
+			req.Header.Del(AccessEmailHeader)
+			for _, email := range test.emails {
+				req.Header.Add(AccessEmailHeader, email)
+			}
+			req.AddCookie(&http.Cookie{Name: "admin_session", Value: "current"})
+			response := httptest.NewRecorder()
+			handler.ServeHTTP(response, req)
+
+			if response.Code != test.wantStatus {
+				t.Fatalf("status = %d, want %d: %s", response.Code, test.wantStatus, response.Body.String())
+			}
+			if test.wantStatus == http.StatusOK {
+				return
+			}
+			if len(fixture.security.events) != 1 || fixture.security.events[0].Metadata.ReasonCode != "access_identity_mismatch" ||
+				fixture.security.events[0].Type != adminsecurity.EventAuthorizationDenied {
+				t.Fatalf("security events = %#v", fixture.security.events)
+			}
+			if strings.Contains(response.Body.String(), "admin@example.test") {
+				t.Fatalf("response names the session's identity: %s", response.Body.String())
+			}
+		})
 	}
 }

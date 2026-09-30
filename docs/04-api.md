@@ -205,8 +205,10 @@ Reports are submitted through `POST /events/:slug/report` and
 ### Admin API
 
 All routes are under `/admin/v1`. They are served only when `ADMIN_ENABLED` is set, and only to the admin BFF: requests
-must carry the admin proxy secret, an Admin Console session, a matching
-capability, and CSRF protection on mutations. Request and response contracts,
+must carry the admin proxy secret exactly once, an Admin Console session, the
+Access identity the BFF verified for the request (`X-CGN-Admin-Access-Email`,
+which must match the identity the session was issued to), a matching capability,
+and CSRF protection on mutations. Request and response contracts,
 capabilities, and step-up rules live in
 [20 — Admin Console v1 engineering plan](./20-admin-console-v1-engineering-plan.md).
 

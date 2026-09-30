@@ -28,6 +28,9 @@ const jwksSchema = z.object({
   ),
 });
 
+/** What a verified assertion vouches for. */
+export type AccessIdentity = { email: string; subject: string };
+
 export type AccessAssertionConfig = {
   issuer?: string;
   audience?: string;
@@ -44,8 +47,22 @@ export class AccessAssertionError extends Error {
   }
 }
 
-type KeyCache = { expiresAt: number; keys: Map<string, JsonWebKey> };
+type KeyCache = {
+  expiresAt: number;
+  fetchedAt: number;
+  keys: Map<string, JsonWebKey>;
+};
 let keyCache: KeyCache | undefined;
+
+// A key id the cached set does not contain may mean the keys were rotated, so
+// it earns one refresh. It earns at most one per cooldown: otherwise a caller
+// could spend a signing-key fetch on every request by inventing key ids.
+const unknownKeyRefreshCooldownMilliseconds = 30_000;
+
+/** Forgets the cached signing keys. */
+export function clearAccessKeyCache(): void {
+  keyCache = undefined;
+}
 
 export async function validateAccessAssertion(
   assertion: string,
@@ -55,7 +72,7 @@ export async function validateAccessAssertion(
     now?: () => Date;
     cacheTTLMilliseconds?: number;
   } = {},
-): Promise<void> {
+): Promise<AccessIdentity> {
   if (!assertion.trim()) throw new AccessAssertionError("missing");
   if (assertion.length > 64 * 1024) throw new AccessAssertionError("invalid");
   if (!config.issuer || !config.audience || !config.jwksURL) {
@@ -122,6 +139,7 @@ export async function validateAccessAssertion(
     if (error instanceof AccessAssertionError) throw error;
     throw new AccessAssertionError("invalid");
   }
+  return { email: claims.email.trim().toLowerCase(), subject: claims.sub };
 }
 
 async function signingKey(
@@ -136,6 +154,12 @@ async function signingKey(
   if (keyCache && keyCache.expiresAt > dependencies.now.getTime()) {
     const cached = keyCache.keys.get(keyID);
     if (cached) return cached;
+    if (
+      dependencies.now.getTime() - keyCache.fetchedAt <
+      unknownKeyRefreshCooldownMilliseconds
+    ) {
+      throw new AccessAssertionError("invalid");
+    }
   }
 
   const fetcher = dependencies.fetcher ?? fetch;
@@ -171,6 +195,7 @@ async function signingKey(
     }
   }
   keyCache = {
+    fetchedAt: dependencies.now.getTime(),
     expiresAt:
       dependencies.now.getTime() +
       (dependencies.cacheTTLMilliseconds ?? 5 * 60 * 1000),

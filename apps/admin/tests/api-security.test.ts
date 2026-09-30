@@ -3,7 +3,10 @@ import test from "node:test";
 import * as z from "zod";
 import {
   AdminApiContractError,
+  AdminApiError,
   createAdminApiClient,
+  withAccessIdentity,
+  type ApiClient,
 } from "../src/server/api.server.js";
 
 test("the Admin API client replaces browser-supplied trust headers", async () => {
@@ -102,4 +105,84 @@ test("the Admin API client forwards a multipart body with its own boundary", asy
 
   assert.equal(request?.body, body);
   assert.equal(new Headers(request?.headers).has("Content-Type"), false);
+});
+
+test("only a server-verified identity reaches the API as the session's Access identity", async () => {
+  const sent: (string | null)[] = [];
+  const api = createAdminApiClient({
+    baseURL: "http://api.internal",
+    proxySecret: "server-owned-secret",
+    fetcher: async (_input, init) => {
+      sent.push(new Headers(init?.headers).get("X-CGN-Admin-Access-Email"));
+      return Response.json({ ok: true });
+    },
+  });
+  const responseSchema = z.object({ ok: z.literal(true) });
+
+  // A value smuggled in through headers is dropped; only the typed option sets it.
+  await api({
+    path: "/admin/v1/session",
+    responseSchema,
+    headers: { "X-CGN-Admin-Access-Email": "browser@example.test" },
+  });
+  await api({
+    path: "/admin/v1/session",
+    responseSchema,
+    headers: { "X-CGN-Admin-Access-Email": "browser@example.test" },
+    accessEmail: "verified@example.test",
+  });
+
+  assert.deepEqual(sent, [null, "verified@example.test"]);
+});
+
+test("every call verifies the Access identity once and never reaches the API without it", async () => {
+  const responseSchema = z.object({ ok: z.literal(true) });
+  const reached: (string | undefined)[] = [];
+  const base = (async ({ accessEmail }) => {
+    reached.push(accessEmail);
+    return { data: { ok: true }, response: Response.json({ ok: true }) };
+  }) as ApiClient;
+
+  let verifications = 0;
+  const verified = withAccessIdentity(base, async () => {
+    verifications += 1;
+    return { email: "verified@example.test" };
+  });
+  await verified({ path: "/a", responseSchema });
+  await verified({ path: "/b", responseSchema });
+  assert.deepEqual(reached, ["verified@example.test", "verified@example.test"]);
+  assert.equal(verifications, 1);
+
+  reached.length = 0;
+  let rejections = 0;
+  const unverified = withAccessIdentity(base, async () => {
+    rejections += 1;
+    throw new Error("assertion rejected");
+  });
+  for (const path of ["/a", "/b"]) {
+    // Sequential: the second call must reuse the first call's verdict.
+    // eslint-disable-next-line no-await-in-loop
+    await assert.rejects(
+      unverified({ path, responseSchema }),
+      (error) => error instanceof AdminApiError && error.status === 401,
+    );
+  }
+  assert.deepEqual(reached, []);
+  assert.equal(rejections, 1);
+
+  // An unverified identity that is never used is not an unhandled rejection.
+  withAccessIdentity(base, async () => {
+    throw new Error("never awaited");
+  });
+
+  // A local console with no Access configuration sends no identity.
+  reached.length = 0;
+  await withAccessIdentity(
+    base,
+    async () => undefined,
+  )({
+    path: "/a",
+    responseSchema,
+  });
+  assert.deepEqual(reached, [undefined]);
 });

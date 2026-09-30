@@ -12,6 +12,12 @@ export type ApiClient = <TSchema extends z.ZodType>(options: {
   body?: unknown;
   cookieHeader?: string;
   headers?: HeadersInit;
+  /**
+   * The Access identity this server verified for the request. The API binds a
+   * session to the identity it was issued to, so it refuses a session request
+   * that does not carry it.
+   */
+  accessEmail?: string;
 }) => Promise<{ data: z.output<TSchema>; response: Response }>;
 
 export class AdminApiError extends Error {
@@ -52,12 +58,16 @@ export function createAdminApiClient({
     body,
     cookieHeader,
     headers,
+    accessEmail,
   }) => {
     const outgoing = new Headers(headers);
     // Never trust browser-supplied internal credentials. This client is the
-    // only place the privileged BFF credential is attached.
+    // only place the privileged BFF credential and the verified identity are
+    // attached.
     outgoing.delete("X-CGN-Admin-Proxy-Secret");
     outgoing.set("X-CGN-Admin-Proxy-Secret", proxySecret);
+    outgoing.delete("X-CGN-Admin-Access-Email");
+    if (accessEmail) outgoing.set("X-CGN-Admin-Access-Email", accessEmail);
     if (cookieHeader) outgoing.set("Cookie", cookieHeader);
     // A FormData body is sent as multipart; fetch supplies its boundary.
     const multipart = body instanceof FormData;
@@ -87,6 +97,32 @@ export function createAdminApiClient({
     if (!parsed.success) throw new AdminApiContractError(path);
     return { data: parsed.data, response };
   };
+}
+
+/**
+ * Wraps an API client so every call carries the Access identity verified for
+ * the current browser request. The identity is verified once, on first use. If
+ * it cannot be verified the call fails as an ended session and never reaches
+ * the API, so a session cookie alone authorizes nothing.
+ */
+export function withAccessIdentity(
+  api: ApiClient,
+  verify: () => Promise<{ email: string } | undefined>,
+): ApiClient {
+  let outcome:
+    | Promise<{ identity?: { email: string } } | { error: unknown }>
+    | undefined;
+  return (async (options) => {
+    outcome ??= verify().then(
+      (identity) => ({ identity }),
+      (error: unknown) => ({ error }),
+    );
+    const result = await outcome;
+    if ("error" in result) {
+      throw new AdminApiError(401, "admin_access_identity_invalid");
+    }
+    return api({ ...options, accessEmail: result.identity?.email });
+  }) as ApiClient;
 }
 
 function buildAPIURL(baseURL: string, path: string): string {

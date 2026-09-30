@@ -16,6 +16,19 @@ export default defineConfig({
       srcDirectory: "src",
     }),
     viteReact(),
-    nitro(),
+    nitro({
+      routeRules: {
+        // Built assets are served by Nitro before the request middleware runs,
+        // so they get the private-response headers here.
+        "/assets/**": {
+          headers: {
+            "cache-control": "private, no-store",
+            "x-robots-tag": "noindex, nofollow, noarchive, nosnippet",
+            "x-content-type-options": "nosniff",
+            "referrer-policy": "no-referrer",
+          },
+        },
+      },
+    }),
   ],
 });

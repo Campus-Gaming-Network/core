@@ -108,6 +108,7 @@ func (f catalogFixture) upload(t *testing.T, parts []logoPart, status int) *http
 	req.ContentLength = -1
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 	req.Header.Set(ProxySecretHeader, "proxy-secret")
+	req.Header.Set(AccessEmailHeader, "actor@example.edu")
 	req.Header.Set("Origin", "https://admin.example.test")
 	req.Header.Set(CSRFHeader, f.credential.CSRFToken)
 	req.AddCookie(&http.Cookie{Name: "admin_session", Value: f.credential.Token})

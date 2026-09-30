@@ -7,6 +7,10 @@ on:
       - main
       - next
 
+# Jobs only read the repository; none needs to write to it or to packages.
+permissions:
+  contents: read
+
 jobs:
   api:
     name: Go API
@@ -132,6 +136,54 @@ jobs:
         if: >-
           steps.development_browser_tests.outcome == 'failure' ||
           steps.production_browser_tests.outcome == 'failure'
+        run: exit 1
+
+  admin:
+    name: Admin Console
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/setup@c9883cc79df532ad1a7b81bf9ab944ceb090d65c # v2.0.0
+        with:
+          runtime: node@24
+          cache: true
+          install: false
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Audit production dependencies
+        run: pnpm --filter @campus-gaming-network/admin audit --prod --no-optional --audit-level high
+      - name: Typecheck
+        working-directory: apps/admin
+        run: pnpm run typecheck
+      - name: Lint
+        working-directory: apps/admin
+        run: pnpm run lint
+      - name: Unit tests
+        working-directory: apps/admin
+        run: pnpm run test
+      - name: Build
+        working-directory: apps/admin
+        run: pnpm run build
+      - name: Install Playwright browser
+        working-directory: apps/admin
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Browser tests
+        id: browser_tests
+        continue-on-error: true
+        working-directory: apps/admin
+        run: pnpm run test:e2e
+      - name: Upload browser failure artifacts
+        if: steps.browser_tests.outcome == 'failure'
+        uses: actions/upload-artifact@v7
+        with:
+          name: admin-browser-failure
+          path: |
+            apps/admin/test-results
+            apps/admin/playwright-report
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Enforce browser test results
+        if: steps.browser_tests.outcome == 'failure'
         run: exit 1
 
   real-stack:

@@ -111,7 +111,7 @@ func (handler *Handler) catalogHandler(operation routeOperation, id string) http
 			return
 		}
 		if id != "" && !validAdminUUID(id) {
-			writeAdminApplicationError(w, adminmutation.ErrNotFound, "admin_unavailable")
+			writeAdminApplicationError(w, req, adminmutation.ErrNotFound, "admin_unavailable")
 			return
 		}
 		if req.Method == http.MethodGet {
@@ -282,7 +282,7 @@ func (handler *Handler) catalogHandler(operation routeOperation, id string) http
 					return
 				}
 			}
-			writeAdminApplicationError(w, err, "admin_mutation_failed")
+			writeAdminApplicationError(w, req, err, "admin_mutation_failed")
 			return
 		}
 		if schoolChanged && deps.Cache != nil {
@@ -382,7 +382,7 @@ func (handler *Handler) catalogRead(w http.ResponseWriter, req *http.Request, ac
 		}
 	}
 	if err != nil {
-		writeAdminApplicationError(w, err, "admin_query_failed")
+		writeAdminApplicationError(w, req, err, "admin_query_failed")
 		return
 	}
 	writeJSON(w, 200, result)

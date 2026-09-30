@@ -126,18 +126,21 @@ test("LOG-01: secrets, tokens, and bodies never reach the API or console logs", 
   await page.goto(`/reports/${reportID}?q=${canary("query")}`);
   await context.close();
 
-  // A marker request proves the API has logged everything before it.
-  await request.get(`${apiURL}/admin/v1/logtest-final`, {
+  // A marker request proves the API has logged everything before it: its
+  // request id appears in the log only once the line has been written.
+  const marker = await request.get(`${apiURL}/admin/v1/logtest-final`, {
     headers: proxyHeaders,
   });
+  const markerID = marker.headers()["x-request-id"];
+  expect(markerID).toBeTruthy();
   await expect
     .poll(() => readLogs().api, { timeout: 10_000 })
-    .toContain("logtest-final");
+    .toContain(markerID);
 
   const logs = readLogs();
   // Not vacuous: the logs record the traffic, only without its secrets.
   expect(logs.api).toContain("/admin/v1/auth/exchange");
-  expect(logs.api).toContain("/admin/v1/reports/");
+  expect(logs.api).toContain("/admin/v1/reports/{id}");
 
   const secrets = [
     adminToken,

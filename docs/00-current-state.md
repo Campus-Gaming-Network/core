@@ -31,10 +31,10 @@ is done. Engineering work now comes from the open items in
 
 ## Next tasks
 
-1. Continue `AC-014`: Admin Console production hardening. Rate limits and the
-   `e2e-real` journeys and real-stack security cases are in; next are the
-   remaining matrix cases, alerts, dependency and secret review, and operator
-   runbooks.
+1. Finish what `AC-014` still owes, none of which needs code: the independent
+   security review, then the staging penetration pass, drills, and deployment
+   smoke checks once staging exists
+   ([24](./24-admin-console-security-review.md#still-owed-before-production-is-enabled)).
 2. Clear the P1 launch gates that need outside input: legal copy, the
    DiceBear decision, and the external launch rehearsal.
 

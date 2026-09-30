@@ -157,9 +157,13 @@ may otherwise bypass Cloudflare.
    the Access identity and confirms an active `site_admin` grant.
 5. Go rotates an opaque admin token and the BFF mirrors the admin cookie to the
    browser.
-6. Every subsequent request repeats Access validation at the BFF. Every API
-   request independently reloads the admin session, account state, active grant,
-   and required capability.
+6. Every subsequent request repeats Access validation at the BFF, before any
+   route renders: a request with no valid assertion is refused with `403`, and
+   only the platform health check is exempt. The BFF sends the verified identity
+   to the API as `X-CGN-Admin-Access-Email`, and the API refuses a session
+   request whose identity is missing or differs from the one the session was
+   issued to. Every API request independently reloads the admin session, account
+   state, active grant, and required capability.
 7. A mutation succeeds only when the domain write and audit insert commit
    together.
 
@@ -626,6 +630,16 @@ Alert on repeated Access-validation failures, repeated denied authorization,
 any audit-write failure, and elevated admin 5xx rates. Do not treat audit rows as
 application error logs.
 
+Implemented: the API writes one request-log line per request with the method,
+the route template (never the raw path of an Admin API request), the status, the
+request id, the verified actor, and the duration, and never a header, cookie,
+query string, or body. An Admin API request that fails with a 5xx is logged at
+error level as `admin request failed` with a stable `error_class`, so an
+audit-write failure is `error_class=audit_write_failed`. Security events that
+reach the database are evaluated by `cgn-admin security-report`, which exits `3`
+when a rule fires. The rules, thresholds, log filters, and dashboard queries are
+in [23](./23-admin-console-operations-runbook.md#alerts).
+
 ## Test and verification matrix
 
 ### Actor matrix
@@ -1072,7 +1086,8 @@ site-admin grants are enabled in production.
 
 ### AC-014 — Production hardening and independent security review
 
-**Status:** In progress
+**Status:** Implemented locally; release-gated on the independent review and the
+staging drills and penetration pass
 **Depends on:** AC-003 through AC-013
 **Deliverables:** Real-stack E2E suite, configuration validation, rate limits,
 alerts/dashboard, dependency and secret review, operator runbooks, staging
@@ -1087,19 +1102,30 @@ penetration pass.
 - No unresolved critical/high security findings remain; medium findings have an
   owner and documented release decision.
 
-Implemented so far: the read, write, critical-write, and exchange/step-up
-failure [rate limits](#rate-limits), with an injectable clock so boundary tests
-do not sleep. The Admin Console shows one "wait up to 15 minutes" message for
-any `429`. The `e2e-real` suite (`pnpm run test:e2e:admin:real`) runs the eight
-[end-to-end journeys](#end-to-end-journeys) through the built Admin BFF, the real
-Go API, and PostgreSQL, with a local Access signing-key stub and an S3-compatible
-bucket stub. Journey 8 covers the local forms of its attempts: a missing or
-public proxy credential, a public cookie, a revoked grant, and forged origins
-and CSRF tokens; the direct Railway origin itself waits on staging. The suite
-also covers the real-stack cases of the [security matrix](./21-admin-console-security-test-plan.md#real-stack-coverage).
-Remaining locally: the matrix cases that are not real-stack, alerts, dependency
-and secret review, and operator runbooks. The staging penetration
-pass and drills wait on staging.
+Done locally:
+
+- **Matrix and journeys.** Every one of the 77 cases in the
+  [security matrix](./21-admin-console-security-test-plan.md#coverage-status) has
+  a named test or an explicit staging check. `pnpm run test:e2e:admin:real` runs
+  the eight [end-to-end journeys](#end-to-end-journeys) and the real-stack
+  security cases through the built Admin BFF, the real Go API, and PostgreSQL,
+  with a local Access signing-key stub and an S3-compatible bucket stub.
+- **Configuration.** Each missing or unsafe security value is refused in staging
+  and in production, in the API and in the console, without repeating any value.
+- **Rate limits.** The read, write, critical-write, and exchange/step-up failure
+  [limits](#rate-limits), proved on every route.
+- **Alerts and dashboard.** See [Observability](#observability) and
+  [23](./23-admin-console-operations-runbook.md).
+- **Reviews and drills.** The dependency, secret, and configuration review and the
+  findings it produced are in [24](./24-admin-console-security-review.md); the
+  drills were rehearsed locally and are logged in [23](./23-admin-console-operations-runbook.md#drill-log).
+- **CI.** The `admin` job runs the console's audit, typecheck, lint, unit tests,
+  build, and browser tests, and the `real-stack` job runs the real-stack suite.
+
+Still owed, because it cannot be done from a development machine or by the
+author of the controls: the independent review, the staging penetration pass,
+the staging drills, and the deployment smoke checks. The list and its owners are
+in [24](./24-admin-console-security-review.md#still-owed-before-production-is-enabled).
 
 ### AC-015 — Deploy and roll out Admin Console v1
 

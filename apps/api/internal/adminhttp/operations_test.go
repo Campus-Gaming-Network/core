@@ -3,6 +3,8 @@ package adminhttp
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -12,6 +14,7 @@ import (
 	"time"
 
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminaccess"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminaudit"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminsecurity"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/operations"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/pagecursor"
@@ -346,4 +349,77 @@ func trustedMutationRequest(method string, path string, body string) *http.Reque
 	req.AddCookie(&http.Cookie{Name: "admin_session", Value: "current"})
 	req.AddCookie(&http.Cookie{Name: "admin_csrf", Value: "current-csrf"})
 	return req
+}
+
+func TestRequestInfoReportsRouteTemplateVerifiedActorAndFailureClass(t *testing.T) {
+	updatedAt := time.Date(2026, time.September, 18, 9, 30, 0, 0, time.UTC)
+	body := `{"expected_updated_at":"` + updatedAt.Format(time.RFC3339Nano) + `","status":"in_review"}`
+	for _, test := range []struct {
+		name       string
+		request    func() *http.Request
+		repository error
+		want       RequestInfo
+		wantStatus int
+	}{
+		{
+			name: "an authorized read",
+			request: func() *http.Request {
+				return trustedMutationRequest(http.MethodGet, "/admin/v1/reports/"+testReportID, "")
+			},
+			want:       RequestInfo{Route: "/admin/v1/reports/{id}", ActorID: "user-id"},
+			wantStatus: http.StatusOK,
+		},
+		{
+			name:       "an unregistered path",
+			request:    func() *http.Request { return trustedRequest(http.MethodGet, "/admin/v1/not-registered/"+testReportID) },
+			want:       RequestInfo{Route: "/admin/v1/{unmatched}"},
+			wantStatus: http.StatusNotFound,
+		},
+		{
+			name:       "a request without a session",
+			request:    func() *http.Request { return trustedRequest(http.MethodGet, "/admin/v1/reports/"+testReportID) },
+			want:       RequestInfo{Route: "/admin/v1/reports/{id}"},
+			wantStatus: http.StatusUnauthorized,
+		},
+		{
+			name: "a failed audit write",
+			request: func() *http.Request {
+				return trustedMutationRequest(http.MethodPatch, "/admin/v1/reports/"+testReportID, body)
+			},
+			repository: fmt.Errorf("patch report: %w", errors.Join(adminaudit.ErrWriteFailed, errors.New("database unavailable"))),
+			want:       RequestInfo{Route: "/admin/v1/reports/{id}", ActorID: "user-id", ErrorClass: ErrorClassAuditWrite},
+			wantStatus: http.StatusInternalServerError,
+		},
+		{
+			name: "any other unexpected failure",
+			request: func() *http.Request {
+				return trustedMutationRequest(http.MethodPatch, "/admin/v1/reports/"+testReportID, body)
+			},
+			repository: errors.New("database unavailable"),
+			want:       RequestInfo{Route: "/admin/v1/reports/{id}", ActorID: "user-id", ErrorClass: ErrorClassInternal},
+			wantStatus: http.StatusInternalServerError,
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			handler, fixture := testHandler(true)
+			fixture.operations.report = operations.Report{ID: testReportID, UpdatedAt: updatedAt}
+			fixture.operations.err = test.repository
+			info := &RequestInfo{}
+			req := test.request()
+			req = req.WithContext(ContextWithRequestInfo(req.Context(), info))
+			response := httptest.NewRecorder()
+			handler.ServeHTTP(response, req)
+
+			if response.Code != test.wantStatus {
+				t.Fatalf("status = %d, want %d: %s", response.Code, test.wantStatus, response.Body.String())
+			}
+			if *info != test.want {
+				t.Fatalf("request info = %#v, want %#v", *info, test.want)
+			}
+			// Clients get a stable code, never the internal failure text.
+			if test.repository != nil && strings.Contains(response.Body.String(), "database unavailable") {
+				t.Fatalf("response exposed the internal failure: %s", response.Body.String())
+			}
+		})
+	}
 }

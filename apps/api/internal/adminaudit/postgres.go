@@ -3,6 +3,7 @@ package adminaudit
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -30,7 +31,16 @@ type postgresExecutor interface {
 	QueryRow(context.Context, string, ...any) pgx.Row
 }
 
+// Insert records one audit row. Every failure wraps ErrWriteFailed.
 func (store *PostgresStore) Insert(ctx context.Context, input WriteInput) (Entry, error) {
+	entry, err := store.insert(ctx, input)
+	if err != nil {
+		return Entry{}, errors.Join(ErrWriteFailed, err)
+	}
+	return entry, nil
+}
+
+func (store *PostgresStore) insert(ctx context.Context, input WriteInput) (Entry, error) {
 	if store == nil || store.executor == nil || input.validate() != nil {
 		return Entry{}, ErrInvalidAudit
 	}

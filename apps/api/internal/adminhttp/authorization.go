@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminaccess"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminsecurity"
@@ -38,6 +39,15 @@ func (handler *Handler) withAuthorization(
 			writeError(w, http.StatusUnauthorized, "admin_authentication_required")
 			return
 		}
+		requestInfo(req.Context()).ActorID = principal.UserID
+		if !accessIdentityMatches(req, principal) {
+			handler.recordDeniedForActor(
+				req, Actor{Principal: principal}, adminsecurity.EventAuthorizationDenied,
+				"access_identity_mismatch", http.StatusUnauthorized,
+			)
+			writeError(w, http.StatusUnauthorized, "admin_authentication_required")
+			return
+		}
 		if handler.dependencies.Grants == nil {
 			writeError(w, http.StatusServiceUnavailable, "admin_unavailable")
 			return
@@ -50,7 +60,7 @@ func (handler *Handler) withAuthorization(
 		if errors.Is(err, adminaccess.ErrGrantNotFound) ||
 			(err == nil && (grant.ID != principal.GrantID || grant.UserID != principal.UserID ||
 				grant.Role != adminaccess.RoleSiteAdmin ||
-				(capability != "" && !adminaccess.Allows(grant.Role, capability)))) {
+				(capability != "" && !handler.allows(grant.Role, capability)))) {
 			handler.recordDeniedForActor(req, actor, adminsecurity.EventAuthorizationDenied, "capability_denied", http.StatusForbidden)
 			writeError(w, http.StatusForbidden, "site_admin_required")
 			return
@@ -116,4 +126,13 @@ func (handler *Handler) withCSRFBoundary(
 		}
 		next.ServeHTTP(w, req)
 	})
+}
+
+// accessIdentityMatches reports whether the BFF vouched, on this request, for
+// the Access identity the session was issued to. Exactly one header value is
+// accepted so a repeated header cannot hide a mismatch.
+func accessIdentityMatches(req *http.Request, principal adminsession.Principal) bool {
+	values := req.Header.Values(AccessEmailHeader)
+	return len(values) == 1 && principal.AccessEmail != "" &&
+		strings.EqualFold(strings.TrimSpace(values[0]), principal.AccessEmail)
 }

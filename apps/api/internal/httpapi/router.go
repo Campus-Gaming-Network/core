@@ -658,16 +658,76 @@ func writeJSON(w http.ResponseWriter, status int, payload any) {
 	}
 }
 
+// maximumLoggedPathRunes bounds an unmatched request path in the access log so
+// a hostile client cannot write arbitrarily long values into it.
+const maximumLoggedPathRunes = 200
+
+// statusRecorder remembers the status a handler wrote for the access log.
+type statusRecorder struct {
+	http.ResponseWriter
+	status int
+}
+
+func (recorder *statusRecorder) WriteHeader(status int) {
+	if recorder.status == 0 {
+		recorder.status = status
+	}
+	recorder.ResponseWriter.WriteHeader(status)
+}
+
+func (recorder *statusRecorder) Write(body []byte) (int, error) {
+	if recorder.status == 0 {
+		recorder.status = http.StatusOK
+	}
+	return recorder.ResponseWriter.Write(body)
+}
+
+// Unwrap lets http.ResponseController reach the underlying writer.
+func (recorder *statusRecorder) Unwrap() http.ResponseWriter { return recorder.ResponseWriter }
+
+// withRequestLogging writes one structured line per request: method, the
+// Admin API route template (or a bounded raw path elsewhere), status, request
+// id, verified actor, and duration. It never logs headers, cookies, query
+// strings, or bodies. An Admin API request that fails with a 5xx is logged at
+// error level with a stable error class for alerting.
 func withRequestLogging(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		start := time.Now()
-		next.ServeHTTP(w, req)
-		slog.Info("request",
+		info := &adminhttp.RequestInfo{}
+		req = req.WithContext(adminhttp.ContextWithRequestInfo(req.Context(), info))
+		recorder := &statusRecorder{ResponseWriter: w}
+		next.ServeHTTP(recorder, req)
+
+		status := recorder.status
+		if status == 0 {
+			status = http.StatusOK
+		}
+		path := info.Route
+		if path == "" {
+			path = req.URL.Path
+			if runes := []rune(path); len(runes) > maximumLoggedPathRunes {
+				path = string(runes[:maximumLoggedPathRunes])
+			}
+		}
+		attributes := []any{
 			"method", req.Method,
-			"path", req.URL.Path,
+			"path", path,
+			"status", status,
 			"request_id", w.Header().Get(adminhttp.RequestIDHeader),
 			"duration_ms", time.Since(start).Milliseconds(),
-		)
+		}
+		if info.ActorID != "" {
+			attributes = append(attributes, "actor_id", info.ActorID)
+		}
+		if info.Route != "" && status >= http.StatusInternalServerError {
+			errorClass := info.ErrorClass
+			if errorClass == "" {
+				errorClass = adminhttp.ErrorClassInternal
+			}
+			slog.Error("admin request failed", append(attributes, "error_class", errorClass)...)
+			return
+		}
+		slog.Info("request", attributes...)
 	})
 }
 

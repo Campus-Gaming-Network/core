@@ -25,8 +25,12 @@ import (
 const (
 	ProxySecretHeader     = "X-CGN-Admin-Proxy-Secret"
 	AccessAssertionHeader = "Cf-Access-Jwt-Assertion"
-	CSRFHeader            = "X-CGN-Admin-CSRF"
-	RequestIDHeader       = "X-Request-ID"
+	// AccessEmailHeader carries the Access identity the trusted BFF verified on
+	// this request. A session is bound to the identity it was issued for, so a
+	// request whose verified identity differs, or carries none, is refused.
+	AccessEmailHeader = "X-CGN-Admin-Access-Email"
+	CSRFHeader        = "X-CGN-Admin-CSRF"
+	RequestIDHeader   = "X-Request-ID"
 )
 
 type Config struct {
@@ -124,13 +128,17 @@ type Handler struct {
 	trusted      http.Handler
 	now          func() time.Time
 	limits       limiters
+	// allows decides whether a role holds a capability. Production always uses
+	// adminaccess.Allows; tests substitute single-capability principals to prove
+	// each route names the capability it needs.
+	allows func(adminaccess.Role, adminaccess.Capability) bool
 }
 
 func NewHandler(config Config, dependencies Dependencies) *Handler {
 	if config.StepUpMaxAge <= 0 || config.StepUpMaxAge > 10*time.Minute {
 		config.StepUpMaxAge = 10 * time.Minute
 	}
-	handler := &Handler{config: config, dependencies: dependencies, now: time.Now}
+	handler := &Handler{config: config, dependencies: dependencies, now: time.Now, allows: adminaccess.Allows}
 	// Read handler.now on each call so tests can move the clock after
 	// construction.
 	handler.limits = newLimiters(func() time.Time { return handler.now() })
@@ -170,10 +178,13 @@ func (handler *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 func (handler *Handler) dispatch(w http.ResponseWriter, req *http.Request) {
 	policy, entityID, pathKnown := findRoute(req.Method, req.URL.Path)
+	info := requestInfo(req.Context())
 	if !pathKnown {
+		info.Route = "/admin/v1/{unmatched}"
 		http.NotFound(w, req)
 		return
 	}
+	info.Route = policy.Path
 	if policy.Method == "" {
 		w.Header().Set("Allow", allowedMethods(req.URL.Path))
 		writeError(w, http.StatusMethodNotAllowed, "method_not_allowed")

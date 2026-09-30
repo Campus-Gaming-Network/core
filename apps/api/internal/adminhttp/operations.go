@@ -85,14 +85,14 @@ func (handler *Handler) listReports(w http.ResponseWriter, req *http.Request) {
 	}
 	filter, err := parseQueueFilter(req.URL.Query())
 	if err != nil {
-		writeAdminApplicationError(w, err, "reports_unavailable")
+		writeAdminApplicationError(w, req, err, "reports_unavailable")
 		return
 	}
 	limit := filter.Limit
 	filter.Limit++
 	reports, err := handler.dependencies.Operations.ListReports(req.Context(), filter)
 	if err != nil {
-		writeAdminApplicationError(w, err, "reports_unavailable")
+		writeAdminApplicationError(w, req, err, "reports_unavailable")
 		return
 	}
 	page := makeCursorPage(reports, limit, filter.After, filter.Before, func(report operations.ReportSummary) (time.Time, string) {
@@ -121,7 +121,7 @@ func (handler *Handler) getReport(w http.ResponseWriter, req *http.Request, id s
 	}
 	report, err := handler.dependencies.Operations.GetReport(req.Context(), id)
 	if err != nil {
-		writeAdminApplicationError(w, err, "report_unavailable")
+		writeAdminApplicationError(w, req, err, "report_unavailable")
 		return
 	}
 	if err := handler.recordSensitiveRead(req, actor, operationsEntityReport, "read"); err != nil {
@@ -143,7 +143,7 @@ func (handler *Handler) patchReport(w http.ResponseWriter, req *http.Request, id
 	}
 	var input queuePatchRequest
 	if err := decodeAdminJSON(w, req, &input); err != nil {
-		writeAdminApplicationError(w, err, "report_update_failed")
+		writeAdminApplicationError(w, req, err, "report_update_failed")
 		return
 	}
 	report, err := handler.dependencies.Operations.PatchReport(req.Context(), id, operations.QueuePatch{
@@ -152,7 +152,7 @@ func (handler *Handler) patchReport(w http.ResponseWriter, req *http.Request, id
 		AssignedToUserID: input.AssignedToUserID, ResolutionNote: input.ResolutionNote,
 	})
 	if err != nil {
-		writeAdminApplicationError(w, err, "report_update_failed")
+		writeAdminApplicationError(w, req, err, "report_update_failed")
 		return
 	}
 	writeJSON(w, http.StatusOK, report)
@@ -166,14 +166,14 @@ func (handler *Handler) listSupportTickets(w http.ResponseWriter, req *http.Requ
 	}
 	filter, err := parseQueueFilter(req.URL.Query())
 	if err != nil {
-		writeAdminApplicationError(w, err, "support_tickets_unavailable")
+		writeAdminApplicationError(w, req, err, "support_tickets_unavailable")
 		return
 	}
 	limit := filter.Limit
 	filter.Limit++
 	tickets, err := handler.dependencies.Operations.ListSupportTickets(req.Context(), filter)
 	if err != nil {
-		writeAdminApplicationError(w, err, "support_tickets_unavailable")
+		writeAdminApplicationError(w, req, err, "support_tickets_unavailable")
 		return
 	}
 	page := makeCursorPage(tickets, limit, filter.After, filter.Before, func(ticket operations.SupportTicketSummary) (time.Time, string) {
@@ -202,7 +202,7 @@ func (handler *Handler) getSupportTicket(w http.ResponseWriter, req *http.Reques
 	}
 	ticket, err := handler.dependencies.Operations.GetSupportTicket(req.Context(), id)
 	if err != nil {
-		writeAdminApplicationError(w, err, "support_ticket_unavailable")
+		writeAdminApplicationError(w, req, err, "support_ticket_unavailable")
 		return
 	}
 	if err := handler.recordSensitiveRead(req, actor, operationsEntitySupportTicket, "read"); err != nil {
@@ -224,7 +224,7 @@ func (handler *Handler) patchSupportTicket(w http.ResponseWriter, req *http.Requ
 	}
 	var input queuePatchRequest
 	if err := decodeAdminJSON(w, req, &input); err != nil {
-		writeAdminApplicationError(w, err, "support_ticket_update_failed")
+		writeAdminApplicationError(w, req, err, "support_ticket_update_failed")
 		return
 	}
 	ticket, err := handler.dependencies.Operations.PatchSupportTicket(req.Context(), id, operations.QueuePatch{
@@ -233,7 +233,7 @@ func (handler *Handler) patchSupportTicket(w http.ResponseWriter, req *http.Requ
 		AssignedToUserID: input.AssignedToUserID, ResolutionNote: input.ResolutionNote,
 	})
 	if err != nil {
-		writeAdminApplicationError(w, err, "support_ticket_update_failed")
+		writeAdminApplicationError(w, req, err, "support_ticket_update_failed")
 		return
 	}
 	writeJSON(w, http.StatusOK, ticket)
@@ -251,23 +251,23 @@ func (handler *Handler) listAuditHistory(w http.ResponseWriter, req *http.Reques
 	}
 	if entityType == operationsEntityReport {
 		if _, err := handler.dependencies.Operations.GetReport(req.Context(), entityID); err != nil {
-			writeAdminApplicationError(w, err, "audit_history_unavailable")
+			writeAdminApplicationError(w, req, err, "audit_history_unavailable")
 			return
 		}
 	} else if _, err := handler.dependencies.Operations.GetSupportTicket(req.Context(), entityID); err != nil {
-		writeAdminApplicationError(w, err, "audit_history_unavailable")
+		writeAdminApplicationError(w, req, err, "audit_history_unavailable")
 		return
 	}
 	filter, err := parseAuditFilter(req.URL.Query())
 	if err != nil {
-		writeAdminApplicationError(w, err, "audit_history_unavailable")
+		writeAdminApplicationError(w, req, err, "audit_history_unavailable")
 		return
 	}
 	limit := filter.Limit
 	filter.Limit++
 	entries, err := handler.dependencies.Operations.ListAuditHistory(req.Context(), entityType, entityID, filter)
 	if err != nil {
-		writeAdminApplicationError(w, err, "audit_history_unavailable")
+		writeAdminApplicationError(w, req, err, "audit_history_unavailable")
 		return
 	}
 	page := makeCursorPage(entries, limit, filter.After, filter.Before, func(entry operations.AuditEntry) (time.Time, string) {
@@ -410,9 +410,10 @@ func decodeAdminJSON(w http.ResponseWriter, req *http.Request, target any) error
 	return nil
 }
 
-func writeAdminApplicationError(w http.ResponseWriter, err error, fallback string) {
+func writeAdminApplicationError(w http.ResponseWriter, req *http.Request, err error, fallback string) {
 	kind, code, ok := apperror.Details(err)
 	if !ok {
+		requestInfo(req.Context()).ErrorClass = errorClass(err)
 		writeError(w, http.StatusInternalServerError, fallback)
 		return
 	}

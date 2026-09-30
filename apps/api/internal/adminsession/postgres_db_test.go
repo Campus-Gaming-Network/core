@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -305,5 +306,61 @@ func TestPostgresRepositoryRejectsIneligibleSessionExchange(t *testing.T) {
 				t.Fatalf("Start() error = %v, want ErrUnauthenticated", err)
 			}
 		})
+	}
+}
+
+// Revoking one session ends that session alone. Only an operation that says it
+// revokes every session may end the rest, and nothing a caller can read back
+// exposes a raw token or its stored hash.
+func TestRevokingOneSessionLeavesTheUsersOtherSessionActive(t *testing.T) {
+	fixture := newAdminSessionFixture(t)
+	ctx := context.Background()
+	service, err := NewService(NewPostgresRepository(fixture.pool), 30*time.Minute, 8*time.Hour)
+	if err != nil {
+		t.Fatal(err)
+	}
+	start := StartInput{
+		UserID: fixture.userID, GrantID: fixture.grantID,
+		AccessIssuer:  "https://cgn.cloudflareaccess.com",
+		AccessSubject: "two-sessions", AccessEmail: fixture.email,
+	}
+	first, err := service.Start(ctx, start)
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := service.Start(ctx, start)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if first.Token == second.Token {
+		t.Fatal("two sessions share a token")
+	}
+
+	if err := service.Revoke(ctx, first.Token, "Operator logout"); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := service.Authenticate(ctx, first.Token); !errors.Is(err, ErrUnauthenticated) {
+		t.Fatalf("revoked session error = %v, want ErrUnauthenticated", err)
+	}
+	principal, err := service.Authenticate(ctx, second.Token)
+	if err != nil {
+		t.Fatalf("the other session was ended: %v", err)
+	}
+	// What authentication returns identifies a session without carrying a
+	// credential: the principal holds only hashes, never either raw token.
+	if strings.Contains(fmt.Sprintf("%+v", principal), first.Token) ||
+		strings.Contains(fmt.Sprintf("%+v", principal), second.Token) {
+		t.Fatalf("principal exposes a raw token: %+v", principal)
+	}
+	var active int
+	if err := fixture.pool.QueryRow(ctx, `
+		SELECT COUNT(*) FROM admin_sessions
+		WHERE user_id = $1::uuid AND revoked_at IS NULL
+	`, fixture.userID).Scan(&active); err != nil {
+		t.Fatal(err)
+	}
+	if active != 1 {
+		t.Fatalf("active sessions = %d, want 1", active)
 	}
 }

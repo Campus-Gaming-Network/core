@@ -2,6 +2,7 @@ import { expect, test, type APIResponse } from "@playwright/test";
 
 const apiURL = "http://127.0.0.1:18081";
 const defaultReferrerPolicy = "strict-origin-when-cross-origin";
+const siteOrigin = "http://127.0.0.1:3200";
 
 test.beforeEach(async ({ request }) => {
   const response = await request.post(`${apiURL}/__test/reset`);
@@ -84,6 +85,44 @@ test("token-bearing pages and their legacy redirect never send a referrer", asyn
     "private, no-store",
   );
   assertCommonSecurityHeaders(legacyRedirectWithoutToken, "no-referrer");
+});
+
+// The public site has no route to the Admin API: the admin surface is reachable
+// only through the Admin Console's own BFF.
+test("the public site neither serves nor proxies an Admin API path", async ({
+  request,
+}) => {
+  const paths = [
+    "/admin/v1/session",
+    "/admin/v1/reports",
+    "/admin/v1/auth/exchange",
+    "/api/admin/v1/session",
+    "/api/admin/v1/reports",
+    "/api/v1/admin/session",
+    "/admin",
+  ];
+  const responses = await Promise.all(
+    paths.flatMap((path) => [
+      request.get(path, { maxRedirects: 0 }),
+      request.post(path, {
+        maxRedirects: 0,
+        headers: { "X-CGN-Admin-Proxy-Secret": "guess", Origin: siteOrigin },
+        data: "",
+      }),
+    ]),
+  );
+
+  for (const response of responses) {
+    expect([404, 405]).toContain(response.status());
+    expect(await response.text()).not.toMatch(/"role"|site_admin|capabilities/);
+  }
+  const upstream = await request.get(`${apiURL}/__test/upstream-calls`);
+  const { calls } = (await upstream.json()) as {
+    calls: { pathname: string }[];
+  };
+  expect(calls.filter(({ pathname }) => pathname.includes("/admin"))).toEqual(
+    [],
+  );
 });
 
 test("the local HTTP harness does not emit an ineffective HSTS header", async ({

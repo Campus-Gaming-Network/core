@@ -1,8 +1,12 @@
 package admincommand
 
 import (
+	"context"
 	"errors"
 	"testing"
+	"time"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 func TestCommandsRejectMissingActorsReasonsAndImplicitBootstrap(t *testing.T) {
@@ -29,5 +33,17 @@ func TestEmailAndReasonValidation(t *testing.T) {
 	}
 	if !validEmail("admin@example.test") || !validReason("operator-approved recovery", 500) || validReason("  ", 500) {
 		t.Fatal("valid email/reason rejected or blank reason accepted")
+	}
+}
+
+func TestSecurityReportRejectsIncompleteRules(t *testing.T) {
+	for _, rule := range []AlertRule{
+		{Threshold: 1, Window: time.Minute},
+		{Name: "no threshold", Window: time.Minute},
+		{Name: "no window", Threshold: 1},
+	} {
+		if _, err := (&Service{pool: &pgxpool.Pool{}}).SecurityReport(context.Background(), []AlertRule{rule}, time.Now()); !errors.Is(err, ErrInvalidCommand) {
+			t.Fatalf("rule %#v error = %v, want ErrInvalidCommand", rule, err)
+		}
 	}
 }

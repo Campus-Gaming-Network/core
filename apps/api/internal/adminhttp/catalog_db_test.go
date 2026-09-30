@@ -23,6 +23,7 @@ import (
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/auth"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/games"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/migrate"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/operations"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/pagecursor"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/schools"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/users"
@@ -124,7 +125,8 @@ func newCatalogFixture(t *testing.T) catalogFixture {
 	}
 	f.handler = NewHandler(Config{Enabled: true, SiteOrigin: "https://admin.example.test", ProxySecret: "proxy-secret", Cookies: adminsession.CookieConfig{Name: "admin_session", CSRFName: "admin_csrf", Secure: true}}, Dependencies{
 		Grants: f.grants, Sessions: f.sessions, Security: adminsecurity.NewPostgresStore(pool),
-		Catalog: &CatalogDependencies{Schools: f.school, Games: f.game, Users: f.user, SiteGrants: f.grants, Cache: f.cache, Audit: adminaudit.NewPostgresStore(pool)},
+		Operations: operations.NewPostgresRepository(pool),
+		Catalog:    &CatalogDependencies{Schools: f.school, Games: f.game, Users: f.user, SiteGrants: f.grants, Cache: f.cache, Audit: adminaudit.NewPostgresStore(pool)},
 	})
 	return f
 }
@@ -137,6 +139,7 @@ func (f catalogFixture) request(t *testing.T, method, path string, input any, st
 	}
 	req := httptest.NewRequest(method, path, bytes.NewReader(body))
 	req.Header.Set(ProxySecretHeader, "proxy-secret")
+	req.Header.Set(AccessEmailHeader, "actor@example.edu")
 	req.Header.Set("Origin", "https://admin.example.test")
 	req.Header.Set(CSRFHeader, f.credential.CSRFToken)
 	req.AddCookie(&http.Cookie{Name: "admin_session", Value: f.credential.Token})
@@ -633,5 +636,58 @@ func TestCatalogDeleteWaitsForConcurrentReferenceThenRejectsIt(t *testing.T) {
 	}
 	if err := <-result; !errors.Is(err, adminmutation.ErrDependencies) {
 		t.Fatalf("concurrent reference missed: %v", err)
+	}
+}
+
+// Safe methods stay safe: no GET route changes domain data, and none hides a
+// mutation behind a query parameter. A sensitive read records a security event
+// and every authenticated request touches its own session; neither is domain
+// data, so neither is compared.
+func TestEveryGETRouteLeavesDomainDataUnchanged(t *testing.T) {
+	f := newCatalogFixture(t)
+	ctx := t.Context()
+	domainTables := []string{"schools", "games", "users", "reports", "support_tickets", "audit_logs", "site_role_grants", "school_admins", "user_school_follows"}
+	snapshot := func() map[string]string {
+		t.Helper()
+		result := map[string]string{}
+		for _, table := range domainTables {
+			var digest string
+			if err := f.pool.QueryRow(ctx, `SELECT MD5(COALESCE(STRING_AGG(row_data, '' ORDER BY row_data), '')) FROM (SELECT t::text AS row_data FROM `+table+` t) rows`).Scan(&digest); err != nil {
+				t.Fatalf("snapshot %s: %v", table, err)
+			}
+			result[table] = digest
+		}
+		return result
+	}
+
+	var gets []routePolicy
+	for _, route := range routes {
+		if route.Method == http.MethodGet {
+			gets = append(gets, route)
+		}
+	}
+	if len(gets) < 10 {
+		t.Fatalf("only %d GET routes found", len(gets))
+	}
+
+	before := snapshot()
+	for _, route := range gets {
+		path := strings.NewReplacer("{id}", catalogSchoolID, "{grant_id}", catalogTargetID).Replace(route.Path)
+		// Both a plain read and one carrying mutation-shaped query parameters.
+		for _, query := range []string{"", "?state=deleted&delete=1&action=suspend&status=closed&reason=x&expected_updated_at=2000-01-01T00:00:00Z"} {
+			req := httptest.NewRequest(http.MethodGet, path+query, nil)
+			req.Header.Set(ProxySecretHeader, "proxy-secret")
+			req.Header.Set(AccessEmailHeader, "actor@example.edu")
+			req.AddCookie(&http.Cookie{Name: "admin_session", Value: f.credential.Token})
+			response := httptest.NewRecorder()
+			f.handler.ServeHTTP(response, req)
+			if response.Code >= 500 {
+				t.Fatalf("GET %s%s: status %d: %s", path, query, response.Code, response.Body.String())
+			}
+		}
+	}
+
+	if after := snapshot(); !reflect.DeepEqual(before, after) {
+		t.Fatalf("a GET route changed domain data:\nbefore %v\nafter  %v", before, after)
 	}
 }

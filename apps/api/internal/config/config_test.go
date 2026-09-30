@@ -133,23 +133,49 @@ func TestLoadRejectsUnsafeEnabledAdminConsoleSettings(t *testing.T) {
 		{name: "asset origin shared with the site", values: map[string]string{"R2_PUBLIC_ASSET_ORIGIN": "https://campusgamingnetwork.com"}, wantErr: "R2_PUBLIC_ASSET_ORIGIN must be an HTTPS origin on its own non-local hostname"},
 		{name: "asset origin with a path", values: map[string]string{"R2_PUBLIC_ASSET_ORIGIN": "https://assets.campusgamingnetwork.com/logos"}, wantErr: "R2_PUBLIC_ASSET_ORIGIN must be an HTTPS origin on its own non-local hostname"},
 		{name: "wrong JWKS path", values: map[string]string{"CLOUDFLARE_ACCESS_JWKS_URL": "https://campusgamingnetwork.cloudflareaccess.com/keys"}, wantErr: "must use the configured team domain"},
+		{name: "no proxy secret", values: map[string]string{"ADMIN_API_PROXY_SHARED_SECRET": ""}, wantErr: "ADMIN_API_PROXY_SHARED_SECRET must contain at least 32 characters"},
+		{name: "whitespace proxy secret", values: map[string]string{"ADMIN_API_PROXY_SHARED_SECRET": strings.Repeat(" ", 40)}, wantErr: "ADMIN_API_PROXY_SHARED_SECRET must contain at least 32 characters"},
+		{name: "local site URL", values: map[string]string{"ADMIN_SITE_URL": "https://localhost"}, wantErr: "ADMIN_SITE_URL must use HTTPS and a non-local hostname"},
+		{name: "loopback site URL", values: map[string]string{"ADMIN_SITE_URL": "https://127.0.0.1"}, wantErr: "ADMIN_SITE_URL must use HTTPS and a non-local hostname"},
+		{name: "site URL with a path", values: map[string]string{"ADMIN_SITE_URL": "https://admin.campusgamingnetwork.com/console"}, wantErr: "ADMIN_SITE_URL"},
+		{name: "insecure team domain", values: map[string]string{"CLOUDFLARE_ACCESS_TEAM_DOMAIN": "http://campusgamingnetwork.cloudflareaccess.com"}, wantErr: "CLOUDFLARE_ACCESS_TEAM_DOMAIN must use HTTPS"},
+		{name: "local team domain", values: map[string]string{"CLOUDFLARE_ACCESS_TEAM_DOMAIN": "https://localhost"}, wantErr: "CLOUDFLARE_ACCESS_TEAM_DOMAIN must use HTTPS and a non-local hostname"},
+		{name: "local JWKS URL", values: map[string]string{"CLOUDFLARE_ACCESS_TEAM_DOMAIN": "https://localhost", "CLOUDFLARE_ACCESS_JWKS_URL": "https://localhost/cdn-cgi/access/certs"}, wantErr: "CLOUDFLARE_ACCESS_JWKS_URL must use HTTPS and a non-local hostname"},
+		{name: "JWKS URL with a query", values: map[string]string{"CLOUDFLARE_ACCESS_JWKS_URL": "https://campusgamingnetwork.cloudflareaccess.com/cdn-cgi/access/certs?x=1"}, wantErr: "must use the configured team domain"},
+		{name: "blank audience", values: map[string]string{"CLOUDFLARE_ACCESS_AUDIENCE": "   "}, wantErr: "CLOUDFLARE_ACCESS_AUDIENCE must be set"},
+		{name: "non-positive idle TTL", values: map[string]string{"ADMIN_SESSION_IDLE_TTL": "0s"}, wantErr: "ADMIN_SESSION_IDLE_TTL"},
+		{name: "negative absolute TTL", values: map[string]string{"ADMIN_SESSION_ABSOLUTE_TTL": "-1h"}, wantErr: "ADMIN_SESSION_ABSOLUTE_TTL"},
+		{name: "unparseable TTL", values: map[string]string{"ADMIN_SESSION_IDLE_TTL": "soon"}, wantErr: "ADMIN_SESSION_IDLE_TTL"},
+		{name: "same session and CSRF cookie", values: map[string]string{"ADMIN_CSRF_COOKIE": "__Host-cgn_admin_session"}, wantErr: "ADMIN_CSRF_COOKIE"},
+		{name: "cookie name with a separator", values: map[string]string{"ADMIN_SESSION_COOKIE": "bad;name"}, wantErr: "ADMIN_SESSION_COOKIE"},
+		{name: "partial logo storage", values: map[string]string{"R2_SCHOOL_LOGOS_BUCKET": ""}, wantErr: "must be set together"},
+		{name: "local asset origin", values: map[string]string{"R2_PUBLIC_ASSET_ORIGIN": "https://localhost"}, wantErr: "R2_PUBLIC_ASSET_ORIGIN must be an HTTPS origin on its own non-local hostname"},
+		{name: "asset origin shared with the admin site", values: map[string]string{"R2_PUBLIC_ASSET_ORIGIN": "https://admin.campusgamingnetwork.com"}, wantErr: "R2_PUBLIC_ASSET_ORIGIN must be an HTTPS origin on its own non-local hostname"},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			clearConfigurationEnvironment(t)
-			values := validStrictEnvironment("production")
-			for key, value := range validStrictAdminEnvironment() {
-				values[key] = value
-			}
-			setConfigurationEnvironment(t, values)
-			setConfigurationEnvironment(t, tt.values)
+	// Staging is as strict as production, and no failure names a configured value.
+	for _, environment := range []string{"staging", "production"} {
+		for _, tt := range tests {
+			t.Run(environment+"/"+tt.name, func(t *testing.T) {
+				clearConfigurationEnvironment(t)
+				values := validStrictEnvironment(environment)
+				for key, value := range validStrictAdminEnvironment() {
+					values[key] = value
+				}
+				setConfigurationEnvironment(t, values)
+				setConfigurationEnvironment(t, tt.values)
 
-			_, err := Load()
-			if err == nil || !strings.Contains(err.Error(), tt.wantErr) {
-				t.Fatalf("Load() error = %q, want it to contain %q", err, tt.wantErr)
-			}
-		})
+				_, err := Load()
+				if err == nil || !strings.Contains(err.Error(), tt.wantErr) {
+					t.Fatalf("Load() error = %q, want it to contain %q", err, tt.wantErr)
+				}
+				for _, secret := range []string{values["ADMIN_API_PROXY_SHARED_SECRET"], values["R2_SECRET_ACCESS_KEY"], values["R2_ACCESS_KEY_ID"]} {
+					if strings.TrimSpace(secret) != "" && strings.Contains(err.Error(), secret) {
+						t.Fatalf("Load() error exposed a configured secret: %q", err)
+					}
+				}
+			})
+		}
 	}
 }
 

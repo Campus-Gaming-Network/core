@@ -2,6 +2,7 @@ import * as z from "zod";
 import {
   AccessAssertionError,
   validateAccessAssertion,
+  type AccessIdentity,
 } from "./access-assertion.server.js";
 import {
   AdminApiContractError,
@@ -31,7 +32,7 @@ type SessionDependencies = {
   sessionCookieValue?: string;
   csrfCookieName: string;
   strictDeployment: boolean;
-  validateAssertion: (assertion: string) => Promise<void>;
+  validateAssertion: (assertion: string) => Promise<AccessIdentity | undefined>;
   applyCookies: (mutations: CookieMutation[]) => void;
   reportError?: (error: unknown) => void;
 };
@@ -48,12 +49,25 @@ export async function establishAdminSession({
   applyCookies,
   reportError = defaultErrorReporter,
 }: SessionDependencies): Promise<AdminShellSession> {
+  // Every request proves its Access identity. A session is bound to the
+  // identity it was issued to, so a cookie alone never authorizes a request.
+  // Only a local console with no Access configuration, in front of a stand-in
+  // API, has no identity to verify; the real API refuses such requests.
+  let identity: AccessIdentity | undefined;
+  try {
+    identity = await validateAssertion(assertion);
+  } catch (error) {
+    reportError(error);
+    return statusForError(error);
+  }
+
   if (sessionCookieValue) {
     try {
       const { data } = await api({
         path: "/admin/v1/session",
         responseSchema: adminSessionSchema,
         cookieHeader: adminCookieHeader(sessionCookieName, sessionCookieValue),
+        accessEmail: identity?.email,
       });
       return { status: "authenticated", session: data };
     } catch (error) {
@@ -65,7 +79,7 @@ export async function establishAdminSession({
   }
 
   try {
-    await validateAssertion(assertion);
+    if (!identity) throw unverifiedAssertionError(assertion);
     const { data, response } = await api({
       path: "/admin/v1/auth/exchange",
       method: "POST",
@@ -95,15 +109,19 @@ export async function establishAdminSession({
 export async function logoutAdminSession({
   api,
   siteOrigin,
+  assertion,
   sessionCookieName,
   sessionCookieValue,
   csrfCookieName,
   csrfCookieValue,
+  validateAssertion,
   applyCookies,
   reportError = defaultErrorReporter,
 }: {
   api: ApiClient;
   siteOrigin: string;
+  assertion: string;
+  validateAssertion: (assertion: string) => Promise<AccessIdentity | undefined>;
   sessionCookieName: string;
   sessionCookieValue?: string;
   csrfCookieName: string;
@@ -113,6 +131,7 @@ export async function logoutAdminSession({
 }): Promise<void> {
   try {
     if (sessionCookieValue && csrfCookieValue) {
+      const identity = await validateAssertion(assertion);
       await api({
         path: "/admin/v1/logout",
         method: "POST",
@@ -127,6 +146,7 @@ export async function logoutAdminSession({
           Origin: siteOrigin,
           "X-CGN-Admin-CSRF": csrfCookieValue,
         },
+        accessEmail: identity?.email,
       });
     }
   } catch (error) {
@@ -162,7 +182,7 @@ export async function stepUpAdminSession({
   csrfCookieName: string;
   csrfCookieValue?: string;
   strictDeployment: boolean;
-  validateAssertion: (assertion: string) => Promise<void>;
+  validateAssertion: (assertion: string) => Promise<AccessIdentity | undefined>;
   applyCookies: (mutations: CookieMutation[]) => void;
   reportError?: (error: unknown) => void;
 }): Promise<AdminShellSession> {
@@ -171,7 +191,8 @@ export async function stepUpAdminSession({
   }
 
   try {
-    await validateAssertion(assertion);
+    const identity = await validateAssertion(assertion);
+    if (!identity) throw unverifiedAssertionError(assertion);
     const { data, response } = await api({
       path: "/admin/v1/auth/step-up",
       method: "POST",
@@ -187,6 +208,7 @@ export async function stepUpAdminSession({
         "Cf-Access-Jwt-Assertion": assertion,
         "X-CGN-Admin-CSRF": csrfCookieValue,
       },
+      accessEmail: identity.email,
     });
     const cookies = mirroredAdminCookies(
       response.headers,
@@ -234,12 +256,24 @@ export function createSessionDependencies(environment: {
     csrfCookieName: environment.csrfCookieName,
     strictDeployment: environment.deploymentEnvironment !== "local",
     validateAssertion: (assertion) =>
-      validateAccessAssertion(assertion, {
-        issuer: environment.accessIssuer,
-        audience: environment.accessAudience,
-        jwksURL: environment.accessJWKSURL,
-      }),
+      !environment.accessIssuer &&
+      !environment.accessAudience &&
+      !environment.accessJWKSURL &&
+      environment.deploymentEnvironment === "local"
+        ? Promise.resolve(undefined)
+        : validateAccessAssertion(assertion, {
+            issuer: environment.accessIssuer,
+            audience: environment.accessAudience,
+            jwksURL: environment.accessJWKSURL,
+          }),
   };
+}
+
+// A console with no Access configuration cannot establish or confirm a
+// session: without an assertion the visitor must sign in, with one it is
+// unavailable because nothing can verify it.
+function unverifiedAssertionError(assertion: string): AccessAssertionError {
+  return new AccessAssertionError(assertion.trim() ? "unavailable" : "missing");
 }
 
 function statusForError(error: unknown): AdminShellSession {

@@ -10,6 +10,9 @@ invariants: the target must be an active, verified CGN account, normal grant
 changes require an active site administrator, and the final active site
 administrator cannot be revoked.
 
+Alerts, containment, secret rotation, restore, and incident response are in
+[23 — Admin Console operations runbook](./23-admin-console-operations-runbook.md).
+
 ## Safety rules
 
 - Run the command from an approved operator shell using the deployed API image
