@@ -49,6 +49,22 @@ services:
       migrate:
         condition: service_completed_successfully
 
+  # Fills the local database with thousands of demo users, events, teams, and
+  # moderation records. Run with `pnpm run compose:up:demo` or `pnpm run seed:demo`.
+  seed-demo:
+    profiles: ["demo"]
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    command: ["cgn-seed", "-csv", "/data/schools_seed.csv", "-demo"]
+    environment:
+      DEPLOYMENT_ENV: ${DEPLOYMENT_ENV:-local}
+      API_DATABASE_URL: ${API_DATABASE_URL:-postgres://cgn:cgn@postgres:5432/cgn?sslmode=disable}
+      API_DEMO_SEED_PASSWORD: ${API_DEMO_SEED_PASSWORD:-Password12345!}
+    depends_on:
+      seed:
+        condition: service_completed_successfully
+
   api:
     build:
       context: .

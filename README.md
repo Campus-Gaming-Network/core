@@ -77,6 +77,28 @@ Local Docker Compose also seeds a verified development user:
 - Email: `dev@campusgamingnetwork.test`
 - Password: `Password12345!`
 
+### Demo data
+
+To browse a realistic, well-populated local site, start the stack with the
+`demo` profile:
+
+```bash
+pnpm run compose:up:demo
+```
+
+It adds about 3,000 users, 6,000 event rows (including recurring series),
+150,000 RSVPs, 1,200 teams, reports, support tickets, and notifications across
+every visibility, format, capacity, and verification state. Every demo account
+uses the password `Password12345!` and an email at `@demo.campusgamingnetwork.test`.
+Useful logins: `player@`, `organizer@`, `schooladmin@`, `faculty@`, `suspended@`,
+`newcomer@` (no activity), `unverified@`, and `moderator@`.
+
+Reseed a running stack with `pnpm run seed:demo`, or delete the demo rows and
+generate them again with `pnpm run seed:demo:reset`. Seeding is deterministic
+and idempotent, refuses to run unless `DEPLOYMENT_ENV=local`, and never touches
+rows outside the demo email domain. Size it with the `-demo-users`,
+`-demo-events`, `-demo-teams`, and `-demo-seed` flags of `cgn-seed`.
+
 The first run downloads Node and Go dependencies in Docker. The `migrate`
 service applies pending files from `db/migrations` before the API starts, even
 when the Postgres volume already exists.

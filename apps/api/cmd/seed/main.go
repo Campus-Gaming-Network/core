@@ -15,6 +15,12 @@ import (
 
 func main() {
 	path := flag.String("csv", "../../data/schools_seed.csv", "school seed CSV path")
+	demo := flag.Bool("demo", false, "also fill a local database with demo users, events, teams, and moderation records")
+	demoReset := flag.Bool("demo-reset", false, "delete existing demo data before seeding it again (requires -demo)")
+	demoUsers := flag.Int("demo-users", 3000, "demo user count")
+	demoEvents := flag.Int("demo-events", 4000, "demo event series count; recurring series add occurrences")
+	demoTeams := flag.Int("demo-teams", 1200, "demo team count")
+	demoSeed := flag.Uint64("demo-seed", 42, "random seed; equal seeds generate equal data")
 	flag.Parse()
 
 	cfg, err := config.Load()
@@ -30,7 +36,12 @@ func main() {
 	}
 	defer input.Close()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	if *demo && cfg.DeploymentEnvironment != config.DeploymentLocal {
+		slog.Error("demo data is only allowed when DEPLOYMENT_ENV is local", "deployment_env", cfg.DeploymentEnvironment)
+		os.Exit(1)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancel()
 	database, err := db.Open(ctx, cfg.DatabaseURL, cfg.DBMaxConns)
 	if err != nil {
@@ -78,4 +89,42 @@ func main() {
 			"followed_schools", devUser.FollowedCount,
 		)
 	}
+
+	if !*demo {
+		return
+	}
+	if *demoReset {
+		if err := seed.ResetDemoData(ctx, database); err != nil {
+			slog.Error("reset demo data", "error", err)
+			os.Exit(1)
+		}
+		slog.Info("demo data reset")
+	}
+	password := os.Getenv("API_DEMO_SEED_PASSWORD")
+	if password == "" {
+		password = "Password12345!"
+	}
+	result, err := seed.EnsureDemoData(ctx, database, seed.DemoOptions{
+		Password: password,
+		Seed:     *demoSeed,
+		Users:    *demoUsers,
+		Events:   *demoEvents,
+		Teams:    *demoTeams,
+		Now:      time.Now(),
+	})
+	if err != nil {
+		slog.Error("seed demo data", "error", err)
+		os.Exit(1)
+	}
+	slog.Info(
+		"demo data seeded",
+		"users", result.Users,
+		"events", result.Events,
+		"rsvps", result.RSVPs,
+		"teams", result.Teams,
+		"reports", result.Reports,
+		"support_tickets", result.SupportTickets,
+		"notifications", result.Notifications,
+		"email_domain", seed.DemoEmailDomain,
+	)
 }
