@@ -133,6 +133,14 @@ command refuses to reset a database whose name does not contain `e2e`. Set
 `REAL_E2E_DATABASE_URL` to use an already-provisioned disposable test database;
 in that mode the command does not manage that database's lifecycle.
 
+`pnpm run test:e2e:admin:real` runs the Admin Console's real-stack journeys
+through the built Admin BFF, the real Go API with `ADMIN_ENABLED`, and
+PostgreSQL. A local stub publishes the Cloudflare Access signing key and the
+suite signs its own assertions with it; a second stub stands in for the R2
+bucket. The runner provisions and removes the database like the command above,
+seeds the operators and records the suite drives, and bootstraps the first site
+admin through `cgn-admin`. `REAL_E2E_DATABASE_URL` works the same way.
+
 The API needs the Go version set by the `go` directive in `apps/api/go.mod`; CI
 reads that file, and the API Dockerfile's builder image matches it. With Go 1.21
 or newer and the default

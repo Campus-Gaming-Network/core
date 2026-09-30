@@ -36,6 +36,7 @@
     "test:e2e:web": "pnpm --filter @campus-gaming-network/web run test:e2e",
     "test:e2e:web:dev": "pnpm --filter @campus-gaming-network/web run test:e2e:dev",
     "test:e2e:real": "node scripts/run_real_stack_e2e.mjs",
+    "test:e2e:admin:real": "node scripts/run_admin_real_stack_e2e.mjs",
     "fmt:api": "cd apps/api && api_goroot=$(go env GOROOT) && \"$api_goroot/bin/gofmt\" -w cmd internal",
     "fmt:check:api": "cd apps/api && api_goroot=$(go env GOROOT) && api_unformatted=$(\"$api_goroot/bin/gofmt\" -l cmd internal) && test -z \"$api_unformatted\"",
     "vet:api": "cd apps/api && go vet ./...",

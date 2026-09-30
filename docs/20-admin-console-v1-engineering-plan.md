@@ -1090,9 +1090,15 @@ penetration pass.
 Implemented so far: the read, write, critical-write, and exchange/step-up
 failure [rate limits](#rate-limits), with an injectable clock so boundary tests
 do not sleep. The Admin Console shows one "wait up to 15 minutes" message for
-any `429`. Remaining locally: the `e2e-real` BFF→API→PostgreSQL suite, the
-remaining security-matrix gaps, alerts, dependency and secret review, and
-operator runbooks. The staging penetration pass and drills wait on staging.
+any `429`. The `e2e-real` suite (`pnpm run test:e2e:admin:real`) runs the eight
+[end-to-end journeys](#end-to-end-journeys) through the built Admin BFF, the real
+Go API, and PostgreSQL, with a local Access signing-key stub and an S3-compatible
+bucket stub. Journey 8 covers the local forms of its attempts: a missing or
+public proxy credential, a public cookie, a revoked grant, and forged origins
+and CSRF tokens; the direct Railway origin itself waits on staging. Remaining
+locally: the security-matrix gaps the suite does not yet cover, alerts,
+dependency and secret review, and operator runbooks. The staging penetration
+pass and drills wait on staging.
 
 ### AC-015 — Deploy and roll out Admin Console v1
 

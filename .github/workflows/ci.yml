@@ -173,3 +173,5 @@ jobs:
         run: pnpm exec playwright install --with-deps chromium
       - name: Run repeatable real-stack browser suite
         run: pnpm run test:e2e:real
+      - name: Run Admin Console real-stack suite
+        run: pnpm run test:e2e:admin:real

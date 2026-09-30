@@ -79,3 +79,21 @@ test("logo previews load only from an HTTPS asset origin outside local", () => {
     "http://localhost:9090/cgn-school-logos",
   );
 });
+
+test("Access validation requires HTTPS outside local", () => {
+  const plainHTTP = {
+    CLOUDFLARE_ACCESS_TEAM_DOMAIN: "http://127.0.0.1:18085",
+    CLOUDFLARE_ACCESS_JWKS_URL: "http://127.0.0.1:18085/cdn-cgi/access/certs",
+  };
+  assert.deepEqual(
+    environmentValidationIssues({ DEPLOYMENT_ENV: "local", ...plainHTTP }),
+    [],
+  );
+  assert.deepEqual(
+    environmentValidationIssues({ ...safeProduction, ...plainHTTP }),
+    [
+      "CLOUDFLARE_ACCESS_TEAM_DOMAIN must be an absolute HTTPS origin",
+      "CLOUDFLARE_ACCESS_JWKS_URL must be an absolute HTTPS URL",
+    ],
+  );
+});

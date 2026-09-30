@@ -84,14 +84,20 @@ export function environmentValidationIssues(
     environment,
     "CLOUDFLARE_ACCESS_TEAM_DOMAIN",
   );
-  if (accessIssuer && !parseHTTPSOrigin(accessIssuer)) {
+  if (accessIssuer && !parseAccessOrigin(accessIssuer, strict)) {
     issues.push(
-      "CLOUDFLARE_ACCESS_TEAM_DOMAIN must be an absolute HTTPS origin",
+      strict
+        ? "CLOUDFLARE_ACCESS_TEAM_DOMAIN must be an absolute HTTPS origin"
+        : "CLOUDFLARE_ACCESS_TEAM_DOMAIN must be an absolute HTTP(S) origin",
     );
   }
   const jwksURL = configuredValue(environment, "CLOUDFLARE_ACCESS_JWKS_URL");
-  if (jwksURL && !parseHTTPSURL(jwksURL)) {
-    issues.push("CLOUDFLARE_ACCESS_JWKS_URL must be an absolute HTTPS URL");
+  if (jwksURL && !parseAccessURL(jwksURL, strict)) {
+    issues.push(
+      strict
+        ? "CLOUDFLARE_ACCESS_JWKS_URL must be an absolute HTTPS URL"
+        : "CLOUDFLARE_ACCESS_JWKS_URL must be an absolute HTTP(S) URL",
+    );
   }
 
   return issues;
@@ -283,15 +289,20 @@ function parseHTTPOrigin(value: string): URL | undefined {
   }
 }
 
-function parseHTTPSOrigin(value: string): URL | undefined {
+/** Local development may point Access validation at a plain-HTTP stub. */
+function parseAccessOrigin(value: string, strict: boolean): URL | undefined {
   const parsed = parseHTTPOrigin(value);
-  return parsed?.protocol === "https:" ? parsed : undefined;
+  return parsed && (!strict || parsed.protocol === "https:")
+    ? parsed
+    : undefined;
 }
 
-function parseHTTPSURL(value: string): URL | undefined {
+function parseAccessURL(value: string, strict: boolean): URL | undefined {
   try {
     const parsed = new URL(value);
-    return parsed.protocol === "https:" && !parsed.username && !parsed.password
+    const protocolAllowed =
+      parsed.protocol === "https:" || (!strict && parsed.protocol === "http:");
+    return protocolAllowed && !parsed.username && !parsed.password
       ? parsed
       : undefined;
   } catch {

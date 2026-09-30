@@ -1,10 +1,10 @@
 import {
-  getCookie,
   getRequestHeaders,
   setResponseHeader,
 } from "@tanstack/react-start/server";
 import { adminCookieHeader } from "./cookies.server.js";
 import { adminEnvironment } from "./environment.server.js";
+import { currentCookie } from "./issued-cookies.server.js";
 import { createSessionDependencies } from "./session.server.js";
 
 /**
@@ -17,8 +17,8 @@ export function currentAdminRequest(mutation: boolean) {
   setResponseHeader("vary", "Cookie");
   const environment = adminEnvironment();
   const dependencies = createSessionDependencies(environment);
-  const sessionCookie = getCookie(environment.sessionCookieName);
-  const csrfCookie = getCookie(environment.csrfCookieName);
+  const sessionCookie = currentCookie(environment.sessionCookieName);
+  const csrfCookie = currentCookie(environment.csrfCookieName);
   const headers = new Headers();
   if (mutation) {
     headers.set("Origin", environment.siteOrigin);

@@ -33,8 +33,9 @@ is done. Engineering work now comes from the open items in
 
 1. Complete the mobile and accessibility pass on the primary journeys (open in
    [10 — Delivery status](./10-delivery-status.md)).
-2. Continue `AC-014`: Admin Console production hardening. Rate limits are in;
-   next is the `e2e-real` Admin BFF → Go API → PostgreSQL security suite.
+2. Continue `AC-014`: Admin Console production hardening. Rate limits and the
+   `e2e-real` journeys are in; next are the remaining security-matrix gaps,
+   alerts, dependency and secret review, and operator runbooks.
 3. Show school logos on the main site, adding the asset hostname to the web
    CSP.
 

@@ -9,6 +9,7 @@ import {
 } from "@tanstack/react-start/server";
 import type { CookieMutation } from "../server/cookies.server.js";
 import { adminEnvironment } from "../server/environment.server.js";
+import { rememberIssuedCookies } from "../server/issued-cookies.server.js";
 import {
   createSessionDependencies,
   establishAdminSession,
@@ -69,6 +70,7 @@ export const stepUp = createServerFn({ method: "POST" }).handler(async () => {
 });
 
 function applyCookies(mutations: CookieMutation[]): void {
+  rememberIssuedCookies(mutations);
   for (const mutation of mutations) {
     if (mutation.kind === "delete") {
       deleteCookie(mutation.name, mutation.options);
