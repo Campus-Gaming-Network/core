@@ -183,7 +183,7 @@ Tracked ticket by ticket in [20 — Admin Console v1 engineering plan](./20-admi
 ### Active product milestone
 
 - [x] Complete frontend regression coverage for signup, event creation, RSVP, team joining, and dashboard flows
-- [ ] Complete mobile and accessibility pass on the primary journeys
+- [x] Complete mobile and accessibility pass on the primary journeys: 44px touch targets, sized checkboxes, and 320px reflow are covered by the browser suite; native controls follow the dark color scheme and the profile name autofills. Screen-reader and real-device checks are not part of it
 - [x] Define initial support/report/audit retention targets and track legal-hold/purge follow-up
 - [x] Add school admin/faculty role indicators
 - [x] Add event organizer badges

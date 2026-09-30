@@ -309,6 +309,7 @@ function ProfileForm({ profile }: { profile: AccountProfileDTO }) {
         <ProfileField
           label="Name"
           name="name"
+          autoComplete="name"
           defaultValue={profile.name}
           required
           maxLength={120}

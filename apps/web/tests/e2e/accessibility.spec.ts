@@ -133,6 +133,72 @@ test("long user content reflows at a 320px viewport", async ({ page }) => {
   await expectAccessible(page);
 });
 
+const primaryJourneyPaths = [
+  "/signup",
+  "/login",
+  "/events",
+  "/events/public-browser-event",
+  "/teams",
+  "/teams/joinable-browser-team",
+];
+const authenticatedJourneyPaths = [
+  "/account",
+  "/events/new",
+  "/teams/new",
+  "/events/public-browser-event",
+  "/teams/joinable-browser-team",
+];
+
+for (const path of primaryJourneyPaths) {
+  test(`${path} reflows at a 320px viewport`, async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 568 });
+    const response = await gotoApp(page, path);
+    expect(response?.status()).toBe(200);
+    expect(await horizontalOverflow(page)).toBeLessThanOrEqual(1);
+    await expectAccessible(page);
+  });
+}
+
+// Phones get 44px targets; the checkbox itself is at least 24px and its label,
+// which is what a tap lands on, is 44px.
+for (const path of authenticatedJourneyPaths) {
+  test(`${path} keeps touch targets large enough on phones`, async ({
+    page,
+  }, testInfo) => {
+    test.skip(testInfo.project.name !== "mobile-chromium");
+    await logIn(page, "player@example.test", "/account");
+    await gotoApp(page, path);
+
+    const undersized = await page.evaluate(() => {
+      const minimum = 44;
+      const controls = document.querySelectorAll<HTMLElement>(
+        "button, .button, .site-header a, .site-footer a, .section-heading a, .detail-row a, .link, .checkbox-field",
+      );
+      const small = [];
+      for (const control of controls) {
+        const box = control.getBoundingClientRect();
+        if (box.height > 0 && box.height < minimum - 0.5) {
+          small.push(
+            `${control.tagName.toLowerCase()} "${control.textContent?.trim().slice(0, 30)}" ${Math.round(box.height)}px`,
+          );
+        }
+      }
+      for (const box of document.querySelectorAll<HTMLInputElement>(
+        "input[type=checkbox], input[type=radio]",
+      )) {
+        const { width, height } = box.getBoundingClientRect();
+        if (width < 24 || height < 24) {
+          small.push(
+            `${box.name} ${Math.round(width)}x${Math.round(height)}px`,
+          );
+        }
+      }
+      return small;
+    });
+    expect(undersized).toEqual([]);
+  });
+}
+
 for (const path of ["/account", "/events/new", "/teams/new"]) {
   test(`${path} keeps accessible authenticated forms and layouts`, async ({
     page,
