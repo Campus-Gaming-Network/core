@@ -3,6 +3,9 @@ import { pageNoticeKey } from "../components/page-notice";
 import { PageNoticeView } from "../components/page-notice-view";
 import { homeAccountNotices } from "../features/account-slice/presentation";
 import { SchoolLogo } from "../components/school-logo";
+import { EventCard } from "../features/event-slice/event-card";
+import { getHomeEvents } from "../features/event-slice/event.functions";
+import eventCSS from "../features/event-slice/events.css?url";
 import { getHomeCatalog } from "../features/school-slice/catalog.functions";
 import { catalogClientStaleTime } from "../features/school-slice/contracts";
 import {
@@ -15,17 +18,23 @@ export const Route = createFileRoute("/")({
     const account = pageNoticeKey(homeAccountNotices, search.account);
     return account ? { account } : {};
   },
-  loader: async ({ context }) => ({
-    catalog: await getHomeCatalog(),
-    publicOrigin: context.publicOrigin,
-  }),
+  loader: async ({ context }) => {
+    const [catalog, events] = await Promise.all([
+      getHomeCatalog(),
+      getHomeEvents(),
+    ]);
+    return { catalog, events, publicOrigin: context.publicOrigin };
+  },
   staleTime: catalogClientStaleTime,
-  head: ({ loaderData }) => homeHead(loaderData?.publicOrigin),
+  head: ({ loaderData }) => ({
+    ...homeHead(loaderData?.publicOrigin),
+    links: [{ rel: "stylesheet", href: eventCSS }],
+  }),
   component: HomePage,
 });
 
 function HomePage() {
-  const { catalog } = Route.useLoaderData();
+  const { catalog, events } = Route.useLoaderData();
   const search = Route.useSearch();
 
   return (
@@ -71,6 +80,30 @@ function HomePage() {
             )}
           </div>
         </section>
+      </section>
+
+      <section className="section" aria-labelledby="events-title">
+        <div className="section-heading">
+          <p className="eyebrow">Events</p>
+          <h2 id="events-title">Recent events</h2>
+          <Link to="/events">Browse all events</Link>
+        </div>
+        {events.unavailable ? (
+          <p className="empty-state">
+            Events are unavailable right now. The API may still be starting.
+          </p>
+        ) : events.events.length > 0 ? (
+          <div className="list">
+            {events.events.map((event) => (
+              <EventCard event={event} key={event.id} />
+            ))}
+          </div>
+        ) : (
+          <p className="empty-state">
+            No public events yet.{" "}
+            <Link to="/events/new">Create the first one.</Link>
+          </p>
+        )}
       </section>
 
       <section className="section" aria-labelledby="schools-title">

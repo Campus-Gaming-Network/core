@@ -422,10 +422,17 @@ async function handleRequest(request, response) {
   }
 
   if (method === "GET" && url.pathname === "/events") {
+    // The home page's preview asks for six; give it a seeded public event.
+    const homePreview = url.searchParams.get("limit") === "6";
     json(response, 200, {
-      events: [...createdEvents.values()]
-        .filter((record) => !record.cancelled)
-        .map((record) => eventBrowseItem(record.event)),
+      events: [
+        ...(homePreview
+          ? [eventBrowseItem(publicEventFor("public-browser-event"))]
+          : []),
+        ...[...createdEvents.values()]
+          .filter((record) => !record.cancelled)
+          .map((record) => eventBrowseItem(record.event)),
+      ],
       limit: 25,
       has_more: false,
       has_previous: false,

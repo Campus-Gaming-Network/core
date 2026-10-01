@@ -151,7 +151,7 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 ### Dashboard & content
 
 - [x] Simple dashboard: upcoming RSVPs + followed-school events + team activity
-- [x] Homepage (works with little/no UGC)
+- [x] Homepage (works with little/no UGC), with a six-event preview of recent public events in the events page order
 - [x] Cold-start plan (demo seed and/or “create first event” CTA)
 - [x] FAQ and About; Terms and Privacy routes exist pending reviewed copy
 - [x] Support ticket form — **anyone** can submit (logged out OK)

@@ -208,6 +208,31 @@ export async function getEventsBrowseOperation(
   };
 }
 
+// How many public events the home page previews.
+export const homeEventsLimit = 6;
+
+/**
+ * The home page's preview of public events, in the same order as the events
+ * page. A failure never fails the home page: it reports itself as unavailable
+ * so the page can say so.
+ */
+export async function homeEventsOperation({
+  api,
+  reportError = defaultErrorReporter,
+}: PublicReadDependencies) {
+  try {
+    const { data } = await api({
+      path: `/events?limit=${homeEventsLimit}`,
+      cache: "no-store",
+      responseSchema: eventsBrowseResponseDtoSchema,
+    });
+    return { events: data.events, unavailable: false };
+  } catch (error) {
+    reportError(error);
+    return { events: [], unavailable: true };
+  }
+}
+
 export async function getEventDetailOperation(
   { slug }: EventSlugInput,
   {

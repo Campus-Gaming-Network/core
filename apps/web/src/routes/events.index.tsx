@@ -13,7 +13,7 @@ import {
   getEventViewerSession,
   logout,
 } from "../features/event-slice/auth.functions";
-import { EventBanner } from "../features/event-slice/event-banner";
+import { EventCard } from "../features/event-slice/event-card";
 import { getEventsBrowse } from "../features/event-slice/event.functions";
 import {
   eventsBrowseInput,
@@ -22,9 +22,6 @@ import {
 } from "../features/event-slice/contracts";
 import {
   eventBrowseNotices,
-  eventLifecycleLabel,
-  eventLocation,
-  eventTimeRange,
   eventsHead,
 } from "../features/event-slice/presentation";
 import eventCSS from "../features/event-slice/events.css?url";
@@ -159,24 +156,7 @@ function EventsPage() {
       ) : browse.events.length > 0 ? (
         <div className="list">
           {browse.events.map((event) => (
-            <Link
-              className="card card--default list-item event-list-item"
-              key={event.id}
-              to="/events/$slug"
-              params={{ slug: event.slug }}
-            >
-              <EventBanner event={event} />
-              <span className="event-card-heading">
-                <strong>{event.title}</strong>
-                <small>{eventLifecycleLabel(event.lifecycle)}</small>
-              </span>
-              <small>{eventTimeRange(event)}</small>
-              <small>
-                {event.host_school.name} ·{" "}
-                {event.games.map((game) => game.name).join(", ")}
-              </small>
-              <small>{eventLocation(event)}</small>
-            </Link>
+            <EventCard event={event} key={event.id} />
           ))}
         </div>
       ) : (

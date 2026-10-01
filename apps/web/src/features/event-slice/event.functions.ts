@@ -15,6 +15,7 @@ import {
   eventInterestOperation,
   getEventDetailOperation,
   getEventsBrowseOperation,
+  homeEventsOperation,
   newEventPageOperation,
   reportEventOperation,
   rsvpEventOperation,
@@ -46,6 +47,10 @@ export const getEventsBrowse = createServerFn({ method: "GET" })
   .handler(async ({ data }) =>
     getEventsBrowseOperation(data, { api: goBFFForCurrentRequest() }),
   );
+
+export const getHomeEvents = createServerFn({ method: "GET" }).handler(
+  async () => homeEventsOperation({ api: goBFFForCurrentRequest() }),
+);
 
 export const getEventDetail = createServerFn({ method: "GET" })
   .validator(eventSlugInputSchema)

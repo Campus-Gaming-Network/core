@@ -6,7 +6,10 @@ import {
   eventsBrowseInput,
   validateEventsSearch,
 } from "../src/features/event-slice/contracts.js";
-import { getEventsBrowseOperation } from "../src/features/event-slice/event-operations.server.js";
+import {
+  getEventsBrowseOperation,
+  homeEventsOperation,
+} from "../src/features/event-slice/event-operations.server.js";
 import {
   eventFormatLabel,
   eventLifecycleLabel,
@@ -240,7 +243,11 @@ test("browse and detail routes keep strict viewer and typed event write surfaces
   assert.match(browse, /getEventViewerSession\(\)/);
   assert.match(browse, /session\.status === "unavailable"/);
   assert.match(browse, /<RoutePending message="Loading events…"/);
-  assert.match(browse, /to="\/events\/\$slug"/);
+  assert.match(browse, /<EventCard event=\{event\} key=\{event\.id\} \/>/);
+  assert.match(
+    source("src/features/event-slice/event-card.tsx"),
+    /to="\/events\/\$slug"/,
+  );
   assert.match(browse, /to="\/events\/new"/);
   assert.match(browse, /search=\{\{ next: "\/events\/new" \}\}/);
 
@@ -255,4 +262,47 @@ test("browse and detail routes keep strict viewer and typed event write surfaces
   assert.match(detail, /ReportEventForm slug=\{event\.slug\}/);
   assert.match(detail, /to="\/events\/\$slug\/edit"/);
   assert.doesNotMatch(detail, /eventInterestAction|deleteEventAction/);
+});
+
+test("the home page previews the newest public events and strips private fields", async () => {
+  const requested: string[] = [];
+  const result = await homeEventsOperation({
+    api: client(async (input) => {
+      requested.push(String(input));
+      return Response.json({
+        events: [browseEvent],
+        limit: 6,
+        has_more: true,
+        has_previous: false,
+        next_cursor: "opaque-cursor",
+      });
+    }),
+  });
+
+  assert.deepEqual(requested, ["http://api:8080/events?limit=6"]);
+  assert.equal(result.unavailable, false);
+  assert.equal(result.events.length, 1);
+  assert.equal(result.events[0]?.slug, "campus-tournament");
+  assert.equal(JSON.stringify(result).includes("unlock_token"), false);
+});
+
+test("a failed or malformed events read leaves the home page up and says so", async () => {
+  const reported: unknown[] = [];
+  for (const fetcher of [
+    async () => {
+      throw new Error("offline");
+    },
+    async () => Response.json({ error: "events_unavailable" }, { status: 503 }),
+    async () => Response.json({ events: "not a list" }),
+  ] as Fetcher[]) {
+    // Sequential so each outcome is attributable to its own failure mode.
+    // eslint-disable-next-line no-await-in-loop
+    const result = await homeEventsOperation({
+      api: client(fetcher),
+      reportError: (error) => reported.push(error),
+    });
+
+    assert.deepEqual(result, { events: [], unavailable: true });
+  }
+  assert.equal(reported.length, 3);
 });
