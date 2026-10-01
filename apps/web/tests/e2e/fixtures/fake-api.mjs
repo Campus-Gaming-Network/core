@@ -168,6 +168,21 @@ async function handleRequest(request, response) {
     return;
   }
 
+  if (
+    method === "GET" &&
+    url.pathname === "/schools" &&
+    url.searchParams.get("sort") === "popular"
+  ) {
+    // The followable school ranks ahead of the default one.
+    json(response, 200, {
+      schools: [followableSchool, school],
+      limit: 6,
+      offset: 0,
+      has_more: false,
+    });
+    return;
+  }
+
   if (method === "GET" && url.pathname === "/schools") {
     const limit = Number.parseInt(url.searchParams.get("limit") ?? "25", 10);
     const offset = Number.parseInt(url.searchParams.get("offset") ?? "0", 10);

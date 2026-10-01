@@ -109,7 +109,11 @@ function HomePage() {
       <section className="section" aria-labelledby="schools-title">
         <div className="section-heading">
           <p className="eyebrow">School discovery</p>
-          <h2 id="schools-title">Start with a campus.</h2>
+          <h2 id="schools-title">
+            {catalog.schoolsPopular
+              ? "Popular campuses"
+              : "Start with a campus."}
+          </h2>
           <Link to="/schools">Search all schools</Link>
         </div>
         {catalog.schoolsUnavailable ? (

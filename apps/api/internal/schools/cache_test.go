@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
+	"time"
 )
 
 type stubRepository struct {
@@ -210,5 +211,90 @@ func TestCommittedInvalidationCannotServeOldSnapshotAfterRefreshFailure(t *testi
 	actual, err := cache.List(t.Context(), ListParams{})
 	if err != nil || !reflect.DeepEqual(actual, source.all) {
 		t.Fatalf("fallback: %#v %v", actual, err)
+	}
+}
+
+// rankingSource ranks schools and counts how often it is asked.
+type rankingSource struct {
+	stubRepository
+	ranked []School
+	calls  int
+	err    error
+}
+
+func (s *rankingSource) ListPopular(_ context.Context, limit int) ([]School, error) {
+	s.calls++
+	if s.err != nil {
+		return nil, s.err
+	}
+	return s.ranked[:min(limit, len(s.ranked))], nil
+}
+
+func TestPopularRankingIsReusedForItsTTLThenRecounted(t *testing.T) {
+	source := &rankingSource{ranked: testCatalog(10)}
+	cache := NewCachedRepository(source, nil)
+	clock := time.Date(2026, time.October, 1, 12, 0, 0, 0, time.UTC)
+	cache.now = func() time.Time { return clock }
+
+	first, err := cache.ListPopular(context.Background(), 3)
+	if err != nil || len(first) != 3 || source.calls != 1 {
+		t.Fatalf("first read = %d schools, calls = %d, error = %v", len(first), source.calls, err)
+	}
+	clock = clock.Add(PopularTTL - time.Second)
+	if _, err := cache.ListPopular(context.Background(), 3); err != nil || source.calls != 1 {
+		t.Fatalf("a read inside the TTL recounted: calls = %d, error = %v", source.calls, err)
+	}
+	// Another count is its own ranking.
+	if _, err := cache.ListPopular(context.Background(), 5); err != nil || source.calls != 2 {
+		t.Fatalf("a different limit shared a ranking: calls = %d, error = %v", source.calls, err)
+	}
+	clock = clock.Add(2 * time.Second)
+	if _, err := cache.ListPopular(context.Background(), 3); err != nil || source.calls != 3 {
+		t.Fatalf("an expired ranking was reused: calls = %d, error = %v", source.calls, err)
+	}
+}
+
+func TestPopularRankingSurvivesAFailedRecountButNotAMissingFirstOne(t *testing.T) {
+	source := &rankingSource{ranked: testCatalog(4)}
+	cache := NewCachedRepository(source, nil)
+	clock := time.Date(2026, time.October, 1, 12, 0, 0, 0, time.UTC)
+	cache.now = func() time.Time { return clock }
+
+	source.err = errors.New("database offline")
+	if _, err := cache.ListPopular(context.Background(), 3); err == nil {
+		t.Fatal("a failure with nothing to fall back on was hidden")
+	}
+
+	source.err = nil
+	good, err := cache.ListPopular(context.Background(), 3)
+	if err != nil {
+		t.Fatal(err)
+	}
+	clock = clock.Add(PopularTTL + time.Minute)
+	source.err = errors.New("database offline")
+	stale, err := cache.ListPopular(context.Background(), 3)
+	if err != nil || !reflect.DeepEqual(stale, good) {
+		t.Fatalf("a failed recount did not serve the previous ranking: %v, %v", stale, err)
+	}
+}
+
+func TestInvalidatingTheCatalogDiscardsPopularRankings(t *testing.T) {
+	source := &rankingSource{ranked: testCatalog(4)}
+	cache := NewCachedRepository(source, nil)
+	if _, err := cache.ListPopular(context.Background(), 3); err != nil {
+		t.Fatal(err)
+	}
+
+	cache.Invalidate()
+	if _, err := cache.ListPopular(context.Background(), 3); err != nil || source.calls != 2 {
+		t.Fatalf("a ranking survived invalidation: calls = %d, error = %v", source.calls, err)
+	}
+}
+
+func TestPopularRankingNeedsASourceThatCanRank(t *testing.T) {
+	cache := NewCachedRepository(&stubRepository{all: testCatalog(3)}, nil)
+
+	if _, err := cache.ListPopular(context.Background(), 3); err == nil {
+		t.Fatal("a source that cannot rank answered a ranking")
 	}
 }

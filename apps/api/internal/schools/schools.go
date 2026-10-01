@@ -115,6 +115,59 @@ func (r *PostgresRepository) List(ctx context.Context, params ListParams) ([]Sch
 	return result, nil
 }
 
+// MaximumPopularLimit bounds how many popular schools one read returns.
+const MaximumPopularLimit = 50
+
+// ListPopular returns the most active active schools, most active first. A
+// school's activity is its active member accounts plus the public events it
+// hosts, both counted as they stand. Ties go to the school with more members,
+// then to name order, so the ranking is stable. Schools with no activity are
+// left out, so the list is empty until the site has any.
+func (r *PostgresRepository) ListPopular(ctx context.Context, limit int) ([]School, error) {
+	if limit < 1 || limit > MaximumPopularLimit {
+		limit = 6
+	}
+	rows, err := r.pool.Query(ctx, `
+		SELECT `+schoolColumns+`
+		FROM schools s
+		JOIN (
+			SELECT school_id, SUM(members + events) AS activity, SUM(members) AS members
+			FROM (
+				SELECT home_school_id AS school_id, COUNT(*) AS members, 0 AS events
+				FROM users
+				WHERE deleted_at IS NULL AND account_status = 'active'
+				GROUP BY home_school_id
+				UNION ALL
+				SELECT host_school_id AS school_id, 0 AS members, COUNT(*) AS events
+				FROM events
+				WHERE deleted_at IS NULL AND visibility = 'public'
+				GROUP BY host_school_id
+			) counted
+			GROUP BY school_id
+		) a ON a.school_id = s.id
+		WHERE s.deleted_at IS NULL AND s.is_active = TRUE
+		ORDER BY a.activity DESC, a.members DESC, s.name, s.city, s.id
+		LIMIT $1
+	`, limit)
+	if err != nil {
+		return nil, fmt.Errorf("list popular schools: %w", err)
+	}
+	defer rows.Close()
+
+	result := make([]School, 0, limit)
+	for rows.Next() {
+		school, err := scanSchool(rows)
+		if err != nil {
+			return nil, fmt.Errorf("scan popular school: %w", err)
+		}
+		result = append(result, school)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate popular schools: %w", err)
+	}
+	return result, nil
+}
+
 func (r *PostgresRepository) GetByID(ctx context.Context, id string) (School, error) {
 	return r.find(ctx, "s.id = $1::uuid", id)
 }

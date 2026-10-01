@@ -30,6 +30,26 @@ type CachedRepository struct {
 	mu        sync.RWMutex
 	refreshMu sync.Mutex
 	snapshot  *snapshot
+
+	// popular holds recent popularity rankings. Unlike the catalog, activity
+	// changes constantly and the home page asks for it on every visit, so the
+	// ranking is reused for a few minutes instead of counted per request.
+	popularMu sync.Mutex
+	popular   map[int]popularEntry
+	now       func() time.Time
+}
+
+// PopularRepository is a school source that can rank schools by activity.
+type PopularRepository interface {
+	ListPopular(ctx context.Context, limit int) ([]School, error)
+}
+
+// PopularTTL is how long a popularity ranking is reused.
+const PopularTTL = 5 * time.Minute
+
+type popularEntry struct {
+	schools  []School
+	loadedAt time.Time
 }
 
 type snapshot struct {
@@ -45,7 +65,7 @@ func NewCachedRepository(source Repository, logger *slog.Logger) *CachedReposito
 	if logger == nil {
 		logger = slog.Default()
 	}
-	return &CachedRepository{source: source, logger: logger}
+	return &CachedRepository{source: source, logger: logger, now: time.Now}
 }
 
 // Refresh reloads the catalog and atomically swaps it in. On failure the
@@ -98,6 +118,9 @@ func (c *CachedRepository) Invalidate() {
 	c.mu.Lock()
 	c.snapshot = nil
 	c.mu.Unlock()
+	c.popularMu.Lock()
+	c.popular = nil
+	c.popularMu.Unlock()
 }
 
 // Start performs the first load and then refreshes on every tick until ctx is
@@ -205,4 +228,35 @@ func (c *CachedRepository) ExistsActive(ctx context.Context, id string) (bool, e
 	}
 	_, ok := current.byID[id]
 	return ok, nil
+}
+
+// ListPopular returns the most active schools, reusing a recent ranking for
+// PopularTTL. If recounting fails, a ranking from before the failure is served
+// rather than an error; with none to serve, the failure is returned.
+func (c *CachedRepository) ListPopular(ctx context.Context, limit int) ([]School, error) {
+	source, ok := c.source.(PopularRepository)
+	if !ok {
+		return nil, fmt.Errorf("school source cannot rank schools")
+	}
+
+	c.popularMu.Lock()
+	defer c.popularMu.Unlock()
+	entry, cached := c.popular[limit]
+	if cached && c.now().Sub(entry.loadedAt) < PopularTTL {
+		return entry.schools, nil
+	}
+
+	ranked, err := source.ListPopular(ctx, limit)
+	if err != nil {
+		if cached {
+			c.logger.Error("popular schools refresh failed; serving the previous ranking", "error", err)
+			return entry.schools, nil
+		}
+		return nil, err
+	}
+	if c.popular == nil {
+		c.popular = make(map[int]popularEntry)
+	}
+	c.popular[limit] = popularEntry{schools: ranked, loadedAt: c.now()}
+	return ranked, nil
 }

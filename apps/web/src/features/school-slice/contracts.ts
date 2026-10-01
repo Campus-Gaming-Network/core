@@ -78,6 +78,8 @@ export type SchoolFollowInput = z.output<typeof schoolFollowInputSchema>;
 
 export type HomeCatalogResult = {
   schools: SchoolDTO[];
+  /** True when `schools` is a ranking by popularity, not an alphabetical list. */
+  schoolsPopular: boolean;
   games: GameDTO[];
   schoolsUnavailable: boolean;
   gamesUnavailable: boolean;

@@ -82,7 +82,7 @@ test("home catalog loads public schools and games independently with safe fallba
     const path =
       new URL(String(input)).pathname + new URL(String(input)).search;
     requests.push({ path, cache: init?.cache });
-    if (path === "/schools?limit=6") {
+    if (path === "/schools?sort=popular&limit=6") {
       return Response.json({
         schools: [{ ...school, internal_note: "strip-me" }],
         limit: 6,
@@ -100,11 +100,12 @@ test("home catalog loads public schools and games independently with safe fallba
 
   assert.deepEqual(result.schools, [school]);
   assert.deepEqual(result.games, []);
+  assert.equal(result.schoolsPopular, true);
   assert.equal(result.schoolsUnavailable, false);
   assert.equal(result.gamesUnavailable, true);
   assert.equal(JSON.stringify(result).includes("internal_note"), false);
   assert.deepEqual(requests, [
-    { path: "/schools?limit=6", cache: "no-store" },
+    { path: "/schools?sort=popular&limit=6", cache: "no-store" },
     { path: "/games", cache: "no-store" },
   ]);
 });
@@ -348,5 +349,106 @@ test("school pages render only logos served from the configured asset location",
       status: "found",
       school: rendered ? withLogo(logo) : school,
     })),
+  );
+});
+
+test("the home page advertises popular schools and falls back to the alphabetical list when there is no ranking", async () => {
+  const alphabetical = {
+    ...school,
+    id: "school-2",
+    slug: "alpha-college",
+    name: "Alpha College",
+  };
+  const page = (schools: unknown[]) =>
+    Response.json({ schools, limit: 6, offset: 0, has_more: false });
+  const cases = [
+    {
+      name: "a ranking",
+      popular: async () => page([school]),
+      want: {
+        schools: [school],
+        schoolsPopular: true,
+        schoolsUnavailable: false,
+      },
+      requests: ["/schools?sort=popular&limit=6"],
+    },
+    {
+      name: "no activity anywhere yet",
+      popular: async () => page([]),
+      want: {
+        schools: [alphabetical],
+        schoolsPopular: false,
+        schoolsUnavailable: false,
+      },
+      requests: ["/schools?sort=popular&limit=6", "/schools?limit=6"],
+    },
+    {
+      name: "a ranking that cannot be read",
+      popular: async () =>
+        Response.json({ error: "schools_unavailable" }, { status: 500 }),
+      want: {
+        schools: [alphabetical],
+        schoolsPopular: false,
+        schoolsUnavailable: false,
+      },
+      requests: ["/schools?sort=popular&limit=6", "/schools?limit=6"],
+    },
+    {
+      name: "a ranking in a shape the page does not accept",
+      popular: async () => Response.json({ schools: "not a list" }),
+      want: {
+        schools: [alphabetical],
+        schoolsPopular: false,
+        schoolsUnavailable: false,
+      },
+      requests: ["/schools?sort=popular&limit=6", "/schools?limit=6"],
+    },
+  ];
+
+  const results = await Promise.all(
+    cases.map(async ({ popular }) => {
+      const requests: string[] = [];
+      const api = client(async (input) => {
+        const path = String(input).replace("http://api:8080", "");
+        if (path.startsWith("/games")) return Response.json({ games: [] });
+        requests.push(path);
+        return path.includes("sort=popular") ? popular() : page([alphabetical]);
+      });
+      const result = await homeCatalogOperation({
+        api,
+        reportError: () => undefined,
+      });
+      return {
+        schools: result.schools,
+        schoolsPopular: result.schoolsPopular,
+        schoolsUnavailable: result.schoolsUnavailable,
+        requests,
+      };
+    }),
+  );
+
+  assert.deepEqual(
+    results,
+    cases.map(({ want, requests }) => ({ ...want, requests })),
+  );
+});
+
+test("the home page says schools are unavailable only when neither list can be read", async () => {
+  const result = await homeCatalogOperation({
+    api: client(async (input) =>
+      String(input).includes("/games")
+        ? Response.json({ games: [] })
+        : Response.json({ error: "schools_unavailable" }, { status: 503 }),
+    ),
+    reportError: () => undefined,
+  });
+
+  assert.deepEqual(
+    {
+      schools: result.schools,
+      popular: result.schoolsPopular,
+      unavailable: result.schoolsUnavailable,
+    },
+    { schools: [], popular: false, unavailable: true },
   );
 });

@@ -21,6 +21,9 @@ import {
   type SchoolViewerState,
 } from "./contracts.js";
 
+// How many schools the home page advertises.
+const homeSchoolsLimit = 6;
+
 type CatalogDependencies = {
   api: ApiClient;
   /** Where school logos are served from; defaults to the configured base. */
@@ -39,17 +42,10 @@ export async function homeCatalogOperation({
   reportError = defaultErrorReporter,
 }: CatalogDependencies): Promise<HomeCatalogResult> {
   const [schools, games] = await Promise.all([
-    readSchools(api, { limit: 6 })
-      .then((result) => ({
-        data: result.schools.map((school) =>
-          withVerifiedLogo(school, logoBase),
-        ),
-        unavailable: false,
-      }))
-      .catch((error: unknown) => {
-        reportError(error);
-        return { data: [], unavailable: true };
-      }),
+    readHomeSchools(api, reportError).then((result) => ({
+      ...result,
+      data: result.data.map((school) => withVerifiedLogo(school, logoBase)),
+    })),
     api({
       path: "/games",
       cache: "no-store",
@@ -64,10 +60,40 @@ export async function homeCatalogOperation({
 
   return {
     schools: schools.data,
+    schoolsPopular: schools.popular,
     games: games.data,
     schoolsUnavailable: schools.unavailable,
     gamesUnavailable: games.unavailable,
   };
+}
+
+// The home page advertises the most popular schools. Until any school has
+// members or public events there is no ranking, and if the ranking cannot be
+// read the page still has schools to show, so either case falls back to the
+// alphabetical list and says it is not a ranking.
+async function readHomeSchools(
+  api: ApiClient,
+  reportError: (error: unknown) => void,
+): Promise<{ data: SchoolDTO[]; popular: boolean; unavailable: boolean }> {
+  try {
+    const ranked = await readSchools(api, {
+      sort: "popular",
+      limit: homeSchoolsLimit,
+    });
+    if (ranked.schools.length > 0) {
+      return { data: ranked.schools, popular: true, unavailable: false };
+    }
+  } catch (error) {
+    reportError(error);
+  }
+
+  try {
+    const listed = await readSchools(api, { limit: homeSchoolsLimit });
+    return { data: listed.schools, popular: false, unavailable: false };
+  } catch (error) {
+    reportError(error);
+    return { data: [], popular: false, unavailable: true };
+  }
 }
 
 export async function schoolsCatalogOperation(
@@ -175,11 +201,14 @@ export async function readSchools(
   {
     query,
     state,
+    sort,
     limit,
     offset,
   }: {
     query?: string;
     state?: string;
+    /** `popular` ranks by members and public events and takes only a limit. */
+    sort?: "popular";
     limit?: number;
     offset?: number;
   },
@@ -187,6 +216,7 @@ export async function readSchools(
   const search = new URLSearchParams();
   if (query) search.set("q", query);
   if (state) search.set("state", state);
+  if (sort) search.set("sort", sort);
   if (limit) search.set("limit", String(limit));
   if (offset) search.set("offset", String(offset));
 

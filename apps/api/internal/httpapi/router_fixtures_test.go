@@ -51,6 +51,19 @@ func (r *fakeSchoolRepository) List(_ context.Context, params schools.ListParams
 	return r.listed, r.err
 }
 
+// fakePopularSchoolRepository ranks schools as well as listing them.
+type fakePopularSchoolRepository struct {
+	fakeSchoolRepository
+	popular      []schools.School
+	popularErr   error
+	popularLimit int
+}
+
+func (r *fakePopularSchoolRepository) ListPopular(_ context.Context, limit int) ([]schools.School, error) {
+	r.popularLimit = limit
+	return r.popular, r.popularErr
+}
+
 func (r *fakeSchoolRepository) GetByID(context.Context, string) (schools.School, error) {
 	return schools.School{}, schools.ErrSchoolNotFound
 }

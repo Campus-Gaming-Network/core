@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/auth"
@@ -116,5 +117,90 @@ func TestHandleSchoolsRejectsNegativeOffset(t *testing.T) {
 	}
 	if repository.listCalled {
 		t.Fatal("List was called for a negative offset")
+	}
+}
+
+func TestHandleSchoolsRanksByPopularityOnRequest(t *testing.T) {
+	repository := &fakePopularSchoolRepository{popular: []schools.School{
+		{ID: "id-1", Name: "Busy University", Slug: "busy-university"},
+		{ID: "id-2", Name: "Active College", Slug: "active-college"},
+	}}
+	router := &Router{schools: repository}
+
+	for _, test := range []struct {
+		name      string
+		target    string
+		wantLimit int
+	}{
+		{name: "the default count", target: "/schools?sort=popular", wantLimit: 6},
+		{name: "a chosen count", target: "/schools?sort=popular&limit=12", wantLimit: 12},
+		{name: "the largest count", target: "/schools?sort=popular&limit=50", wantLimit: 50},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			response := httptest.NewRecorder()
+			router.handleSchools(response, httptest.NewRequest(http.MethodGet, test.target, nil))
+
+			if response.Code != http.StatusOK || repository.popularLimit != test.wantLimit {
+				t.Fatalf("status = %d, limit = %d; body = %s", response.Code, repository.popularLimit, response.Body.String())
+			}
+			if got := response.Header().Get("Cache-Control"); got != "public, max-age=300" {
+				t.Fatalf("Cache-Control = %q, want a five-minute public cache", got)
+			}
+			var payload struct {
+				Schools []schools.School `json:"schools"`
+				Limit   int              `json:"limit"`
+				Offset  int              `json:"offset"`
+				HasMore bool             `json:"has_more"`
+			}
+			if err := json.NewDecoder(response.Body).Decode(&payload); err != nil {
+				t.Fatal(err)
+			}
+			if len(payload.Schools) != 2 || payload.Schools[0].Slug != "busy-university" ||
+				payload.Limit != test.wantLimit || payload.Offset != 0 || payload.HasMore {
+				t.Fatalf("payload = %#v", payload)
+			}
+		})
+	}
+	if repository.listCalled {
+		t.Fatal("the alphabetical list was used for a popularity request")
+	}
+}
+
+func TestHandleSchoolsRefusesUnsupportedSortRequests(t *testing.T) {
+	router := &Router{schools: &fakePopularSchoolRepository{}}
+	for _, target := range []string{
+		"/schools?sort=name",
+		"/schools?sort=",
+		"/schools?sort=popular&q=example",
+		"/schools?sort=popular&state=CA",
+		"/schools?sort=popular&offset=6",
+		"/schools?sort=popular&limit=0",
+		"/schools?sort=popular&limit=51",
+		"/schools?sort=popular&limit=six",
+	} {
+		response := httptest.NewRecorder()
+		router.handleSchools(response, httptest.NewRequest(http.MethodGet, target, nil))
+
+		if response.Code != http.StatusBadRequest {
+			t.Fatalf("%s: status = %d, want 400; body = %s", target, response.Code, response.Body.String())
+		}
+	}
+}
+
+func TestHandleSchoolsPopularityReportsUnavailableSources(t *testing.T) {
+	failing := &fakePopularSchoolRepository{popularErr: fmt.Errorf("database offline")}
+	response := httptest.NewRecorder()
+	(&Router{schools: failing}).handleSchools(response, httptest.NewRequest(http.MethodGet, "/schools?sort=popular", nil))
+	if response.Code != http.StatusInternalServerError || !strings.Contains(response.Body.String(), "schools_unavailable") ||
+		strings.Contains(response.Body.String(), "database offline") {
+		t.Fatalf("failing source: status = %d body = %s", response.Code, response.Body.String())
+	}
+
+	// A source that cannot rank schools is unavailable, not an alphabetical stand-in.
+	plain := &fakeSchoolRepository{}
+	response = httptest.NewRecorder()
+	(&Router{schools: plain}).handleSchools(response, httptest.NewRequest(http.MethodGet, "/schools?sort=popular", nil))
+	if response.Code != http.StatusServiceUnavailable || plain.listCalled {
+		t.Fatalf("plain source: status = %d, listed = %v", response.Code, plain.listCalled)
 	}
 }

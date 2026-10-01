@@ -272,6 +272,11 @@ func (r *Router) handleSchools(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	if req.URL.Query().Has("sort") {
+		r.handlePopularSchools(w, req)
+		return
+	}
+
 	params := schools.ListParams{
 		Query:  req.URL.Query().Get("q"),
 		State:  req.URL.Query().Get("state"),
@@ -307,6 +312,44 @@ func (r *Router) handleSchools(w http.ResponseWriter, req *http.Request) {
 		"limit":    limit,
 		"offset":   params.Offset,
 		"has_more": hasMore,
+	})
+}
+
+// handlePopularSchools answers GET /schools?sort=popular: the most active
+// schools, which takes only a limit.
+func (r *Router) handlePopularSchools(w http.ResponseWriter, req *http.Request) {
+	values := req.URL.Query()
+	if values.Get("sort") != "popular" || values.Has("q") || values.Has("state") || values.Has("offset") {
+		writeError(w, http.StatusBadRequest, "invalid_sort")
+		return
+	}
+	limit := 6
+	if values.Has("limit") {
+		parsed, err := strconv.Atoi(values.Get("limit"))
+		if err != nil || parsed < 1 || parsed > schools.MaximumPopularLimit {
+			writeError(w, http.StatusBadRequest, "invalid_limit")
+			return
+		}
+		limit = parsed
+	}
+	popular, ok := r.schools.(schools.PopularRepository)
+	if !ok {
+		writeError(w, http.StatusServiceUnavailable, "database_unavailable")
+		return
+	}
+	ranked, err := popular.ListPopular(req.Context(), limit)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "schools_unavailable")
+		return
+	}
+
+	// The ranking moves with activity, so it is cached for minutes, not days.
+	w.Header().Set("Cache-Control", "public, max-age=300")
+	writeJSON(w, http.StatusOK, map[string]any{
+		"schools":  ranked,
+		"limit":    limit,
+		"offset":   0,
+		"has_more": false,
 	})
 }
 
