@@ -474,3 +474,38 @@
     padding-block: 0.25rem;
   }
 }
+
+/* The banner after an action ("RSVP saved."): a tinted bar with an icon, set
+   apart from the page so the result is hard to miss. */
+.page-notice {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0 0 1.5rem;
+  border: 1px solid;
+  border-radius: var(--radius-control);
+  padding: 0.9rem 1.1rem;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.page-notice svg {
+  flex: none;
+}
+
+.page-notice p {
+  margin: 0;
+}
+
+.page-notice--success {
+  border-color: #bad9c2;
+  color: var(--color-success);
+  background: var(--color-success-soft);
+}
+
+.page-notice--danger {
+  border-color: #e9bdb6;
+  color: var(--color-danger-dark);
+  background: var(--color-danger-soft);
+}

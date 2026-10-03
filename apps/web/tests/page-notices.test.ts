@@ -64,11 +64,19 @@ test("every failure notice renders as an alert and every other notice as a statu
     for (const [key, notice] of Object.entries(notices)) {
       const failure = key === "failed" || key.endsWith("-failed");
       assert.equal(notice.severity, failure ? "danger" : "success", key);
-      assert.equal(
-        renderToStaticMarkup(createElement(PageNoticeView, { notice })),
-        `<p role="${failure ? "alert" : "status"}" aria-live="polite">${notice.message}</p>`,
+      const markup = renderToStaticMarkup(
+        createElement(PageNoticeView, { notice }),
+      );
+      const message = renderToStaticMarkup(
+        createElement("p", null, notice.message),
+      );
+      assert.ok(
+        markup.startsWith(
+          `<div class="page-notice page-notice--${notice.severity}" role="${failure ? "alert" : "status"}" aria-live="polite">`,
+        ),
         `${page} ${key}`,
       );
+      assert.ok(markup.endsWith(`${message}</div>`), `${page} ${key}`);
     }
   }
 });
