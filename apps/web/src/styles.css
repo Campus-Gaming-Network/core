@@ -726,6 +726,13 @@ main {
   font-weight: 750;
 }
 
+.avatar--medium {
+  width: 2.5rem;
+  height: 2.5rem;
+  font-size: 0.875rem;
+  font-weight: 750;
+}
+
 .avatar--small {
   width: 1.75rem;
   height: 1.75rem;

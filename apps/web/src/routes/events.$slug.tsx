@@ -35,6 +35,7 @@ import {
 } from "../components/idempotency-key";
 import { pageNoticeKey } from "../components/page-notice";
 import { PageNoticeView } from "../components/page-notice-view";
+import { Person } from "../components/person";
 import { RouteErrorView, RoutePending } from "../components/route-boundaries";
 import { StatusLabel } from "../components/status-label";
 import {
@@ -368,17 +369,21 @@ function VisibleEventView({
               <ul className="organizer-list">
                 {event.organizers.map((organizer) => (
                   <li key={organizer.id}>
-                    <Link to="/users/$id" params={{ id: organizer.id }}>
-                      {organizer.name}
-                    </Link>
-                    <small>
-                      {verificationLabel(organizer.verification_level)}
-                      {organizer.role_indicators
-                        ?.filter(
-                          (role) => role !== organizer.verification_level,
-                        )
-                        .map((role) => ` · ${roleIndicatorLabel(role)}`)}
-                    </small>
+                    <Person
+                      detail={
+                        <>
+                          {verificationLabel(organizer.verification_level)}
+                          {organizer.role_indicators
+                            ?.filter(
+                              (role) => role !== organizer.verification_level,
+                            )
+                            .map((role) => ` · ${roleIndicatorLabel(role)}`)}
+                        </>
+                      }
+                      id={organizer.id}
+                      linked
+                      name={organizer.name}
+                    />
                   </li>
                 ))}
               </ul>

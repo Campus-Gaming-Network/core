@@ -334,3 +334,20 @@
 .viewer-pending {
   visibility: hidden;
 }
+
+/* A person in a list: avatar, then name over a line of detail. */
+.person {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.person__text {
+  display: grid;
+  min-width: 0;
+}
+
+.person__text small {
+  color: var(--color-muted);
+}

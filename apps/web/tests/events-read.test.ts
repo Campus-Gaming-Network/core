@@ -257,7 +257,8 @@ test("browse and detail routes keep strict viewer and typed event write surfaces
   assert.match(detail, /<EventBanner event=\{event\} size="hero"/);
   assert.match(detail, /to="\/events"/);
   assert.match(detail, /to="\/schools\/\$slug"/);
-  assert.match(detail, /to="\/users\/\$id"/);
+  assert.match(detail, /<Person[\s\S]*?id=\{organizer\.id\}[\s\S]*?linked/);
+  assert.match(source("src/components/person.tsx"), /to="\/users\/\$id"/);
   assert.match(detail, /safeExternalEventUrl\(event\.payment_url\)/);
   assert.match(detail, /InterestEventForm event=\{event\}/);
   assert.match(detail, /CancelEventForm slug=\{event\.slug\}/);

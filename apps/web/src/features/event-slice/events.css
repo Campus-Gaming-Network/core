@@ -392,13 +392,8 @@
   list-style: none;
 }
 
-.organizer-list li,
-.organizer-list small {
-  display: grid;
-}
-
-.organizer-list small {
-  color: var(--color-muted);
+.organizer-list li {
+  display: block;
 }
 
 .event-detail-main .actions form button {

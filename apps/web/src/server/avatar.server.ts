@@ -2,9 +2,11 @@ import BoringAvatar from "boring-avatars";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
-// The palette follows the product's light visual system. The avatar is rendered
-// here so the browser never contacts an avatar service or learns another seed.
-const avatarColors = ["#ffbe18", "#1f4ed8", "#e6f5e9", "#f7f5ef", "#8aa5f0"];
+// Avatars are where the page gets most of its color, so the palette is bright:
+// the product's amber and royal blue plus an emerald, a coral, and a sky blue.
+// None is black or near-black. The avatar is rendered here so the browser never
+// contacts an avatar service or learns another seed.
+const avatarColors = ["#ffbe18", "#1f4ed8", "#16b384", "#ff6b57", "#4cc9f0"];
 
 // Real ids are UUIDs. The shape check keeps the seed short and free of path or
 // markup characters; it does not look anything up, so an id that belongs to no

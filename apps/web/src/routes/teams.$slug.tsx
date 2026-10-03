@@ -16,6 +16,7 @@ import {
 } from "../components/enhanced-mutation";
 import { FormField } from "../components/form-field";
 import { PageNoticeView } from "../components/page-notice-view";
+import { Person } from "../components/person";
 import { RouteErrorView, RoutePending } from "../components/route-boundaries";
 import { getEventViewerSession } from "../features/event-slice/auth.functions";
 import {
@@ -359,10 +360,11 @@ function CaptainManagementRow({
 
   return (
     <div className="card list-item team-management-row">
-      <span>
-        <strong>{member.name}</strong>
-        <small>{teamRoleLabel(member.role)}</small>
-      </span>
+      <Person
+        detail={teamRoleLabel(member.role)}
+        id={member.user_id}
+        name={member.name}
+      />
       <form action={setTeamCaptain.url} method="post" onSubmit={submit}>
         <input name="slug" type="hidden" value={slug} />
         <input name="user_id" type="hidden" value={member.user_id} />

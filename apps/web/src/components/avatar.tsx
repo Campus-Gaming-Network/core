@@ -2,7 +2,7 @@ import { userInitials } from "../features/public-profile/presentation";
 
 // Avatars are cached for a day, so a change to the palette in
 // server/avatar.server.ts needs a new version here for browsers to refetch.
-const avatarVersion = 2;
+const avatarVersion = 3;
 
 /**
  * A user's avatar, drawn by this site. The initials sit underneath the picture,
@@ -15,7 +15,7 @@ export function Avatar({
 }: {
   id: string;
   name: string;
-  size?: "small" | "large";
+  size?: "small" | "medium" | "large";
 }) {
   return (
     <span className={`avatar avatar--${size}`} aria-hidden="true">
