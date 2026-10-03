@@ -298,7 +298,7 @@ async function verifyHomePage(origin, upstreamCalls, overallSignal) {
   assertSSRDocumentShell(html, "GET /");
   assert.match(
     html,
-    /<h1[^>]*>Find the campus gaming scene around you\.<\/h1>/i,
+    /<h1[^>]*>Find your next game night\.<\/h1>/i,
     "GET / SSR output must include the parity home heading",
   );
   assert.ok(
@@ -1120,8 +1120,8 @@ async function verifyNavigationSessionRoute(
   );
   assert.deepEqual(
     await authenticatedResponse.json(),
-    { authenticated: true },
-    "Exact-session navigation response must be exactly authenticated=true",
+    { authenticated: true, user: { id: "user-smoke", name: "Smoke Player" } },
+    "Exact-session navigation response must be exactly the viewer's id and name",
   );
   const meCall = oneUpstreamCall(
     upstreamCalls.slice(authenticatedCallsBefore),
@@ -2179,6 +2179,8 @@ function fakePublicEvent() {
     lifecycle: "upcoming",
     host_school: { name: "Smoke Test University" },
     games: [{ name: "Smoke Arena" }],
+    rsvp_yes_count: 3,
+    interest_count: 2,
     private_note: "private-event-browse-note",
   };
 }
@@ -2194,6 +2196,8 @@ function fakeAccountEvent(title, viewerRSVP) {
     lifecycle: "upcoming",
     host_school: fakeSchool(),
     games: [{ id: "game-smoke", name: "Smoke Arena", slug: "smoke-arena" }],
+    rsvp_yes_count: 3,
+    interest_count: 2,
     ...(viewerRSVP ? { viewer_rsvp: viewerRSVP } : {}),
     private_note: "account-event-private-note",
   };

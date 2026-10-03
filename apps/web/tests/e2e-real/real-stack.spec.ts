@@ -120,6 +120,9 @@ test("real browser journey crosses the BFF, Go API, Postgres, and email outbox",
   await page.goto("/account");
   await page.getByLabel("Type DELETE to confirm").fill("DELETE");
   await page.getByRole("button", { name: "Delete account" }).click();
+  await page
+    .getByRole("button", { name: "Permanently delete account" })
+    .click();
   await expect(page).toHaveURL(/\/\?account=deleted$/);
   await expect
     .poll(async () => hasCookie(await context.cookies(), "cgn_session"))
