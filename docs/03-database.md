@@ -37,6 +37,7 @@ users
   home_school_id,             -- selected during signup; user may follow additional schools
   account_status,             -- active | suspended | deleted
   age_confirmed_at,           -- signup checkbox: 18+
+  show_in_lists,              -- boolean, default true; false hides the user from event, school, and team people lists
   created_at, updated_at, deleted_at
   -- profile URL: /users/:id (database id); no usernames
   -- on delete account: scrub PII; name becomes "Deleted User"
@@ -268,6 +269,7 @@ If activity and audit can share one table with a clear `kind` discriminator, pre
 - RSVP uniqueness: `(event_id, user_id)` where not deleted
 - Interest uniqueness: `(event_id, user_id)`
 - Follow uniqueness: `(user_id, school_id)`
+- School member list: `users (home_school_id, lower(name), id)`, partial to active, email-verified, listed accounts (`users_home_school_listing_idx`)
 - Common filters: `events.starts_at`, `events.visibility`, `events.deleted_at`, game FKs, geo later if needed
 - Audit history: `(entity_type, entity_id, created_at DESC)`
 

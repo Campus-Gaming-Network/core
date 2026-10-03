@@ -55,6 +55,7 @@ Verification is not a substitute for school admin or site admin.
 | Mark event interested (favorite)         |           | ✓               | ✓            | ✓            | ✓          | ✓               | ✓                 |
 | Create team                              |           | ✓               | ✓            | ✓            | ✓          | ✓               | ✓                 |
 | View team page                           | ✓         | ✓               | ✓            | ✓            | ✓          | ✓               | ✓                 |
+| View people lists (signed in)            |           | ✓               | ✓            | ✓            | ✓          | ✓               | ✓                 |
 | Join / interact with team                |           | password        |              |              |            |                 |                   |
 | Transfer team ownership                  |           |                 |              |              | ✓          |                 | ✓ (break-glass)   |
 | Request club                             |           | ✓               |              |              |            |                 |                   |
@@ -75,6 +76,21 @@ Verification is not a substitute for school admin or site admin.
 The two past-event rows are the intended rule; neither is enforced yet, so organizers can currently edit every field of an ended event.
 
 \* Anonymous may open a private event link and submit the password via modal; pre-unlock responses must not leak event details. Still no account mutations without login where required (e.g. RSVP). Anyone (including anonymous) may submit a support ticket.
+
+## People list rules
+
+- Event attendee, school member, and team member lists are for **signed-in**
+  viewers only. A signed-out request gets `401`; there is no anonymous list, even
+  for public events and public team pages
+- An event's list follows the event page: public and unlisted events are open to
+  any signed-in viewer; a private event is open only to an organizer or a viewer
+  who unlocked it. Anyone else gets `404`, the same as for a missing or
+  cancelled event, so the response does not reveal that the event exists
+- A person who turns off `show_in_lists` is omitted from all three lists. Deleted,
+  suspended, and email-unverified accounts are never listed
+- The owner-only roster in the team detail, used to assign captains, is not a
+  people list. It is not filtered by `show_in_lists`
+- List responses are never cached (`Cache-Control: private, no-store`)
 
 ## School admin rules
 

@@ -47,11 +47,20 @@ SiteAnnouncement ── global banner                        (later)
 | Degree level        | Later: undergrad / graduate / etc. (open question)                                                  |
 | Role context        | Later: student, alumni, faculty advisor, etc.                                                       |
 | Role indicators     | School-admin grants and staff/faculty status produce visible role indicators                        |
+| List visibility     | `show_in_lists`, default on; off hides the person from the people lists (see rules below)           |
 
 **Rules**
 
 - Account deletion: remove PII; retain structural records with name **“Deleted User”**
 - Users can report other users from profiles
+- **People lists** show a user to signed-in viewers on the pages they belong to:
+  event attendees (RSVP `yes`, and separately `maybe`; `interested` is a count
+  only), school members (home school; followers are not members), and team
+  members (any role). An account appears only while it is active, email-verified,
+  and has `show_in_lists` on. The setting hides the person from lists only; their
+  RSVPs, memberships, public profile, and every count are unchanged. `show_in_lists`
+  is private: it is returned to the account's own `GET /me` and never on the
+  public profile
 - Users see their own activity log after the later activity-history slice ships
 
 ### School
@@ -111,6 +120,9 @@ SiteAnnouncement ── global banner                        (later)
 - Anyone can create a team
 - A user may create and belong to multiple teams
 - Team pages are public; share URL freely; password is only for joining/interacting
+- Signed-in viewers can list a team's members with their roles; the opt-out
+  applies. The owner's roster used for captain management is a separate,
+  unfiltered list
 - Invite-link tokens are **later**
 - Captains register the team for team tournaments (when tournaments ship)
 
@@ -156,6 +168,9 @@ SiteAnnouncement ── global banner                        (later)
 
 - RSVP responses: `yes` \| `no` \| `maybe`
 - **Interested** = favorite/bookmark; independent of RSVP
+- Signed-in viewers who may see the event page can list the `yes` and `maybe`
+  RSVPs (opted-out people hidden). A viewer who may not see a private event gets
+  the same not-found answer as for a missing event
 - On RSVP yes: send email with details + calendar (ICS)
 - Creating an event requires **no approval**
 - Cancelling soft-deletes the event and sends a best-effort email to active

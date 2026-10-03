@@ -70,6 +70,38 @@ for (const path of [
   });
 }
 
+// Signed-in viewers also see who is going, who is at a school, and who is on a
+// team, on the page and on a full page of its own.
+for (const path of [
+  "/events/public-browser-event",
+  "/events/public-browser-event/people",
+  "/events/public-browser-event/people?response=maybe",
+  "/events/quiet-browser-event/people",
+  "/schools/browser-test-university",
+  "/schools/browser-test-university/people",
+  "/schools/quiet-valley-college/people",
+  "/teams/joinable-browser-team",
+  "/teams/joinable-browser-team/people",
+  "/teams/empty-browser-team/people",
+]) {
+  test(`${path} keeps landmarks, headings, and viewport bounds when signed in`, async ({
+    page,
+  }) => {
+    const pageErrors: string[] = [];
+    page.on("pageerror", (error) => pageErrors.push(error.message));
+
+    await logIn(page, "player@example.test", "/account");
+    const response = await gotoApp(page, path);
+    expect(response?.status(), `${path} must render successfully`).toBe(200);
+    await expect(page.locator("main")).toHaveCount(1);
+    await expect(page.locator("main h1")).toHaveCount(1);
+    await expect(page.locator("main h1")).toBeVisible();
+    expect(await horizontalOverflow(page)).toBeLessThanOrEqual(1);
+    await expectAccessible(page);
+    expect(pageErrors).toEqual([]);
+  });
+}
+
 test("enhanced validation feedback identifies the invalid event field", async ({
   page,
 }) => {
@@ -200,12 +232,34 @@ const primaryJourneyPaths = [
   "/teams",
   "/teams/joinable-browser-team",
 ];
+for (const path of [
+  "/events/public-browser-event",
+  "/events/public-browser-event/people",
+  "/schools/browser-test-university/people",
+  "/teams/joinable-browser-team/people",
+]) {
+  test(`${path} reflows at a 320px viewport when signed in`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 320, height: 568 });
+    await logIn(page, "player@example.test", "/account");
+    const response = await gotoApp(page, path);
+    expect(response?.status()).toBe(200);
+    expect(await horizontalOverflow(page)).toBeLessThanOrEqual(1);
+    await expectAccessible(page);
+  });
+}
+
 const authenticatedJourneyPaths = [
   "/account",
   "/events/new",
   "/teams/new",
   "/events/public-browser-event",
+  "/events/public-browser-event/people",
+  "/schools/browser-test-university",
+  "/schools/browser-test-university/people",
   "/teams/joinable-browser-team",
+  "/teams/joinable-browser-team/people",
 ];
 
 for (const path of primaryJourneyPaths) {

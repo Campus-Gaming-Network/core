@@ -84,6 +84,8 @@ Signup also requires confirming **age 18+**. Alumni can participate. Faculty who
 - RSVP to events: **yes / no / maybe**
 - Mark an event as **interested** (favorite/bookmark — separate from RSVP)
 - Every listed event row shows its **going** (yes RSVP) and **interested** counts
+- Signed-in people can see who is going to an event, who belongs to a school,
+  and who is on a team; see [People lists](#people-lists)
 - RSVP yes → confirmation email with calendar attach (ICS)
 - Any visible event page has an **Add to calendar** link (a plain link, no
   JavaScript needed) to `/api/events/:slug/calendar.ics`. The file is built from
@@ -132,6 +134,8 @@ Signup also requires confirming **age 18+**. Alumni can participate. Faculty who
 - Sponsored teams/groups
 - Users select one home school at signup and can follow multiple additional schools
 - Popular games by school
+- Signed-in people see the school's members, the people whose home school it is;
+  see [People lists](#people-lists)
 - Clubs listed on school pages **after** clubs ship (later)
 
 ### Clubs (later)
@@ -151,6 +155,8 @@ Signup also requires confirming **age 18+**. Alumni can participate. Faculty who
 - Owner can transfer ownership; users can assign captains
 - Schools can have sponsored teams
 - Teams reference one or more games
+- Signed-in people see a team's members with their roles; see
+  [People lists](#people-lists)
 - The team directory filters by game and school. People find a school by
   searching its name and see its name, never its slug, while the filter is
   active; the search-then-select flow works without JavaScript, and a clear
@@ -174,6 +180,8 @@ Signup also requires confirming **age 18+**. Alumni can participate. Faculty who
 - Show creator and host(s)
 - RSVP: **yes / no / maybe**
 - Interested: separate favorite/bookmark (not an RSVP answer)
+- Signed-in people see who is going (yes) and who might go (maybe); see
+  [People lists](#people-lists)
 - Registration closes automatically; ended or full events block new yes RSVPs
 - Status display: upcoming (date/time), happening now, ended
 - Soft deletes only
@@ -209,7 +217,35 @@ Signup also requires confirming **age 18+**. Alumni can participate. Faculty who
 - Support graduate students, alumni, faculty
 - Visible indicators for school admin and faculty roles
 - Users can report other users from profiles
+- A **Show me in people lists** account setting, on by default, opts a person
+  out of every [people list](#people-lists)
 - Activity log visible to the user (later)
+
+### People lists
+
+Signed-in people can see who is part of an event, a school, or a team. Signed-out
+visitors see counts only; the API answers them with 401.
+
+- **Event:** the people whose RSVP is **yes** (Going), with the **maybe** people
+  in a separate list. People who only marked **interested** are never listed;
+  they stay a count
+- **School:** the people whose **home school** it is. People who only follow the
+  school are not listed
+- **Team:** the team's members with their roles (owner, captain, member). The
+  team page stays public; only the list needs a session
+- A private event's list follows the event page: it is hidden, as a missing
+  event would be, until the viewer unlocks the event or organizes it. A missing
+  or cancelled event has no list
+- A row carries the person's name, avatar (drawn from their id), verification
+  level, trust indicators, and, on a team, their role. It never carries an
+  email address, bio, school, or RSVP answer
+- Each person can opt out with **Show me in people lists** (on by default).
+  Opting out removes them from every list above and changes nothing else: their
+  RSVPs, memberships, and every count stay as they were. An opted-out person is
+  simply absent; there is no placeholder row
+- Deleted, suspended, and unverified accounts never appear
+- The owner's roster inside a team page, which captain management needs, is not
+  a people list and is not filtered by the setting
 
 ### Auth & account
 

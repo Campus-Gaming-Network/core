@@ -38,6 +38,9 @@ type Profile struct {
 	HomeSchool        *HomeSchool  `json:"home_school,omitempty"`
 	SocialLinks       []SocialLink `json:"social_links,omitempty"`
 	RoleIndicators    []string     `json:"role_indicators,omitempty"`
+	// ShowInLists is false when the person has opted out of the people lists
+	// on event, school, and team pages. It is private: PublicProfile omits it.
+	ShowInLists bool `json:"show_in_lists"`
 }
 
 type PublicProfile struct {
@@ -89,9 +92,10 @@ type CreateParams struct {
 }
 
 type ProfileUpdate struct {
-	Name     string
-	Bio      string
-	Timezone string
+	Name        string
+	Bio         string
+	Timezone    string
+	ShowInLists bool
 }
 
 type Repository interface {
@@ -218,7 +222,7 @@ func (r *PostgresRepository) Create(ctx context.Context, params CreateParams) (P
 		INSERT INTO users (email, password_hash, name, timezone, home_school_id, age_confirmed_at)
 		VALUES ($1, $2, $3, $4, $5::uuid, $6)
 		RETURNING id::text, email::text, email_verified_at, verification_level,
-		          name, COALESCE(bio, ''), timezone, home_school_id::text
+		          name, COALESCE(bio, ''), timezone, home_school_id::text, show_in_lists
 	`, NormalizeEmail(params.Email), params.PasswordHash, strings.TrimSpace(params.Name), timezone, params.HomeSchoolID, params.AgeConfirmedAt).Scan(
 		&profile.ID,
 		&profile.Email,
@@ -228,6 +232,7 @@ func (r *PostgresRepository) Create(ctx context.Context, params CreateParams) (P
 		&profile.Bio,
 		&profile.Timezone,
 		&profile.HomeSchoolID,
+		&profile.ShowInLists,
 	)
 	if err != nil {
 		if IsDuplicateEmail(err) {
@@ -250,7 +255,7 @@ func (r *PostgresRepository) find(ctx context.Context, predicate string, arg any
 	var profile Profile
 	err := r.pool.QueryRow(ctx, `
 		SELECT u.id::text, u.email::text, u.email_verified_at, u.verification_level,
-		       u.name, COALESCE(u.bio, ''), u.timezone, u.home_school_id::text
+		       u.name, COALESCE(u.bio, ''), u.timezone, u.home_school_id::text, u.show_in_lists
 		FROM users u
 		WHERE `+predicate+`
 		  AND u.deleted_at IS NULL
@@ -264,6 +269,7 @@ func (r *PostgresRepository) find(ctx context.Context, predicate string, arg any
 		&profile.Bio,
 		&profile.Timezone,
 		&profile.HomeSchoolID,
+		&profile.ShowInLists,
 	)
 	if err != nil {
 		return Profile{}, err
@@ -275,11 +281,11 @@ func (r *PostgresRepository) UpdateProfile(ctx context.Context, id string, updat
 	var profile Profile
 	err := r.pool.QueryRow(ctx, `
 		UPDATE users
-		SET name = $2, bio = NULLIF($3, ''), timezone = $4
+		SET name = $2, bio = NULLIF($3, ''), timezone = $4, show_in_lists = $5
 		WHERE id = $1::uuid AND deleted_at IS NULL AND account_status = 'active'
 		RETURNING id::text, email::text, email_verified_at, verification_level,
-		          name, COALESCE(bio, ''), timezone, home_school_id::text
-	`, id, strings.TrimSpace(update.Name), strings.TrimSpace(update.Bio), strings.TrimSpace(update.Timezone)).Scan(
+		          name, COALESCE(bio, ''), timezone, home_school_id::text, show_in_lists
+	`, id, strings.TrimSpace(update.Name), strings.TrimSpace(update.Bio), strings.TrimSpace(update.Timezone), update.ShowInLists).Scan(
 		&profile.ID,
 		&profile.Email,
 		&profile.EmailVerifiedAt,
@@ -288,6 +294,7 @@ func (r *PostgresRepository) UpdateProfile(ctx context.Context, id string, updat
 		&profile.Bio,
 		&profile.Timezone,
 		&profile.HomeSchoolID,
+		&profile.ShowInLists,
 	)
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -303,7 +310,7 @@ func (r *PostgresRepository) FindCredentialsByEmail(ctx context.Context, email s
 	err := r.pool.QueryRow(ctx, `
 		SELECT u.id::text, u.email::text, u.password_hash, u.email_verified_at,
 		       u.verification_level, u.name, COALESCE(u.bio, ''), u.timezone,
-		       u.home_school_id::text
+		       u.home_school_id::text, u.show_in_lists
 		FROM users u
 		WHERE u.email = $1
 		  AND u.deleted_at IS NULL
@@ -318,6 +325,7 @@ func (r *PostgresRepository) FindCredentialsByEmail(ctx context.Context, email s
 		&credentials.Profile.Bio,
 		&credentials.Profile.Timezone,
 		&credentials.Profile.HomeSchoolID,
+		&credentials.Profile.ShowInLists,
 	)
 	if err != nil {
 		return Credentials{}, err
@@ -405,6 +413,23 @@ func profileWithAssociations(ctx context.Context, queryer profileQueryer, profil
 		return Profile{}, err
 	}
 	return profile, nil
+}
+
+// RoleIndicatorsSQL returns a SQL expression that lists a person's trust
+// indicators as a text[], for the users row aliased userAlias. It is the
+// set-based form of listRoleIndicators, so a list of people can show the same
+// indicators as each person's profile without a query per person. The two must
+// agree on which indicators exist and their order; a database test compares
+// them.
+func RoleIndicatorsSQL(userAlias string) string {
+	return `ARRAY_REMOVE(ARRAY[
+		CASE WHEN EXISTS (
+			SELECT 1
+			FROM school_admins role_sa
+			WHERE role_sa.user_id = ` + userAlias + `.id AND role_sa.deleted_at IS NULL
+		) THEN 'school_admin'::text END,
+		CASE WHEN ` + userAlias + `.verification_level = 'staff_faculty' THEN 'staff_faculty'::text END
+	], NULL::text)`
 }
 
 func (r *PostgresRepository) listRoleIndicators(ctx context.Context, userID string, verificationLevel string) ([]string, error) {

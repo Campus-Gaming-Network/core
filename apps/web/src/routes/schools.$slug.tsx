@@ -15,6 +15,15 @@ import { SchoolLogo } from "../components/school-logo";
 import { EventCard } from "../features/event-slice/event-card";
 import { getEventsBrowse } from "../features/event-slice/event.functions";
 import {
+  peoplePreviewSize,
+  type PeopleListResult,
+} from "../features/people-slice/contracts";
+import { getSchoolMembers } from "../features/people-slice/people.functions";
+import {
+  PeoplePreview,
+  PeopleSignedOut,
+} from "../features/people-slice/people-views";
+import {
   getSchoolCatalog,
   getSchoolViewerState,
 } from "../features/school-slice/catalog.functions";
@@ -39,6 +48,8 @@ export type SchoolRouteData = {
   viewer: Awaited<ReturnType<typeof getSchoolViewerState>>;
   events: Awaited<ReturnType<typeof getEventsBrowse>>;
   teams: Awaited<ReturnType<typeof getTeamsBrowse>>;
+  /** The first home-school members; a visitor's read is a signed-out result. */
+  members: PeopleListResult;
   publicOrigin: string;
 };
 
@@ -53,11 +64,15 @@ export const Route = createFileRoute("/schools/$slug")({
       throw new Error("School detail is unavailable");
     }
     const school = catalog.school;
-    const [viewer, events, teams] = await Promise.all([
+    const [viewer, events, teams, members] = await Promise.all([
       getSchoolViewerState({ data: { schoolId: school.id } }),
       getEventsBrowse({ data: { school: school.slug } }),
       getTeamsBrowse({
         data: { game: "", school: school.slug, after: "", before: "" },
+      }),
+      // A request with no session never reaches the API.
+      getSchoolMembers({
+        data: { slug: school.slug, limit: peoplePreviewSize },
       }),
     ]);
     return {
@@ -65,6 +80,7 @@ export const Route = createFileRoute("/schools/$slug")({
       viewer,
       events,
       teams,
+      members,
       publicOrigin: context.publicOrigin,
     };
   },
@@ -81,7 +97,7 @@ export const Route = createFileRoute("/schools/$slug")({
 });
 
 function SchoolPage() {
-  const { school, viewer, events, teams } = Route.useLoaderData();
+  const { school, viewer, events, teams, members } = Route.useLoaderData();
   const search = Route.useSearch();
   const website = safeSchoolWebsite(school.website_url);
   const [hash, setHash] = useState("");
@@ -304,6 +320,31 @@ function SchoolPage() {
           </div>
         </>
       )}
+
+      <section
+        aria-labelledby="school-people-heading"
+        className="school-people"
+        id="school-people"
+      >
+        <div className="section-heading">
+          <h2 id="school-people-heading">People</h2>
+          {viewer.authenticated &&
+          members.status === "found" &&
+          members.list.people.length > 0 ? (
+            <Link to="/schools/$slug/people" params={{ slug: school.slug }}>
+              See everyone
+            </Link>
+          ) : null}
+        </div>
+        {viewer.authenticated ? (
+          <PeoplePreview empty="No members yet." result={members} />
+        ) : (
+          <PeopleSignedOut
+            message="Log in to see the people at this school."
+            next={`/schools/${school.slug}`}
+          />
+        )}
+      </section>
     </main>
   );
 }

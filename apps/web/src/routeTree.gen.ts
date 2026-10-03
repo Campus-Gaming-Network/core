@@ -39,6 +39,9 @@ import { Route as TeamsNewRouteImport } from './routes/teams.new'
 import { Route as UsersIdRouteImport } from './routes/users.$id'
 import { Route as ApiAvatarsIdRouteImport } from './routes/api.avatars.$id'
 import { Route as EventsSlugEditRouteImport } from './routes/events.$slug_.edit'
+import { Route as EventsSlugPeopleRouteImport } from './routes/events.$slug_.people'
+import { Route as SchoolsSlugPeopleRouteImport } from './routes/schools.$slug_.people'
+import { Route as TeamsSlugPeopleRouteImport } from './routes/teams.$slug_.people'
 import { Route as ApiEventsSlugCalendarDoticsRouteImport } from './routes/api.events.$slug.calendar[.]ics'
 
 const IndexRoute = IndexRouteImport.update({
@@ -191,6 +194,21 @@ const EventsSlugEditRoute = EventsSlugEditRouteImport.update({
   path: '/$slug/edit',
   getParentRoute: () => EventsRoute,
 } as any)
+const EventsSlugPeopleRoute = EventsSlugPeopleRouteImport.update({
+  id: '/$slug_/people',
+  path: '/$slug/people',
+  getParentRoute: () => EventsRoute,
+} as any)
+const SchoolsSlugPeopleRoute = SchoolsSlugPeopleRouteImport.update({
+  id: '/$slug_/people',
+  path: '/$slug/people',
+  getParentRoute: () => SchoolsRoute,
+} as any)
+const TeamsSlugPeopleRoute = TeamsSlugPeopleRouteImport.update({
+  id: '/$slug_/people',
+  path: '/$slug/people',
+  getParentRoute: () => TeamsRoute,
+} as any)
 const ApiEventsSlugCalendarDoticsRoute =
   ApiEventsSlugCalendarDoticsRouteImport.update({
     id: '/api/events/$slug/calendar.ics',
@@ -229,6 +247,9 @@ export interface FileRoutesByFullPath {
   '/teams/': typeof TeamsIndexRoute
   '/api/avatars/$id': typeof ApiAvatarsIdRoute
   '/events/$slug/edit': typeof EventsSlugEditRoute
+  '/events/$slug/people': typeof EventsSlugPeopleRoute
+  '/schools/$slug/people': typeof SchoolsSlugPeopleRoute
+  '/teams/$slug/people': typeof TeamsSlugPeopleRoute
   '/api/events/$slug/calendar.ics': typeof ApiEventsSlugCalendarDoticsRoute
 }
 export interface FileRoutesByTo {
@@ -259,6 +280,9 @@ export interface FileRoutesByTo {
   '/teams': typeof TeamsIndexRoute
   '/api/avatars/$id': typeof ApiAvatarsIdRoute
   '/events/$slug/edit': typeof EventsSlugEditRoute
+  '/events/$slug/people': typeof EventsSlugPeopleRoute
+  '/schools/$slug/people': typeof SchoolsSlugPeopleRoute
+  '/teams/$slug/people': typeof TeamsSlugPeopleRoute
   '/api/events/$slug/calendar.ics': typeof ApiEventsSlugCalendarDoticsRoute
 }
 export interface FileRoutesById {
@@ -293,6 +317,9 @@ export interface FileRoutesById {
   '/teams/': typeof TeamsIndexRoute
   '/api/avatars/$id': typeof ApiAvatarsIdRoute
   '/events/$slug_/edit': typeof EventsSlugEditRoute
+  '/events/$slug_/people': typeof EventsSlugPeopleRoute
+  '/schools/$slug_/people': typeof SchoolsSlugPeopleRoute
+  '/teams/$slug_/people': typeof TeamsSlugPeopleRoute
   '/api/events/$slug/calendar.ics': typeof ApiEventsSlugCalendarDoticsRoute
 }
 export interface FileRouteTypes {
@@ -328,6 +355,9 @@ export interface FileRouteTypes {
     | '/teams/'
     | '/api/avatars/$id'
     | '/events/$slug/edit'
+    | '/events/$slug/people'
+    | '/schools/$slug/people'
+    | '/teams/$slug/people'
     | '/api/events/$slug/calendar.ics'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -358,6 +388,9 @@ export interface FileRouteTypes {
     | '/teams'
     | '/api/avatars/$id'
     | '/events/$slug/edit'
+    | '/events/$slug/people'
+    | '/schools/$slug/people'
+    | '/teams/$slug/people'
     | '/api/events/$slug/calendar.ics'
   id:
     | '__root__'
@@ -391,6 +424,9 @@ export interface FileRouteTypes {
     | '/teams/'
     | '/api/avatars/$id'
     | '/events/$slug_/edit'
+    | '/events/$slug_/people'
+    | '/schools/$slug_/people'
+    | '/teams/$slug_/people'
     | '/api/events/$slug/calendar.ics'
   fileRoutesById: FileRoutesById
 }
@@ -631,6 +667,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EventsSlugEditRouteImport
       parentRoute: typeof EventsRoute
     }
+    '/events/$slug_/people': {
+      id: '/events/$slug_/people'
+      path: '/$slug/people'
+      fullPath: '/events/$slug/people'
+      preLoaderRoute: typeof EventsSlugPeopleRouteImport
+      parentRoute: typeof EventsRoute
+    }
+    '/schools/$slug_/people': {
+      id: '/schools/$slug_/people'
+      path: '/$slug/people'
+      fullPath: '/schools/$slug/people'
+      preLoaderRoute: typeof SchoolsSlugPeopleRouteImport
+      parentRoute: typeof SchoolsRoute
+    }
+    '/teams/$slug_/people': {
+      id: '/teams/$slug_/people'
+      path: '/$slug/people'
+      fullPath: '/teams/$slug/people'
+      preLoaderRoute: typeof TeamsSlugPeopleRouteImport
+      parentRoute: typeof TeamsRoute
+    }
     '/api/events/$slug/calendar.ics': {
       id: '/api/events/$slug/calendar.ics'
       path: '/api/events/$slug/calendar.ics'
@@ -646,6 +703,7 @@ interface EventsRouteChildren {
   EventsNewRoute: typeof EventsNewRoute
   EventsIndexRoute: typeof EventsIndexRoute
   EventsSlugEditRoute: typeof EventsSlugEditRoute
+  EventsSlugPeopleRoute: typeof EventsSlugPeopleRoute
 }
 
 const EventsRouteChildren: EventsRouteChildren = {
@@ -653,6 +711,7 @@ const EventsRouteChildren: EventsRouteChildren = {
   EventsNewRoute: EventsNewRoute,
   EventsIndexRoute: EventsIndexRoute,
   EventsSlugEditRoute: EventsSlugEditRoute,
+  EventsSlugPeopleRoute: EventsSlugPeopleRoute,
 }
 
 const EventsRouteWithChildren =
@@ -661,11 +720,13 @@ const EventsRouteWithChildren =
 interface SchoolsRouteChildren {
   SchoolsSlugRoute: typeof SchoolsSlugRoute
   SchoolsIndexRoute: typeof SchoolsIndexRoute
+  SchoolsSlugPeopleRoute: typeof SchoolsSlugPeopleRoute
 }
 
 const SchoolsRouteChildren: SchoolsRouteChildren = {
   SchoolsSlugRoute: SchoolsSlugRoute,
   SchoolsIndexRoute: SchoolsIndexRoute,
+  SchoolsSlugPeopleRoute: SchoolsSlugPeopleRoute,
 }
 
 const SchoolsRouteWithChildren =
@@ -675,12 +736,14 @@ interface TeamsRouteChildren {
   TeamsSlugRoute: typeof TeamsSlugRoute
   TeamsNewRoute: typeof TeamsNewRoute
   TeamsIndexRoute: typeof TeamsIndexRoute
+  TeamsSlugPeopleRoute: typeof TeamsSlugPeopleRoute
 }
 
 const TeamsRouteChildren: TeamsRouteChildren = {
   TeamsSlugRoute: TeamsSlugRoute,
   TeamsNewRoute: TeamsNewRoute,
   TeamsIndexRoute: TeamsIndexRoute,
+  TeamsSlugPeopleRoute: TeamsSlugPeopleRoute,
 }
 
 const TeamsRouteWithChildren = TeamsRoute._addFileChildren(TeamsRouteChildren)

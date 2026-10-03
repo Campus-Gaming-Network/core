@@ -117,6 +117,54 @@ const populatedSchoolEvents = [
   },
 ];
 
+// A school whose member list fails, so a page can prove it stays up.
+const hazySchool = {
+  ...school,
+  id: "school-hazy-e2e",
+  unitid: 67892,
+  name: "Hazy Harbor College",
+  alias: "HHC",
+  slug: "hazy-harbor-college",
+  city: "Tacoma",
+  state: "WA",
+  logo_url: undefined,
+};
+
+// Events and teams the browser tests visit for their people lists. The first
+// of each is quiet (an empty list) and the second fails its list.
+const publicEventTitles = {
+  "public-browser-event": "Public Browser Tournament",
+  "long-content-event":
+    "ExtremelyLongUnbrokenUserSuppliedTournamentTitleThatMustWrapWithoutCreatingHorizontalViewportOverflowAtNarrowWidths",
+  "quiet-browser-event": "Quiet Browser Meetup",
+  "unavailable-people-event": "Hazy Browser Meetup",
+};
+const quietTeamSlug = "empty-browser-team";
+const unavailableTeamSlug = "unavailable-people-team";
+
+// People in member lists. Names are numbered, so a page of them and its order
+// are known: 30 people make a full page of 24 and a second page of 6.
+function numberedPeople(label, count, extra = () => ({})) {
+  return Array.from({ length: count }, (_, index) => {
+    const number = String(index + 1).padStart(2, "0");
+    return {
+      id: `person-${slugify(label)}-${number}`,
+      name: `${label} ${number}`,
+      verification_level: index % 2 === 0 ? "verified" : "basic",
+      ...extra(index),
+    };
+  });
+}
+
+const goingPeople = numberedPeople("Going Player", 30, (index) =>
+  index === 0 ? { role_indicators: ["school_admin"] } : {},
+);
+const maybePeople = numberedPeople("Maybe Player", 3);
+const schoolMemberPeople = numberedPeople("School Member", 30);
+const teamMemberPeople = numberedPeople("Team Member", 30, (index) => ({
+  role: index === 0 ? "owner" : index < 3 ? "captain" : "member",
+}));
+
 const server = createServer(async (request, response) => {
   try {
     await handleRequest(request, response);
@@ -269,7 +317,7 @@ async function handleRequest(request, response) {
     return;
   }
 
-  const visualSchool = [populatedSchool, quietSchool].find(
+  const visualSchool = [populatedSchool, quietSchool, hazySchool].find(
     (candidate) => url.pathname === `/schools/${candidate.slug}`,
   );
   if (method === "GET" && visualSchool) {
@@ -428,6 +476,9 @@ async function handleRequest(request, response) {
       bio: body?.bio,
       timezone: body?.timezone,
       social_links: body?.social_links,
+      ...(typeof body?.show_in_lists === "boolean"
+        ? { show_in_lists: body.show_in_lists }
+        : {}),
     };
     sessions.set(sessionToken, updated);
     json(response, 200, updated);
@@ -644,7 +695,7 @@ async function handleRequest(request, response) {
       json(response, 404, { error: "event_not_found" });
       return;
     }
-    if (slug === "public-browser-event" || slug === "long-content-event") {
+    if (Object.hasOwn(publicEventTitles, slug)) {
       json(response, 200, publicEventFor(slug));
       return;
     }
@@ -813,6 +864,89 @@ async function handleRequest(request, response) {
     return;
   }
 
+  // Lists of people are for signed-in viewers only.
+  const attendeesMatch = url.pathname.match(/^\/events\/([^/]+)\/attendees$/);
+  if (method === "GET" && attendeesMatch) {
+    if (!session) {
+      json(response, 401, { error: "authentication_required" });
+      return;
+    }
+    const slug = decodeURIComponent(attendeesMatch[1]);
+    const listed = url.searchParams.get("response") ?? "yes";
+    if (listed !== "yes" && listed !== "maybe") {
+      json(response, 400, { error: "invalid_response" });
+      return;
+    }
+    if (slug === "missing-browser-event") {
+      json(response, 404, { error: "event_not_found" });
+      return;
+    }
+    if (slug === "unavailable-people-event") {
+      json(response, 503, { error: "database_unavailable" });
+      return;
+    }
+    // A private event's list needs the same unlock proof as its details.
+    const unlock = unlockTokens.get(slug);
+    const visible =
+      Object.hasOwn(publicEventTitles, slug) ||
+      createdEvents.has(slug) ||
+      (unlock !== undefined &&
+        unlock === singleHeader(request.headers["x-cgn-event-unlock"]));
+    if (!visible) {
+      json(response, 404, { error: "event_not_found" });
+      return;
+    }
+    json(response, 200, peoplePage(attendeesFor(slug, listed), url));
+    return;
+  }
+
+  const schoolMembersMatch = url.pathname.match(
+    /^\/schools\/([^/]+)\/members$/,
+  );
+  if (method === "GET" && schoolMembersMatch) {
+    if (!session) {
+      json(response, 401, { error: "authentication_required" });
+      return;
+    }
+    const slug = decodeURIComponent(schoolMembersMatch[1]);
+    const listedSchool = [
+      school,
+      followableSchool,
+      populatedSchool,
+      quietSchool,
+      hazySchool,
+    ].find((candidate) => candidate.slug === slug);
+    if (!listedSchool) {
+      json(response, 404, { error: "school_not_found" });
+      return;
+    }
+    if (listedSchool === hazySchool) {
+      json(response, 503, { error: "database_unavailable" });
+      return;
+    }
+    json(response, 200, peoplePage(schoolMembersFor(listedSchool), url));
+    return;
+  }
+
+  const teamMembersMatch = url.pathname.match(/^\/teams\/([^/]+)\/members$/);
+  if (method === "GET" && teamMembersMatch) {
+    if (!session) {
+      json(response, 401, { error: "authentication_required" });
+      return;
+    }
+    const slug = decodeURIComponent(teamMembersMatch[1]);
+    if (slug === "missing-browser-team") {
+      json(response, 404, { error: "team_not_found" });
+      return;
+    }
+    if (slug === unavailableTeamSlug) {
+      json(response, 503, { error: "database_unavailable" });
+      return;
+    }
+    json(response, 200, peoplePage(teamMembersFor(slug), url));
+    return;
+  }
+
   json(response, 404, { error: "not_found" });
 }
 
@@ -857,10 +991,7 @@ function eventFor(slug, viewerRsvp) {
 function publicEventFor(slug) {
   return {
     ...eventFor(slug),
-    title:
-      slug === "long-content-event"
-        ? "ExtremelyLongUnbrokenUserSuppliedTournamentTitleThatMustWrapWithoutCreatingHorizontalViewportOverflowAtNarrowWidths"
-        : "Public Browser Tournament",
+    title: publicEventTitles[slug],
     description: "A public campus tournament used for browser parity checks.",
     visibility: "public",
     location_name: "Browser Student Union",
@@ -994,6 +1125,98 @@ function teamRoleKey(sessionToken, slug) {
   return `${sessionToken ?? ""}:${slug}`;
 }
 
+// Anyone signed in appears in a list they belong to unless they turned
+// "Show me in member lists" off.
+function listedPerson(profile, extra = {}) {
+  return {
+    id: profile.id,
+    name: profile.name,
+    verification_level: profile.verification_level,
+    ...extra,
+  };
+}
+
+function listedSessions() {
+  return [...sessions.values()].filter(
+    (profile) => profile.show_in_lists !== false,
+  );
+}
+
+function attendeesFor(slug, listed) {
+  const responded = [...rsvps]
+    .filter(
+      ([key, response]) =>
+        response === listed && key.slice(key.indexOf(":") + 1) === slug,
+    )
+    .map(([key]) => sessions.get(key.slice(0, key.indexOf(":"))))
+    .filter((profile) => profile && profile.show_in_lists !== false)
+    .map((profile) => listedPerson(profile));
+  const seeded =
+    slug === "public-browser-event"
+      ? listed === "yes"
+        ? goingPeople
+        : maybePeople
+      : [];
+  return [...responded, ...seeded];
+}
+
+function schoolMembersFor(listedSchool) {
+  if (listedSchool.slug !== school.slug) return [];
+  return [
+    ...listedSessions()
+      .filter((profile) => profile.home_school_id === listedSchool.id)
+      .map((profile) => listedPerson(profile)),
+    ...schoolMemberPeople,
+  ];
+}
+
+function teamMembersFor(slug) {
+  if (slug === quietTeamSlug) return [];
+  const joined = [...teamRoles]
+    .filter(([key]) => key.slice(key.indexOf(":") + 1) === slug)
+    .map(([key, role]) => [sessions.get(key.slice(0, key.indexOf(":"))), role])
+    .filter(([profile]) => profile && profile.show_in_lists !== false)
+    .map(([profile, role]) => listedPerson(profile, { role }));
+  return [
+    ...joined,
+    ...(slug === "joinable-browser-team" ? teamMemberPeople : []),
+  ];
+}
+
+// Pages of a list by opaque cursor: `after` starts at an offset, `before` ends
+// at one, and the cursors the page returns point at its own edges.
+function peoplePage(people, url) {
+  const limit = Number.parseInt(url.searchParams.get("limit") ?? "25", 10);
+  const after = cursorOffset(url.searchParams.get("after"));
+  const before = cursorOffset(url.searchParams.get("before"));
+  const end = before ?? (after ?? 0) + limit;
+  const start =
+    before === undefined ? (after ?? 0) : Math.max(0, before - limit);
+  const hasMore = end < people.length;
+  const hasPrevious = start > 0;
+  return {
+    people: people.slice(start, end),
+    limit,
+    has_more: hasMore,
+    has_previous: hasPrevious,
+    ...(hasMore ? { next_cursor: offsetCursor(end) } : {}),
+    ...(hasPrevious ? { previous_cursor: offsetCursor(start) } : {}),
+  };
+}
+
+function offsetCursor(offset) {
+  return Buffer.from(`offset:${offset}`).toString("base64url");
+}
+
+function cursorOffset(cursor) {
+  if (!cursor) return undefined;
+  const offset = Number.parseInt(
+    Buffer.from(cursor, "base64url").toString().replace("offset:", ""),
+    10,
+  );
+  return Number.isInteger(offset) && offset >= 0 ? offset : undefined;
+}
+
 function dashboardEvent(title, viewerRsvp) {
   return {
     id: `event-${slugify(title)}`,
@@ -1055,6 +1278,7 @@ function profileFor(email) {
     home_school: school,
     social_links: [],
     role_indicators: [],
+    show_in_lists: true,
   };
 }
 

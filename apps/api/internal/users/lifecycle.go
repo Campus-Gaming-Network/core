@@ -31,7 +31,7 @@ func (r *PostgresRepository) CreateWithVerificationToken(ctx context.Context, pa
 		INSERT INTO users (email, password_hash, name, timezone, home_school_id, age_confirmed_at)
 		VALUES ($1, $2, $3, $4, $5::uuid, $6)
 		RETURNING id::text, email::text, email_verified_at, verification_level,
-		          name, COALESCE(bio, ''), timezone, home_school_id::text
+		          name, COALESCE(bio, ''), timezone, home_school_id::text, show_in_lists
 	`, NormalizeEmail(params.Email), params.PasswordHash, strings.TrimSpace(params.Name), timezone, params.HomeSchoolID, params.AgeConfirmedAt).Scan(
 		&profile.ID,
 		&profile.Email,
@@ -41,6 +41,7 @@ func (r *PostgresRepository) CreateWithVerificationToken(ctx context.Context, pa
 		&profile.Bio,
 		&profile.Timezone,
 		&profile.HomeSchoolID,
+		&profile.ShowInLists,
 	)
 	if err != nil {
 		if IsDuplicateEmail(err) {
@@ -152,11 +153,11 @@ func (r *PostgresRepository) UpdateProfileWithSocialLinks(ctx context.Context, i
 	var profile Profile
 	err = tx.QueryRow(ctx, `
 		UPDATE users
-		SET name = $2, bio = NULLIF($3, ''), timezone = $4
+		SET name = $2, bio = NULLIF($3, ''), timezone = $4, show_in_lists = $5
 		WHERE id = $1::uuid AND deleted_at IS NULL AND account_status = 'active'
 		RETURNING id::text, email::text, email_verified_at, verification_level,
-		          name, COALESCE(bio, ''), timezone, home_school_id::text
-	`, id, strings.TrimSpace(update.Name), strings.TrimSpace(update.Bio), strings.TrimSpace(update.Timezone)).Scan(
+		          name, COALESCE(bio, ''), timezone, home_school_id::text, show_in_lists
+	`, id, strings.TrimSpace(update.Name), strings.TrimSpace(update.Bio), strings.TrimSpace(update.Timezone), update.ShowInLists).Scan(
 		&profile.ID,
 		&profile.Email,
 		&profile.EmailVerifiedAt,
@@ -165,6 +166,7 @@ func (r *PostgresRepository) UpdateProfileWithSocialLinks(ctx context.Context, i
 		&profile.Bio,
 		&profile.Timezone,
 		&profile.HomeSchoolID,
+		&profile.ShowInLists,
 	)
 	if err != nil {
 		if err == pgx.ErrNoRows {

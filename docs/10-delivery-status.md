@@ -94,6 +94,7 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 - [x] Profile: single **name** field, bio, socials, timezone
 - [x] Boring Avatars Beam avatars drawn by the web app, with initials fallback
 - [x] Public profile at `/users/:id` (database id)
+- [x] `show_in_lists` account setting (on by default) that opts a person out of every people list; returned by `GET /me` and changed with `PATCH /me`
 
 ### Schools
 
@@ -103,6 +104,7 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 - [x] School detail by slug
 - [x] Follow / unfollow school
 - [x] Empty states for school list + school page
+- [x] School member list: people whose home school it is, signed-in only (`GET /schools/:slug/members`)
 
 ### Games (curated seed)
 
@@ -139,6 +141,7 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 - [x] Occurrence-only editing with immutable recurrence fields at the web and API boundaries
 - [x] Native local event date/time entry with profile-defaulted timezone selection and explicit DST-edge validation
 - [x] Cancellation notifications to active yes/maybe RSVPs (best-effort email)
+- [x] Attendee lists: Going (yes) and Maybe, signed-in only, hidden for a private event until the viewer unlocks or organizes it (`GET /events/:slug/attendees`)
 - [x] Empty states for events browse
 
 ### Teams
@@ -149,6 +152,7 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 - [x] Choose the school filter by searching school names (shared school search/select, works without JavaScript) and clear it from the page
 - [x] Password only required to **join / interact**
 - [x] Captains + ownership transfer
+- [x] Team member list with roles, signed-in only; the owner roster stays unfiltered (`GET /teams/:slug/members`)
 - [x] Dashboard shows team activity
 
 ### Dashboard & content
@@ -158,6 +162,7 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 - [x] Cold-start plan (demo seed and/or “create first event” CTA)
 - [x] FAQ and About; Terms and Privacy routes exist pending reviewed copy
 - [x] Support ticket form — **anyone** can submit (logged out OK)
+- [x] Web pages and previews for the event, school, and team people lists, and the opt-out control in account settings
 
 ### Safety (baseline)
 

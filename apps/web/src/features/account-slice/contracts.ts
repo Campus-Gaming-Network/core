@@ -40,6 +40,8 @@ export const accountProfileDtoSchema = z.object({
   home_school: schoolSummarySchema.optional(),
   social_links: z.array(socialLinkSchema).max(3).optional(),
   role_indicators: z.array(z.string()).optional(),
+  /** Whether signed-in people see this person in member lists; on by default. */
+  show_in_lists: z.boolean().default(true),
 });
 
 export const dashboardEventDtoSchema = z.object({
@@ -110,6 +112,7 @@ export const updateProfileInputSchema = z.object({
   bio: z.string().trim().max(2000, "Bio must be 2000 characters or fewer."),
   timezone: timeZoneSchema,
   social_links: z.array(profileSocialLinkInputSchema).max(3),
+  show_in_lists: z.boolean().optional(),
 });
 
 export const deleteAccountInputSchema = z.object({
@@ -165,6 +168,12 @@ export function validateUpdateProfileInput(
           bio: formString(input, "bio"),
           timezone: formString(input, "timezone"),
           social_links: socialLinksFromForm(input),
+          // An unchecked checkbox sends nothing, so the form puts a "false"
+          // before it and the last value wins. A form without the field
+          // leaves the setting alone.
+          ...(input.has("show_in_lists")
+            ? { show_in_lists: input.getAll("show_in_lists").at(-1) === "true" }
+            : {}),
         }
       : input;
   const parsed = updateProfileInputSchema.safeParse(candidate);

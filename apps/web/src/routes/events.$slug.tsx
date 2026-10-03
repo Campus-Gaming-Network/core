@@ -7,6 +7,7 @@ import {
 import { useServerFn } from "@tanstack/react-start";
 import {
   ArrowLeft,
+  ArrowRight,
   CalendarDays,
   Check,
   CircleHelp,
@@ -67,11 +68,19 @@ import {
   formatEventDate,
   recurrenceRuleLabel,
   type EventDetailNotice,
-  roleIndicatorLabel,
   safeExternalEventUrl,
-  verificationLabel,
 } from "../features/event-slice/presentation";
 import eventCSS from "../features/event-slice/events.css?url";
+import {
+  peoplePreviewSize,
+  type PeopleListResult,
+} from "../features/people-slice/contracts";
+import { getEventAttendees } from "../features/people-slice/people.functions";
+import {
+  PeoplePreview,
+  PeopleSignedOut,
+} from "../features/people-slice/people-views";
+import { verificationDetail } from "../features/people-slice/presentation";
 
 const siteName = "Campus Gaming Network";
 const privateEventDescription =
@@ -80,6 +89,8 @@ const privateEventDescription =
 export type EventRouteData = {
   event: EventDetailDTO;
   authenticated: boolean;
+  /** The first people going, read only for a signed-in viewer of a visible event. */
+  attendees?: PeopleListResult;
   publicOrigin: string;
   /** Server-rendered report key; see useIdempotencyKey. */
   idempotencyKey: string;
@@ -114,9 +125,24 @@ export const Route = createFileRoute("/events/$slug")({
       throw new Error("Event viewer session is unavailable");
     }
 
+    // Who is going is for signed-in viewers only, and a locked event shows
+    // nothing. A list that cannot be read is reported in the result and never
+    // fails the page.
+    const attendees =
+      session.authenticated && !isLockedEvent(detail.event)
+        ? await getEventAttendees({
+            data: {
+              slug: params.slug,
+              response: "yes",
+              limit: peoplePreviewSize,
+            },
+          })
+        : undefined;
+
     return {
       event: detail.event,
       authenticated: session.authenticated,
+      ...(attendees ? { attendees } : {}),
       publicOrigin: context.publicOrigin,
       idempotencyKey: newIdempotencyKey(),
     };
@@ -191,7 +217,8 @@ export function eventHead(loaderData?: EventRouteData) {
 }
 
 function EventPage() {
-  const { event, authenticated, publicOrigin } = Route.useLoaderData();
+  const { attendees, event, authenticated, publicOrigin } =
+    Route.useLoaderData();
   const search = Route.useSearch();
 
   if (isLockedEvent(event)) {
@@ -206,6 +233,7 @@ function EventPage() {
 
   return (
     <VisibleEventView
+      attendees={attendees}
       event={event}
       authenticated={authenticated}
       notice={search.event}
@@ -258,11 +286,13 @@ export function LockedEventView({
 }
 
 function VisibleEventView({
+  attendees,
   event,
   authenticated,
   notice,
   publicOrigin,
 }: {
+  attendees?: PeopleListResult;
   event: EventDTO;
   authenticated: boolean;
   notice?: EventSearch["event"];
@@ -360,6 +390,36 @@ function VisibleEventView({
             ) : null}
           </section>
 
+          {authenticated ? (
+            <section
+              className="detail-card people-card"
+              aria-labelledby="event-people-title"
+            >
+              <h2 id="event-people-title">{"Who's going"}</h2>
+              <PeoplePreview
+                empty="No one has RSVP'd yet."
+                result={attendees ?? { status: "unavailable" }}
+              />
+              <div className="detail-card-body">
+                <Link
+                  className="link with-arrow"
+                  to="/events/$slug/people"
+                  params={{ slug: event.slug }}
+                >
+                  See everyone
+                  <ArrowRight aria-hidden="true" size={14} strokeWidth={2.25} />
+                </Link>
+              </div>
+            </section>
+          ) : (
+            <div className="people-card">
+              <PeopleSignedOut
+                message="Log in to see who's going."
+                next={`/events/${event.slug}`}
+              />
+            </div>
+          )}
+
           {event.organizers && event.organizers.length > 0 ? (
             <section
               className="section section--compact"
@@ -370,16 +430,7 @@ function VisibleEventView({
                 {event.organizers.map((organizer) => (
                   <li key={organizer.id}>
                     <Person
-                      detail={
-                        <>
-                          {verificationLabel(organizer.verification_level)}
-                          {organizer.role_indicators
-                            ?.filter(
-                              (role) => role !== organizer.verification_level,
-                            )
-                            .map((role) => ` · ${roleIndicatorLabel(role)}`)}
-                        </>
-                      }
+                      detail={verificationDetail(organizer)}
                       id={organizer.id}
                       linked
                       name={organizer.name}

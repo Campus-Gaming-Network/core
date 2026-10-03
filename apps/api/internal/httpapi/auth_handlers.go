@@ -50,6 +50,7 @@ type profileUpdateRequest struct {
 	Bio         *string             `json:"bio"`
 	Timezone    *string             `json:"timezone"`
 	SocialLinks *[]users.SocialLink `json:"social_links"`
+	ShowInLists *bool               `json:"show_in_lists"`
 }
 
 func (r *Router) handleSignup(w http.ResponseWriter, req *http.Request) {
@@ -314,7 +315,12 @@ func (r *Router) handleMe(w http.ResponseWriter, req *http.Request) {
 		writeProfileError(w, err)
 		return
 	}
-	update := users.ProfileUpdate{Name: current.Name, Bio: current.Bio, Timezone: current.Timezone}
+	update := users.ProfileUpdate{
+		Name:        current.Name,
+		Bio:         current.Bio,
+		Timezone:    current.Timezone,
+		ShowInLists: current.ShowInLists,
+	}
 	if input.Name != nil {
 		update.Name = *input.Name
 	}
@@ -323,6 +329,9 @@ func (r *Router) handleMe(w http.ResponseWriter, req *http.Request) {
 	}
 	if input.Timezone != nil {
 		update.Timezone = *input.Timezone
+	}
+	if input.ShowInLists != nil {
+		update.ShowInLists = *input.ShowInLists
 	}
 	links := current.SocialLinks
 	if input.SocialLinks != nil {

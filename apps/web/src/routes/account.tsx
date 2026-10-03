@@ -357,6 +357,9 @@ function ProfileForm({ profile }: { profile: AccountProfileDTO }) {
           bio: String(form.get("bio") ?? ""),
           timezone: String(form.get("timezone") ?? ""),
           social_links: socialLinks,
+          // A "false" input comes before the checkbox, so the last value is
+          // the checkbox when it is checked and the "false" when it is not.
+          show_in_lists: form.getAll("show_in_lists").at(-1) === "true",
         },
       }),
     );
@@ -485,6 +488,26 @@ function ProfileForm({ profile }: { profile: AccountProfileDTO }) {
               </div>
             </details>
           ) : null}
+        </FormSection>
+        <FormSection
+          title="Privacy"
+          description="Choose how other signed-in people can find you."
+        >
+          <input name="show_in_lists" type="hidden" value="false" />
+          <label className="checkbox-field">
+            <input
+              aria-describedby="profile-show-in-lists-help"
+              defaultChecked={profile.show_in_lists}
+              name="show_in_lists"
+              type="checkbox"
+              value="true"
+            />
+            <span>Show me in member lists</span>
+          </label>
+          <p className="form-help" id="profile-show-in-lists-help">
+            Signed-in people can see you in lists of event attendees, school
+            members, and team members. Turn this off to hide yourself.
+          </p>
         </FormSection>
         <div className="form-actions">
           <button type="submit" disabled={mutation.pending}>

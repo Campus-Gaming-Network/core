@@ -31,6 +31,10 @@ repeated create request returns the original row.
 Migration `000017_school_logo_objects.up.sql` tracks every stored school-logo
 object as pending, current, or retired so the API can delete objects that a
 failed or replaced upload leaves behind.
+Migration `000018_user_list_visibility.up.sql` adds `users.show_in_lists`
+(default true), the opt-out from the event, school, and team people lists, and
+the partial index that serves the school member list. Apply it before deploying
+the API that reads or writes the column.
 Do not add clubs, tournaments, feature flags, site announcements, on-site
 payment tables, IGDB sync tables, or Admin Console-only workflow tables until those
 phases are active.

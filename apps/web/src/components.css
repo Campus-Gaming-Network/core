@@ -246,6 +246,21 @@
   margin: 0;
 }
 
+/* A control beside the note, such as a log-in button. It drops below the text
+   when the note is narrow. */
+.callout--with-action {
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.callout--with-action p {
+  flex: 1 1 14rem;
+}
+
+.callout__action {
+  flex: none;
+}
+
 /* Text for assistive technology only. */
 .visually-hidden {
   position: absolute;
@@ -350,4 +365,112 @@
 
 .person__text small {
   color: var(--color-muted);
+}
+
+/* Help text under a checkbox lines up with the label beside the box. */
+.checkbox-field + .form-help {
+  margin: -0.5rem 0 0;
+  padding-left: 2.25rem;
+  font-size: 0.8125rem;
+}
+
+/* People lists: everyone on a full page of attendees or members, and the first
+   few in a card on the page of the event, school, or team they belong to. */
+.people-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr));
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.people-list > li {
+  min-width: 0;
+  border: 1px solid var(--color-card-border);
+  border-radius: var(--radius-panel);
+  padding: 0.75rem 1rem;
+  background: var(--color-card);
+}
+
+/* In a card, the card is the frame: plain rows, two to a line. */
+.detail-card .people-list {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 13rem), 1fr));
+  gap: 0 1.5rem;
+  padding: 0.35rem 1.1rem 0.5rem;
+}
+
+.detail-card .people-list > li {
+  border: 0;
+  border-radius: 0;
+  padding: 0.55rem 0;
+  background: transparent;
+}
+
+.people-note {
+  margin: 0;
+  color: var(--color-muted);
+}
+
+.detail-card .people-note {
+  padding: 1rem 1.1rem;
+}
+
+.people-card {
+  margin-top: 2rem;
+}
+
+.people-card .detail-card-body {
+  padding-top: 0.5rem;
+}
+
+.people-heading {
+  margin-bottom: 1.5rem;
+}
+
+.people-heading h1 {
+  max-width: 50rem;
+  margin-block: 0 0.5rem;
+  font-size: clamp(1.875rem, 4.5vw, 2.75rem);
+  line-height: 1.1;
+  letter-spacing: -0.04em;
+}
+
+.people-heading .lede {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.people-tabs {
+  margin-bottom: 1.5rem;
+}
+
+/* The people section of a school page sits under its events and teams. */
+.school-people {
+  margin-top: 2.5rem;
+}
+
+.school-people .section-heading {
+  margin-bottom: 0.75rem;
+}
+
+.school-people .section-heading h2 {
+  font-size: 1.35rem;
+}
+
+@media (pointer: coarse), (max-width: 42rem) {
+  .people-pagination a,
+  .people-list .person__text a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
+  }
+
+  .people-list > li {
+    padding-block: 0.4rem;
+  }
+
+  .detail-card .people-list > li {
+    padding-block: 0.25rem;
+  }
 }

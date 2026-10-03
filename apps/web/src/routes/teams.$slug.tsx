@@ -6,7 +6,7 @@ import {
   type ErrorComponentProps,
 } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 import { type FormEvent, useRef, useState } from "react";
 import { ButtonLink } from "../components/button-link";
 import { ConfirmDialog } from "../components/confirm-dialog";
@@ -19,6 +19,15 @@ import { PageNoticeView } from "../components/page-notice-view";
 import { Person } from "../components/person";
 import { RouteErrorView, RoutePending } from "../components/route-boundaries";
 import { getEventViewerSession } from "../features/event-slice/auth.functions";
+import {
+  peoplePreviewSize,
+  type PeopleListResult,
+} from "../features/people-slice/contracts";
+import { getTeamMembers } from "../features/people-slice/people.functions";
+import {
+  PeoplePreview,
+  PeopleSignedOut,
+} from "../features/people-slice/people-views";
 import {
   validateTeamDetailSearch,
   type TeamDTO,
@@ -43,6 +52,8 @@ export type TeamRouteData = {
   team: TeamDTO;
   viewer: TeamViewerState;
   ownerRoster?: TeamMemberDTO[];
+  /** The first members; a visitor's read is a signed-out result. */
+  members: PeopleListResult;
   hasSessionCookie: boolean;
   publicOrigin: string;
 };
@@ -50,9 +61,13 @@ export type TeamRouteData = {
 export const Route = createFileRoute("/teams/$slug")({
   validateSearch: validateTeamDetailSearch,
   loader: async ({ context, params }): Promise<TeamRouteData> => {
-    const [detail, session] = await Promise.all([
+    const [detail, session, members] = await Promise.all([
       getTeamDetail({ data: { slug: params.slug } }),
       getEventViewerSession(),
+      // A request with no session never reaches the API.
+      getTeamMembers({
+        data: { slug: params.slug, limit: peoplePreviewSize },
+      }),
     ]);
     if (detail.status === "not_found") {
       throw notFound();
@@ -71,6 +86,7 @@ export const Route = createFileRoute("/teams/$slug")({
           ? (detail.viewerRole ?? "non_member")
           : "anonymous",
       ...(detail.ownerRoster ? { ownerRoster: detail.ownerRoster } : {}),
+      members,
       hasSessionCookie: detail.hasSessionCookie,
       publicOrigin: context.publicOrigin,
     };
@@ -92,7 +108,7 @@ export const Route = createFileRoute("/teams/$slug")({
 });
 
 function TeamPage() {
-  const { ownerRoster, team, viewer } = Route.useLoaderData();
+  const { members, ownerRoster, team, viewer } = Route.useLoaderData();
   const search = Route.useSearch();
 
   return (
@@ -160,6 +176,35 @@ function TeamPage() {
           />
         </section>
       </div>
+
+      {viewer === "anonymous" ? (
+        <div className="people-card">
+          <PeopleSignedOut
+            message="Log in to see the members of this team."
+            next={`/teams/${team.slug}`}
+          />
+        </div>
+      ) : (
+        <section
+          className="detail-card people-card"
+          aria-labelledby="team-people-title"
+        >
+          <h2 id="team-people-title">Members</h2>
+          <PeoplePreview empty="No members yet." result={members} />
+          {members.status === "found" && members.list.people.length > 0 ? (
+            <div className="detail-card-body">
+              <Link
+                className="link with-arrow"
+                to="/teams/$slug/people"
+                params={{ slug: team.slug }}
+              >
+                See everyone
+                <ArrowRight aria-hidden="true" size={14} strokeWidth={2.25} />
+              </Link>
+            </div>
+          ) : null}
+        </section>
+      )}
     </main>
   );
 }

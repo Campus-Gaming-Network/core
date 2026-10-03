@@ -331,3 +331,55 @@ test("an event's link is selectable text with no copy button", async ({
 function escapeRegularExpression(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
+
+test("people lists page with native links and the member-list setting saves without JavaScript", async ({
+  page,
+}) => {
+  await page.goto("/events/public-browser-event/people");
+  await expect(page).toHaveURL(/\/login\?next=/);
+
+  await logIn(
+    page,
+    "no-js-people@example.test",
+    "/events/public-browser-event/people",
+  );
+  const people = page.locator("main .person__text a");
+  await expect(people).toHaveCount(24);
+  await page.getByRole("link", { name: "Next" }).click();
+  await expect(people).toHaveCount(6);
+  await page.getByRole("link", { name: "Previous" }).click();
+  await expect(people).toHaveCount(24);
+  await page
+    .getByRole("navigation", { name: "RSVP responses" })
+    .getByRole("link", { name: "Maybe" })
+    .click();
+  await expect(page).toHaveURL(/\/people\?response=maybe$/);
+  await expect(people).toHaveCount(3);
+
+  // The unchecked checkbox sends nothing, so the form carries a "false" first.
+  const listed = page.locator("main .person__text a", {
+    hasText: "Browser Test Player",
+  });
+  const setting = page.getByRole("checkbox", {
+    name: "Show me in member lists",
+  });
+  await page.goto("/schools/browser-test-university/people");
+  await expect(listed).toHaveCount(1);
+
+  await page.goto("/account");
+  await expect(setting).toBeChecked();
+  await setting.uncheck();
+  await page.getByRole("button", { name: "Save profile" }).click();
+  await expect(page).toHaveURL(/\/account\?account=profile-updated$/);
+  await expect(setting).not.toBeChecked();
+  await page.goto("/schools/browser-test-university/people");
+  await expect(listed).toHaveCount(0);
+
+  await page.goto("/account");
+  await setting.check();
+  await page.getByRole("button", { name: "Save profile" }).click();
+  await expect(page).toHaveURL(/\/account\?account=profile-updated$/);
+  await expect(setting).toBeChecked();
+  await page.goto("/schools/browser-test-university/people");
+  await expect(listed).toHaveCount(1);
+});

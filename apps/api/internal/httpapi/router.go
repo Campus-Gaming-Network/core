@@ -28,6 +28,7 @@ import (
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/games"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/objectstore"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/operations"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/people"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/ratelimit"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/safety"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/schools"
@@ -57,6 +58,7 @@ type Router struct {
 	teams   teamstore.Repository
 	safety  safety.Repository
 	users   users.Repository
+	people  people.Repository
 	account *auth.AccountService
 	limiter *ratelimit.Limiter
 	// targetLimiter counts attempts against one email address, token, or
@@ -87,6 +89,7 @@ func NewRouter(cfg config.Config, pools ...*pgxpool.Pool) http.Handler {
 		router.games = games.NewPostgresRepository(router.db)
 		router.events = eventstore.NewPostgresRepository(router.db)
 		router.teams = teamstore.NewPostgresRepository(router.db)
+		router.people = people.NewPostgresRepository(router.db)
 		router.safety = safety.NewPostgresRepository(router.db)
 		router.users = userRepository
 		router.account = auth.NewAccountService(
@@ -387,6 +390,16 @@ func (r *Router) handleSchoolPath(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	if len(parts) == 2 && parts[1] == "members" {
+		slug, err := url.PathUnescape(parts[0])
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid_school_slug")
+			return
+		}
+		r.handleSchoolMembers(w, req, slug)
+		return
+	}
+
 	if len(parts) == 2 && parts[1] == "follow" {
 		if req.Method != http.MethodPost && req.Method != http.MethodDelete {
 			methodNotAllowed(w, http.MethodPost+", "+http.MethodDelete)
@@ -595,6 +608,15 @@ func (r *Router) handleEventPath(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 		r.handleReportEvent(w, req, slug)
+		return
+	}
+	if len(parts) == 2 && parts[1] == "attendees" {
+		slug, err := url.PathUnescape(parts[0])
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid_event_slug")
+			return
+		}
+		r.handleEventAttendees(w, req, slug)
 		return
 	}
 	if len(parts) != 1 || parts[0] == "" {

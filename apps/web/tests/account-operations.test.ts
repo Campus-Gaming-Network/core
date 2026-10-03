@@ -23,9 +23,16 @@ const profile = {
   home_school_id: "school-1",
   social_links: [{ label: "Community", url: "https://example.test/player" }],
   role_indicators: [],
+  show_in_lists: false,
   password_hash: "must-strip",
   session: "must-strip",
 };
+
+const {
+  password_hash: _passwordHash,
+  session: _session,
+  ...servedProfile
+} = profile;
 
 test("account dashboard requires /me, strips private additions, and isolates secondary failures", async () => {
   const calls: Array<{ path: string; cookie?: string }> = [];
@@ -55,6 +62,16 @@ test("account dashboard requires /me, strips private additions, and isolates sec
   assert.equal(dashboard.unavailable.followedSchools, false);
   assert.equal(dashboard.unavailable.teams, false);
   assert.ok(calls.every((call) => call.cookie === "cgn_session=secret"));
+});
+
+test("the profile keeps show_in_lists and treats an API that does not send it as on", () => {
+  assert.deepEqual(accountProfileDtoSchema.parse(profile), servedProfile);
+
+  const { show_in_lists: _showInLists, ...withoutSetting } = servedProfile;
+  assert.deepEqual(accountProfileDtoSchema.parse(withoutSetting), {
+    ...withoutSetting,
+    show_in_lists: true,
+  });
 });
 
 test("account dashboard distinguishes 401 from an upstream outage", async () => {
@@ -108,6 +125,39 @@ test("profile and deletion validation support typed and native inputs", () => {
   assert.equal(validateDeleteAccountInput({ confirm: "remove" }).valid, false);
 });
 
+test("native profile forms send show_in_lists as the last value and typed input passes it through", () => {
+  const base = {
+    name: "Player One",
+    bio: "",
+    timezone: "America/Los_Angeles",
+    social_links: [],
+  };
+
+  // The form puts a "false" before the checkbox, which adds "true" when checked.
+  const unchecked = profileForm();
+  unchecked.append("show_in_lists", "false");
+  const checked = profileForm();
+  checked.append("show_in_lists", "false");
+  checked.append("show_in_lists", "true");
+
+  assert.deepEqual(validateUpdateProfileInput(unchecked), {
+    valid: true,
+    value: { ...base, show_in_lists: false },
+  });
+  assert.deepEqual(validateUpdateProfileInput(checked), {
+    valid: true,
+    value: { ...base, show_in_lists: true },
+  });
+  assert.deepEqual(validateUpdateProfileInput(profileForm()), {
+    valid: true,
+    value: base,
+  });
+  assert.deepEqual(
+    validateUpdateProfileInput({ ...base, show_in_lists: false }),
+    { valid: true, value: { ...base, show_in_lists: false } },
+  );
+});
+
 test("profile update sends only validated fields and deletion drops the local root cookie", async () => {
   const requests: unknown[] = [];
   const api = (async (options) => {
@@ -122,10 +172,18 @@ test("profile update sends only validated fields and deletion drops the local ro
       bio: "Captain",
       timezone: "America/Los_Angeles",
       social_links: [],
+      show_in_lists: false,
     },
     { api, cookieHeader: "cgn_session=secret" },
   );
   assert.equal(update.status, "success");
+  assert.deepEqual((requests[0] as { body: unknown }).body, {
+    name: "Player One",
+    bio: "Captain",
+    timezone: "America/Los_Angeles",
+    social_links: [],
+    show_in_lists: false,
+  });
 
   const cookies: unknown[] = [];
   const deletion = await deleteAccountOperation(
@@ -150,6 +208,14 @@ test("profile update sends only validated fields and deletion drops the local ro
     ["PATCH", "DELETE"],
   );
 });
+
+function profileForm() {
+  const form = new FormData();
+  form.set("name", "Player One");
+  form.set("bio", "");
+  form.set("timezone", "America/Los_Angeles");
+  return form;
+}
 
 function result<T>(data: T) {
   return {

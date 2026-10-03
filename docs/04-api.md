@@ -79,8 +79,8 @@ All other paths exist in the Go API.
 
 | Method | Path                | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | ------ | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| GET    | `/me`               | Profile + timezone + home school summary + role indicators                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| PATCH  | `/me`               | Name, bio, social links, timezone                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| GET    | `/me`               | Profile + timezone + home school summary + role indicators + `show_in_lists` (private; never on the public profile)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| PATCH  | `/me`               | Name, bio, social links, timezone, and `show_in_lists` (boolean opt-out from the [people lists](#people-lists)); an absent field is left unchanged and a non-boolean `show_in_lists` returns `400 invalid_json`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | DELETE | `/me`               | Anonymize the account in place and return 204. Scrubs email, name, bio, and timezone; marks `account_status = 'deleted'`; hard-deletes social links, school follows, RSVPs, interests, notifications, and team/event roles; revokes sessions and drops outstanding tokens and queued email; revokes school-admin and site-admin grants while keeping their history. Teams they own pass to the longest-tenured captain, else the longest-tenured member, else are soft-deleted. Events they created that have not ended pass to the longest-tenured active co-organizer; the rest are archived, and active yes/maybe RSVPs to those that have not ended get a best-effort cancellation email. Returns `409 last_site_admin` when the account is the last active site admin. The scrubbed email releases the original address for re-registration. See [16 — Legal and data-lifecycle plan](./16-legal-and-data-lifecycle-plan.md). |
 | GET    | `/me/schools`       | Followed schools                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | GET    | `/me/events`        | Dashboard event sections: upcoming RSVPs + followed-school public events                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
@@ -95,6 +95,7 @@ All other paths exist in the Go API.
 | ------ | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | GET    | `/schools`                   | Search/browse (public, incl. logged out); `q`, `state`, `limit`, and `offset`; response includes `has_more` (no total count). `sort=popular` instead returns the most active schools, ranked by active members plus hosted public events (ties: more members, then name), omitting schools with no activity; it takes only `limit` (default 6, at most 50), any other filter or sort returns `400 invalid_sort`, and the ranking is cached for five minutes |
 | GET    | `/schools/:slug`             | Public school page (clubs list when clubs ship). School objects include `logo_url` when a logo is set                                                                                                                                                                                                                                                                                                                                                       |
+| GET    | `/schools/:slug/members`     | Auth required; the [people list](#people-lists) of users whose home school it is; `404 school_not_found` when missing                                                                                                                                                                                                                                                                                                                                       |
 | POST   | `/schools/:id/follow`        | Auth required                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | DELETE | `/schools/:id/follow`        |                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | GET    | `/schools/:id/games/popular` | **(planned)**                                                                                                                                                                                                                                                                                                                                                                                                                                               |
@@ -113,31 +114,33 @@ All other paths exist in the Go API.
 
 ### Teams
 
-| Method | Path                              | Notes                                                                                                                          |
-| ------ | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| POST   | `/teams`                          | Anyone authenticated                                                                                                           |
-| GET    | `/teams`                          | Public browse; `game`, `school`, `limit`, and opaque `after`/`before` cursors; response includes `has_more` and `has_previous` |
-| GET    | `/teams/:slug`                    | **Public** team page                                                                                                           |
-| POST   | `/teams/:slug/join`               | Password required to join/interact                                                                                             |
-| POST   | `/teams/:slug/transfer-ownership` | Owner                                                                                                                          |
-| POST   | `/teams/:slug/captains`           | Assign captains                                                                                                                |
-| GET    | `/teams/:slug/audit`              | **(planned)** Team change history                                                                                              |
+| Method | Path                              | Notes                                                                                                                                            |
+| ------ | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| POST   | `/teams`                          | Anyone authenticated                                                                                                                             |
+| GET    | `/teams`                          | Public browse; `game`, `school`, `limit`, and opaque `after`/`before` cursors; response includes `has_more` and `has_previous`                   |
+| GET    | `/teams/:slug`                    | **Public** team page                                                                                                                             |
+| GET    | `/teams/:slug/members`            | Auth required (the team page itself is public); the [people list](#people-lists) of members with their `role`; `404 team_not_found` when missing |
+| POST   | `/teams/:slug/join`               | Password required to join/interact                                                                                                               |
+| POST   | `/teams/:slug/transfer-ownership` | Owner                                                                                                                                            |
+| POST   | `/teams/:slug/captains`           | Assign captains                                                                                                                                  |
+| GET    | `/teams/:slug/audit`              | **(planned)** Team change history                                                                                                                |
 
 ### Events
 
-| Method | Path                     | Notes                                                                                                                                                                                                                                                                         |
-| ------ | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| GET    | `/events`                | Search/browse **public only**, newest start time first; `game`, `school`, `format`, `limit`, and opaque `after`/`before` cursors; response includes `has_more` and `has_previous`                                                                                             |
-| GET    | `/events/:slug`          | Public & unlisted return full page; private returns gated shell until unlocked                                                                                                                                                                                                |
-| POST   | `/events/:slug/unlock`   | Password for private events; unlock session required before details/RSVP                                                                                                                                                                                                      |
-| POST   | `/events`                | Auth; no approval; rate limited; 8-char slug hash; optional capacity; optional off-site payment fields; default banner only; optional `recurrence_rule` (`weekly`, `biweekly`, `monthly`) and `recurrence_until` (`YYYY-MM-DD`)                                               |
-| PATCH  | `/events/:slug`          | Organizers; every field stays editable after the event ends (past-event limits in [07](./07-permissions.md) are planned). Recurrence is set at creation and occurrences are edited independently. Supplying either recurrence field returns `400 event_recurrence_immutable`. |
-| DELETE | `/events/:slug`          | Soft-cancel; best-effort email to active yes/maybe RSVPs after cancellation                                                                                                                                                                                                   |
-| POST   | `/events/:slug/rsvp`     | yes/no/maybe; capacity counts **yes only**; reject yes if full; email+ICS on yes                                                                                                                                                                                              |
-| POST   | `/events/:slug/interest` | Favorite/bookmark; independent of RSVP                                                                                                                                                                                                                                        |
-| DELETE | `/events/:slug/interest` | Remove favorite                                                                                                                                                                                                                                                               |
-| POST   | `/events/:slug/report`   | Rate limited                                                                                                                                                                                                                                                                  |
-| GET    | `/events/:slug/audit`    | **(planned)** Event change history                                                                                                                                                                                                                                            |
+| Method | Path                      | Notes                                                                                                                                                                                                                                                                         |
+| ------ | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/events`                 | Search/browse **public only**, newest start time first; `game`, `school`, `format`, `limit`, and opaque `after`/`before` cursors; response includes `has_more` and `has_previous`                                                                                             |
+| GET    | `/events/:slug`           | Public & unlisted return full page; private returns gated shell until unlocked                                                                                                                                                                                                |
+| GET    | `/events/:slug/attendees` | Auth required; the [people list](#people-lists) of RSVPs, `response=yes` (default) or `maybe`; follows the event page's access rules and answers `404 event_not_found` for a missing, cancelled, or still-locked private event                                                |
+| POST   | `/events/:slug/unlock`    | Password for private events; unlock session required before details/RSVP                                                                                                                                                                                                      |
+| POST   | `/events`                 | Auth; no approval; rate limited; 8-char slug hash; optional capacity; optional off-site payment fields; default banner only; optional `recurrence_rule` (`weekly`, `biweekly`, `monthly`) and `recurrence_until` (`YYYY-MM-DD`)                                               |
+| PATCH  | `/events/:slug`           | Organizers; every field stays editable after the event ends (past-event limits in [07](./07-permissions.md) are planned). Recurrence is set at creation and occurrences are edited independently. Supplying either recurrence field returns `400 event_recurrence_immutable`. |
+| DELETE | `/events/:slug`           | Soft-cancel; best-effort email to active yes/maybe RSVPs after cancellation                                                                                                                                                                                                   |
+| POST   | `/events/:slug/rsvp`      | yes/no/maybe; capacity counts **yes only**; reject yes if full; email+ICS on yes                                                                                                                                                                                              |
+| POST   | `/events/:slug/interest`  | Favorite/bookmark; independent of RSVP                                                                                                                                                                                                                                        |
+| DELETE | `/events/:slug/interest`  | Remove favorite                                                                                                                                                                                                                                                               |
+| POST   | `/events/:slug/report`    | Rate limited                                                                                                                                                                                                                                                                  |
+| GET    | `/events/:slug/audit`     | **(planned)** Event change history                                                                                                                                                                                                                                            |
 
 Discovery lists only `visibility = public`. Unlisted is link/slug only. Private: do not leak event details in HTML/JSON before unlock — blurred shell + password modal only. Capacity = count of RSVP `yes`; full → cannot RSVP yes (no waitlist). Paid events are allowed only as off-site-payment listings: no checkout, payment intent, refund, tax, payout, or ledger behavior in CGN.
 
@@ -164,6 +167,64 @@ occurrences.
 Event detail responses include `organizers`, with each organizer's name, role,
 `verification_level`, and applicable `role_indicators` (`school_admin` and/or
 `staff_faculty`).
+
+### People lists
+
+`GET /events/:slug/attendees`, `GET /schools/:slug/members`, and
+`GET /teams/:slug/members` return one shape. Who appears, and why, is a product
+rule owned by [01 — Product](./01-product.md#people-lists); who may read the
+lists is in [07 — Permissions](./07-permissions.md#people-list-rules).
+
+Request:
+
+- A session is required. A signed-out request returns `401 authentication_required`
+  and any method but `GET` returns `405`.
+- `limit` is 1–100 and defaults to 25; anything else returns `400 invalid_limit`.
+- `after` and `before` are opaque cursors from a previous response. At most one may
+  be sent. A malformed cursor, both cursors, or a cursor from a different kind of
+  list (such as an event list's) returns `400 invalid_cursor`.
+- Attendees also take `response`, `yes` (the default) or `maybe`. Any other value,
+  including an empty one, returns `400 invalid_response`.
+- The attendee list uses the event page's access rule: an organizer, or a viewer
+  whose `X-CGN-Event-Unlock` token is valid, may read a private event's list. For
+  anyone else the answer is `404 event_not_found`, identical to a missing or
+  cancelled event.
+
+Response:
+
+```json
+{
+  "people": [
+    {
+      "id": "uuid",
+      "name": "Ada Lovelace",
+      "verification_level": "verified",
+      "role_indicators": ["school_admin"],
+      "role": "captain"
+    }
+  ],
+  "limit": 25,
+  "has_more": true,
+  "has_previous": false,
+  "next_cursor": "opaque",
+  "previous_cursor": "opaque"
+}
+```
+
+- `role_indicators` is omitted when empty. `role` (`owner`, `captain`, or
+  `member`) appears only in team lists. `next_cursor` and `previous_cursor` are
+  omitted when there is no such page. A row carries no other account field.
+- Order is case-insensitive name, then id. Team lists order the owner first, then
+  captains, then members, each by name. A cursor carries its row's sort key
+  rather than pointing at the row, so paging still works after that person opts
+  out or leaves.
+- `verification_level` and `role_indicators` mean what they do on the public
+  profile.
+- Responses carry `Cache-Control: private, no-store` and
+  `Vary: Cookie, Authorization` (attendees also vary on `X-CGN-Event-Unlock`).
+- The owner-only `members` roster inside `GET /teams/:slug` is a different list,
+  used for captain management. It still lists every active member and is not
+  affected by `show_in_lists`.
 
 ### Tournaments (later)
 

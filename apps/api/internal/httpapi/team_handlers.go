@@ -220,6 +220,10 @@ func (r *Router) handleTeamPath(w http.ResponseWriter, req *http.Request) {
 		r.handleTransferTeamOwnership(w, req, parts[0])
 		return
 	}
+	if len(parts) == 2 && parts[1] == "members" {
+		r.handleTeamMembers(w, req, parts[0])
+		return
+	}
 	if len(parts) != 1 || parts[0] == "" {
 		http.NotFound(w, req)
 		return

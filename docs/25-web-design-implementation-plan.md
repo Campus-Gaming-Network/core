@@ -154,7 +154,7 @@ status column says which already exist and where.
 | `ErrorSummary` | Page-level failure summary with links to invalid controls           | Built as `FormErrorSummary`: `apps/web/src/components/enhanced-mutation.tsx`                                                                                           |
 | `RSVPControl`  | Current RSVP plus Going, Maybe, and Can't attend choices            | Planned as a shared component; today `RsvpEventForm` is inline in `apps/web/src/routes/events.$slug.tsx`                                                               |
 | `Notice`       | Page-level success, information, warning, and error feedback        | Built as `PageNoticeView`: `apps/web/src/components/page-notice-view.tsx`, covering success and error                                                                  |
-| `Callout`      | Filled, icon-led note for reassurance or a heads-up (not an alert)  | Built: `apps/web/src/components/callout.tsx` (`info`, `lock`, and `shield` icons)                                                                                      |
+| `Callout`      | Filled, icon-led note for reassurance or a heads-up (not an alert)  | Built: `apps/web/src/components/callout.tsx` (`info`, `lock`, and `shield` icons, and an optional action beside the note)                                              |
 | `CalendarDate` | Calendar-page tile for an event start date (month band, day number) | Built: `apps/web/src/components/calendar-date.tsx`; used by event rows, the account dashboard, and the event page header                                               |
 | `Toast`        | Short live-region confirmation for enhanced interactions            | Planned                                                                                                                                                                |
 | `Dialog`       | Focus-managed confirmation for destructive or high-impact actions   | Built as `ConfirmDialog`: `apps/web/src/components/confirm-dialog.tsx`                                                                                                 |
@@ -197,6 +197,9 @@ These screens can be implemented against existing routes and contracts:
 | Event detail          | `/events/:slug`                      | Upcoming, live, full, ended, private/locked, unavailable  |
 | Create event          | `/events/new`                        | Default, validation errors, submitting, success           |
 | Edit event            | `/events/:slug/edit`                 | Editable, forbidden, validation errors, cancelled         |
+| Event attendees       | `/events/:slug/people`               | Going and Maybe tabs, empty, unavailable, pagination      |
+| School people         | `/schools/:slug/people`              | Members, empty, unavailable, pagination                   |
+| Team people           | `/teams/:slug/people`                | Members with roles, empty, unavailable, pagination        |
 | Team directory        | `/teams`                             | Search/filter, empty, unavailable, pagination             |
 | Team page             | `/teams/:slug`                       | Public, member, joinable, management controls             |
 | Authentication        | `/login`, `/signup`, password routes | Default, validation, pending, recovery, verification      |
@@ -243,6 +246,18 @@ documents are updated and their contracts are implemented:
   prior value and announce a failure. Native form submission remains valid.
 - Focus returns to the RSVP trigger after the menu closes. Escape and outside
   activation close the menu.
+
+### People lists
+
+- Signed-in viewers see who is part of an event (Going, with Maybe on its own
+  tab; Interested stays a count), a school (home-school members), and a team
+  (members with roles): the first eight on the page of the event, school, or
+  team, and every page at `/events/:slug/people`, `/schools/:slug/people`, and
+  `/teams/:slug/people`. Visitors keep the existing counts and see a log-in
+  prompt, and the full pages send them to `/login`. The pages are `noindex`,
+  `private, no-store`, and paginated with native Previous and Next links, and a
+  list that cannot load leaves the entity page up. Anyone who turned off "Show
+  me in member lists" on the account page is left out.
 
 ### Forms
 

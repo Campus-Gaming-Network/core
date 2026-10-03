@@ -85,10 +85,13 @@ test("registered internal destinations use typed links without inventing routes"
     "'/events'",
     "'/events/$slug'",
     "'/events/$slug/edit'",
+    "'/events/$slug/people'",
     "'/events/new'",
     "'/schools/$slug'",
+    "'/schools/$slug/people'",
     "'/teams'",
     "'/teams/$slug'",
+    "'/teams/$slug/people'",
     "'/teams/new'",
     "'/users/$id'",
   ]) {

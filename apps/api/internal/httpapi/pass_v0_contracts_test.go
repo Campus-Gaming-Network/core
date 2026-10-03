@@ -391,6 +391,7 @@ var profileContractKeys = []string{
 	"home_school_id",
 	"id",
 	"name",
+	"show_in_lists",
 	"timezone",
 	"verification_level",
 }
