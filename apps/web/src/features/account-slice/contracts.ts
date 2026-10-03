@@ -4,6 +4,10 @@ const identifierSchema = z.string().trim().min(1);
 const timestampSchema = z.iso.datetime({ offset: true });
 const nonNegativeIntegerSchema = z.number().int().nonnegative();
 
+// How many events each dashboard list asks the API for. A list this long may
+// have been cut off, so the page cannot treat its length as a total.
+export const dashboardEventLimit = 5;
+
 const schoolSummarySchema = z.object({
   id: identifierSchema,
   name: z.string(),
@@ -48,6 +52,8 @@ export const dashboardEventDtoSchema = z.object({
   lifecycle: z.enum(["upcoming", "happening_now", "ended", "full"]),
   host_school: schoolSummarySchema.pick({ name: true }),
   games: z.array(gameSummarySchema.pick({ name: true })),
+  rsvp_yes_count: nonNegativeIntegerSchema,
+  interest_count: nonNegativeIntegerSchema,
   viewer_rsvp: z.enum(["yes", "maybe", "no"]).optional(),
 });
 

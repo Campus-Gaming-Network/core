@@ -71,10 +71,53 @@ test("public auth recovery and private account mutations work through the runtim
 
   await page.getByLabel("Type DELETE to confirm").fill("DELETE");
   await page.getByRole("button", { name: "Delete account" }).click();
+  await page
+    .getByRole("button", { name: "Permanently delete account" })
+    .click();
   await expect(page).toHaveURL(/\/\?account=deleted$/);
   await expect
     .poll(async () => hasCookie(await context.cookies(), "cgn_session"))
     .toBe(false);
+});
+
+test("account social links reveal extra rows and save through the runtime", async ({
+  page,
+}, testInfo) => {
+  const device = deviceName(testInfo.project.name);
+  await logIn(page, `social-links-${device}@example.test`, "/account");
+
+  await expect(page.getByLabel("Social link 1 label")).toBeVisible();
+  await expect(page.getByLabel("Social link 2 label")).toBeHidden();
+
+  await page.getByText("Add another link").click();
+  await page.getByLabel("Social link 1 label").fill("Twitch");
+  await page
+    .getByLabel("Social link 1 URL")
+    .fill("https://twitch.example.test/player");
+  await page.getByLabel("Social link 2 label").fill("Discord");
+  await page
+    .getByLabel("Social link 2 URL")
+    .fill("https://discord.example.test/player");
+  await page.getByRole("button", { name: "Save profile" }).click();
+  await expect(page).toHaveURL(/\/account\?account=profile-updated$/);
+
+  await expect(page.getByLabel("Social link 3 label")).toBeVisible();
+  await expect(page.getByText("Add another link")).toHaveCount(0);
+  expect(
+    await page.locator('input[name^="social_"]').evaluateAll((inputs) =>
+      inputs.map((input) => ({
+        name: input.getAttribute("name"),
+        value: (input as HTMLInputElement).value,
+      })),
+    ),
+  ).toEqual([
+    { name: "social_label_0", value: "Twitch" },
+    { name: "social_url_0", value: "https://twitch.example.test/player" },
+    { name: "social_label_1", value: "Discord" },
+    { name: "social_url_1", value: "https://discord.example.test/player" },
+    { name: "social_label_2", value: "" },
+    { name: "social_url_2", value: "" },
+  ]);
 });
 
 test("event create, report, interest, edit, and cancellation work through the runtime", async ({
@@ -102,6 +145,7 @@ test("event create, report, interest, edit, and cancellation work through the ru
   ).toBeVisible();
   await expect(page.getByText("Event created.")).toBeVisible();
 
+  await page.getByText("Report this event").click();
   await page.getByLabel("Reason").fill("Testing the private report boundary.");
   await page.getByRole("button", { name: "Submit report" }).click();
   await expect(page.getByText("Report submitted for review.")).toBeVisible();
@@ -119,6 +163,7 @@ test("event create, report, interest, edit, and cancellation work through the ru
   ).toBeVisible();
 
   await page.getByRole("button", { name: "Cancel event" }).click();
+  await page.getByRole("button", { name: "Yes, cancel event" }).click();
   await expect(page).toHaveURL(/\/events\?event=cancelled$/);
   await expect(page.getByText("Event cancelled.")).toBeVisible();
 });
@@ -160,6 +205,7 @@ test("team creation, joining, captain changes, and ownership transfer work throu
   ).toBeVisible();
 
   await page.getByRole("button", { name: "Transfer ownership" }).click();
+  await page.getByRole("button", { name: "Yes, transfer ownership" }).click();
   await expect(page).toHaveURL(/\?team=ownership-transferred$/);
   await expect(page.getByText("Your role: Member.")).toBeVisible();
 });
@@ -184,6 +230,7 @@ test("support, user reporting, and school follow state work through the runtime"
     `safety-${device}@example.test`,
     "/users/reportable-player",
   );
+  await page.getByText("Report this user").click();
   await page
     .getByLabel("Reason")
     .fill("Testing the production user-report boundary.");

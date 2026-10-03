@@ -29,7 +29,7 @@ function SignupPage() {
   const { schoolSearch } = Route.useLoaderData();
 
   return (
-    <main className="auth-page">
+    <main className="narrow">
       <section className="page-heading">
         <p className="eyebrow">Create account</p>
         <h1>Join with your home school.</h1>

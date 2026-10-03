@@ -72,7 +72,7 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 - [x] Notify active yes/maybe attendees when account deletion archives an orphaned future event
 - [ ] Replace placeholder Terms/Privacy, obtain legal review, and require versioned Terms agreement/Privacy acknowledgement at signup
 - [ ] Confirm retention windows and legal-hold ownership; document the manual retention runbook before enabling purge automation
-- [x] Draw avatars on this site with the DiceBear library instead of calling the hosted service, so no disclosure or opt-out is needed
+- [x] Draw Boring Avatars on this site instead of calling a hosted service, so no disclosure or opt-out is needed
 - [x] Promote verified `.edu` inboxes to the limited verified-student trust tier, shown as a badge, without downgrading staff/faculty grants
 - [x] Preserve authenticated visitor identity through Cloudflare/Railway and the BFF; scope rate limits by visitor, target, and account
 - [x] Require explicit POST confirmation before consuming an email-verification token; scanner-style GET requests cannot verify accounts
@@ -92,7 +92,7 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 - [x] 18+ checkbox (store timestamp)
 - [x] Forgot / reset password
 - [x] Profile: single **name** field, bio, socials, timezone
-- [x] DiceBear Critters avatars drawn by the web app, with initials fallback
+- [x] Boring Avatars Beam avatars drawn by the web app, with initials fallback
 - [x] Public profile at `/users/:id` (database id)
 
 ### Schools
@@ -126,6 +126,8 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 - [x] Paid event toggle + off-site payment note/link only (no CGN payment processing)
 - [x] RSVP yes/no/maybe
 - [x] RSVP confirmation email + ICS on yes (Resend)
+- [x] Add to calendar link on the event page (`/api/events/:slug/calendar.ics`)
+- [x] Share card with a copyable event link on the event page
 - [x] Interested (favorite) separate from RSVP
 - [x] Browse/filter public events by game, school, and format (no near-you yet)
 - [x] Bidirectional cursor pagination that preserves game, school, and format filters
@@ -144,6 +146,7 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 - [x] Create team
 - [x] **Public** team page
 - [x] Bidirectional cursor pagination that preserves game and school filters
+- [x] Choose the school filter by searching school names (shared school search/select, works without JavaScript) and clear it from the page
 - [x] Password only required to **join / interact**
 - [x] Captains + ownership transfer
 - [x] Dashboard shows team activity

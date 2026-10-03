@@ -5,8 +5,9 @@ import {
   type ErrorComponentProps,
 } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
+import { Flag } from "lucide-react";
 import { type FormEvent, useState } from "react";
-import { FieldError, fieldErrorProps } from "../components/enhanced-mutation";
+import { FormField } from "../components/form-field";
 import {
   newIdempotencyKey,
   useIdempotencyKey,
@@ -31,7 +32,6 @@ import {
   roleIndicatorLabel,
   safeHTTPURL,
   verificationLabel,
-  type ReportUserNotice,
 } from "../features/public-profile/presentation";
 
 const siteName = "Campus Gaming Network";
@@ -137,19 +137,11 @@ function PublicProfilePage() {
         </div>
       </section>
 
+      <PageNoticeView
+        notice={search.report ? reportUserNotices[search.report] : undefined}
+      />
+
       <section className="detail-grid" aria-label="Profile details">
-        <div className="detail-row">
-          <span>Verification</span>
-          <strong>{verificationLabel(profile.verification_level)}</strong>
-        </div>
-        {profile.role_indicators && profile.role_indicators.length > 0 ? (
-          <div className="detail-row">
-            <span>Roles</span>
-            <strong>
-              {profile.role_indicators.map(roleIndicatorLabel).join(", ")}
-            </strong>
-          </div>
-        ) : null}
         <div className="detail-row">
           <span>Home school</span>
           <strong className="detail-value">
@@ -184,60 +176,50 @@ function PublicProfilePage() {
         <p>No public links yet.</p>
       )}
 
-      <section className="action-panel" aria-labelledby="profile-safety">
-        <h2 id="profile-safety">Safety</h2>
-        <ProfileSafety
-          notice={search.report}
-          profileID={profile.id}
-          viewer={viewer}
-        />
-      </section>
+      <ProfileSafety profileID={profile.id} viewer={viewer} />
     </main>
   );
 }
 
+/**
+ * Reporting is a quiet line at the end of the page. Your own profile has
+ * nothing to report, a visitor is sent to log in first, and anyone else opens
+ * the form on demand.
+ */
 function ProfileSafety({
-  notice,
   profileID,
   viewer,
 }: {
-  notice?: ReportUserNotice;
   profileID: string;
   viewer: ViewerRelationship;
 }) {
-  const noticeView = (
-    <PageNoticeView notice={notice ? reportUserNotices[notice] : undefined} />
-  );
-
   if (viewer === "self") {
-    return (
-      <>
-        {noticeView}
-        <p className="form-help">This is your profile.</p>
-      </>
-    );
+    return null;
   }
 
   if (viewer === "anonymous") {
     return (
-      <>
-        {noticeView}
+      <p className="safety-prompt">
         <Link
-          className="button button--primary"
+          className="safety-link"
           to="/login"
           search={{ next: `/users/${profileID}` }}
         >
-          Log in to report this profile
+          <Flag aria-hidden="true" size={14} strokeWidth={1.75} />
+          Log in to report this user
         </Link>
-      </>
+      </p>
     );
   }
 
   return (
-    <>
-      {noticeView}
+    <details className="safety-details">
+      <summary>
+        <Flag aria-hidden="true" size={14} strokeWidth={1.75} />
+        Report this user
+      </summary>
       <ReportUserForm userID={profileID} />
-    </>
+    </details>
   );
 }
 
@@ -297,18 +279,19 @@ function ReportUserForm({ userID }: { userID: string }) {
           {result.message}
         </p>
       ) : null}
-      <label>
-        Reason
+      <FormField
+        errorId="user-report-reason-error"
+        errors={reasonErrors}
+        label="Reason"
+      >
         <textarea
           maxLength={2000}
           name="reason"
           placeholder="Tell us what looks unsafe, abusive, spammy, or misleading."
           required
           rows={4}
-          {...fieldErrorProps(reasonErrors, "user-report-reason-error")}
         />
-        <FieldError id="user-report-reason-error" messages={reasonErrors} />
-      </label>
+      </FormField>
       <button disabled={pending} type="submit">
         {pending ? "Submitting…" : "Submit report"}
       </button>

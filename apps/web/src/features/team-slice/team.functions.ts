@@ -11,6 +11,7 @@ import {
   newTeamPageInputSchema,
   teamSlugInputSchema,
   teamsBrowseInputSchema,
+  teamsBrowsePageInputSchema,
   validateCreateTeamServerInput,
   validateJoinTeamServerInput,
   validateSetTeamCaptainServerInput,
@@ -27,6 +28,7 @@ import {
   setTeamCaptainOperation,
   teamDetailOperation,
   teamsBrowseOperation,
+  teamsBrowsePageOperation,
   transferTeamOwnershipOperation,
 } from "./team-operations.server.js";
 
@@ -34,6 +36,12 @@ export const getTeamsBrowse = createServerFn({ method: "GET" })
   .validator(teamsBrowseInputSchema)
   .handler(async ({ data }) =>
     teamsBrowseOperation(data, { api: goBFFForCurrentRequest() }),
+  );
+
+export const getTeamsBrowsePage = createServerFn({ method: "GET" })
+  .validator(teamsBrowsePageInputSchema)
+  .handler(async ({ data }) =>
+    teamsBrowsePageOperation(data, { api: goBFFForCurrentRequest() }),
   );
 
 export const getTeamDetail = createServerFn({ method: "GET" })

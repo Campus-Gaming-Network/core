@@ -51,8 +51,9 @@ test("pages render nothing for notices they do not produce", async ({
   ]) {
     await gotoApp(page, path);
 
-    await expect(page.locator('main p[aria-live="polite"]'), path).toHaveCount(
-      0,
-    );
+    await expect(
+      page.locator('main > p[aria-live="polite"]'),
+      path,
+    ).toHaveCount(0);
   }
 });

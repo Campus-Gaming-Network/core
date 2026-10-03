@@ -39,6 +39,7 @@ import { Route as TeamsNewRouteImport } from './routes/teams.new'
 import { Route as UsersIdRouteImport } from './routes/users.$id'
 import { Route as ApiAvatarsIdRouteImport } from './routes/api.avatars.$id'
 import { Route as EventsSlugEditRouteImport } from './routes/events.$slug_.edit'
+import { Route as ApiEventsSlugCalendarDoticsRouteImport } from './routes/api.events.$slug.calendar[.]ics'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -190,6 +191,12 @@ const EventsSlugEditRoute = EventsSlugEditRouteImport.update({
   path: '/$slug/edit',
   getParentRoute: () => EventsRoute,
 } as any)
+const ApiEventsSlugCalendarDoticsRoute =
+  ApiEventsSlugCalendarDoticsRouteImport.update({
+    id: '/api/events/$slug/calendar.ics',
+    path: '/api/events/$slug/calendar.ics',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -222,6 +229,7 @@ export interface FileRoutesByFullPath {
   '/teams/': typeof TeamsIndexRoute
   '/api/avatars/$id': typeof ApiAvatarsIdRoute
   '/events/$slug/edit': typeof EventsSlugEditRoute
+  '/api/events/$slug/calendar.ics': typeof ApiEventsSlugCalendarDoticsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -251,6 +259,7 @@ export interface FileRoutesByTo {
   '/teams': typeof TeamsIndexRoute
   '/api/avatars/$id': typeof ApiAvatarsIdRoute
   '/events/$slug/edit': typeof EventsSlugEditRoute
+  '/api/events/$slug/calendar.ics': typeof ApiEventsSlugCalendarDoticsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -284,6 +293,7 @@ export interface FileRoutesById {
   '/teams/': typeof TeamsIndexRoute
   '/api/avatars/$id': typeof ApiAvatarsIdRoute
   '/events/$slug_/edit': typeof EventsSlugEditRoute
+  '/api/events/$slug/calendar.ics': typeof ApiEventsSlugCalendarDoticsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -318,6 +328,7 @@ export interface FileRouteTypes {
     | '/teams/'
     | '/api/avatars/$id'
     | '/events/$slug/edit'
+    | '/api/events/$slug/calendar.ics'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -347,6 +358,7 @@ export interface FileRouteTypes {
     | '/teams'
     | '/api/avatars/$id'
     | '/events/$slug/edit'
+    | '/api/events/$slug/calendar.ics'
   id:
     | '__root__'
     | '/'
@@ -379,6 +391,7 @@ export interface FileRouteTypes {
     | '/teams/'
     | '/api/avatars/$id'
     | '/events/$slug_/edit'
+    | '/api/events/$slug/calendar.ics'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -403,6 +416,7 @@ export interface RootRouteChildren {
   AuthVerifyEmailRoute: typeof AuthVerifyEmailRoute
   UsersIdRoute: typeof UsersIdRoute
   ApiAvatarsIdRoute: typeof ApiAvatarsIdRoute
+  ApiEventsSlugCalendarDoticsRoute: typeof ApiEventsSlugCalendarDoticsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -617,6 +631,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EventsSlugEditRouteImport
       parentRoute: typeof EventsRoute
     }
+    '/api/events/$slug/calendar.ics': {
+      id: '/api/events/$slug/calendar.ics'
+      path: '/api/events/$slug/calendar.ics'
+      fullPath: '/api/events/$slug/calendar.ics'
+      preLoaderRoute: typeof ApiEventsSlugCalendarDoticsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -686,6 +707,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthVerifyEmailRoute: AuthVerifyEmailRoute,
   UsersIdRoute: UsersIdRoute,
   ApiAvatarsIdRoute: ApiAvatarsIdRoute,
+  ApiEventsSlugCalendarDoticsRoute: ApiEventsSlugCalendarDoticsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

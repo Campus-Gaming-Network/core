@@ -1,15 +1,13 @@
 import { Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import {
-  cloneElement,
-  type FormEvent,
-  type InputHTMLAttributes,
-  type ReactElement,
-} from "react";
+import type { FormEvent, RefObject } from "react";
 import {
   FieldError,
+  FormErrorSummary,
   fieldErrorProps,
 } from "../../components/enhanced-mutation";
+import { FormField } from "../../components/form-field";
+import { FormSection } from "../../components/form-section";
 import type { SchoolDTO } from "../school-slice/contracts";
 import {
   forgotPassword,
@@ -48,11 +46,20 @@ export function SignupForm({
   return (
     <form
       action={signup.url}
-      className="form-stack"
+      className="form-stack sectioned-form"
       method="post"
       onSubmit={submit}
     >
       <FormNotice
+        fieldErrors={mutation.fieldErrors}
+        fieldIds={{
+          name: "name-error",
+          email: "email-error",
+          password: "password-error",
+          timezone: "timezone-error",
+          home_school_id: "home_school_id-error",
+          age_confirmed: "age_confirmed-error",
+        }}
         status={
           mutation.message
             ? mutation.status
@@ -70,76 +77,97 @@ export function SignupForm({
               ? "We could not create your account. Please try again."
               : "")
         }
+        summaryRef={mutation.errorSummaryRef}
       />
-      <AuthField label="Name" name="name" errors={mutation.fieldErrors.name}>
-        <input name="name" autoComplete="name" required maxLength={120} />
-      </AuthField>
-      <AuthField label="Email" name="email" errors={mutation.fieldErrors.email}>
-        <input name="email" type="email" autoComplete="email" required />
-      </AuthField>
-      <AuthField
-        label="Password"
-        name="password"
-        errors={mutation.fieldErrors.password}
+      <FormSection
+        title="Account details"
+        description="Use an email address you can check. We send a verification link before you can log in."
       >
-        <input
-          name="password"
-          type="password"
-          autoComplete="new-password"
-          minLength={8}
-          maxLength={256}
-          required
-        />
-      </AuthField>
-      <AuthField
-        label="Time zone"
-        name="timezone"
-        errors={mutation.fieldErrors.timezone}
+        <FormField
+          errorId="name-error"
+          errors={mutation.fieldErrors.name}
+          label="Name"
+        >
+          <input name="name" autoComplete="name" required maxLength={120} />
+        </FormField>
+        <FormField
+          errorId="email-error"
+          errors={mutation.fieldErrors.email}
+          label="Email"
+        >
+          <input name="email" type="email" autoComplete="email" required />
+        </FormField>
+        <FormField
+          errorId="password-error"
+          errors={mutation.fieldErrors.password}
+          label="Password"
+        >
+          <input
+            name="password"
+            type="password"
+            autoComplete="new-password"
+            minLength={8}
+            maxLength={256}
+            required
+          />
+        </FormField>
+        <FormField
+          errorId="timezone-error"
+          errors={mutation.fieldErrors.timezone}
+          label="Time zone"
+        >
+          <input
+            name="timezone"
+            defaultValue="America/Los_Angeles"
+            autoComplete="off"
+            required
+          />
+        </FormField>
+      </FormSection>
+      <FormSection
+        title="Your campus"
+        description="Pick your home school and confirm you are old enough to join."
       >
-        <input
-          name="timezone"
-          defaultValue="America/Los_Angeles"
-          autoComplete="off"
-          required
-        />
-      </AuthField>
-      <div>
-        <SchoolPicker
-          schools={schools}
-          selectedSchoolId={selectedSchoolId}
-          initialQuery={initialQuery}
-          initialSearchFailed={initialSearchFailed}
-          describedBy={
-            mutation.fieldErrors.home_school_id
-              ? "home_school_id-error"
-              : undefined
-          }
-          invalid={Boolean(mutation.fieldErrors.home_school_id?.length)}
-        />
+        <div>
+          <SchoolPicker
+            schools={schools}
+            selectedSchoolId={selectedSchoolId}
+            initialQuery={initialQuery}
+            initialSearchFailed={initialSearchFailed}
+            describedBy={
+              mutation.fieldErrors.home_school_id
+                ? "home_school_id-error"
+                : undefined
+            }
+            invalid={Boolean(mutation.fieldErrors.home_school_id?.length)}
+          />
+          <FieldError
+            id="home_school_id-error"
+            messages={mutation.fieldErrors.home_school_id}
+          />
+        </div>
+        <label className="checkbox-field">
+          <input
+            type="checkbox"
+            name="age_confirmed"
+            required
+            {...fieldErrorProps(
+              mutation.fieldErrors.age_confirmed,
+              "age_confirmed-error",
+            )}
+          />
+          <span>I confirm I am 18 or older.</span>
+        </label>
         <FieldError
-          id="home_school_id-error"
-          messages={mutation.fieldErrors.home_school_id}
+          id="age_confirmed-error"
+          messages={mutation.fieldErrors.age_confirmed}
         />
+      </FormSection>
+      <div className="form-actions">
+        <button type="submit" disabled={mutation.pending}>
+          {mutation.pending ? "Creating account…" : "Create account"}
+        </button>
       </div>
-      <label className="checkbox-field">
-        <input
-          type="checkbox"
-          name="age_confirmed"
-          required
-          {...fieldErrorProps(
-            mutation.fieldErrors.age_confirmed,
-            "age_confirmed-error",
-          )}
-        />
-        <span>I confirm I am 18 or older.</span>
-      </label>
-      <FieldError
-        id="age_confirmed-error"
-        messages={mutation.fieldErrors.age_confirmed}
-      />
-      <button type="submit" disabled={mutation.pending}>
-        {mutation.pending ? "Creating account…" : "Create account"}
-      </button>
     </form>
   );
 }
@@ -175,6 +203,8 @@ export function ForgotPasswordForm({
       onSubmit={submit}
     >
       <FormNotice
+        fieldErrors={mutation.fieldErrors}
+        fieldIds={{ email: "email-error" }}
         status={
           mutation.message
             ? mutation.status
@@ -185,10 +215,15 @@ export function ForgotPasswordForm({
                 : "idle"
         }
         message={mutation.message || initialMessage}
+        summaryRef={mutation.errorSummaryRef}
       />
-      <AuthField label="Email" name="email" errors={mutation.fieldErrors.email}>
+      <FormField
+        errorId="email-error"
+        errors={mutation.fieldErrors.email}
+        label="Email"
+      >
         <input name="email" type="email" autoComplete="email" required />
-      </AuthField>
+      </FormField>
       <button type="submit" disabled={mutation.pending}>
         {mutation.pending ? "Sending…" : "Send reset link"}
       </button>
@@ -216,12 +251,18 @@ export function ResetPasswordForm({ token }: { token: string }) {
       onSubmit={submit}
     >
       <input type="hidden" name="token" value={token} />
-      <FormNotice status={mutation.status} message={mutation.message} />
+      <FormNotice
+        fieldErrors={mutation.fieldErrors}
+        fieldIds={{ token: "token-error", password: "password-error" }}
+        status={mutation.status}
+        message={mutation.message}
+        summaryRef={mutation.errorSummaryRef}
+      />
       <FieldError id="token-error" messages={mutation.fieldErrors.token} />
-      <AuthField
-        label="New password"
-        name="password"
+      <FormField
+        errorId="password-error"
         errors={mutation.fieldErrors.password}
+        label="New password"
       >
         <input
           name="password"
@@ -231,7 +272,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
           maxLength={256}
           required
         />
-      </AuthField>
+      </FormField>
       <button type="submit" disabled={mutation.pending}>
         {mutation.pending ? "Resetting…" : "Reset password"}
       </button>
@@ -270,6 +311,8 @@ export function ResendVerificationForm({
       onSubmit={submit}
     >
       <FormNotice
+        fieldErrors={mutation.fieldErrors}
+        fieldIds={{ email: "email-error" }}
         status={
           mutation.message
             ? mutation.status
@@ -280,10 +323,15 @@ export function ResendVerificationForm({
                 : "idle"
         }
         message={mutation.message || initialMessage}
+        summaryRef={mutation.errorSummaryRef}
       />
-      <AuthField label="Email" name="email" errors={mutation.fieldErrors.email}>
+      <FormField
+        errorId="email-error"
+        errors={mutation.fieldErrors.email}
+        label="Email"
+      >
         <input name="email" type="email" autoComplete="email" required />
-      </AuthField>
+      </FormField>
       <button type="submit" disabled={mutation.pending}>
         {mutation.pending ? "Sending…" : "Resend verification"}
       </button>
@@ -318,7 +366,13 @@ export function VerifyEmailForm({ token }: { token: string }) {
         onSubmit={submit}
       >
         <input type="hidden" name="token" value={token} />
-        <FormNotice status={mutation.status} message={mutation.message} />
+        <FormNotice
+          fieldErrors={mutation.fieldErrors}
+          fieldIds={{ token: "token-error" }}
+          status={mutation.status}
+          message={mutation.message}
+          summaryRef={mutation.errorSummaryRef}
+        />
         <FieldError id="token-error" messages={mutation.fieldErrors.token} />
         <button type="submit" disabled={mutation.pending}>
           {mutation.pending ? "Verifying…" : "Verify email"}
@@ -334,37 +388,32 @@ export function VerifyEmailForm({ token }: { token: string }) {
   );
 }
 
-function AuthField({
-  children,
-  errors,
-  label,
-  name,
-}: {
-  children: ReactElement<InputHTMLAttributes<HTMLInputElement>>;
-  errors?: string[];
-  label: string;
-  name: string;
-}) {
-  const id = `${name}-error`;
-  return (
-    <label>
-      {label}
-      {cloneElement(children, fieldErrorProps(errors, id))}
-      <FieldError id={id} messages={errors} />
-    </label>
-  );
-}
-
 function FormNotice({
+  fieldErrors,
+  fieldIds,
   message,
   status,
+  summaryRef,
 }: {
+  fieldErrors?: Record<string, string[] | undefined>;
+  fieldIds?: Record<string, string>;
   message: string;
   status: "idle" | "success" | "error";
+  summaryRef?: RefObject<HTMLDivElement | null>;
 }) {
   if (!message) return null;
+  if (status === "error" && summaryRef) {
+    return (
+      <FormErrorSummary
+        fieldErrors={fieldErrors ?? {}}
+        fieldIds={fieldIds}
+        message={message}
+        summaryRef={summaryRef}
+      />
+    );
+  }
   return (
-    <p role={status === "error" ? "alert" : "status"} aria-live="polite">
+    <p role="status" aria-live="polite">
       {message}
     </p>
   );

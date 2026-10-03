@@ -1,9 +1,10 @@
-import { Avatar, Style } from "@dicebear/core";
-import critters from "@dicebear/styles/critters.json" with { type: "json" };
+import BoringAvatar from "boring-avatars";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 
-// Avatars are drawn here, from the user id alone, so no browser ever contacts
-// an avatar service. The style definition is CC0 and the library is MIT.
-const style = new Style(critters);
+// The palette follows the product's light visual system. The avatar is rendered
+// here so the browser never contacts an avatar service or learns another seed.
+const avatarColors = ["#ffbe18", "#1f4ed8", "#e6f5e9", "#f7f5ef", "#8aa5f0"];
 
 // Real ids are UUIDs. The shape check keeps the seed short and free of path or
 // markup characters; it does not look anything up, so an id that belongs to no
@@ -24,7 +25,14 @@ const svgHeaders = {
 export function avatarResponse(id: string): Response {
   if (!seedPattern.test(id)) return new Response(null, { status: 404 });
 
-  const svg = new Avatar(style, { seed: id.toLowerCase() }).toString();
+  const svg = renderToStaticMarkup(
+    createElement(BoringAvatar, {
+      colors: avatarColors,
+      name: id.toLowerCase(),
+      size: 80,
+      variant: "beam",
+    }),
+  );
   return new Response(svg, { status: 200, headers: svgHeaders });
 }
 

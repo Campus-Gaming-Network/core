@@ -46,27 +46,29 @@ function VerifyEmailPage() {
               : "We could not verify that link."}
         </h1>
       </section>
-      {verified ? (
-        <p role="status">
-          Your email is verified. <Link to="/login">Log in</Link> to continue.
-        </p>
-      ) : hasUsableToken && search.token ? (
-        <>
-          <p className="lede">
-            Select Verify email to finish confirming your address.
+      <div className="form-stack">
+        {verified ? (
+          <p role="status">
+            Your email is verified. <Link to="/login">Log in</Link> to continue.
           </p>
-          <VerifyEmailForm token={search.token} />
-        </>
-      ) : (
-        <>
-          <p role="alert">
-            {search.error
-              ? "That link is invalid or has expired."
-              : "This verification link is missing its token."}
-          </p>
-          <ResendVerificationForm initialStatus={search.resend} />
-        </>
-      )}
+        ) : hasUsableToken && search.token ? (
+          <>
+            <p className="lede">
+              Select Verify email to finish confirming your address.
+            </p>
+            <VerifyEmailForm token={search.token} />
+          </>
+        ) : (
+          <>
+            <p role="alert">
+              {search.error
+                ? "That link is invalid or has expired."
+                : "This verification link is missing its token."}
+            </p>
+            <ResendVerificationForm initialStatus={search.resend} />
+          </>
+        )}
+      </div>
     </main>
   );
 }

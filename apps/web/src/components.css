@@ -1,0 +1,336 @@
+/* Styles for pieces that render in more than one route area (event rows,
+   status labels, team marks). The root route loads this sheet after
+   styles.css, so these pieces look the same on every page. A rule that only
+   one route area uses belongs in that feature's own stylesheet. */
+
+/* Event row: the compact list item used by EventCard and the account
+   dashboard. */
+.event-list-item {
+  display: grid;
+  grid-template-columns: 3.5rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1rem;
+  padding-block: 1.1rem;
+}
+
+.event-card-heading {
+  display: block;
+  margin-block: 0.2rem;
+  font-size: 1rem;
+}
+
+.event-card-copy {
+  display: grid;
+  min-width: 0;
+  gap: 0.15rem;
+}
+
+/* Calendar tile (CalendarDate): the month on a colored band over a large day
+   number. It fills its grid column, so the column width sets its size. */
+.calendar-date {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  width: 100%;
+  overflow: hidden;
+  border: 1px solid var(--color-card-border);
+  border-radius: 0.75rem;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(41, 35, 24, 0.08);
+  text-align: center;
+}
+
+.calendar-date__month {
+  padding: 0.2rem 0;
+  color: #fff;
+  background: var(--color-calendar-band);
+  font-size: 0.625rem;
+  font-weight: 850;
+  letter-spacing: 0.12em;
+  line-height: 1.3;
+  text-transform: uppercase;
+}
+
+.calendar-date__day {
+  padding: 0.3rem 0 0.4rem;
+  color: var(--color-text);
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.calendar-date--large .calendar-date__month {
+  padding: 0.3rem 0;
+  font-size: 0.75rem;
+}
+
+.calendar-date--large .calendar-date__day {
+  padding: 0.45rem 0 0.55rem;
+  font-size: 2.25rem;
+}
+
+.event-card-action {
+  color: var(--color-primary);
+  font-size: 0.8125rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+/* Status labels (StatusLabel): a colored lifecycle label, or the neutral
+   outlined variant for plain facts. */
+.event-status {
+  width: fit-content;
+  border-radius: 0.4rem;
+  padding: 0.2rem 0.45rem;
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+  font-size: 0.6875rem;
+  font-weight: 800;
+}
+
+.event-status--happening_now {
+  color: var(--color-success);
+  background: var(--color-success-soft);
+}
+
+.event-status--full {
+  color: var(--color-danger);
+  background: var(--color-danger-soft);
+}
+
+.event-status--ended {
+  color: var(--color-muted);
+  background: var(--color-canvas);
+}
+
+.event-pill-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.event-pill {
+  border: 1px solid var(--color-border);
+  border-radius: 0.45rem;
+  padding: 0.2rem 0.55rem;
+  background: var(--color-panel);
+  font-size: 0.8125rem;
+  font-weight: 750;
+}
+
+/* Team mark: the initial tile shown beside a team name. */
+.team-mark {
+  display: inline-grid;
+  width: 2.75rem;
+  height: 2.75rem;
+  place-items: center;
+  border: 1px solid #cfd9fa;
+  border-radius: 0.75rem;
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+  font-weight: 850;
+}
+
+.team-mark--large {
+  width: 5.5rem;
+  height: 5.5rem;
+  border-radius: 1.15rem;
+  font-size: 2rem;
+}
+
+@media (max-width: 42rem) {
+  .event-card-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .event-list-item {
+    grid-template-columns: 3rem minmax(0, 1fr);
+  }
+
+  .event-card-action {
+    grid-column: 2;
+  }
+}
+
+/* Report forms appear on both the event page and public profiles. */
+.report-form {
+  margin-top: 0.75rem;
+}
+
+/* Reporting is available but out of the way: a quiet line that opens the
+   form, closed until someone asks for it. The event page and public profiles
+   share it. A visitor who is not signed in sees the same line as a link to log
+   in (`.safety-prompt`). The opened form is plain fields on the page, not a
+   card. */
+.safety-details,
+.safety-prompt {
+  margin: 1.5rem 0 0;
+  padding-top: 0.5rem;
+}
+
+.safety-details summary,
+.safety-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--color-muted);
+  font-size: 0.8125rem;
+  font-weight: 650;
+  cursor: pointer;
+  list-style: none;
+  text-decoration: none;
+}
+
+.safety-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.safety-details summary:hover,
+.safety-details summary:focus-visible,
+.safety-link:hover,
+.safety-link:focus-visible {
+  color: var(--color-text);
+}
+
+.safety-link:hover,
+.safety-link:focus-visible {
+  text-decoration: underline;
+}
+
+.safety-details[open] summary {
+  margin-bottom: 0.75rem;
+}
+
+.safety-details .form-stack {
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  background: transparent;
+}
+
+.safety-details .form-stack > button {
+  justify-self: start;
+}
+
+@media (pointer: coarse), (max-width: 42rem) {
+  .safety-details summary,
+  .safety-link {
+    min-height: 2.75rem;
+  }
+}
+
+/* A filled note with an icon: darker than the page, no border. */
+.callout {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin: 0;
+  border-radius: var(--radius-control);
+  padding: 0.85rem 1rem;
+  color: var(--color-text);
+  background: var(--color-callout);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+.callout svg {
+  flex: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-top: 0.1rem;
+}
+
+.callout p {
+  margin: 0;
+}
+
+/* Text for assistive technology only. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* A link shown as selectable monospace text with a quiet copy button. */
+.copy-link {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.15rem 0.75rem;
+  padding: 1rem 1.1rem;
+}
+
+.copy-link label {
+  grid-column: 1;
+  font-size: 0.9375rem;
+  font-weight: 750;
+}
+
+.copy-link__url {
+  grid-column: 1;
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  border-radius: 0.25rem;
+  padding: 0.15rem 0;
+  color: var(--color-muted);
+  background: transparent;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.8125rem;
+  text-overflow: ellipsis;
+}
+
+.copy-link__button {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  gap: 0.4rem;
+  padding-inline: 0.8rem;
+  font-size: 0.8125rem;
+  white-space: nowrap;
+}
+
+/* A link or label that ends (or starts) with a Lucide arrow. */
+.with-arrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.with-arrow svg {
+  flex: none;
+  transition: transform 120ms ease;
+}
+
+.card:hover .event-card-action svg,
+.card:hover .discovery-row__action svg,
+.card:hover .school-directory-action svg {
+  transform: translateX(2px);
+}
+
+/* Going and interested counts on an event row. */
+.event-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.1rem 1rem;
+  margin-top: 0.15rem;
+}
+
+.event-counts span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+/* Content for visitors only stays invisible until we know who is looking, so
+   a signed-in viewer never sees it flash. */
+.viewer-pending {
+  visibility: hidden;
+}

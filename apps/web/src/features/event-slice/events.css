@@ -4,9 +4,9 @@
   min-height: 7rem;
   margin-bottom: 1rem;
   padding: 1rem;
-  border: 1px solid #33333d;
-  border-radius: 0.75rem;
-  background: #19191f;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-panel);
+  background: var(--color-panel);
 }
 
 .event-banner--hero {
@@ -16,7 +16,7 @@
 
 .event-banner__mark {
   width: fit-content;
-  color: #c9c9d2;
+  color: var(--color-muted);
   font-size: 0.8125rem;
   font-weight: 700;
 }
@@ -27,53 +27,131 @@
 }
 
 .event-banner__copy small {
-  color: #c9c9d2;
+  color: var(--color-muted);
   font-weight: 600;
   text-transform: capitalize;
 }
 
 .event-banner__copy strong {
-  color: #f7f7f8;
+  color: var(--color-text);
   font-size: 1rem;
 }
 
-.event-list-item {
-  display: grid;
-  justify-content: stretch;
-  gap: 0.35rem;
-}
-
-.event-card-heading {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-}
-
-.event-pill-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.event-pill {
-  border: 1px solid #4b4b59;
-  border-radius: 999px;
-  padding: 0.25rem 0.6rem;
-  background: #101014;
-}
-
-.event-form fieldset {
-  display: grid;
-  gap: 1rem;
+/* Visibility radio cards. The radios are real native inputs inside labels, so
+   the group works, validates, and submits without JavaScript; :has() only
+   adds the selected and focus treatments on top of the native checked state. */
+.event-form .choice-group {
+  display: block;
+  min-width: 0;
   margin: 0;
-  border: 1px solid #33333d;
-  border-radius: 0.6rem;
-  padding: 1rem;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  background: transparent;
 }
 
-.event-form legend {
-  padding-inline: 0.35rem;
+.event-form .choice-group .form-error {
+  margin: 0.5rem 0 0;
+}
+
+.event-form .choice-group > legend {
+  margin-bottom: 0.4rem;
+  padding: 0;
+  font-size: 0.875rem;
   font-weight: 750;
+}
+
+.choice-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.event-form .choice-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-content: start;
+  align-items: center;
+  gap: 0.35rem 0.6rem;
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-control);
+  padding: 0.85rem 0.9rem;
+  background: var(--color-panel);
+  cursor: pointer;
+  font-weight: 400;
+}
+
+.event-form .choice-card input[type="radio"] {
+  width: 1.5rem;
+  height: 1.5rem;
+  margin: 0;
+  cursor: pointer;
+}
+
+.choice-card-title {
+  font-size: 0.9375rem;
+  font-weight: 800;
+}
+
+.choice-card-hint {
+  grid-column: 1 / -1;
+  color: var(--color-muted);
+  font-size: 0.8125rem;
+  line-height: 1.35;
+}
+
+.event-form .choice-card:hover {
+  border-color: var(--color-primary);
+}
+
+.event-form .choice-card:has(input:checked) {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+  box-shadow: inset 0 0 0 1px var(--color-primary);
+}
+
+.event-form .choice-card:has(input:checked) .choice-card-hint {
+  color: var(--color-text);
+}
+
+/* Draw the focus ring around the whole card rather than the small radio. */
+@supports selector(:has(*)) {
+  .event-form .choice-card:has(input:focus-visible) {
+    outline: 3px solid var(--color-primary);
+    outline-offset: 3px;
+  }
+
+  .event-form .choice-card input:focus-visible {
+    outline: none;
+  }
+}
+
+/* The password field is always present so native submissions can send it;
+   it is only highlighted while the Private card is selected. */
+.event-private-password {
+  display: grid;
+  gap: 0.5rem;
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius-control);
+  padding: 0.9rem 1rem;
+}
+
+.event-private-password .form-help {
+  margin: 0;
+  font-size: 0.8125rem;
+}
+
+.event-form:has(input[name="visibility"][value="private"]:checked)
+  .event-private-password {
+  border-style: solid;
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+}
+
+@media (max-width: 42rem) {
+  .choice-cards {
+    grid-template-columns: 1fr;
+  }
 }
 
 .event-form .split-fields {
@@ -92,20 +170,307 @@
 }
 
 .interest-form {
-  margin-block: 1rem;
+  margin: 0;
 }
 
-.report-form {
+/* A quiet toggle: outlined when off, soft blue with a filled star when on. */
+.interest-form .interest-toggle {
+  width: 100%;
+  gap: 0.5rem;
+  border-color: var(--color-control-border);
+  color: var(--color-text);
+  background: var(--color-panel);
+  box-shadow: none;
+  transform: none;
+  font-size: 0.9375rem;
+  font-weight: 650;
+}
+
+.interest-form .interest-toggle:active {
+  box-shadow: none;
+  transform: none;
+}
+
+.interest-form .interest-toggle.is-on {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+}
+
+.event-page {
+  width: min(100%, var(--content-width));
+}
+
+/* Keep the established semantic event artwork in the route contract without
+   restoring the oversized banner treatment on the redesigned detail page. */
+.event-page > .event-banner {
+  display: none;
+}
+
+.event-detail-header {
+  display: grid;
+  grid-template-columns: 4.5rem minmax(0, 1fr);
+  gap: 1.35rem;
+  align-items: start;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.event-detail-header h1 {
+  max-width: 50rem;
+  margin-block: 0.65rem 0.35rem;
+  font-size: clamp(2.25rem, 5vw, 4rem);
+  line-height: 1;
+  letter-spacing: -0.05em;
+}
+
+.event-hostline {
+  margin: 0;
+  color: var(--color-muted);
+}
+
+.event-detail-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(17rem, 21rem);
+  gap: clamp(2rem, 5vw, 4.5rem);
+  margin-top: 2rem;
+  align-items: start;
+}
+
+.event-detail-main {
+  min-width: 0;
+}
+
+.event-about h2,
+.event-detail-main .section h2 {
+  margin-block: 0.35rem 0.75rem;
+  letter-spacing: -0.025em;
+}
+
+/* Event facts sit in the main column, directly under the description. The
+   label column is narrower than the card default so labels stay next to their
+   values at this width, and the last row has no rule above the card edge. */
+.event-facts {
+  margin-top: 2rem;
+}
+
+.detail-card.event-facts .detail-row {
+  grid-template-columns: 9rem minmax(0, 1fr);
+}
+
+.detail-card.event-facts .detail-row:last-child {
+  border-bottom: 0;
+}
+
+/* RSVP is the first card in the sidebar, and so the first block on phones. */
+.rsvp-card .detail-card-body {
+  gap: 0.85rem;
+}
+
+.rsvp-card .button {
+  width: 100%;
+}
+
+.rsvp-form {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.rsvp-current {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.875rem;
+}
+
+.rsvp-current strong {
+  color: var(--color-text);
+}
+
+.rsvp-note {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.8125rem;
+}
+
+.rsvp-help {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+.rsvp-help svg {
+  flex: none;
+  margin-top: 0.15rem;
+}
+
+/* The response choice is one connected control, not three loose buttons. Each
+   segment keeps its own 1px border and overlaps its neighbor's by 1px, so the
+   selected segment's colored border draws all the way around it. */
+.rsvp-buttons {
+  display: flex;
+}
+
+.rsvp-form .rsvp-buttons > button {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  gap: 0.35rem;
+  border: 1px solid var(--color-control-border);
+  border-radius: 0;
+  padding-inline: 0.35rem;
+  color: var(--color-text);
+  background: var(--color-panel);
+  box-shadow: none;
+  transform: none;
+  font-size: 0.875rem;
+}
+
+.rsvp-form .rsvp-buttons > button + button {
+  margin-left: -1px;
+}
+
+.rsvp-form .rsvp-buttons > button:first-child {
+  border-radius: var(--radius-control) 0 0 var(--radius-control);
+}
+
+.rsvp-form .rsvp-buttons > button:last-child {
+  border-radius: 0 var(--radius-control) var(--radius-control) 0;
+}
+
+.rsvp-form .rsvp-buttons > button:hover:not(:disabled) {
+  background: var(--color-canvas);
+  filter: none;
+}
+
+.rsvp-form .rsvp-buttons > button:active {
+  box-shadow: none;
+  transform: none;
+}
+
+/* Selected: a soft tint, a 1px border, and matching text. Yes is green, Maybe
+   is blue, and No is a neutral gray rather than a dark ring. */
+.rsvp-form .rsvp-buttons > button[aria-pressed="true"] {
+  z-index: 1;
+  filter: none;
+}
+
+.rsvp-form .rsvp-buttons > button[aria-pressed="true"][value="yes"] {
+  border-color: var(--color-success);
+  color: var(--color-success);
+  background: var(--color-success-soft);
+}
+
+.rsvp-form .rsvp-buttons > button[aria-pressed="true"][value="maybe"] {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+}
+
+.rsvp-form .rsvp-buttons > button[aria-pressed="true"][value="no"] {
+  border-color: var(--color-muted);
+  color: var(--color-text);
+  background: #eeeeef;
+}
+
+/* The focus ring must sit above the selected segment's overlapping border. */
+.rsvp-form .rsvp-buttons > button:focus-visible {
+  z-index: 2;
+}
+
+.section--compact {
+  margin-top: 2.25rem;
+}
+
+.organizer-list {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0;
+  list-style: none;
+}
+
+.organizer-list li,
+.organizer-list small {
+  display: grid;
+}
+
+.organizer-list small {
+  color: var(--color-muted);
+}
+
+.event-detail-main .actions form button {
+  border-color: var(--color-danger);
+  color: #fff;
+  background: var(--color-danger);
+  box-shadow: 0 4px 0 var(--color-danger-dark);
+}
+
+.event-detail-sidebar {
+  position: sticky;
+  top: 1.5rem;
+  display: grid;
+  gap: 1rem;
+}
+
+.detail-card-row {
+  display: grid;
+  grid-template-columns: 1.25rem minmax(0, 1fr);
+  gap: 0.75rem;
+  padding: 1rem 1.1rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.detail-card-row:last-child {
+  border-bottom: 0;
+}
+
+.detail-card-row > svg {
+  margin-top: 0.1rem;
+  color: var(--color-primary);
+}
+
+.detail-card-row div,
+.detail-card-row small,
+.detail-card-row .text-action {
+  display: grid;
+}
+
+.detail-card-row small {
+  margin-top: 0.15rem;
+  color: var(--color-muted);
+}
+
+.detail-card-row .text-action {
+  width: fit-content;
   margin-top: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 750;
 }
 
 @media (max-width: 42rem) {
-  .event-card-heading {
-    align-items: flex-start;
-    flex-direction: column;
+  .event-form .split-fields {
+    grid-template-columns: 1fr;
   }
 
-  .event-form .split-fields {
+  .event-detail-header {
+    grid-template-columns: 3.5rem minmax(0, 1fr);
+    gap: 0.75rem;
+  }
+
+  .event-detail-layout {
+    grid-template-columns: 1fr;
+  }
+
+  /* One column: the sidebar comes first, with RSVP at the top of it. */
+  .event-detail-sidebar {
+    position: static;
+    order: -1;
+  }
+
+  .detail-card.event-facts .detail-row {
     grid-template-columns: 1fr;
   }
 }

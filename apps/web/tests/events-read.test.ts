@@ -51,6 +51,8 @@ const browseEvent = {
     slug: "example",
   },
   games: [{ id: "game-1", name: "Example Game", slug: "example-game" }],
+  rsvp_yes_count: 5,
+  interest_count: 8,
   viewer_interested: true,
   viewer_can_edit: true,
   unlock_token: "must-not-cross-the-browse-boundary",

@@ -39,6 +39,8 @@ for (const path of [
   "/teams",
   "/teams/joinable-browser-team",
   "/schools/follow-browser-university",
+  "/schools/summit-ridge-university",
+  "/schools/quiet-valley-college",
   "/users/reportable-player",
   "/support",
 ]) {
@@ -82,6 +84,13 @@ test("enhanced validation feedback identifies the invalid event field", async ({
   await expect(page.getByRole("alert")).toContainText(
     "Check the highlighted fields",
   );
+  await expect(page.getByRole("alert")).toBeFocused();
+  const errorLink = page.getByRole("alert").getByRole("link", {
+    name: "End time must be after start time",
+  });
+  await expect(errorLink).toBeVisible();
+  await errorLink.click();
+  await expect(endTime).toBeFocused();
   await expect(endTime).toHaveAttribute("aria-invalid", "true");
   await expect(endTime).toHaveAttribute(
     "aria-describedby",
@@ -93,6 +102,55 @@ test("enhanced validation feedback identifies the invalid event field", async ({
   await expectAccessible(page);
 });
 
+test("private event validation links to the highlighted password field", async ({
+  page,
+}) => {
+  await logIn(page, "accessibility@example.test", "/events/new");
+  await page.getByLabel("Title").fill("Private validation event");
+  await page.getByLabel("Starts at").fill("2037-08-15T13:00");
+  await page.getByLabel("Ends at").fill("2037-08-15T16:00");
+  await page.getByLabel("Games").selectOption("game-e2e");
+  await page.getByRole("radio", { name: "Private" }).check();
+  await page.getByRole("button", { name: "Create event" }).click();
+
+  await expect(page.getByRole("alert")).toBeFocused();
+  await page
+    .getByRole("alert")
+    .getByRole("link", {
+      name: "Private events require a password of at least 8 characters.",
+    })
+    .click();
+  const password = page.getByLabel("Private event password");
+  await expect(password).toBeFocused();
+  await expect(password).toHaveAttribute("aria-invalid", "true");
+  await expect(password).toHaveAttribute(
+    "aria-describedby",
+    "event-private-password-error",
+  );
+  await expectAccessible(page);
+});
+
+test("destructive confirmation returns focus when dismissed", async ({
+  page,
+}) => {
+  await logIn(page, "dialog-accessibility@example.test", "/account");
+  await page.getByLabel("Type DELETE to confirm").fill("DELETE");
+  const trigger = page.getByRole("button", { name: "Delete account" });
+  await trigger.click();
+
+  const dialog = page.getByRole("dialog", {
+    name: "Permanently delete your account?",
+  });
+  await expect(dialog).toBeVisible();
+  await expect(
+    dialog.getByRole("button", { name: "Keep account" }),
+  ).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(dialog).toBeHidden();
+  await expect(trigger).toBeFocused();
+  await expectAccessible(page);
+});
+
 test("event report API failures use an assertive error region", async ({
   page,
 }) => {
@@ -101,6 +159,7 @@ test("event report API failures use an assertive error region", async ({
     "accessibility@example.test",
     "/events/public-browser-event",
   );
+  await page.getByText("Report this event").click();
   await page.getByLabel("Reason").fill("Trigger report failure");
   await page.getByRole("button", { name: "Submit report" }).click();
 

@@ -1,34 +1,202 @@
-.summary-strip {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.75rem;
+/* Sections reached from the in-page nav stop a little below the viewport top. */
+.account-page > [id] {
+  scroll-margin-top: 1.5rem;
 }
 
-.summary-strip .card {
-  display: grid;
-  gap: 0.35rem;
-  overflow-wrap: anywhere;
+.account-page .section {
+  margin-top: clamp(1.75rem, 4vw, 2.5rem);
 }
 
-.split-fields {
-  display: grid;
-  grid-template-columns: minmax(0, 0.35fr) minmax(0, 1fr);
-  gap: 0.75rem;
+.account-page .section-heading {
+  margin-bottom: 0.75rem;
 }
 
-.form-stack fieldset {
-  display: grid;
-  gap: 0.75rem;
+.account-page .section-heading h2 {
+  font-size: clamp(1.25rem, 2.5vw, 1.5rem);
+}
+
+.account-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.account-header .avatar--large {
+  width: 4rem;
+  height: 4rem;
+  font-size: 1.5rem;
+}
+
+.account-identity {
   min-width: 0;
+  flex: 1 1 auto;
+}
+
+.account-identity h1 {
+  margin: 0.1rem 0 0.25rem;
+  font-size: clamp(1.6rem, 4vw, 2.1rem);
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+}
+
+.account-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem 1rem;
   margin: 0;
-  border: 1px solid #33333d;
-  border-radius: 0.5rem;
-  padding: 1rem;
+  color: var(--color-muted);
+  font-size: 0.875rem;
+}
+
+.account-verified {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: var(--color-success);
+  font-weight: 750;
+}
+
+.account-public-link {
+  flex: none;
+  font-size: 0.875rem;
+  font-weight: 750;
+}
+
+.account-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-top: 1.25rem;
+  padding-block: 0.5rem;
+  border-block: 1px solid var(--color-border);
+}
+
+.account-nav a {
+  display: inline-flex;
+  min-height: 2.25rem;
+  align-items: center;
+  border-radius: var(--radius-control);
+  padding-inline: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 750;
+  text-decoration: none;
+}
+
+.account-nav a:hover {
+  background: var(--color-primary-soft);
+}
+
+.account-events .event-list-item {
+  padding-block: 0.75rem;
+}
+
+.account-events .event-card-heading {
+  margin-block: 0;
+}
+
+.account-events .empty-state > :first-child {
+  margin-top: 0;
+}
+
+.account-events .empty-state > :last-child {
+  margin-bottom: 0;
+}
+
+.account-more {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.25rem 1rem;
+  margin: 0.5rem 0 0;
+  color: var(--color-muted);
+  font-size: 0.875rem;
+}
+
+.account-more .link {
+  font-weight: 750;
+}
+
+/* Followed schools and teams: one bordered row each, name first. */
+.account-rows {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--color-border);
+  list-style: none;
+}
+
+.account-rows li {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.account-row {
+  display: flex;
+  min-height: 2.75rem;
+  flex-wrap: wrap;
+  align-content: center;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.1rem 1rem;
+  padding: 0.65rem 0.5rem;
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.account-row:hover {
+  background: var(--color-panel);
+}
+
+.account-row small {
+  color: var(--color-muted);
+}
+
+.account-row-detail {
+  flex-basis: 100%;
+}
+
+.more-social-links > summary {
+  width: fit-content;
+  color: var(--color-primary);
+  font-size: 0.875rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.more-social-links-fields {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1rem;
 }
 
 @media (max-width: 42rem) {
-  .summary-strip,
-  .split-fields {
-    grid-template-columns: 1fr;
+  .account-header {
+    flex-wrap: wrap;
+  }
+
+  .account-header .avatar--large {
+    width: 3.5rem;
+    height: 3.5rem;
+    font-size: 1.25rem;
+  }
+
+  .account-public-link {
+    flex-basis: 100%;
+  }
+
+  .account-nav a {
+    min-height: 2.75rem;
+    padding-inline: 0.5rem;
+  }
+
+  /* Keep the heading and its action on one row, which the shared rule stacks. */
+  .account-page .section-heading {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
+
+  /* The whole row is the link, so the extra "View details" line is dropped. */
+  .account-events .event-card-action {
+    display: none;
   }
 }

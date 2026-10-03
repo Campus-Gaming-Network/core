@@ -40,7 +40,7 @@ service, and PostgreSQL database, with Cloudflare for DNS/protection.
 - Signup requires **18+** confirmation checkbox
 - Forgot / reset password
 - Verification levels: email verified → verified student (`.edu`) → staff/faculty
-- Profile: single **name** field, bio, social links, timezone, a drawn DiceBear Critters avatar with initials fallback; URL `/users/:id`
+- Profile: single **name** field, bio, social links, timezone, a drawn Boring Avatars Beam avatar with initials fallback; URL `/users/:id`
 - Home school selected on signup; follow additional schools afterward
 - One-time import of **all** `data/schools_seed.csv` rows as `is_active=true` (`unitid` optional on Admin Console creates)
 - Public search/browse schools (Postgres `pg_trgm`); school detail by slug (no clubs list until later)

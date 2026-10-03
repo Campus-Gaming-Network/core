@@ -1,13 +1,19 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
+import { ArrowRight } from "lucide-react";
+import { ButtonLink } from "../components/button-link";
 import { PageNoticeView } from "../components/page-notice-view";
 import { ListUnavailable, RoutePending } from "../components/route-boundaries";
+import {
+  NoScriptSchoolSearch,
+  SchoolSearchSelect,
+} from "../components/school-search-select";
 import { getEventViewerSession } from "../features/event-slice/auth.functions";
 import {
-  teamsBrowseInput,
+  teamsBrowsePageInput,
   validateTeamsSearch,
   type TeamsSearch,
 } from "../features/team-slice/contracts";
-import { getTeamsBrowse } from "../features/team-slice/team.functions";
+import { getTeamsBrowsePage } from "../features/team-slice/team.functions";
 import {
   teamBrowseNotices,
   teamsHead,
@@ -16,10 +22,10 @@ import teamCSS from "../features/team-slice/teams.css?url";
 
 export const Route = createFileRoute("/teams/")({
   validateSearch: validateTeamsSearch,
-  loaderDeps: ({ search }) => teamsBrowseInput(search),
+  loaderDeps: ({ search }) => teamsBrowsePageInput(search),
   loader: async ({ context, deps }) => {
     const [catalog, session] = await Promise.all([
-      getTeamsBrowse({ data: deps }),
+      getTeamsBrowsePage({ data: deps }),
       getEventViewerSession(),
     ]);
     if (session.status === "unavailable") {
@@ -58,10 +64,18 @@ function TeamsPage() {
     catalog.has_more && catalog.next_cursor
       ? paginationSearch(search, { after: catalog.next_cursor })
       : undefined;
+  // A school the catalog cannot name still shows as a filter that can be cleared.
+  const filteredSchool = search.school
+    ? (catalog.selectedSchool ?? {
+        id: search.school,
+        name: "Selected school",
+        slug: search.school,
+      })
+    : undefined;
 
   return (
-    <main className="narrow">
-      <section className="page-heading">
+    <main className="browse-page">
+      <section className="page-heading browse-heading">
         <p className="eyebrow">Teams</p>
         <h1>Find campus gaming teams</h1>
         <p className="lede">
@@ -70,18 +84,18 @@ function TeamsPage() {
         </p>
         <div className="actions">
           {authenticated ? (
-            <Link className="button button--primary" to="/teams/new">
+            <ButtonLink variant="primary" to="/teams/new">
               Create a team
-            </Link>
+            </ButtonLink>
           ) : (
             <>
-              <Link
-                className="button button--primary"
+              <ButtonLink
+                variant="primary"
                 to="/login"
                 search={{ next: "/teams/new" }}
               >
                 Log in to create a team
-              </Link>
+              </ButtonLink>
             </>
           )}
         </div>
@@ -91,7 +105,12 @@ function TeamsPage() {
         notice={search.team ? teamBrowseNotices[search.team] : undefined}
       />
 
-      <form action="/teams" className="search-bar" method="get">
+      <NoScriptSchoolSearch
+        action="/teams"
+        preserve={{ game: search.game, school: search.school }}
+        query={search.school_q ?? ""}
+      />
+      <form action="/teams" className="search-bar team-filter-bar" method="get">
         <label>
           Game
           <select
@@ -110,36 +129,58 @@ function TeamsPage() {
             <small>Game filters are unavailable right now.</small>
           ) : null}
         </label>
-        <label>
-          School slug
-          <input
-            name="school"
-            defaultValue={search.school}
-            placeholder="university-of-california-irvine"
-          />
-        </label>
+        <SchoolSearchSelect
+          className="team-school-filter"
+          defaultSchool={filteredSchool}
+          defaultValue={search.school ?? ""}
+          emptyLabel="All schools"
+          initialQuery={search.school_q ?? ""}
+          initialSchools={catalog.schools}
+          initialSearchFailed={catalog.schoolSearchFailed}
+          key={search.school ?? ""}
+          label="School"
+          name="school"
+          valueField="slug"
+        />
         <button type="submit">Filter</button>
+        {filteredSchool ? (
+          <p className="team-active-filter">
+            <span>
+              Showing teams from <strong>{filteredSchool.name}</strong>
+            </span>
+            <Link to="/teams" search={search.game ? { game: search.game } : {}}>
+              Clear school filter
+            </Link>
+          </p>
+        ) : null}
       </form>
 
       {catalog.teamsUnavailable ? (
         <ListUnavailable heading="Teams are unavailable right now" />
       ) : catalog.teams.length > 0 ? (
-        <div className="list">
+        <div className="list discovery-list">
           {catalog.teams.map((team) => (
             <Link
-              className="card card--default list-item block"
+              className="card card--default list-item team-discovery-row"
               key={team.id}
               to="/teams/$slug"
               params={{ slug: team.slug }}
             >
-              <span className="event-card-heading">
-                <strong>{team.name}</strong>
-                <small>
-                  {team.member_count} member{team.member_count === 1 ? "" : "s"}
-                </small>
+              <span aria-hidden="true" className="team-mark">
+                {team.name.slice(0, 1).toUpperCase()}
               </span>
-              <small>{team.games.map((game) => game.name).join(", ")}</small>
-              <small>{team.school?.name ?? "Independent team"}</small>
+              <span className="team-discovery-copy">
+                <strong>{team.name}</strong>
+                <small>{team.games.map((game) => game.name).join(", ")}</small>
+                <small>{team.school?.name ?? "Independent team"}</small>
+              </span>
+              <span className="team-member-count">
+                {team.member_count} member{team.member_count === 1 ? "" : "s"}
+              </span>
+              <span className="discovery-row__action with-arrow">
+                View team
+                <ArrowRight aria-hidden="true" size={14} strokeWidth={2.25} />
+              </span>
             </Link>
           ))}
         </div>
@@ -152,22 +193,24 @@ function TeamsPage() {
         </section>
       )}
 
-      <nav className="pagination" aria-label="Team pages">
-        {previousSearch ? (
-          <Link to="/teams" search={previousSearch}>
-            Previous
-          </Link>
-        ) : (
-          <span />
-        )}
-        {nextSearch ? (
-          <Link to="/teams" search={nextSearch}>
-            Next
-          </Link>
-        ) : (
-          <span />
-        )}
-      </nav>
+      {previousSearch || nextSearch ? (
+        <nav className="pagination" aria-label="Team pages">
+          {previousSearch ? (
+            <Link to="/teams" search={previousSearch}>
+              Previous
+            </Link>
+          ) : (
+            <span />
+          )}
+          {nextSearch ? (
+            <Link to="/teams" search={nextSearch}>
+              Next
+            </Link>
+          ) : (
+            <span />
+          )}
+        </nav>
+      ) : null}
     </main>
   );
 }

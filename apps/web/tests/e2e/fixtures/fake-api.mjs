@@ -56,6 +56,67 @@ const game = {
   slug: "strategy-arena",
 };
 
+// Schools that only the visual-regression matrix visits, so no other spec's
+// directory, popularity, or browse expectations change. The populated school
+// has events and a team; the quiet school has neither.
+const populatedSchool = {
+  ...school,
+  id: "school-populated-e2e",
+  unitid: 67890,
+  name: "Summit Ridge University",
+  alias: "SRU",
+  slug: "summit-ridge-university",
+  city: "Denver",
+  state: "CO",
+  logo_url: `http://127.0.0.1:${port}/assets/school-logos/school-populated-e2e/logo.png`,
+};
+
+const quietSchool = {
+  ...school,
+  id: "school-quiet-e2e",
+  unitid: 67891,
+  name: "Quiet Valley College",
+  alias: "QVC",
+  slug: "quiet-valley-college",
+  city: "Boise",
+  state: "ID",
+  is_main_campus: false,
+  logo_url: undefined,
+};
+
+const populatedSchoolEvents = [
+  {
+    id: "event-summit-ridge-open-night",
+    title: "Summit Ridge Open Night",
+    slug: "summit-ridge-open-night",
+    format: "in_person",
+    starts_at: "2037-09-12T01:00:00Z",
+    ends_at: "2037-09-12T04:00:00Z",
+    timezone: "America/Denver",
+    location_name: "Alpine Student Center",
+    lifecycle: "upcoming",
+    host_school: { name: populatedSchool.name },
+    games: [{ name: game.name }],
+    rsvp_yes_count: 12,
+    interest_count: 5,
+  },
+  {
+    id: "event-summit-ridge-ladder-night",
+    title: "Summit Ridge Ladder Night",
+    slug: "summit-ridge-ladder-night",
+    format: "online",
+    starts_at: "2037-09-19T02:00:00Z",
+    ends_at: "2037-09-19T04:00:00Z",
+    timezone: "America/Denver",
+    online_url: "https://summit.example.test/ladder",
+    lifecycle: "upcoming",
+    host_school: { name: populatedSchool.name },
+    games: [{ name: game.name }],
+    rsvp_yes_count: 7,
+    interest_count: 3,
+  },
+];
+
 const server = createServer(async (request, response) => {
   try {
     await handleRequest(request, response);
@@ -200,6 +261,19 @@ async function handleRequest(request, response) {
     url.pathname === `/schools/${followableSchool.slug}`
   ) {
     json(response, 200, followableSchool);
+    return;
+  }
+
+  if (method === "GET" && url.pathname === `/schools/${school.slug}`) {
+    json(response, 200, school);
+    return;
+  }
+
+  const visualSchool = [populatedSchool, quietSchool].find(
+    (candidate) => url.pathname === `/schools/${candidate.slug}`,
+  );
+  if (method === "GET" && visualSchool) {
+    json(response, 200, visualSchool);
     return;
   }
 
@@ -376,9 +450,18 @@ async function handleRequest(request, response) {
       json(response, 401, { error: "authentication_required" });
       return;
     }
+    // One account has more events than the dashboard previews.
+    const titles = (label) =>
+      session.email === "dashboard-overflow@example.test"
+        ? [1, 2, 3, 4, 5].map((number) => `${label} ${number}`)
+        : [label];
     json(response, 200, {
-      upcoming_rsvps: [dashboardEvent("Browser Dashboard RSVP", "yes")],
-      followed_school_events: [dashboardEvent("Browser Followed Event")],
+      upcoming_rsvps: titles("Browser Dashboard RSVP").map((title) =>
+        dashboardEvent(title, "yes"),
+      ),
+      followed_school_events: titles("Browser Followed Event").map((title) =>
+        dashboardEvent(title),
+      ),
     });
     return;
   }
@@ -433,6 +516,20 @@ async function handleRequest(request, response) {
       has_previous: false,
     })
   ) {
+    return;
+  }
+
+  if (
+    method === "GET" &&
+    url.pathname === "/events" &&
+    url.searchParams.get("school") === populatedSchool.slug
+  ) {
+    json(response, 200, {
+      events: populatedSchoolEvents,
+      limit: 25,
+      has_more: false,
+      has_previous: false,
+    });
     return;
   }
 
@@ -610,6 +707,25 @@ async function handleRequest(request, response) {
       has_previous: false,
     })
   ) {
+    return;
+  }
+
+  if (
+    method === "GET" &&
+    url.pathname === "/teams" &&
+    url.searchParams.get("school") === populatedSchool.slug
+  ) {
+    json(response, 200, {
+      teams: [
+        {
+          ...publicTeam(teamFor("joinable-browser-team", sessionToken)),
+          school: populatedSchool,
+        },
+      ],
+      limit: 25,
+      has_more: false,
+      has_previous: false,
+    });
     return;
   }
 
@@ -815,6 +931,8 @@ function eventBrowseItem(event) {
     lifecycle: event.lifecycle,
     host_school: { name: event.host_school.name },
     games: event.games.map(({ name }) => ({ name })),
+    rsvp_yes_count: event.rsvp_yes_count ?? 0,
+    interest_count: event.interest_count ?? 0,
   };
 }
 
@@ -887,6 +1005,8 @@ function dashboardEvent(title, viewerRsvp) {
     lifecycle: "upcoming",
     host_school: { name: school.name },
     games: [{ name: game.name }],
+    rsvp_yes_count: 3,
+    interest_count: 2,
     ...(viewerRsvp ? { viewer_rsvp: viewerRsvp } : {}),
   };
 }
@@ -903,7 +1023,7 @@ function respondToBrowseTrigger(response, filter, emptyPage) {
     json(response, 200, { unexpected: "shape" });
     return true;
   }
-  if (filter === "empty-browse") {
+  if (filter === "empty-browse" || filter === quietSchool.slug) {
     json(response, 200, emptyPage);
     return true;
   }

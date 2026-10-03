@@ -6,12 +6,15 @@ import {
   type ErrorComponentProps,
 } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { type FormEvent, useState } from "react";
+import { ArrowLeft } from "lucide-react";
+import { type FormEvent, useRef, useState } from "react";
+import { ButtonLink } from "../components/button-link";
+import { ConfirmDialog } from "../components/confirm-dialog";
 import {
-  FieldError,
-  fieldErrorProps,
+  FormErrorSummary,
   useEnhancedMutation,
 } from "../components/enhanced-mutation";
+import { FormField } from "../components/form-field";
 import { PageNoticeView } from "../components/page-notice-view";
 import { RouteErrorView, RoutePending } from "../components/route-boundaries";
 import { getEventViewerSession } from "../features/event-slice/auth.functions";
@@ -92,54 +95,70 @@ function TeamPage() {
   const search = Route.useSearch();
 
   return (
-    <main className="narrow">
-      <section className="page-heading">
-        <p className="eyebrow">Team</p>
-        <h1>{team.name}</h1>
-        <p className="lede">
-          {team.description || "Team details are coming soon."}
-        </p>
-        <div className="pill-list">
-          <span>
-            {team.member_count} member{team.member_count === 1 ? "" : "s"}
-          </span>
-          <span>{team.school?.name ?? "Independent team"}</span>
+    <main className="detail-page">
+      <Link className="back-link with-arrow" to="/teams">
+        <ArrowLeft aria-hidden="true" size={14} strokeWidth={2.25} />
+        Back to teams
+      </Link>
+      <header className="team-profile-header">
+        <span aria-hidden="true" className="team-mark team-mark--large">
+          {team.name.slice(0, 1).toUpperCase()}
+        </span>
+        <div>
+          <p className="eyebrow">Team</p>
+          <h1>{team.name}</h1>
+          <p className="lede">
+            {team.description || "Team details are coming soon."}
+          </p>
         </div>
-      </section>
+      </header>
 
       <PageNoticeView
         notice={search.team ? teamDetailNotices[search.team] : undefined}
       />
 
-      <section className="detail-grid" aria-label="Team details">
-        <div className="detail-row">
-          <span>Games</span>
-          <strong>{team.games.map((game) => game.name).join(", ")}</strong>
-        </div>
-        {team.school ? (
+      <div className="team-detail-layout">
+        <section className="detail-card" aria-labelledby="team-about">
+          <h2 id="team-about">Team details</h2>
+          <div className="detail-row">
+            <span>Games</span>
+            <strong>{team.games.map((game) => game.name).join(", ")}</strong>
+          </div>
           <div className="detail-row">
             <span>School</span>
             <strong>
-              <Link
-                className="link"
-                to="/schools/$slug"
-                params={{ slug: team.school.slug }}
-              >
-                {team.school.name}
-              </Link>
+              {team.school ? (
+                <Link
+                  className="link"
+                  to="/schools/$slug"
+                  params={{ slug: team.school.slug }}
+                >
+                  {team.school.name}
+                </Link>
+              ) : (
+                "Independent team"
+              )}
             </strong>
           </div>
-        ) : null}
-      </section>
+          <div className="detail-row">
+            <span>Members</span>
+            <strong>{team.member_count}</strong>
+          </div>
+        </section>
 
-      <section className="action-panel" aria-labelledby="team-actions">
-        <h2 id="team-actions">Team actions</h2>
-        <TeamActions
-          ownerRoster={ownerRoster}
-          slug={team.slug}
-          viewer={viewer}
-        />
-      </section>
+        <section
+          className="action-panel team-action-panel"
+          aria-labelledby="team-actions"
+        >
+          <p className="eyebrow">Membership</p>
+          <h2 id="team-actions">Join and manage</h2>
+          <TeamActions
+            ownerRoster={ownerRoster}
+            slug={team.slug}
+            viewer={viewer}
+          />
+        </section>
+      </div>
     </main>
   );
 }
@@ -160,13 +179,13 @@ function TeamActions({
           Team pages are public, but joining requires logging in and entering
           the team password.
         </p>
-        <Link
-          className="button button--primary"
+        <ButtonLink
+          variant="primary"
           to="/login"
           search={{ next: `/teams/${slug}` }}
         >
           Log in to join
-        </Link>
+        </ButtonLink>
       </>
     );
   }
@@ -218,13 +237,17 @@ function TeamJoinForm({ slug }: { slug: string }) {
       onSubmit={submit}
     >
       <input name="slug" type="hidden" value={slug} />
-      {mutation.message ? (
-        <p role="alert" aria-live="polite">
-          {mutation.message}
-        </p>
-      ) : null}
-      <label>
-        Team password
+      <FormErrorSummary
+        fieldErrors={mutation.fieldErrors}
+        fieldIds={{ password: "team-join-password-error" }}
+        message={mutation.message}
+        summaryRef={mutation.errorSummaryRef}
+      />
+      <FormField
+        errorId="team-join-password-error"
+        errors={passwordErrors}
+        label="Team password"
+      >
         <input
           autoComplete="current-password"
           minLength={8}
@@ -232,10 +255,8 @@ function TeamJoinForm({ slug }: { slug: string }) {
           name="password"
           required
           type="password"
-          {...fieldErrorProps(passwordErrors, "team-join-password-error")}
         />
-        <FieldError id="team-join-password-error" messages={passwordErrors} />
-      </label>
+      </FormField>
       <p className="form-help">
         Team pages are public. The password is checked only when you join.
       </p>
@@ -256,7 +277,7 @@ function TeamManagementPanel({
   const manageableMembers = members.filter((member) => member.role !== "owner");
 
   return (
-    <div className="form-stack team-management-panel">
+    <div className="team-management-panel">
       <section
         className="team-management-section"
         aria-labelledby="captain-management"
@@ -308,11 +329,17 @@ function CaptainManagementRow({
 }) {
   const runSetTeamCaptain = useServerFn(setTeamCaptain);
   const router = useRouter();
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const [confirming, setConfirming] = useState(false);
   const [pending, setPending] = useState(false);
   const isCaptain = member.role === "captain";
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (isCaptain && !confirming) {
+      setConfirming(true);
+      return;
+    }
     setPending(true);
     let result: TeamMutationResult | undefined;
     try {
@@ -347,6 +374,7 @@ function CaptainManagementRow({
         <button
           aria-label={`${isCaptain ? "Remove captain" : "Make captain"} ${member.name}`}
           disabled={pending}
+          ref={triggerRef}
           type="submit"
         >
           {pending
@@ -355,6 +383,19 @@ function CaptainManagementRow({
               ? "Remove captain"
               : "Make captain"}
         </button>
+        <ConfirmDialog
+          cancelLabel="Keep captain"
+          confirmLabel="Remove captain"
+          heading={`Remove ${member.name} as captain?`}
+          onClose={() => setConfirming(false)}
+          open={confirming}
+          pending={pending}
+          returnFocusRef={triggerRef}
+        >
+          <p>
+            They will remain a team member but will lose captain permissions.
+          </p>
+        </ConfirmDialog>
       </form>
     </div>
   );
@@ -369,11 +410,23 @@ function TransferOwnershipForm({
 }) {
   const runTransferTeamOwnership = useServerFn(transferTeamOwnership);
   const router = useRouter();
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const [confirming, setConfirming] = useState(false);
+  const [selectedOwnerName, setSelectedOwnerName] = useState("");
   const [pending, setPending] = useState(false);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
+    if (!confirming) {
+      const selectedID = String(form.get("new_owner_user_id") ?? "");
+      setSelectedOwnerName(
+        members.find((member) => member.user_id === selectedID)?.name ??
+          "this member",
+      );
+      setConfirming(true);
+      return;
+    }
     setPending(true);
     let result: TeamMutationResult | undefined;
     try {
@@ -416,9 +469,28 @@ function TransferOwnershipForm({
         Ownership transfer is immediate. You will remain a member after the
         transfer.
       </p>
-      <button disabled={pending} type="submit">
-        {pending ? "Transferring…" : "Transfer ownership"}
+      <button
+        className="button--destructive"
+        disabled={pending}
+        ref={triggerRef}
+        type="submit"
+      >
+        Transfer ownership
       </button>
+      <ConfirmDialog
+        cancelLabel="Keep ownership"
+        confirmLabel="Yes, transfer ownership"
+        heading={`Transfer ownership to ${selectedOwnerName}?`}
+        onClose={() => setConfirming(false)}
+        open={confirming}
+        pending={pending}
+        returnFocusRef={triggerRef}
+      >
+        <p>
+          The transfer is immediate. You will remain a member, but the new owner
+          will control team roles and future ownership transfers.
+        </p>
+      </ConfirmDialog>
     </form>
   );
 }

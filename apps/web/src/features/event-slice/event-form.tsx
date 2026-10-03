@@ -1,10 +1,13 @@
 import { useServerFn } from "@tanstack/react-start";
-import type { FormEvent, ReactNode } from "react";
+import type { FormEvent } from "react";
 import {
   FieldError,
+  FormErrorSummary,
   fieldErrorProps,
   useEnhancedMutation,
 } from "../../components/enhanced-mutation.js";
+import { FormField } from "../../components/form-field";
+import { FormSection } from "../../components/form-section";
 import { useIdempotencyKey } from "../../components/idempotency-key.js";
 import type {
   EventDTO,
@@ -33,6 +36,12 @@ type Props = {
   /** Server-rendered key for create mode; see useIdempotencyKey. */
   idempotencyKey?: string;
 };
+
+const visibilityOptions = [
+  { value: "public", label: "Public", hint: "Anyone can find this event" },
+  { value: "unlisted", label: "Unlisted", hint: "Only people with the link" },
+  { value: "private", label: "Private", hint: "Password required" },
+] as const;
 
 export function EventForm({
   mode,
@@ -81,10 +90,19 @@ export function EventForm({
     return mutation.fieldErrors[field];
   }
 
+  const errorFieldIds = Object.fromEntries(
+    Object.keys(mutation.fieldErrors).map((field) => [
+      field,
+      field === "host_school_id"
+        ? "event-school-error"
+        : `event-${field.replaceAll("_", "-")}-error`,
+    ]),
+  );
+
   return (
     <form
       action={mode === "create" ? createEvent.url : updateEvent.url}
-      className="form-stack event-form"
+      className="form-stack event-form sectioned-form"
       method="post"
       onSubmit={submit}
     >
@@ -92,95 +110,137 @@ export function EventForm({
       {mode === "create" ? (
         <input name="idempotency_key" type="hidden" value={idempotency.key} />
       ) : null}
-      {mutation.message ? (
-        <p role="alert" aria-live="polite">
-          {mutation.message}
-        </p>
-      ) : null}
+      <FormErrorSummary
+        fieldErrors={mutation.fieldErrors}
+        fieldIds={errorFieldIds}
+        message={mutation.message}
+        summaryRef={mutation.errorSummaryRef}
+      />
 
-      <EventField label="Title" name="title" errors={errors("title")}>
-        <input
-          defaultValue={event?.title ?? ""}
-          maxLength={120}
-          name="title"
-          required
-          {...fieldErrorProps(errors("title"), "event-title-error")}
-        />
-      </EventField>
-
-      <EventField
-        label="Description"
-        name="description"
-        errors={errors("description")}
+      <FormSection
+        title="Event basics"
+        description="Give people enough information to understand the event at a glance."
       >
-        <textarea
-          defaultValue={event?.description ?? ""}
-          maxLength={5000}
-          name="description"
-          rows={6}
-          {...fieldErrorProps(errors("description"), "event-description-error")}
-        />
-      </EventField>
-
-      <div className="split-fields">
-        <EventField
-          label="Visibility"
-          name="visibility"
-          errors={errors("visibility")}
+        <FormField
+          errorId="event-title-error"
+          errors={errors("title")}
+          label="Title"
         >
-          <select
-            defaultValue={event?.visibility ?? "public"}
-            name="visibility"
+          <input
+            defaultValue={event?.title ?? ""}
+            maxLength={120}
+            name="title"
             required
-            {...fieldErrorProps(errors("visibility"), "event-visibility-error")}
-          >
-            <option value="public">Public</option>
-            <option value="unlisted">Unlisted</option>
-            <option value="private">Private</option>
-          </select>
-        </EventField>
-        <EventField label="Format" name="format" errors={errors("format")}>
+          />
+        </FormField>
+
+        <FormField
+          errorId="event-description-error"
+          errors={errors("description")}
+          label="Description"
+        >
+          <textarea
+            defaultValue={event?.description ?? ""}
+            maxLength={5000}
+            name="description"
+            rows={6}
+          />
+        </FormField>
+
+        <FormField
+          errorId="event-format-error"
+          errors={errors("format")}
+          label="Format"
+        >
           <select
             defaultValue={event?.format ?? "in_person"}
             name="format"
             required
-            {...fieldErrorProps(errors("format"), "event-format-error")}
           >
             <option value="in_person">In person</option>
             <option value="online">Online</option>
             <option value="hybrid">Hybrid</option>
           </select>
-        </EventField>
-      </div>
+        </FormField>
 
-      <fieldset>
-        <legend>When</legend>
-        <p className="form-help">
-          Enter the local date and time for the selected time zone.
-        </p>
-        <EventField
-          label="Time zone"
-          name="timezone"
-          errors={errors("timezone")}
-        >
-          <select
-            defaultValue={timeZone}
-            name="timezone"
-            required
-            {...fieldErrorProps(errors("timezone"), "event-timezone-error")}
+        <fieldset className="choice-group">
+          <legend>Visibility</legend>
+          <div className="choice-cards">
+            {visibilityOptions.map((option) => (
+              <label className="choice-card" key={option.value}>
+                <input
+                  defaultChecked={
+                    (event?.visibility ?? "public") === option.value
+                  }
+                  name="visibility"
+                  required
+                  type="radio"
+                  value={option.value}
+                  {...fieldErrorProps(
+                    errors("visibility"),
+                    "event-visibility-error",
+                  )}
+                />
+                <span className="choice-card-title">{option.label}</span>
+                <span className="choice-card-hint">{option.hint}</span>
+              </label>
+            ))}
+          </div>
+          <FieldError
+            id="event-visibility-error"
+            messages={errors("visibility")}
+          />
+        </fieldset>
+
+        {/* The password stays in the form for every visibility so a native
+            submission can always send it. CSS only emphasizes it while
+            Private is selected; the server validates the combination. */}
+        <div className="event-private-password">
+          <FormField
+            errorId="event-private-password-error"
+            errors={errors("private_password")}
+            label="Private event password"
           >
+            <input
+              minLength={8}
+              maxLength={256}
+              name="private_password"
+              placeholder={
+                mode === "edit"
+                  ? "Leave blank to keep current password"
+                  : "Required for private events"
+              }
+              type="password"
+            />
+          </FormField>
+          <p className="form-help">
+            Only used when visibility is Private. Use at least 8 characters.
+          </p>
+        </div>
+      </FormSection>
+
+      <FormSection
+        title="When"
+        description="Enter the local date and time for the selected time zone."
+      >
+        <FormField
+          errorId="event-timezone-error"
+          errors={errors("timezone")}
+          label="Time zone"
+        >
+          <select defaultValue={timeZone} name="timezone" required>
             {timeZoneOptions.map((option) => (
               <option key={option.id} value={option.id}>
                 {eventTimeZoneLabel(option.id)}
               </option>
             ))}
           </select>
-        </EventField>
+        </FormField>
         <div className="split-fields">
-          <EventField
-            label="Starts at"
-            name="starts_at"
+          <FormField
+            errorId="event-starts-at-error"
             errors={errors("starts_at")}
+            label="Starts at"
           >
             <input
               defaultValue={
@@ -190,10 +250,13 @@ export function EventForm({
               required
               step={60}
               type="datetime-local"
-              {...fieldErrorProps(errors("starts_at"), "event-starts-at-error")}
             />
-          </EventField>
-          <EventField label="Ends at" name="ends_at" errors={errors("ends_at")}>
+          </FormField>
+          <FormField
+            errorId="event-ends-at-error"
+            errors={errors("ends_at")}
+            label="Ends at"
+          >
             <input
               defaultValue={
                 event ? instantToLocalDateTime(event.ends_at, timeZone) : ""
@@ -202,46 +265,31 @@ export function EventForm({
               required
               step={60}
               type="datetime-local"
-              {...fieldErrorProps(errors("ends_at"), "event-ends-at-error")}
             />
-          </EventField>
+          </FormField>
         </div>
         {mode === "create" ? (
           <>
             <div className="split-fields">
-              <EventField
-                label="Repeat"
-                name="recurrence_rule"
+              <FormField
+                errorId="event-recurrence-rule-error"
                 errors={errors("recurrence_rule")}
+                label="Repeat"
               >
-                <select
-                  defaultValue=""
-                  name="recurrence_rule"
-                  {...fieldErrorProps(
-                    errors("recurrence_rule"),
-                    "event-recurrence-rule-error",
-                  )}
-                >
+                <select defaultValue="" name="recurrence_rule">
                   <option value="">Does not repeat</option>
                   <option value="weekly">Weekly</option>
                   <option value="biweekly">Every two weeks</option>
                   <option value="monthly">Monthly</option>
                 </select>
-              </EventField>
-              <EventField
-                label="Repeat until"
-                name="recurrence_until"
+              </FormField>
+              <FormField
+                errorId="event-recurrence-until-error"
                 errors={errors("recurrence_until")}
+                label="Repeat until"
               >
-                <input
-                  name="recurrence_until"
-                  type="date"
-                  {...fieldErrorProps(
-                    errors("recurrence_until"),
-                    "event-recurrence-until-error",
-                  )}
-                />
-              </EventField>
+                <input name="recurrence_until" type="date" />
+              </FormField>
             </div>
             <p className="form-help">
               Recurring events create independent occurrences. Each occurrence
@@ -256,10 +304,12 @@ export function EventForm({
             Repeat settings cannot be changed after an event is created.
           </p>
         )}
-      </fieldset>
+      </FormSection>
 
-      <fieldset>
-        <legend>Where</legend>
+      <FormSection
+        title="Where"
+        description="Pick the host school and say where people should show up."
+      >
         <EventSchoolPicker
           defaultSchool={selectedSchool}
           defaultSchoolID={selectedSchoolID}
@@ -276,26 +326,22 @@ export function EventForm({
           messages={errors("host_school_id")}
         />
         <div className="split-fields">
-          <EventField
-            label="Location name"
-            name="location_name"
+          <FormField
+            errorId="event-location-name-error"
             errors={errors("location_name")}
+            label="Location name"
           >
             <input
               defaultValue={event?.location_name ?? ""}
               maxLength={200}
               name="location_name"
               placeholder="Student Union"
-              {...fieldErrorProps(
-                errors("location_name"),
-                "event-location-name-error",
-              )}
             />
-          </EventField>
-          <EventField
-            label="Online URL"
-            name="online_url"
+          </FormField>
+          <FormField
+            errorId="event-online-url-error"
             errors={errors("online_url")}
+            label="Online URL"
           >
             <input
               defaultValue={event?.online_url ?? ""}
@@ -303,33 +349,37 @@ export function EventForm({
               name="online_url"
               placeholder="https://..."
               type="url"
-              {...fieldErrorProps(
-                errors("online_url"),
-                "event-online-url-error",
-              )}
             />
-          </EventField>
+          </FormField>
         </div>
-        <EventField label="Address" name="address" errors={errors("address")}>
+        <FormField
+          errorId="event-address-error"
+          errors={errors("address")}
+          label="Address"
+        >
           <input
             defaultValue={event?.address ?? ""}
             maxLength={1000}
             name="address"
             placeholder="Optional for in-person or hybrid events"
-            {...fieldErrorProps(errors("address"), "event-address-error")}
           />
-        </EventField>
-      </fieldset>
+        </FormField>
+      </FormSection>
 
-      <fieldset>
-        <legend>Games and capacity</legend>
-        <EventField label="Games" name="game_ids" errors={errors("game_ids")}>
+      <FormSection
+        title="Games and capacity"
+        description="Choose what will be played and how many can attend."
+      >
+        <FormField
+          errorId="event-game-ids-error"
+          errors={errors("game_ids")}
+          label="Games"
+        >
           <select
             defaultValue={event?.games.map((game) => game.id)}
             multiple
             name="game_ids"
             required
-            {...fieldErrorProps(errors("game_ids"), "event-game-ids-error")}
           >
             {games.map((game) => (
               <option key={game.id} value={game.id}>
@@ -342,11 +392,11 @@ export function EventForm({
               </option>
             ))}
           </select>
-        </EventField>
-        <EventField
-          label="Capacity"
-          name="capacity"
+        </FormField>
+        <FormField
+          errorId="event-capacity-error"
           errors={errors("capacity")}
+          label="Capacity"
         >
           <input
             defaultValue={event?.capacity?.toString() ?? ""}
@@ -354,34 +404,14 @@ export function EventForm({
             name="capacity"
             placeholder="Optional"
             type="number"
-            {...fieldErrorProps(errors("capacity"), "event-capacity-error")}
           />
-        </EventField>
-      </fieldset>
+        </FormField>
+      </FormSection>
 
-      <fieldset>
-        <legend>Private and paid event details</legend>
-        <EventField
-          label="Private event password"
-          name="private_password"
-          errors={errors("private_password")}
-        >
-          <input
-            minLength={8}
-            maxLength={256}
-            name="private_password"
-            placeholder={
-              mode === "edit"
-                ? "Leave blank to keep current password"
-                : "Required for private events"
-            }
-            type="password"
-            {...fieldErrorProps(
-              errors("private_password"),
-              "event-private-password-error",
-            )}
-          />
-        </EventField>
+      <FormSection
+        title="Paid event details"
+        description="Off-site payment info for events that charge attendees."
+      >
         <label className="checkbox-field">
           <input
             defaultChecked={event?.is_paid}
@@ -390,10 +420,10 @@ export function EventForm({
           />
           <span>This event has off-site payment instructions.</span>
         </label>
-        <EventField
-          label="Payment note"
-          name="payment_note"
+        <FormField
+          errorId="event-payment-note-error"
           errors={errors("payment_note")}
+          label="Payment note"
         >
           <textarea
             defaultValue={event?.payment_note ?? ""}
@@ -401,16 +431,12 @@ export function EventForm({
             name="payment_note"
             placeholder="Tell attendees how payment works outside CGN."
             rows={3}
-            {...fieldErrorProps(
-              errors("payment_note"),
-              "event-payment-note-error",
-            )}
           />
-        </EventField>
-        <EventField
-          label="Payment URL"
-          name="payment_url"
+        </FormField>
+        <FormField
+          errorId="event-payment-url-error"
           errors={errors("payment_url")}
+          label="Payment URL"
         >
           <input
             defaultValue={event?.payment_url ?? ""}
@@ -418,46 +444,21 @@ export function EventForm({
             name="payment_url"
             placeholder="https://..."
             type="url"
-            {...fieldErrorProps(
-              errors("payment_url"),
-              "event-payment-url-error",
-            )}
           />
-        </EventField>
-      </fieldset>
+        </FormField>
+      </FormSection>
 
-      <button disabled={mutation.pending} type="submit">
-        {mutation.pending
-          ? mode === "create"
-            ? "Creating…"
-            : "Saving…"
-          : mode === "create"
-            ? "Create event"
-            : "Save event"}
-      </button>
+      <div className="form-actions">
+        <button disabled={mutation.pending} type="submit">
+          {mutation.pending
+            ? mode === "create"
+              ? "Creating…"
+              : "Saving…"
+            : mode === "create"
+              ? "Create event"
+              : "Save event"}
+        </button>
+      </div>
     </form>
-  );
-}
-
-function EventField({
-  children,
-  errors,
-  label,
-  name,
-}: {
-  children: ReactNode;
-  errors?: string[];
-  label: string;
-  name: string;
-}) {
-  return (
-    <label>
-      {label}
-      {children}
-      <FieldError
-        id={`event-${name.replaceAll("_", "-")}-error`}
-        messages={errors}
-      />
-    </label>
   );
 }

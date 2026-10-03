@@ -8,6 +8,7 @@ import {
   validateTransferTeamOwnershipServerInput,
   teamDtoSchema,
   teamsBrowseInput,
+  teamsBrowsePageInput,
   validateTeamDetailSearch,
   validateNewTeamSearch,
   validateTeamsSearch,
@@ -20,6 +21,7 @@ import {
   setTeamCaptainOperation,
   teamDetailOperation,
   teamsBrowseOperation,
+  teamsBrowsePageOperation,
   transferTeamOwnershipOperation,
 } from "../src/features/team-slice/team-operations.server.js";
 import {
@@ -151,6 +153,126 @@ test("team and game browse failures independently degrade to bounded empty resul
   );
 });
 
+test("team browse page names the filtered school and loads school search matches", async () => {
+  const calls: string[] = [];
+  const exampleSchool = {
+    id: "school-1",
+    name: "Example University",
+    slug: "example-university",
+    city: "Irvine",
+    state: "CA",
+  };
+  const result = await teamsBrowsePageOperation(
+    {
+      game: "",
+      school: "example-university",
+      schoolQuery: "exam",
+      after: "",
+      before: "",
+    },
+    {
+      api: client(async (input) => {
+        const url = String(input);
+        calls.push(url);
+        if (url === "http://api:8080/schools/example-university") {
+          return Response.json({
+            ...exampleSchool,
+            zip: "92617",
+            website_url: "https://example.test",
+          });
+        }
+        if (url === "http://api:8080/schools?q=exam&limit=50") {
+          return Response.json({
+            schools: [exampleSchool],
+            limit: 50,
+            offset: 0,
+            has_more: false,
+          });
+        }
+        return url.endsWith("/games")
+          ? Response.json({ games: [] })
+          : Response.json({
+              teams: [],
+              limit: 25,
+              has_more: false,
+              has_previous: false,
+            });
+      }),
+    },
+  );
+
+  assert.deepEqual(result, {
+    teams: [],
+    limit: 25,
+    has_more: false,
+    has_previous: false,
+    games: [],
+    gamesUnavailable: false,
+    teamsUnavailable: false,
+    selectedSchool: exampleSchool,
+    schools: [exampleSchool],
+    schoolSearchFailed: false,
+  });
+  assert.deepEqual(
+    new Set(calls),
+    new Set([
+      "http://api:8080/games",
+      "http://api:8080/schools/example-university",
+      "http://api:8080/schools?q=exam&limit=50",
+      "http://api:8080/teams?school=example-university&limit=25",
+    ]),
+  );
+});
+
+test("team browse page treats an unknown school as unnamed and reports a failed school search", async () => {
+  const reported: unknown[] = [];
+  const result = await teamsBrowsePageOperation(
+    {
+      game: "",
+      school: "missing-university",
+      schoolQuery: "exam",
+      after: "",
+      before: "",
+    },
+    {
+      api: client(async (input) => {
+        const url = String(input);
+        if (url.includes("/schools/")) {
+          return Response.json({ error: "school_not_found" }, { status: 404 });
+        }
+        if (url.includes("/schools?")) {
+          return Response.json(
+            { error: "database_unavailable" },
+            { status: 503 },
+          );
+        }
+        return url.endsWith("/games")
+          ? Response.json({ games: [] })
+          : Response.json({
+              teams: [],
+              limit: 25,
+              has_more: false,
+              has_previous: false,
+            });
+      }),
+      reportError: (error) => reported.push(error),
+    },
+  );
+
+  assert.deepEqual(result, {
+    teams: [],
+    limit: 25,
+    has_more: false,
+    has_previous: false,
+    games: [],
+    gamesUnavailable: false,
+    teamsUnavailable: false,
+    schools: [],
+    schoolSearchFailed: true,
+  });
+  assert.equal(reported.length, 1);
+});
+
 test("team detail forwards viewer cookies and returns only the minimal owner roster", async () => {
   let input: string | URL | Request | undefined;
   let init: RequestInit | undefined;
@@ -242,6 +364,7 @@ test("team search normalization is tolerant, bounded, and preserves opaque curso
     validateTeamsSearch({
       game: [" rocket-league ", "ignored"],
       school: " example-university ",
+      school_q: [" exam ", "ignored"],
       after: " cursor-a ",
       before: " cursor-b ",
       ignored: { nested: true },
@@ -249,12 +372,17 @@ test("team search normalization is tolerant, bounded, and preserves opaque curso
     {
       game: "rocket-league",
       school: "example-university",
+      school_q: "exam",
       after: "cursor-a",
       before: "cursor-b",
     },
   );
   assert.deepEqual(
-    validateTeamsSearch({ game: "x".repeat(201), after: 7 }),
+    validateTeamsSearch({
+      game: "x".repeat(201),
+      school_q: "x".repeat(121),
+      after: 7,
+    }),
     {},
   );
   assert.deepEqual(
@@ -264,6 +392,20 @@ test("team search normalization is tolerant, bounded, and preserves opaque curso
       school: "",
       after: "opaque",
       before: "",
+    },
+  );
+  assert.deepEqual(
+    teamsBrowsePageInput({
+      game: "rocket-league",
+      school_q: "exam",
+      after: "opaque",
+    }),
+    {
+      game: "rocket-league",
+      school: "",
+      after: "opaque",
+      before: "",
+      schoolQuery: "exam",
     },
   );
   assert.deepEqual(validateTeamDetailSearch({ team: " joined " }), {

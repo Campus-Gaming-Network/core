@@ -1,7 +1,42 @@
 :root {
-  color-scheme: dark;
-  color: #f7f7f8;
-  background: #121216;
+  color-scheme: light;
+  --color-canvas: #f7f5ef;
+  --color-surface: #fffefa;
+  --color-panel: #ffffff;
+  --color-text: #17191f;
+  --color-muted: #676b76;
+  --color-border: #e1ddd4;
+  --color-border-strong: #d5d0c7;
+  /* Cards sit a shade lighter than the canvas, with a hairline a shade darker
+     than it, so the edge reads without a hard white-on-beige contrast. */
+  --color-card: #fffdf8;
+  --color-card-border: #e6e1d4;
+  /* A filled note: darker than the canvas, with no border. */
+  --color-callout: #ebe7da;
+  /* The month band on calendar tiles. */
+  --color-calendar-band: var(--color-primary);
+  /* Form control edges: 3:1 against white and the page canvas (WCAG 1.4.11). */
+  --color-control-border: #8f8a80;
+  --color-primary: #1f4ed8;
+  --color-primary-dark: #173a9e;
+  /* Text links while pressed: one step darker than --color-primary-dark. */
+  --color-primary-pressed: #133082;
+  --color-primary-soft: #edf2ff;
+  --color-accent: #ffbe18;
+  --color-accent-soft: #fff1bd;
+  --color-success: #246b3c;
+  --color-success-soft: #e6f5e9;
+  --color-danger: #bd3b2a;
+  --color-danger-dark: #8f2c20;
+  --color-danger-soft: #fbe9e6;
+  --shadow-window: 0 18px 60px rgba(41, 35, 24, 0.09);
+  --shadow-raised: 0 4px 0 var(--color-primary-dark);
+  --radius-small: 0.5rem;
+  --radius-control: 0.625rem;
+  --radius-panel: 1rem;
+  --content-width: 72rem;
+  color: var(--color-text);
+  background: var(--color-canvas);
   font-family:
     Inter,
     ui-sans-serif,
@@ -16,16 +51,105 @@
   box-sizing: border-box;
 }
 
+html {
+  background: var(--color-canvas);
+}
+
 body {
   min-height: 100vh;
   min-height: 100svh;
   margin: 0;
-  background: #121216;
+  color: var(--color-text);
+  background: var(--color-canvas);
   line-height: 1.5;
 }
 
 a {
-  color: #67b7ff;
+  color: var(--color-primary);
+}
+
+/* Text links.
+   A plain link is underlined at rest. Hover and keyboard focus darken it to
+   --color-primary-dark and thicken the underline to 2px, and pressing it
+   darkens it once more (--color-primary-pressed). Focus keeps the global ring
+   below and shows the same change, so it is not signalled by color alone.
+
+   Cards, buttons, the brand, the skip link, and the header keep their own
+   states and are excluded. The shared rules wrap their conditions in :where(),
+   so they weigh the same as the base `a` rule (one element): any component or
+   route rule that sets a color or removes the underline still wins, which is
+   how `.card`, `.account-row`, and the tab links keep their own hover. Keep
+   them below the base rule. The link classes that set their own color or
+   underline, or sit on a tinted surface, get matching rules after the shared
+   ones, written with real selectors so they outweigh the class that owns the
+   color. Contrast of the darkened colors is 8.4:1 or better on the canvas,
+   white, and every tinted notice background. */
+a:where(:not(.button, .card, .brand, .skip-link, .site-header a)) {
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+  transition:
+    color 120ms ease,
+    text-decoration-thickness 120ms ease;
+}
+
+a:where(:not(.button, .card, .brand, .skip-link, .site-header a)):where(
+    :hover,
+    :focus-visible
+  ) {
+  color: var(--color-primary-dark);
+  text-decoration-thickness: 2px;
+}
+
+a:where(:not(.button, .card, .brand, .skip-link, .site-header a)):where(
+    :active
+  ) {
+  color: var(--color-primary-pressed);
+  text-decoration-thickness: 2px;
+}
+
+a.link:hover,
+a.link:focus-visible {
+  color: var(--color-primary-dark);
+}
+
+a.link:active {
+  color: var(--color-primary-pressed);
+}
+
+.site-footer a:hover,
+.site-footer a:focus-visible {
+  color: var(--color-text);
+}
+
+.form-error-summary a:hover,
+.form-error-summary a:focus-visible {
+  color: var(--color-danger-dark);
+}
+
+/* Quiet links drop the underline at rest and gain it on hover and focus. */
+.back-link:hover,
+.back-link:focus-visible {
+  color: var(--color-text);
+  text-decoration-line: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.18em;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button,
+.button {
+  transition:
+    box-shadow 120ms ease,
+    transform 120ms ease,
+    background-color 120ms ease,
+    border-color 120ms ease,
+    filter 120ms ease;
 }
 
 .skip-link {
@@ -34,10 +158,10 @@ a {
   top: 0.75rem;
   left: 0.75rem;
   padding: 0.65rem 0.9rem;
-  border-radius: 0.4rem;
-  color: #121216;
-  background: #f7f7f8;
-  font-weight: 700;
+  border-radius: var(--radius-small);
+  color: #fff;
+  background: var(--color-primary);
+  font-weight: 750;
   transform: translateY(calc(-100% - 1rem));
 }
 
@@ -48,32 +172,74 @@ a {
 main,
 .site-header,
 .site-footer {
-  width: min(100%, 72rem);
+  width: min(100%, var(--content-width));
   margin-inline: auto;
-  padding: 1rem;
+  padding-inline: clamp(1rem, 4vw, 2.25rem);
 }
 
 main {
   min-height: calc(100vh - 10rem);
   min-height: calc(100svh - 10rem);
-  padding-block: 4rem;
+  padding-block: clamp(2.5rem, 6vw, 4.5rem);
   overflow-wrap: anywhere;
 }
 
 .narrow {
-  width: min(100%, 52rem);
+  width: min(100%, 58rem);
+}
+
+.browse-page,
+.detail-page {
+  width: min(100%, var(--content-width));
 }
 
 .auth-page {
-  width: min(100%, 36rem);
+  display: grid;
+  width: min(100%, 62rem);
+  grid-template-columns: minmax(15rem, 0.75fr) minmax(20rem, 1.25fr);
+  column-gap: clamp(2rem, 6vw, 5rem);
+  row-gap: 1.5rem;
+  align-content: start;
+  align-items: start;
 }
 
+.auth-page > .page-heading {
+  position: sticky;
+  top: 2rem;
+}
+
+.auth-page > .form-footer {
+  grid-column: 2;
+  margin: 0;
+}
+
+/* The shell bands span the full viewport while their content stays in the
+   centered column. A huge spread shadow paints the band without adding
+   scrollable overflow; clip-path keeps it to the band's own rows. The header
+   paints its band on a ::before layer, because clip-path on the header itself
+   would also clip the account menu where it hangs below the band. The header is
+   a stacking context above the page so that menu overlaps the content. */
 .site-header {
+  position: relative;
+  z-index: 20;
   display: flex;
+  min-height: 4.25rem;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
-  border-bottom: 1px solid #33333d;
+  gap: 1.5rem;
+  background: var(--color-panel);
+}
+
+.site-header::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  content: "";
+  background: var(--color-panel);
+  box-shadow:
+    0 0 0 100vmax var(--color-panel),
+    0 1px 0 100vmax var(--color-border);
+  clip-path: inset(0 -100vmax -1px -100vmax);
 }
 
 .site-header form {
@@ -89,93 +255,435 @@ main {
   gap: 1rem;
 }
 
+.site-header nav a:not(.button),
+.site-header nav button {
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  padding: 0.75rem 0;
+  color: var(--color-muted);
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.site-header nav button:hover:not(:disabled),
+.site-header nav button:focus-visible {
+  filter: none;
+  border-bottom-color: var(--color-accent);
+  color: var(--color-text);
+}
+
+.site-header nav button[type="submit"]:active {
+  box-shadow: none;
+  transform: none;
+}
+
+.site-header nav .nav-pending {
+  visibility: hidden;
+}
+
+.site-header nav .button--primary {
+  padding: 0.45rem 0.95rem;
+  box-shadow: 0 2px 0 var(--color-primary-dark);
+  transform: none;
+  font-size: 0.875rem;
+}
+
+.site-header nav .button--primary:active {
+  box-shadow: none;
+  transform: translateY(1px);
+}
+
+.site-header nav a:not(.button)[aria-current="page"],
+.site-header nav a:not(.button):hover,
+.site-header nav a:not(.button):focus-visible {
+  border-bottom-color: var(--color-accent);
+  color: var(--color-text);
+}
+
+/* Account menu, shown once the viewer is known. The trigger reads like the
+   other nav links (accent underline on hover and while open) with a small
+   avatar and the first name. The panel is a disclosure of links and a native
+   logout form, positioned under the trigger and right-aligned to the header
+   content. The selectors carry the extra classes needed to beat the nav's
+   link and button rules above. */
+.site-header nav .account-menu {
+  position: relative;
+}
+
+.site-header nav .account-menu__trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-block: 0.5rem;
+}
+
+.site-header nav .account-menu__trigger[aria-expanded="true"] {
+  border-bottom-color: var(--color-accent);
+  color: var(--color-text);
+}
+
+.account-menu__name {
+  min-width: 0;
+  max-width: 7rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-menu__chevron {
+  flex: none;
+  transition: transform 120ms ease;
+}
+
+.account-menu__trigger[aria-expanded="true"] .account-menu__chevron {
+  transform: rotate(180deg);
+}
+
+.site-header nav .account-menu__panel {
+  position: absolute;
+  z-index: 1;
+  top: calc(100% + 0.75rem);
+  right: 0;
+  display: grid;
+  width: max-content;
+  min-width: 13rem;
+  max-width: min(18rem, calc(100vw - 2rem));
+  gap: 0.125rem;
+  padding: 0.375rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-panel);
+  background: var(--color-panel);
+  box-shadow: var(--shadow-window);
+}
+
+.site-header nav .account-menu__panel[hidden] {
+  display: none;
+}
+
+.site-header nav .account-menu .account-menu__item {
+  display: flex;
+  width: 100%;
+  min-height: 2.75rem;
+  align-items: center;
+  justify-content: flex-start;
+  border: 0;
+  border-radius: var(--radius-small);
+  padding: 0.5rem 0.75rem;
+  color: var(--color-text);
+  background: transparent;
+  box-shadow: none;
+  filter: none;
+  transform: none;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  outline-offset: -3px;
+}
+
+.site-header nav .account-menu .account-menu__item:hover:not(:disabled),
+.site-header nav .account-menu .account-menu__item:focus-visible {
+  background: var(--color-canvas);
+}
+
+.site-header nav .account-menu .account-menu__item[aria-current="page"] {
+  background: var(--color-accent-soft);
+}
+
+.site-header nav .account-menu__panel .logout-form {
+  margin-top: 0.25rem;
+  padding-top: 0.25rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.site-header nav .account-menu__panel [role="alert"] {
+  margin-bottom: 0.25rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
 .site-footer {
-  border-top: 1px solid #33333d;
+  min-height: 5rem;
+  color: var(--color-muted);
+  background: var(--color-surface);
+  box-shadow:
+    0 0 0 100vmax var(--color-surface),
+    0 -1px 0 100vmax var(--color-border);
+  clip-path: inset(-1px -100vmax 0 -100vmax);
+  font-size: 0.875rem;
+}
+
+.site-footer strong {
+  margin-right: auto;
+  color: var(--color-text);
+}
+
+.site-footer a {
+  color: var(--color-muted);
 }
 
 .brand {
-  color: inherit;
-  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
+  color: var(--color-text);
+  font-weight: 800;
+  letter-spacing: -0.02em;
   text-decoration: none;
+  white-space: nowrap;
+}
+
+.brand-mark {
+  display: inline-grid;
+  width: 1.875rem;
+  height: 1.875rem;
+  place-items: center;
+  border-radius: 0.55rem;
+  color: #17191f;
+  background: var(--color-accent);
+  font-size: 0.875rem;
 }
 
 .page-heading {
   margin-bottom: 2rem;
 }
 
-.hero {
+.page-heading h1 {
+  max-width: 50rem;
+  margin-block: 0.35rem 0.75rem;
+  font-size: clamp(2.2rem, 6vw, 4rem);
+  line-height: 1.02;
+  letter-spacing: -0.045em;
+}
+
+.browse-heading {
   display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(16rem, 0.6fr);
-  gap: 2rem;
-  align-items: center;
+  max-width: 54rem;
+  gap: 0.2rem;
+  margin-bottom: 2.25rem;
+}
+
+.back-link {
+  display: inline-flex;
+  margin-bottom: 2rem;
+  color: var(--color-muted);
+  font-size: 0.875rem;
+  font-weight: 750;
+  text-decoration: none;
+}
+
+.hero {
+  max-width: 54rem;
+  padding-block: clamp(0.5rem, 2vw, 1.5rem) 0;
 }
 
 .hero h1 {
-  margin-block: 0.25rem 0.75rem;
-  font-size: clamp(2.5rem, 7vw, 5rem);
-  line-height: 1;
+  max-width: 44rem;
+  margin-block: 0.25rem 0.85rem;
+  font-size: clamp(2.75rem, 7vw, 5.25rem);
+  line-height: 0.98;
+  letter-spacing: -0.055em;
+}
+
+.hero-note {
+  margin-top: 1.4rem;
+  color: var(--color-muted);
+  font-size: 0.9rem;
+}
+
+.eyebrow {
+  margin-bottom: 0;
+  color: #846700;
+  font-size: 0.75rem;
+  font-weight: 850;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+/* A short rule before the label. It is decoration only, so it adds no text. */
+.eyebrow::before {
+  display: inline-block;
+  width: 1.25rem;
+  height: 2px;
+  margin-right: 0.6rem;
+  border-radius: 1px;
+  background: currentColor;
+  content: "";
+  vertical-align: middle;
+}
+
+.lede {
+  max-width: 50rem;
+  color: var(--color-muted);
+  font-size: 1.05rem;
+  line-height: 1.65;
 }
 
 .feature-board,
 .card,
-.empty-state {
-  border: 1px solid #33333d;
-  border-radius: 0.75rem;
-  background: #19191f;
+.empty-state,
+.action-panel {
+  border: 1px solid var(--color-card-border);
+  border-radius: var(--radius-panel);
+  background: var(--color-card);
 }
 
 .feature-board,
-.empty-state {
-  padding: 1.25rem;
+.empty-state,
+.action-panel {
+  padding: clamp(1.25rem, 3vw, 1.75rem);
+}
+
+.feature-board {
+  box-shadow: var(--shadow-window);
 }
 
 .board-kicker {
   margin-top: 0;
-  color: #c9c9d2;
+  color: var(--color-muted);
+  font-weight: 750;
 }
 
 .game-grid,
-.card-grid {
+.card-grid,
+.pill-list,
+.event-pill-list {
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem;
 }
 
-.chip {
-  border: 1px solid #4b4b59;
-  border-radius: 999px;
-  padding: 0.35rem 0.65rem;
-  background: #101014;
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.chip,
+.event-pill,
+.pill-list > span {
+  width: fit-content;
+  border: 1px solid var(--color-border);
+  border-radius: 0.45rem;
+  padding: 0.3rem 0.6rem;
+  color: var(--color-text);
+  background: var(--color-panel);
+  font-size: 0.8125rem;
+  font-weight: 750;
 }
 
 .section {
-  margin-top: 4rem;
+  margin-top: clamp(3rem, 7vw, 5rem);
+}
+
+.home-page .section {
+  margin-top: clamp(2.25rem, 5vw, 3.25rem);
+}
+
+/* "How it works": numbered steps. The ordered list carries the order; the
+   number shown on each card is generated, so it adds nothing to read aloud. */
+.steps {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+}
+
+.step {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-content: start;
+  align-items: baseline;
+  gap: 0.6rem 0.6rem;
+  padding: 1.25rem;
+  counter-increment: step;
+}
+
+.step::before {
+  color: var(--color-primary);
+  content: counter(step, decimal-leading-zero);
+  font-size: 0.8125rem;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+}
+
+.step h3 {
+  margin: 0;
+  font-size: 1.125rem;
+  letter-spacing: -0.02em;
+}
+
+.step p {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.9375rem;
+}
+
+@media (max-width: 52rem) {
+  .steps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 32rem) {
+  .steps {
+    grid-template-columns: 1fr;
+  }
 }
 
 .section-heading {
-  margin-bottom: 1.5rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 0.25rem 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.section-heading .eyebrow {
+  grid-column: 1 / -1;
+}
+
+.section-heading h2 {
+  margin: 0;
+  font-size: clamp(1.55rem, 3vw, 2rem);
+  letter-spacing: -0.03em;
 }
 
 .card {
-  padding: 1rem;
-  color: inherit;
+  padding: 1.1rem;
+  color: var(--color-text);
   text-decoration: none;
+}
+
+.card--default:hover {
+  border-color: var(--color-border-strong);
+  background: #fffdf8;
 }
 
 .school-card {
   display: grid;
-  flex: 1 1 16rem;
   gap: 0.35rem;
 }
 
 .school-card small,
-.list-item small {
-  color: #c9c9d2;
+.list-item small,
+.form-help,
+.form-footer {
+  color: var(--color-muted);
 }
 
 .school-logo {
   flex: none;
-  border-radius: 0.5rem;
+  border-radius: var(--radius-small);
   background: #fff;
   object-fit: contain;
 }
@@ -196,14 +704,13 @@ main {
   flex: 0 0 auto;
   place-items: center;
   overflow: hidden;
-  border: 1px solid #4b4b59;
+  border: 1px solid #cfe4d5;
   border-radius: 999px;
-  color: #fff;
-  background: #1d4b70;
+  color: var(--color-success);
+  background: var(--color-success-soft);
   object-fit: cover;
 }
 
-/* The picture covers the initials; if it cannot load, the initials remain. */
 .avatar img {
   position: absolute;
   inset: 0;
@@ -216,7 +723,14 @@ main {
   width: 5rem;
   height: 5rem;
   font-size: 2rem;
-  font-weight: 700;
+  font-weight: 750;
+}
+
+.avatar--small {
+  width: 1.75rem;
+  height: 1.75rem;
+  font-size: 0.6875rem;
+  font-weight: 750;
 }
 
 .profile-hero {
@@ -232,27 +746,187 @@ main {
 
 .search-bar {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(6rem, 0.25fr) auto;
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr));
+  gap: 0.75rem;
   align-items: end;
   margin-bottom: 2rem;
+  padding: 1rem;
+  border: 1px solid var(--color-card-border);
+  border-radius: var(--radius-panel);
+  background: var(--color-card);
+}
+
+.filter-bar {
+  position: relative;
+  z-index: 1;
+  margin-bottom: 1.25rem;
+  box-shadow: 0 8px 28px rgba(41, 35, 24, 0.05);
+}
+
+.school-directory-page .browse-heading {
+  max-width: 45rem;
+}
+
+.school-directory-page .browse-heading h1 {
+  font-size: clamp(2.5rem, 6vw, 4.25rem);
+}
+
+.school-filter-bar {
+  grid-template-columns: minmax(16rem, 1fr) auto;
+  padding: 1.1rem;
+}
+
+.school-filter-bar button {
+  min-width: 9rem;
+}
+
+.results-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-block: 2rem 1rem;
+}
+
+.results-heading h2,
+.results-heading p {
+  margin: 0;
+}
+
+.results-heading h2 {
+  margin-top: 0.25rem;
+  font-size: 1.5rem;
+}
+
+.results-heading > span {
+  color: var(--color-muted);
+  font-size: 0.875rem;
+}
+
+.school-directory-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: clamp(2rem, 5vw, 4rem);
+}
+
+.school-directory-card {
+  display: grid;
+  min-height: 6.5rem;
+  grid-template-columns: 2.75rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1rem;
+  border-width: 0 0 1px;
+  border-radius: 0;
+  padding-inline: 0;
+  background: transparent;
+}
+
+.school-directory-card.card--default:hover {
+  border-color: var(--color-border-strong);
+  background: transparent;
+}
+
+.school-directory-card.card--default:hover .school-directory-copy strong,
+.school-directory-card.card--default:hover .school-directory-action {
+  color: var(--color-primary);
+}
+
+.school-directory-mark {
+  position: relative;
+  display: inline-grid;
+  width: 2.75rem;
+  height: 2.75rem;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid #cfd9fa;
+  border-radius: 0.75rem;
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+  font-weight: 850;
+}
+
+.school-directory-mark .school-logo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.school-directory-mark--large {
+  width: 4rem;
+  height: 4rem;
+  border-radius: 1rem;
+  font-size: 1.5rem;
+}
+
+.school-directory-mark--large .school-logo {
+  padding: 0.3rem;
+}
+
+.school-directory-copy {
+  display: grid;
+  min-width: 0;
+  gap: 0.2rem;
+}
+
+.school-directory-copy small {
+  color: var(--color-muted);
+  font-size: 0.8125rem;
+}
+
+.school-directory-action {
+  color: var(--color-primary);
+  font-size: 0.8125rem;
+  font-weight: 800;
+  white-space: nowrap;
 }
 
 .search-bar label {
   display: grid;
   gap: 0.4rem;
-  font-weight: 650;
+  font-size: 0.8125rem;
+  font-weight: 750;
 }
 
 .list {
   display: grid;
-  gap: 0.75rem;
+}
+
+.discovery-list {
+  border-top: 1px solid var(--color-border);
+}
+
+.discovery-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  padding-block: 1.15rem;
+}
+
+.discovery-row__meta {
+  color: var(--color-muted);
+  font-size: 0.875rem;
+}
+
+.discovery-row__action {
+  color: var(--color-primary);
+  font-size: 0.8125rem;
+  font-weight: 800;
+  white-space: nowrap;
 }
 
 .list-item {
   display: flex;
   justify-content: space-between;
   gap: 1rem;
+  border: 0;
+  border-bottom: 1px solid var(--color-border);
+  border-radius: 0;
+  background: transparent;
+}
+
+.list-item:first-child {
+  border-top: 1px solid var(--color-border);
 }
 
 .list-item > span:first-child {
@@ -272,41 +946,141 @@ main {
   justify-self: end;
 }
 
-.page-heading h1 {
-  margin-block: 0.25rem 0.75rem;
-  font-size: clamp(2rem, 7vw, 4rem);
-  line-height: 1.05;
-}
-
-.eyebrow {
-  color: #67b7ff;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-.lede {
-  max-width: 50rem;
-  color: #c9c9d2;
-  line-height: 1.6;
-}
-
 .form-stack,
-.inline-form,
-.rsvp-form {
+.inline-form {
   display: grid;
   gap: 1rem;
-  padding: 1.25rem;
-  border: 1px solid #33333d;
-  border-radius: 0.75rem;
-  background: #19191f;
+  padding: clamp(1.25rem, 3vw, 1.75rem);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-panel);
+  background: var(--color-panel);
 }
 
 .form-stack label,
 .inline-form label {
   display: grid;
   gap: 0.4rem;
-  font-weight: 650;
+  font-size: 0.875rem;
+  font-weight: 750;
+}
+
+/* Sectioned forms: open sections separated by dividers, with a numbered title
+   and description on the left and the section's fields on the right. Use the
+   FormSection component inside a `form-stack sectioned-form` form. */
+.form-stack.sectioned-form {
+  gap: 0;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  counter-reset: form-section;
+}
+
+.sectioned-form fieldset.form-section {
+  display: grid;
+  grid-template-columns: minmax(0, 13rem) minmax(0, 1fr);
+  grid-template-rows: auto 1fr;
+  column-gap: 2rem;
+  row-gap: 0.35rem;
+  min-width: 0;
+  margin: 0;
+  border: 0;
+  border-top: 1px solid var(--color-border);
+  border-radius: 0;
+  padding: 2rem 0;
+  background: transparent;
+  counter-increment: form-section;
+}
+
+/* A floated legend opts out of the browser's rendered-legend placement, so it
+   lays out as a normal grid item instead of sitting on the border. */
+.sectioned-form .form-section > legend {
+  float: left;
+  display: flex;
+  grid-column: 1;
+  grid-row: 1;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.sectioned-form .form-section > legend::before {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 0.4rem;
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+  content: counter(form-section, decimal-leading-zero);
+  font-size: 0.6875rem;
+  font-weight: 850;
+}
+
+/* A form with a single section has nothing to number. */
+.sectioned-form fieldset.form-section:only-of-type > legend::before {
+  display: none;
+}
+
+.sectioned-form fieldset.form-section:only-of-type > .form-help {
+  padding-left: 0;
+}
+
+.sectioned-form .form-section > .form-help {
+  grid-column: 1;
+  grid-row: 2;
+  align-self: start;
+  margin: 0;
+  padding-left: 2.1rem;
+  font-size: 0.8125rem;
+}
+
+/* Notices and the error summary at the top of a sectioned form sit above the
+   first section's divider with room to breathe. */
+.form-stack.sectioned-form > [role="alert"],
+.form-stack.sectioned-form > [role="status"],
+.form-stack.sectioned-form > .form-error-summary {
+  margin: 0 0 1.5rem;
+}
+
+.form-section-fields {
+  display: grid;
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.sectioned-form .split-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  border-top: 1px solid var(--color-border);
+  padding-top: 1.5rem;
+}
+
+@media (max-width: 47.99rem) {
+  .sectioned-form fieldset.form-section {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto auto;
+  }
+
+  .form-section-fields {
+    grid-column: 1;
+    grid-row: 3;
+    margin-top: 0.75rem;
+  }
+
+  .sectioned-form .split-fields {
+    grid-template-columns: 1fr;
+  }
 }
 
 input,
@@ -314,12 +1088,26 @@ select,
 textarea {
   min-width: 0;
   width: 100%;
-  border: 1px solid #4b4b59;
-  border-radius: 0.4rem;
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-small);
   padding: 0.7rem 0.8rem;
-  color: inherit;
-  background: #101014;
-  font: inherit;
+  color: var(--color-text);
+  font-weight: 400;
+  background: #fff;
+}
+
+select:not([multiple]) {
+  appearance: none;
+  padding-right: 2.5rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23676b76' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-position: right 1rem center;
+  background-repeat: no-repeat;
+  background-size: 1rem 1rem;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #6f737d;
 }
 
 input[type="checkbox"],
@@ -328,93 +1116,501 @@ input[type="radio"] {
   width: 1.5rem;
   height: 1.5rem;
   padding: 0;
-  accent-color: #67b7ff;
+  accent-color: var(--color-primary);
 }
 
 .form-stack .checkbox-field,
 .checkbox-field {
   display: flex;
+  min-height: 2.75rem;
   align-items: center;
   gap: 0.75rem;
-  min-height: 2.75rem;
 }
 
+/* Plain facts under a heading: a thin divider between rows, none above the
+   first or below the last. */
 .detail-grid {
   display: grid;
-  gap: 0.75rem;
+  gap: 0;
   margin-block: 2rem;
+}
+
+.detail-grid .detail-row:last-child {
+  border-bottom: 0;
+}
+
+.detail-card {
+  overflow: hidden;
+  border: 1px solid var(--color-card-border);
+  border-radius: var(--radius-panel);
+  background: var(--color-card);
+}
+
+.detail-card h2 {
+  margin: 0;
+  padding: 1rem 1.1rem;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.detail-card .detail-row {
+  grid-template-columns: minmax(7rem, 0.45fr) minmax(0, 1fr);
+  margin: 0;
+  padding-inline: 1.1rem;
+  border-top: 0;
+}
+
+/* Free-form card content (text, a link, a form): inset like a card row on every
+   side, so the last element never touches the card's bottom edge. */
+.detail-card-body {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem 1.1rem;
+}
+
+.detail-card-body > * {
+  margin: 0;
+}
+
+.detail-card-body > a {
+  justify-self: start;
+}
+
+.school-profile-header,
+.team-profile-header {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.school-profile-header h1,
+.team-profile-header h1 {
+  margin-block: 0.25rem 0.4rem;
+  font-size: clamp(2.25rem, 5vw, 4rem);
+  line-height: 1;
+  letter-spacing: -0.045em;
+}
+
+.school-profile-header .lede,
+.team-profile-header .lede {
+  margin-block: 0;
+}
+
+.school-detail-layout,
+.team-detail-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(18rem, 0.65fr);
+  gap: clamp(1.5rem, 4vw, 3rem);
+  margin-top: 2rem;
+  align-items: start;
+}
+
+.school-detail-layout .detail-card,
+.team-detail-layout .detail-card {
+  align-self: start;
+}
+
+.school-follow-panel {
+  margin-top: 0;
+  box-shadow: var(--shadow-window);
+}
+
+.school-follow-panel h2,
+.team-action-panel h2 {
+  margin-block: 0.35rem 0.6rem;
+}
+
+.school-community-page {
+  padding-top: clamp(2.5rem, 5vw, 4.5rem);
+}
+
+.school-community-header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  padding-bottom: 1.25rem;
+  border-bottom: 0;
+}
+
+.school-community-header h1 {
+  margin-block: 0 0.4rem;
+  font-size: clamp(1.875rem, 4.5vw, 2.75rem);
+}
+
+.school-community-identity {
+  min-width: 0;
+}
+
+.school-community-facts {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.9375rem;
+}
+
+.school-community-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem 1.25rem;
+}
+
+.school-community-actions form {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.school-community-actions .link {
+  font-size: 0.9375rem;
+  font-weight: 750;
+}
+
+.school-follow-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--color-success);
+  font-weight: 800;
+}
+
+.school-community-tabs {
+  display: flex;
+  gap: 1.75rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.school-community-tabs a {
+  position: relative;
+  display: inline-flex;
+  min-height: 3rem;
+  align-items: center;
+  color: var(--color-muted);
+  font-size: 0.875rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.school-community-tabs a:hover,
+.school-community-tabs a[aria-current] {
+  color: var(--color-text);
+}
+
+.school-community-tabs a[aria-current]::after {
+  position: absolute;
+  right: 0;
+  bottom: -1px;
+  left: 0;
+  height: 3px;
+  background: var(--color-accent);
+  content: "";
+}
+
+.school-community-content {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(18rem, 0.8fr);
+  gap: clamp(2rem, 5vw, 4rem);
+  padding-top: 2rem;
+}
+
+.school-community-content > section {
+  scroll-margin-top: 1rem;
+}
+
+.school-community-content .section-heading {
+  margin-bottom: 0.75rem;
+}
+
+.school-community-content .section-heading h2 {
+  font-size: 1.35rem;
+}
+
+.school-team-list {
+  border-top: 1px solid var(--color-border);
+}
+
+.school-team-list > a {
+  display: grid;
+  grid-template-columns: 2.75rem minmax(0, 1fr);
+  align-items: center;
+  gap: 0.85rem;
+  padding-block: 1rem;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.school-team-list > a:hover strong {
+  color: var(--color-primary);
+}
+
+.school-team-list > a > span:last-child {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.school-team-list small {
+  color: var(--color-muted);
+  font-size: 0.8125rem;
+}
+
+.school-inline-empty {
+  padding: 1.1rem 1.25rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-panel);
+  background: var(--color-panel);
+}
+
+.school-inline-empty p {
+  margin-block: 0 0.5rem;
+}
+
+.school-inline-empty p:last-child {
+  margin-bottom: 0;
+}
+
+.school-community-page .school-community-empty {
+  margin-top: 0.75rem;
+}
+
+.school-community-empty h2 {
+  margin-block: 0 0.5rem;
+  font-size: 1.35rem;
+}
+
+.school-community-empty p {
+  max-width: 38rem;
+  margin-block: 0 1.25rem;
+  color: var(--color-muted);
+}
+
+.school-community-empty > :last-child {
+  margin-bottom: 0;
+}
+
+.school-community-empty .school-empty-note {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-border);
+  font-size: 0.875rem;
 }
 
 .detail-row {
   display: grid;
   grid-template-columns: minmax(7rem, 0.35fr) minmax(0, 1fr);
   gap: 1rem;
-  padding-block: 0.75rem;
-  border-bottom: 1px solid #33333d;
+  padding-block: 0.9rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+/* A value with a second line, such as a school name over its location. */
+.detail-row .detail-value {
+  display: grid;
+  gap: 0.2rem;
+  justify-items: start;
+}
+
+.detail-value small {
+  color: var(--color-muted);
+  font-size: 0.875rem;
+  font-weight: 400;
+}
+
+.detail-row > span:first-child {
+  color: var(--color-muted);
 }
 
 .action-panel {
   margin-top: 2rem;
-  padding: 1.25rem;
-  border: 1px solid #33333d;
-  border-radius: 0.75rem;
-  background: #19191f;
 }
 
-.rsvp-buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-}
-
-.form-footer {
-  color: #c9c9d2;
-}
-
-.button {
+.button,
+button {
   display: inline-flex;
+  min-height: 2.5rem;
   align-items: center;
   justify-content: center;
-  border: 1px solid #67b7ff;
-  border-radius: 0.4rem;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-control);
   padding: 0.6rem 0.9rem;
+  color: var(--color-text);
+  background: var(--color-panel);
+  font-weight: 750;
   text-decoration: none;
-}
-
-.button--primary {
-  color: #fff;
-  background: #1d4b70;
-}
-
-.button--secondary {
-  background: transparent;
-}
-
-button {
-  border: 1px solid #67b7ff;
-  border-radius: 0.4rem;
-  padding: 0.6rem 0.9rem;
-  color: inherit;
-  background: #1d4b70;
-  font: inherit;
   cursor: pointer;
 }
 
-button:disabled {
+.button--primary,
+button[type="submit"] {
+  border-color: var(--color-primary);
+  color: #fff;
+  background: var(--color-primary);
+  box-shadow: var(--shadow-raised);
+  transform: translateY(-1px);
+}
+
+.button--primary:active,
+button[type="submit"]:active {
+  box-shadow: 0 1px 0 var(--color-primary-dark);
+  transform: translateY(2px);
+}
+
+.button--secondary {
+  background: var(--color-panel);
+}
+
+button.button--secondary {
+  border-color: var(--color-border-strong);
+  color: var(--color-text);
+  background: var(--color-panel);
+  box-shadow: none;
+  transform: none;
+}
+
+.button--destructive,
+button.button--destructive {
+  border-color: var(--color-danger);
+  color: #fff;
+  background: var(--color-danger);
+  box-shadow: 0 4px 0 var(--color-danger-dark);
+}
+
+.button--destructive:active,
+button.button--destructive:active {
+  box-shadow: 0 1px 0 var(--color-danger-dark);
+}
+
+button:disabled,
+.button[aria-disabled="true"] {
   cursor: wait;
-  opacity: 0.65;
+  opacity: 0.55;
+}
+
+/* One hover treatment for every button variant. Dimming works on the primary,
+   destructive, secondary, and per-route button styles without each needing its
+   own hover color. */
+button:hover:not(:disabled),
+.button:hover:not([aria-disabled="true"]) {
+  filter: brightness(0.93);
 }
 
 :focus-visible {
-  outline: 3px solid #9bd2ff;
+  outline: 3px solid var(--color-primary);
   outline-offset: 3px;
 }
 
-[role="alert"] {
-  color: #ffb4ab;
+[role="alert"],
+.form-error {
+  color: var(--color-danger);
 }
 
-/* Touch targets: at least 44px on phones and other coarse pointers. */
+[role="alert"]:not(.page-notice),
+.form-stack [role="status"] {
+  margin: 0;
+  border: 1px solid #e9bdb6;
+  border-radius: var(--radius-small);
+  padding: 0.75rem 0.9rem;
+  background: var(--color-danger-soft);
+}
+
+.form-error-summary:focus {
+  outline: 3px solid var(--color-primary);
+  outline-offset: 3px;
+}
+
+.form-error-summary strong {
+  display: block;
+}
+
+.form-error-summary ul {
+  margin-block: 0.5rem 0;
+  padding-left: 1.25rem;
+}
+
+.form-error-summary a {
+  color: inherit;
+  font-weight: 700;
+}
+
+.confirmation-dialog {
+  width: min(32rem, calc(100% - 2rem));
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-panel);
+  padding: 0;
+  color: var(--color-text);
+  background: var(--color-panel);
+  box-shadow: var(--shadow-window);
+}
+
+.confirmation-dialog::backdrop {
+  background: rgb(21 24 31 / 48%);
+}
+
+.confirmation-dialog__content {
+  display: grid;
+  gap: 1rem;
+  padding: clamp(1.25rem, 4vw, 2rem);
+}
+
+.confirmation-dialog__content h2,
+.confirmation-dialog__content p {
+  margin: 0;
+}
+
+.route-state {
+  margin-top: clamp(2rem, 7vw, 5rem);
+}
+
+.form-stack [role="status"] {
+  border-color: #bad9c2;
+  color: var(--color-success);
+  background: var(--color-success-soft);
+}
+
+/* Live-region helper text (for example the school search hint) is not a
+   success message: show it as plain help, and a failure as an error. */
+.form-stack [role="status"].form-help {
+  border: 0;
+  padding: 0;
+  color: var(--color-muted);
+  background: transparent;
+}
+
+.form-stack [role="status"].form-error {
+  border-color: #e9bdb6;
+  color: var(--color-danger);
+  background: var(--color-danger-soft);
+}
+
+.block {
+  display: block;
+}
+
+.compact {
+  margin-block: 0.5rem;
+}
+
+.link {
+  border: 0;
+  padding: 0;
+  color: var(--color-primary);
+  background: transparent;
+  box-shadow: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 @media (pointer: coarse), (max-width: 42rem) {
   button,
   .button,
@@ -427,10 +1623,115 @@ button:disabled {
     align-items: center;
     min-height: 2.75rem;
   }
+}
 
-  .button,
-  button {
+/* Compact phone header, with no JavaScript. The brand and one primary action
+   share the first row; the other links sit below as equal 44px targets (four
+   for a visitor, three for a signed-in viewer, whose Account and Log out live
+   in the account menu). Every link stays in the server HTML and the nav stays
+   one landmark. The primary action (Sign up, or the account menu once signed
+   in) is lifted out of the grid and pinned to the first row's right edge: the
+   nav is its containing block, so `bottom: 100%` lands it exactly on the
+   brand's row, level with the page gutter. The header's own box still
+   encloses both rows, so the full-bleed band keeps working. */
+@media (max-width: 42rem) {
+  .site-header {
+    flex-wrap: wrap;
+    gap: 0;
+    padding-block: 0.5rem;
+  }
+
+  .site-header .brand {
+    min-height: 2.75rem;
+  }
+
+  .site-header nav {
+    position: relative;
+    display: grid;
+    width: 100%;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0;
+  }
+
+  .site-header nav:has(.account-menu) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .site-header nav a:not(.button),
+  .site-header nav button {
+    min-height: 2.75rem;
     justify-content: center;
+    padding-block: 0;
+    text-align: center;
+  }
+
+  .site-header nav .button--primary,
+  .site-header nav .account-menu {
+    position: absolute;
+    right: 0;
+    bottom: 100%;
+    min-height: 2.75rem;
+  }
+
+  /* The trigger becomes the pill the Account link used to be. The name is
+     capped so a long one cannot reach the brand: the room beside it shrinks
+     with the viewport. */
+  .site-header nav .account-menu__trigger {
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-control);
+    padding: 0 0.75rem 0 0.5rem;
+    color: var(--color-text);
+    background: var(--color-panel);
+  }
+
+  .site-header nav .account-menu__trigger:hover:not(:disabled),
+  .site-header nav .account-menu__trigger:focus-visible {
+    border-color: var(--color-border-strong);
+  }
+
+  .site-header nav .account-menu__trigger:hover:not(:disabled) {
+    filter: brightness(0.93);
+  }
+
+  .site-header nav .account-menu .account-menu__trigger[aria-expanded="true"] {
+    border-color: var(--color-accent);
+    background: var(--color-accent-soft);
+  }
+
+  .account-menu__name {
+    max-width: min(7rem, max(3rem, calc(100vw - 16.5rem)));
+  }
+}
+
+@media (max-width: 52rem) {
+  .auth-page,
+  .hero,
+  .search-bar {
+    grid-template-columns: 1fr;
+  }
+
+  .card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .school-filter-bar {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .school-filter-bar button {
+    grid-column: auto;
+  }
+
+  .school-directory-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .auth-page > .page-heading {
+    position: static;
+  }
+
+  .auth-page > .form-footer {
+    grid-column: 1;
   }
 }
 
@@ -443,18 +1744,89 @@ button:disabled {
     align-items: flex-start;
   }
 
-  .site-header {
+  .section-heading {
+    grid-template-columns: 1fr;
+  }
+
+  .card-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .school-filter-bar {
+    grid-template-columns: 1fr;
+  }
+
+  .school-filter-bar button {
+    grid-column: auto;
+  }
+
+  .results-heading {
     align-items: flex-start;
     flex-direction: column;
   }
 
-  .hero,
-  .search-bar {
-    grid-template-columns: 1fr;
+  .school-directory-card {
+    grid-template-columns: 2.75rem minmax(0, 1fr);
+  }
+
+  .school-directory-action {
+    grid-column: 2;
   }
 
   .detail-row {
     grid-template-columns: 1fr;
     gap: 0.25rem;
+  }
+
+  .detail-card .detail-row {
+    grid-template-columns: 1fr;
+  }
+
+  .discovery-row {
+    grid-template-columns: 1fr;
+  }
+
+  .discovery-row__action {
+    margin-top: 0.35rem;
+  }
+
+  .school-profile-header,
+  .team-profile-header {
+    align-items: flex-start;
+  }
+
+  .school-community-header {
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 1rem;
+  }
+
+  .school-directory-mark--large {
+    width: 3.5rem;
+    height: 3.5rem;
+    border-radius: 0.875rem;
+    font-size: 1.25rem;
+  }
+
+  .school-community-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+
+  .school-community-content {
+    grid-template-columns: 1fr;
+  }
+
+  .school-detail-layout,
+  .team-detail-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .school-follow-panel,
+  .team-action-panel {
+    grid-row: 1;
+  }
+
+  .site-footer strong {
+    width: 100%;
   }
 }

@@ -30,23 +30,23 @@ SiteAnnouncement ── global banner                        (later)
 
 ### User
 
-| Field / concept     | Notes                                                                                             |
-| ------------------- | ------------------------------------------------------------------------------------------------- |
-| Email / password    | Auth; forgot/reset password                                                                       |
-| Email verification  | Signup sends verification email; link click sets email verified                                   |
-| Age gate            | Must confirm **18+** at signup (checkbox); store acceptance timestamp                             |
-| Name                | Single public name field (no usernames; no first/last/display split)                              |
-| Profile URL         | `/users/:id` (database id)                                                                        |
-| Verification level  | `basic` (email verified) \| `verified` (`.edu`) \| `staff_faculty`                                |
-| Avatar              | DiceBear Critters drawn by this site from the user id; initials show when the picture cannot load |
-| Bio, social links   | Profile                                                                                           |
-| Timezone            | Default from system; used to display event times                                                  |
-| School affiliations | Selects one home school during signup; can follow additional schools afterward                    |
-| Majors              | Later: multiple allowed (open question in [08](./08-open-questions.md))                           |
-| Graduation          | Later: expected graduation date; alumni still participate                                         |
-| Degree level        | Later: undergrad / graduate / etc. (open question)                                                |
-| Role context        | Later: student, alumni, faculty advisor, etc.                                                     |
-| Role indicators     | School-admin grants and staff/faculty status produce visible role indicators                      |
+| Field / concept     | Notes                                                                                               |
+| ------------------- | --------------------------------------------------------------------------------------------------- |
+| Email / password    | Auth; forgot/reset password                                                                         |
+| Email verification  | Signup sends verification email; link click sets email verified                                     |
+| Age gate            | Must confirm **18+** at signup (checkbox); store acceptance timestamp                               |
+| Name                | Single public name field (no usernames; no first/last/display split)                                |
+| Profile URL         | `/users/:id` (database id)                                                                          |
+| Verification level  | `basic` (email verified) \| `verified` (`.edu`) \| `staff_faculty`                                  |
+| Avatar              | Boring Avatars Beam drawn by this site from the user id; initials show when the picture cannot load |
+| Bio, social links   | Profile                                                                                             |
+| Timezone            | Default from system; used to display event times                                                    |
+| School affiliations | Selects one home school during signup; can follow additional schools afterward                      |
+| Majors              | Later: multiple allowed (open question in [08](./08-open-questions.md))                             |
+| Graduation          | Later: expected graduation date; alumni still participate                                           |
+| Degree level        | Later: undergrad / graduate / etc. (open question)                                                  |
+| Role context        | Later: student, alumni, faculty advisor, etc.                                                       |
+| Role indicators     | School-admin grants and staff/faculty status produce visible role indicators                        |
 
 **Rules**
 

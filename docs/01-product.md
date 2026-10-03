@@ -21,7 +21,7 @@
 - Near-you / geo discovery (later)
 - Schools outside the United States
 - Live updates via WebSockets
-- Custom user avatars (the drawn DiceBear Critters avatar comes first)
+- Custom user avatars (the drawn Boring Avatars identity comes first)
 - Custom event banner uploads (default placeholder for now; moderated uploads later)
 - Usernames or split first/last/display — single **name** field only
 - Google Analytics
@@ -83,7 +83,17 @@ Signup also requires confirming **age 18+**. Alumni can participate. Faculty who
 
 - RSVP to events: **yes / no / maybe**
 - Mark an event as **interested** (favorite/bookmark — separate from RSVP)
+- Every listed event row shows its **going** (yes RSVP) and **interested** counts
 - RSVP yes → confirmation email with calendar attach (ICS)
+- Any visible event page has an **Add to calendar** link (a plain link, no
+  JavaScript needed) to `/api/events/:slug/calendar.ics`. The file is built from
+  the same event data the page shows, with the same UID as the RSVP email's
+  attachment. A locked private event, a missing event, and a cancelled event
+  answer 404 and expose nothing
+- A visible event page has a **Share** card with the event's public link as
+  selectable text and a **Copy link** button (the button needs JavaScript; the
+  link text does not). Sharing a private event's link reveals nothing without
+  its password
 - Create or join teams via shared team URL + password (no invite links at launch)
 
 ### Organize
@@ -141,6 +151,10 @@ Signup also requires confirming **age 18+**. Alumni can participate. Faculty who
 - Owner can transfer ownership; users can assign captains
 - Schools can have sponsored teams
 - Teams reference one or more games
+- The team directory filters by game and school. People find a school by
+  searching its name and see its name, never its slug, while the filter is
+  active; the search-then-select flow works without JavaScript, and a clear
+  link removes the school filter
 
 ### Events
 
@@ -187,7 +201,7 @@ Signup also requires confirming **age 18+**. Alumni can participate. Faculty who
 
 ### Profiles & social
 
-- DiceBear Critters avatars at launch, drawn by this site from the user id (no avatar service is contacted), with initials showing when the picture cannot load
+- Boring Avatars Beam avatars at launch, drawn by this site from the user id (no avatar service is contacted), with initials showing when the picture cannot load
 - Single **name** field (no usernames; no separate first/last/display)
 - Profile URL: `/users/:id` (database id)
 - Bio + social links

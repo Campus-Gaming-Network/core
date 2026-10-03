@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 import { gotoApp, logIn } from "./fixtures/app-navigation.js";
 
 const siteOrigin = "http://127.0.0.1:3200";
@@ -15,11 +15,10 @@ function requestedOrigins(page: Page): Set<string> {
   return origins;
 }
 
-async function expectDrawnAvatar(page: Page) {
-  const image = page.locator(".avatar img");
+async function expectDrawnAvatar(image: Locator) {
   await expect(image).toHaveAttribute(
     "src",
-    /^\/api\/avatars\/[A-Za-z0-9_-]+$/,
+    /^\/api\/avatars\/[A-Za-z0-9_-]+\?v=\d+$/,
   );
   await expect
     .poll(() => image.evaluate((node: HTMLImageElement) => node.naturalWidth))
@@ -33,7 +32,7 @@ test("a public profile shows an avatar this site draws and contacts no avatar se
 
   await gotoApp(page, "/users/reportable-player");
 
-  await expectDrawnAvatar(page);
+  await expectDrawnAvatar(page.locator("#main-content .avatar img"));
   expect([...origins]).toEqual([siteOrigin]);
 });
 
@@ -43,7 +42,19 @@ test("the account page does the same", async ({ page }) => {
 
   await gotoApp(page, "/account");
 
-  await expectDrawnAvatar(page);
+  await expectDrawnAvatar(page.locator("#main-content .avatar img"));
+  expect([...origins]).toEqual([siteOrigin]);
+});
+
+test("the signed-in header draws the viewer's avatar the same way", async ({
+  page,
+}) => {
+  await logIn(page, "player@example.test", "/events");
+  const origins = requestedOrigins(page);
+
+  await gotoApp(page, "/events");
+
+  await expectDrawnAvatar(page.locator(".site-header .avatar img"));
   expect([...origins]).toEqual([siteOrigin]);
 });
 

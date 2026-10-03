@@ -1,6 +1,9 @@
 import { Link } from "@tanstack/react-router";
+import { StatusLabel } from "../../components/status-label";
+import { ArrowRight } from "lucide-react";
+import { CalendarDate } from "../../components/calendar-date";
+import { EventCounts } from "../../components/event-counts";
 import type { EventBrowseItemDTO } from "./contracts.js";
-import { EventBanner } from "./event-banner";
 import {
   eventLifecycleLabel,
   eventLocation,
@@ -15,17 +18,35 @@ export function EventCard({ event }: { event: EventBrowseItemDTO }) {
       to="/events/$slug"
       params={{ slug: event.slug }}
     >
-      <EventBanner event={event} />
-      <span className="event-card-heading">
-        <strong>{event.title}</strong>
-        <small>{eventLifecycleLabel(event.lifecycle)}</small>
+      <CalendarDate
+        decorative
+        startsAt={event.starts_at}
+        timezone={event.timezone}
+      />
+      <span className="event-card-copy">
+        {event.lifecycle !== "upcoming" ? (
+          <StatusLabel status={event.lifecycle}>
+            {eventLifecycleLabel(event.lifecycle)}
+          </StatusLabel>
+        ) : null}
+        <span className="event-card-heading">
+          <strong>{event.title}</strong>
+        </span>
+        <small>{eventTimeRange(event)}</small>
+        <small>
+          {event.host_school.name} ·{" "}
+          {event.games.map((game) => game.name).join(", ")}
+        </small>
+        <small>{eventLocation(event)}</small>
+        <EventCounts
+          going={event.rsvp_yes_count}
+          interested={event.interest_count}
+        />
       </span>
-      <small>{eventTimeRange(event)}</small>
-      <small>
-        {event.host_school.name} ·{" "}
-        {event.games.map((game) => game.name).join(", ")}
-      </small>
-      <small>{eventLocation(event)}</small>
+      <span className="event-card-action with-arrow">
+        View event
+        <ArrowRight aria-hidden="true" size={14} strokeWidth={2.25} />
+      </span>
     </Link>
   );
 }

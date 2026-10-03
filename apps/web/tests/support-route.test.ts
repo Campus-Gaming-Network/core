@@ -40,9 +40,16 @@ test("support form preserves native constraints and accessible enhanced errors",
   assert.match(form, /name="name"[\s\S]*maxLength=\{120\}/);
   assert.match(form, /name="subject"[\s\S]*required[\s\S]*maxLength=\{160\}/);
   assert.match(form, /name="message"[\s\S]*required[\s\S]*maxLength=\{5000\}/);
-  assert.match(form, /fieldErrorProps/);
-  assert.match(form, /FieldError/);
-  assert.match(form, /role=\{status === "error" \? "alert" : "status"\}/);
+  assert.deepEqual(
+    [...form.matchAll(/<FormField\s+errorId="([^"]+)"/g)].map(
+      (match) => match[1],
+    ),
+    ["contact_email-error", "name-error", "subject-error", "message-error"],
+  );
+  assert.match(form, /FormErrorSummary/);
+  assert.match(form, /role="status"/);
+  assert.match(form, /<FormSection\s+title="Contact"/);
+  assert.match(form, /<FormSection\s+title="Request"/);
   assert.match(form, /Do not include passwords/);
 });
 

@@ -13,10 +13,15 @@ test("back and forward preserve filtered team catalog navigation", async ({
 }) => {
   await gotoApp(page, "/teams");
   await page.getByLabel("Filter teams by game").selectOption("strategy-arena");
-  await page.getByLabel("School slug").fill("browser-test-university");
+  await page.getByRole("searchbox", { name: "Search schools" }).fill("browser");
+  await page
+    .getByRole("combobox", { name: "School" })
+    .selectOption("browser-test-university");
   await page.getByRole("button", { name: "Filter" }).click();
 
   await expectCatalogSearch(page);
+  await waitForAppReady(page);
+  await expectSchoolFilter(page);
   await expect(
     page.getByRole("link", { name: /Joinable Browser Team/ }),
   ).toBeVisible();
@@ -29,12 +34,11 @@ test("back and forward preserve filtered team catalog navigation", async ({
 
   await page.goBack();
   await expectCatalogSearch(page);
+  await waitForAppReady(page);
   await expect(page.getByLabel("Filter teams by game")).toHaveValue(
     "strategy-arena",
   );
-  await expect(page.getByLabel("School slug")).toHaveValue(
-    "browser-test-university",
-  );
+  await expectSchoolFilter(page);
   await expect(
     page.getByRole("link", { name: /Joinable Browser Team/ }),
   ).toBeVisible();
@@ -44,6 +48,27 @@ test("back and forward preserve filtered team catalog navigation", async ({
   await expect(
     page.getByRole("heading", { name: "Joinable Browser Team", level: 1 }),
   ).toBeVisible();
+});
+
+test("clearing the school filter keeps the game filter and resets the selector", async ({
+  page,
+}) => {
+  await gotoApp(
+    page,
+    "/teams?game=strategy-arena&school=browser-test-university",
+  );
+  await expectSchoolFilter(page);
+
+  await page.getByRole("link", { name: "Clear school filter" }).click();
+  await expect(page).toHaveURL(
+    (url) => url.pathname === "/teams" && url.search === "?game=strategy-arena",
+  );
+  await waitForAppReady(page);
+  await expect(page.getByRole("combobox", { name: "School" })).toHaveValue("");
+  await expect(page.getByText("Showing teams from")).toHaveCount(0);
+  await expect(page.getByLabel("Filter teams by game")).toHaveValue(
+    "strategy-arena",
+  );
 });
 
 test("follow redirect replaces the mutation page without repeating the POST", async ({
@@ -90,6 +115,15 @@ async function expectCatalogSearch(page: Page) {
       url.searchParams.get("game") === "strategy-arena" &&
       url.searchParams.get("school") === "browser-test-university",
   );
+}
+
+async function expectSchoolFilter(page: Page) {
+  await expect(page.getByRole("combobox", { name: "School" })).toHaveValue(
+    "browser-test-university",
+  );
+  await expect(
+    page.getByText("Showing teams from Browser Test University"),
+  ).toBeVisible();
 }
 
 async function expectFollowPostCount(page: Page, expected: number) {

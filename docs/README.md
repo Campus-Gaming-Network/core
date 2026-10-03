@@ -31,6 +31,7 @@ These docs are the source of truth for product intent, domain rules, architectur
 | [22 — Admin Console access runbook](./22-admin-console-access-runbook.md)           | Cloudflare Access, first-admin bootstrap, recovery, revocation, and emergency-disable procedures                         |
 | [23 — Admin Console operations runbook](./23-admin-console-operations-runbook.md)   | Alerts and dashboard queries, containment, secret rotation, restore, incident response, and the drill log                |
 | [24 — Admin Console security review](./24-admin-console-security-review.md)         | The AC-014 review record: findings, decisions on open items, dependency and secret review, and what is still owed        |
+| [25 — Web design implementation plan](./25-web-design-implementation-plan.md)       | Approved visual direction, reusable component inventory, route/state mapping, and phased web delivery plan               |
 | [Go style](./go-style.md)                                                           | Go conventions for the API                                                                                               |
 
 Completed plans and evidence records (the Phase 1 plan, Pass v0 checklist, and

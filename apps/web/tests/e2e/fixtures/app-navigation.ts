@@ -24,6 +24,13 @@ export async function logIn(page: Page, email: string, next: string) {
   await waitForAppReady(page);
 }
 
+// Log out sits inside the header's account menu, which stays closed until the
+// trigger is pressed.
+export async function logOut(page: Page) {
+  await page.getByRole("button", { name: "account menu" }).click();
+  await page.getByRole("button", { name: "Log out" }).click();
+}
+
 export async function waitForAppReady(page: Page) {
   await page.waitForFunction(() => {
     const router = Reflect.get(window, "__TSR_ROUTER__") as

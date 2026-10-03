@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { gotoApp, waitForAppReady } from "./fixtures/app-navigation.js";
+import { gotoApp, logOut, waitForAppReady } from "./fixtures/app-navigation.js";
 
 const apiURL = "http://127.0.0.1:18081";
 const eventPassword = "E2EEventPassword123!";
@@ -79,7 +79,9 @@ test("private event auth, RSVP, and logout survive runtime navigation", async ({
       sameSite: "Lax",
       path: "/",
     });
-  await expect(page.getByRole("button", { name: "Log out" })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "account menu" }),
+  ).toBeVisible();
 
   await page.reload();
   await waitForAppReady(page);
@@ -89,21 +91,27 @@ test("private event auth, RSVP, and logout survive runtime navigation", async ({
   await expect(
     page.getByRole("heading", { name: privateMarkers[0], level: 1 }),
   ).toBeVisible();
-  await expect(page.getByRole("button", { name: "Log out" })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "account menu" }),
+  ).toBeVisible();
 
   await page.getByRole("button", { name: "Yes" }).click();
   await expect(page).toHaveURL(
     new RegExp(`/events/${slug}\\?event=rsvp-updated$`),
   );
   await waitForAppReady(page);
-  await expect(page.getByRole("status")).toHaveText("RSVP saved.");
+  await expect(
+    page.getByRole("status").filter({ hasText: "RSVP saved." }),
+  ).toHaveCount(1);
   await expect(page.getByText("Current RSVP:")).toContainText("Yes");
+  await expect(
+    page.getByRole("button", { name: "Yes", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
 
   await page.getByRole("link", { name: "Campus Gaming Network" }).click();
   await expect(page).toHaveURL(/\/$/);
   await waitForAppReady(page);
-  await expect(page.getByRole("button", { name: "Log out" })).toBeVisible();
-  await page.getByRole("button", { name: "Log out" }).click();
+  await logOut(page);
   await expect(page).toHaveURL(/\/$/);
   await waitForAppReady(page);
   await expect(page.getByRole("link", { name: "Log in" })).toBeVisible();

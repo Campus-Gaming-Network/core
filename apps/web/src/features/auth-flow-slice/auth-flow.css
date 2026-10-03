@@ -7,3 +7,7 @@
   display: grid;
   gap: 0.5rem;
 }
+
+.auth-page .form-stack {
+  box-shadow: var(--shadow-window);
+}

@@ -5,11 +5,15 @@ import {
   type ErrorComponentProps,
 } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { type FormEvent } from "react";
+import { ArrowRight, ArrowUpRight, Check } from "lucide-react";
+import { useEffect, useState, type FormEvent } from "react";
+import { ButtonLink } from "../components/button-link";
 import { useEnhancedMutation } from "../components/enhanced-mutation";
 import { PageNoticeView } from "../components/page-notice-view";
 import { RouteErrorView, RoutePending } from "../components/route-boundaries";
 import { SchoolLogo } from "../components/school-logo";
+import { EventCard } from "../features/event-slice/event-card";
+import { getEventsBrowse } from "../features/event-slice/event.functions";
 import {
   getSchoolCatalog,
   getSchoolViewerState,
@@ -28,10 +32,13 @@ import {
   schoolLocation,
   safeSchoolWebsite,
 } from "../features/school-slice/presentation";
+import { getTeamsBrowse } from "../features/team-slice/team.functions";
 
 export type SchoolRouteData = {
   school: SchoolDTO;
   viewer: Awaited<ReturnType<typeof getSchoolViewerState>>;
+  events: Awaited<ReturnType<typeof getEventsBrowse>>;
+  teams: Awaited<ReturnType<typeof getTeamsBrowse>>;
   publicOrigin: string;
 };
 
@@ -45,11 +52,19 @@ export const Route = createFileRoute("/schools/$slug")({
     if (catalog.status !== "found") {
       throw new Error("School detail is unavailable");
     }
-    return {
-      school: catalog.school,
-      viewer: await getSchoolViewerState({
-        data: { schoolId: catalog.school.id },
+    const school = catalog.school;
+    const [viewer, events, teams] = await Promise.all([
+      getSchoolViewerState({ data: { schoolId: school.id } }),
+      getEventsBrowse({ data: { school: school.slug } }),
+      getTeamsBrowse({
+        data: { game: "", school: school.slug, after: "", before: "" },
       }),
+    ]);
+    return {
+      school,
+      viewer,
+      events,
+      teams,
       publicOrigin: context.publicOrigin,
     };
   },
@@ -66,88 +81,229 @@ export const Route = createFileRoute("/schools/$slug")({
 });
 
 function SchoolPage() {
-  const { school, viewer } = Route.useLoaderData();
+  const { school, viewer, events, teams } = Route.useLoaderData();
   const search = Route.useSearch();
   const website = safeSchoolWebsite(school.website_url);
+  const [hash, setHash] = useState("");
+
+  // The tabs are in-page links, so the visitor's last jump decides which one
+  // is current. The server HTML starts on Overview, matching a page with no
+  // fragment.
+  useEffect(() => {
+    const sync = () => setHash(window.location.hash);
+    sync();
+    window.addEventListener("hashchange", sync);
+    return () => window.removeEventListener("hashchange", sync);
+  }, []);
+  const onEvents = hash === "#school-events";
+  const onTeams = hash === "#school-teams";
 
   return (
-    <main className="narrow">
-      <section className="page-heading">
-        <p className="eyebrow">School</p>
-        <SchoolLogo
-          alt={`${school.name} logo`}
-          logoURL={school.logo_url}
-          size={96}
-        />
-        <h1>{school.name}</h1>
-        <p className="lede">
-          {[school.city, school.state, school.zip].filter(Boolean).join(", ") ||
-            "Location details pending"}
-        </p>
-      </section>
+    <main className="detail-page school-community-page">
+      <header className="school-profile-header school-community-header">
+        <span className="school-directory-mark school-directory-mark--large">
+          <span aria-hidden="true">
+            {school.name.slice(0, 1).toUpperCase()}
+          </span>
+          <SchoolLogo
+            alt={`${school.name} logo`}
+            logoURL={school.logo_url}
+            size={64}
+          />
+        </span>
+        <div className="school-community-identity">
+          <h1>{school.name}</h1>
+          <p className="school-community-facts">
+            {[
+              school.alias,
+              schoolLocation(school),
+              school.is_main_campus ? "Main campus" : "Branch campus",
+            ]
+              .filter(Boolean)
+              .join(" · ")}
+          </p>
+        </div>
+        <div className="school-community-actions">
+          {viewer.authenticated ? (
+            viewer.isHomeSchool ? (
+              <span className="school-follow-status">
+                <Check aria-hidden="true" size={14} strokeWidth={2.25} />
+                Your home school
+              </span>
+            ) : viewer.isFollowing ? (
+              <SchoolFollowForm following school={school} />
+            ) : (
+              <SchoolFollowForm following={false} school={school} />
+            )
+          ) : (
+            <ButtonLink
+              variant="secondary"
+              to="/login"
+              search={{ next: `/schools/${school.slug}` }}
+            >
+              Follow school
+            </ButtonLink>
+          )}
+          {website ? (
+            <a className="link with-arrow" href={website}>
+              Visit school website
+              <ArrowUpRight aria-hidden="true" size={14} strokeWidth={2.25} />
+            </a>
+          ) : null}
+        </div>
+      </header>
 
       <PageNoticeView
         notice={search.follow ? schoolDetailNotices[search.follow] : undefined}
       />
 
-      <section className="detail-grid" aria-label="School details">
-        <div className="detail-row">
-          <span>Campus type</span>
-          <strong>
-            {school.is_main_campus ? "Main campus" : "Branch campus"}
-          </strong>
-        </div>
-        <div className="detail-row">
-          <span>Known branches</span>
-          <strong>{school.num_branches}</strong>
-        </div>
-        {school.unitid ? (
-          <div className="detail-row">
-            <span>Scorecard unit ID</span>
-            <strong>{school.unitid}</strong>
-          </div>
-        ) : null}
-        {website ? (
-          <div className="detail-row">
-            <span>Website</span>
-            <a href={website}>{school.website_url}</a>
-          </div>
-        ) : null}
-      </section>
-
-      <section className="action-panel" aria-labelledby="school-actions">
-        <h2 id="school-actions">School actions</h2>
-        {viewer.authenticated ? (
-          viewer.isHomeSchool ? (
-            <p role="status">This is your home school.</p>
-          ) : viewer.isFollowing ? (
-            <>
-              <p role="status">You are following this school.</p>
-              <SchoolFollowForm following school={school} />
-            </>
-          ) : (
-            <SchoolFollowForm following={false} school={school} />
-          )
-        ) : (
+      {events.eventsUnavailable && teams.teamsUnavailable ? (
+        <section
+          aria-labelledby="school-unavailable-heading"
+          className="action-panel school-community-empty"
+        >
+          <h2 id="school-unavailable-heading">
+            We could not load campus activity
+          </h2>
+          <p>Please refresh the page or check back in a few minutes.</p>
+        </section>
+      ) : !events.eventsUnavailable &&
+        !teams.teamsUnavailable &&
+        events.events.length === 0 &&
+        teams.teams.length === 0 ? (
+        <section
+          aria-labelledby="school-empty-heading"
+          className="action-panel school-community-empty"
+        >
+          <h2 id="school-empty-heading">No activity here yet</h2>
+          <p>
+            Be the first to bring this campus community together. Publish a
+            casual meetup or start a team in a few minutes.
+          </p>
           <div className="actions">
-            <Link className="button button--primary" to="/signup">
-              Create account
-            </Link>
-            <Link
-              className="button button--secondary"
-              to="/login"
-              search={{ next: `/schools/${school.slug}` }}
-            >
-              Log in to follow
+            <ButtonLink variant="primary" to="/events/new">
+              Create the first event
+            </ButtonLink>
+            <Link className="link" to="/teams/new">
+              Start a team
             </Link>
           </div>
-        )}
-      </section>
+          {!viewer.authenticated ? (
+            <p className="school-empty-note">
+              Not ready to organize? Log in and follow the school to see new
+              activity on your dashboard.
+            </p>
+          ) : null}
+        </section>
+      ) : (
+        <>
+          <nav className="school-community-tabs" aria-label="School sections">
+            <a
+              aria-current={!onEvents && !onTeams ? "location" : undefined}
+              href="#overview"
+            >
+              Overview
+            </a>
+            <a
+              aria-current={onEvents ? "location" : undefined}
+              href="#school-events"
+            >
+              Events
+            </a>
+            <a
+              aria-current={onTeams ? "location" : undefined}
+              href="#school-teams"
+            >
+              Teams
+            </a>
+          </nav>
 
-      <p>
-        <Link to="/schools">Browse all schools</Link>
-        {schoolLocation(school, "") ? ` · ${schoolLocation(school)}` : ""}
-      </p>
+          <div className="school-community-content" id="overview">
+            <section id="school-events" aria-labelledby="school-events-heading">
+              <div className="section-heading">
+                <h2 id="school-events-heading">Upcoming events</h2>
+                <Link to="/events" search={{ school: school.slug }}>
+                  View all events
+                </Link>
+              </div>
+              {events.eventsUnavailable ? (
+                <div className="school-inline-empty">
+                  <p>
+                    Events are unavailable right now. Please check back soon.
+                  </p>
+                </div>
+              ) : events.events.length > 0 ? (
+                <div className="list">
+                  {events.events.slice(0, 4).map((event) => (
+                    <EventCard event={event} key={event.id} />
+                  ))}
+                </div>
+              ) : (
+                <div className="school-inline-empty">
+                  <p>No upcoming events yet.</p>
+                  <Link className="link with-arrow" to="/events/new">
+                    Create the first event
+                    <ArrowRight
+                      aria-hidden="true"
+                      size={14}
+                      strokeWidth={2.25}
+                    />
+                  </Link>
+                </div>
+              )}
+            </section>
+
+            <section id="school-teams" aria-labelledby="school-teams-heading">
+              <div className="section-heading">
+                <h2 id="school-teams-heading">Teams</h2>
+                <Link to="/teams" search={{ school: school.slug }}>
+                  View all teams
+                </Link>
+              </div>
+              {teams.teamsUnavailable ? (
+                <div className="school-inline-empty">
+                  <p>
+                    Teams are unavailable right now. Please check back soon.
+                  </p>
+                </div>
+              ) : teams.teams.length > 0 ? (
+                <div className="school-team-list">
+                  {teams.teams.slice(0, 4).map((team) => (
+                    <Link
+                      key={team.id}
+                      to="/teams/$slug"
+                      params={{ slug: team.slug }}
+                    >
+                      <span aria-hidden="true" className="team-mark">
+                        {team.name.slice(0, 1).toUpperCase()}
+                      </span>
+                      <span>
+                        <strong>{team.name}</strong>
+                        <small>
+                          {team.member_count} member
+                          {team.member_count === 1 ? "" : "s"}
+                        </small>
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <div className="school-inline-empty">
+                  <p>No teams have formed yet.</p>
+                  <Link className="link with-arrow" to="/teams/new">
+                    Start a team
+                    <ArrowRight
+                      aria-hidden="true"
+                      size={14}
+                      strokeWidth={2.25}
+                    />
+                  </Link>
+                </div>
+              )}
+            </section>
+          </div>
+        </>
+      )}
     </main>
   );
 }

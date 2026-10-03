@@ -95,6 +95,7 @@ test("account, safety, and school forms complete without JavaScript", async ({
   ).toBeVisible();
 
   await page.goto("/users/reportable-player");
+  await page.getByText("Report this user").click();
   await page
     .getByLabel("Reason")
     .fill("Verify the user report native submission boundary.");
@@ -114,6 +115,45 @@ test("account, safety, and school forms complete without JavaScript", async ({
   await expect
     .poll(async () => hasCookie(await context.cookies(), "cgn_session"))
     .toBe(false);
+});
+
+test("account social links reveal extra rows without JavaScript", async ({
+  page,
+}) => {
+  await logIn(page, "no-js-social-links@example.test", "/account");
+
+  await expect(page.getByLabel("Social link 1 label")).toBeVisible();
+  await expect(page.getByLabel("Social link 2 label")).toBeHidden();
+
+  await page.getByText("Add another link").click();
+  await page.getByLabel("Social link 1 label").fill("Twitch");
+  await page
+    .getByLabel("Social link 1 URL")
+    .fill("https://twitch.example.test/player");
+  await page.getByLabel("Social link 2 label").fill("Discord");
+  await page
+    .getByLabel("Social link 2 URL")
+    .fill("https://discord.example.test/player");
+  await page.getByRole("button", { name: "Save profile" }).click();
+  await expect(page).toHaveURL(/\/account\?account=profile-updated$/);
+
+  await expect(page.getByLabel("Social link 3 label")).toBeVisible();
+  await expect(page.getByText("Add another link")).toHaveCount(0);
+  expect(
+    await page.locator('input[name^="social_"]').evaluateAll((inputs) =>
+      inputs.map((input) => ({
+        name: input.getAttribute("name"),
+        value: (input as HTMLInputElement).value,
+      })),
+    ),
+  ).toEqual([
+    { name: "social_label_0", value: "Twitch" },
+    { name: "social_url_0", value: "https://twitch.example.test/player" },
+    { name: "social_label_1", value: "Discord" },
+    { name: "social_url_1", value: "https://discord.example.test/player" },
+    { name: "social_label_2", value: "" },
+    { name: "social_url_2", value: "" },
+  ]);
 });
 
 test("event forms complete without JavaScript", async ({ context, page }) => {
@@ -150,6 +190,7 @@ test("event forms complete without JavaScript", async ({ context, page }) => {
   await page.getByLabel("Starts at").fill("2037-08-15T13:00");
   await page.getByLabel("Ends at").fill("2037-08-15T16:00");
   await page.getByLabel("Location name").fill("No JavaScript Student Union");
+  await page.getByRole("radio", { name: "Unlisted" }).check();
   await page.getByLabel("Games").selectOption("game-e2e");
   await page.getByLabel("Capacity").fill("24");
   await page.getByRole("button", { name: "Create event" }).click();
@@ -157,6 +198,7 @@ test("event forms complete without JavaScript", async ({ context, page }) => {
     /\/events\/no-javascript-tournament-[^?]+\?event=created$/,
   );
 
+  await page.getByText("Report this event").click();
   await page
     .getByLabel("Reason")
     .fill("Verify the event report native submission boundary.");
@@ -168,6 +210,7 @@ test("event forms complete without JavaScript", async ({ context, page }) => {
   await expect(page).toHaveURL(/\?event=interest-added$/);
 
   await page.getByRole("link", { name: "Edit event" }).click();
+  await expect(page.getByRole("radio", { name: "Unlisted" })).toBeChecked();
   await page.getByLabel("Title").fill("Updated No JavaScript Tournament");
   await page.getByRole("button", { name: "Save event" }).click();
   await expect(page).toHaveURL(/\?event=updated$/);
@@ -210,6 +253,55 @@ test("team forms complete without JavaScript", async ({ context, page }) => {
   await expect(page).toHaveURL(/\?team=ownership-transferred$/);
 });
 
+test("team school filter searches, selects by name, and clears without JavaScript", async ({
+  page,
+}) => {
+  await page.goto("/teams?game=strategy-arena");
+  await page.getByRole("searchbox", { name: "Search schools" }).fill("browser");
+  await page.getByRole("button", { name: "Search", exact: true }).click();
+  await expect(page).toHaveURL(
+    (url) => url.search === "?game=strategy-arena&school_q=browser",
+  );
+
+  await page
+    .getByRole("combobox", { name: "School" })
+    .selectOption({ label: "Browser Test University — Irvine, CA" });
+  await page.getByRole("button", { name: "Filter" }).click();
+  await expect(page).toHaveURL(
+    (url) =>
+      url.search === "?game=strategy-arena&school=browser-test-university",
+  );
+  await expect(
+    page.getByText("Showing teams from Browser Test University"),
+  ).toBeVisible();
+
+  await page.getByRole("link", { name: "Clear school filter" }).click();
+  await expect(page).toHaveURL((url) => url.search === "?game=strategy-arena");
+  await expect(page.getByText("Showing teams from")).toHaveCount(0);
+});
+
+test("a signed-in visitor gets the viewer-neutral header and the page's own logout form", async ({
+  context,
+  page,
+}) => {
+  await logIn(page, "no-js-header@example.test", "/events");
+
+  // The server HTML never knows the viewer, so there is no account menu without
+  // JavaScript. The page itself carries the logout form.
+  await expect(
+    page
+      .getByRole("navigation", { name: "Main navigation" })
+      .getByRole("link", { name: "Log in" }),
+  ).toBeVisible();
+  await expect(page.locator(".account-menu")).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Log out" }).click();
+  await expect(page).toHaveURL(/\/$/);
+  await expect
+    .poll(async () => hasCookie(await context.cookies(), "cgn_session"))
+    .toBe(false);
+});
+
 async function logIn(page: Page, email: string, next: string) {
   await page.goto(`/login?next=${encodeURIComponent(next)}`);
   await page.getByLabel("Email").fill(email);
@@ -224,6 +316,17 @@ function hasCookie(
 ) {
   return cookies.some((cookie) => cookie.name === name);
 }
+
+test("an event's link is selectable text with no copy button", async ({
+  page,
+}) => {
+  await page.goto("/events/public-browser-event");
+
+  await expect(page.getByLabel("Event link")).toHaveValue(
+    "http://127.0.0.1:3200/events/public-browser-event",
+  );
+  await expect(page.getByRole("button", { name: "Copy link" })).toHaveCount(0);
+});
 
 function escapeRegularExpression(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");

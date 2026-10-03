@@ -8,9 +8,12 @@ import { useServerFn } from "@tanstack/react-start";
 import { type FormEvent } from "react";
 import {
   FieldError,
+  FormErrorSummary,
   fieldErrorProps,
   useEnhancedMutation,
 } from "../components/enhanced-mutation";
+import { FormField } from "../components/form-field";
+import { FormSection } from "../components/form-section";
 import {
   newIdempotencyKey,
   useIdempotencyKey,
@@ -178,90 +181,111 @@ function CreateTeamForm({
   return (
     <form
       action={createTeam.url}
-      className="form-stack team-create-form"
+      className="form-stack team-create-form sectioned-form"
       method="post"
       onSubmit={submit}
     >
       <input name="idempotency_key" type="hidden" value={idempotency.key} />
-      {mutation.message || initialFailure ? (
-        <p role="alert" aria-live="polite">
-          {mutation.message ||
-            "We could not create that team. Please try again."}
-        </p>
-      ) : null}
+      <FormErrorSummary
+        fieldErrors={mutation.fieldErrors}
+        fieldIds={{
+          name: "team-name-error",
+          description: "team-description-error",
+          school_id: "team-school-error",
+          game_ids: "team-games-error",
+          password: "team-password-error",
+        }}
+        message={
+          mutation.message ||
+          (initialFailure
+            ? "We could not create that team. Please try again."
+            : "")
+        }
+        summaryRef={mutation.errorSummaryRef}
+      />
 
-      <label>
-        Team name
-        <input
-          maxLength={120}
-          name="name"
-          required
-          {...fieldErrorProps(nameErrors, "team-name-error")}
-        />
-        <FieldError id="team-name-error" messages={nameErrors} />
-      </label>
-
-      <label>
-        Description
-        <textarea
-          maxLength={5000}
-          name="description"
-          rows={6}
-          {...fieldErrorProps(descriptionErrors, "team-description-error")}
-        />
-        <FieldError id="team-description-error" messages={descriptionErrors} />
-      </label>
-
-      <label>
-        School link
-        <select
-          defaultValue={defaultSchoolID}
-          name="school_id"
-          {...fieldErrorProps(schoolErrors, "team-school-error")}
+      <FormSection
+        title="Team basics"
+        description="Introduce the team to players browsing the public directory."
+      >
+        <FormField
+          errorId="team-name-error"
+          errors={nameErrors}
+          label="Team name"
         >
-          <option value="">No school link</option>
-          {schoolOptions.map((school) => (
-            <option key={school.id} value={school.id}>
-              {school.name}
-            </option>
-          ))}
-        </select>
-        <FieldError id="team-school-error" messages={schoolErrors} />
-      </label>
+          <input maxLength={120} name="name" required />
+        </FormField>
 
-      <fieldset {...fieldErrorProps(gameErrors, "team-games-error")}>
-        <legend>Games</legend>
-        <div className="team-option-list">
-          {games.map((game) => (
-            <label className="checkbox-field" key={game.id}>
-              <input name="game_ids" type="checkbox" value={game.id} />
-              {game.name}
-            </label>
-          ))}
-        </div>
-        <FieldError id="team-games-error" messages={gameErrors} />
-      </fieldset>
+        <FormField
+          errorId="team-description-error"
+          errors={descriptionErrors}
+          label="Description"
+        >
+          <textarea maxLength={5000} name="description" rows={6} />
+        </FormField>
+      </FormSection>
 
-      <label>
-        Join password
-        <input
-          autoComplete="new-password"
-          minLength={8}
-          maxLength={200}
-          name="password"
-          required
-          type="password"
-          {...fieldErrorProps(passwordErrors, "team-password-error")}
-        />
-        <FieldError id="team-password-error" messages={passwordErrors} />
-      </label>
-      <p className="form-help">
-        Team pages are public. This password is only for joining the team.
-      </p>
+      <FormSection
+        title="Campus and games"
+        description="Link the team to a school and choose the games it plays."
+      >
+        <FormField
+          errorId="team-school-error"
+          errors={schoolErrors}
+          label="School link"
+        >
+          <select defaultValue={defaultSchoolID} name="school_id">
+            <option value="">No school link</option>
+            {schoolOptions.map((school) => (
+              <option key={school.id} value={school.id}>
+                {school.name}
+              </option>
+            ))}
+          </select>
+        </FormField>
 
-      <button type="submit" disabled={mutation.pending}>
-        {mutation.pending ? "Creating…" : "Create team"}
-      </button>
+        <fieldset
+          className="team-game-group"
+          {...fieldErrorProps(gameErrors, "team-games-error")}
+        >
+          <legend>Games</legend>
+          <div className="team-option-list">
+            {games.map((game) => (
+              <label className="checkbox-field" key={game.id}>
+                <input name="game_ids" type="checkbox" value={game.id} />
+                {game.name}
+              </label>
+            ))}
+          </div>
+          <FieldError id="team-games-error" messages={gameErrors} />
+        </fieldset>
+      </FormSection>
+
+      <FormSection
+        title="Member access"
+        description="Team pages are public. This password is only for joining the team."
+      >
+        <FormField
+          errorId="team-password-error"
+          errors={passwordErrors}
+          label="Join password"
+        >
+          <input
+            autoComplete="new-password"
+            minLength={8}
+            maxLength={200}
+            name="password"
+            required
+            type="password"
+          />
+        </FormField>
+      </FormSection>
+
+      <div className="form-actions">
+        <button type="submit" disabled={mutation.pending}>
+          {mutation.pending ? "Creating…" : "Create team"}
+        </button>
+      </div>
     </form>
   );
 }

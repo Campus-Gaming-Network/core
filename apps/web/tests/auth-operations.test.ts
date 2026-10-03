@@ -45,13 +45,27 @@ test("navigation session is a no-store viewer read and degrades safely", async (
     sessionCookieValue: "session-value",
   });
 
-  assert.deepEqual(authenticated, { authenticated: true });
+  const rejected = await getNavigationSessionOperation({
+    api: client(async () =>
+      Response.json({ error: "authentication_required" }, { status: 401 }),
+    ),
+    cookieHeader: "cgn_session=expired",
+    sessionCookieValue: "expired",
+  });
+
+  // The viewer gets their own id and name for the account menu, and nothing
+  // else from the profile (no email, school, or bio).
+  assert.deepEqual(authenticated, {
+    authenticated: true,
+    user: { id: "user-1", name: "Player One" },
+  });
   assert.equal(init?.cache, "no-store");
   assert.equal(
     new Headers(init?.headers).get("cookie"),
     "cgn_session=session-value",
   );
   assert.deepEqual(unavailable, { authenticated: false });
+  assert.deepEqual(rejected, { authenticated: false });
 });
 
 test("navigation does not call /me for an unrelated cookie", async () => {

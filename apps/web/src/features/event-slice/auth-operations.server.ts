@@ -54,7 +54,11 @@ export async function getNavigationSessionOperation({
       cookieHeader,
       sessionCookieValue,
     });
-    return { authenticated: profile !== null };
+    // Only what the header shows. The profile's email, bio, and school stay
+    // out of this response.
+    return profile
+      ? { authenticated: true, user: { id: profile.id, name: profile.name } }
+      : { authenticated: false };
   } catch {
     // Navigation is decorative. Authenticated loaders can surface outages, but
     // the public shell must remain usable when /me is unavailable.

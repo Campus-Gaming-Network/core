@@ -2,10 +2,10 @@ import { Link, createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { type FormEvent } from "react";
 import {
-  FieldError,
-  fieldErrorProps,
+  FormErrorSummary,
   useEnhancedMutation,
 } from "../components/enhanced-mutation";
+import { FormField } from "../components/form-field";
 import { login } from "../features/event-slice/auth.functions";
 import { safeLocalPath } from "../safe-local-path";
 
@@ -104,7 +104,7 @@ function LoginPage() {
       />
       <p className="form-footer">
         Need an account? <Link to="/signup">Sign up</Link>
-        {" | "}
+        {" · "}
         <Link to="/forgot-password">Forgot password?</Link>
       </p>
     </main>
@@ -156,36 +156,42 @@ function LoginForm({
           {notice}
         </p>
       ) : null}
-      {mutation.message || initialFailure ? (
-        <p role="alert" aria-live="polite">
-          {mutation.message ||
-            "We could not log you in. Check your details and try again."}
-        </p>
-      ) : null}
-      <label>
-        Email
+      <FormErrorSummary
+        fieldErrors={mutation.fieldErrors}
+        fieldIds={{
+          email: "login-email-error",
+          password: "login-password-error",
+        }}
+        message={
+          mutation.message ||
+          (initialFailure
+            ? "We could not log you in. Check your details and try again."
+            : "")
+        }
+        summaryRef={mutation.errorSummaryRef}
+      />
+      <FormField errorId="login-email-error" errors={emailErrors} label="Email">
         <input
           name="email"
           type="email"
           autoComplete="email"
           maxLength={320}
           required
-          {...fieldErrorProps(emailErrors, "login-email-error")}
         />
-        <FieldError id="login-email-error" messages={emailErrors} />
-      </label>
-      <label>
-        Password
+      </FormField>
+      <FormField
+        errorId="login-password-error"
+        errors={passwordErrors}
+        label="Password"
+      >
         <input
           name="password"
           type="password"
           autoComplete="current-password"
           maxLength={256}
           required
-          {...fieldErrorProps(passwordErrors, "login-password-error")}
         />
-        <FieldError id="login-password-error" messages={passwordErrors} />
-      </label>
+      </FormField>
       <button type="submit" disabled={mutation.pending}>
         {mutation.pending ? "Logging in…" : "Log in"}
       </button>

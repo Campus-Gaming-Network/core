@@ -4,6 +4,7 @@ import {
   useRouter,
   type ErrorComponentProps,
 } from "@tanstack/react-router";
+import { useState } from "react";
 
 type RoutePendingProps = {
   message?: string;
@@ -18,8 +19,12 @@ type RouteErrorViewProps = Pick<ErrorComponentProps, "reset"> & {
 
 export function RoutePending({ message = "Loading page…" }: RoutePendingProps) {
   return (
-    <main className="narrow" aria-busy="true" aria-live="polite">
-      <p>{message}</p>
+    <main className="narrow route-state" aria-busy="true" aria-live="polite">
+      <section className="action-panel">
+        <p className="eyebrow">Loading</p>
+        <h1>{message}</h1>
+        <p className="lede">The page will be ready in a moment.</p>
+      </section>
     </main>
   );
 }
@@ -36,35 +41,40 @@ export function RouteErrorView({
   showNavigation = true,
 }: RouteErrorViewProps) {
   const router = useRouter();
+  const [retrying, setRetrying] = useState(false);
 
   async function retry() {
+    setRetrying(true);
     try {
       await router.invalidate();
     } finally {
       reset();
+      setRetrying(false);
     }
   }
 
   const retryButton = (
-    <button type="button" onClick={() => void retry()}>
-      Try again
+    <button disabled={retrying} type="button" onClick={() => void retry()}>
+      {retrying ? "Trying again…" : "Try again"}
     </button>
   );
 
   return (
-    <main className="narrow">
-      <p className="eyebrow">{eyebrow}</p>
-      <h1>{heading}</h1>
-      <p className="lede">{description}</p>
-      {showNavigation ? (
-        <div className="actions">
-          {retryButton}
-          <Link to="/">Go home</Link>
-          <Link to="/support">Contact support</Link>
-        </div>
-      ) : (
-        retryButton
-      )}
+    <main className="narrow route-state">
+      <section className="action-panel" role="alert">
+        <p className="eyebrow">{eyebrow}</p>
+        <h1>{heading}</h1>
+        <p className="lede">{description}</p>
+        {showNavigation ? (
+          <div className="actions">
+            {retryButton}
+            <Link to="/">Go home</Link>
+            <Link to="/support">Contact support</Link>
+          </div>
+        ) : (
+          retryButton
+        )}
+      </section>
     </main>
   );
 }
@@ -99,29 +109,31 @@ export function DefaultNotFound() {
   const description = "That page does not exist on Campus Gaming Network.";
 
   return (
-    <main className="narrow">
-      <title>{title}</title>
-      <meta name="description" content={description} />
-      <meta name="robots" content="noindex,nofollow" />
-      <meta property="og:type" content="website" />
-      <meta property="og:site_name" content="Campus Gaming Network" />
-      <meta property="og:title" content={title} />
-      <meta property="og:description" content={description} />
-      <meta name="twitter:card" content="summary" />
-      <meta name="twitter:title" content={title} />
-      <meta name="twitter:description" content={description} />
-      <p className="eyebrow">404</p>
-      <h1>We could not find that page.</h1>
-      <p className="lede">
-        The link may be broken, or the event, team, or school may have been
-        removed.
-      </p>
-      <div className="actions">
-        <Link to="/">Go home</Link>
-        <Link to="/events">Browse events</Link>
-        <Link to="/schools">Browse schools</Link>
-        <Link to="/teams">Browse teams</Link>
-      </div>
+    <main className="narrow route-state">
+      <section className="action-panel">
+        <title>{title}</title>
+        <meta name="description" content={description} />
+        <meta name="robots" content="noindex,nofollow" />
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="Campus Gaming Network" />
+        <meta property="og:title" content={title} />
+        <meta property="og:description" content={description} />
+        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:title" content={title} />
+        <meta name="twitter:description" content={description} />
+        <p className="eyebrow">404</p>
+        <h1>We could not find that page.</h1>
+        <p className="lede">
+          The link may be broken, or the event, team, or school may have been
+          removed.
+        </p>
+        <div className="actions">
+          <Link to="/">Go home</Link>
+          <Link to="/events">Browse events</Link>
+          <Link to="/schools">Browse schools</Link>
+          <Link to="/teams">Browse teams</Link>
+        </div>
+      </section>
     </main>
   );
 }

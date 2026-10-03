@@ -1,10 +1,10 @@
 import {
-  Link,
   createFileRoute,
   notFound,
   redirect,
   type ErrorComponentProps,
 } from "@tanstack/react-router";
+import { ButtonLink } from "../components/button-link";
 import { RouteErrorView, RoutePending } from "../components/route-boundaries";
 import {
   validateNewEventSearch,
@@ -93,13 +93,9 @@ function EditEventPage() {
               : "Only an event organizer can change or cancel it."}
           </p>
         </section>
-        <Link
-          className="button button--secondary"
-          to="/events/$slug"
-          params={{ slug }}
-        >
+        <ButtonLink variant="secondary" to="/events/$slug" params={{ slug }}>
           Back to event
-        </Link>
+        </ButtonLink>
       </main>
     );
   }

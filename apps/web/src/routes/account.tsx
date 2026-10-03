@@ -5,12 +5,17 @@ import {
   type ErrorComponentProps,
 } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { type FormEvent, type InputHTMLAttributes } from "react";
+import { ArrowRight, Check } from "lucide-react";
+import { type FormEvent, type ReactNode, useRef, useState } from "react";
+import { CalendarDate } from "../components/calendar-date";
+import { EventCounts } from "../components/event-counts";
+import { ConfirmDialog } from "../components/confirm-dialog";
 import {
-  FieldError,
-  fieldErrorProps,
+  FormErrorSummary,
   useEnhancedMutation,
 } from "../components/enhanced-mutation";
+import { FormField } from "../components/form-field";
+import { FormSection } from "../components/form-section";
 import {
   deleteAccount,
   getAccountDashboard,
@@ -23,11 +28,13 @@ import {
 import {
   type AccountProfileDTO,
   type DashboardEventDTO,
+  dashboardEventLimit,
 } from "../features/account-slice/contracts";
 import { pageNoticeKey } from "../components/page-notice";
 import { Avatar } from "../components/avatar";
 import { PageNoticeView } from "../components/page-notice-view";
 import { RouteErrorView, RoutePending } from "../components/route-boundaries";
+import { StatusLabel } from "../components/status-label";
 import {
   eventLifecycleLabel,
   eventRSVPLabel,
@@ -36,6 +43,12 @@ import {
 import { schoolLocation } from "../features/school-slice/presentation";
 import { teamRoleLabel } from "../features/team-slice/presentation";
 import accountCSS from "../features/account-slice/account.css?url";
+
+// The API accepts at most three social links; rows are numbered from zero.
+const socialLinkSlots = [0, 1, 2];
+
+// The dashboard shows this many rows of each event list.
+const dashboardPreviewCount = 3;
 
 export const Route = createFileRoute("/account")({
   validateSearch: (search: Record<string, unknown>) => {
@@ -66,93 +79,107 @@ export const Route = createFileRoute("/account")({
 function AccountPage() {
   const data = Route.useLoaderData();
   const search = Route.useSearch();
+  const emailVerified = Boolean(data.profile.email_verified_at);
 
   return (
-    <main className="narrow">
-      <section className="profile-hero">
+    <main className="narrow account-page">
+      <header className="account-header">
         <Avatar id={data.profile.id} name={data.profile.name} />
-        <div>
+        <div className="account-identity">
           <p className="eyebrow">Account</p>
           <h1>{data.profile.name}</h1>
-          <p className="lede">
-            Your account dashboard for profile details, followed schools, and
-            team activity.
+          <p className="account-meta">
+            <span>{data.profile.email}</span>
+            <span className={emailVerified ? "account-verified" : undefined}>
+              {emailVerified ? (
+                <>
+                  <Check aria-hidden="true" size={14} strokeWidth={2.25} />
+                  Email verified
+                </>
+              ) : (
+                "Email pending"
+              )}
+            </span>
           </p>
         </div>
-      </section>
+        <Link
+          className="link account-public-link with-arrow"
+          to="/users/$id"
+          params={{ id: data.profile.id }}
+        >
+          View public profile
+          <ArrowRight aria-hidden="true" size={14} strokeWidth={2.25} />
+        </Link>
+      </header>
 
       <PageNoticeView
         notice={search.account ? accountNotices[search.account] : undefined}
       />
 
-      <section className="summary-strip" aria-label="Account summary">
-        <article className="card">
-          <strong>Email</strong>
-          {data.profile.email}
-        </article>
-        <article className="card">
-          <strong>Verification</strong>
-          {data.profile.email_verified_at ? "Email verified" : "Email pending"}
-        </article>
-        <article className="card">
-          <strong>Public profile</strong>
-          <Link
-            className="link"
-            to="/users/$id"
-            params={{ id: data.profile.id }}
-          >
-            View profile
-          </Link>
-        </article>
-      </section>
-
-      {!data.profile.email_verified_at ? (
+      {!emailVerified ? (
         <p role="alert">
           Verify your email to unlock normal authenticated use.
         </p>
       ) : null}
 
+      <nav className="account-nav" aria-label="Account sections">
+        <a href="#events">Events</a>
+        <a href="#following">Following</a>
+        <a href="#teams">Teams</a>
+        <a href="#profile">Profile</a>
+        <a href="#delete">Delete</a>
+      </nav>
+
       <DashboardEventSection
         heading="Upcoming RSVPs"
-        id="upcoming-rsvps-title"
-        empty="You have no upcoming yes or maybe RSVPs."
+        headingId="upcoming-rsvps-title"
+        sectionId="events"
+        empty={
+          <>
+            <p>You have no upcoming yes or maybe RSVPs.</p>
+            <Link className="link" to="/events">
+              Browse events
+            </Link>
+          </>
+        }
         events={data.dashboardEvents.upcoming_rsvps}
         variant="rsvp"
       />
       <DashboardEventSection
         heading="Followed-school events"
-        id="followed-school-events-title"
-        empty="No upcoming public events from followed schools yet."
+        headingId="followed-school-events-title"
+        sectionId="following"
+        empty={<p>No upcoming public events from followed schools yet.</p>}
         events={data.dashboardEvents.followed_school_events}
         variant="followed"
       />
 
-      <section className="section" aria-labelledby="followed-schools-title">
+      <section
+        className="section"
+        id="followed-schools"
+        aria-labelledby="followed-schools-title"
+      >
         <div className="section-heading">
-          <div>
-            <p className="eyebrow">Following</p>
-            <h2 id="followed-schools-title">Followed schools</h2>
-          </div>
+          <h2 id="followed-schools-title">Followed schools</h2>
           <Link className="link" to="/schools">
             Find schools
           </Link>
         </div>
         {data.followedSchools.length > 0 ? (
-          <div className="list">
+          <ul className="account-rows">
             {data.followedSchools.map((school) => (
-              <Link
-                className="card card--default list-item"
-                key={school.id}
-                to="/schools/$slug"
-                params={{ slug: school.slug }}
-              >
-                <span>
+              <li key={school.id}>
+                <Link
+                  className="account-row"
+                  to="/schools/$slug"
+                  params={{ slug: school.slug }}
+                >
                   <strong>{school.name}</strong>
                   <small>{schoolLocation(school)}</small>
-                </span>
-              </Link>
+                </Link>
+              </li>
             ))}
-          </div>
+          </ul>
         ) : (
           <p className="empty-state">
             You are not following any additional schools yet.
@@ -160,26 +187,26 @@ function AccountPage() {
         )}
       </section>
 
-      <section className="section" aria-labelledby="team-activity-title">
+      <section
+        className="section"
+        id="teams"
+        aria-labelledby="team-activity-title"
+      >
         <div className="section-heading">
-          <div>
-            <p className="eyebrow">Teams</p>
-            <h2 id="team-activity-title">Team activity</h2>
-          </div>
+          <h2 id="team-activity-title">Team activity</h2>
           <Link className="link" to="/teams">
             Find teams
           </Link>
         </div>
         {data.teams.length > 0 ? (
-          <div className="list">
+          <ul className="account-rows">
             {data.teams.map((team) => (
-              <Link
-                className="card card--default list-item"
-                key={team.id}
-                to="/teams/$slug"
-                params={{ slug: team.slug }}
-              >
-                <span className="event-card-heading">
+              <li key={team.id}>
+                <Link
+                  className="account-row"
+                  to="/teams/$slug"
+                  params={{ slug: team.slug }}
+                >
                   <strong>{team.name}</strong>
                   <small>
                     {team.viewer_role
@@ -188,12 +215,18 @@ function AccountPage() {
                     · {team.member_count} member
                     {team.member_count === 1 ? "" : "s"}
                   </small>
-                </span>
-                <small>{team.games.map((game) => game.name).join(", ")}</small>
-                <small>{team.school?.name ?? "Independent team"}</small>
-              </Link>
+                  <small className="account-row-detail">
+                    {[
+                      team.games.map((game) => game.name).join(", "),
+                      team.school?.name ?? "Independent team",
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </small>
+                </Link>
+              </li>
             ))}
-          </div>
+          </ul>
         ) : (
           <p className="empty-state">
             You have not joined any teams yet. Join with a team password or
@@ -210,57 +243,94 @@ function AccountPage() {
 
 function DashboardEventSection({
   heading,
-  id,
+  headingId,
+  sectionId,
   empty,
   events,
   variant,
 }: {
   heading: string;
-  id: string;
-  empty: string;
+  headingId: string;
+  sectionId: string;
+  empty: ReactNode;
   events: DashboardEventDTO[];
   variant: "followed" | "rsvp";
 }) {
+  const shown = events.slice(0, dashboardPreviewCount);
+  // The API cuts each list off at its limit, so a full list may be longer.
+  const total =
+    events.length >= dashboardEventLimit
+      ? `${events.length}+`
+      : String(events.length);
+
   return (
-    <section className="section" aria-labelledby={id}>
+    <section
+      className="section account-events"
+      id={sectionId}
+      aria-labelledby={headingId}
+    >
       <div className="section-heading">
-        <div>
-          <p className="eyebrow">
-            {variant === "rsvp" ? "Events" : "Following"}
-          </p>
-          <h2 id={id}>{heading}</h2>
-        </div>
-        <Link className="link" to="/events">
-          Browse events
-        </Link>
+        <h2 id={headingId}>{heading}</h2>
       </div>
       {events.length > 0 ? (
-        <div className="list">
-          {events.map((event) => (
-            <Link
-              className="card card--default list-item"
-              key={event.id}
-              to="/events/$slug"
-              params={{ slug: event.slug }}
-            >
-              <span className="event-card-heading">
-                <strong>{event.title}</strong>
-                <small>{eventTimeRange(event)}</small>
+        <>
+          <div className="list">
+            {shown.map((event) => (
+              <Link
+                className="card card--default list-item event-list-item"
+                key={event.id}
+                to="/events/$slug"
+                params={{ slug: event.slug }}
+              >
+                <CalendarDate
+                  decorative
+                  startsAt={event.starts_at}
+                  timezone={event.timezone}
+                />
+                <span className="event-card-copy">
+                  {event.lifecycle === "upcoming" ? null : (
+                    <StatusLabel status={event.lifecycle}>
+                      {eventLifecycleLabel(event.lifecycle)}
+                    </StatusLabel>
+                  )}
+                  <span className="event-card-heading">
+                    <strong>{event.title}</strong>
+                  </span>
+                  <small>
+                    {eventTimeRange(event)}
+                    {variant === "rsvp" && event.viewer_rsvp
+                      ? ` · RSVP: ${eventRSVPLabel(event.viewer_rsvp)}`
+                      : ""}
+                  </small>
+                  <small>
+                    {event.host_school.name} ·{" "}
+                    {event.games.map((game) => game.name).join(", ")}
+                  </small>
+                  <EventCounts
+                    going={event.rsvp_yes_count}
+                    interested={event.interest_count}
+                  />
+                </span>
+                <span className="event-card-action with-arrow">
+                  View event
+                  <ArrowRight aria-hidden="true" size={14} strokeWidth={2.25} />
+                </span>
+              </Link>
+            ))}
+          </div>
+          {events.length > shown.length ? (
+            <p className="account-more">
+              <span>
+                Showing {shown.length} of {total}
               </span>
-              <small>
-                {variant === "rsvp" && event.viewer_rsvp
-                  ? `RSVP: ${eventRSVPLabel(event.viewer_rsvp)}`
-                  : eventLifecycleLabel(event.lifecycle)}
-              </small>
-              <small>
-                {event.host_school.name} ·{" "}
-                {event.games.map((game) => game.name).join(", ")}
-              </small>
-            </Link>
-          ))}
-        </div>
+              <Link className="link" to="/events">
+                See all events
+              </Link>
+            </p>
+          ) : null}
+        </>
       ) : (
-        <p className="empty-state">{empty}</p>
+        <div className="empty-state">{empty}</div>
       )}
     </section>
   );
@@ -275,7 +345,7 @@ function ProfileForm({ profile }: { profile: AccountProfileDTO }) {
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
-    const socialLinks = [0, 1, 2].flatMap((index) => {
+    const socialLinks = socialLinkSlots.flatMap((index) => {
       const label = String(form.get(`social_label_${index}`) ?? "");
       const url = String(form.get(`social_url_${index}`) ?? "");
       return label || url ? [{ label, url }] : [];
@@ -293,116 +363,164 @@ function ProfileForm({ profile }: { profile: AccountProfileDTO }) {
   }
 
   const socialLinks = profile.social_links ?? [];
+  const socialRows = socialLinkSlots.map((index) => (
+    <div className="split-fields" key={index}>
+      <FormField
+        errorId={`profile-social_label_${index}-error`}
+        errors={mutation.fieldErrors[`social_label_${index}`]}
+        label="Label"
+      >
+        <input
+          aria-label={`Social link ${index + 1} label`}
+          defaultValue={socialLinks[index]?.label ?? ""}
+          maxLength={40}
+          name={`social_label_${index}`}
+        />
+      </FormField>
+      <FormField
+        errorId={`profile-social_url_${index}-error`}
+        errors={mutation.fieldErrors[`social_url_${index}`]}
+        label="URL"
+      >
+        <input
+          aria-label={`Social link ${index + 1} URL`}
+          defaultValue={socialLinks[index]?.url ?? ""}
+          maxLength={500}
+          name={`social_url_${index}`}
+          type="url"
+        />
+      </FormField>
+    </div>
+  ));
+  // Show the saved links plus one empty row. The remaining rows stay in the
+  // form behind a native disclosure, so they submit with or without
+  // JavaScript.
+  const shownSocialRows = Math.min(socialRows.length, socialLinks.length + 1);
+  const hiddenSocialRowHasError = socialLinkSlots
+    .slice(shownSocialRows)
+    .some(
+      (index) =>
+        mutation.fieldErrors[`social_label_${index}`] ||
+        mutation.fieldErrors[`social_url_${index}`],
+    );
+
   return (
-    <section className="section" aria-labelledby="profile-settings-title">
-      <h2 id="profile-settings-title">Profile settings</h2>
+    <section
+      className="section"
+      id="profile"
+      aria-labelledby="profile-settings-title"
+    >
+      <div className="section-heading">
+        <div>
+          <h2 id="profile-settings-title">Profile settings</h2>
+        </div>
+      </div>
       <form
         action={updateAccountProfile.url}
-        className="form-stack"
+        className="form-stack sectioned-form"
         method="post"
         onSubmit={submit}
       >
-        {mutation.message ? (
-          <p role="alert" aria-live="polite">
-            {mutation.message}
-          </p>
-        ) : null}
-        <ProfileField
-          label="Name"
-          name="name"
-          autoComplete="name"
-          defaultValue={profile.name}
-          required
-          maxLength={120}
-          errors={mutation.fieldErrors.name}
+        <FormErrorSummary
+          fieldErrors={mutation.fieldErrors}
+          fieldIds={Object.fromEntries(
+            Object.keys(mutation.fieldErrors).map((field) => [
+              field,
+              `profile-${field}-error`,
+            ]),
+          )}
+          message={mutation.message}
+          summaryRef={mutation.errorSummaryRef}
         />
-        <label>
-          Bio
-          <textarea
-            name="bio"
-            defaultValue={profile.bio ?? ""}
-            maxLength={2000}
-            rows={5}
-            {...fieldErrorProps(mutation.fieldErrors.bio, "profile-bio-error")}
-          />
-          <FieldError
-            id="profile-bio-error"
-            messages={mutation.fieldErrors.bio}
-          />
-        </label>
-        <ProfileField
-          label="Time zone"
-          name="timezone"
-          defaultValue={profile.timezone}
-          required
-          errors={mutation.fieldErrors.timezone}
-        />
-        <fieldset>
-          <legend>Social links</legend>
-          {[0, 1, 2].map((index) => (
-            <div className="split-fields" key={index}>
-              <ProfileField
-                aria-label={`Social link ${index + 1} label`}
-                label="Label"
-                name={`social_label_${index}`}
-                defaultValue={socialLinks[index]?.label ?? ""}
-                maxLength={40}
-                errors={mutation.fieldErrors[`social_label_${index}`]}
-              />
-              <ProfileField
-                aria-label={`Social link ${index + 1} URL`}
-                label="URL"
-                name={`social_url_${index}`}
-                defaultValue={socialLinks[index]?.url ?? ""}
-                maxLength={500}
-                type="url"
-                errors={mutation.fieldErrors[`social_url_${index}`]}
-              />
-            </div>
-          ))}
-        </fieldset>
-        <button type="submit" disabled={mutation.pending}>
-          {mutation.pending ? "Saving…" : "Save profile"}
-        </button>
+        <FormSection
+          title="About you"
+          description="How other players see you on your public profile."
+        >
+          <FormField
+            errorId="profile-name-error"
+            errors={mutation.fieldErrors.name}
+            label="Name"
+          >
+            <input
+              name="name"
+              autoComplete="name"
+              defaultValue={profile.name}
+              required
+              maxLength={120}
+            />
+          </FormField>
+          <FormField
+            errorId="profile-bio-error"
+            errors={mutation.fieldErrors.bio}
+            label="Bio"
+          >
+            <textarea
+              name="bio"
+              defaultValue={profile.bio ?? ""}
+              maxLength={2000}
+              rows={5}
+            />
+          </FormField>
+          <FormField
+            errorId="profile-timezone-error"
+            errors={mutation.fieldErrors.timezone}
+            label="Time zone"
+          >
+            <input name="timezone" defaultValue={profile.timezone} required />
+          </FormField>
+        </FormSection>
+        <FormSection
+          title="Social links"
+          description="Link to your profiles elsewhere. You can add up to three."
+        >
+          {socialRows.slice(0, shownSocialRows)}
+          {shownSocialRows < socialRows.length ? (
+            <details
+              className="more-social-links"
+              open={hiddenSocialRowHasError}
+            >
+              <summary>Add another link</summary>
+              <div className="more-social-links-fields">
+                {socialRows.slice(shownSocialRows)}
+              </div>
+            </details>
+          ) : null}
+        </FormSection>
+        <div className="form-actions">
+          <button type="submit" disabled={mutation.pending}>
+            {mutation.pending ? "Saving…" : "Save profile"}
+          </button>
+        </div>
       </form>
     </section>
   );
 }
 
-function ProfileField({
-  label,
-  name,
-  errors,
-  ...input
-}: { label: string; name: string; errors?: string[] } & Omit<
-  InputHTMLAttributes<HTMLInputElement>,
-  "name"
->) {
-  const id = `profile-${name}-error`;
-  return (
-    <label>
-      {label}
-      <input name={name} {...input} {...fieldErrorProps(errors, id)} />
-      <FieldError id={id} messages={errors} />
-    </label>
-  );
-}
-
 function DeleteAccountForm() {
   const runDelete = useServerFn(deleteAccount);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const [confirming, setConfirming] = useState(false);
   const mutation = useEnhancedMutation(
     "We could not delete your account. Please try again.",
   );
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
+    if (!confirming && form.get("confirm") === "DELETE") {
+      setConfirming(true);
+      return;
+    }
     await mutation.execute(() =>
       runDelete({ data: { confirm: String(form.get("confirm") ?? "") } }),
     );
   }
   const errors = mutation.fieldErrors.confirm;
   return (
-    <section className="action-panel" aria-labelledby="delete-account">
+    <section
+      className="action-panel"
+      id="delete"
+      aria-labelledby="delete-account"
+    >
       <h2 id="delete-account">Delete your account</h2>
       <p>
         This removes your profile, followed schools, and RSVPs and cannot be
@@ -411,31 +529,55 @@ function DeleteAccountForm() {
       </p>
       <form
         action={deleteAccount.url}
-        className="form-stack"
+        className="form-stack sectioned-form"
         method="post"
         onSubmit={submit}
       >
-        {mutation.message ? (
-          <p role="alert" aria-live="polite">
-            {mutation.message}
-          </p>
-        ) : null}
-        <label>
-          Type DELETE to confirm
-          <input
-            name="confirm"
-            autoComplete="off"
-            required
-            {...fieldErrorProps(errors, "delete-account-error")}
+        {!confirming ? (
+          <FormErrorSummary
+            fieldErrors={mutation.fieldErrors}
+            fieldIds={{ confirm: "delete-account-error" }}
+            message={mutation.message}
+            summaryRef={mutation.errorSummaryRef}
           />
-          <FieldError id="delete-account-error" messages={errors} />
-        </label>
-        <p className="form-help">
-          Your email address becomes available for a new account afterwards.
-        </p>
-        <button type="submit" disabled={mutation.pending}>
-          {mutation.pending ? "Deleting…" : "Delete account"}
-        </button>
+        ) : null}
+        <FormSection
+          title="Confirm deletion"
+          description="Your email address becomes available for a new account afterwards."
+        >
+          <FormField
+            errorId="delete-account-error"
+            errors={errors}
+            label="Type DELETE to confirm"
+          >
+            <input name="confirm" autoComplete="off" required />
+          </FormField>
+        </FormSection>
+        <div className="form-actions">
+          <button
+            className="button--destructive"
+            disabled={mutation.pending}
+            ref={triggerRef}
+            type="submit"
+          >
+            Delete account
+          </button>
+        </div>
+        <ConfirmDialog
+          cancelLabel="Keep account"
+          confirmLabel="Permanently delete account"
+          heading="Permanently delete your account?"
+          onClose={() => setConfirming(false)}
+          open={confirming}
+          pending={mutation.pending}
+          returnFocusRef={triggerRef}
+        >
+          <p>
+            This cannot be undone. Your profile, followed schools, and RSVPs
+            will be removed.
+          </p>
+          {mutation.message ? <p role="alert">{mutation.message}</p> : null}
+        </ConfirmDialog>
       </form>
     </section>
   );

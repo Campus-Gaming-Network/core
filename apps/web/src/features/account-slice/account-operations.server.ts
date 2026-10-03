@@ -8,6 +8,7 @@ import {
 import type { CookieMutation } from "../../server/cookies.server.js";
 import {
   accountProfileDtoSchema,
+  dashboardEventLimit,
   dashboardEventsDtoSchema,
   followedSchoolsDtoSchema,
   myTeamsDtoSchema,
@@ -58,7 +59,7 @@ export async function accountDashboardOperation({
     safeSecondaryRead(
       () =>
         api({
-          path: "/me/events?limit=5",
+          path: `/me/events?limit=${dashboardEventLimit}`,
           cookieHeader,
           cache: "no-store",
           responseSchema: dashboardEventsDtoSchema,

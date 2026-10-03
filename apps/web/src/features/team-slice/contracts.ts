@@ -10,6 +10,8 @@ import {
 const identifierSchema = z.string().trim().min(1).max(200);
 const nonNegativeIntegerSchema = z.number().int().nonnegative();
 const filterSchema = z.string().trim().max(200);
+// The school search API rejects queries longer than this.
+const schoolQuerySchema = z.string().trim().max(120);
 const cursorSchema = z.string().trim().max(2048);
 
 export const teamsPageSize = 25;
@@ -84,6 +86,11 @@ export const teamsBrowseInputSchema = z.object({
   before: cursorSchema,
 });
 
+/** The teams browse page also names the filtered school and searches schools. */
+export const teamsBrowsePageInputSchema = teamsBrowseInputSchema.extend({
+  schoolQuery: schoolQuerySchema,
+});
+
 export const teamSlugInputSchema = z.object({ slug: identifierSchema });
 
 const teamNameSchema = z
@@ -140,6 +147,7 @@ export type GameSummaryDTO = z.output<typeof gameSummaryDtoSchema>;
 export type SchoolSummaryDTO = z.output<typeof schoolSummaryDtoSchema>;
 export type TeamMemberDTO = z.output<typeof teamMemberDtoSchema>;
 export type TeamsBrowseInput = z.output<typeof teamsBrowseInputSchema>;
+export type TeamsBrowsePageInput = z.output<typeof teamsBrowsePageInputSchema>;
 export type CreateTeamInput = z.output<typeof createTeamInputSchema>;
 export type JoinTeamInput = z.output<typeof joinTeamInputSchema>;
 export type SetTeamCaptainInput = z.output<typeof setTeamCaptainInputSchema>;
@@ -150,7 +158,10 @@ export type NewTeamPageInput = z.output<typeof newTeamPageInputSchema>;
 
 export type TeamsSearch = {
   game?: string;
+  /** Slug of the school whose teams are listed. */
   school?: string;
+  /** Searches schools for the no-JavaScript school selector. */
+  school_q?: string;
   after?: string;
   before?: string;
   team?: TeamBrowseNotice;
@@ -167,6 +178,14 @@ export type TeamsBrowseResult = z.output<typeof teamsResponseDtoSchema> & {
   games: GameSummaryDTO[];
   gamesUnavailable: boolean;
   teamsUnavailable: boolean;
+};
+
+export type TeamsBrowsePageResult = TeamsBrowseResult & {
+  /** The school named by the `school` filter; absent when it cannot be found. */
+  selectedSchool?: SchoolSummaryDTO;
+  /** Matches for the `school_q` search. */
+  schools: SchoolSummaryDTO[];
+  schoolSearchFailed: boolean;
 };
 
 export type TeamDetailResult =
@@ -212,6 +231,7 @@ export function validateTeamsSearch(
 ): TeamsSearch {
   const game = tolerantSearchValue(search.game, 200);
   const school = tolerantSearchValue(search.school, 200);
+  const schoolQuery = tolerantSearchValue(search.school_q, 120);
   const after = tolerantSearchValue(search.after, 2048);
   const before = tolerantSearchValue(search.before, 2048);
   const team = pageNoticeKey(teamBrowseNotices, search.team);
@@ -219,6 +239,7 @@ export function validateTeamsSearch(
   return {
     ...(game ? { game } : {}),
     ...(school ? { school } : {}),
+    ...(schoolQuery ? { school_q: schoolQuery } : {}),
     ...(after ? { after } : {}),
     ...(before ? { before } : {}),
     ...(team ? { team } : {}),
@@ -232,6 +253,12 @@ export function teamsBrowseInput(search: TeamsSearch): TeamsBrowseInput {
     after: search.after ?? "",
     before: search.before ?? "",
   };
+}
+
+export function teamsBrowsePageInput(
+  search: TeamsSearch,
+): TeamsBrowsePageInput {
+  return { ...teamsBrowseInput(search), schoolQuery: search.school_q ?? "" };
 }
 
 export function validateTeamDetailSearch(

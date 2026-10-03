@@ -1,4 +1,5 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
+import { ArrowRight } from "lucide-react";
 import { PageNoticeView } from "../components/page-notice-view";
 import { ListUnavailable, RoutePending } from "../components/route-boundaries";
 import { SchoolLogo } from "../components/school-logo";
@@ -41,13 +42,13 @@ function SchoolsPage() {
     : undefined;
 
   return (
-    <main className="narrow">
-      <section className="page-heading">
+    <main className="browse-page school-directory-page">
+      <section className="page-heading browse-heading">
         <p className="eyebrow">Schools</p>
         <h1>Browse schools</h1>
         <p className="lede">
-          Search by school name or filter by state. Main and branch campuses are
-          listed the same way.
+          Find your campus, see what is happening there, and follow it for
+          updates.
         </p>
       </section>
 
@@ -55,7 +56,11 @@ function SchoolsPage() {
         notice={search.follow ? schoolBrowseNotices[search.follow] : undefined}
       />
 
-      <form action="/schools" className="search-bar" method="get">
+      <form
+        action="/schools"
+        className="search-bar filter-bar school-filter-bar"
+        method="get"
+      >
         <label>
           Search
           <input
@@ -64,64 +69,72 @@ function SchoolsPage() {
             placeholder="University, college, campus"
           />
         </label>
-        <label>
-          State
-          <input
-            name="state"
-            defaultValue={search.state}
-            placeholder="CA"
-            maxLength={2}
-          />
-        </label>
-        <button type="submit">Search</button>
+        <button type="submit">Find schools</button>
       </form>
 
       {catalog.unavailable ? (
         <ListUnavailable heading="Schools are unavailable right now" />
       ) : catalog.schools.length > 0 ? (
-        <div className="list">
-          {catalog.schools.map((school) => (
-            <Link
-              className="card card--default list-item"
-              key={school.id}
-              to="/schools/$slug"
-              params={{ slug: school.slug }}
-            >
-              <span className="school-identity">
-                <SchoolLogo logoURL={school.logo_url} size={40} />
-                <span>
+        <section aria-labelledby="school-results-heading">
+          <div className="results-heading">
+            <div>
+              <h2 id="school-results-heading">Schools</h2>
+            </div>
+            <span>
+              Showing {catalog.schools.length} · Page {page}
+            </span>
+          </div>
+          <div className="school-directory-grid">
+            {catalog.schools.map((school) => (
+              <Link
+                className="card card--default school-directory-card"
+                key={school.id}
+                to="/schools/$slug"
+                params={{ slug: school.slug }}
+              >
+                <span aria-hidden="true" className="school-directory-mark">
+                  {school.name.slice(0, 1).toUpperCase()}
+                  <SchoolLogo logoURL={school.logo_url} size={44} />
+                </span>
+                <span className="school-directory-copy">
                   <strong>{school.name}</strong>
                   {school.alias ? <small>{school.alias}</small> : null}
+                  <small>{schoolLocation(school)}</small>
                 </span>
-              </span>
-              <span>{schoolLocation(school)}</span>
-            </Link>
-          ))}
-        </div>
+                <span className="school-directory-action with-arrow">
+                  View school
+                  <ArrowRight aria-hidden="true" size={14} strokeWidth={2.25} />
+                </span>
+              </Link>
+            ))}
+          </div>
+        </section>
       ) : (
         <section className="empty-state">
           <h2>No schools found</h2>
-          <p>Try a broader school name or clear the state filter.</p>
+          <p>Try a broader school name or check the spelling.</p>
         </section>
       )}
 
-      <nav className="pagination" aria-label="School pages">
-        {previousSearch ? (
-          <Link to="/schools" search={previousSearch}>
-            Previous
-          </Link>
-        ) : (
-          <span />
-        )}
-        <span>Page {page}</span>
-        {nextSearch ? (
-          <Link to="/schools" search={nextSearch}>
-            Next
-          </Link>
-        ) : (
-          <span />
-        )}
-      </nav>
+      {previousSearch || nextSearch ? (
+        <nav className="pagination" aria-label="School pages">
+          {previousSearch ? (
+            <Link to="/schools" search={previousSearch}>
+              Previous
+            </Link>
+          ) : (
+            <span />
+          )}
+          <span>Page {page}</span>
+          {nextSearch ? (
+            <Link to="/schools" search={nextSearch}>
+              Next
+            </Link>
+          ) : (
+            <span />
+          )}
+        </nav>
+      ) : null}
     </main>
   );
 }

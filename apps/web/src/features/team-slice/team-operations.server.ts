@@ -7,6 +7,7 @@ import { optionalViewerProfile } from "../../server/viewer.server.js";
 import {
   gamesResponseDtoSchema,
   schoolsResponseDtoSchema,
+  schoolSummaryDtoSchema,
   teamMutationResponseDtoSchema,
   teamDetailResponseDtoSchema,
   teamDtoSchema,
@@ -21,6 +22,8 @@ import {
   type TeamMutationResult,
   type TransferTeamOwnershipInput,
   type TeamsBrowseInput,
+  type TeamsBrowsePageInput,
+  type TeamsBrowsePageResult,
   type TeamsBrowseResult,
 } from "./contracts.js";
 
@@ -70,6 +73,46 @@ export async function teamsBrowseOperation(
     games: gamesResult.data,
     gamesUnavailable: gamesResult.unavailable,
     teamsUnavailable: teamsResult.unavailable,
+  };
+}
+
+export async function teamsBrowsePageOperation(
+  { schoolQuery, ...input }: TeamsBrowsePageInput,
+  dependencies: Dependencies,
+): Promise<TeamsBrowsePageResult> {
+  const { api, reportError = defaultErrorReporter } = dependencies;
+  const [browse, selectedSchool, schoolSearch] = await Promise.all([
+    teamsBrowseOperation(input, dependencies),
+    // The filter holds a slug; the page shows the school's name instead.
+    input.school
+      ? api({
+          path: `/schools/${encodeURIComponent(input.school)}`,
+          cache: "no-store",
+          responseSchema: schoolSummaryDtoSchema,
+        })
+          .then(({ data }) => data)
+          .catch((error: unknown) => {
+            if (!(error instanceof ApiError && error.status === 404)) {
+              reportError(error);
+            }
+            return undefined;
+          })
+      : Promise.resolve(undefined),
+    schoolQuery.length >= 2
+      ? readSchools(api, schoolQuery)
+          .then((schools) => ({ schools, failed: false }))
+          .catch((error: unknown) => {
+            reportError(error);
+            return { schools: [], failed: true };
+          })
+      : Promise.resolve({ schools: [], failed: false }),
+  ]);
+
+  return {
+    ...browse,
+    ...(selectedSchool ? { selectedSchool } : {}),
+    schools: schoolSearch.schools,
+    schoolSearchFailed: schoolSearch.failed,
   };
 }
 

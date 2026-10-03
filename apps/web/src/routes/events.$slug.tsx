@@ -5,12 +5,30 @@ import {
   type ErrorComponentProps,
 } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { type FormEvent, useState } from "react";
+import {
+  ArrowLeft,
+  CalendarDays,
+  Check,
+  CircleHelp,
+  Flag,
+  Mail,
+  MapPin,
+  Star,
+  X,
+} from "lucide-react";
+import { type FormEvent, useRef, useState } from "react";
+import { ButtonLink } from "../components/button-link";
+import { CalendarDate } from "../components/calendar-date";
+import { Callout } from "../components/callout";
+import { CopyLink } from "../components/copy-link";
+import { ConfirmDialog } from "../components/confirm-dialog";
 import {
   FieldError,
+  FormErrorSummary,
   fieldErrorProps,
   useEnhancedMutation,
 } from "../components/enhanced-mutation";
+import { FormField } from "../components/form-field";
 import {
   newIdempotencyKey,
   useIdempotencyKey,
@@ -18,6 +36,7 @@ import {
 import { pageNoticeKey } from "../components/page-notice";
 import { PageNoticeView } from "../components/page-notice-view";
 import { RouteErrorView, RoutePending } from "../components/route-boundaries";
+import { StatusLabel } from "../components/status-label";
 import {
   cancelEvent,
   getEventDetail,
@@ -171,7 +190,7 @@ export function eventHead(loaderData?: EventRouteData) {
 }
 
 function EventPage() {
-  const { event, authenticated } = Route.useLoaderData();
+  const { event, authenticated, publicOrigin } = Route.useLoaderData();
   const search = Route.useSearch();
 
   if (isLockedEvent(event)) {
@@ -189,6 +208,7 @@ function EventPage() {
       event={event}
       authenticated={authenticated}
       notice={search.event}
+      publicOrigin={publicOrigin}
     />
   );
 }
@@ -208,10 +228,10 @@ export function LockedEventView({
       <section className="page-heading">
         <p className="eyebrow">Private event</p>
         <h1>This event is private.</h1>
-        <p className="lede">
-          Enter the event password to reveal the details. Nothing private is
-          sent to the browser until the password checks out.
-        </p>
+        <p className="lede">Enter the event password to reveal the details.</p>
+        <Callout icon="lock">
+          Nothing private is sent to the browser until the password checks out.
+        </Callout>
       </section>
       <PageNoticeView
         notice={notice ? eventDetailNotices[notice] : undefined}
@@ -219,17 +239,17 @@ export function LockedEventView({
       <UnlockEventForm slug={slug} />
       <NativeLogoutFallback authenticated={authenticated} />
       <div className="actions">
-        <Link className="button button--secondary" to="/events">
+        <ButtonLink variant="secondary" to="/events">
           Browse public events
-        </Link>
+        </ButtonLink>
         {authenticated ? null : (
-          <Link
-            className="button button--primary"
+          <ButtonLink
+            variant="primary"
             to="/login"
             search={{ next: `/events/${slug}` }}
           >
             Log in
-          </Link>
+          </ButtonLink>
         )}
       </div>
     </main>
@@ -240,32 +260,53 @@ function VisibleEventView({
   event,
   authenticated,
   notice,
+  publicOrigin,
 }: {
   event: EventDTO;
   authenticated: boolean;
   notice?: EventSearch["event"];
+  publicOrigin: string;
 }) {
   const paymentURL = safeExternalEventUrl(event.payment_url);
+  const directionsURL =
+    event.address || event.location_name
+      ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+          [event.location_name, event.address].filter(Boolean).join(", "),
+        )}`
+      : undefined;
 
   return (
-    <main className="narrow">
+    <main className="event-page">
       <EventBanner event={event} size="hero" />
-      <section className="page-heading">
-        <p className="eyebrow">Event</p>
-        <h1>{event.title}</h1>
-        <p className="lede">
-          {event.description || "Event details are coming soon."}
-        </p>
-        <div className="event-pill-list">
-          <span className="event-pill">
-            {eventLifecycleLabel(event.lifecycle)}
-          </span>
-          <span className="event-pill">
-            {eventVisibilityLabel(event.visibility)}
-          </span>
-          <span className="event-pill">{eventFormatLabel(event.format)}</span>
+      <Link className="back-link with-arrow" to="/events">
+        <ArrowLeft aria-hidden="true" size={14} strokeWidth={2.25} />
+        Back to events
+      </Link>
+      <header className="event-detail-header">
+        <CalendarDate
+          size="large"
+          startsAt={event.starts_at}
+          timezone={event.timezone}
+        />
+        <div>
+          <div className="event-pill-list">
+            {event.lifecycle !== "upcoming" ? (
+              <StatusLabel status={event.lifecycle}>
+                {eventLifecycleLabel(event.lifecycle)}
+              </StatusLabel>
+            ) : null}
+            <StatusLabel>{eventVisibilityLabel(event.visibility)}</StatusLabel>
+            <StatusLabel>{eventFormatLabel(event.format)}</StatusLabel>
+          </div>
+          <h1>{event.title}</h1>
+          <p className="event-hostline">
+            Hosted by{" "}
+            <Link to="/schools/$slug" params={{ slug: event.host_school.slug }}>
+              {event.host_school.name}
+            </Link>
+          </p>
         </div>
-      </section>
+      </header>
 
       <NativeLogoutFallback authenticated={authenticated} />
 
@@ -273,129 +314,187 @@ function VisibleEventView({
         notice={notice ? eventDetailNotices[notice] : undefined}
       />
 
-      <section className="detail-grid" aria-label="Event details">
-        <div className="detail-row">
-          <span>When</span>
-          <strong>{eventTimeRange(event)}</strong>
-        </div>
-        <div className="detail-row">
-          <span>Where</span>
-          <strong>{eventLocation(event)}</strong>
-        </div>
-        <div className="detail-row">
-          <span>Host school</span>
-          <strong>
-            <Link to="/schools/$slug" params={{ slug: event.host_school.slug }}>
-              {event.host_school.name}
-            </Link>
-          </strong>
-        </div>
-        <div className="detail-row">
-          <span>Games</span>
-          <strong>
-            {event.games.length > 0
-              ? event.games.map((game) => game.name).join(", ")
-              : "Games to be announced"}
-          </strong>
-        </div>
-        {event.capacity ? (
-          <div className="detail-row">
-            <span>Capacity</span>
-            <strong>
-              {event.rsvp_yes_count} / {event.capacity}
-            </strong>
-          </div>
-        ) : null}
-        {event.recurrence_rule && event.recurrence_until ? (
-          <div className="detail-row">
-            <span>Repeats</span>
-            <strong>
-              {recurrenceRuleLabel(event.recurrence_rule)} until{" "}
-              {formatEventDate(event.recurrence_until, event.timezone)}
-            </strong>
-          </div>
-        ) : null}
-        <div className="detail-row">
-          <span>Interested</span>
-          <strong>{event.interest_count}</strong>
-        </div>
-        {event.is_paid ? (
-          <div className="detail-row">
-            <span>Payment</span>
-            <strong>
-              {event.payment_note || "Payment happens off CGN."}
-              {paymentURL ? (
-                <>
-                  {" "}
-                  <a href={paymentURL}>Payment link</a>
-                </>
-              ) : null}
-            </strong>
-          </div>
-        ) : null}
-      </section>
+      <div className="event-detail-layout">
+        <div className="event-detail-main">
+          <section className="event-about" aria-labelledby="event-about-title">
+            <h2 id="event-about-title">About this event</h2>
+            <p className="lede">
+              {event.description || "Event details are coming soon."}
+            </p>
+          </section>
 
-      {event.organizers && event.organizers.length > 0 ? (
-        <section aria-labelledby="event-organizers">
-          <h2 id="event-organizers">Organizers</h2>
-          <ul>
-            {event.organizers.map((organizer) => (
-              <li key={organizer.id}>
-                <Link to="/users/$id" params={{ id: organizer.id }}>
-                  {organizer.name}
-                </Link>
-                {" · "}
-                {verificationLabel(organizer.verification_level)}
-                {organizer.role_indicators
-                  ?.filter((role) => role !== organizer.verification_level)
-                  .map((role) => (
-                    <span key={`${organizer.id}-${role}`}>
-                      {" · "}
-                      {roleIndicatorLabel(role)}
-                    </span>
-                  ))}
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
-
-      <section className="action-panel" aria-labelledby="event-actions">
-        <h2 id="event-actions">Event actions</h2>
-        {authenticated ? (
-          <>
-            <InterestEventForm event={event} />
-            <RsvpEventForm event={event} />
-            {event.viewer_can_edit ? (
-              <div className="actions">
-                <Link
-                  className="button button--secondary"
-                  to="/events/$slug/edit"
-                  params={{ slug: event.slug }}
-                >
-                  Edit event
-                </Link>
-                <CancelEventForm slug={event.slug} />
+          <section
+            className="detail-card event-facts"
+            aria-labelledby="event-facts-title"
+          >
+            <h2 id="event-facts-title">Event details</h2>
+            <div className="detail-row">
+              <span>Games</span>
+              <strong>
+                {event.games.length > 0
+                  ? event.games.map((game) => game.name).join(", ")
+                  : "To be announced"}
+              </strong>
+            </div>
+            <div className="detail-row">
+              <span>{event.capacity ? "Attending" : "Going"}</span>
+              <strong>
+                {event.capacity
+                  ? `${event.rsvp_yes_count} of ${event.capacity}`
+                  : event.rsvp_yes_count}
+              </strong>
+            </div>
+            <div className="detail-row">
+              <span>Interested</span>
+              <strong>{event.interest_count}</strong>
+            </div>
+            {event.recurrence_rule && event.recurrence_until ? (
+              <div className="detail-row">
+                <span>Repeats</span>
+                <strong>
+                  {recurrenceRuleLabel(event.recurrence_rule)} until{" "}
+                  {formatEventDate(event.recurrence_until, event.timezone)}
+                </strong>
               </div>
             ) : null}
-            <p className="form-footer">
-              Yes RSVPs send a confirmation email with a calendar file.
-            </p>
-            <section aria-labelledby="report-event">
-              <h3 id="report-event">Report this event</h3>
-              <ReportEventForm slug={event.slug} />
+          </section>
+
+          {event.organizers && event.organizers.length > 0 ? (
+            <section
+              className="section section--compact"
+              aria-labelledby="event-organizers"
+            >
+              <h2 id="event-organizers">Organizers</h2>
+              <ul className="organizer-list">
+                {event.organizers.map((organizer) => (
+                  <li key={organizer.id}>
+                    <Link to="/users/$id" params={{ id: organizer.id }}>
+                      {organizer.name}
+                    </Link>
+                    <small>
+                      {verificationLabel(organizer.verification_level)}
+                      {organizer.role_indicators
+                        ?.filter(
+                          (role) => role !== organizer.verification_level,
+                        )
+                        .map((role) => ` · ${roleIndicatorLabel(role)}`)}
+                    </small>
+                  </li>
+                ))}
+              </ul>
             </section>
-          </>
-        ) : (
-          <Link
-            className="button button--primary"
-            to="/login"
-            search={{ next: `/events/${event.slug}` }}
+          ) : null}
+
+          {authenticated ? (
+            <section
+              className="section section--compact"
+              aria-label="Event safety and management"
+            >
+              {event.viewer_can_edit ? (
+                <>
+                  <h2 id="manage-event">Manage event</h2>
+                  <div className="actions">
+                    <ButtonLink
+                      variant="secondary"
+                      to="/events/$slug/edit"
+                      params={{ slug: event.slug }}
+                    >
+                      Edit event
+                    </ButtonLink>
+                    <CancelEventForm slug={event.slug} />
+                  </div>
+                </>
+              ) : null}
+              <details className="safety-details">
+                <summary>
+                  <Flag aria-hidden="true" size={14} strokeWidth={1.75} />
+                  Report this event
+                </summary>
+                <ReportEventForm slug={event.slug} />
+              </details>
+            </section>
+          ) : null}
+        </div>
+
+        <aside
+          className="event-detail-sidebar"
+          aria-label="RSVP and event info"
+        >
+          <section
+            className="detail-card rsvp-card"
+            aria-labelledby="event-rsvp-title"
           >
-            Log in to RSVP or mark interested
-          </Link>
-        )}
-      </section>
+            <h2 id="event-rsvp-title">RSVP</h2>
+            <div className="detail-card-body">
+              {authenticated ? (
+                <>
+                  <RsvpEventForm event={event} />
+                  <InterestEventForm event={event} />
+                </>
+              ) : (
+                <ButtonLink
+                  variant="primary"
+                  to="/login"
+                  search={{ next: `/events/${event.slug}` }}
+                >
+                  Log in to RSVP
+                </ButtonLink>
+              )}
+              <p className="rsvp-help">
+                <Mail aria-hidden="true" size={14} strokeWidth={1.75} />
+                Going RSVPs get a confirmation email with a calendar file.
+              </p>
+            </div>
+          </section>
+
+          <section className="detail-card">
+            <h2>When and where</h2>
+            <div className="detail-card-row">
+              <CalendarDays aria-hidden="true" size={18} strokeWidth={1.75} />
+              <div>
+                <strong>{eventTimeRange(event)}</strong>
+                <small>{event.timezone.replaceAll("_", " ")}</small>
+                <a
+                  className="text-action"
+                  href={`/api/events/${encodeURIComponent(event.slug)}/calendar.ics`}
+                >
+                  Add to calendar
+                </a>
+              </div>
+            </div>
+            <div className="detail-card-row">
+              <MapPin aria-hidden="true" size={18} strokeWidth={1.75} />
+              <div>
+                <strong>{eventLocation(event)}</strong>
+                {event.address ? <small>{event.address}</small> : null}
+                {directionsURL ? (
+                  <a className="text-action" href={directionsURL}>
+                    Get directions
+                  </a>
+                ) : null}
+              </div>
+            </div>
+          </section>
+
+          <section className="detail-card">
+            <h2>Share</h2>
+            <CopyLink
+              label="Event link"
+              url={`${publicOrigin}/events/${encodeURIComponent(event.slug)}`}
+            />
+          </section>
+
+          {event.is_paid ? (
+            <section className="detail-card">
+              <h2>Payment</h2>
+              <div className="detail-card-body">
+                <p>{event.payment_note || "Payment happens off CGN."}</p>
+                {paymentURL ? <a href={paymentURL}>Open payment link</a> : null}
+              </div>
+            </section>
+          ) : null}
+        </aside>
+      </div>
     </main>
   );
 }
@@ -436,8 +535,24 @@ function InterestEventForm({ event }: { event: EventDTO }) {
       <input name="slug" type="hidden" value={event.slug} />
       <input name="interested" type="hidden" value={String(interested)} />
       {mutation.message ? <p role="alert">{mutation.message}</p> : null}
-      <button disabled={mutation.pending} type="submit">
-        {event.viewer_interested ? "Remove interested" : "I'm interested"}
+      <button
+        className={
+          event.viewer_interested ? "interest-toggle is-on" : "interest-toggle"
+        }
+        disabled={mutation.pending}
+        type="submit"
+      >
+        <Star
+          aria-hidden="true"
+          fill={event.viewer_interested ? "currentColor" : "none"}
+          size={16}
+          strokeWidth={1.75}
+        />
+        {mutation.pending
+          ? "Saving interest…"
+          : event.viewer_interested
+            ? "Remove interested"
+            : "I'm interested"}
       </button>
     </form>
   );
@@ -445,21 +560,47 @@ function InterestEventForm({ event }: { event: EventDTO }) {
 
 function CancelEventForm({ slug }: { slug: string }) {
   const runCancelEvent = useServerFn(cancelEvent);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const [confirming, setConfirming] = useState(false);
   const mutation = useEnhancedMutation(
     "We could not cancel that event. Please try again.",
   );
 
   async function submit(formEvent: FormEvent<HTMLFormElement>) {
     formEvent.preventDefault();
+    if (!confirming) {
+      setConfirming(true);
+      return;
+    }
     await mutation.execute(() => runCancelEvent({ data: { slug } }));
   }
 
   return (
     <form action={cancelEvent.url} method="post" onSubmit={submit}>
       <input name="slug" type="hidden" value={slug} />
-      <button disabled={mutation.pending} type="submit">
-        {mutation.pending ? "Cancelling…" : "Cancel event"}
+      <button
+        className="button--destructive"
+        disabled={mutation.pending}
+        ref={triggerRef}
+        type="submit"
+      >
+        Cancel event
       </button>
+      <ConfirmDialog
+        cancelLabel="Keep event"
+        confirmLabel="Yes, cancel event"
+        heading="Cancel this event?"
+        onClose={() => setConfirming(false)}
+        open={confirming}
+        pending={mutation.pending}
+        returnFocusRef={triggerRef}
+      >
+        <p>
+          Attendees will no longer be able to RSVP. This action cannot be
+          undone.
+        </p>
+        {mutation.message ? <p role="alert">{mutation.message}</p> : null}
+      </ConfirmDialog>
     </form>
   );
 }
@@ -525,17 +666,13 @@ function ReportEventForm({ slug }: { slug: string }) {
           {message}
         </p>
       ) : null}
-      <label>
-        Reason
-        <textarea
-          maxLength={2000}
-          name="reason"
-          required
-          rows={3}
-          {...fieldErrorProps(reasonErrors, "event-report-reason-error")}
-        />
-        <FieldError id="event-report-reason-error" messages={reasonErrors} />
-      </label>
+      <FormField
+        errorId="event-report-reason-error"
+        errors={reasonErrors}
+        label="Reason"
+      >
+        <textarea maxLength={2000} name="reason" required rows={3} />
+      </FormField>
       <button disabled={pending} type="submit">
         {pending ? "Submitting…" : "Submit report"}
       </button>
@@ -573,13 +710,17 @@ function UnlockEventForm({ slug }: { slug: string }) {
       onSubmit={submit}
     >
       <input type="hidden" name="slug" value={slug} />
-      {mutation.message ? (
-        <p role="alert" aria-live="polite">
-          {mutation.message}
-        </p>
-      ) : null}
-      <label>
-        Event password
+      <FormErrorSummary
+        fieldErrors={mutation.fieldErrors}
+        fieldIds={{ password: "event-password-error" }}
+        message={mutation.message}
+        summaryRef={mutation.errorSummaryRef}
+      />
+      <FormField
+        errorId="event-password-error"
+        errors={passwordErrors}
+        label="Event password"
+      >
         <input
           name="password"
           type="password"
@@ -587,16 +728,16 @@ function UnlockEventForm({ slug }: { slug: string }) {
           required
           minLength={8}
           maxLength={256}
-          {...fieldErrorProps(passwordErrors, "event-password-error")}
         />
-        <FieldError id="event-password-error" messages={passwordErrors} />
-      </label>
+      </FormField>
       <button type="submit" disabled={mutation.pending}>
         {mutation.pending ? "Unlocking…" : "Unlock event"}
       </button>
     </form>
   );
 }
+
+const rsvpIcons = { maybe: CircleHelp, no: X, yes: Check } as const;
 
 function RsvpEventForm({ event }: { event: EventDTO }) {
   const runRsvpEvent = useServerFn(rsvpEvent);
@@ -639,39 +780,53 @@ function RsvpEventForm({ event }: { event: EventDTO }) {
       onSubmit={submit}
     >
       <input type="hidden" name="slug" value={event.slug} />
-      {mutation.message ? (
-        <p role="alert" aria-live="polite">
-          {mutation.message}
-        </p>
-      ) : null}
-      <p>
+      <FormErrorSummary
+        fieldErrors={mutation.fieldErrors}
+        fieldIds={{ response: "event-rsvp-error" }}
+        message={mutation.message}
+        summaryRef={mutation.errorSummaryRef}
+      />
+      <p className="rsvp-current">
         Current RSVP:{" "}
         <strong>
           {event.viewer_rsvp ? eventRSVPLabel(event.viewer_rsvp) : "Not set"}
         </strong>
       </p>
-      {isEnded ? <p>RSVPs are closed for ended events.</p> : null}
-      {isFullForViewer ? (
-        <p>This event is full, but you can still choose maybe or no.</p>
+      {mutation.pending ? (
+        <p aria-live="polite" className="rsvp-note" role="status">
+          Saving your RSVP…
+        </p>
       ) : null}
-      <div className="rsvp-buttons">
-        {(["yes", "maybe", "no"] as const).map((response) => (
-          <button
-            aria-pressed={event.viewer_rsvp === response}
-            {...fieldErrorProps(responseErrors, "event-rsvp-error")}
-            disabled={
-              mutation.pending ||
-              isEnded ||
-              (response === "yes" && isFullForViewer)
-            }
-            key={response}
-            name="response"
-            type="submit"
-            value={response}
-          >
-            {eventRSVPLabel(response)}
-          </button>
-        ))}
+      {isEnded ? (
+        <p className="rsvp-note">RSVPs are closed for ended events.</p>
+      ) : null}
+      {isFullForViewer ? (
+        <p className="rsvp-note">
+          This event is full, but you can still choose maybe or no.
+        </p>
+      ) : null}
+      <div aria-label="Your RSVP" className="rsvp-buttons" role="group">
+        {(["yes", "maybe", "no"] as const).map((response) => {
+          const RsvpIcon = rsvpIcons[response];
+          return (
+            <button
+              aria-pressed={event.viewer_rsvp === response}
+              {...fieldErrorProps(responseErrors, "event-rsvp-error")}
+              disabled={
+                mutation.pending ||
+                isEnded ||
+                (response === "yes" && isFullForViewer)
+              }
+              key={response}
+              name="response"
+              type="submit"
+              value={response}
+            >
+              <RsvpIcon aria-hidden="true" size={16} strokeWidth={2} />
+              {eventRSVPLabel(response)}
+            </button>
+          );
+        })}
       </div>
       <FieldError id="event-rsvp-error" messages={responseErrors} />
     </form>

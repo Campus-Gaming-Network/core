@@ -98,6 +98,8 @@ export const eventBrowseItemDtoSchema = z.object({
   lifecycle: z.enum(["upcoming", "happening_now", "ended", "full"]),
   host_school: z.object({ name: z.string() }),
   games: z.array(z.object({ name: z.string() })),
+  rsvp_yes_count: nonNegativeIntegerSchema,
+  interest_count: nonNegativeIntegerSchema,
 });
 
 export const eventsBrowseResponseDtoSchema = z.object({
@@ -313,9 +315,15 @@ export type GetEventDetailResult =
   | { status: "not_found" }
   | OperationFailure;
 
-export type NavigationSessionDTO = {
-  authenticated: boolean;
+/** The viewer's own name and id, for the header's account menu. Nothing else. */
+export type NavigationViewer = {
+  id: string;
+  name: string;
 };
+
+export type NavigationSessionDTO =
+  | { authenticated: false }
+  | { authenticated: true; user: NavigationViewer };
 
 export type EventViewerSessionResult =
   | { status: "authenticated"; authenticated: true }

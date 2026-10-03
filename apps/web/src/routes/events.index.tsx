@@ -3,6 +3,7 @@ import {
   createFileRoute,
   type ErrorComponentProps,
 } from "@tanstack/react-router";
+import { ButtonLink } from "../components/button-link";
 import {
   ListUnavailable,
   RouteErrorView,
@@ -24,7 +25,6 @@ import {
   eventBrowseNotices,
   eventsHead,
 } from "../features/event-slice/presentation";
-import eventCSS from "../features/event-slice/events.css?url";
 
 export const Route = createFileRoute("/events/")({
   validateSearch: validateEventsSearch,
@@ -52,10 +52,7 @@ export const Route = createFileRoute("/events/")({
       : "public, max-age=0, must-revalidate",
     vary: "Cookie",
   }),
-  head: ({ loaderData }) => ({
-    ...eventsHead(loaderData?.publicOrigin),
-    links: [{ rel: "stylesheet", href: eventCSS }],
-  }),
+  head: ({ loaderData }) => eventsHead(loaderData?.publicOrigin),
   pendingComponent: EventsPending,
   errorComponent: EventsError,
   component: EventsPage,
@@ -74,7 +71,7 @@ function EventsPage() {
       : undefined;
 
   return (
-    <main className="narrow">
+    <main className="browse-page">
       <section className="page-heading">
         <p className="eyebrow">Events</p>
         <h1>Browse campus gaming events</h1>
@@ -84,9 +81,9 @@ function EventsPage() {
         </p>
         {authenticated ? (
           <>
-            <Link className="button button--primary" to="/events/new">
+            <ButtonLink variant="primary" to="/events/new">
               Create event
-            </Link>
+            </ButtonLink>
             <noscript>
               <form action={logout.url} className="logout-form" method="post">
                 <button type="submit">Log out</button>
@@ -94,13 +91,13 @@ function EventsPage() {
             </noscript>
           </>
         ) : (
-          <Link
-            className="button button--primary"
+          <ButtonLink
+            variant="primary"
             to="/login"
             search={{ next: "/events/new" }}
           >
             Log in to create an event
-          </Link>
+          </ButtonLink>
         )}
       </section>
 
@@ -109,6 +106,9 @@ function EventsPage() {
       />
 
       <form action="/events" className="search-bar" method="get">
+        {search.school ? (
+          <input name="school" type="hidden" value={search.school} />
+        ) : null}
         <label>
           Game
           <select
@@ -126,14 +126,6 @@ function EventsPage() {
           {browse.gamesUnavailable ? (
             <small>Game filters are unavailable right now.</small>
           ) : null}
-        </label>
-        <label>
-          School slug
-          <input
-            name="school"
-            defaultValue={search.school}
-            placeholder="university-of-california-irvine"
-          />
         </label>
         <label>
           Format
@@ -166,23 +158,25 @@ function EventsPage() {
         </section>
       )}
 
-      <nav className="pagination" aria-label="Event pages">
-        {previousSearch ? (
-          <Link to="/events" search={previousSearch}>
-            Previous
-          </Link>
-        ) : (
+      {previousSearch || nextSearch ? (
+        <nav className="pagination" aria-label="Event pages">
+          {previousSearch ? (
+            <Link to="/events" search={previousSearch}>
+              Previous
+            </Link>
+          ) : (
+            <span />
+          )}
           <span />
-        )}
-        <span />
-        {nextSearch ? (
-          <Link to="/events" search={nextSearch}>
-            Next
-          </Link>
-        ) : (
-          <span />
-        )}
-      </nav>
+          {nextSearch ? (
+            <Link to="/events" search={nextSearch}>
+              Next
+            </Link>
+          ) : (
+            <span />
+          )}
+        </nav>
+      ) : null}
     </main>
   );
 }

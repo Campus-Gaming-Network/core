@@ -51,8 +51,12 @@ test("registered internal destinations use typed links without inventing routes"
   const root = source("src/routes/__root.tsx");
   const routeTree = source("src/routeTree.gen.ts");
 
-  assert.match(event, /<Link[\s\S]*?to="\/login"[\s\S]*?search=\{\{/);
+  assert.match(event, /<ButtonLink[\s\S]*?to="\/login"[\s\S]*?search=\{\{/);
   assert.doesNotMatch(event, /href=\{`\/login\?next=/);
+  assert.match(
+    event,
+    /<a[^>]*href=\{`\/api\/events\/\$\{encodeURIComponent\(event\.slug\)\}\/calendar\.ics`\}[^>]*>\s*Add to calendar/,
+  );
   assert.match(root, /router\.navigate\(\{ to: "\/", replace: true \}\)/);
   assert.match(home, /getHomeCatalog/);
   assert.match(home, /<Link[\s\S]*?to="\/schools"/);
@@ -74,6 +78,7 @@ test("registered internal destinations use typed links without inventing routes"
     "'/signup'",
     "'/support'",
     "'/terms'",
+    "'/api/events/$slug/calendar.ics'",
     "'/api/health'",
     "'/api/navigation-session'",
     "'/api/schools'",

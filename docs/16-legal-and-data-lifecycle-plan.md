@@ -185,8 +185,8 @@ Items marked **pre-launch** should not wait until after a public release.
 ### Avatars — resolved
 
 The web app draws each avatar itself from the public user id, using the
-DiceBear library (MIT) and its Critters style (CC0). No browser contacts an
-avatar service, so DiceBear is not a provider, and no opt-out or separate
+Boring Avatars library (MIT) and its Beam style. No browser contacts an
+avatar service, so Boring Avatars is not a provider, and no opt-out or separate
 disclosure is needed. The avatar is a pure function of the id and stores
 nothing new.
 

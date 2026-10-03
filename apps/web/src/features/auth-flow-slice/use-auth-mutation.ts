@@ -1,17 +1,24 @@
 import { useRouter } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { AuthMutationResult, FormFieldErrors } from "./contracts";
 
 const emptyErrors: FormFieldErrors = {};
 
 export function useAuthMutation(fallbackMessage: string) {
   const router = useRouter();
+  const errorSummaryRef = useRef<HTMLDivElement>(null);
   const [pending, setPending] = useState(false);
   const [result, setResult] = useState<{
     status: "idle" | "success" | "error";
     message: string;
     fieldErrors: FormFieldErrors;
   }>({ status: "idle", message: "", fieldErrors: emptyErrors });
+
+  useEffect(() => {
+    if (result.status === "error" && result.message) {
+      errorSummaryRef.current?.focus();
+    }
+  }, [result]);
 
   async function execute(request: () => Promise<AuthMutationResult>) {
     setPending(true);
@@ -45,5 +52,5 @@ export function useAuthMutation(fallbackMessage: string) {
     }
   }
 
-  return { ...result, execute, pending };
+  return { ...result, errorSummaryRef, execute, pending };
 }

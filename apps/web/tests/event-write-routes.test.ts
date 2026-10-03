@@ -17,6 +17,7 @@ test("new-event route is private, noindex, searchable, and progressively enhance
   const route = source("src/routes/events.new.tsx");
   const form = source("src/features/event-slice/event-form.tsx");
   const picker = source("src/features/event-slice/event-school-picker.tsx");
+  const schoolSearch = source("src/components/school-search-select.tsx");
 
   assert.match(route, /createFileRoute\("\/events\/new"\)/);
   assert.match(route, /href: "\/login\?next=\/events\/new"/);
@@ -40,9 +41,12 @@ test("new-event route is private, noindex, searchable, and progressively enhance
     form,
     /Repeat settings cannot be changed after an event is created/,
   );
-  assert.match(picker, /fetch\(`\/api\/schools\?\$\{search\.toString\(\)\}`/);
-  assert.match(picker, /<noscript>/);
-  assert.match(picker, /name="school_q"/);
+  assert.match(
+    schoolSearch,
+    /fetch\(`\/api\/schools\?\$\{search\.toString\(\)\}`/,
+  );
+  assert.match(schoolSearch, /<noscript>/);
+  assert.match(schoolSearch, /name="school_q"/);
   assert.match(picker, /name="host_school_id"/);
 });
 
@@ -88,7 +92,8 @@ test("event detail exposes A10, A16, and A23 without disturbing unlock or RSVP",
   }
   assert.match(detail, /to="\/events\/\$slug\/edit"/);
   assert.match(detail, /event\.viewer_can_edit \?/);
-  assert.match(detail, /event\.viewer_interested \? "Remove interested"/);
+  assert.match(detail, /"Remove interested"/);
+  assert.match(detail, /<ConfirmDialog/);
   assert.match(detail, /<ReportEventForm slug=\{event\.slug\}/);
   assert.doesNotMatch(detail, /result\.message.*throw|error\.message/);
 

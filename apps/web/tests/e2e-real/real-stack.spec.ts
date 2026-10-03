@@ -53,7 +53,7 @@ test("real browser journey crosses the BFF, Go API, Postgres, and email outbox",
   await page
     .getByLabel("Description")
     .fill("A full-stack private event fixture.");
-  await page.getByLabel("Visibility").selectOption("private");
+  await page.getByRole("radio", { name: "Private" }).check();
   await page.getByLabel("Starts at").fill("2037-08-15T13:00");
   await page.getByLabel("Ends at").fill("2037-08-15T15:00");
   await page.getByLabel("Location name").fill("Real Stack Student Union");
@@ -100,7 +100,9 @@ test("real browser journey crosses the BFF, Go API, Postgres, and email outbox",
   ).toBeVisible();
 
   await page.getByRole("button", { name: "Yes", exact: true }).click();
-  await expect(page.getByRole("status")).toContainText("RSVP saved.");
+  await expect(
+    page.getByRole("status").filter({ hasText: "RSVP saved." }),
+  ).toHaveCount(1);
   const rsvpMessage = await waitForMessage(
     request,
     attendeeEmail,

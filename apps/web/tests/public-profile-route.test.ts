@@ -66,13 +66,13 @@ test("profile UI renders public verification and viewer-safe report controls", (
   );
   assert.match(routeSource, /safeHTTPURL\(link\.url\)/);
   assert.match(routeSource, /viewer === "self"/);
-  assert.match(routeSource, /This is your profile\./);
   assert.match(routeSource, /viewer === "anonymous"/);
   assert.match(routeSource, /to="\/login"/);
   assert.match(
     routeSource,
     /search=\{\{ next: `\/users\/\$\{profileID\}` \}\}/,
   );
+  assert.match(routeSource, /<details className="safety-details">/);
   assert.match(routeSource, /<ReportUserForm userID=\{profileID\}/);
   assert.match(routeSource, /action=\{reportUser\.url\}/);
   assert.match(routeSource, /method="post"/);

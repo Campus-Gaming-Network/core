@@ -1,9 +1,9 @@
 import { useServerFn } from "@tanstack/react-start";
-import { useState, type FormEvent } from "react";
-import {
-  FieldError,
-  fieldErrorProps,
-} from "../../components/enhanced-mutation";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import { Callout } from "../../components/callout";
+import { FormErrorSummary } from "../../components/enhanced-mutation";
+import { FormField } from "../../components/form-field";
+import { FormSection } from "../../components/form-section";
 import { useIdempotencyKey } from "../../components/idempotency-key";
 import type { SupportFieldErrors } from "./contracts";
 import { submitSupportTicket } from "./support.functions";
@@ -19,12 +19,19 @@ export function SupportTicketForm({
 }) {
   const idempotency = useIdempotencyKey(idempotencyKey);
   const runSubmission = useServerFn(submitSupportTicket);
+  const errorSummaryRef = useRef<HTMLDivElement>(null);
   const [pending, setPending] = useState(false);
   const [result, setResult] = useState<{
     status: "idle" | "success" | "error";
     message: string;
     fieldErrors: SupportFieldErrors;
   }>({ status: "idle", message: "", fieldErrors: emptyErrors });
+
+  useEffect(() => {
+    if (result.status === "error" && result.message) {
+      errorSummaryRef.current?.focus();
+    }
+  }, [result]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -71,72 +78,83 @@ export function SupportTicketForm({
   return (
     <form
       action={submitSupportTicket.url}
-      className="form-stack"
+      className="form-stack sectioned-form"
       method="post"
       onSubmit={submit}
     >
       <input name="idempotency_key" type="hidden" value={idempotency.key} />
-      {result.message || initialMessage ? (
-        <p aria-live="polite" role={status === "error" ? "alert" : "status"}>
+      {status === "error" ? (
+        <FormErrorSummary
+          fieldErrors={result.fieldErrors}
+          fieldIds={{
+            contact_email: "contact_email-error",
+            name: "name-error",
+            subject: "subject-error",
+            message: "message-error",
+          }}
+          message={result.message || initialMessage}
+          summaryRef={errorSummaryRef}
+        />
+      ) : result.message || initialMessage ? (
+        <p aria-live="polite" role="status">
           {result.message || initialMessage}
         </p>
       ) : null}
 
-      <label>
-        Email
-        <input
-          name="contact_email"
-          type="email"
-          autoComplete="email"
-          required
-          {...fieldErrorProps(
-            result.fieldErrors.contact_email,
-            "contact_email-error",
-          )}
-        />
-        <FieldError
-          id="contact_email-error"
-          messages={result.fieldErrors.contact_email}
-        />
-      </label>
-      <label>
-        Name
-        <input
-          name="name"
-          autoComplete="name"
-          maxLength={120}
-          {...fieldErrorProps(result.fieldErrors.name, "name-error")}
-        />
-        <FieldError id="name-error" messages={result.fieldErrors.name} />
-      </label>
-      <label>
-        Subject
-        <input
-          name="subject"
-          required
-          maxLength={160}
-          {...fieldErrorProps(result.fieldErrors.subject, "subject-error")}
-        />
-        <FieldError id="subject-error" messages={result.fieldErrors.subject} />
-      </label>
-      <label>
-        Message
-        <textarea
-          name="message"
-          required
-          maxLength={5000}
-          rows={7}
-          {...fieldErrorProps(result.fieldErrors.message, "message-error")}
-        />
-        <FieldError id="message-error" messages={result.fieldErrors.message} />
-      </label>
-      <p className="form-help">
-        Support tickets are queued for review. Do not include passwords, payment
-        card details, or other sensitive secrets.
-      </p>
-      <button type="submit" disabled={pending}>
-        {pending ? "Submitting…" : "Submit support ticket"}
-      </button>
+      <FormSection
+        title="Contact"
+        description="Tell us how to reach you about this request."
+      >
+        <div className="split-fields">
+          <FormField
+            errorId="contact_email-error"
+            errors={result.fieldErrors.contact_email}
+            label="Email"
+          >
+            <input
+              name="contact_email"
+              type="email"
+              autoComplete="email"
+              required
+            />
+          </FormField>
+          <FormField
+            errorId="name-error"
+            errors={result.fieldErrors.name}
+            label="Name"
+          >
+            <input name="name" autoComplete="name" maxLength={120} />
+          </FormField>
+        </div>
+      </FormSection>
+      <FormSection
+        title="Request"
+        description="Describe what happened and what you need."
+      >
+        <FormField
+          errorId="subject-error"
+          errors={result.fieldErrors.subject}
+          label="Subject"
+        >
+          <input name="subject" required maxLength={160} />
+        </FormField>
+        <FormField
+          errorId="message-error"
+          errors={result.fieldErrors.message}
+          label="Message"
+        >
+          <textarea name="message" required maxLength={5000} rows={7} />
+        </FormField>
+        <Callout icon="shield">
+          Support tickets are queued for review. Do not include passwords,
+          payment card details, or other sensitive secrets.
+        </Callout>
+      </FormSection>
+      <div className="form-actions">
+        <button type="submit" disabled={pending}>
+          {pending ? "Submitting…" : "Submit support ticket"}
+        </button>
+      </div>
     </form>
   );
 }

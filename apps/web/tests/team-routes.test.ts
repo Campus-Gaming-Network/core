@@ -46,7 +46,10 @@ test("team browse preserves native GET filters, cursor pagination, and typed rou
   assert.match(browseSource, /<form action="\/teams"/);
   assert.match(browseSource, /method="get"/);
   assert.match(browseSource, /name="game"/);
+  assert.match(browseSource, /<SchoolSearchSelect/);
   assert.match(browseSource, /name="school"/);
+  assert.match(browseSource, /valueField="slug"/);
+  assert.match(browseSource, /<NoScriptSchoolSearch\s+action="\/teams"/);
   assert.match(browseSource, /before: catalog\.previous_cursor/);
   assert.match(browseSource, /after: catalog\.next_cursor/);
   assert.match(browseSource, /to="\/teams\/\$slug"/);
