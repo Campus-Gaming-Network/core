@@ -13,7 +13,9 @@ import {
   DefaultNotFound,
   DefaultPending,
 } from "../components/route-boundaries";
+import { formatTimestamp } from "../features/moderation/moderation-components";
 import { getAdminShellSession, logout } from "../features/session.functions";
+import { initialColorTheme, toggleColorTheme } from "../features/theme";
 import type { AdminSession } from "../server/contracts.server";
 import appCSS from "../styles.css?url";
 
@@ -70,14 +72,33 @@ function RootComponent() {
     );
   }
 
-  return <AuthenticatedShell session={admin.session} />;
+  return (
+    <AuthenticatedShell
+      environment={admin.environment}
+      session={admin.session}
+    />
+  );
 }
 
-function AuthenticatedShell({ session }: { session: AdminSession }) {
+const environmentLabels = {
+  local: "Local",
+  staging: "Staging",
+  production: "Production",
+} as const;
+
+function AuthenticatedShell({
+  environment,
+  session,
+}: {
+  environment: keyof typeof environmentLabels;
+  session: AdminSession;
+}) {
   const can = (capability: AdminSession["capabilities"][number]) =>
     session.capabilities.includes(capability);
   return (
-    <div className="app-shell">
+    <div
+      className={`app-shell${environment === "production" ? "" : " app-shell--non-production"}`}
+    >
       <a className="skip-link" href="#main-content">
         Skip to main content
       </a>
@@ -88,6 +109,11 @@ function AuthenticatedShell({ session }: { session: AdminSession }) {
           </span>
           <span>Admin Console</span>
         </Link>
+        <p
+          className={`queue-status environment-badge${environment === "production" ? "" : " queue-status--in_review"}`}
+        >
+          {environmentLabels[environment]}
+        </p>
         <nav aria-label="Admin navigation">
           <Link to="/" activeOptions={{ exact: true }}>
             Overview
@@ -105,8 +131,17 @@ function AuthenticatedShell({ session }: { session: AdminSession }) {
         </nav>
         <div className="operator-card">
           <span>Signed in as</span>
-          <strong>{session.email}</strong>
-          <LogoutForm />
+          <strong title={session.email}>{session.email}</strong>
+          <span>
+            Session ends{" "}
+            <time dateTime={session.absolute_expires_at}>
+              {formatTimestamp(session.absolute_expires_at)} UTC
+            </time>
+          </span>
+          <div className="operator-actions">
+            <ThemeToggle />
+            <LogoutForm />
+          </div>
         </div>
       </aside>
       <main id="main-content" className="main-content" tabIndex={-1}>
@@ -142,6 +177,20 @@ function LogoutForm() {
   );
 }
 
+function ThemeToggle() {
+  return (
+    <button
+      aria-label="Switch between light and dark mode"
+      className="theme-toggle"
+      type="button"
+      onClick={toggleColorTheme}
+    >
+      <span className="theme-toggle__light">Light mode</span>
+      <span className="theme-toggle__dark">Dark mode</span>
+    </button>
+  );
+}
+
 function AccessState({
   eyebrow,
   heading,
@@ -153,6 +202,7 @@ function AccessState({
 }) {
   return (
     <main className="state-page">
+      <ThemeToggle />
       <p className="eyebrow">{eyebrow}</p>
       <h1>{heading}</h1>
       <p>{message}</p>
@@ -162,7 +212,7 @@ function AccessState({
 
 function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
   return (
-    <html lang="en">
+    <html lang="en" data-theme={initialColorTheme()}>
       <head>
         <HeadContent />
       </head>

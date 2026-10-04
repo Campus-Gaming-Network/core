@@ -6,15 +6,16 @@ import (
 
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminmutation"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/apperror"
+	"github.com/jackc/pgx/v5"
 )
 
-const grantColumns = `id::text,user_id::text,role,granted_by_user_id::text,grant_reason,granted_at,revoked_at,revoked_by_user_id::text,revoke_reason`
+const grantColumns = `id::text,user_id::text,role,granted_by_user_id::text,grant_reason,granted_at,revoked_at,revoked_by_user_id::text,revoke_reason,COALESCE((SELECT name FROM users WHERE users.id=site_role_grants.user_id),'')`
 
 func (r *PostgresRepository) GetGrant(ctx context.Context, id string) (Grant, error) {
 	if !adminmutation.UUID(id) {
 		return Grant{}, adminmutation.ErrNotFound
 	}
-	g, err := scanGrant(r.pool.QueryRow(ctx, `SELECT `+grantColumns+` FROM site_role_grants WHERE id=$1::uuid`, id))
+	g, err := scanNamedGrant(r.pool.QueryRow(ctx, `SELECT `+grantColumns+` FROM site_role_grants WHERE id=$1::uuid`, id))
 	return g, adminmutation.Error(err)
 }
 
@@ -40,7 +41,7 @@ func (r *PostgresRepository) ListGrants(ctx context.Context, filter adminmutatio
 	defer rows.Close()
 	items := make([]Grant, 0, filter.Limit)
 	for rows.Next() {
-		item, err := scanGrant(rows)
+		item, err := scanNamedGrant(rows)
 		if err != nil {
 			return nil, err
 		}
@@ -50,4 +51,11 @@ func (r *PostgresRepository) ListGrants(ctx context.Context, filter adminmutatio
 		slices.Reverse(items)
 	}
 	return items, rows.Err()
+}
+
+func scanNamedGrant(row pgx.Row) (Grant, error) {
+	var name string
+	grant, err := scanGrant(row, &name)
+	grant.UserName = name
+	return grant, err
 }

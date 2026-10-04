@@ -115,7 +115,8 @@ func (store *PostgresStore) List(ctx context.Context, params ListParams) ([]Entr
 	rows, err := store.executor.Query(ctx, `
 		SELECT id::text, actor_user_id::text, admin_session_id::text,
 		       request_id, action, entity_type, entity_id::text,
-		       before_json, after_json, metadata, created_at
+		       before_json, after_json, metadata, created_at,
+		       (SELECT name FROM users WHERE users.id = audit_logs.actor_user_id)
 		FROM audit_logs
 		WHERE entity_type = $1 AND entity_id = $2::uuid
 		  AND (
@@ -156,7 +157,7 @@ func scanEntry(row pgx.Row) (Entry, error) {
 	if err := row.Scan(
 		&entry.ID, &entry.ActorUserID, &entry.AdminSessionID, &entry.RequestID,
 		&entry.Action, &entry.EntityType, &entry.EntityID,
-		&before, &after, &metadata, &entry.CreatedAt,
+		&before, &after, &metadata, &entry.CreatedAt, &entry.ActorName,
 	); err != nil {
 		return Entry{}, fmt.Errorf("scan admin audit entry: %w", err)
 	}

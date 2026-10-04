@@ -3,6 +3,10 @@ import {
   adminEnvironment,
   assertSafeEnvironment,
 } from "./server/environment.server";
+import {
+  localAccessJWKSResponse,
+  withLocalAccessAssertion,
+} from "./server/local-access.server";
 
 assertSafeEnvironment();
 
@@ -12,7 +16,13 @@ const { default: serverEntry } =
 export default {
   ...serverEntry,
   async fetch(...args: Parameters<typeof serverEntry.fetch>) {
-    const refusal = await accessGateResponse(args[0], adminEnvironment());
-    return refusal ?? serverEntry.fetch(...args);
+    const [request, ...rest] = args;
+    const environment = adminEnvironment();
+    const jwks = localAccessJWKSResponse(request, environment);
+    if (jwks) return jwks;
+
+    const authenticatedRequest = withLocalAccessAssertion(request, environment);
+    const refusal = await accessGateResponse(authenticatedRequest, environment);
+    return refusal ?? serverEntry.fetch(authenticatedRequest, ...rest);
   },
 };

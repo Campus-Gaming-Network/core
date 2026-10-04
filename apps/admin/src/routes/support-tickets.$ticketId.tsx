@@ -1,4 +1,6 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
+import { UserLink } from "../components/user-link";
+import { CopyIdButton } from "../components/copy-id-button";
 import {
   AuditPanel,
   DetailFact,
@@ -26,7 +28,7 @@ export const Route = createFileRoute("/support-tickets/$ticketId")({
 });
 
 function SupportTicketDetailPage() {
-  const { ticket, audit } = Route.useLoaderData();
+  const { ticket, audit, operators } = Route.useLoaderData();
   const search = Route.useSearch();
   const { admin } = Route.useRouteContext();
   const canManage =
@@ -42,9 +44,7 @@ function SupportTicketDetailPage() {
           </Link>
           <p className="eyebrow">Support ticket</p>
           <h1>{ticket.subject}</h1>
-          <p className="detail-id">
-            <code>{ticket.id}</code>
-          </p>
+          <CopyIdButton entity="support ticket" id={ticket.id} />
         </div>
         <QueueStatusBadge status={ticket.status} />
       </header>
@@ -60,7 +60,21 @@ function SupportTicketDetailPage() {
         </div>
         <dl className="detail-facts">
           <DetailFact label="Submitter">
-            <code>{ticket.submitter_user_id ?? "Deleted user"}</code>
+            {ticket.submitter_user_id ? (
+              <UserLink
+                name={ticket.submitter_name}
+                userId={ticket.submitter_user_id}
+              />
+            ) : (
+              "Deleted user"
+            )}
+          </DetailFact>
+          <DetailFact label="Assignee">
+            <UserLink
+              fallback="Unassigned"
+              name={ticket.assigned_to_name}
+              userId={ticket.assigned_to_user_id}
+            />
           </DetailFact>
           <DetailFact label="Contact name">
             {ticket.name || "Not provided"}
@@ -92,6 +106,7 @@ function SupportTicketDetailPage() {
           key={ticket.updated_at}
           kind="support-ticket"
           item={ticket}
+          operators={operators}
         />
       ) : (
         <p className="notice">You have read-only access to support tickets.</p>

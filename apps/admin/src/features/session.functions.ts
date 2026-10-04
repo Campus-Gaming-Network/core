@@ -23,12 +23,15 @@ export const getAdminShellSession = createServerFn({ method: "GET" }).handler(
     setResponseHeader("vary", "Cookie");
     const environment = adminEnvironment();
     const dependencies = createSessionDependencies(environment);
-    return establishAdminSession({
+    const shell = await establishAdminSession({
       ...dependencies,
       assertion: getRequestHeaders().get("Cf-Access-Jwt-Assertion") ?? "",
       sessionCookieValue: getCookie(environment.sessionCookieName),
       applyCookies,
     });
+    // The environment name lets the shell make staging and local consoles
+    // unmistakable from production.
+    return { ...shell, environment: environment.deploymentEnvironment };
   },
 );
 

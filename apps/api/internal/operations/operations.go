@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminaudit"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/apperror"
@@ -44,24 +45,43 @@ const (
 const reportColumns = `
 	id::text, reporter_user_id::text, target_type, target_id::text,
 	reason, status, assigned_to_user_id::text, resolution_note,
-	retention_started_at, created_at, updated_at
+	retention_started_at, created_at, updated_at,
+	(SELECT name FROM users WHERE users.id = reports.reporter_user_id),
+	CASE target_type
+		WHEN 'event' THEN (SELECT title FROM events WHERE events.id = reports.target_id)
+		WHEN 'user' THEN (SELECT name FROM users WHERE users.id = reports.target_id)
+	END,
+	(SELECT name FROM users WHERE users.id = reports.assigned_to_user_id),
+	CASE target_type
+		WHEN 'event' THEN (SELECT slug FROM events WHERE events.id = reports.target_id)
+	END
 `
 
 const reportSummaryColumns = `
 	id::text, reporter_user_id::text, target_type, target_id::text,
-	status, assigned_to_user_id::text, retention_started_at, created_at, updated_at
+	status, assigned_to_user_id::text, retention_started_at, created_at, updated_at,
+	(SELECT name FROM users WHERE users.id = reports.reporter_user_id),
+	CASE target_type
+		WHEN 'event' THEN (SELECT title FROM events WHERE events.id = reports.target_id)
+		WHEN 'user' THEN (SELECT name FROM users WHERE users.id = reports.target_id)
+	END,
+	(SELECT name FROM users WHERE users.id = reports.assigned_to_user_id)
 `
 
 const supportTicketColumns = `
 	id::text, submitter_user_id::text, submitter_deleted_at,
 	contact_email, name, subject, message, status,
 	assigned_to_user_id::text, resolution_note,
-	retention_started_at, created_at, updated_at
+	retention_started_at, created_at, updated_at,
+	(SELECT name FROM users WHERE users.id = support_tickets.submitter_user_id),
+	(SELECT name FROM users WHERE users.id = support_tickets.assigned_to_user_id)
 `
 
 const supportTicketSummaryColumns = `
 	id::text, submitter_user_id::text, submitter_deleted_at, subject, status,
-	assigned_to_user_id::text, retention_started_at, created_at, updated_at
+	assigned_to_user_id::text, retention_started_at, created_at, updated_at,
+	(SELECT name FROM users WHERE users.id = support_tickets.submitter_user_id),
+	(SELECT name FROM users WHERE users.id = support_tickets.assigned_to_user_id)
 `
 
 const notificationColumns = `
@@ -69,9 +89,21 @@ const notificationColumns = `
 	entity_id::text, payload, read_at, created_at
 `
 
+// QueueCounts summarizes the work still waiting in one queue. Unassigned
+// counts open items nobody has picked up.
+type QueueCounts struct {
+	Open       int `json:"open"`
+	InReview   int `json:"in_review"`
+	Unassigned int `json:"unassigned"`
+}
+
 type QueueFilter struct {
-	Status           QueueStatus
+	Status QueueStatus
+	// TargetType narrows reports to one reported entity type. Support tickets
+	// have no target and reject it.
+	TargetType       string
 	AssignedToUserID *string
+	UserQuery        string
 	Limit            int
 	After            *pagecursor.Cursor
 	Before           *pagecursor.Cursor
@@ -101,6 +133,11 @@ type Report struct {
 	RetentionStartedAt *time.Time  `json:"retention_started_at"`
 	CreatedAt          time.Time   `json:"created_at"`
 	UpdatedAt          time.Time   `json:"updated_at"`
+	ReporterName       *string     `json:"reporter_name,omitempty"`
+	TargetName         *string     `json:"target_name,omitempty"`
+	AssignedToName     *string     `json:"assigned_to_name,omitempty"`
+	// TargetSlug locates a reported event on the public site.
+	TargetSlug *string `json:"target_slug,omitempty"`
 }
 
 type ReportSummary struct {
@@ -113,6 +150,9 @@ type ReportSummary struct {
 	RetentionStartedAt *time.Time  `json:"retention_started_at"`
 	CreatedAt          time.Time   `json:"created_at"`
 	UpdatedAt          time.Time   `json:"updated_at"`
+	ReporterName       *string     `json:"reporter_name,omitempty"`
+	TargetName         *string     `json:"target_name,omitempty"`
+	AssignedToName     *string     `json:"assigned_to_name,omitempty"`
 }
 
 type SupportTicket struct {
@@ -129,6 +169,8 @@ type SupportTicket struct {
 	RetentionStartedAt *time.Time  `json:"retention_started_at"`
 	CreatedAt          time.Time   `json:"created_at"`
 	UpdatedAt          time.Time   `json:"updated_at"`
+	SubmitterName      *string     `json:"submitter_name,omitempty"`
+	AssignedToName     *string     `json:"assigned_to_name,omitempty"`
 }
 
 type SupportTicketSummary struct {
@@ -141,6 +183,8 @@ type SupportTicketSummary struct {
 	RetentionStartedAt *time.Time  `json:"retention_started_at"`
 	CreatedAt          time.Time   `json:"created_at"`
 	UpdatedAt          time.Time   `json:"updated_at"`
+	SubmitterName      *string     `json:"submitter_name,omitempty"`
+	AssignedToName     *string     `json:"assigned_to_name,omitempty"`
 }
 
 type AuditEntry = adminaudit.Entry
@@ -181,6 +225,8 @@ type AuditFilter struct {
 
 type Repository interface {
 	ListReports(ctx context.Context, filter QueueFilter) ([]ReportSummary, error)
+	CountReports(ctx context.Context) (QueueCounts, error)
+	CountSupportTickets(ctx context.Context) (QueueCounts, error)
 	GetReport(ctx context.Context, id string) (Report, error)
 	PatchReport(ctx context.Context, id string, patch QueuePatch) (Report, error)
 	ListSupportTickets(ctx context.Context, filter QueueFilter) ([]SupportTicketSummary, error)
@@ -206,6 +252,13 @@ func ValidateQueueFilter(filter QueueFilter) error {
 	}
 	if filter.AssignedToUserID != nil && *filter.AssignedToUserID != "" && !validUUID(*filter.AssignedToUserID) {
 		return apperror.Validation("queue assignee must be a valid UUID or unassigned")
+	}
+	if filter.TargetType != "" && filter.TargetType != "event" && filter.TargetType != "user" {
+		return apperror.Validation("report target type must be event or user")
+	}
+	if filter.UserQuery != "" && (!utf8.ValidString(filter.UserQuery) || strings.ContainsRune(filter.UserQuery, 0) ||
+		utf8.RuneCountInString(filter.UserQuery) < 2 || utf8.RuneCountInString(filter.UserQuery) > 100) {
+		return apperror.Validation("queue user search must be between 2 and 100 characters")
 	}
 	if filter.Limit < 0 || filter.Limit > maximumPageLimit+1 {
 		return apperror.Validation("queue limit is out of range")
@@ -295,13 +348,21 @@ func (r *PostgresRepository) ListReports(ctx context.Context, filter QueueFilter
 		      OR assigned_to_user_id = NULLIF($2, '')::uuid
 		  )
 		  AND (
-		      $3::timestamptz IS NULL
-		      OR (NOT $5 AND (created_at, id) < ($3::timestamptz, $4::uuid))
-		      OR ($5 AND (created_at, id) > ($3::timestamptz, $4::uuid))
+		      $3 = ''
+		      OR reporter_user_id IN (
+		          SELECT id FROM users
+		          WHERE id::text = $3 OR lower(email::text) LIKE $4 OR lower(name) LIKE $4
+		      )
 		  )
+		  AND (
+		      $5::timestamptz IS NULL
+		      OR (NOT $7 AND (created_at, id) < ($5::timestamptz, $6::uuid))
+		      OR ($7 AND (created_at, id) > ($5::timestamptz, $6::uuid))
+		  )
+		  AND ($9 = '' OR target_type = $9)
 		`+order+`
-		LIMIT $6
-	`, filter.Status, assigneeArgument(filter.AssignedToUserID), cursorTime, cursorID, before, pageLimit(filter.Limit))
+		LIMIT $8
+	`, filter.Status, assigneeArgument(filter.AssignedToUserID), filter.UserQuery, queueUserPrefix(filter.UserQuery), cursorTime, cursorID, before, pageLimit(filter.Limit), filter.TargetType)
 	if err != nil {
 		return nil, fmt.Errorf("list reports: %w", err)
 	}
@@ -322,6 +383,30 @@ func (r *PostgresRepository) ListReports(ctx context.Context, filter QueueFilter
 		reverseQueuePage(reports)
 	}
 	return reports, nil
+}
+
+func (r *PostgresRepository) CountReports(ctx context.Context) (QueueCounts, error) {
+	return r.countQueue(ctx, "reports")
+}
+
+func (r *PostgresRepository) CountSupportTickets(ctx context.Context) (QueueCounts, error) {
+	return r.countQueue(ctx, "support_tickets")
+}
+
+// countQueue takes only the two fixed table names above.
+func (r *PostgresRepository) countQueue(ctx context.Context, table string) (QueueCounts, error) {
+	var counts QueueCounts
+	err := r.pool.QueryRow(ctx, `
+		SELECT count(*) FILTER (WHERE status = 'open'),
+		       count(*) FILTER (WHERE status = 'in_review'),
+		       count(*) FILTER (WHERE status = 'open' AND assigned_to_user_id IS NULL)
+		FROM `+table+`
+		WHERE deleted_at IS NULL AND status IN ('open', 'in_review')
+	`).Scan(&counts.Open, &counts.InReview, &counts.Unassigned)
+	if err != nil {
+		return QueueCounts{}, fmt.Errorf("count %s: %w", table, err)
+	}
+	return counts, nil
 }
 
 func (r *PostgresRepository) GetReport(ctx context.Context, id string) (Report, error) {
@@ -427,13 +512,20 @@ func (r *PostgresRepository) ListSupportTickets(ctx context.Context, filter Queu
 		      OR assigned_to_user_id = NULLIF($2, '')::uuid
 		  )
 		  AND (
-		      $3::timestamptz IS NULL
-		      OR (NOT $5 AND (created_at, id) < ($3::timestamptz, $4::uuid))
-		      OR ($5 AND (created_at, id) > ($3::timestamptz, $4::uuid))
+		      $3 = ''
+		      OR submitter_user_id IN (
+		          SELECT id FROM users
+		          WHERE id::text = $3 OR lower(email::text) LIKE $4 OR lower(name) LIKE $4
+		      )
+		  )
+		  AND (
+		      $5::timestamptz IS NULL
+		      OR (NOT $7 AND (created_at, id) < ($5::timestamptz, $6::uuid))
+		      OR ($7 AND (created_at, id) > ($5::timestamptz, $6::uuid))
 		  )
 		`+order+`
-		LIMIT $6
-	`, filter.Status, assigneeArgument(filter.AssignedToUserID), cursorTime, cursorID, before, pageLimit(filter.Limit))
+		LIMIT $8
+	`, filter.Status, assigneeArgument(filter.AssignedToUserID), filter.UserQuery, queueUserPrefix(filter.UserQuery), cursorTime, cursorID, before, pageLimit(filter.Limit))
 	if err != nil {
 		return nil, fmt.Errorf("list support tickets: %w", err)
 	}
@@ -708,11 +800,18 @@ func normalizeQueuePatch(patch QueuePatch) QueuePatch {
 
 func normalizeQueueFilter(filter QueueFilter) QueueFilter {
 	filter.Status = QueueStatus(strings.TrimSpace(string(filter.Status)))
+	filter.UserQuery = strings.TrimSpace(filter.UserQuery)
+	filter.TargetType = strings.TrimSpace(filter.TargetType)
 	if filter.AssignedToUserID != nil {
 		value := strings.TrimSpace(*filter.AssignedToUserID)
 		filter.AssignedToUserID = &value
 	}
 	return filter
+}
+
+func queueUserPrefix(query string) string {
+	value := strings.NewReplacer(`\`, `\\`, "%", `\%`, "_", `\_`).Replace(strings.ToLower(strings.TrimSpace(query)))
+	return value + "%"
 }
 
 func normalizeNotification(input NotificationInput) NotificationInput {
@@ -880,6 +979,10 @@ func scanReport(row pgx.Row) (Report, error) {
 		&report.RetentionStartedAt,
 		&report.CreatedAt,
 		&report.UpdatedAt,
+		&report.ReporterName,
+		&report.TargetName,
+		&report.AssignedToName,
+		&report.TargetSlug,
 	)
 	return report, err
 }
@@ -896,6 +999,9 @@ func scanReportSummary(row pgx.Row) (ReportSummary, error) {
 		&report.RetentionStartedAt,
 		&report.CreatedAt,
 		&report.UpdatedAt,
+		&report.ReporterName,
+		&report.TargetName,
+		&report.AssignedToName,
 	)
 	return report, err
 }
@@ -916,6 +1022,8 @@ func scanSupportTicket(row pgx.Row) (SupportTicket, error) {
 		&ticket.RetentionStartedAt,
 		&ticket.CreatedAt,
 		&ticket.UpdatedAt,
+		&ticket.SubmitterName,
+		&ticket.AssignedToName,
 	)
 	return ticket, err
 }
@@ -932,6 +1040,8 @@ func scanSupportTicketSummary(row pgx.Row) (SupportTicketSummary, error) {
 		&ticket.RetentionStartedAt,
 		&ticket.CreatedAt,
 		&ticket.UpdatedAt,
+		&ticket.SubmitterName,
+		&ticket.AssignedToName,
 	)
 	return ticket, err
 }

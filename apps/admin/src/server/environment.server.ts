@@ -8,6 +8,7 @@ const localDefaults = {
   ADMIN_SITE_URL: "http://localhost:3002",
   ADMIN_SESSION_COOKIE: "cgn_admin_session",
   ADMIN_CSRF_COOKIE: "cgn_admin_csrf",
+  PUBLIC_SITE_URL: "http://localhost:3000",
 } as const;
 
 export type AdminEnvironment = {
@@ -20,8 +21,12 @@ export type AdminEnvironment = {
   accessIssuer?: string;
   accessAudience?: string;
   accessJWKSURL?: string;
+  /** Local-only identity used to exercise the signed Access path without Cloudflare. */
+  localAccessEmail?: string;
   /** Where the API publishes school logos; previews load only from here. */
   logoAssetBase?: string;
+  /** Origin of the public site, when the console may link to it. */
+  publicSiteOrigin?: string;
 };
 
 export function environmentValidationIssues(
@@ -38,6 +43,7 @@ export function environmentValidationIssues(
   const issues: string[] = [];
   validateInternalURL(environment, strict, issues);
   validateSiteURL(environment, strict, issues);
+  validatePublicSiteURL(environment, strict, issues);
   validateCookies(environment, strict, issues);
 
   const proxySecret = configuredValue(
@@ -99,6 +105,7 @@ export function environmentValidationIssues(
         : "CLOUDFLARE_ACCESS_JWKS_URL must be an absolute HTTP(S) URL",
     );
   }
+  validateLocalAccess(environment, deploymentEnvironment, issues);
 
   return issues;
 }
@@ -146,8 +153,75 @@ export function adminEnvironment(
     accessIssuer: configuredValue(environment, "CLOUDFLARE_ACCESS_TEAM_DOMAIN"),
     accessAudience: configuredValue(environment, "CLOUDFLARE_ACCESS_AUDIENCE"),
     accessJWKSURL: configuredValue(environment, "CLOUDFLARE_ACCESS_JWKS_URL"),
+    localAccessEmail: configuredValue(
+      environment,
+      "ADMIN_LOCAL_ACCESS_EMAIL",
+    )?.toLowerCase(),
     logoAssetBase: configuredValue(environment, "R2_PUBLIC_ASSET_ORIGIN"),
+    publicSiteOrigin: publicSiteOrigin(environment, deploymentEnvironment),
   };
+}
+
+function validateLocalAccess(
+  environment: Environment,
+  deploymentEnvironment: DeploymentEnvironment,
+  issues: string[],
+): void {
+  const email = configuredValue(environment, "ADMIN_LOCAL_ACCESS_EMAIL");
+  if (!email) return;
+  if (deploymentEnvironment !== "local") {
+    issues.push(
+      "ADMIN_LOCAL_ACCESS_EMAIL is allowed only in local development",
+    );
+    return;
+  }
+  if (!validLocalAccessEmail(email)) {
+    issues.push(
+      "ADMIN_LOCAL_ACCESS_EMAIL must be a valid lowercase .test email",
+    );
+  }
+
+  const site = parseHTTPOrigin(
+    configuredValue(environment, "ADMIN_SITE_URL") ??
+      localDefaults.ADMIN_SITE_URL,
+  );
+  if (!site || !isLocalHostname(site.hostname)) {
+    issues.push(
+      "ADMIN_LOCAL_ACCESS_EMAIL requires ADMIN_SITE_URL to use a loopback hostname",
+    );
+  }
+
+  const issuer = configuredValue(environment, "CLOUDFLARE_ACCESS_TEAM_DOMAIN");
+  const audience = configuredValue(environment, "CLOUDFLARE_ACCESS_AUDIENCE");
+  const jwksURL = configuredValue(environment, "CLOUDFLARE_ACCESS_JWKS_URL");
+  if (!issuer || !audience || !jwksURL) {
+    issues.push(
+      "ADMIN_LOCAL_ACCESS_EMAIL requires the complete local Access issuer, audience, and JWKS configuration",
+    );
+    return;
+  }
+  const parsedIssuer = parseAccessOrigin(issuer, false);
+  const parsedJWKS = parseAccessURL(jwksURL, false);
+  if (
+    !parsedIssuer ||
+    !parsedJWKS ||
+    parsedJWKS.origin !== parsedIssuer.origin ||
+    parsedJWKS.pathname !== "/cdn-cgi/access/certs" ||
+    parsedJWKS.search ||
+    parsedJWKS.hash
+  ) {
+    issues.push(
+      "ADMIN_LOCAL_ACCESS_EMAIL requires the issuer's /cdn-cgi/access/certs endpoint",
+    );
+  }
+}
+
+function validLocalAccessEmail(value: string): boolean {
+  return (
+    value === value.toLowerCase() &&
+    value.length <= 320 &&
+    /^[^\s@]+@[^\s@]+\.test$/.test(value)
+  );
 }
 
 /**
@@ -197,6 +271,37 @@ function validateInternalURL(
     issues.push(
       "ADMIN_API_INTERNAL_URL must use HTTPS unless it is a Railway private-network origin",
     );
+  }
+}
+
+/**
+ * The public site is optional: without it the console simply does not link to
+ * public pages. Only local development falls back to a default.
+ */
+function publicSiteOrigin(
+  environment: Environment,
+  deploymentEnvironment: DeploymentEnvironment,
+): string | undefined {
+  const configured =
+    configuredValue(environment, "PUBLIC_SITE_URL") ??
+    (deploymentEnvironment === "local"
+      ? localDefaults.PUBLIC_SITE_URL
+      : undefined);
+  return configured ? new URL(configured).origin : undefined;
+}
+
+function validatePublicSiteURL(
+  environment: Environment,
+  strict: boolean,
+  issues: string[],
+): void {
+  const configured = configuredValue(environment, "PUBLIC_SITE_URL");
+  if (!configured) return;
+  const parsed = parseHTTPOrigin(configured);
+  if (!parsed) {
+    issues.push("PUBLIC_SITE_URL must be an absolute HTTP(S) origin");
+  } else if (strict && parsed.protocol !== "https:") {
+    issues.push("PUBLIC_SITE_URL must use HTTPS");
   }
 }
 

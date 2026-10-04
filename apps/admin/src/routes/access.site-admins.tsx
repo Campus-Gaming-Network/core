@@ -78,7 +78,7 @@ function SiteAdminsPage() {
             <li key={grant.id}>
               <p>
                 <Link params={{ userId: grant.user_id }} to="/users/$userId">
-                  <code>{grant.user_id}</code>
+                  {grant.user_name || "Unknown user"}
                 </Link>{" "}
                 <StateBadge state={grant.revoked_at ? "revoked" : "active"} />
               </p>

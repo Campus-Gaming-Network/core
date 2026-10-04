@@ -16,6 +16,7 @@ type AdminGrant struct {
 	ID        string     `json:"id"`
 	SchoolID  string     `json:"school_id"`
 	UserID    string     `json:"user_id"`
+	UserName  string     `json:"user_name"`
 	CreatedAt time.Time  `json:"created_at"`
 	UpdatedAt time.Time  `json:"updated_at"`
 	RevokedAt *time.Time `json:"revoked_at"`
@@ -25,7 +26,7 @@ type GrantAdminInput struct {
 	UserID string `json:"user_id"`
 }
 
-const adminGrantColumns = `id::text,school_id::text,user_id::text,created_at,updated_at,deleted_at`
+const adminGrantColumns = `id::text,school_id::text,user_id::text,created_at,updated_at,deleted_at,COALESCE((SELECT name FROM users WHERE users.id=school_admins.user_id),'')`
 
 func (r *PostgresRepository) GetAdminGrant(ctx context.Context, schoolID, grantID string) (AdminGrant, error) {
 	if !adminmutation.UUID(schoolID) || !adminmutation.UUID(grantID) {
@@ -37,7 +38,7 @@ func (r *PostgresRepository) GetAdminGrant(ctx context.Context, schoolID, grantI
 
 func scanAdminGrant(row pgx.Row) (AdminGrant, error) {
 	var g AdminGrant
-	err := row.Scan(&g.ID, &g.SchoolID, &g.UserID, &g.CreatedAt, &g.UpdatedAt, &g.RevokedAt)
+	err := row.Scan(&g.ID, &g.SchoolID, &g.UserID, &g.CreatedAt, &g.UpdatedAt, &g.RevokedAt, &g.UserName)
 	return g, err
 }
 

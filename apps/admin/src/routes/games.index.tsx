@@ -1,4 +1,5 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
+import { DataTable, dataColumn } from "../components/data-table";
 import {
   CatalogFilters,
   CatalogNoticeView,
@@ -12,6 +13,7 @@ import {
   catalogListKinds,
   validateCatalogDetailSearch,
   validateCatalogSearch,
+  type AdminGame,
 } from "../features/catalog/contracts";
 
 export const Route = createFileRoute("/games/")({
@@ -30,6 +32,35 @@ export const Route = createFileRoute("/games/")({
   head: () => ({ meta: [{ title: "Games | CGN Admin Console" }] }),
   component: GamesPage,
 });
+
+const gameColumns = [
+  dataColumn<AdminGame>({
+    id: "name",
+    header: "Game",
+    sortValue: (row) => row.name,
+    cell: (row) => (
+      <Link
+        className="data-table__primary"
+        params={{ gameId: row.id }}
+        to="/games/$gameId"
+      >
+        {row.name}
+      </Link>
+    ),
+  }),
+  dataColumn<AdminGame>({
+    id: "slug",
+    header: "Slug",
+    sortValue: (row) => row.slug,
+    cell: (row) => <code>{row.slug}</code>,
+  }),
+  dataColumn<AdminGame>({
+    id: "state",
+    header: "State",
+    sortValue: (row) => recordState(row),
+    cell: (row) => <StateBadge state={recordState(row)} />,
+  }),
+];
 
 function GamesPage() {
   const page = Route.useLoaderData();
@@ -58,24 +89,12 @@ function GamesPage() {
       />
 
       {page.games.length ? (
-        <section className="queue-list" aria-label="Games">
-          {page.games.map((game) => (
-            <Link
-              className="queue-card"
-              key={game.id}
-              params={{ gameId: game.id }}
-              to="/games/$gameId"
-            >
-              <span className="queue-card__topline">
-                <strong>{game.name}</strong>
-                <StateBadge state={recordState(game)} />
-              </span>
-              <span>
-                <code>{game.slug}</code>
-              </span>
-            </Link>
-          ))}
-        </section>
+        <DataTable
+          columns={gameColumns}
+          data={page.games}
+          getRowId={(game) => game.id}
+          label="Games"
+        />
       ) : (
         <section className="empty-panel">
           <h2>No games match this search</h2>

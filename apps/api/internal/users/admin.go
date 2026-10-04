@@ -18,6 +18,7 @@ type AdminUser struct {
 	Email             string     `json:"email"`
 	Name              string     `json:"name"`
 	HomeSchoolID      string     `json:"home_school_id"`
+	HomeSchoolName    string     `json:"home_school_name"`
 	EmailVerifiedAt   *time.Time `json:"email_verified_at"`
 	VerificationLevel string     `json:"verification_level"`
 	AccountStatus     string     `json:"account_status"`
@@ -33,14 +34,14 @@ type TrustChange struct {
 	StaffFaculty *bool `json:"staff_faculty"`
 }
 
-const adminUserColumns = `u.id::text,u.email::text,u.name,u.home_school_id::text,u.email_verified_at,u.verification_level,
+const adminUserColumns = `u.id::text,u.email::text,u.name,u.home_school_id::text,COALESCE((SELECT sc.name FROM schools sc WHERE sc.id=u.home_school_id),''),u.email_verified_at,u.verification_level,
  u.account_status,u.created_at,u.updated_at,u.deleted_at,
  EXISTS(SELECT 1 FROM site_role_grants g WHERE g.user_id=u.id AND g.revoked_at IS NULL),
  (SELECT count(*) FROM school_admins s WHERE s.user_id=u.id AND s.deleted_at IS NULL)`
 
 func scanAdminUser(row pgx.Row) (AdminUser, error) {
 	var u AdminUser
-	err := row.Scan(&u.ID, &u.Email, &u.Name, &u.HomeSchoolID, &u.EmailVerifiedAt, &u.VerificationLevel, &u.AccountStatus,
+	err := row.Scan(&u.ID, &u.Email, &u.Name, &u.HomeSchoolID, &u.HomeSchoolName, &u.EmailVerifiedAt, &u.VerificationLevel, &u.AccountStatus,
 		&u.CreatedAt, &u.UpdatedAt, &u.DeletedAt, &u.SiteAdmin, &u.SchoolAdminCount)
 	return u, adminmutation.Error(err)
 }
@@ -61,7 +62,10 @@ func (r *PostgresRepository) ListAdmin(ctx context.Context, filter adminmutation
 	 WHERE (lower(u.email::text) LIKE $1 OR lower(u.name) LIKE $1)
 	 AND ($2='' OR u.account_status=$2)
 	 AND ($3::timestamptz IS NULL OR (NOT $5 AND (u.created_at,u.id)<($3,$4::uuid)) OR ($5 AND (u.created_at,u.id)>($3,$4::uuid)))
-	 ORDER BY u.created_at `+order+`,u.id `+order+` LIMIT $6`, adminmutation.Prefix(filter.Query), filter.State, timestamp, id, before, filter.Limit)
+	 AND ($7='' OR u.verification_level=$7)
+	 AND ($8='' OR ($8='site_admin' AND EXISTS(SELECT 1 FROM site_role_grants g WHERE g.user_id=u.id AND g.revoked_at IS NULL))
+	 OR ($8='school_admin' AND EXISTS(SELECT 1 FROM school_admins s WHERE s.user_id=u.id AND s.deleted_at IS NULL)))
+	 ORDER BY u.created_at `+order+`,u.id `+order+` LIMIT $6`, adminmutation.Prefix(filter.Query), filter.State, timestamp, id, before, filter.Limit, filter.Verification, filter.Role)
 	if err != nil {
 		return nil, err
 	}

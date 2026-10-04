@@ -24,6 +24,10 @@ export const reportSummarySchema = queueWorkflowSchema.extend({
   reporter_user_id: uuidSchema,
   target_type: z.string().trim().min(1).max(80),
   target_id: uuidSchema,
+  target_slug: z.string().max(200).optional(),
+  reporter_name: z.string().optional(),
+  target_name: z.string().optional(),
+  assigned_to_name: z.string().optional(),
 });
 
 export const reportSchema = reportSummarySchema.extend({
@@ -36,6 +40,8 @@ export const supportTicketSummarySchema = queueWorkflowSchema.extend({
   submitter_user_id: uuidSchema.optional(),
   submitter_deleted_at: timestampSchema.optional(),
   subject: z.string().max(160),
+  submitter_name: z.string().optional(),
+  assigned_to_name: z.string().optional(),
 });
 
 export const supportTicketSchema = supportTicketSummarySchema.extend({
@@ -66,6 +72,7 @@ export const auditQueueStateSchema = z.object({
 export const auditEntrySchema = z.object({
   id: uuidSchema,
   actor_user_id: uuidSchema.optional(),
+  actor_name: z.string().optional(),
   admin_session_id: uuidSchema.optional(),
   request_id: z.string().max(128).optional(),
   action: z.enum(["report.updated", "support_ticket.updated"]),
@@ -85,13 +92,31 @@ export const auditPageSchema = z.object({
   previous_cursor: z.string().max(2048),
 });
 
+export const queueCountsSchema = z.object({
+  open: z.number().int().nonnegative(),
+  in_review: z.number().int().nonnegative(),
+  unassigned: z.number().int().nonnegative(),
+});
+export type QueueCounts = z.output<typeof queueCountsSchema>;
+
+/** A site admin an item can be assigned to. */
+export type Operator = { id: string; name: string };
+
 export const queueBrowseInputSchema = z.object({
+  type: z
+    .union([z.enum(["event", "user"]), z.literal("")])
+    .transform((value) => value || undefined)
+    .optional(),
   status: z
-    .union([queueStatusSchema, z.literal("")])
+    .union([queueStatusSchema, z.literal("all"), z.literal("")])
     .transform((value) => value || undefined)
     .optional(),
   assignee: z
     .union([uuidSchema, z.literal("unassigned"), z.literal("")])
+    .transform((value) => value || undefined)
+    .optional(),
+  user: z
+    .union([z.string().trim().min(2).max(100), z.literal("")])
     .transform((value) => value || undefined)
     .optional(),
   after: z
@@ -170,17 +195,32 @@ export function validateQueueSearch(
 ): QueueSearch {
   const parsed = queueBrowseInputSchema.safeParse({
     status: firstString(search.status) || undefined,
+    type: firstString(search.type) || undefined,
     assignee: firstString(search.assignee) || undefined,
+    user: firstString(search.user) || undefined,
     after: firstString(search.after) || undefined,
     before: firstString(search.before) || undefined,
   });
   if (!parsed.success || (parsed.data.after && parsed.data.before)) return {};
   return {
     ...(parsed.data.status ? { status: parsed.data.status } : {}),
+    ...(parsed.data.type ? { type: parsed.data.type } : {}),
     ...(parsed.data.assignee ? { assignee: parsed.data.assignee } : {}),
+    ...(parsed.data.user ? { user: parsed.data.user } : {}),
     ...(parsed.data.after ? { after: parsed.data.after } : {}),
     ...(parsed.data.before ? { before: parsed.data.before } : {}),
   };
+}
+
+/**
+ * Queues open on their open items. "all" is the explicit choice to see every
+ * status, so it survives pagination and links.
+ */
+export function validateOpenQueueSearch(
+  search: Record<string, unknown>,
+): QueueSearch {
+  const parsed = validateQueueSearch(search);
+  return parsed.status ? parsed : { ...parsed, status: "open" };
 }
 
 export function validateModerationDetailSearch(

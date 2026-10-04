@@ -80,6 +80,32 @@ test("logo previews load only from an HTTPS asset origin outside local", () => {
   );
 });
 
+test("the public site link is optional and HTTPS outside local", () => {
+  assert.deepEqual(
+    ["http://campusgamingnetwork.com", "not a url"].map((value) =>
+      environmentValidationIssues({
+        ...safeProduction,
+        PUBLIC_SITE_URL: value,
+      }),
+    ),
+    [
+      ["PUBLIC_SITE_URL must use HTTPS"],
+      ["PUBLIC_SITE_URL must be an absolute HTTP(S) origin"],
+    ],
+  );
+  assert.deepEqual(
+    [
+      adminEnvironment(safeProduction).publicSiteOrigin,
+      adminEnvironment({
+        ...safeProduction,
+        PUBLIC_SITE_URL: "https://campusgamingnetwork.com/",
+      }).publicSiteOrigin,
+      adminEnvironment({ DEPLOYMENT_ENV: "local" }).publicSiteOrigin,
+    ],
+    [undefined, "https://campusgamingnetwork.com", "http://localhost:3000"],
+  );
+});
+
 test("Access validation requires HTTPS outside local", () => {
   const plainHTTP = {
     CLOUDFLARE_ACCESS_TEAM_DOMAIN: "http://127.0.0.1:18085",
@@ -95,6 +121,53 @@ test("Access validation requires HTTPS outside local", () => {
       "CLOUDFLARE_ACCESS_TEAM_DOMAIN must be an absolute HTTPS origin",
       "CLOUDFLARE_ACCESS_JWKS_URL must be an absolute HTTPS URL",
     ],
+  );
+});
+
+test("local Access identity requires an explicit loopback-only test configuration", () => {
+  const localAccess = {
+    DEPLOYMENT_ENV: "local",
+    ADMIN_SITE_URL: "http://localhost:3002",
+    ADMIN_LOCAL_ACCESS_EMAIL: "dev@campusgamingnetwork.test",
+    CLOUDFLARE_ACCESS_TEAM_DOMAIN: "http://admin:3002",
+    CLOUDFLARE_ACCESS_AUDIENCE: "cgn-local-admin",
+    CLOUDFLARE_ACCESS_JWKS_URL: "http://admin:3002/cdn-cgi/access/certs",
+  };
+  assert.deepEqual(environmentValidationIssues(localAccess), []);
+  assert.equal(
+    adminEnvironment(localAccess).localAccessEmail,
+    "dev@campusgamingnetwork.test",
+  );
+
+  assert.deepEqual(
+    environmentValidationIssues({
+      ...safeProduction,
+      ADMIN_LOCAL_ACCESS_EMAIL: "dev@campusgamingnetwork.test",
+    }).filter((issue) => issue.includes("ADMIN_LOCAL_ACCESS_EMAIL")),
+    ["ADMIN_LOCAL_ACCESS_EMAIL is allowed only in local development"],
+  );
+
+  const unsafeLocalCases = [
+    {
+      ...localAccess,
+      ADMIN_SITE_URL: "http://admin.example.test:3002",
+    },
+    {
+      ...localAccess,
+      ADMIN_LOCAL_ACCESS_EMAIL: "Admin@example.com",
+    },
+    {
+      ...localAccess,
+      CLOUDFLARE_ACCESS_JWKS_URL: "http://admin:3002/other-keys",
+    },
+  ];
+  assert.deepEqual(
+    unsafeLocalCases.map((value) =>
+      environmentValidationIssues(value).some((issue) =>
+        issue.includes("ADMIN_LOCAL_ACCESS_EMAIL"),
+      ),
+    ),
+    [true, true, true],
   );
 });
 

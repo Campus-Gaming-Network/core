@@ -147,6 +147,7 @@ type WriteInput struct {
 type Entry struct {
 	ID             string          `json:"id"`
 	ActorUserID    *string         `json:"actor_user_id,omitempty"`
+	ActorName      *string         `json:"actor_name,omitempty"`
 	AdminSessionID *string         `json:"admin_session_id,omitempty"`
 	RequestID      *string         `json:"request_id,omitempty"`
 	Action         Action          `json:"action"`

@@ -405,15 +405,17 @@ applicable.
 
 ### Reports, support, and history
 
-| Method | Path                            | Capability       | Purpose                             |
-| ------ | ------------------------------- | ---------------- | ----------------------------------- |
-| GET    | `/admin/v1/reports`             | `reports.read`   | Filtered, paginated queue           |
-| GET    | `/admin/v1/reports/:id`         | `reports.read`   | Report detail and target summary    |
-| PATCH  | `/admin/v1/reports/:id`         | `reports.manage` | Assign, transition, resolution note |
-| GET    | `/admin/v1/support-tickets`     | `support.read`   | Filtered, paginated queue           |
-| GET    | `/admin/v1/support-tickets/:id` | `support.read`   | Ticket detail                       |
-| PATCH  | `/admin/v1/support-tickets/:id` | `support.manage` | Assign, transition, resolution note |
-| GET    | `/admin/v1/audit`               | `audit.read`     | History for one allowed entity      |
+| Method | Path                              | Capability       | Purpose                             |
+| ------ | --------------------------------- | ---------------- | ----------------------------------- |
+| GET    | `/admin/v1/reports`               | `reports.read`   | Filtered, paginated queue           |
+| GET    | `/admin/v1/report-counts`         | `reports.read`   | Open, in-review, unassigned totals  |
+| GET    | `/admin/v1/reports/:id`           | `reports.read`   | Report detail and target summary    |
+| PATCH  | `/admin/v1/reports/:id`           | `reports.manage` | Assign, transition, resolution note |
+| GET    | `/admin/v1/support-tickets`       | `support.read`   | Filtered, paginated queue           |
+| GET    | `/admin/v1/support-ticket-counts` | `support.read`   | Open, in-review, unassigned totals  |
+| GET    | `/admin/v1/support-tickets/:id`   | `support.read`   | Ticket detail                       |
+| PATCH  | `/admin/v1/support-tickets/:id`   | `support.manage` | Assign, transition, resolution note |
+| GET    | `/admin/v1/audit`                 | `audit.read`     | History for one allowed entity      |
 
 ### Schools and school grants
 
@@ -448,6 +450,17 @@ applicable.
 | GET    | `/admin/v1/site-admin-grants`            | `site_grants.manage`            | Active/revoked site-admin history    |
 | POST   | `/admin/v1/site-admin-grants`            | `site_grants.manage` + step-up  | Grant with reason                    |
 | POST   | `/admin/v1/site-admin-grants/:id/revoke` | `site_grants.manage` + step-up  | Revoke and end sessions              |
+
+Queue and record responses carry the display names of the users, schools, and
+events they reference. The console shows those names and offers a copy button
+for a record's own ID; it never displays an ID.
+
+List filters beyond search, state, and cursor are per list: reports accept
+`target_type` (`event` or `user`); schools accept `region` (a state or
+territory code); users accept `role` (`site_admin` or `school_admin`) and
+`verification`. The console picks an assignee from the active site admins and
+grants school-admin access by exact email, which the BFF resolves to the user
+ID the grant endpoint takes.
 
 Do not implement a generic `CRUD /admin/users` endpoint. Each high-risk state
 transition is a named operation with its own validation, authorization, audit,
@@ -575,7 +588,11 @@ R2_SCHOOL_LOGOS_BUCKET
 R2_ACCESS_KEY_ID
 R2_SECRET_ACCESS_KEY
 R2_PUBLIC_ASSET_ORIGIN
+PUBLIC_SITE_URL
 ```
+
+`PUBLIC_SITE_URL` is optional for the Admin BFF. When set, a reported event
+links to its public page; it must be HTTPS outside local development.
 
 `R2_ENDPOINT` replaces the account endpoint for local S3-compatible storage
 and is rejected in staging and production. Locally, `R2_PUBLIC_ASSET_ORIGIN`
@@ -886,7 +903,10 @@ list/detail/patch and scoped audit history.
 
 **Acceptance criteria:**
 
-- Status/assignee filters and cursor pagination are bounded and deterministic.
+- Status, assignee, and participant searches plus cursor pagination are bounded
+  and deterministic. Participant search accepts an exact user ID or a literal
+  email/name prefix, so operators can find a user's reports or tickets without
+  copying a UUID.
 - Stale/concurrent patches return `409` rather than overwrite.
 - User-controlled text is transported as data, not markup.
 - Every mutation has a safe transactional audit and actor/session/request id.
@@ -894,11 +914,12 @@ list/detail/patch and scoped audit history.
 
 Implemented: capability-gated report and support list/detail/patch routes plus
 entity-scoped audit history. Queue and audit lists use bounded keyset cursors
-with deterministic ordering and status/assignee filters. Patch requests carry
-an `updated_at` precondition, serialize through row locks, and return `409` for
-stale writes. Handler and PostgreSQL coverage verifies authenticated audit
-correlation, transactional rollback, hostile text as escaped JSON data, safe
-unknown-resource responses, reverse pagination, and concurrent updates.
+with deterministic ordering and status/assignee/participant filters. User
+detail pages link directly to queues filtered for that account. Patch requests
+carry an `updated_at` precondition, serialize through row locks, and return
+`409` for stale writes. Handler and PostgreSQL coverage verifies authenticated
+audit correlation, transactional rollback, hostile text as escaped JSON data,
+safe unknown-resource responses, reverse pagination, and concurrent updates.
 
 ### AC-009 — Add schools, games, users, and grant services
 

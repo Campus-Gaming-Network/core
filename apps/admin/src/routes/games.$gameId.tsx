@@ -1,4 +1,5 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
+import { CopyIdButton } from "../components/copy-id-button";
 import {
   CatalogAuditPanel,
   CatalogNoticeView,
@@ -45,9 +46,7 @@ function GameDetailPage() {
           </Link>
           <p className="eyebrow">Game</p>
           <h1>{game.name}</h1>
-          <p className="detail-id">
-            <code>{game.id}</code>
-          </p>
+          <CopyIdButton entity="game" id={game.id} />
         </div>
         <StateBadge state={state} />
       </header>

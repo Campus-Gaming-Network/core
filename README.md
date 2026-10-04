@@ -77,6 +77,28 @@ Local Docker Compose also seeds a verified development user:
 - Email: `dev@campusgamingnetwork.test`
 - Password: `Password12345!`
 
+### Local Admin Console
+
+Start the Admin Console with its local-only signed Access identity and
+site-administrator grant:
+
+```bash
+pnpm run compose:up:admin
+```
+
+Then open http://localhost:3002. The console identifies the browser as the
+seeded `dev@campusgamingnetwork.test` administrator; no Cloudflare account or
+password is required. The command generates an ephemeral signing key inside
+the Admin container, exposes only its public key to the normal Access
+validators, and bootstraps the local grant through `cgn-admin`. JWT, session,
+CSRF, and capability checks remain active.
+
+The local identity is accepted only with `DEPLOYMENT_ENV=local`, a loopback
+Admin URL, an explicit `.test` email, and the local JWKS endpoint. The Admin
+port is published to `127.0.0.1` only. After the first run, the `admin` and
+`object-storage` services appear under the `core` application in Docker
+Desktop and can use its normal stop/start controls.
+
 ### Demo data
 
 To browse a realistic, well-populated local site, start the stack with the

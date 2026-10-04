@@ -15,6 +15,7 @@
     "check:docs-links": "node scripts/check_doc_links.mjs",
     "compose:up": "docker compose up --build",
     "compose:up:demo": "docker compose --profile demo up --build",
+    "compose:up:admin": "node scripts/run_admin_dev.mjs",
     "seed:demo": "docker compose --profile demo run --rm --build seed-demo",
     "seed:demo:reset": "docker compose --profile demo run --rm --build seed-demo cgn-seed -csv /data/schools_seed.csv -demo -demo-reset",
     "fmt": "oxfmt .",

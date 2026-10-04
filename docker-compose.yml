@@ -161,18 +161,20 @@ services:
       CLOUDFLARE_ACCESS_TEAM_DOMAIN: ${CLOUDFLARE_ACCESS_TEAM_DOMAIN:-}
       CLOUDFLARE_ACCESS_AUDIENCE: ${CLOUDFLARE_ACCESS_AUDIENCE:-}
       CLOUDFLARE_ACCESS_JWKS_URL: ${CLOUDFLARE_ACCESS_JWKS_URL:-}
+      ADMIN_LOCAL_ACCESS_EMAIL: ${ADMIN_LOCAL_ACCESS_EMAIL:-}
       R2_PUBLIC_ASSET_ORIGIN: ${R2_PUBLIC_ASSET_ORIGIN:-http://localhost:9090/cgn-school-logos}
+      PUBLIC_SITE_URL: ${SITE_URL:-http://localhost:3000}
       HOST: 0.0.0.0
       PORT: 3002
     ports:
-      - "3002:3002"
+      - "127.0.0.1:3002:3002"
     depends_on:
       api:
         condition: service_healthy
       object-storage:
         condition: service_started
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3002/api/health"]
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3002/api/health"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -185,7 +187,7 @@ services:
     environment:
       COM_ADOBE_TESTING_S3MOCK_STORE_INITIAL_BUCKETS: ${R2_SCHOOL_LOGOS_BUCKET:-cgn-school-logos}
     ports:
-      - "9090:9090"
+      - "127.0.0.1:9090:9090"
 
   docs:
     profiles: ["docs"]

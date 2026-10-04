@@ -47,7 +47,16 @@ type fakeOperationsRepository struct {
 	getSupportCalls     int
 	patchSupportCalls   int
 	listAuditCalls      int
+	counts              operations.QueueCounts
 	err                 error
+}
+
+func (repository *fakeOperationsRepository) CountReports(context.Context) (operations.QueueCounts, error) {
+	return repository.counts, repository.err
+}
+
+func (repository *fakeOperationsRepository) CountSupportTickets(context.Context) (operations.QueueCounts, error) {
+	return repository.counts, repository.err
 }
 
 func (repository *fakeOperationsRepository) ListReports(_ context.Context, filter operations.QueueFilter) ([]operations.ReportSummary, error) {
@@ -111,7 +120,7 @@ func TestOperationsListsAreFilteredPaginatedJSONData(t *testing.T) {
 	}
 	fixture.operations.reports = reports
 
-	req := trustedRequest(http.MethodGet, "/admin/v1/reports?status=open&assignee=unassigned&limit=2")
+	req := trustedRequest(http.MethodGet, "/admin/v1/reports?status=open&assignee=unassigned&user=reporter%40example.test&limit=2")
 	req.AddCookie(&http.Cookie{Name: "admin_session", Value: "current"})
 	response := httptest.NewRecorder()
 	handler.ServeHTTP(response, req)
@@ -137,7 +146,8 @@ func TestOperationsListsAreFilteredPaginatedJSONData(t *testing.T) {
 	}
 	emptyAssignee := ""
 	wantFilter := operations.QueueFilter{
-		Status: operations.QueueStatusOpen, AssignedToUserID: &emptyAssignee, Limit: 3,
+		Status: operations.QueueStatusOpen, AssignedToUserID: &emptyAssignee,
+		UserQuery: "reporter@example.test", Limit: 3,
 	}
 	if !reflect.DeepEqual(fixture.operations.listReportFilter, wantFilter) {
 		t.Fatalf("filter = %#v, want %#v", fixture.operations.listReportFilter, wantFilter)
@@ -241,6 +251,7 @@ func TestOperationsRejectsInvalidPaginationBeforeRepositoryWork(t *testing.T) {
 		"/admin/v1/reports?limit=1&limit=2",
 		"/admin/v1/reports?unknown=value",
 		"/admin/v1/reports?assignee=not-a-uuid",
+		"/admin/v1/reports?user=x",
 		"/admin/v1/reports?status=pending",
 	} {
 		handler, fixture := testHandler(true)
@@ -421,5 +432,40 @@ func TestRequestInfoReportsRouteTemplateVerifiedActorAndFailureClass(t *testing.
 				t.Fatalf("response exposed the internal failure: %s", response.Body.String())
 			}
 		})
+	}
+}
+
+func TestOperationsQueueCountsAndReportTargetTypeFilter(t *testing.T) {
+	handler, fixture := testHandler(true)
+	fixture.operations.counts = operations.QueueCounts{Open: 4, InReview: 2, Unassigned: 3}
+
+	for _, path := range []string{"/admin/v1/report-counts", "/admin/v1/support-ticket-counts"} {
+		req := trustedRequest(http.MethodGet, path)
+		req.AddCookie(&http.Cookie{Name: "admin_session", Value: "current"})
+		response := httptest.NewRecorder()
+		handler.ServeHTTP(response, req)
+		var counts operations.QueueCounts
+		if err := json.Unmarshal(response.Body.Bytes(), &counts); err != nil {
+			t.Fatalf("%s: decode response: %v", path, err)
+		}
+		if response.Code != http.StatusOK || counts != fixture.operations.counts {
+			t.Fatalf("%s = %d %#v, want %#v", path, response.Code, counts, fixture.operations.counts)
+		}
+	}
+
+	req := trustedRequest(http.MethodGet, "/admin/v1/reports?target_type=user")
+	req.AddCookie(&http.Cookie{Name: "admin_session", Value: "current"})
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, req)
+	if response.Code != http.StatusOK || fixture.operations.listReportFilter.TargetType != "user" {
+		t.Fatalf("report target filter = %d %#v", response.Code, fixture.operations.listReportFilter)
+	}
+
+	req = trustedRequest(http.MethodGet, "/admin/v1/support-tickets?target_type=user")
+	req.AddCookie(&http.Cookie{Name: "admin_session", Value: "current"})
+	response = httptest.NewRecorder()
+	handler.ServeHTTP(response, req)
+	if response.Code != http.StatusBadRequest {
+		t.Fatalf("support ticket target filter status = %d, want 400", response.Code)
 	}
 }

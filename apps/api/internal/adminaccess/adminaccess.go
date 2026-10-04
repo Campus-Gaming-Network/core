@@ -134,6 +134,7 @@ func CapabilitiesForRole(role Role) []Capability {
 type Grant struct {
 	ID              string     `json:"id"`
 	UserID          string     `json:"user_id"`
+	UserName        string     `json:"user_name,omitempty"`
 	Role            Role       `json:"role"`
 	GrantedByUserID *string    `json:"granted_by_user_id,omitempty"`
 	GrantReason     string     `json:"grant_reason"`
@@ -662,9 +663,11 @@ func grantAuditState(grant Grant) adminaudit.SiteRoleGrantState {
 	}
 }
 
-func scanGrant(row pgx.Row) (Grant, error) {
+// scanGrant reads the grant columns, then any extra destinations a query
+// appends after them.
+func scanGrant(row pgx.Row, extra ...any) (Grant, error) {
 	var grant Grant
-	err := row.Scan(
+	err := row.Scan(append([]any{
 		&grant.ID,
 		&grant.UserID,
 		&grant.Role,
@@ -674,7 +677,7 @@ func scanGrant(row pgx.Row) (Grant, error) {
 		&grant.RevokedAt,
 		&grant.RevokedByUserID,
 		&grant.RevokeReason,
-	)
+	}, extra...)...)
 	return grant, err
 }
 

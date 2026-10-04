@@ -404,6 +404,22 @@ func TestPostgresRepositoryQueuePaginationFiltersAndDetails(t *testing.T) {
 	if len(unassignedReports) != 1 || unassignedReports[0].ID != unassignedID {
 		t.Fatalf("unassigned reports = %#v, want %s", unassignedReports, unassignedID)
 	}
+	userReports, err := fixture.repository.ListReports(ctx, QueueFilter{
+		Status: QueueStatusOpen, UserQuery: "REPORT", Limit: 10,
+	})
+	if err != nil {
+		t.Fatalf("ListReports(user search) error = %v", err)
+	}
+	if len(userReports) != 3 {
+		t.Fatalf("user report search returned %d reports, want 3", len(userReports))
+	}
+	otherUserReports, err := fixture.repository.ListReports(ctx, QueueFilter{UserQuery: "other", Limit: 10})
+	if err != nil {
+		t.Fatalf("ListReports(other user search) error = %v", err)
+	}
+	if len(otherUserReports) != 0 {
+		t.Fatalf("other user report search = %#v, want no reports", otherUserReports)
+	}
 	detail, err := fixture.repository.GetReport(ctx, fixture.reportID)
 	if err != nil {
 		t.Fatalf("GetReport() error = %v", err)
@@ -418,6 +434,9 @@ func TestPostgresRepositoryQueuePaginationFiltersAndDetails(t *testing.T) {
 		RetentionStartedAt: detail.RetentionStartedAt,
 		CreatedAt:          detail.CreatedAt,
 		UpdatedAt:          detail.UpdatedAt,
+		ReporterName:       detail.ReporterName,
+		TargetName:         detail.TargetName,
+		AssignedToName:     detail.AssignedToName,
 	}
 	if !reflect.DeepEqual(firstPage[0], wantReportSummary) {
 		t.Fatalf("ListReports() = %#v, want summary %#v", firstPage[0], wantReportSummary)
@@ -435,6 +454,13 @@ func TestPostgresRepositoryQueuePaginationFiltersAndDetails(t *testing.T) {
 	if len(tickets) != 1 || tickets[0].ID != fixture.ticketID {
 		t.Fatalf("support tickets = %#v, want fixture ticket", tickets)
 	}
+	ticketsByUser, err := fixture.repository.ListSupportTickets(ctx, QueueFilter{UserQuery: fixture.reporterID, Limit: 10})
+	if err != nil {
+		t.Fatalf("ListSupportTickets(user search) error = %v", err)
+	}
+	if len(ticketsByUser) != 1 || ticketsByUser[0].ID != fixture.ticketID {
+		t.Fatalf("support tickets by user = %#v, want fixture ticket", ticketsByUser)
+	}
 	ticket, err := fixture.repository.GetSupportTicket(ctx, fixture.ticketID)
 	if err != nil {
 		t.Fatalf("GetSupportTicket() error = %v", err)
@@ -449,6 +475,8 @@ func TestPostgresRepositoryQueuePaginationFiltersAndDetails(t *testing.T) {
 		RetentionStartedAt: ticket.RetentionStartedAt,
 		CreatedAt:          ticket.CreatedAt,
 		UpdatedAt:          ticket.UpdatedAt,
+		SubmitterName:      ticket.SubmitterName,
+		AssignedToName:     ticket.AssignedToName,
 	}
 	if !reflect.DeepEqual(tickets[0], wantTicketSummary) {
 		t.Fatalf("ListSupportTickets() = %#v, want summary %#v", tickets[0], wantTicketSummary)

@@ -135,6 +135,7 @@ function resetCatalog() {
   ].map(([id, userID]) => ({
     id,
     user_id: userID,
+    user_name: users.get(userID).name,
     role: "site_admin",
     grant_reason: "Launch operator",
     granted_at: catalogCreatedAt,
@@ -151,6 +152,8 @@ const report = {
   reporter_user_id: reporterID,
   target_type: "user",
   target_id: targetID,
+  reporter_name: "Player One",
+  target_name: "Reported Player",
   reason: "<img src=x onerror=\"document.body.dataset.xss='report'\">",
   status: "open",
   resolution_note: "",
@@ -179,6 +182,22 @@ const ticketAudit = [];
 let sequence = 0;
 let forcedConflict = false;
 
+// Restores the seeded queue items so no test depends on an earlier one.
+const seededQueue = structuredClone({ report, ticket });
+function resetQueues() {
+  for (const [item, seed] of [
+    [report, seededQueue.report],
+    [ticket, seededQueue.ticket],
+  ]) {
+    for (const key of Object.keys(item)) delete item[key];
+    Object.assign(item, structuredClone(seed));
+  }
+  reportAudit.length = 0;
+  ticketAudit.length = 0;
+  sequence = 0;
+  forcedConflict = false;
+}
+
 const server = http.createServer(async (request, response) => {
   response.setHeader("content-type", "application/json");
   const requestURL = new URL(
@@ -192,6 +211,7 @@ const server = http.createServer(async (request, response) => {
   }
   if (request.method === "POST" && requestURL.pathname === "/__test/reset") {
     resetCatalog();
+    resetQueues();
     respond(response, 200, { reset: true });
     return;
   }
@@ -239,6 +259,20 @@ const server = http.createServer(async (request, response) => {
     await handleCatalog(request, response, requestURL, sessionValue);
     return;
   }
+  if (
+    request.method === "GET" &&
+    (requestURL.pathname === "/admin/v1/report-counts" ||
+      requestURL.pathname === "/admin/v1/support-ticket-counts")
+  ) {
+    const item =
+      requestURL.pathname === "/admin/v1/report-counts" ? report : ticket;
+    respond(response, 200, {
+      open: item.status === "open" ? 1 : 0,
+      in_review: item.status === "in_review" ? 1 : 0,
+      unassigned: item.status === "open" && !item.assigned_to_user_id ? 1 : 0,
+    });
+    return;
+  }
   if (request.method === "GET" && requestURL.pathname === "/admin/v1/reports") {
     respond(response, 200, {
       reports: matchesFilters(report, requestURL)
@@ -248,6 +282,8 @@ const server = http.createServer(async (request, response) => {
               reporter_user_id: report.reporter_user_id,
               target_type: report.target_type,
               target_id: report.target_id,
+              reporter_name: report.reporter_name,
+              target_name: report.target_name,
               status: report.status,
               ...(report.assigned_to_user_id
                 ? { assigned_to_user_id: report.assigned_to_user_id }
@@ -452,6 +488,7 @@ async function handleCatalog(request, response, requestURL, sessionValue) {
       id: nextID(),
       school_id: id,
       user_id: body.user_id,
+      user_name: users.get(body.user_id).name,
       created_at: nextTimestamp(),
       revoked_at: null,
     };
@@ -605,6 +642,7 @@ async function handleCatalog(request, response, requestURL, sessionValue) {
     const grant = {
       id: nextID(),
       user_id: user.id,
+      user_name: user.name,
       role: "site_admin",
       grant_reason: body.reason,
       granted_at: nextTimestamp(),
@@ -870,8 +908,10 @@ async function patchQueueItem(request, response, item, audit, entityType) {
   item.status = body.status;
   if (body.assigned_to_user_id) {
     item.assigned_to_user_id = body.assigned_to_user_id;
+    item.assigned_to_name = users.get(body.assigned_to_user_id)?.name;
   } else {
     delete item.assigned_to_user_id;
+    delete item.assigned_to_name;
   }
   const noteChanged = item.resolution_note !== body.resolution_note;
   item.resolution_note = body.resolution_note;

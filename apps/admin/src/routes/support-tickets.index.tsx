@@ -5,11 +5,16 @@ import {
   QueueStatusBadge,
   formatTimestamp,
 } from "../features/moderation/moderation-components";
-import { validateQueueSearch } from "../features/moderation/contracts";
+import { UserLink } from "../components/user-link";
+import { DataTable, dataColumn } from "../components/data-table";
+import {
+  validateOpenQueueSearch,
+  type SupportTicketSummary,
+} from "../features/moderation/contracts";
 import { getSupportQueue } from "../features/moderation/moderation.functions";
 
 export const Route = createFileRoute("/support-tickets/")({
-  validateSearch: validateQueueSearch,
+  validateSearch: validateOpenQueueSearch,
   loaderDeps: ({ search }) => search,
   loader: ({ deps }) => getSupportQueue({ data: deps }),
   staleTime: 0,
@@ -18,6 +23,63 @@ export const Route = createFileRoute("/support-tickets/")({
   }),
   component: SupportTicketsPage,
 });
+
+const ticketColumns = [
+  dataColumn<SupportTicketSummary>({
+    id: "subject",
+    header: "Subject",
+    sortValue: (row) => row.subject,
+    cell: (row) => (
+      <Link
+        className="data-table__primary"
+        params={{ ticketId: row.id }}
+        to="/support-tickets/$ticketId"
+      >
+        {row.subject}
+      </Link>
+    ),
+  }),
+  dataColumn<SupportTicketSummary>({
+    id: "status",
+    header: "Status",
+    sortValue: (row) => row.status,
+    cell: (row) => <QueueStatusBadge status={row.status} />,
+  }),
+  dataColumn<SupportTicketSummary>({
+    id: "submitter",
+    header: "Submitter",
+    sortValue: (row) =>
+      row.submitter_name ??
+      (row.submitter_user_id ? "Unknown" : "Deleted user"),
+
+    cell: (row) =>
+      row.submitter_user_id ? (
+        <UserLink name={row.submitter_name} userId={row.submitter_user_id} />
+      ) : (
+        "Deleted user"
+      ),
+  }),
+  dataColumn<SupportTicketSummary>({
+    id: "assigned_to",
+    header: "Assigned to",
+    sortValue: (row) => row.assigned_to_name ?? "Unassigned",
+    cell: (row) => (
+      <UserLink
+        fallback="Unassigned"
+        name={row.assigned_to_name}
+        userId={row.assigned_to_user_id}
+      />
+    ),
+  }),
+  dataColumn<SupportTicketSummary>({
+    id: "created_at",
+    header: "Created",
+    sortValue: (row) => row.created_at,
+    cell: (row) => (
+      <time dateTime={row.created_at}>{formatTimestamp(row.created_at)}</time>
+    ),
+  }),
+];
 
 function SupportTicketsPage() {
   const tickets = Route.useLoaderData();
@@ -30,8 +92,8 @@ function SupportTicketsPage() {
           <p className="eyebrow">Operations</p>
           <h1>Support tickets</h1>
           <p>
-            Triage account and product requests while keeping contact details
-            and full messages out of queue responses.
+            Account and product requests from users. Open one to read the
+            message, assign it, and record the outcome.
           </p>
         </div>
         <span className="count-badge">
@@ -39,37 +101,19 @@ function SupportTicketsPage() {
         </span>
       </header>
 
-      <QueueFilters action="/support-tickets" search={search} />
+      <QueueFilters
+        action="/support-tickets"
+        operators={tickets.operators}
+        search={search}
+      />
 
       {tickets.support_tickets.length ? (
-        <section className="queue-list" aria-label="Support ticket queue">
-          {tickets.support_tickets.map((ticket) => (
-            <Link
-              className="queue-card"
-              key={ticket.id}
-              params={{ ticketId: ticket.id }}
-              to="/support-tickets/$ticketId"
-            >
-              <span className="queue-card__topline">
-                <strong>{ticket.subject}</strong>
-                <QueueStatusBadge status={ticket.status} />
-              </span>
-              <span>
-                Submitter{" "}
-                <code>{ticket.submitter_user_id ?? "Deleted user"}</code>
-              </span>
-              <span className="queue-card__meta">
-                {ticket.assigned_to_user_id
-                  ? `Assigned to ${ticket.assigned_to_user_id}`
-                  : "Unassigned"}
-                {" · "}
-                <time dateTime={ticket.created_at}>
-                  {formatTimestamp(ticket.created_at)}
-                </time>
-              </span>
-            </Link>
-          ))}
-        </section>
+        <DataTable
+          columns={ticketColumns}
+          data={tickets.support_tickets}
+          getRowId={(ticket) => ticket.id}
+          label="Support ticket queue"
+        />
       ) : (
         <section className="empty-panel">
           <h2>No support tickets match these filters</h2>

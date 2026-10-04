@@ -6,6 +6,7 @@ import {
   supportTicketsPageSchema,
   validateModerationDetailSearch,
   validateQueueMutationServerInput,
+  validateOpenQueueSearch,
   validateQueueSearch,
 } from "../src/features/moderation/contracts.js";
 import {
@@ -99,12 +100,17 @@ test("moderation search validation rejects mixed cursors and unknown filters", (
     validateQueueSearch({
       status: "open",
       assignee: "unassigned",
+      user: "reporter@example.test",
       after: "after-cursor",
       before: "before-cursor",
     }),
     {},
   );
   assert.deepEqual(validateQueueSearch({ status: "pending" }), {});
+  assert.deepEqual(validateQueueSearch({ user: "reporter@example.test" }), {
+    user: "reporter@example.test",
+  });
+  assert.deepEqual(validateQueueSearch({ user: "r" }), {});
   assert.deepEqual(
     validateModerationDetailSearch({
       audit_after: "after-cursor",
@@ -149,7 +155,12 @@ test("report queue reads use bounded filters and isolated cookies", async () => 
   }) as ApiClient;
 
   const result = await getReportQueueOperation(
-    { status: "open", assignee: "unassigned", after: "opaque cursor" },
+    {
+      status: "open",
+      assignee: "unassigned",
+      user: "reporter@example.test",
+      after: "opaque cursor",
+    },
     { api, cookieHeader: "admin_session=opaque" },
   );
 
@@ -159,7 +170,7 @@ test("report queue reads use bounded filters and isolated cookies", async () => 
     previous_cursor: "",
   });
   assert.deepEqual(received, {
-    path: "/admin/v1/reports?limit=25&status=open&assignee=unassigned&after=opaque+cursor",
+    path: "/admin/v1/reports?limit=25&status=open&assignee=unassigned&user=reporter%40example.test&after=opaque+cursor",
     cookieHeader: "admin_session=opaque",
     responseSchema: reportsPageSchema,
   });
@@ -243,4 +254,14 @@ test("rate-limited queue updates tell the operator to wait without reporting an 
       reported: [],
     },
   );
+});
+
+test("queues default to open items unless all statuses are chosen", () => {
+  assert.deepEqual(validateOpenQueueSearch({}), { status: "open" });
+  assert.deepEqual(validateOpenQueueSearch({ status: "all" }), {
+    status: "all",
+  });
+  assert.deepEqual(validateOpenQueueSearch({ status: "closed" }), {
+    status: "closed",
+  });
 });

@@ -55,6 +55,8 @@ type GrantFinder interface {
 
 type OperationsRepository interface {
 	ListReports(context.Context, operations.QueueFilter) ([]operations.ReportSummary, error)
+	CountReports(context.Context) (operations.QueueCounts, error)
+	CountSupportTickets(context.Context) (operations.QueueCounts, error)
 	GetReport(context.Context, string) (operations.Report, error)
 	PatchReport(context.Context, string, operations.QueuePatch) (operations.Report, error)
 	ListSupportTickets(context.Context, operations.QueueFilter) ([]operations.SupportTicketSummary, error)
@@ -105,6 +107,8 @@ const (
 	operationGetSupport       routeOperation = "get_support"
 	operationPatchSupport     routeOperation = "patch_support"
 	operationListSupportAudit routeOperation = "list_support_audit"
+	operationCountReports     routeOperation = "count_reports"
+	operationCountSupport     routeOperation = "count_support"
 )
 
 var routes = append([]routePolicy{
@@ -113,6 +117,8 @@ var routes = append([]routePolicy{
 	{Method: http.MethodGet, Path: "/admin/v1/session", Control: controlCapability, Capability: adminaccess.CapabilityAdminSessionRead, Operation: operationCurrentSession},
 	{Method: http.MethodPost, Path: "/admin/v1/logout", Control: controlLogout, Mutation: true},
 	{Method: http.MethodGet, Path: "/admin/v1/reports", Control: controlCapability, Capability: adminaccess.CapabilityReportsRead, Operation: operationListReports},
+	{Method: http.MethodGet, Path: "/admin/v1/report-counts", Control: controlCapability, Capability: adminaccess.CapabilityReportsRead, Operation: operationCountReports},
+	{Method: http.MethodGet, Path: "/admin/v1/support-ticket-counts", Control: controlCapability, Capability: adminaccess.CapabilitySupportRead, Operation: operationCountSupport},
 	{Method: http.MethodGet, Path: "/admin/v1/reports/{id}", Control: controlCapability, Capability: adminaccess.CapabilityReportsRead, Operation: operationGetReport},
 	{Method: http.MethodPatch, Path: "/admin/v1/reports/{id}", Control: controlCapability, Capability: adminaccess.CapabilityReportsManage, Mutation: true, Operation: operationPatchReport},
 	{Method: http.MethodGet, Path: "/admin/v1/reports/{id}/audit", Control: controlCapability, Capability: adminaccess.CapabilityAuditRead, Operation: operationListReportAudit},
@@ -631,6 +637,8 @@ func validRouteOperation(policy routePolicy) bool {
 		operationGetSupport:       {Method: http.MethodGet, Path: "/admin/v1/support-tickets/{id}", Capability: adminaccess.CapabilitySupportRead},
 		operationPatchSupport:     {Method: http.MethodPatch, Path: "/admin/v1/support-tickets/{id}", Capability: adminaccess.CapabilitySupportManage, Mutation: true},
 		operationListSupportAudit: {Method: http.MethodGet, Path: "/admin/v1/support-tickets/{id}/audit", Capability: adminaccess.CapabilityAuditRead},
+		operationCountReports:     {Method: http.MethodGet, Path: "/admin/v1/report-counts", Capability: adminaccess.CapabilityReportsRead},
+		operationCountSupport:     {Method: http.MethodGet, Path: "/admin/v1/support-ticket-counts", Capability: adminaccess.CapabilitySupportRead},
 	}
 	definition, ok := expected[policy.Operation]
 	if !ok {

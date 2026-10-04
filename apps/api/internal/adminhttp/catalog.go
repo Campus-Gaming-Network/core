@@ -349,7 +349,7 @@ func (handler *Handler) catalogRead(w http.ResponseWriter, req *http.Request, ac
 		}
 	default:
 		var filter adminmutation.Filter
-		filter, err = parseCatalogFilter(req)
+		filter, err = parseCatalogFilter(req, catalogListFilters[operation]...)
 		if err != nil {
 			break
 		}
@@ -388,16 +388,31 @@ func (handler *Handler) catalogRead(w http.ResponseWriter, req *http.Request, ac
 	writeJSON(w, 200, result)
 }
 
-func parseCatalogFilter(req *http.Request) (adminmutation.Filter, error) {
+// catalogListFilters names the narrowing filters each list accepts beyond the
+// shared search, state, and cursor parameters.
+var catalogListFilters = map[routeOperation][]string{
+	"schools.list": {"region"},
+	"users.list":   {"role", "verification"},
+}
+
+func parseCatalogFilter(req *http.Request, extra ...string) (adminmutation.Filter, error) {
 	values := req.URL.Query()
-	if err := validateQueryKeys(values, map[string]struct{}{"q": {}, "state": {}, "limit": {}, "after": {}, "before": {}}); err != nil {
+	allowed := map[string]struct{}{"q": {}, "state": {}, "limit": {}, "after": {}, "before": {}}
+	for _, key := range extra {
+		allowed[key] = struct{}{}
+	}
+	if err := validateQueryKeys(values, allowed); err != nil {
 		return adminmutation.Filter{}, err
 	}
 	limit, after, before, err := parsePagination(values)
 	if err != nil {
 		return adminmutation.Filter{}, err
 	}
-	filter := adminmutation.Filter{Query: values.Get("q"), State: values.Get("state"), Limit: limit, After: after, Before: before}
+	filter := adminmutation.Filter{
+		Query: values.Get("q"), State: values.Get("state"),
+		Region: values.Get("region"), Role: values.Get("role"), Verification: values.Get("verification"),
+		Limit: limit, After: after, Before: before,
+	}
 	if err := filter.Validate(); err != nil {
 		return adminmutation.Filter{}, err
 	}

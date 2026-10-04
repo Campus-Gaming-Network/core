@@ -277,6 +277,7 @@ capabilities, and step-up rules live in
 | ------------------- | ----------------------------------------------------------------------------------------------------------------- |
 | Session             | `POST /auth/exchange`, `POST /auth/step-up`, `GET /session`, `POST /logout`                                       |
 | Reports and support | `GET`/`PATCH` `/reports` and `/support-tickets` (list, detail, update) plus `GET …/:id/audit`                     |
+| Queue counts        | `GET /report-counts` and `GET /support-ticket-counts`                                                             |
 | Schools             | List, create, get, update, `deactivate`, `reactivate`, and delete under `/schools`, plus `GET /schools/:id/audit` |
 | School logos        | `POST /schools/:id/logo` (multipart upload) and `DELETE /schools/:id/logo`                                        |
 | School admins       | `GET`/`POST /schools/:id/admin-grants`, `POST …/:grant_id/revoke`, and `GET …/:grant_id/audit`                    |

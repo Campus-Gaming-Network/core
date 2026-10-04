@@ -48,6 +48,7 @@ export const adminUserSchema = z.object({
   email: z.string().max(320),
   name: z.string().max(200),
   home_school_id: z.string().max(64),
+  home_school_name: z.string().max(200).optional(),
   email_verified_at: timestampSchema.nullable(),
   verification_level: z.string().max(40),
   account_status: accountStatusSchema,
@@ -62,6 +63,7 @@ export const schoolGrantSchema = z.object({
   id: uuidSchema,
   school_id: uuidSchema,
   user_id: uuidSchema,
+  user_name: z.string(),
   created_at: timestampSchema,
   updated_at: timestampSchema,
   revoked_at: timestampSchema.nullable(),
@@ -70,6 +72,7 @@ export const schoolGrantSchema = z.object({
 export const siteGrantSchema = z.object({
   id: uuidSchema,
   user_id: uuidSchema,
+  user_name: z.string().optional(),
   role: z.literal("site_admin"),
   granted_by_user_id: uuidSchema.optional(),
   grant_reason: z.string().max(1000),
@@ -83,6 +86,7 @@ export const catalogAuditEntrySchema = z
   .object({
     id: uuidSchema,
     actor_user_id: uuidSchema.optional(),
+    actor_name: z.string().optional(),
     action: z.enum([
       "school.created",
       "school.updated",
@@ -176,9 +180,23 @@ export const catalogListKinds = {
 } as const;
 export type CatalogListKind = keyof typeof catalogListKinds;
 
+/** Narrowing filters that only some lists accept. */
+export const userRoleFilters = ["site_admin", "school_admin"] as const;
+export const verificationFilters = [
+  "basic",
+  "verified",
+  "staff_faculty",
+] as const;
+
 export type CatalogSearch = {
   q?: string;
   state?: string;
+  /** Schools: a two-letter state or territory code. */
+  region?: string;
+  /** Users: an admin role the account holds. */
+  role?: (typeof userRoleFilters)[number];
+  /** Users: a verification level. */
+  verification?: (typeof verificationFilters)[number];
   after?: string;
   before?: string;
 };
@@ -186,6 +204,9 @@ export type CatalogSearch = {
 export const catalogBrowseInputSchema = z.object({
   q: z.string().trim().min(2).max(100).optional(),
   state: z.string().max(20).optional(),
+  region: z.string().max(40).optional(),
+  role: z.enum(userRoleFilters).optional(),
+  verification: z.enum(verificationFilters).optional(),
   after: cursorSchema.optional(),
   before: cursorSchema.optional(),
 });
@@ -197,9 +218,19 @@ export function validateCatalogSearch(kind: CatalogListKind) {
     const after = firstString(search.after);
     const before = firstString(search.before);
     const states: readonly string[] = catalogListKinds[kind];
+    const region = firstString(search.region).trim().toUpperCase();
+    const role = userRoleFilters.find(
+      (value) => value === firstString(search.role),
+    );
+    const verification = verificationFilters.find(
+      (value) => value === firstString(search.verification),
+    );
     return {
       ...(q.length >= 2 && q.length <= 100 ? { q } : {}),
       ...(states.includes(state) ? { state } : {}),
+      ...(kind === "schools" && /^[A-Z]{2}$/.test(region) ? { region } : {}),
+      ...(kind === "users" && role ? { role } : {}),
+      ...(kind === "users" && verification ? { verification } : {}),
       ...(after && !before && after.length <= 2048 ? { after } : {}),
       ...(before && !after && before.length <= 2048 ? { before } : {}),
     };
@@ -569,6 +600,7 @@ const catalogCommandSchema = z
     id: uuidSchema,
     grant_id: z.union([uuidSchema, z.literal("")]),
     user_id: z.union([uuidSchema, z.literal("")]),
+    user_email: z.union([z.email().max(320), z.literal("")]),
     expected_updated_at: z.union([timestampSchema, z.literal("")]),
     staff_faculty: z.enum(["true", "false", ""]),
     confirmed: z.boolean(),
@@ -593,15 +625,22 @@ const catalogCommandSchema = z
         message: "Reload the page and try again.",
       });
     }
-    if (
-      (input.command === "school_grant.grant" ||
-        input.command === "site_grant.grant") &&
-      input.user_id === ""
-    ) {
+    if (input.command === "site_grant.grant" && input.user_id === "") {
       context.addIssue({
         code: "custom",
         path: ["user_id"],
-        message: "Enter the user's ID.",
+        message: "Reload the page and try again.",
+      });
+    }
+    if (
+      input.command === "school_grant.grant" &&
+      input.user_id === "" &&
+      input.user_email === ""
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["user_email"],
+        message: "Enter the user's email address.",
       });
     }
     if (input.command === "school_grant.revoke" && input.grant_id === "") {
@@ -658,6 +697,7 @@ export function validateCatalogCommandInput(
     id,
     grant_id: inputValue(input, "grant_id"),
     user_id: inputValue(input, "user_id"),
+    user_email: inputValue(input, "user_email").trim().toLowerCase(),
     expected_updated_at: inputValue(input, "expected_updated_at"),
     staff_faculty: inputValue(input, "staff_faculty"),
     confirmed: checkboxValue(input, "confirmed"),

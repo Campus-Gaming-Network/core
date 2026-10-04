@@ -5,7 +5,6 @@ import {
   disguisedSVGLogo,
   gatedMemberID,
   memberID,
-  operatorID,
   pngLogo,
 } from "./fixtures/admin-session.js";
 
@@ -93,7 +92,7 @@ test("school-admin access is granted, revoked, and restorable", async ({
   await authenticateAdmin(context);
   await page.goto(`/schools/${catalogSchoolID}`);
   const grant = panel(page, "Grant school-admin access");
-  await grant.getByLabel("User ID").fill(memberID);
+  await grant.getByLabel("User email").fill("member@example.test");
   await runCommand(grant, "Esports coordinator", "Grant access");
   await expect(page.getByRole("status")).toHaveText(
     "School-admin access granted.",
@@ -190,7 +189,7 @@ test("revoking your own site-admin access ends the session immediately", async (
   await page.goto("/access/site-admins");
   const ownGrant = page
     .getByRole("listitem")
-    .filter({ has: page.getByText(operatorID, { exact: true }) });
+    .filter({ has: page.getByRole("link", { name: "Operator", exact: true }) });
   await runCommand(
     ownGrant.getByRole("region", { name: "Revoke access" }),
     "Rotating operators",

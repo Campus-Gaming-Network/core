@@ -1,4 +1,5 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
+import { CopyIdButton } from "../components/copy-id-button";
 import {
   CatalogAuditPanel,
   CatalogNoticeView,
@@ -56,9 +57,7 @@ function SchoolDetailPage() {
           </Link>
           <p className="eyebrow">School</p>
           <h1>{school.name}</h1>
-          <p className="detail-id">
-            <code>{school.id}</code>
-          </p>
+          <CopyIdButton entity="school" id={school.id} />
         </div>
         <StateBadge state={state} />
       </header>
@@ -205,7 +204,7 @@ function SchoolDetailPage() {
                       params={{ userId: grant.user_id }}
                       to="/users/$userId"
                     >
-                      <code>{grant.user_id}</code>
+                      {grant.user_name || "Unknown user"}
                     </Link>{" "}
                     <StateBadge
                       state={grant.revoked_at ? "revoked" : "active"}
@@ -243,19 +242,21 @@ function SchoolDetailPage() {
           {state !== "deleted" ? (
             <CommandForm
               command="school_grant.grant"
-              description="The user must have an active, email-verified account."
+              description="Enter the email address of an active, email-verified account."
               id={school.id}
               returnPath={path}
               submitLabel="Grant access"
               title="Grant school-admin access"
             >
               <label>
-                User ID
+                User email
                 <input
-                  name="user_id"
-                  pattern="[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"
+                  autoComplete="off"
+                  maxLength={320}
+                  name="user_email"
                   required
                   spellCheck={false}
+                  type="email"
                 />
               </label>
             </CommandForm>

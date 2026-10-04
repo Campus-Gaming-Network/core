@@ -41,6 +41,10 @@ func (handler *Handler) operationHandler(operation routeOperation, entityID stri
 		return http.HandlerFunc(handler.currentSession)
 	case operationListReports:
 		return http.HandlerFunc(handler.listReports)
+	case operationCountReports, operationCountSupport:
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			handler.countQueue(w, req, operation == operationCountReports)
+		})
 	case operationGetReport:
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			handler.getReport(w, req, entityID)
@@ -83,7 +87,7 @@ func (handler *Handler) listReports(w http.ResponseWriter, req *http.Request) {
 		writeError(w, http.StatusServiceUnavailable, "admin_unavailable")
 		return
 	}
-	filter, err := parseQueueFilter(req.URL.Query())
+	filter, err := parseQueueFilter(req.URL.Query(), true)
 	if err != nil {
 		writeAdminApplicationError(w, req, err, "reports_unavailable")
 		return
@@ -107,6 +111,24 @@ func (handler *Handler) listReports(w http.ResponseWriter, req *http.Request) {
 		"next_cursor":     page.NextCursor,
 		"previous_cursor": page.PreviousCursor,
 	})
+}
+
+// countQueue returns only totals, so it exposes no queue item to the caller.
+func (handler *Handler) countQueue(w http.ResponseWriter, req *http.Request, reports bool) {
+	if _, ok := ActorFromContext(req.Context()); !ok || handler.dependencies.Operations == nil {
+		writeError(w, http.StatusServiceUnavailable, "admin_unavailable")
+		return
+	}
+	count := handler.dependencies.Operations.CountSupportTickets
+	if reports {
+		count = handler.dependencies.Operations.CountReports
+	}
+	counts, err := count(req.Context())
+	if err != nil {
+		writeAdminApplicationError(w, req, err, "queue_counts_unavailable")
+		return
+	}
+	writeJSON(w, http.StatusOK, counts)
 }
 
 func (handler *Handler) getReport(w http.ResponseWriter, req *http.Request, id string) {
@@ -164,7 +186,7 @@ func (handler *Handler) listSupportTickets(w http.ResponseWriter, req *http.Requ
 		writeError(w, http.StatusServiceUnavailable, "admin_unavailable")
 		return
 	}
-	filter, err := parseQueueFilter(req.URL.Query())
+	filter, err := parseQueueFilter(req.URL.Query(), false)
 	if err != nil {
 		writeAdminApplicationError(w, req, err, "support_tickets_unavailable")
 		return
@@ -284,13 +306,23 @@ func (handler *Handler) listAuditHistory(w http.ResponseWriter, req *http.Reques
 	})
 }
 
-func parseQueueFilter(values url.Values) (operations.QueueFilter, error) {
-	if err := validateQueryKeys(values, map[string]struct{}{
-		"status": {}, "assignee": {}, "limit": {}, "after": {}, "before": {},
-	}); err != nil {
+// parseQueueFilter accepts target_type only for the report queue; support
+// tickets have no target.
+func parseQueueFilter(values url.Values, reports bool) (operations.QueueFilter, error) {
+	allowed := map[string]struct{}{
+		"status": {}, "assignee": {}, "user": {}, "limit": {}, "after": {}, "before": {},
+	}
+	if reports {
+		allowed["target_type"] = struct{}{}
+	}
+	if err := validateQueryKeys(values, allowed); err != nil {
 		return operations.QueueFilter{}, err
 	}
-	filter := operations.QueueFilter{Status: operations.QueueStatus(values.Get("status"))}
+	filter := operations.QueueFilter{
+		Status:     operations.QueueStatus(values.Get("status")),
+		TargetType: strings.TrimSpace(values.Get("target_type")),
+		UserQuery:  strings.TrimSpace(values.Get("user")),
+	}
 	if assignee := strings.TrimSpace(values.Get("assignee")); assignee != "" {
 		if assignee == "unassigned" {
 			empty := ""

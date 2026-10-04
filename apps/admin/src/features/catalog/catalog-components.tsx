@@ -1,3 +1,4 @@
+import { UserLink } from "../../components/user-link";
 import { useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useState, type FormEvent, type ReactNode } from "react";
@@ -46,11 +47,14 @@ export function CatalogFilters({
   label,
   search,
   states,
+  children,
 }: {
   action: string;
   label: string;
   search: CatalogSearch;
   states: readonly string[];
+  /** Extra filter fields for lists that support them. */
+  children?: ReactNode;
 }) {
   return (
     <form action={action} className="filter-panel" method="get">
@@ -65,6 +69,7 @@ export function CatalogFilters({
           ))}
         </select>
       </label>
+      {children}
       <label>
         {label}
         <input
@@ -103,6 +108,9 @@ export function CursorPagination({
     const query = new URLSearchParams();
     if (search.q) query.set("q", search.q);
     if (search.state) query.set("state", search.state);
+    if (search.region) query.set("region", search.region);
+    if (search.role) query.set("role", search.role);
+    if (search.verification) query.set("verification", search.verification);
     query.set(direction, cursor);
     return `${path}?${query.toString()}`;
   }
@@ -515,7 +523,10 @@ export function CommandForm({
           {children}
           <FieldError
             id={`${headingID}-user`}
-            messages={feedback.fieldErrors.user_id}
+            messages={[
+              ...(feedback.fieldErrors.user_id ?? []),
+              ...(feedback.fieldErrors.user_email ?? []),
+            ]}
           />
           <ReasonField
             errors={feedback.fieldErrors.reason}
@@ -563,7 +574,7 @@ export function CatalogAuditPanel({
     <section className="detail-panel" aria-labelledby="audit-heading">
       <div className="panel-heading">
         <div>
-          <p className="eyebrow">Append-only history</p>
+          <p className="eyebrow">History</p>
           <h2 id="audit-heading">Audit trail</h2>
         </div>
       </div>
@@ -583,7 +594,12 @@ export function CatalogAuditPanel({
                   <p className="stored-content">{entry.reason}</p>
                 ) : null}
                 <p className="audit-meta">
-                  Actor <code>{entry.actor_user_id ?? "system"}</code>
+                  Actor{" "}
+                  <UserLink
+                    fallback="System"
+                    name={entry.actor_name}
+                    userId={entry.actor_user_id}
+                  />
                   {entry.changed_fields.length
                     ? ` · Changed ${entry.changed_fields
                         .map((field) => field.replaceAll("_", " "))

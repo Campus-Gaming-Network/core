@@ -71,7 +71,10 @@ test("the access boundary renders without JavaScript", async ({ page }) => {
 test("the native moderation form updates a ticket and renders its audit", async ({
   context,
   page,
+  request,
 }) => {
+  const reset = await request.post("http://127.0.0.1:18082/__test/reset");
+  expect(reset.ok()).toBe(true);
   await authenticateAdmin(context);
   const response = await page.goto(`/support-tickets/${ticketID}`);
   expect(response?.status()).toBe(200);

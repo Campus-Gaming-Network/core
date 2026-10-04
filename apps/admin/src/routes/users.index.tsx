@@ -1,4 +1,5 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
+import { DataTable, dataColumn } from "../components/data-table";
 import {
   CatalogFilters,
   CursorPagination,
@@ -8,6 +9,8 @@ import { getUsers } from "../features/catalog/catalog.functions";
 import {
   catalogListKinds,
   validateCatalogSearch,
+  verificationFilters,
+  type AdminUser,
 } from "../features/catalog/contracts";
 
 export const Route = createFileRoute("/users/")({
@@ -18,6 +21,52 @@ export const Route = createFileRoute("/users/")({
   head: () => ({ meta: [{ title: "Users | CGN Admin Console" }] }),
   component: UsersPage,
 });
+
+const userColumns = [
+  dataColumn<AdminUser>({
+    id: "name",
+    header: "Name",
+    sortValue: (row) => row.name,
+    cell: (row) => (
+      <Link
+        className="data-table__primary"
+        params={{ userId: row.id }}
+        to="/users/$userId"
+      >
+        {row.name}
+      </Link>
+    ),
+  }),
+  dataColumn<AdminUser>({
+    id: "email",
+    header: "Email",
+    sortValue: (row) => row.email,
+  }),
+  dataColumn<AdminUser>({
+    id: "state",
+    header: "State",
+    sortValue: (row) => row.account_status,
+    cell: (row) => <StateBadge state={row.account_status} />,
+  }),
+  dataColumn<AdminUser>({
+    id: "roles",
+    header: "Roles",
+    sortValue: (row) =>
+      [
+        row.site_admin ? "Site admin" : "",
+        row.school_admin_count
+          ? `School admin at ${row.school_admin_count}`
+          : "",
+      ]
+        .filter(Boolean)
+        .join(" · ") || "—",
+  }),
+  dataColumn<AdminUser>({
+    id: "verification_level",
+    header: "Verification",
+    sortValue: (row) => row.verification_level.replaceAll("_", " "),
+  }),
+];
 
 function UsersPage() {
   const page = Route.useLoaderData();
@@ -30,8 +79,8 @@ function UsersPage() {
           <p className="eyebrow">Accounts</p>
           <h1>Users</h1>
           <p>
-            Find an account by email or name prefix. Account changes are named
-            operations; there is no general account editor.
+            Find an account by the start of its email or name, then open it to
+            change its trust level, suspend it, or grant admin access.
           </p>
         </div>
       </header>
@@ -41,36 +90,35 @@ function UsersPage() {
         label="Email or name"
         search={search}
         states={catalogListKinds.users}
-      />
+      >
+        <label>
+          Role
+          <select defaultValue={search.role ?? ""} name="role">
+            <option value="">Any role</option>
+            <option value="site_admin">Site admin</option>
+            <option value="school_admin">School admin</option>
+          </select>
+        </label>
+        <label>
+          Verification
+          <select defaultValue={search.verification ?? ""} name="verification">
+            <option value="">Any level</option>
+            {verificationFilters.map((level) => (
+              <option key={level} value={level}>
+                {level.replaceAll("_", " ")}
+              </option>
+            ))}
+          </select>
+        </label>
+      </CatalogFilters>
 
       {page.users.length ? (
-        <section className="queue-list" aria-label="Users">
-          {page.users.map((user) => (
-            <Link
-              className="queue-card"
-              key={user.id}
-              params={{ userId: user.id }}
-              to="/users/$userId"
-            >
-              <span className="queue-card__topline">
-                <strong>{user.name}</strong>
-                <StateBadge state={user.account_status} />
-              </span>
-              <span>{user.email}</span>
-              <span className="queue-card__meta">
-                {[
-                  user.site_admin ? "Site admin" : "",
-                  user.school_admin_count
-                    ? `School admin at ${user.school_admin_count}`
-                    : "",
-                  user.verification_level.replaceAll("_", " "),
-                ]
-                  .filter(Boolean)
-                  .join(" · ")}
-              </span>
-            </Link>
-          ))}
-        </section>
+        <DataTable
+          columns={userColumns}
+          data={page.users}
+          getRowId={(user) => user.id}
+          label="Users"
+        />
       ) : (
         <section className="empty-panel">
           <h2>No users match this search</h2>

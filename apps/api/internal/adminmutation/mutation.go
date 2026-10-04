@@ -57,16 +57,27 @@ func (command Command) Audit(ctx context.Context, tx pgx.Tx, action adminaudit.A
 }
 
 type Filter struct {
-	Query  string
-	State  string
-	Limit  int
-	After  *pagecursor.Cursor
-	Before *pagecursor.Cursor
+	Query string
+	State string
+	// Region, Role and Verification are optional narrowing filters. Each list
+	// accepts only the ones that apply to it.
+	Region       string
+	Role         string
+	Verification string
+	Limit        int
+	After        *pagecursor.Cursor
+	Before       *pagecursor.Cursor
 }
 
 func (filter Filter) Validate() error {
 	if !Text(filter.Query, 100, false) || filter.Limit < 1 || filter.Limit > 101 || (filter.After != nil && filter.Before != nil) {
 		return apperror.Validation("invalid admin list filter")
+	}
+	if !Text(filter.Region, 40, false) || !Text(filter.Verification, 40, false) {
+		return apperror.Validation("invalid admin list filter")
+	}
+	if filter.Role != "" && filter.Role != "site_admin" && filter.Role != "school_admin" {
+		return apperror.Validation("invalid admin role filter")
 	}
 	switch filter.State {
 	case "", "active", "inactive", "deleted", "suspended", "revoked":

@@ -1,4 +1,5 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
+import { CopyIdButton } from "../components/copy-id-button";
 import {
   CatalogAuditPanel,
   CatalogNoticeView,
@@ -38,6 +39,8 @@ function UserDetailPage() {
   const path = `/users/${encodeURIComponent(user.id)}`;
   const deleted = user.account_status === "deleted";
   const staffFaculty = user.verification_level === "staff_faculty";
+  const canReadReports = capabilities.includes("reports.read");
+  const canReadSupport = capabilities.includes("support.read");
 
   return (
     <div className="page-stack detail-page">
@@ -48,9 +51,7 @@ function UserDetailPage() {
           </Link>
           <p className="eyebrow">Account</p>
           <h1>{user.name}</h1>
-          <p className="detail-id">
-            <code>{user.id}</code>
-          </p>
+          <CopyIdButton entity="user" id={user.id} />
         </div>
         <StateBadge state={user.account_status} />
       </header>
@@ -84,7 +85,7 @@ function UserDetailPage() {
                 params={{ schoolId: user.home_school_id }}
                 to="/schools/$schoolId"
               >
-                <code>{user.home_school_id}</code>
+                {user.home_school_name || "View school"}
               </Link>
             ) : (
               "None"
@@ -104,6 +105,38 @@ function UserDetailPage() {
         </dl>
       </section>
 
+      {canReadReports || canReadSupport ? (
+        <section className="detail-panel" aria-labelledby="related-queues">
+          <div className="panel-heading">
+            <div>
+              <p className="eyebrow">Related activity</p>
+              <h2 id="related-queues">Queues for this user</h2>
+            </div>
+          </div>
+          <p className="field-help">Open a queue filtered to this account.</p>
+          <div className="related-actions">
+            {canReadSupport ? (
+              <Link
+                className="secondary-button"
+                search={{ user: user.id, status: "all" }}
+                to="/support-tickets"
+              >
+                View support tickets
+              </Link>
+            ) : null}
+            {canReadReports ? (
+              <Link
+                className="secondary-button"
+                search={{ user: user.id, status: "all" }}
+                to="/reports"
+              >
+                View submitted reports
+              </Link>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
+
       {!deleted &&
       (capabilities.includes("trust_grants.manage") ||
         capabilities.includes("users.manage_status") ||
@@ -111,7 +144,7 @@ function UserDetailPage() {
         <section className="detail-panel" aria-labelledby="user-actions">
           <div className="panel-heading">
             <div>
-              <p className="eyebrow">Named operations</p>
+              <p className="eyebrow">Actions</p>
               <h2 id="user-actions">Account actions</h2>
             </div>
           </div>

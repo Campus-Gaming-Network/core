@@ -1,4 +1,5 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
+import { DataTable, dataColumn } from "../components/data-table";
 import {
   CatalogFilters,
   CursorPagination,
@@ -9,6 +10,7 @@ import { getSchools } from "../features/catalog/catalog.functions";
 import {
   catalogListKinds,
   validateCatalogSearch,
+  type AdminSchool,
 } from "../features/catalog/contracts";
 
 export const Route = createFileRoute("/schools/")({
@@ -19,6 +21,40 @@ export const Route = createFileRoute("/schools/")({
   head: () => ({ meta: [{ title: "Schools | CGN Admin Console" }] }),
   component: SchoolsPage,
 });
+
+const schoolColumns = [
+  dataColumn<AdminSchool>({
+    id: "name",
+    header: "School",
+    sortValue: (row) => row.name,
+    cell: (row) => (
+      <Link
+        className="data-table__primary"
+        params={{ schoolId: row.id }}
+        to="/schools/$schoolId"
+      >
+        {row.name}
+      </Link>
+    ),
+  }),
+  dataColumn<AdminSchool>({
+    id: "slug",
+    header: "Slug",
+    sortValue: (row) => row.slug,
+    cell: (row) => <code>{row.slug}</code>,
+  }),
+  dataColumn<AdminSchool>({
+    id: "location",
+    header: "Location",
+    sortValue: (row) => [row.city, row.state].filter(Boolean).join(", ") || "—",
+  }),
+  dataColumn<AdminSchool>({
+    id: "state",
+    header: "State",
+    sortValue: (row) => recordState(row),
+    cell: (row) => <StateBadge state={recordState(row)} />,
+  }),
+];
 
 function SchoolsPage() {
   const page = Route.useLoaderData();
@@ -40,8 +76,8 @@ function SchoolsPage() {
           </p>
         </div>
         {canManage ? (
-          <Link className="secondary-button" to="/schools/new">
-            New school
+          <Link className="primary-button" to="/schools/new">
+            <span aria-hidden="true">+</span> New school
           </Link>
         ) : null}
       </header>
@@ -51,30 +87,27 @@ function SchoolsPage() {
         label="Name, alias, or slug"
         search={search}
         states={catalogListKinds.schools}
-      />
+      >
+        <label>
+          Location (state code)
+          <input
+            defaultValue={search.region ?? ""}
+            maxLength={2}
+            name="region"
+            pattern="[A-Za-z]{2}"
+            placeholder="CA"
+            spellCheck={false}
+          />
+        </label>
+      </CatalogFilters>
 
       {page.schools.length ? (
-        <section className="queue-list" aria-label="Schools">
-          {page.schools.map((school) => (
-            <Link
-              className="queue-card"
-              key={school.id}
-              params={{ schoolId: school.id }}
-              to="/schools/$schoolId"
-            >
-              <span className="queue-card__topline">
-                <strong>{school.name}</strong>
-                <StateBadge state={recordState(school)} />
-              </span>
-              <span>
-                <code>{school.slug}</code>
-                {school.city || school.state
-                  ? ` · ${[school.city, school.state].filter(Boolean).join(", ")}`
-                  : ""}
-              </span>
-            </Link>
-          ))}
-        </section>
+        <DataTable
+          columns={schoolColumns}
+          data={page.schools}
+          getRowId={(school) => school.id}
+          label="Schools"
+        />
       ) : (
         <section className="empty-panel">
           <h2>No schools match this search</h2>

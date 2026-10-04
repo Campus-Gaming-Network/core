@@ -1,4 +1,6 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
+import { UserLink } from "../components/user-link";
+import { CopyIdButton } from "../components/copy-id-button";
 import {
   AuditPanel,
   DetailFact,
@@ -26,7 +28,7 @@ export const Route = createFileRoute("/reports/$reportId")({
 });
 
 function ReportDetailPage() {
-  const { report, audit } = Route.useLoaderData();
+  const { report, audit, operators, targetURL } = Route.useLoaderData();
   const search = Route.useSearch();
   const { admin } = Route.useRouteContext();
   const canManage =
@@ -40,11 +42,11 @@ function ReportDetailPage() {
           <Link className="back-link" to="/reports">
             ← Reports
           </Link>
-          <p className="eyebrow">Report detail</p>
-          <h1>{report.target_type} report</h1>
-          <p className="detail-id">
-            <code>{report.id}</code>
+          <p className="eyebrow">
+            {report.target_type === "event" ? "Event report" : "User report"}
           </p>
+          <h1>{report.target_name ?? `Unknown ${report.target_type}`}</h1>
+          <CopyIdButton entity="report" id={report.id} />
         </div>
         <QueueStatusBadge status={report.status} />
       </header>
@@ -60,11 +62,33 @@ function ReportDetailPage() {
         </div>
         <dl className="detail-facts">
           <DetailFact label="Reporter">
-            <code>{report.reporter_user_id}</code>
+            <UserLink
+              name={report.reporter_name}
+              userId={report.reporter_user_id}
+            />
           </DetailFact>
-          <DetailFact label="Target type">{report.target_type}</DetailFact>
-          <DetailFact label="Target ID">
-            <code>{report.target_id}</code>
+          <DetailFact label="Target">
+            {report.target_type === "user" ? (
+              <UserLink name={report.target_name} userId={report.target_id} />
+            ) : targetURL ? (
+              <a
+                className="entity-link"
+                href={targetURL}
+                rel="noreferrer"
+                target="_blank"
+              >
+                {report.target_name ?? "View event"}
+              </a>
+            ) : (
+              (report.target_name ?? `Unknown ${report.target_type}`)
+            )}
+          </DetailFact>
+          <DetailFact label="Assignee">
+            <UserLink
+              fallback="Unassigned"
+              name={report.assigned_to_name}
+              userId={report.assigned_to_user_id}
+            />
           </DetailFact>
           <DetailFact label="Submitted">
             <time dateTime={report.created_at}>
@@ -92,6 +116,7 @@ function ReportDetailPage() {
           key={report.updated_at}
           kind="report"
           item={report}
+          operators={operators}
         />
       ) : (
         <p className="notice">You have read-only access to reports.</p>

@@ -235,6 +235,17 @@ export async function runCatalogCommandOperation(
   dependencies: MutationDependencies,
 ): Promise<CatalogMutationResult> {
   const page = catalogCommandPage(input.command, input.id, input.user_id);
+  if (input.command === "school_grant.grant" && input.user_id === "") {
+    const userID = await userIDForEmail(input.user_email, dependencies);
+    if (!userID) {
+      return {
+        status: "error",
+        message: "Check the highlighted fields and try again.",
+        fieldErrors: { user_email: ["No account uses that email address."] },
+      };
+    }
+    input = { ...input, user_id: userID };
+  }
   const { request, reload } = commandRequest(input);
   return mutate(dependencies, {
     request,
@@ -243,6 +254,27 @@ export async function runCatalogCommandOperation(
     returnPath: page,
     reload,
   });
+}
+
+/**
+ * Resolves an exact email to its account so an operator never handles a user
+ * ID. The list search is a prefix match, so the exact address is checked here.
+ */
+async function userIDForEmail(
+  email: string,
+  { api, cookieHeader }: ReadDependencies,
+): Promise<string | undefined> {
+  try {
+    const { data } = await api({
+      path: `/admin/v1/users?${new URLSearchParams({ limit: "25", q: email })}`,
+      cookieHeader,
+      responseSchema: usersPageSchema,
+    });
+    return data.users.find((user) => user.email.toLowerCase() === email)?.id;
+  } catch (error) {
+    if (error instanceof AdminApiError) return undefined;
+    throw error;
+  }
 }
 
 function commandRequest(input: CatalogCommandInput): {
@@ -474,6 +506,9 @@ function listQuery(search: CatalogSearch): string {
   const query = new URLSearchParams({ limit: "25" });
   if (search.q) query.set("q", search.q);
   if (search.state) query.set("state", search.state);
+  if (search.region) query.set("region", search.region);
+  if (search.role) query.set("role", search.role);
+  if (search.verification) query.set("verification", search.verification);
   if (search.after) query.set("after", search.after);
   if (search.before) query.set("before", search.before);
   return `?${query.toString()}`;

@@ -250,6 +250,7 @@ test("each command calls its named Admin API operation and returns to its page",
           id: schoolID,
           grant_id: "",
           user_id: "",
+          user_email: "",
           expected_updated_at: version,
           staff_faculty: "",
           confirmed: true,
@@ -273,6 +274,7 @@ test("commands route step-up, ended sessions, conflicts, and dependency errors",
     id: userID,
     grant_id: "",
     user_id: "",
+    user_email: "",
     expected_updated_at: version,
     staff_faculty: "",
     confirmed: true,
@@ -611,4 +613,61 @@ test("only API-generated keys under the asset origin render as logos", () => {
     assert.equal(approvedLogoURL(unsafe, base), "", unsafe);
   }
   assert.equal(approvedLogoURL(`${base}/${key}`, undefined), "");
+});
+
+test("a school-admin grant resolves the exact email to its account", async () => {
+  const input: CatalogCommandInput = {
+    command: "school_grant.grant",
+    id: schoolID,
+    grant_id: "",
+    user_id: "",
+    user_email: "ada@example.test",
+    expected_updated_at: "",
+    staff_faculty: "",
+    confirmed: true,
+    reason: "Club advisor",
+  };
+  const users = [
+    { id: grantID, email: "ada@example.test.other" },
+    { id: userID, email: "Ada@example.test" },
+  ];
+
+  const found = recordingApi(() => ({ users }));
+  assert.deepEqual(
+    {
+      result: await runCatalogCommandOperation(input, {
+        api: found.api,
+        ...mutation,
+      }),
+      calls: found.calls,
+    },
+    {
+      result: {
+        status: "success",
+        redirectTo: `/schools/${schoolID}?notice=grant-added`,
+      },
+      calls: [
+        {
+          path: "/admin/v1/users?limit=25&q=ada%40example.test",
+          method: undefined,
+          body: undefined,
+        },
+        {
+          path: `/admin/v1/schools/${schoolID}/admin-grants`,
+          method: "POST",
+          body: { reason: "Club advisor", user_id: userID },
+        },
+      ],
+    },
+  );
+
+  const missing = recordingApi(() => ({ users: users.slice(0, 1) }));
+  assert.deepEqual(
+    await runCatalogCommandOperation(input, { api: missing.api, ...mutation }),
+    {
+      status: "error",
+      message: "Check the highlighted fields and try again.",
+      fieldErrors: { user_email: ["No account uses that email address."] },
+    },
+  );
 });

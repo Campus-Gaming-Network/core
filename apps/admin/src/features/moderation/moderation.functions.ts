@@ -10,7 +10,11 @@ import {
   validateQueueMutationServerInput,
   type QueueMutationInput,
 } from "./contracts.js";
+import { adminEnvironment } from "../../server/environment.server.js";
+import { adminSessionSchema } from "../../server/contracts.server.js";
 import {
+  getOperatorsOperation,
+  getQueueCountsOperation,
   getReportDetailOperation,
   getReportQueueOperation,
   getSupportDetailOperation,
@@ -22,28 +26,68 @@ export const getReportQueue = createServerFn({ method: "GET" })
   .validator(queueBrowseInputSchema)
   .handler(async ({ data }) => {
     const request = currentAdminRequest(false);
-    return getReportQueueOperation(data, request);
+    const [queue, operators] = await Promise.all([
+      getReportQueueOperation(data, request),
+      getOperatorsOperation(request),
+    ]);
+    return { ...queue, operators };
   });
+
+const queueCountsInputSchema = adminSessionSchema.pick({ capabilities: true });
+
+export const getQueueCounts = createServerFn({ method: "GET" })
+  .validator(queueCountsInputSchema)
+  .handler(async ({ data }) =>
+    getQueueCountsOperation(
+      {
+        reports: data.capabilities.includes("reports.read"),
+        support: data.capabilities.includes("support.read"),
+      },
+      currentAdminRequest(false),
+    ),
+  );
 
 export const getSupportQueue = createServerFn({ method: "GET" })
   .validator(queueBrowseInputSchema)
   .handler(async ({ data }) => {
     const request = currentAdminRequest(false);
-    return getSupportQueueOperation(data, request);
+    const [queue, operators] = await Promise.all([
+      getSupportQueueOperation(data, request),
+      getOperatorsOperation(request),
+    ]);
+    return { ...queue, operators };
   });
 
 export const getReportDetail = createServerFn({ method: "GET" })
   .validator(moderationDetailInputSchema)
   .handler(async ({ data }) => {
     const request = currentAdminRequest(false);
-    return getReportDetailOperation(data, request);
+    const [detail, operators] = await Promise.all([
+      getReportDetailOperation(data, request),
+      getOperatorsOperation(request),
+    ]);
+    const { publicSiteOrigin } = adminEnvironment();
+    const slug = detail.report.target_slug;
+    return {
+      ...detail,
+      operators,
+      // Only events have a public page the console can point at.
+      targetURL:
+        publicSiteOrigin && slug
+          ? `${publicSiteOrigin}/events/${encodeURIComponent(slug)}`
+          : undefined,
+    };
   });
 
 export const getSupportDetail = createServerFn({ method: "GET" })
   .validator(moderationDetailInputSchema)
   .handler(async ({ data }) => {
     const request = currentAdminRequest(false);
-    return getSupportDetailOperation(data, request);
+    const [detail, operators] = await Promise.all([
+      getSupportDetailOperation(data, request),
+      getOperatorsOperation(request),
+    ]);
+    return { ...detail, operators };
   });
 
 export const updateQueueItem = createServerFn({

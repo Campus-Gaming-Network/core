@@ -26,6 +26,15 @@ func TestValidateQueueFilter(t *testing.T) {
 	if err := ValidateQueueFilter(QueueFilter{Limit: -1}); err == nil {
 		t.Fatal("ValidateQueueFilter() error = nil, want negative limit error")
 	}
+	if err := ValidateQueueFilter(QueueFilter{UserQuery: "reporter"}); err != nil {
+		t.Fatalf("ValidateQueueFilter(user query) error = %v", err)
+	}
+	if err := ValidateQueueFilter(QueueFilter{UserQuery: "r"}); err == nil {
+		t.Fatal("ValidateQueueFilter() error = nil, want short user search error")
+	}
+	if err := ValidateQueueFilter(QueueFilter{UserQuery: strings.Repeat("x", 101)}); err == nil {
+		t.Fatal("ValidateQueueFilter() error = nil, want long user search error")
+	}
 }
 
 func TestValidateQueuePatch(t *testing.T) {

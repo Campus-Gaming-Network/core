@@ -3,13 +3,16 @@ import {
   AdminApiError,
   type ApiClient,
 } from "../../server/api.server.js";
+import { siteGrantsPageSchema } from "../catalog/contracts.js";
 import {
   auditPageSchema,
+  queueCountsSchema,
   rateLimitedMessage,
   reportSchema,
   reportsPageSchema,
   supportTicketSchema,
   supportTicketsPageSchema,
+  type Operator,
   type QueueBrowseInput,
   type QueueMutationInput,
   type QueueMutationResult,
@@ -25,11 +28,49 @@ type MutationDependencies = ReadDependencies & {
   reportError?: (error: unknown) => void;
 };
 
+/**
+ * The active site admins, for picking an assignee by name. It is a convenience:
+ * if the list cannot be read the queue still works, with nobody to pick.
+ */
+export async function getOperatorsOperation({
+  api,
+  cookieHeader,
+}: ReadDependencies): Promise<Operator[]> {
+  try {
+    const { data } = await api({
+      path: "/admin/v1/site-admin-grants?limit=100&state=active",
+      cookieHeader,
+      responseSchema: siteGrantsPageSchema,
+    });
+    return data.grants.map((grant) => ({
+      id: grant.user_id,
+      name: grant.user_name || "Unknown user",
+    }));
+  } catch (error) {
+    if (error instanceof AdminApiError) return [];
+    throw error;
+  }
+}
+
+/** Counts of waiting work for each queue the operator may read. */
+export async function getQueueCountsOperation(
+  queues: { reports: boolean; support: boolean },
+  { api, cookieHeader }: ReadDependencies,
+) {
+  const count = async (path: string) =>
+    (await api({ path, cookieHeader, responseSchema: queueCountsSchema })).data;
+  const [reports, support] = await Promise.all([
+    queues.reports ? count("/admin/v1/report-counts") : undefined,
+    queues.support ? count("/admin/v1/support-ticket-counts") : undefined,
+  ]);
+  return { reports, support };
+}
+
 export async function getReportQueueOperation(
   input: QueueBrowseInput,
   dependencies: ReadDependencies,
 ) {
-  const query = queueQuery(input);
+  const query = queueQuery(input, true);
   const { data } = await dependencies.api({
     path: `/admin/v1/reports${query}`,
     cookieHeader: dependencies.cookieHeader,
@@ -179,10 +220,14 @@ export async function updateQueueItemOperation(
   }
 }
 
-function queueQuery(input: QueueBrowseInput): string {
+function queueQuery(input: QueueBrowseInput, reports = false): string {
   const query = new URLSearchParams({ limit: "25" });
-  if (input.status) query.set("status", input.status);
+  if (input.status && input.status !== "all") {
+    query.set("status", input.status);
+  }
+  if (reports && input.type) query.set("target_type", input.type);
   if (input.assignee) query.set("assignee", input.assignee);
+  if (input.user) query.set("user", input.user);
   if (input.after) query.set("after", input.after);
   if (input.before) query.set("before", input.before);
   return `?${query.toString()}`;
