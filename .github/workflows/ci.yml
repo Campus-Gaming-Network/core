@@ -98,7 +98,10 @@ jobs:
         run: pnpm run smoke:web
       - name: Install Playwright browser
         working-directory: apps/web
-        run: pnpm exec playwright install --with-deps chromium
+        # The tests run headless, so only the headless shell is needed. The
+        # runner image already has Chromium's shared libraries, and
+        # `--with-deps` spent most of this step in `apt`.
+        run: pnpm exec playwright install --only-shell chromium
       - name: Documentation browser tests
         working-directory: apps/docs
         run: pnpm run test:e2e
@@ -166,7 +169,10 @@ jobs:
         run: pnpm run build
       - name: Install Playwright browser
         working-directory: apps/admin
-        run: pnpm exec playwright install --with-deps chromium
+        # The tests run headless, so only the headless shell is needed. The
+        # runner image already has Chromium's shared libraries, and
+        # `--with-deps` spent most of this step in `apt`.
+        run: pnpm exec playwright install --only-shell chromium
       - name: Browser tests
         id: browser_tests
         continue-on-error: true
@@ -222,7 +228,10 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Install Playwright browser
         working-directory: apps/web
-        run: pnpm exec playwright install --with-deps chromium
+        # The tests run headless, so only the headless shell is needed. The
+        # runner image already has Chromium's shared libraries, and
+        # `--with-deps` spent most of this step in `apt`.
+        run: pnpm exec playwright install --only-shell chromium
       - name: Run repeatable real-stack browser suite
         run: pnpm run test:e2e:real
       - name: Run Admin Console real-stack suite
