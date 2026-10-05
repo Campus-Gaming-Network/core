@@ -29,7 +29,15 @@ export default defineConfig({
     },
     {
       name: "mobile-chromium",
-      testIgnore: "**/no-js.spec.ts",
+      // These specs check response headers, document metadata, and form
+      // keys, which do not depend on the viewport. They run on desktop only.
+      testIgnore: [
+        "**/no-js.spec.ts",
+        "**/idempotency.spec.ts",
+        "**/metadata.spec.ts",
+        "**/security-headers.spec.ts",
+        "**/static-routes.spec.ts",
+      ],
       use: { ...devices["Pixel 5"] },
     },
     {
