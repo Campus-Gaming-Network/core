@@ -1,5 +1,7 @@
 # Current State
 
+> Open tasks now live in [GitHub Issues](https://github.com/Campus-Gaming-Network/core/issues) and the [CGN core project board](https://github.com/orgs/Campus-Gaming-Network/projects/4). This document remains as reference; its checklists are no longer updated.
+
 Quick re-entry point for Campus Gaming Network. Read this first after time away;
 the detailed product and engineering context remains in the other documents in
 this folder.
@@ -65,11 +67,10 @@ and features and launch gates in [10 — Delivery status](./10-delivery-status.m
 
 1. Read this file.
 2. Check the latest commits with `git log -5`.
-3. Review [10 — Delivery status](./10-delivery-status.md) for detailed checklists.
-4. Review the open Admin Console tickets in
-   [20 — Admin Console v1 engineering plan](./20-admin-console-v1-engineering-plan.md).
-5. Before stopping, update this file’s milestone, next tasks, and blockers, and
-   record completed work in the doc that tracks it.
+3. Review the open issues on the
+   [CGN core project board](https://github.com/orgs/Campus-Gaming-Network/projects/4).
+4. Before stopping, update the issues you worked on, and this file's milestone
+   and blockers if they changed.
 
 ## Detailed references
 

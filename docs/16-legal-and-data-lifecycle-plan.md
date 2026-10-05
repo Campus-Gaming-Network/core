@@ -1,5 +1,7 @@
 # 16 — Legal and data-lifecycle plan
 
+> Open tasks now live in [GitHub Issues](https://github.com/Campus-Gaming-Network/core/issues) and the [CGN core project board](https://github.com/orgs/Campus-Gaming-Network/projects/4). This document remains as reference; its checklists are no longer updated.
+
 Status captured on 2026-09-04. This is an engineering and product tracker, not
 legal advice or a statement that Campus Gaming Network complies with any law.
 “Implemented” below means present in the current worktree; it does not mean the

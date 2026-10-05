@@ -1,5 +1,7 @@
 # 24 — Admin Console security review record (AC-014)
 
+> Open tasks now live in [GitHub Issues](https://github.com/Campus-Gaming-Network/core/issues) and the [CGN core project board](https://github.com/orgs/Campus-Gaming-Network/projects/4). This document remains as reference; its checklists are no longer updated.
+
 **Status:** Internal review complete, 2026-09-30. The independent review, the
 staging penetration pass, and the staging drills are still owed.
 **Audience:** Release approvers

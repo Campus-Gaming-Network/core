@@ -1,5 +1,7 @@
 # 21 — Admin Console v1 security acceptance and test plan
 
+> Open tasks now live in [GitHub Issues](https://github.com/Campus-Gaming-Network/core/issues) and the [CGN core project board](https://github.com/orgs/Campus-Gaming-Network/projects/4). This document remains as reference; its checklists are no longer updated.
+
 Status: Draft implementation gate
 
 Scope: the first Admin Console release for **site administrators only** at

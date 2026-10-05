@@ -1,5 +1,7 @@
 # Web design implementation plan
 
+> Open tasks now live in [GitHub Issues](https://github.com/Campus-Gaming-Network/core/issues) and the [CGN core project board](https://github.com/orgs/Campus-Gaming-Network/projects/4). This document remains as reference; its checklists are no longer updated.
+
 This plan translates the approved Campus Gaming Network mockups into the
 existing TanStack Start application. It does not expand the product scope in
 the source-of-truth product, API, database, permission, or roadmap documents.

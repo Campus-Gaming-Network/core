@@ -57,8 +57,14 @@ restating the fact, so a change needs one edit.
 | Current milestone, next tasks, and blockers   | [00 — Current state](./00-current-state.md)                                                         |
 | Toolchain versions                            | `apps/api/go.mod`, `.node-version`, `packageManager` in `package.json`, and each app's `Dockerfile` |
 
-Completed work is recorded where it is tracked (10, 17, or 20) and in the git
-history rather than in a separate changelog.
+Open tasks, their status, and their order live in
+[GitHub Issues](https://github.com/Campus-Gaming-Network/core/issues) and the
+[CGN core project board](https://github.com/orgs/Campus-Gaming-Network/projects/4).
+The checklists in 10, 13, 16, 20, and 21 are reference for what each task
+involves and are no longer ticked off.
+
+Completed work is recorded on its closed issue and in the git history rather
+than in a separate changelog.
 
 ## Keeping docs current
 
@@ -68,9 +74,8 @@ change:
 - Endpoint, request field, status code, or error code: 04, and 03 for schema.
 - Product rule or user-visible behavior: 01 or 02; roles and access: 07.
 - New cross-cutting rule: a row in 11.
-- Feature shipped or launch gate cleared: its checkbox in 10.
-- Backlog item or Admin Console ticket status: its entry in 17 or 20, plus 00's
-  next tasks when the order changes.
+- Feature shipped, launch gate cleared, or ticket status changed: close or
+  update its GitHub issue. Do not tick checkboxes in the docs.
 - Toolchain bump: the configuration files only; docs point at them.
 - Run `pnpm run check:docs-links` to verify relative links and heading anchors.
 

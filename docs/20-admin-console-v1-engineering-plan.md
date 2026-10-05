@@ -1,5 +1,7 @@
 # 20 — Admin Console v1 engineering plan
 
+> Open tasks now live in [GitHub Issues](https://github.com/Campus-Gaming-Network/core/issues) and the [CGN core project board](https://github.com/orgs/Campus-Gaming-Network/projects/4). This document remains as reference; its checklists are no longer updated.
+
 **Status:** Active — moderation UI and catalog/access APIs complete
 **Last updated:** 2026-09-22
 **Audience:** Engineering, security, and operators
