@@ -35,8 +35,11 @@ const (
 	suspendedAdminID = "30000000-0000-4000-8000-000000000008"
 	revokedAdminID   = "30000000-0000-4000-8000-000000000009"
 	bystanderAdminID = "30000000-0000-4000-8000-000000000010"
-	reportID         = "40000000-0000-4000-8000-000000000001"
-	supportTicketID  = "40000000-0000-4000-8000-000000000002"
+	// The journeys' own site admin, so their reads do not spend the read
+	// budget the security suite's operator needs.
+	journeyAdminID  = "30000000-0000-4000-8000-000000000011"
+	reportID        = "40000000-0000-4000-8000-000000000001"
+	supportTicketID = "40000000-0000-4000-8000-000000000002"
 )
 
 func main() {
@@ -130,9 +133,11 @@ func seedAdminConsole(ctx context.Context, tx pgx.Tx) error {
 			($8::uuid, 'loggedout@admin-real.test', 'unused', 'Logout Operator', $6::uuid, NOW(), NOW()),
 			($9::uuid, 'suspended@admin-real.test', 'unused', 'Suspended Operator', $6::uuid, NOW(), NOW()),
 			($10::uuid, 'revoked@admin-real.test', 'unused', 'Revoked Operator', $6::uuid, NOW(), NOW()),
-			($11::uuid, 'bystander@admin-real.test', 'unused', 'Bystander Operator', $6::uuid, NOW(), NOW())
+			($11::uuid, 'bystander@admin-real.test', 'unused', 'Bystander Operator', $6::uuid, NOW(), NOW()),
+			($12::uuid, 'journeys@admin-real.test', 'unused', 'Journey Operator', $6::uuid, NOW(), NOW())
 	`, operatorID, peerID, memberID, schoolAdminID, formerAdminID, primarySchoolID,
-		limitedAdminID, loggedOutAdminID, suspendedAdminID, revokedAdminID, bystanderAdminID); err != nil {
+		limitedAdminID, loggedOutAdminID, suspendedAdminID, revokedAdminID, bystanderAdminID,
+		journeyAdminID); err != nil {
 		return err
 	}
 	if _, err := tx.Exec(ctx, `

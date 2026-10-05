@@ -64,6 +64,7 @@ const securitySuiteAdmins = [
   "suspended@admin-real.test",
   "revoked@admin-real.test",
   "bystander@admin-real.test",
+  "journeys@admin-real.test",
 ];
 
 try {

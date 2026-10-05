@@ -9,8 +9,10 @@ const peerEmail = "peer@admin-real.test";
 const peerID = "30000000-0000-4000-8000-000000000002";
 const memberID = "30000000-0000-4000-8000-000000000003";
 
-const operatorEmail = "operator@admin-real.test";
-const operatorID = "30000000-0000-4000-8000-000000000001";
+// The journeys sign in as their own site admin. Admin API reads are limited
+// per operator, and the security suite's operator needs its own budget.
+const operatorEmail = "journeys@admin-real.test";
+const operatorID = "30000000-0000-4000-8000-000000000011";
 const reportID = "40000000-0000-4000-8000-000000000001";
 const supportTicketID = "40000000-0000-4000-8000-000000000002";
 
@@ -25,7 +27,7 @@ test("journey 1: an Access-authenticated site admin triages a report and sees it
   await expect(page.getByText("<img src=x", { exact: false })).toBeVisible();
 
   await page.getByLabel("Status").selectOption("resolved");
-  await page.getByLabel("Assignee user ID").fill(operatorID);
+  await page.getByLabel("Assignee").selectOption(operatorID);
   await page.getByLabel("Resolution note").fill("Warned the account holder");
   await page.getByRole("button", { name: "Save changes" }).click();
 
@@ -45,7 +47,7 @@ test("journey 2: a support ticket with hostile markup stays inert text", async (
   await expect(page.locator("main svg")).toHaveCount(0);
 
   await page.getByLabel("Status").selectOption("resolved");
-  await page.getByLabel("Assignee user ID").fill(operatorID);
+  await page.getByLabel("Assignee").selectOption(operatorID);
   await page.getByLabel("Resolution note").fill("Helped the member sign in");
   await page.getByRole("button", { name: "Save changes" }).click();
   await expect(page.getByRole("status")).toHaveText("Changes saved.");
@@ -118,7 +120,7 @@ test("journey 4: school-admin role indicators follow the active grant", async ({
   await signInThroughAccess(context, operatorEmail);
   await page.goto(`/schools/${primarySchoolID}`);
   const grant = panel(page, "Grant school-admin access");
-  await grant.getByLabel("User ID").fill(memberID);
+  await grant.getByLabel("User email").fill("member@admin-real.test");
   await runCommand(grant, "Esports coordinator", "Grant access");
   await expect(page.getByRole("status")).toHaveText(
     "School-admin access granted.",
@@ -127,7 +129,7 @@ test("journey 4: school-admin role indicators follow the active grant", async ({
 
   const memberGrant = page
     .getByRole("listitem")
-    .filter({ has: page.getByText(memberID, { exact: false }) });
+    .filter({ has: page.locator(`a[href="/users/${memberID}"]`) });
   await runCommand(
     memberGrant.getByRole("region", { name: "Revoke", exact: true }),
     "Left the role",
@@ -241,13 +243,13 @@ test("journey 7: revoking a site admin ends their open session at once", async (
   const peerPage = await peerContext.newPage();
   await peerPage.goto("/reports");
   await expect(
-    peerPage.getByRole("heading", { name: "Reports" }),
+    peerPage.getByRole("heading", { name: "Reports", exact: true }),
   ).toBeVisible();
 
   await page.goto("/access/site-admins");
   const peerGrant = page
     .getByRole("listitem")
-    .filter({ has: page.getByText(peerID, { exact: true }) });
+    .filter({ has: page.locator(`a[href="/users/${peerID}"]`) });
   await runCommand(
     peerGrant.getByRole("region", { name: "Revoke access" }),
     "Rotating operators",
@@ -257,9 +259,9 @@ test("journey 7: revoking a site admin ends their open session at once", async (
 
   // The peer's browser still holds its session cookies and Access assertion.
   await peerPage.goto("/reports");
-  await expect(peerPage.getByRole("heading", { name: "Reports" })).toHaveCount(
-    0,
-  );
+  await expect(
+    peerPage.getByRole("heading", { name: "Reports", exact: true }),
+  ).toHaveCount(0);
   await expect(
     peerPage.getByRole("navigation", { name: "Admin navigation" }),
   ).toHaveCount(0);
