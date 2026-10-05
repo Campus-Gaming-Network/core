@@ -312,7 +312,7 @@ test("ACCESS-07: the console never lets a session cookie stand in for Access", a
     "Cf-Access-Jwt-Assertion": accessAssertion(operatorEmail),
   });
   await expect(
-    genuine.page.getByRole("heading", { name: "Reports" }),
+    genuine.page.getByRole("heading", { name: "Reports", exact: true }),
   ).toBeVisible();
   await genuine.context.close();
 });
@@ -373,7 +373,9 @@ test("SESSION-01/09: the admin cookies are host-only, strict, and leave the publ
   ]);
   const page = await context.newPage();
   await page.goto("/reports");
-  await expect(page.getByRole("heading", { name: "Reports" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Reports", exact: true }),
+  ).toBeVisible();
 
   const here = await context.cookies(adminOrigin);
   expect(here.find((cookie) => cookie.name === "cgn_session")?.value).toBe(
@@ -529,7 +531,7 @@ test("SESSION-10: a mutation with a live token is refused once its grant is revo
   await page.goto("/access/site-admins");
   const grant = page
     .getByRole("listitem")
-    .filter({ has: page.getByText(revokedAdmin.id, { exact: true }) });
+    .filter({ has: page.locator(`a[href="/users/${revokedAdmin.id}"]`) });
   await runCommand(
     grant.getByRole("region", { name: "Revoke access" }),
     "Security suite",
@@ -908,10 +910,12 @@ test("XSS-05: only scripts carrying this request's nonce may run", async ({
   });
   await signInThroughAccess(context, bystanderEmail);
   await page.goto("/reports");
-  await expect(page.getByRole("heading", { name: "Reports" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Reports", exact: true }),
+  ).toBeVisible();
   await page.getByRole("link", { name: "Support tickets" }).click();
   await expect(
-    page.getByRole("heading", { name: "Support tickets" }),
+    page.getByRole("heading", { name: "Support tickets", exact: true }),
   ).toBeVisible();
   expect(violations).toEqual([]);
 
