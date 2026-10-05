@@ -1,5 +1,7 @@
 # 10 — Delivery status
 
+> Open tasks now live in [GitHub Issues](https://github.com/Campus-Gaming-Network/core/issues) and the [CGN core project board](https://github.com/orgs/Campus-Gaming-Network/projects/4). This document remains as reference; its checklists are no longer updated.
+
 Feature and launch-gate checklist for Campus Gaming Network. Locked product decisions live in the other docs (`01`, `05`, `08`), and each fact has one owner listed in the [docs index](./README.md#sources-of-truth) — not repeated here.
 
 Work is grouped **Now** (building toward the first public release), **Next** (planned immediately after), and **Later** (planned, not yet scheduled). Nothing here is written off — Later means "not scheduled yet", not "out of scope".

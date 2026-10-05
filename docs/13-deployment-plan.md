@@ -1,5 +1,7 @@
 # Campus Gaming Network Railway Deployment Guide
 
+> Open tasks now live in [GitHub Issues](https://github.com/Campus-Gaming-Network/core/issues) and the [CGN core project board](https://github.com/orgs/Campus-Gaming-Network/projects/4). This document remains as reference; its checklists are no longer updated.
+
 This is the operator runbook for deploying the public Campus Gaming Network (CGN) product to Railway with a private Go API and PostgreSQL database, a public TanStack Start web service, Resend transactional email, and Cloudflare DNS and edge protection. Follow the staging procedure completely before creating a production deployment.
 
 The instructions are dashboard-first and do not require the Railway CLI. Provider screens change over time; when a label has moved, use the linked official page, which includes current screenshots.
