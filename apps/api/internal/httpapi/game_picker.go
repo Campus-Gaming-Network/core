@@ -62,23 +62,45 @@ func (r *Router) handleGameSearch(w http.ResponseWriter, req *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"games": matches})
 }
 
-// resolvePickedGames turns picked IGDB games and a typed name into catalog
-// game IDs, appended to the IDs the form already named. It writes the error
-// response and reports false when a game cannot be used.
-func (r *Router) resolvePickedGames(w http.ResponseWriter, req *http.Request, gameIDs []string, picked pickedGames) ([]string, bool) {
+// pendingGameID stands in for picked games while the rest of a request is
+// validated, so "at least one game" passes before anything is imported.
+const pendingGameID = "pending-picked-game"
+
+// pending reports whether the form named a game beyond its catalog IDs.
+func (picked pickedGames) pending() bool {
+	return len(picked.IGDBGameIDs) > 0 || strings.TrimSpace(picked.OtherGame) != ""
+}
+
+// checkPickedGames rejects picks that can never be used, without calling IGDB
+// or writing anything. It writes the error response and reports false.
+func (r *Router) checkPickedGames(w http.ResponseWriter, userID string, picked pickedGames) bool {
+	if !picked.pending() {
+		return true
+	}
 	other := strings.TrimSpace(picked.OtherGame)
-	if len(picked.IGDBGameIDs) > maxPickedIGDBGames {
+	switch {
+	case len(picked.IGDBGameIDs) > maxPickedIGDBGames:
 		writeError(w, http.StatusBadRequest, "invalid_request")
-		return nil, false
-	}
-	if len(picked.IGDBGameIDs) > 0 && r.picker == nil {
+	case len(picked.IGDBGameIDs) > 0 && r.picker == nil:
 		writeError(w, http.StatusServiceUnavailable, "igdb_not_configured")
-		return nil, false
-	}
-	if other != "" && (r.customGames == nil || safety.ContainsBlockedLanguage(other)) {
+	case other != "" && (r.customGames == nil || safety.ContainsBlockedLanguage(other)):
 		writeError(w, http.StatusBadRequest, "invalid_game_name")
-		return nil, false
+	// Requests that add games share the search budget, which bounds how often
+	// one user can make the API call IGDB.
+	case r.gameSearchLimiter != nil && !r.gameSearchLimiter.Allow(userID):
+		w.Header().Set("Retry-After", "60")
+		writeError(w, http.StatusTooManyRequests, "rate_limited")
+	default:
+		return true
 	}
+	return false
+}
+
+// resolvePickedGames imports the picked IGDB games and stores the typed name,
+// and returns their catalog IDs after the IDs the form already named. Callers
+// run it only after the request is validated and authorized. It writes the
+// error response and reports false when a game cannot be used.
+func (r *Router) resolvePickedGames(w http.ResponseWriter, req *http.Request, gameIDs []string, picked pickedGames) ([]string, bool) {
 	resolved := append([]string{}, gameIDs...)
 	for _, igdbID := range picked.IGDBGameIDs {
 		game, err := r.picker.EnsureFromIGDB(req.Context(), igdbID)
@@ -88,7 +110,7 @@ func (r *Router) resolvePickedGames(w http.ResponseWriter, req *http.Request, ga
 		}
 		resolved = append(resolved, game.ID)
 	}
-	if other != "" {
+	if other := strings.TrimSpace(picked.OtherGame); other != "" {
 		game, err := r.customGames.EnsureCustom(req.Context(), other)
 		if err != nil {
 			writeGamePickerError(w, err, "game_import_failed")

@@ -49,6 +49,8 @@ type fakeIGDB struct {
 	status int
 	// searches counts name searches that reached IGDB.
 	searches int
+	// imageStatus overrides the image endpoint's status by image ID.
+	imageStatus map[string]int
 }
 
 var (
@@ -97,6 +99,10 @@ func newFakeIGDB(t *testing.T) *fakeIGDB {
 	mux.HandleFunc("GET /images/t_cover_big/{file}", func(w http.ResponseWriter, req *http.Request) {
 		imageID := strings.TrimSuffix(req.PathValue("file"), ".jpg")
 		fake.downloads[imageID]++
+		if status := fake.imageStatus[imageID]; status != 0 {
+			w.WriteHeader(status)
+			return
+		}
 		w.Write(fake.images[imageID])
 	})
 	server := httptest.NewServer(mux)
@@ -452,16 +458,25 @@ func TestHiddenAndDeletedGamesCannotBeAddedByUsers(t *testing.T) {
 		t.Fatalf("name with no letters: error = %v, want %v", err, games.ErrGameNameInvalid)
 	}
 
-	// A user's pick is not blocked by a cover IGDB cannot supply in a usable form.
-	f.igdb.games = append(f.igdb.games, fakeIGDBGame{ID: 9, Name: "Bad Cover", Slug: "bad-cover"})
+	// A user's pick is not blocked by a cover that is unusable, missing, or
+	// unreachable. The game is imported without it.
+	f.igdb.games = append(f.igdb.games,
+		fakeIGDBGame{ID: 9, Name: "Bad Cover", Slug: "bad-cover"},
+		fakeIGDBGame{ID: 10, Name: "Missing Cover", Slug: "missing-cover"},
+		fakeIGDBGame{ID: 11, Name: "Unreachable Cover", Slug: "unreachable-cover"})
 	f.igdb.setCover(9, "co9")
+	f.igdb.setCover(10, "co10")
+	f.igdb.setCover(11, "co11")
 	f.igdb.images["co9"] = []byte("<html>not an image</html>")
-	coverless, err := service.EnsureFromIGDB(ctx, 9)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !coverless.IsActive || coverless.HasCover {
-		t.Fatalf("pick with an unusable cover = active %t, has cover %t; want active without a cover", coverless.IsActive, coverless.HasCover)
+	f.igdb.imageStatus = map[string]int{"co10": http.StatusNotFound, "co11": http.StatusBadGateway}
+	for _, igdbID := range []int64{9, 10, 11} {
+		coverless, err := service.EnsureFromIGDB(ctx, igdbID)
+		if err != nil {
+			t.Fatalf("pick of IGDB game %d: %v", igdbID, err)
+		}
+		if !coverless.IsActive || coverless.HasCover {
+			t.Fatalf("pick of IGDB game %d = active %t, has cover %t; want active without a cover", igdbID, coverless.IsActive, coverless.HasCover)
+		}
 	}
 }
 

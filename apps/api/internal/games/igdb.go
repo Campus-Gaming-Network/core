@@ -243,10 +243,10 @@ func (s *IGDBService) create(ctx context.Context, source igdb.Game, active bool,
 	var cover *igdb.Cover
 	if source.CoverImageID != "" {
 		downloaded, err := s.source.Cover(ctx, source.CoverImageID)
-		// An admin import reports an unusable cover. A user's pick is imported
-		// without it, so a bad image cannot block their event or team.
-		unusable := errors.Is(err, igdb.ErrCoverTooLarge) || errors.Is(err, igdb.ErrCoverUnsupported)
-		if err != nil && (audit != nil || !unusable) {
+		// An admin import reports any cover failure. A user's pick or a starter
+		// game is imported without its cover, so a missing, unreachable, or
+		// unusable image cannot block an event or team. A refresh can add it.
+		if err != nil && audit != nil {
 			return AdminGame{}, err
 		}
 		if err == nil {

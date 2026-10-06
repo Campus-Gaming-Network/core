@@ -18,14 +18,16 @@ import (
 // fakeGamePicker imports any IGDB ID as "igdb-<id>" except 404, which IGDB
 // does not know, and stores any typed name as "typed-game".
 type fakeGamePicker struct {
-	typed []string
+	typed    []string
+	imported []int64
 }
 
 func (*fakeGamePicker) SearchForPicker(_ context.Context, query string) ([]games.IGDBResult, error) {
 	return []games.IGDBResult{{IGDBID: 11198, Name: "Result for " + query, ReleaseYear: 2015}}, nil
 }
 
-func (*fakeGamePicker) EnsureFromIGDB(_ context.Context, igdbID int64) (games.AdminGame, error) {
+func (picker *fakeGamePicker) EnsureFromIGDB(_ context.Context, igdbID int64) (games.AdminGame, error) {
+	picker.imported = append(picker.imported, igdbID)
 	if igdbID == 404 {
 		return games.AdminGame{}, igdb.ErrNotFound
 	}
@@ -114,6 +116,53 @@ func TestCreateEventResolvesPickedAndTypedGames(t *testing.T) {
 			if response.Code != test.status || !reflect.DeepEqual(repository.createParams.GameIDs, test.wantGameIDs) || !reflect.DeepEqual(picker.typed, test.wantTyped) {
 				t.Fatalf("status = %d, game IDs = %v, typed = %v; want %d, %v, %v: %s",
 					response.Code, repository.createParams.GameIDs, picker.typed, test.status, test.wantGameIDs, test.wantTyped, response.Body.String())
+			}
+		})
+	}
+}
+
+// A request that will be refused must not call IGDB or add catalog rows.
+func TestPickedGamesAreImportedOnlyForValidAuthorizedRequests(t *testing.T) {
+	picks := `"game_ids":[],"igdb_game_ids":[7],"other_game":"Campus Trivia",`
+	valid := strings.Replace(validCreateEventJSON("public", ""), `"game_ids":["44444444-4444-4444-4444-444444444444"],`, picks, 1)
+	untitled := strings.Replace(valid, `"title":"Campus Scrim Night"`, `"title":""`, 1)
+	spent := ratelimit.New(1, time.Minute)
+	spent.Allow(testUserID)
+	for _, test := range []struct {
+		name      string
+		method    string
+		path      string
+		body      string
+		organizer bool
+		limiter   *ratelimit.Limiter
+		status    int
+		imported  bool
+	}{
+		{name: "create with an invalid title", method: http.MethodPost, path: "/events", body: untitled, status: http.StatusBadRequest},
+		{name: "edit by someone who is not an organizer", method: http.MethodPatch, path: "/events/campus-scrim-night", body: valid, status: http.StatusForbidden},
+		{name: "edit with an invalid title", method: http.MethodPatch, path: "/events/campus-scrim-night", body: untitled, organizer: true, status: http.StatusBadRequest},
+		{name: "past the per-user limit", method: http.MethodPost, path: "/events", body: valid, limiter: spent, status: http.StatusTooManyRequests},
+		{name: "edit by an organizer", method: http.MethodPatch, path: "/events/campus-scrim-night", body: valid, organizer: true, status: http.StatusOK, imported: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			repository := &fakeEventRepository{isOrganizer: test.organizer}
+			picker := &fakeGamePicker{}
+			router := &Router{events: repository, picker: picker, customGames: picker, gameSearchLimiter: test.limiter}
+			handler := router.handleEvents
+			if test.method == http.MethodPatch {
+				handler = router.handleEventPath
+			}
+			response := httptest.NewRecorder()
+			signedIn(handler).ServeHTTP(response, withIdempotencyKey(authenticatedEventRequest(test.method, test.path, test.body)))
+
+			var wantImported []int64
+			var wantTyped []string
+			if test.imported {
+				wantImported, wantTyped = []int64{7}, []string{"Campus Trivia"}
+			}
+			if response.Code != test.status || !reflect.DeepEqual(picker.imported, wantImported) || !reflect.DeepEqual(picker.typed, wantTyped) {
+				t.Fatalf("status = %d, imported = %v, typed = %v; want %d, %v, %v: %s",
+					response.Code, picker.imported, picker.typed, test.status, wantImported, wantTyped, response.Body.String())
 			}
 		})
 	}

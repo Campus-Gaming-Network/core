@@ -157,7 +157,7 @@ func (r *Router) handleCreateTeam(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if request.GameIDs, ok = r.resolvePickedGames(w, req, request.GameIDs, request.pickedGames); !ok {
+	if !r.checkPickedGames(w, userID, request.pickedGames) {
 		return
 	}
 	input := teamstore.CreateInput{
@@ -169,8 +169,15 @@ func (r *Router) handleCreateTeam(w http.ResponseWriter, req *http.Request) {
 		Password:       request.Password,
 		IdempotencyKey: key,
 	}
+	if request.pickedGames.pending() {
+		input.GameIDs = append(input.GameIDs, pendingGameID)
+	}
 	if err := teamstore.ValidateCreateInput(input); err != nil {
 		writeApplicationError(w, err, "team_create_failed")
+		return
+	}
+	// Picked games are imported only once the rest of the request is valid.
+	if input.GameIDs, ok = r.resolvePickedGames(w, req, request.GameIDs, request.pickedGames); !ok {
 		return
 	}
 

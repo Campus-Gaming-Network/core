@@ -264,8 +264,8 @@ errors are not cached.
 `game_ids`. At least one game is required across the three.
 
 - `igdb_game_ids`: up to five IGDB IDs from the search. Each is imported as an
-  active game with its cover if the catalog does not hold it. A cover IGDB
-  cannot supply in a usable form is skipped.
+  active game with its cover if the catalog does not hold it. If the cover
+  cannot be downloaded or used, the game is imported without it.
 - `other_game`: a game name of up to 100 characters. It becomes an unlisted
   game that this event or team uses; the same name typed again reuses it. It
   goes through the blocked-language check.
@@ -273,6 +273,10 @@ errors are not cached.
 Games IGDB tags with its "Erotic" theme are treated as if IGDB did not list
 them: every search leaves them out, and an import or refresh by ID answers
 `igdb_game_not_found`. This applies to the admin routes too.
+
+Nothing is imported until the rest of the request is valid and, for an edit,
+the caller is an organizer of the event. A request that names picked or typed
+games also counts against the caller's 30-a-minute search limit.
 
 A game a site admin has hidden or deleted is refused with `422`
 `game_unavailable`. Other codes: `400` `invalid_game_name`, `422`
