@@ -15,10 +15,14 @@ function searchAPI(respond: () => unknown) {
 }
 
 async function outcome(response: Response) {
-  return { status: response.status, body: await response.json() };
+  return {
+    status: response.status,
+    body: await response.json(),
+    cache: response.headers.get("cache-control"),
+  };
 }
 
-test("a game search goes to the API with the session and comes back uncached", async () => {
+test("a game search goes to the API with the session and may be reused briefly by the browser", async () => {
   const games = [
     { igdb_id: 11198, name: "Rocket League", release_year: 2015 },
     { igdb_id: 7, name: "Rocket Arena", game_id: "game-7" },
@@ -34,13 +38,12 @@ test("a game search goes to the API with the session and comes back uncached", a
   assert.deepEqual(
     {
       ...(await outcome(response)),
-      cache: response.headers.get("cache-control"),
       calls,
     },
     {
       status: 200,
       body: { games },
-      cache: "private, no-store",
+      cache: "private, max-age=300",
       calls: [
         {
           path: "/games/igdb-search?q=rocket+%26+co",
@@ -82,12 +85,36 @@ test("a game search reports what the picker can act on and hides the rest", asyn
       ),
     },
     {
-      short: { status: 400, body: { error: "invalid_game_query" } },
-      signedOut: { status: 401, body: { error: "authentication_required" } },
-      limited: { status: 429, body: { error: "rate_limited" } },
-      off: { status: 503, body: { error: "igdb_not_configured" } },
-      broken: { status: 503, body: { error: "igdb_unavailable" } },
-      unreachable: { status: 503, body: { error: "igdb_unavailable" } },
+      short: {
+        status: 400,
+        body: { error: "invalid_game_query" },
+        cache: "private, no-store",
+      },
+      signedOut: {
+        status: 401,
+        body: { error: "authentication_required" },
+        cache: "private, no-store",
+      },
+      limited: {
+        status: 429,
+        body: { error: "rate_limited" },
+        cache: "private, no-store",
+      },
+      off: {
+        status: 503,
+        body: { error: "igdb_not_configured" },
+        cache: "private, no-store",
+      },
+      broken: {
+        status: 503,
+        body: { error: "igdb_unavailable" },
+        cache: "private, no-store",
+      },
+      unreachable: {
+        status: 503,
+        body: { error: "igdb_unavailable" },
+        cache: "private, no-store",
+      },
     },
   );
 });

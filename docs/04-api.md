@@ -256,7 +256,9 @@ site admin has hidden or deleted are left out. Results are cached for 24 hours,
 so a repeated search does not call IGDB. The route allows 30 searches a minute
 per user (`429` `rate_limited`) and answers `503` `igdb_not_configured` without
 IGDB credentials and `503` `igdb_unavailable` when IGDB fails. The web app
-serves it to the picker at `/api/games/igdb-search`.
+serves it to the picker at `/api/games/igdb-search`, where a successful result
+is cacheable by that browser for five minutes (`private, max-age=300`) and
+errors are not cached.
 
 `POST /events`, `PATCH /events/:slug`, and `POST /teams` take two fields beside
 `game_ids`. At least one game is required across the three.

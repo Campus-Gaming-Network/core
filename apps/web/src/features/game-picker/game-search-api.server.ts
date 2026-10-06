@@ -24,7 +24,9 @@ export async function gameSearchApiResponse(
       cookieHeader,
       responseSchema: gameSearchResponseSchema,
     });
-    return json(data, 200);
+    // The browser may reuse a result for five minutes. Kept short because the
+    // result also says which games the catalog holds or has hidden.
+    return json(data, 200, "private, max-age=300");
   } catch (error) {
     // The picker tells "not signed in", "slow down", and "search is off"
     // apart; anything else is an outage.
@@ -34,9 +36,13 @@ export async function gameSearchApiResponse(
   }
 }
 
-function json(body: unknown, status: number): Response {
+function json(
+  body: unknown,
+  status: number,
+  cacheControl = "private, no-store",
+): Response {
   return Response.json(body, {
     status,
-    headers: { "cache-control": "private, no-store" },
+    headers: { "cache-control": cacheControl },
   });
 }

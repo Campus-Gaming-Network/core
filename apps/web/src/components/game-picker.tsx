@@ -54,7 +54,6 @@ export function GamePickerExtras({
       try {
         const search = new URLSearchParams({ q: normalizedQuery });
         const response = await fetch(`/api/games/igdb-search?${search}`, {
-          cache: "no-store",
           signal: controller.signal,
         });
         if (response.status === 429) {
