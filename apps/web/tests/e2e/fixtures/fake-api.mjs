@@ -257,6 +257,24 @@ async function handleRequest(request, response) {
     return;
   }
 
+  if (method === "GET" && url.pathname === "/games/igdb-search") {
+    if (!session) {
+      json(response, 401, { error: "authentication_required" });
+      return;
+    }
+    const query = (url.searchParams.get("q") ?? "").toLowerCase();
+    if (query === "outage") {
+      json(response, 503, { error: "igdb_unavailable" });
+      return;
+    }
+    json(response, 200, {
+      games: igdbGames.filter((match) =>
+        match.name.toLowerCase().startsWith(query),
+      ),
+    });
+    return;
+  }
+
   if (method === "GET" && url.pathname.startsWith("/assets/")) {
     response.writeHead(200, {
       "content-type": "image/png",
@@ -823,7 +841,7 @@ async function handleRequest(request, response) {
       name: body?.name,
       description: body?.description,
       school: body?.school_id ? school : undefined,
-      games: [game],
+      games: chosenGames(body),
     });
     teamRoles.set(teamRoleKey(sessionToken, slug), "owner");
     json(response, 201, { slug });
@@ -1047,7 +1065,7 @@ function createdEventFromBody(body, slug, profile) {
     ...(body.payment_note ? { payment_note: body.payment_note } : {}),
     ...(body.payment_url ? { payment_url: body.payment_url } : {}),
     host_school: school,
-    games: [game],
+    games: chosenGames(body),
     organizers: [
       {
         id: profile.id,
@@ -1057,6 +1075,35 @@ function createdEventFromBody(body, slug, profile) {
       },
     ],
   };
+}
+
+// What the fake IGDB knows. Searching for "outage" answers as an IGDB outage.
+const igdbGames = [
+  { igdb_id: 11198, name: "Rocket League", release_year: 2015 },
+  { igdb_id: 133236, name: "Rocket Arena", release_year: 2020 },
+];
+
+// The games a create request named: from the list, from IGDB search, or typed.
+function chosenGames(body) {
+  return [
+    ...(body?.game_ids?.includes(game.id) ? [game] : []),
+    ...igdbGames
+      .filter((match) => body?.igdb_game_ids?.includes(match.igdb_id))
+      .map((match) => ({
+        id: `game-igdb-${match.igdb_id}`,
+        name: match.name,
+        slug: slugify(match.name),
+      })),
+    ...(body?.other_game
+      ? [
+          {
+            id: "game-typed",
+            name: body.other_game,
+            slug: slugify(body.other_game),
+          },
+        ]
+      : []),
+  ];
 }
 
 function createdEventFor(slug, sessionToken) {

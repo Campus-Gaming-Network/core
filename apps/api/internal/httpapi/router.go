@@ -50,27 +50,35 @@ const targetRateLimitMultiplier = 4
 const logoReconcileInterval = 15 * time.Minute
 
 type Router struct {
-	cfg      config.Config
-	mux      *http.ServeMux
-	db       *pgxpool.Pool
-	schools  schools.Repository
-	follows  schools.FollowRepository
-	games    games.Repository
-	covers   gameCovers
-	events   eventstore.Repository
-	teams    teamstore.Repository
-	safety   safety.Repository
-	users    users.Repository
-	people   people.Repository
-	policies policies.Repository
-	account  *auth.AccountService
-	limiter  *ratelimit.Limiter
+	cfg     config.Config
+	mux     *http.ServeMux
+	db      *pgxpool.Pool
+	schools schools.Repository
+	follows schools.FollowRepository
+	games   games.Repository
+	covers  gameCovers
+	// picker is nil when the IGDB credentials are not configured.
+	picker            gamePicker
+	customGames       customGames
+	gameSearchLimiter *ratelimit.Limiter
+	events            eventstore.Repository
+	teams             teamstore.Repository
+	safety            safety.Repository
+	users             users.Repository
+	people            people.Repository
+	policies          policies.Repository
+	account           *auth.AccountService
+	limiter           *ratelimit.Limiter
 	// targetLimiter counts attempts against one email address, token, or
 	// private event across every visitor.
 	targetLimiter *ratelimit.Limiter
 	sessionStore  *auth.SessionRepository
 	catalog       *schools.CachedRepository
 }
+
+// gameSearchRateLimit is how many IGDB searches one user may make a minute.
+// Results are cached, so most of them never reach IGDB.
+const gameSearchRateLimit = 30
 
 // gameCovers reads stored game covers.
 type gameCovers interface {
@@ -82,6 +90,8 @@ func NewRouter(cfg config.Config, pools ...*pgxpool.Pool) http.Handler {
 		cfg: cfg,
 		mux: http.NewServeMux(),
 	}
+	// gameImports is nil when the IGDB credentials are not configured.
+	var gameImports *games.IGDBService
 	if len(pools) > 0 {
 		router.db = pools[0]
 		schoolRepository := schools.NewPostgresRepository(router.db)
@@ -98,6 +108,15 @@ func NewRouter(cfg config.Config, pools ...*pgxpool.Pool) http.Handler {
 		gameRepository := games.NewPostgresRepository(router.db)
 		router.games = gameRepository
 		router.covers = gameRepository
+		router.customGames = gameRepository
+		router.gameSearchLimiter = ratelimit.New(gameSearchRateLimit, time.Minute)
+		if cfg.IGDBConfigured() {
+			gameImports = games.NewIGDBService(gameRepository, igdb.NewClient(igdb.Config{
+				ClientID: cfg.IGDBClientID, ClientSecret: cfg.IGDBClientSecret,
+				APIURL: cfg.IGDBAPIURL, TokenURL: cfg.IGDBTokenURL, ImageURL: cfg.IGDBImageURL,
+			}))
+			router.picker = gameImports
+		}
 		router.events = eventstore.NewPostgresRepository(router.db)
 		router.teams = teamstore.NewPostgresRepository(router.db)
 		router.people = people.NewPostgresRepository(router.db)
@@ -147,12 +166,10 @@ func NewRouter(cfg config.Config, pools ...*pgxpool.Pool) http.Handler {
 				go logoRepository.Start(context.Background(), logoReconcileInterval)
 				logos = logoRepository
 			}
-			var gameImports adminhttp.AdminIGDB
-			if cfg.IGDBConfigured() {
-				gameImports = games.NewIGDBService(games.NewPostgresRepository(router.db), igdb.NewClient(igdb.Config{
-					ClientID: cfg.IGDBClientID, ClientSecret: cfg.IGDBClientSecret,
-					APIURL: cfg.IGDBAPIURL, TokenURL: cfg.IGDBTokenURL, ImageURL: cfg.IGDBImageURL,
-				}))
+			// A nil service must reach the interface as nil, not as a typed nil.
+			var adminImports adminhttp.AdminIGDB
+			if gameImports != nil {
+				adminImports = gameImports
 			}
 			adminDependencies = adminhttp.Dependencies{
 				Identities:   identityValidator,
@@ -165,7 +182,7 @@ func NewRouter(cfg config.Config, pools ...*pgxpool.Pool) http.Handler {
 				Catalog: &adminhttp.CatalogDependencies{
 					Schools: schools.NewPostgresRepository(router.db), Games: games.NewPostgresRepository(router.db),
 					Users: users.NewPostgresRepository(router.db), SiteGrants: adminaccess.NewPostgresRepository(router.db),
-					Cache: router.catalog, Audit: adminaudit.NewPostgresStore(router.db), Logos: logos, IGDB: gameImports,
+					Cache: router.catalog, Audit: adminaudit.NewPostgresStore(router.db), Logos: logos, IGDB: adminImports,
 				},
 			}
 		}
@@ -178,6 +195,7 @@ func NewRouter(cfg config.Config, pools ...*pgxpool.Pool) http.Handler {
 	router.mux.HandleFunc("/schools/", router.handleSchoolPath)
 	router.mux.HandleFunc("/games", requireMethod(http.MethodGet, router.handleGames))
 	router.mux.HandleFunc("/games/{slug}/cover", requireMethod(http.MethodGet, router.handleGameCover))
+	router.mux.HandleFunc("/games/igdb-search", requireMethod(http.MethodGet, router.handleGameSearch))
 	router.mux.HandleFunc("/internal/schools/refresh", requireMethod(http.MethodPost, router.handleRefreshCatalog))
 	router.mux.HandleFunc("/events", router.handleEvents)
 	router.mux.HandleFunc("/events/", router.handleEventPath)

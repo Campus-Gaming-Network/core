@@ -68,7 +68,11 @@ function GameDetailPage() {
             {game.is_active ? "Shown" : "Hidden"}
           </DetailFact>
           <DetailFact label="Source">
-            {game.igdb_id === null ? "Added by hand" : "IGDB"}
+            {game.igdb_id !== null
+              ? "IGDB"
+              : game.user_submitted
+                ? "Typed in by a user. Events and teams can use it while it is hidden; delete it to block the name."
+                : "Added by hand"}
           </DetailFact>
           <DetailFact label="Cover image">
             {coverImage ? (

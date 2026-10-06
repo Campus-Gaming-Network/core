@@ -203,7 +203,11 @@ Signup also requires confirming **age 18+**. Alumni can participate. Faculty who
 
 ### Games
 
-- Not editable by end users. Site admins import games from IGDB through the Admin Console
+- Not editable by end users. Site admins import and manage games from IGDB through the Admin Console
+- A user creating an event or team whose game is not listed can search IGDB and add it, or type the game's name. No admin approval is needed
+- A game added from IGDB search joins the list for everyone. A typed name stays on that event or team and is not listed
+- A site admin blocks a game by hiding or deleting it
+- Games IGDB tags as erotic are never shown in search and cannot be imported
 - The FAQ page credits IGDB.com for game data
 - Used to browse/filter events (and later tournaments) and show popularity by school
 

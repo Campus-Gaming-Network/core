@@ -52,7 +52,7 @@ func newFakeIGDB(t *testing.T) (*fakeIGDB, Config) {
 		}
 		query, _ := io.ReadAll(req.Body)
 		fake.queries = append(fake.queries, string(query))
-		io.WriteString(w, `[{"id":11198,"name":"Rocket League","slug":"rocket-league","cover":{"id":1,"image_id":"co5w0w"},"first_release_date":1436227200},{"id":7,"name":"No Cover","slug":"no-cover"}]`)
+		io.WriteString(w, `[{"id":11198,"name":"Rocket League","slug":"rocket-league","cover":{"id":1,"image_id":"co5w0w"},"first_release_date":1436227200},{"id":7,"name":"No Cover","slug":"no-cover","themes":[{"id":1,"slug":"action"}]},{"id":8,"name":"Adults Only","slug":"adults-only","themes":[{"id":1,"slug":"action"},{"id":42,"slug":"erotic"}]}]`)
 	})
 	mux.HandleFunc("GET /images/t_cover_big/{file}", func(w http.ResponseWriter, req *http.Request) {
 		w.Write(fake.cover)
@@ -65,7 +65,7 @@ func newFakeIGDB(t *testing.T) (*fakeIGDB, Config) {
 	}
 }
 
-func TestSearchDecodesGamesAndEscapesTheQuery(t *testing.T) {
+func TestSearchDecodesGamesEscapesTheQueryAndDropsAdultGames(t *testing.T) {
 	fake, config := newFakeIGDB(t)
 	games, err := NewClient(config).Search(t.Context(), ` rocket "league" `)
 	if err != nil {
@@ -78,7 +78,7 @@ func TestSearchDecodesGamesAndEscapesTheQuery(t *testing.T) {
 	if !reflect.DeepEqual(games, want) {
 		t.Fatalf("games = %+v, want %+v", games, want)
 	}
-	wantQueries := []string{`search "rocket \"league\""; fields name,slug,cover.image_id,first_release_date; limit 20;`}
+	wantQueries := []string{`search "rocket \"league\""; fields name,slug,cover.image_id,first_release_date,themes.slug; limit 20;`}
 	if !reflect.DeepEqual(fake.queries, wantQueries) {
 		t.Fatalf("queries = %q, want %q", fake.queries, wantQueries)
 	}

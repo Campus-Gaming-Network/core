@@ -696,6 +696,7 @@ const importedGame = {
   igdb_id: 11198,
   last_synced_at: version,
   has_cover: true,
+  user_submitted: false,
 };
 
 test("an import names only the IGDB entry and a reason", async () => {

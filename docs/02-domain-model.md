@@ -219,12 +219,14 @@ slug    = slugify(eventTitle) + "-" + short
 
 ### Game
 
-| Field / concept       | Notes                                                   |
-| --------------------- | ------------------------------------------------------- |
-| Source                | Imported from IGDB, one game at a time, by a site admin |
-| New imports           | Start inactive until a site admin shows them            |
-| Refresh               | Updates the sync time and cover; never the name or slug |
-| Editable by end users | **No**. Site admins manage games in the Admin Console   |
+| Field / concept       | Notes                                                                                                       |
+| --------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Source                | Imported from IGDB by a site admin, by a user's pick in a game picker, or by the seed command's starter set |
+| New imports           | An admin import starts inactive; a user's pick and the starter set are active                               |
+| Typed games           | A name a user types is unlisted: usable on events and teams, absent from the picker                         |
+| Blocking              | A hidden or deleted game cannot be added by users                                                           |
+| Refresh               | Updates the sync time and cover; never the name or slug                                                     |
+| Editable by end users | **No**. Site admins manage games in the Admin Console                                                       |
 
 Used for: browse/filter events (and later tournaments) by game; popular games by school; associations on events/teams/clubs/tournaments.
 

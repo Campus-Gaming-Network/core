@@ -46,6 +46,10 @@ Migration `000020_igdb_game_import.up.sql` adds `games.last_synced_at` and the
 deletes the six launch games seeded by `000003`, with the event and team links
 that point at them; games are imported from IGDB from here on. Apply it before
 deploying the API that reads covers.
+Migration `000021_user_game_picker.up.sql` adds `games.user_submitted`, which
+marks a game a user typed in, and the `igdb_search_cache` table, which holds
+IGDB search results for 24 hours. Apply it before deploying the API that
+accepts picked or typed games.
 Do not add clubs, tournaments, feature flags, site announcements, on-site
 payment tables, IGDB bulk-sync tables, or Admin Console-only workflow tables until those
 phases are active.

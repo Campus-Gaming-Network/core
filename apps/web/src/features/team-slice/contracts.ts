@@ -1,4 +1,9 @@
 import * as z from "zod";
+import {
+  noGameChosenMessage,
+  otherGameSchema,
+  pickedIGDBGameIDsSchema,
+} from "../game-picker/contracts.js";
 import { pageNoticeKey } from "../../components/page-notice.js";
 import {
   teamDetailNotices,
@@ -108,17 +113,29 @@ const teamPasswordSchema = z
   .min(8, "Password must be at least 8 characters.")
   .max(200, "Password must be 200 characters or fewer.");
 
-export const createTeamInputSchema = z.object({
-  name: teamNameSchema,
-  description: teamDescriptionSchema,
-  school_id: z.string().trim().max(200),
-  game_ids: z
-    .array(identifierSchema)
-    .min(1, "Choose at least one game.")
-    .max(25, "Choose 25 games or fewer."),
-  password: teamPasswordSchema,
-  idempotency_key: z.uuid("Reload the page and try again."),
-});
+export const createTeamInputSchema = z
+  .object({
+    name: teamNameSchema,
+    description: teamDescriptionSchema,
+    school_id: z.string().trim().max(200),
+    game_ids: z.array(identifierSchema).max(25, "Choose 25 games or fewer."),
+    igdb_game_ids: pickedIGDBGameIDsSchema,
+    other_game: otherGameSchema,
+    password: teamPasswordSchema,
+    idempotency_key: z.uuid("Reload the page and try again."),
+  })
+  .superRefine((team, context) => {
+    if (
+      team.game_ids.length + team.igdb_game_ids.length === 0 &&
+      team.other_game === ""
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: noGameChosenMessage,
+        path: ["game_ids"],
+      });
+    }
+  });
 
 export const joinTeamInputSchema = teamSlugInputSchema.extend({
   password: teamPasswordSchema,
@@ -149,6 +166,7 @@ export type TeamMemberDTO = z.output<typeof teamMemberDtoSchema>;
 export type TeamsBrowseInput = z.output<typeof teamsBrowseInputSchema>;
 export type TeamsBrowsePageInput = z.output<typeof teamsBrowsePageInputSchema>;
 export type CreateTeamInput = z.output<typeof createTeamInputSchema>;
+export type CreateTeamFormInput = z.input<typeof createTeamInputSchema>;
 export type JoinTeamInput = z.output<typeof joinTeamInputSchema>;
 export type SetTeamCaptainInput = z.output<typeof setTeamCaptainInputSchema>;
 export type TransferTeamOwnershipInput = z.output<
@@ -280,13 +298,15 @@ export function validateNewTeamSearch(
 }
 
 export function validateCreateTeamServerInput(
-  input: CreateTeamInput | FormData,
+  input: CreateTeamFormInput | FormData,
 ): ValidatedTeamInput<CreateTeamInput> {
   const candidate = {
     name: inputValue(input, "name"),
     description: inputValue(input, "description"),
     school_id: inputValue(input, "school_id"),
     game_ids: inputValues(input, "game_ids"),
+    igdb_game_ids: inputValues(input, "igdb_game_ids"),
+    other_game: inputValue(input, "other_game"),
     password: inputValue(input, "password"),
     idempotency_key: inputValue(input, "idempotency_key"),
   };

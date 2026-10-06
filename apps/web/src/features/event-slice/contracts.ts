@@ -1,4 +1,9 @@
 import * as z from "zod";
+import {
+  noGameChosenMessage,
+  otherGameSchema,
+  pickedIGDBGameIDsSchema,
+} from "../game-picker/contracts.js";
 import { pageNoticeKey } from "../../components/page-notice.js";
 import { localDateTimeToInstant } from "./event-time.js";
 import { eventBrowseNotices, type EventBrowseNotice } from "./presentation.js";
@@ -191,7 +196,9 @@ const eventMutableInputSchema = z.object({
   title: requiredText("Title", 120),
   description: optionalText("Description", 5000),
   host_school_id: z.string().trim().min(1, "Choose a host school."),
-  game_ids: z.array(identifierSchema).min(1, "Choose at least one game."),
+  game_ids: z.array(identifierSchema),
+  igdb_game_ids: pickedIGDBGameIDsSchema,
+  other_game: otherGameSchema,
   visibility: eventVisibilitySchema,
   format: eventFormatSchema,
   starts_at: localDateTimeSchema,
@@ -588,6 +595,8 @@ function eventWriteCandidate(
     description: normalizedInputValue(input, "description"),
     host_school_id: normalizedInputValue(input, "host_school_id"),
     game_ids: normalizedInputValues(input, "game_ids"),
+    igdb_game_ids: normalizedInputValues(input, "igdb_game_ids"),
+    other_game: normalizedInputValue(input, "other_game"),
     visibility: normalizedInputValue(input, "visibility"),
     format: normalizedInputValue(input, "format"),
     starts_at: normalizedInputValue(input, "starts_at"),
@@ -620,6 +629,17 @@ function validateEventForm(
 ): void {
   const startsAt = localDateTimeToInstant(event.starts_at, event.timezone);
   const endsAt = localDateTimeToInstant(event.ends_at, event.timezone);
+
+  if (
+    event.game_ids.length + event.igdb_game_ids.length === 0 &&
+    event.other_game === ""
+  ) {
+    context.addIssue({
+      code: "custom",
+      message: noGameChosenMessage,
+      path: ["game_ids"],
+    });
+  }
 
   addLocalTimeIssue(startsAt, "Start", "starts_at", context);
   addLocalTimeIssue(endsAt, "End", "ends_at", context);

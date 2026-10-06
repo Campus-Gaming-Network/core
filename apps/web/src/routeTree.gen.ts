@@ -38,6 +38,7 @@ import { Route as TeamsSlugRouteImport } from './routes/teams.$slug'
 import { Route as TeamsNewRouteImport } from './routes/teams.new'
 import { Route as UsersIdRouteImport } from './routes/users.$id'
 import { Route as ApiAvatarsIdRouteImport } from './routes/api.avatars.$id'
+import { Route as ApiGamesIgdbSearchRouteImport } from './routes/api.games.igdb-search'
 import { Route as EventsSlugEditRouteImport } from './routes/events.$slug_.edit'
 import { Route as EventsSlugPeopleRouteImport } from './routes/events.$slug_.people'
 import { Route as SchoolsSlugPeopleRouteImport } from './routes/schools.$slug_.people'
@@ -190,6 +191,11 @@ const ApiAvatarsIdRoute = ApiAvatarsIdRouteImport.update({
   path: '/api/avatars/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiGamesIgdbSearchRoute = ApiGamesIgdbSearchRouteImport.update({
+  id: '/api/games/igdb-search',
+  path: '/api/games/igdb-search',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const EventsSlugEditRoute = EventsSlugEditRouteImport.update({
   id: '/$slug_/edit',
   path: '/$slug/edit',
@@ -252,6 +258,7 @@ export interface FileRoutesByFullPath {
   '/schools/': typeof SchoolsIndexRoute
   '/teams/': typeof TeamsIndexRoute
   '/api/avatars/$id': typeof ApiAvatarsIdRoute
+  '/api/games/igdb-search': typeof ApiGamesIgdbSearchRoute
   '/events/$slug/edit': typeof EventsSlugEditRoute
   '/events/$slug/people': typeof EventsSlugPeopleRoute
   '/schools/$slug/people': typeof SchoolsSlugPeopleRoute
@@ -286,6 +293,7 @@ export interface FileRoutesByTo {
   '/schools': typeof SchoolsIndexRoute
   '/teams': typeof TeamsIndexRoute
   '/api/avatars/$id': typeof ApiAvatarsIdRoute
+  '/api/games/igdb-search': typeof ApiGamesIgdbSearchRoute
   '/events/$slug/edit': typeof EventsSlugEditRoute
   '/events/$slug/people': typeof EventsSlugPeopleRoute
   '/schools/$slug/people': typeof SchoolsSlugPeopleRoute
@@ -324,6 +332,7 @@ export interface FileRoutesById {
   '/schools/': typeof SchoolsIndexRoute
   '/teams/': typeof TeamsIndexRoute
   '/api/avatars/$id': typeof ApiAvatarsIdRoute
+  '/api/games/igdb-search': typeof ApiGamesIgdbSearchRoute
   '/events/$slug_/edit': typeof EventsSlugEditRoute
   '/events/$slug_/people': typeof EventsSlugPeopleRoute
   '/schools/$slug_/people': typeof SchoolsSlugPeopleRoute
@@ -363,6 +372,7 @@ export interface FileRouteTypes {
     | '/schools/'
     | '/teams/'
     | '/api/avatars/$id'
+    | '/api/games/igdb-search'
     | '/events/$slug/edit'
     | '/events/$slug/people'
     | '/schools/$slug/people'
@@ -397,6 +407,7 @@ export interface FileRouteTypes {
     | '/schools'
     | '/teams'
     | '/api/avatars/$id'
+    | '/api/games/igdb-search'
     | '/events/$slug/edit'
     | '/events/$slug/people'
     | '/schools/$slug/people'
@@ -434,6 +445,7 @@ export interface FileRouteTypes {
     | '/schools/'
     | '/teams/'
     | '/api/avatars/$id'
+    | '/api/games/igdb-search'
     | '/events/$slug_/edit'
     | '/events/$slug_/people'
     | '/schools/$slug_/people'
@@ -464,6 +476,7 @@ export interface RootRouteChildren {
   AuthVerifyEmailRoute: typeof AuthVerifyEmailRoute
   UsersIdRoute: typeof UsersIdRoute
   ApiAvatarsIdRoute: typeof ApiAvatarsIdRoute
+  ApiGamesIgdbSearchRoute: typeof ApiGamesIgdbSearchRoute
   ApiEventsSlugCalendarDoticsRoute: typeof ApiEventsSlugCalendarDoticsRoute
   ApiGamesSlugCoverRoute: typeof ApiGamesSlugCoverRoute
 }
@@ -673,6 +686,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAvatarsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/games/igdb-search': {
+      id: '/api/games/igdb-search'
+      path: '/api/games/igdb-search'
+      fullPath: '/api/games/igdb-search'
+      preLoaderRoute: typeof ApiGamesIgdbSearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/events/$slug_/edit': {
       id: '/events/$slug_/edit'
       path: '/$slug/edit'
@@ -790,6 +810,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthVerifyEmailRoute: AuthVerifyEmailRoute,
   UsersIdRoute: UsersIdRoute,
   ApiAvatarsIdRoute: ApiAvatarsIdRoute,
+  ApiGamesIgdbSearchRoute: ApiGamesIgdbSearchRoute,
   ApiEventsSlugCalendarDoticsRoute: ApiEventsSlugCalendarDoticsRoute,
   ApiGamesSlugCoverRoute: ApiGamesSlugCoverRoute,
 }

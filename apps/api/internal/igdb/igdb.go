@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -42,17 +43,29 @@ var (
 	ErrCoverUnsupported = errors.New("igdb: cover is not a supported image")
 )
 
+// gameFields are the IGDB fields every game query reads.
+const gameFields = "name,slug,cover.image_id,first_release_date,themes.slug"
+
+// adultThemeSlug is IGDB's "Erotic" theme. Games that carry it are treated as
+// if IGDB did not list them: searches leave them out and lookups report
+// ErrNotFound, so they can be neither shown nor imported.
+const adultThemeSlug = "erotic"
+
+type theme struct {
+	Slug string `json:"slug"`
+}
+
 var imageIDPattern = regexp.MustCompile(`^[a-z0-9_]{1,64}$`)
 
 // Game is the part of an IGDB game the catalog stores.
 type Game struct {
-	ID   int64
-	Name string
-	Slug string
+	ID   int64  `json:"id"`
+	Name string `json:"name"`
+	Slug string `json:"slug"`
 	// CoverImageID is empty when IGDB has no cover for the game.
-	CoverImageID string
+	CoverImageID string `json:"cover_image_id,omitempty"`
 	// ReleaseYear is zero when IGDB has no release date.
-	ReleaseYear int
+	ReleaseYear int `json:"release_year,omitempty"`
 }
 
 // Cover is a downloaded cover image.
@@ -108,12 +121,25 @@ func NewClient(config Config) *Client {
 // Search returns the games IGDB matches to a name, best match first.
 func (c *Client) Search(ctx context.Context, query string) ([]Game, error) {
 	escaped := strings.NewReplacer(`\`, `\\`, `"`, `\"`).Replace(strings.TrimSpace(query))
-	return c.games(ctx, fmt.Sprintf(`search "%s"; fields name,slug,cover.image_id,first_release_date; limit %d;`, escaped, searchLimit))
+	return c.games(ctx, fmt.Sprintf(`search "%s"; fields `+gameFields+`; limit %d;`, escaped, searchLimit))
 }
 
 // Game returns one game by its IGDB ID, or ErrNotFound.
 func (c *Client) Game(ctx context.Context, id int64) (Game, error) {
-	games, err := c.games(ctx, fmt.Sprintf(`fields name,slug,cover.image_id,first_release_date; where id = %d; limit 1;`, id))
+	games, err := c.games(ctx, fmt.Sprintf(`fields `+gameFields+`; where id = %d; limit 1;`, id))
+	if err != nil {
+		return Game{}, err
+	}
+	if len(games) == 0 {
+		return Game{}, ErrNotFound
+	}
+	return games[0], nil
+}
+
+// GameBySlug returns one game by its IGDB slug, or ErrNotFound.
+func (c *Client) GameBySlug(ctx context.Context, slug string) (Game, error) {
+	escaped := strings.NewReplacer(`\`, `\\`, `"`, `\"`).Replace(slug)
+	games, err := c.games(ctx, fmt.Sprintf(`fields `+gameFields+`; where slug = "%s"; limit 1;`, escaped))
 	if err != nil {
 		return Game{}, err
 	}
@@ -167,13 +193,17 @@ func (c *Client) games(ctx context.Context, query string) ([]Game, error) {
 		Cover struct {
 			ImageID string `json:"image_id"`
 		} `json:"cover"`
-		FirstReleaseDate int64 `json:"first_release_date"`
+		FirstReleaseDate int64   `json:"first_release_date"`
+		Themes           []theme `json:"themes"`
 	}
 	if err := json.Unmarshal(body, &rows); err != nil {
 		return nil, fmt.Errorf("%w: decode games: %v", ErrUnavailable, err)
 	}
 	games := make([]Game, 0, len(rows))
 	for _, row := range rows {
+		if slices.Contains(row.Themes, theme{Slug: adultThemeSlug}) {
+			continue
+		}
 		game := Game{ID: row.ID, Name: row.Name, Slug: row.Slug, CoverImageID: row.Cover.ImageID}
 		if row.FirstReleaseDate != 0 {
 			game.ReleaseYear = time.Unix(row.FirstReleaseDate, 0).UTC().Year()
