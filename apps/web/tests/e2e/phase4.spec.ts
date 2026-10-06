@@ -33,6 +33,7 @@ test("public auth recovery and private account mutations work through the runtim
   await page.getByLabel("Password").fill(password);
   await page.getByLabel("Home school").selectOption("school-e2e");
   await page.getByRole("checkbox", { name: /18 or older/ }).check();
+  await page.getByRole("checkbox", { name: /agree to the Terms/ }).check();
   await page.getByRole("button", { name: "Create account" }).click();
   await expect(
     page.getByText("Account created. Check your email"),

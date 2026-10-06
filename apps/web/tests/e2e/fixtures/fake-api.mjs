@@ -4,6 +4,8 @@ const port = Number.parseInt(process.env.PORT ?? "18081", 10);
 const password = "E2EPassword123!";
 const eventPassword = "E2EEventPassword123!";
 
+// The Terms and Privacy version the site also has a published file for.
+const currentPolicyVersion = "draft-2026-10-06";
 const sessions = new Map();
 const unlockTokens = new Map();
 const rsvps = new Map();
@@ -400,14 +402,34 @@ async function handleRequest(request, response) {
     return;
   }
 
+  if (method === "GET" && url.pathname === "/policies/current") {
+    const published = {
+      version: currentPolicyVersion,
+      effective_at: "2026-10-06T00:00:00Z",
+      content_sha256: "0".repeat(64),
+    };
+    json(response, 200, { terms: published, privacy: published });
+    return;
+  }
+
   if (method === "POST" && url.pathname === "/auth/signup") {
     if (
       typeof body?.email !== "string" ||
       typeof body?.name !== "string" ||
       body?.home_school_id !== school.id ||
-      body?.age_confirmed !== true
+      body?.age_confirmed !== true ||
+      body?.terms_agreed !== true ||
+      body?.privacy_acknowledged !== true
     ) {
       json(response, 400, { error: "invalid_request" });
+      return;
+    }
+    // Like the Go API, a version is only accepted if it is the current one.
+    if (
+      body.terms_version !== currentPolicyVersion ||
+      body.privacy_version !== currentPolicyVersion
+    ) {
+      json(response, 409, { error: "policy_version_mismatch" });
       return;
     }
     json(response, 201, {

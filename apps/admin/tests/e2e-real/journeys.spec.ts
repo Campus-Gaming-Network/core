@@ -85,6 +85,11 @@ test("journey 3: catalog changes reach the public school list", async ({
   await edit.getByLabel("Reason").fill("Official name");
   await edit.getByRole("button", { name: "Save school" }).click();
   await expect(page).toHaveURL(/notice=saved$/);
+  // The address changes before the saved record renders. The next command
+  // submits the record's version, so wait until the page shows the new one.
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    "Night Owl University",
+  );
   expect(await publicSchoolNames(request, "Night")).toEqual([
     "Night Owl University",
   ]);

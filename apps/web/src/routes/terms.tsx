@@ -1,31 +1,28 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, notFound } from "@tanstack/react-router";
+import { PolicyPage } from "../components/policy-page";
 import { publicPageHead } from "../components/public-page-head";
+import { policyDocument, validatePolicySearch } from "../policies";
 
 const description = "The terms of service for using Campus Gaming Network.";
 
 export const Route = createFileRoute("/terms")({
-  loader: ({ context }) => context.publicOrigin,
+  validateSearch: validatePolicySearch,
+  loaderDeps: ({ search }) => ({ version: search.version }),
+  loader: ({ context, deps }) => {
+    // A link from the signup form names the exact version a person accepts.
+    if (!policyDocument("terms", deps.version)) throw notFound();
+    return { publicOrigin: context.publicOrigin };
+  },
   head: ({ loaderData }) =>
-    publicPageHead(loaderData, { title: "Terms", description, path: "/terms" }),
+    publicPageHead(loaderData?.publicOrigin, {
+      title: "Terms",
+      description,
+      path: "/terms",
+    }),
   component: TermsPage,
 });
 
 function TermsPage() {
-  return (
-    <main className="narrow">
-      <section className="page-heading">
-        <p className="eyebrow">Terms</p>
-        <h1>Terms placeholder</h1>
-        <p className="lede">
-          Formal terms are not drafted in Phase 1. This page is a placeholder
-          for review before public launch.
-        </p>
-      </section>
-      <p>
-        Do not treat this placeholder as legal policy. Replace it with reviewed
-        terms before opening the product beyond local development or private
-        testing.
-      </p>
-    </main>
-  );
+  const document = policyDocument("terms", Route.useSearch().version);
+  return document ? <PolicyPage document={document} eyebrow="Terms" /> : null;
 }

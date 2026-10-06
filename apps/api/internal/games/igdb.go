@@ -193,6 +193,13 @@ func (s *IGDBService) EnsureFromIGDB(ctx context.Context, igdbID int64) (AdminGa
 			return AdminGame{}, err
 		}
 		existing, err = s.create(ctx, source, true, nil)
+		// Two people can pick the same new game at once. The one that loses
+		// the unique igdb_id uses the row the other just created.
+		if _, code, ok := apperror.Details(err); ok && code == "admin_record_already_exists" {
+			if winner, lookupErr := scanAdminGame(s.repository.pool.QueryRow(ctx, `SELECT `+adminGameColumns+` FROM games WHERE igdb_id=$1`, igdbID)); lookupErr == nil {
+				existing, err = winner, nil
+			}
+		}
 	}
 	if err != nil {
 		return AdminGame{}, err

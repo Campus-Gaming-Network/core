@@ -30,6 +30,7 @@ import (
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/objectstore"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/operations"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/people"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/policies"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/ratelimit"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/safety"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/schools"
@@ -65,6 +66,7 @@ type Router struct {
 	safety            safety.Repository
 	users             users.Repository
 	people            people.Repository
+	policies          policies.Repository
 	account           *auth.AccountService
 	limiter           *ratelimit.Limiter
 	// targetLimiter counts attempts against one email address, token, or
@@ -129,6 +131,8 @@ func NewRouter(cfg config.Config, pools ...*pgxpool.Pool) http.Handler {
 			cfg.VerificationTTL,
 			cfg.ResetTTL,
 		)
+		router.policies = policies.NewPostgresRepository(router.db)
+		router.account.Policies = router.policies
 		router.limiter = ratelimit.New(cfg.AuthRateLimit, cfg.AuthRateWindow)
 		router.targetLimiter = ratelimit.New(cfg.AuthRateLimit*targetRateLimitMultiplier, cfg.AuthRateWindow)
 		router.sessionStore = sessionRepository
@@ -205,6 +209,8 @@ func NewRouter(cfg config.Config, pools ...*pgxpool.Pool) http.Handler {
 	router.mux.HandleFunc("/auth/resend-verification", router.handleResendVerification)
 	router.mux.HandleFunc("/auth/forgot-password", router.handleForgotPassword)
 	router.mux.HandleFunc("/auth/reset-password", router.handleResetPassword)
+	router.mux.HandleFunc("/policies/current", requireMethod(http.MethodGet, router.handleCurrentPolicies))
+	router.mux.HandleFunc("/me/policy-acceptances", requireMethod(http.MethodGet, router.handleMyPolicyAcceptances))
 	router.mux.HandleFunc("/me/events", router.handleMyEvents)
 	router.mux.HandleFunc("/me/schools", router.handleMySchools)
 	router.mux.HandleFunc("/me/teams", router.handleMyTeams)

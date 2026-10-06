@@ -14,6 +14,7 @@ import (
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/auth"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/config"
 	eventstore "github.com/Campus-Gaming-Network/core/apps/api/internal/events"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/policies"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/ratelimit"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/schools"
 	teamstore "github.com/Campus-Gaming-Network/core/apps/api/internal/teams"
@@ -254,6 +255,10 @@ func TestPassV0ErrorResponseContracts(t *testing.T) {
 				"password":"Password12345!",
 				"name":"Player One",
 				"age_confirmed":true,
+				"terms_agreed":true,
+				"terms_version":"terms-v1",
+				"privacy_acknowledged":true,
+				"privacy_version":"privacy-v1",
 				"timezone":"America/Los_Angeles"
 			}`,
 		},
@@ -264,6 +269,10 @@ func TestPassV0ErrorResponseContracts(t *testing.T) {
 				"password":"Password12345!",
 				"name":"Player One",
 				"home_school_id":"33333333-3333-3333-3333-333333333333",
+				"terms_agreed":true,
+				"terms_version":"terms-v1",
+				"privacy_acknowledged":true,
+				"privacy_version":"privacy-v1",
 				"timezone":"America/Los_Angeles"
 			}`,
 		},
@@ -279,6 +288,52 @@ func TestPassV0ErrorResponseContracts(t *testing.T) {
 			requireErrorContract(t, response, http.StatusBadRequest, "invalid_request")
 			if userStore.createCalled {
 				t.Fatal("invalid signup reached the user repository")
+			}
+		})
+	}
+
+	for _, contract := range []struct {
+		name   string
+		mutate func(string) string
+		status int
+		code   string
+	}{
+		{
+			name: "signup without agreeing to the Terms",
+			mutate: func(body string) string {
+				return strings.Replace(body, `"terms_agreed":true`, `"terms_agreed":false`, 1)
+			},
+			status: http.StatusBadRequest, code: "invalid_request",
+		},
+		{
+			name: "signup without acknowledging the Privacy Policy",
+			mutate: func(body string) string {
+				return strings.Replace(body, `"privacy_acknowledged":true,`, "", 1)
+			},
+			status: http.StatusBadRequest, code: "invalid_request",
+		},
+		{
+			name:   "signup naming a stale Terms version",
+			mutate: func(body string) string { return strings.Replace(body, "terms-v1", "terms-v0", 1) },
+			status: http.StatusConflict, code: "policy_version_mismatch",
+		},
+		{
+			name:   "signup naming an unpublished Privacy version",
+			mutate: func(body string) string { return strings.Replace(body, "privacy-v1", "never-published", 1) },
+			status: http.StatusConflict, code: "policy_version_mismatch",
+		},
+	} {
+		t.Run(contract.name, func(t *testing.T) {
+			userStore := &passV0ContractUsers{}
+			router := &Router{account: newPassV0ContractAccountService(userStore)}
+			response := serveContractRequest(
+				http.HandlerFunc(router.handleSignup),
+				httptest.NewRequest(http.MethodPost, "/auth/signup", strings.NewReader(contract.mutate(validPassV0SignupJSON()))),
+			)
+
+			requireErrorContract(t, response, contract.status, contract.code)
+			if userStore.createCalled {
+				t.Fatal("a signup without the current policy versions reached the user repository")
 			}
 		})
 	}
@@ -567,7 +622,11 @@ func validPassV0SignupJSON() string {
 		"name":"Player One",
 		"home_school_id":"33333333-3333-3333-3333-333333333333",
 		"age_confirmed":true,
-		"timezone":"America/Los_Angeles"
+		"timezone":"America/Los_Angeles",
+		"terms_agreed":true,
+		"terms_version":"terms-v1",
+		"privacy_acknowledged":true,
+		"privacy_version":"privacy-v1"
 	}`
 }
 
@@ -682,7 +741,7 @@ func (passV0ContractTokens) UsePasswordResetToken(context.Context, []byte, time.
 }
 
 func newPassV0ContractAccountService(userStore *passV0ContractUsers) *auth.AccountService {
-	return auth.NewAccountService(
+	service := auth.NewAccountService(
 		userStore,
 		passV0ContractSchools{},
 		passV0ContractSessions{},
@@ -691,4 +750,15 @@ func newPassV0ContractAccountService(userStore *passV0ContractUsers) *auth.Accou
 		time.Hour,
 		time.Hour,
 	)
+	service.Policies = passV0ContractPolicies{}
+	return service
+}
+
+type passV0ContractPolicies struct{}
+
+func (passV0ContractPolicies) Current(context.Context, time.Time) (policies.Current, error) {
+	return policies.Current{
+		Terms:   policies.Document{ID: "terms-document-id", Type: policies.TypeTerms, Version: "terms-v1"},
+		Privacy: policies.Document{ID: "privacy-document-id", Type: policies.TypePrivacy, Version: "privacy-v1"},
+	}, nil
 }

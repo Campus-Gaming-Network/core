@@ -4,6 +4,7 @@ import {
   forgotPasswordOperation,
   resendVerificationOperation,
   resetPasswordOperation,
+  currentPoliciesOperation,
   signupOperation,
   verifyEmailOperation,
 } from "../src/features/auth-flow-slice/auth-flow-operations.server.js";
@@ -36,6 +37,9 @@ const signupInput = {
   home_school_id: "school-1",
   age_confirmed: true as const,
   timezone: "America/Los_Angeles",
+  policies_accepted: true as const,
+  terms_version: "terms-v1",
+  privacy_version: "privacy-v1",
 };
 
 function client(fetcher: Fetcher) {
@@ -101,6 +105,9 @@ test("signup validates typed and native inputs with accessible field errors", ()
   form.set("name", " New Player ");
   form.set("home_school_id", " school-1 ");
   form.set("age_confirmed", "on");
+  form.set("policies_accepted", "on");
+  form.set("terms_version", " terms-v1 ");
+  form.set("privacy_version", " privacy-v1 ");
 
   assert.deepEqual(validateSignupServerInput(form), {
     valid: true,
@@ -117,6 +124,8 @@ test("signup validates typed and native inputs with accessible field errors", ()
     password: "secret",
     home_school_id: "",
     age_confirmed: false as true,
+    policies_accepted: false as true,
+    terms_version: "",
   });
   assert.equal(invalid.valid, false);
   if (invalid.valid) assert.fail("invalid signup passed");
@@ -129,6 +138,12 @@ test("signup validates typed and native inputs with accessible field errors", ()
   ]);
   assert.deepEqual(invalid.fieldErrors.age_confirmed, [
     "Confirm that you are 18 or older.",
+  ]);
+  assert.deepEqual(invalid.fieldErrors.policies_accepted, [
+    "Agree to the Terms and acknowledge the Privacy Policy.",
+  ]);
+  assert.deepEqual(invalid.fieldErrors.terms_version, [
+    "Reload the page and try again.",
   ]);
   assert.equal(
     JSON.stringify(invalid).includes("private-invalid-address"),
@@ -177,7 +192,18 @@ test("signup posts only its validated contract and strips the upstream profile",
   assert.equal(url, "http://api:8080/auth/signup");
   assert.equal(init?.method, "POST");
   assert.equal(init?.cache, "no-store");
-  assert.deepEqual(JSON.parse(String(init?.body)), signupInput);
+  assert.deepEqual(JSON.parse(String(init?.body)), {
+    email: "new@example.test",
+    password: "Password123!",
+    name: "New Player",
+    home_school_id: "school-1",
+    age_confirmed: true,
+    timezone: "America/Los_Angeles",
+    terms_agreed: true,
+    terms_version: "terms-v1",
+    privacy_acknowledged: true,
+    privacy_version: "privacy-v1",
+  });
   assert.deepEqual(result, {
     status: "success",
     message:
@@ -322,4 +348,60 @@ test("signup school search keeps the exact threshold, limit, DTO, and safe failu
     reportError: () => undefined,
   });
   assert.deepEqual(failed, { schools: [], failed: true });
+});
+
+test("current policy versions are read from the API and signup is unavailable without them", async () => {
+  const published = {
+    terms: {
+      version: "terms-v1",
+      effective_at: "2026-10-06T00:00:00Z",
+      content_sha256: "a".repeat(64),
+    },
+    privacy: {
+      version: "privacy-v1",
+      effective_at: "2026-10-06T00:00:00Z",
+      content_sha256: "b".repeat(64),
+    },
+  };
+  let url = "";
+
+  assert.deepEqual(
+    await currentPoliciesOperation({
+      api: client(async (input) => {
+        url = String(input);
+        return Response.json(published);
+      }),
+    }),
+    { termsVersion: "terms-v1", privacyVersion: "privacy-v1" },
+  );
+  assert.equal(url, "http://api:8080/policies/current");
+
+  for (const response of [
+    () => Response.json({ error: "policies_unavailable" }, { status: 500 }),
+    () => Response.json({ terms: published.terms }),
+  ]) {
+    assert.equal(
+      await currentPoliciesOperation({
+        api: client(async () => response()),
+        reportError: () => undefined,
+      }),
+      undefined,
+    );
+  }
+});
+
+test("a signup naming a version that is no longer current asks the person to reload", async () => {
+  assert.deepEqual(
+    await signupOperation(signupInput, {
+      api: client(async () =>
+        Response.json({ error: "policy_version_mismatch" }, { status: 409 }),
+      ),
+      reportError: () => undefined,
+    }),
+    {
+      status: "error",
+      message:
+        "Our Terms or Privacy Policy changed. Reload this page, review them, and try again.",
+    },
+  );
 });

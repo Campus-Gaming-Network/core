@@ -5,6 +5,8 @@ import {
 } from "../features/game-picker/contracts";
 
 const searchDelayMilliseconds = 250;
+// The forms accept five searched games; see pickedIGDBGameIDsSchema.
+const maximumPickedGames = 5;
 
 // Server rendering and hydration see `false`, so the markup matches.
 const subscribeToNothing = () => () => {};
@@ -130,9 +132,10 @@ export function GamePickerExtras({
                   <span>{matchTitle(match)}</span>
                   <button
                     className="button button--secondary"
-                    disabled={picked.some(
-                      (game) => game.igdb_id === match.igdb_id,
-                    )}
+                    disabled={
+                      picked.length >= maximumPickedGames ||
+                      picked.some((game) => game.igdb_id === match.igdb_id)
+                    }
                     onClick={() => setPicked((games) => [...games, match])}
                     type="button"
                   >

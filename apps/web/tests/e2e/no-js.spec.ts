@@ -31,6 +31,7 @@ test("public auth and support forms complete without JavaScript", async ({
   await page.getByLabel("Password").fill(password);
   await page.getByLabel("Home school").selectOption("school-e2e");
   await page.getByRole("checkbox", { name: /18 or older/ }).check();
+  await page.getByRole("checkbox", { name: /agree to the Terms/ }).check();
   await page.getByRole("button", { name: "Create account" }).click();
   await expect(page).toHaveURL(/\/signup\?auth=created$/);
   await expect(

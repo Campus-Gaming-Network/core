@@ -8,6 +8,7 @@ import {
   type TestInfo,
 } from "@playwright/test";
 
+const apiURL = "http://127.0.0.1:18082";
 const resendURL = "http://127.0.0.1:18083";
 const primarySchoolID = "10000000-0000-0000-0000-000000000001";
 const password = "E2EPassword123!";
@@ -48,6 +49,44 @@ test("real browser journey crosses the BFF, Go API, Postgres, and email outbox",
     "Real Stack Owner",
     "/events/new",
   );
+
+  // Signing up stored one acceptance for each exact version the form named.
+  const session = (await context.cookies()).find(
+    (cookie) => cookie.name === "cgn_session",
+  );
+  const current = await (
+    await request.get(`${apiURL}/policies/current`)
+  ).json();
+  const acceptances = await request.get(`${apiURL}/me/policy-acceptances`, {
+    headers: { cookie: `cgn_session=${session?.value ?? ""}` },
+  });
+  expect(acceptances.status()).toBe(200);
+  expect(
+    (
+      (await acceptances.json()) as {
+        acceptances: {
+          document_type: string;
+          version: string;
+          source: string;
+        }[];
+      }
+    ).acceptances.map(({ document_type, version, source }) => ({
+      document_type,
+      version,
+      source,
+    })),
+  ).toEqual([
+    {
+      document_type: "terms",
+      version: current.terms.version,
+      source: "signup",
+    },
+    {
+      document_type: "privacy",
+      version: current.privacy.version,
+      source: "signup",
+    },
+  ]);
 
   await page.getByLabel("Title").fill(eventTitle);
   await page
@@ -190,6 +229,7 @@ async function signUpVerifyAndLogIn(
   await page.getByLabel("Password").fill(password);
   await page.getByLabel("Home school").selectOption(primarySchoolID);
   await page.getByRole("checkbox", { name: /18 or older/ }).check();
+  await page.getByRole("checkbox", { name: /agree to the Terms/ }).check();
   await page.getByRole("button", { name: "Create account" }).click();
   await expect(
     page

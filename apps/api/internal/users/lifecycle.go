@@ -8,6 +8,7 @@ import (
 
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/apperror"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/emailoutbox"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/policies"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -55,6 +56,9 @@ func (r *PostgresRepository) CreateWithVerificationToken(ctx context.Context, pa
 		VALUES ($1::uuid, $2, $3)
 	`, profile.ID, tokenHash, expiresAt); err != nil {
 		return Profile{}, fmt.Errorf("create signup verification token: %w", err)
+	}
+	if err := policies.RecordAcceptances(ctx, tx, profile.ID, params.PolicyDocumentIDs, policies.SourceSignup, params.AgeConfirmedAt); err != nil {
+		return Profile{}, err
 	}
 	if err := emailoutbox.Enqueue(ctx, tx, emailoutbox.Intent{
 		Kind:           emailoutbox.KindAccountVerification,
