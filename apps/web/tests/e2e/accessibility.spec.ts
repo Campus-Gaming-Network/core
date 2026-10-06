@@ -216,7 +216,12 @@ test("owner roster controls include the affected member name", async ({
   await expectAccessible(page);
 });
 
-test("long user content reflows at a 320px viewport", async ({ page }) => {
+test("long user content reflows at a 320px viewport", async ({
+  page,
+}, testInfo) => {
+  // The test sets its own phone-sized viewport, so the desktop project would
+  // only repeat it.
+  test.skip(testInfo.project.name !== "mobile-chromium");
   await page.setViewportSize({ width: 320, height: 568 });
   const response = await gotoApp(page, "/events/long-content-event");
   expect(response?.status()).toBe(200);
@@ -240,7 +245,10 @@ for (const path of [
 ]) {
   test(`${path} reflows at a 320px viewport when signed in`, async ({
     page,
-  }) => {
+  }, testInfo) => {
+    // The test sets its own phone-sized viewport, so the desktop project
+    // would only repeat it.
+    test.skip(testInfo.project.name !== "mobile-chromium");
     await page.setViewportSize({ width: 320, height: 568 });
     await logIn(page, "player@example.test", "/account");
     const response = await gotoApp(page, path);
@@ -263,7 +271,10 @@ const authenticatedJourneyPaths = [
 ];
 
 for (const path of primaryJourneyPaths) {
-  test(`${path} reflows at a 320px viewport`, async ({ page }) => {
+  test(`${path} reflows at a 320px viewport`, async ({ page }, testInfo) => {
+    // The test sets its own phone-sized viewport, so the desktop project
+    // would only repeat it.
+    test.skip(testInfo.project.name !== "mobile-chromium");
     await page.setViewportSize({ width: 320, height: 568 });
     const response = await gotoApp(page, path);
     expect(response?.status()).toBe(200);

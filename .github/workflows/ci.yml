@@ -11,10 +11,20 @@ on:
 permissions:
   contents: read
 
+# A new push to a pull request replaces the run for the previous push. Runs on
+# `main` and `next` are never cancelled, so every merged commit is checked.
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+# Jobs pin the runner image instead of using `ubuntu-latest`. The Linux visual
+# baselines were generated on this image, and the browser install relies on
+# it already having Chromium's shared libraries. Move to a newer image on
+# purpose, and regenerate the baselines when doing so.
 jobs:
   api:
     name: Go API
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     services:
       postgres:
         image: postgres:16-alpine
@@ -60,7 +70,7 @@ jobs:
 
   web:
     name: TanStack Start web
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/setup@c9883cc79df532ad1a7b81bf9ab944ceb090d65c # v2.0.0
@@ -98,49 +108,67 @@ jobs:
         run: pnpm run smoke:web
       - name: Install Playwright browser
         working-directory: apps/web
-        run: pnpm exec playwright install --with-deps chromium
+        # The tests run headless, so only the headless shell is needed. The
+        # runner image already has Chromium's shared libraries, and
+        # `--with-deps` spent most of this step in `apt`.
+        run: pnpm exec playwright install --only-shell chromium
       - name: Documentation browser tests
         working-directory: apps/docs
         run: pnpm run test:e2e
-      - name: Development browser tests
-        id: development_browser_tests
-        continue-on-error: true
+
+  web-browser:
+    # The browser suite runs one test at a time against a shared fake API, so
+    # it is split across jobs instead of across workers. Each shard starts its
+    # own servers.
+    name: Web browser tests (${{ matrix.runtime }} ${{ matrix.shard }}/${{ matrix.shards }})
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { runtime: development, shard: 1, shards: 3 }
+          - { runtime: development, shard: 2, shards: 3 }
+          - { runtime: development, shard: 3, shards: 3 }
+          - { runtime: production, shard: 1, shards: 2 }
+          - { runtime: production, shard: 2, shards: 2 }
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/setup@c9883cc79df532ad1a7b81bf9ab944ceb090d65c # v2.0.0
+        with:
+          runtime: node@24
+          cache: true
+          install: false
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Build
+        if: matrix.runtime == 'production'
         working-directory: apps/web
-        run: pnpm run test:e2e:dev
-      - name: Upload development browser failure artifacts
-        if: steps.development_browser_tests.outcome == 'failure'
+        run: pnpm run build
+      - name: Install Playwright browser
+        working-directory: apps/web
+        run: pnpm exec playwright install --only-shell chromium
+      - name: Browser tests
+        id: browser_tests
+        working-directory: apps/web
+        env:
+          # Only "development" selects the dev server; anything else serves
+          # the production build.
+          WEB_BROWSER_RUNTIME: ${{ matrix.runtime }}
+        run: pnpm exec playwright test --shard=${{ matrix.shard }}/${{ matrix.shards }}
+      - name: Upload browser failure artifacts
+        if: failure() && steps.browser_tests.outcome == 'failure'
         uses: actions/upload-artifact@v7
         with:
-          name: development-browser-failure
+          name: ${{ matrix.runtime }}-browser-failure-${{ matrix.shard }}
           path: |
             apps/web/test-results
             apps/web/playwright-report
           if-no-files-found: warn
           retention-days: 7
-      - name: Production browser tests
-        id: production_browser_tests
-        continue-on-error: true
-        working-directory: apps/web
-        run: pnpm run test:e2e
-      - name: Upload production browser failure artifacts
-        if: steps.production_browser_tests.outcome == 'failure'
-        uses: actions/upload-artifact@v7
-        with:
-          name: production-browser-failure
-          path: |
-            apps/web/test-results
-            apps/web/playwright-report
-          if-no-files-found: warn
-          retention-days: 7
-      - name: Enforce browser test results
-        if: >-
-          steps.development_browser_tests.outcome == 'failure' ||
-          steps.production_browser_tests.outcome == 'failure'
-        run: exit 1
 
   admin:
     name: Admin Console
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/setup@c9883cc79df532ad1a7b81bf9ab944ceb090d65c # v2.0.0
@@ -166,7 +194,10 @@ jobs:
         run: pnpm run build
       - name: Install Playwright browser
         working-directory: apps/admin
-        run: pnpm exec playwright install --with-deps chromium
+        # The tests run headless, so only the headless shell is needed. The
+        # runner image already has Chromium's shared libraries, and
+        # `--with-deps` spent most of this step in `apt`.
+        run: pnpm exec playwright install --only-shell chromium
       - name: Browser tests
         id: browser_tests
         continue-on-error: true
@@ -188,7 +219,7 @@ jobs:
 
   real-stack:
     name: Real BFF → Go → Postgres browser tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     services:
       postgres:
         image: postgres:16-alpine
@@ -222,7 +253,10 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Install Playwright browser
         working-directory: apps/web
-        run: pnpm exec playwright install --with-deps chromium
+        # The tests run headless, so only the headless shell is needed. The
+        # runner image already has Chromium's shared libraries, and
+        # `--with-deps` spent most of this step in `apt`.
+        run: pnpm exec playwright install --only-shell chromium
       - name: Run repeatable real-stack browser suite
         run: pnpm run test:e2e:real
       - name: Run Admin Console real-stack suite
