@@ -30,6 +30,7 @@ import (
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/objectstore"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/operations"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/people"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/policies"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/ratelimit"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/safety"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/schools"
@@ -49,20 +50,21 @@ const targetRateLimitMultiplier = 4
 const logoReconcileInterval = 15 * time.Minute
 
 type Router struct {
-	cfg     config.Config
-	mux     *http.ServeMux
-	db      *pgxpool.Pool
-	schools schools.Repository
-	follows schools.FollowRepository
-	games   games.Repository
-	covers  gameCovers
-	events  eventstore.Repository
-	teams   teamstore.Repository
-	safety  safety.Repository
-	users   users.Repository
-	people  people.Repository
-	account *auth.AccountService
-	limiter *ratelimit.Limiter
+	cfg      config.Config
+	mux      *http.ServeMux
+	db       *pgxpool.Pool
+	schools  schools.Repository
+	follows  schools.FollowRepository
+	games    games.Repository
+	covers   gameCovers
+	events   eventstore.Repository
+	teams    teamstore.Repository
+	safety   safety.Repository
+	users    users.Repository
+	people   people.Repository
+	policies policies.Repository
+	account  *auth.AccountService
+	limiter  *ratelimit.Limiter
 	// targetLimiter counts attempts against one email address, token, or
 	// private event across every visitor.
 	targetLimiter *ratelimit.Limiter
@@ -110,6 +112,8 @@ func NewRouter(cfg config.Config, pools ...*pgxpool.Pool) http.Handler {
 			cfg.VerificationTTL,
 			cfg.ResetTTL,
 		)
+		router.policies = policies.NewPostgresRepository(router.db)
+		router.account.Policies = router.policies
 		router.limiter = ratelimit.New(cfg.AuthRateLimit, cfg.AuthRateWindow)
 		router.targetLimiter = ratelimit.New(cfg.AuthRateLimit*targetRateLimitMultiplier, cfg.AuthRateWindow)
 		router.sessionStore = sessionRepository
@@ -187,6 +191,8 @@ func NewRouter(cfg config.Config, pools ...*pgxpool.Pool) http.Handler {
 	router.mux.HandleFunc("/auth/resend-verification", router.handleResendVerification)
 	router.mux.HandleFunc("/auth/forgot-password", router.handleForgotPassword)
 	router.mux.HandleFunc("/auth/reset-password", router.handleResetPassword)
+	router.mux.HandleFunc("/policies/current", requireMethod(http.MethodGet, router.handleCurrentPolicies))
+	router.mux.HandleFunc("/me/policy-acceptances", requireMethod(http.MethodGet, router.handleMyPolicyAcceptances))
 	router.mux.HandleFunc("/me/events", router.handleMyEvents)
 	router.mux.HandleFunc("/me/schools", router.handleMySchools)
 	router.mux.HandleFunc("/me/teams", router.handleMyTeams)

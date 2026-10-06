@@ -1,6 +1,7 @@
 package users
 
 import (
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/policies"
 	"strings"
 	"testing"
 )
@@ -12,6 +13,10 @@ func TestValidateSignupAcceptsMinimumPasswordLength(t *testing.T) {
 		Name:         "Player",
 		HomeSchoolID: "school-id",
 		AgeConfirmed: true,
+		Policies: policies.Claim{
+			TermsAgreed: true, TermsVersion: "terms-v1",
+			PrivacyAcknowledged: true, PrivacyVersion: "privacy-v1",
+		},
 	})
 	if err != nil {
 		t.Fatalf("ValidateSignup() error = %v", err)
@@ -25,6 +30,10 @@ func TestValidateSignupRejectsPasswordBelowMinimumLength(t *testing.T) {
 		Name:         "Player",
 		HomeSchoolID: "school-id",
 		AgeConfirmed: true,
+		Policies: policies.Claim{
+			TermsAgreed: true, TermsVersion: "terms-v1",
+			PrivacyAcknowledged: true, PrivacyVersion: "privacy-v1",
+		},
 	})
 	if err == nil || !strings.Contains(err.Error(), "8 characters") {
 		t.Fatalf("ValidateSignup() error = %v, want minimum length error", err)

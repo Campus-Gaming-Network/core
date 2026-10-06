@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/policies"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/schools"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/users"
 	"github.com/jackc/pgx/v5"
@@ -192,6 +193,7 @@ func (f *fakeTokens) UsePasswordResetToken(_ context.Context, _ []byte, _ time.T
 func TestAccountServiceSignupPersistsDeliveryIntentWithoutCallingProvider(t *testing.T) {
 	userStore := &fakeUsers{}
 	service := NewAccountService(userStore, fakeSchools{}, &fakeSessions{}, &fakeTokens{}, time.Hour, time.Hour, time.Hour)
+	service.Policies = testPolicies{}
 
 	profile, err := service.Signup(context.Background(), users.SignupInput{
 		Email:        "player@example.com",
@@ -200,6 +202,7 @@ func TestAccountServiceSignupPersistsDeliveryIntentWithoutCallingProvider(t *tes
 		HomeSchoolID: "school-id",
 		AgeConfirmed: true,
 		Timezone:     "UTC",
+		Policies:     testPolicyClaim,
 	})
 	if err != nil {
 		t.Fatalf("Signup() error = %v", err)
@@ -219,6 +222,7 @@ func TestAccountServiceSignupDatabaseFailureDoesNotExposePartialAccount(t *testi
 	databaseErr := errors.New("database unavailable")
 	userStore := &fakeUsers{createWithVerificationErr: databaseErr}
 	service := NewAccountService(userStore, fakeSchools{}, &fakeSessions{}, &fakeTokens{}, time.Hour, time.Hour, time.Hour)
+	service.Policies = testPolicies{}
 
 	_, err := service.Signup(context.Background(), users.SignupInput{
 		Email:        "player@example.com",
@@ -227,6 +231,7 @@ func TestAccountServiceSignupDatabaseFailureDoesNotExposePartialAccount(t *testi
 		HomeSchoolID: "school-id",
 		AgeConfirmed: true,
 		Timezone:     "UTC",
+		Policies:     testPolicyClaim,
 	})
 	if !errors.Is(err, databaseErr) {
 		t.Fatalf("Signup() error = %v, want %v", err, databaseErr)
@@ -257,6 +262,7 @@ func TestAccountServiceSignupAndLogin(t *testing.T) {
 	userStore := &fakeUsers{}
 	sessions := &fakeSessions{}
 	service := NewAccountService(userStore, fakeSchools{}, sessions, &fakeTokens{}, time.Hour, time.Hour, time.Hour)
+	service.Policies = testPolicies{}
 
 	profile, err := service.Signup(context.Background(), users.SignupInput{
 		Email:        "Player@Example.com",
@@ -265,6 +271,7 @@ func TestAccountServiceSignupAndLogin(t *testing.T) {
 		HomeSchoolID: "school-id",
 		AgeConfirmed: true,
 		Timezone:     "UTC",
+		Policies:     testPolicyClaim,
 	})
 	if err != nil {
 		t.Fatalf("Signup() error = %v", err)
@@ -380,6 +387,7 @@ func TestAccountServiceUpdateProfileUsesAtomicRepositoryTransition(t *testing.T)
 func TestAccountServiceSignupPersistsHomeSchoolAndAgeConfirmation(t *testing.T) {
 	userStore := &fakeUsers{}
 	service := NewAccountService(userStore, fakeSchools{}, &fakeSessions{}, &fakeTokens{}, time.Hour, time.Hour, time.Hour)
+	service.Policies = testPolicies{}
 	confirmedAt := time.Date(2026, time.September, 3, 19, 30, 0, 0, time.UTC)
 	service.now = func() time.Time { return confirmedAt }
 
@@ -390,6 +398,7 @@ func TestAccountServiceSignupPersistsHomeSchoolAndAgeConfirmation(t *testing.T) 
 		HomeSchoolID: "school-id",
 		AgeConfirmed: true,
 		Timezone:     "America/Los_Angeles",
+		Policies:     testPolicyClaim,
 	})
 	if err != nil {
 		t.Fatalf("Signup() error = %v", err)
@@ -458,4 +467,18 @@ func TestAccountServiceGetPublicProfileIncludesHomeSchoolSummary(t *testing.T) {
 	if profile.HomeSchool.Name != "Example University" || profile.HomeSchool.Slug != "example-university" {
 		t.Fatalf("GetPublicProfile() HomeSchool = %#v, want display-ready school summary", profile.HomeSchool)
 	}
+}
+
+var testPolicyClaim = policies.Claim{
+	TermsAgreed: true, TermsVersion: "terms-v1",
+	PrivacyAcknowledged: true, PrivacyVersion: "privacy-v1",
+}
+
+type testPolicies struct{}
+
+func (testPolicies) Current(context.Context, time.Time) (policies.Current, error) {
+	return policies.Current{
+		Terms:   policies.Document{ID: "terms-document-id", Type: policies.TypeTerms, Version: "terms-v1"},
+		Privacy: policies.Document{ID: "privacy-document-id", Type: policies.TypePrivacy, Version: "privacy-v1"},
+	}, nil
 }

@@ -28,6 +28,24 @@ rights and exceptions that should be considered when the launch scope is known.
 
 ## Now — implemented foundation and current behavior
 
+### Versioned policy acceptance at signup
+
+- [x] Migration `000019_policy_acceptance.up.sql` adds immutable
+      `policy_documents` and append-only `user_policy_acceptances`, and publishes
+      the current placeholder Terms and Privacy text as version
+      `draft-2026-10-06`.
+- [x] Signup requires one unchecked control that agrees to the Terms and
+      acknowledges the Privacy Policy, with links to the exact versions. The API
+      resolves the named versions against the published record, rejects a
+      missing, false, stale, or unknown claim, and writes both acceptances in the
+      signup transaction. No IP address or user agent is recorded.
+- [x] Existing accounts have no acceptance row. Asking them to accept is the
+      existing-user flow below.
+- Acceptance rows are kept when an account is anonymized on deletion. Whether
+  they should be removed then is an open retention decision.
+- Still open: what counts as a material change, the notice period, and which
+  changes need renewed agreement. These need legal input, not code.
+
 ### Operations foundation
 
 - [x] Migration `000010_operations_foundation.up.sql` adds report/support

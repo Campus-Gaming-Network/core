@@ -59,6 +59,28 @@ school_admins
   -- school-scoped role grant; soft-revocable and re-grantable; site admins assign it in the Admin Console
 ```
 
+### Policy acceptance
+
+```text
+policy_documents
+  id, document_type ('terms' | 'privacy'), version, effective_at,
+  content_sha256,             -- SHA-256 of the published source file
+  source_ref,                 -- repository path of that file
+  created_at
+  -- unique (document_type, version); a trigger refuses every UPDATE and DELETE
+  -- the version in effect is the latest effective_at that is not in the future
+
+user_policy_acceptances
+  id, user_id, policy_document_id, accepted_at,
+  source ('signup' | 'policy_update')
+  -- unique (user_id, policy_document_id); a trigger refuses every UPDATE
+  -- no IP address or user agent; rows go only when the user row is deleted
+```
+
+Publishing a new version is a new source file under `apps/web/src/policies`
+plus a migration that inserts its row. Accounts created before a version was
+published have no acceptance row for it.
+
 ### Sessions & account tokens
 
 ```text

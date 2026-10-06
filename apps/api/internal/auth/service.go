@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/apperror"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/policies"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/schools"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/users"
 	"github.com/jackc/pgx/v5"
@@ -28,6 +29,10 @@ type AccountService struct {
 	Users   users.AccountRepository
 	Schools interface {
 		ExistsActive(context.Context, string) (bool, error)
+	}
+	// Policies resolves the Terms and Privacy versions a signup accepts.
+	Policies interface {
+		Current(context.Context, time.Time) (policies.Current, error)
 	}
 	Sessions        SessionManager
 	Tokens          TokenStore
@@ -68,6 +73,19 @@ func (s *AccountService) Signup(ctx context.Context, input users.SignupInput) (u
 		return users.Profile{}, ErrHomeSchoolNotFound
 	}
 
+	now := s.now()
+	if s.Policies == nil {
+		return users.Profile{}, policies.ErrUnavailable
+	}
+	currentPolicies, err := s.Policies.Current(ctx, now)
+	if err != nil {
+		return users.Profile{}, err
+	}
+	policyDocumentIDs, err := currentPolicies.Resolve(input.Policies)
+	if err != nil {
+		return users.Profile{}, err
+	}
+
 	passwordHash, err := HashPassword(input.Password)
 	if err != nil {
 		return users.Profile{}, err
@@ -76,7 +94,6 @@ func (s *AccountService) Signup(ctx context.Context, input users.SignupInput) (u
 	if err != nil {
 		return users.Profile{}, err
 	}
-	now := s.now()
 	profile, err := s.Users.CreateWithVerificationToken(ctx, users.CreateParams{
 		Email:          users.NormalizeEmail(input.Email),
 		PasswordHash:   passwordHash,
@@ -84,6 +101,8 @@ func (s *AccountService) Signup(ctx context.Context, input users.SignupInput) (u
 		HomeSchoolID:   input.HomeSchoolID,
 		AgeConfirmedAt: now,
 		Timezone:       input.Timezone,
+
+		PolicyDocumentIDs: policyDocumentIDs,
 	}, token, tokenHash, now.Add(s.VerificationTTL))
 	if err != nil {
 		return users.Profile{}, err
