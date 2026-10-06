@@ -84,6 +84,11 @@ for (const expected of pages) {
           "Phase 1 starts with the seeded school list. Main and branch campuses are shown the same way.",
         ),
       ).toBeVisible();
+      // IGDB asks for attribution in a static, visible place.
+      await expect(page.getByText("Game data from IGDB.com.")).toBeVisible();
+      await expect(
+        page.getByRole("link", { name: "IGDB.com" }),
+      ).toHaveAttribute("href", "https://www.igdb.com/");
     }
 
     if (expected.path === "/support") {

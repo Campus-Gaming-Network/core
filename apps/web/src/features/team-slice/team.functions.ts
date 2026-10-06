@@ -16,7 +16,7 @@ import {
   validateJoinTeamServerInput,
   validateSetTeamCaptainServerInput,
   validateTransferTeamOwnershipServerInput,
-  type CreateTeamInput,
+  type CreateTeamFormInput,
   type JoinTeamInput,
   type SetTeamCaptainInput,
   type TransferTeamOwnershipInput,
@@ -69,7 +69,7 @@ export const createTeam = createServerFn({
   method: "POST",
   strict: { input: false },
 })
-  .validator((input: CreateTeamInput | FormData) =>
+  .validator((input: CreateTeamFormInput | FormData) =>
     validateCreateTeamServerInput(input),
   )
   .handler(async ({ data }) => {

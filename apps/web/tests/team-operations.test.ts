@@ -574,6 +574,8 @@ test("team write validators normalize typed and native inputs without accepting 
       description: "Compete on campus.",
       school_id: "school-1",
       game_ids: ["game-1", "game-2"],
+      igdb_game_ids: [],
+      other_game: "",
       password: "TeamPass8",
       idempotency_key: idempotencyKey,
     },
@@ -649,6 +651,8 @@ test("team mutations use exact Go endpoints, request cookies, and minimal respon
         description: "Description",
         school_id: "school-1",
         game_ids: ["game-1"],
+        igdb_game_ids: [],
+        other_game: "",
         password: "TeamPass8",
         idempotency_key: idempotencyKey,
       },
@@ -755,4 +759,36 @@ test("team writes authorize independently and leave owner checks to Go", async (
     safeTeamMutationMessage(new Error("private response contents")),
     "Something went wrong. Please try again.",
   );
+});
+
+test("a team needs one game from the list, from search, or typed in", () => {
+  const form = new FormData();
+  form.set("name", "Trivia Squad");
+  form.set("description", "");
+  form.set("school_id", "");
+  form.set("password", "TeamPass8");
+  form.set("idempotency_key", idempotencyKey);
+  assert.deepEqual(validateCreateTeamServerInput(form), {
+    valid: false,
+    message: "Check the highlighted fields and try again.",
+    fieldErrors: {
+      game_ids: ["Choose a game, search for one, or type its name."],
+    },
+  });
+
+  form.append("igdb_game_ids", "11198");
+  form.set("other_game", " Campus Trivia ");
+  assert.deepEqual(validateCreateTeamServerInput(form), {
+    valid: true,
+    value: {
+      name: "Trivia Squad",
+      description: "",
+      school_id: "",
+      game_ids: [],
+      igdb_game_ids: [11198],
+      other_game: "Campus Trivia",
+      password: "TeamPass8",
+      idempotency_key: idempotencyKey,
+    },
+  });
 });

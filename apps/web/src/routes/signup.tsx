@@ -1,7 +1,10 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { SignupForm } from "../features/auth-flow-slice/auth-forms";
 import "../features/auth-flow-slice/auth-flow.css";
-import { getSignupSchools } from "../features/auth-flow-slice/auth-flow.functions";
+import {
+  getCurrentPolicies,
+  getSignupSchools,
+} from "../features/auth-flow-slice/auth-flow.functions";
 import { validateSignupSearch } from "../features/auth-flow-slice/contracts";
 import { authPageHead } from "../features/auth-flow-slice/presentation";
 
@@ -11,10 +14,13 @@ const description =
 export const Route = createFileRoute("/signup")({
   validateSearch: validateSignupSearch,
   loaderDeps: ({ search }) => ({ query: search.q ?? "" }),
-  loader: async ({ context, deps }) => ({
-    schoolSearch: await getSignupSchools({ data: deps.query }),
-    publicOrigin: context.publicOrigin,
-  }),
+  loader: async ({ context, deps }) => {
+    const [schoolSearch, policies] = await Promise.all([
+      getSignupSchools({ data: deps.query }),
+      getCurrentPolicies(),
+    ]);
+    return { schoolSearch, policies, publicOrigin: context.publicOrigin };
+  },
   head: ({ loaderData }) =>
     authPageHead(loaderData?.publicOrigin, {
       title: "Sign up",
@@ -26,7 +32,7 @@ export const Route = createFileRoute("/signup")({
 
 function SignupPage() {
   const search = Route.useSearch();
-  const { schoolSearch } = Route.useLoaderData();
+  const { schoolSearch, policies } = Route.useLoaderData();
 
   return (
     <main className="narrow">
@@ -61,6 +67,7 @@ function SignupPage() {
         initialQuery={search.q}
         initialSearchFailed={schoolSearch.failed}
         initialStatus={search.auth}
+        policies={policies}
       />
       <p className="form-footer">
         Already verified? <Link to="/login">Log in</Link>

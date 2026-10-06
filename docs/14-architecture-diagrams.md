@@ -163,7 +163,7 @@ flowchart LR
 
     Admin["Admin Console (release-gated)<br/>TanStack Start"]
     R2["Later Cloudflare R2<br/>school logos"]
-    IGDB["Later IGDB<br/>game enrichment"]
+    IGDB["IGDB<br/>game search, import, covers"]
     Sentry["Sentry<br/>error monitoring"]
 
     User -->|"HTTPS"| Cloudflare --> Web
@@ -178,7 +178,7 @@ flowchart LR
 
     Admin -.->|"shared admin API"| API
     Admin -.-> R2
-    IGDB -.-> Admin
+    API -.->|"admin-started import and refresh"| IGDB
     Web -->|"errors"| Sentry
     API -->|"errors"| Sentry
 

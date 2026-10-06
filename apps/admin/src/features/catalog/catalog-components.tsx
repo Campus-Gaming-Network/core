@@ -21,8 +21,10 @@ import {
   type CatalogMutationResult,
   type CatalogNotice,
   type CatalogSearch,
+  type IGDBMatch,
 } from "./contracts";
 import {
+  importGame,
   runCatalogCommand,
   saveGame,
   saveSchool,
@@ -460,6 +462,69 @@ export function LogoUploadForm({ school }: { school: AdminSchool }) {
  * explicit confirmation; step-up commands send the operator to confirm their
  * identity first when their last step-up is no longer recent.
  */
+function matchTitle(match: IGDBMatch): string {
+  return match.release_year
+    ? `${match.name} (${match.release_year})`
+    : match.name;
+}
+
+/**
+ * Lists IGDB matches and imports the chosen one. A match already in the
+ * catalog links to its record instead.
+ */
+export function GameImportForm({ matches }: { matches: IGDBMatch[] }) {
+  const runImport = useServerFn(importGame);
+  const { submit, pending, feedback } = useCatalogSubmit(runImport, "");
+
+  return (
+    <form
+      action={importGame.url}
+      className="moderation-form"
+      method="post"
+      onSubmit={submit}
+    >
+      <FormFeedback message={feedback.message} />
+      <fieldset>
+        <legend>IGDB matches</legend>
+        {matches.map((match) =>
+          match.game_id ? (
+            <p key={match.igdb_id}>
+              <a href={`/games/${encodeURIComponent(match.game_id)}`}>
+                {matchTitle(match)}
+              </a>{" "}
+              is already in the catalog.
+            </p>
+          ) : (
+            <label className="checkbox-field" key={match.igdb_id}>
+              <input
+                name="igdb_id"
+                required
+                type="radio"
+                value={match.igdb_id}
+              />
+              {matchTitle(match)}
+            </label>
+          ),
+        )}
+        <FieldError
+          id="igdb-id-error"
+          messages={feedback.fieldErrors.igdb_id}
+        />
+      </fieldset>
+      <ReasonField
+        errors={feedback.fieldErrors.reason}
+        idPrefix="game-import"
+      />
+      <button
+        type="submit"
+        disabled={pending || matches.every((match) => match.game_id)}
+      >
+        {pending ? "Importing…" : "Import game"}
+      </button>
+    </form>
+  );
+}
+
 export function CommandForm({
   command,
   id,
@@ -642,6 +707,8 @@ const auditActionLabels: Record<CatalogAuditEntry["action"], string> = {
   "game.created": "Game created",
   "game.updated": "Game updated",
   "game.deleted": "Game deleted",
+  "game.imported": "Game imported from IGDB",
+  "game.refreshed": "Game refreshed from IGDB",
   "user.suspended": "Account suspended",
   "user.reactivated": "Account reactivated",
   "user.trust_changed": "Trust level changed",

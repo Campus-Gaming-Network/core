@@ -6,6 +6,7 @@ import {
   setPrivateNoStoreResponse,
 } from "../../server/request-boundary.server.js";
 import {
+  currentPoliciesOperation,
   forgotPasswordOperation,
   resendVerificationOperation,
   resetPasswordOperation,
@@ -36,6 +37,10 @@ export const getSignupSchools = createServerFn({ method: "GET" })
   .handler(async ({ data }) =>
     signupSchoolSearchOperation(data, { api: goBFFForCurrentRequest() }),
   );
+
+export const getCurrentPolicies = createServerFn({ method: "GET" }).handler(
+  async () => currentPoliciesOperation({ api: goBFFForCurrentRequest() }),
+);
 
 export const signup = createServerFn({
   method: "POST",

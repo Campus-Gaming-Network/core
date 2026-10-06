@@ -11,7 +11,11 @@ import {
   catalogAuditPageSchema,
   catalogCommandPage,
   catalogCommands,
+  gameCoverSchema,
   gamesPageSchema,
+  igdbErrorMessages,
+  igdbErrorNotices,
+  igdbSearchSchema,
   logoErrorMessages,
   logoErrorNotices,
   schoolGrantSchema,
@@ -24,6 +28,8 @@ import {
   type CatalogMutationResult,
   type CatalogSearch,
   type GameFormInput,
+  type GameImportInput,
+  type IGDBMatch,
   type LogoUploadInput,
   type SchoolFormInput,
 } from "./contracts.js";
@@ -113,7 +119,69 @@ export async function getGameDetailOperation(
       responseSchema: catalogAuditPageSchema,
     }),
   ]);
-  return { game: game.data, audit: audit.data };
+  const cover = game.data.has_cover
+    ? await api({
+        path: `/admin/v1/games/${id}/cover`,
+        cookieHeader,
+        responseSchema: gameCoverSchema,
+      })
+    : undefined;
+  return {
+    game: game.data,
+    audit: audit.data,
+    // A data URL, so the stored cover renders without any remote image.
+    coverImage: cover
+      ? `data:${cover.data.content_type};base64,${cover.data.data}`
+      : undefined,
+  };
+}
+
+/**
+ * Searches IGDB through the Go API. An IGDB failure is returned as a message
+ * for the page to show, since the operator can act on it.
+ */
+export async function searchIGDBOperation(
+  query: string | undefined,
+  { api, cookieHeader }: ReadDependencies,
+): Promise<{ query: string; games: IGDBMatch[]; error?: string }> {
+  if (!query || query.length < 2) return { query: query ?? "", games: [] };
+  try {
+    const { data } = await api({
+      path: `/admin/v1/igdb-games?${new URLSearchParams({ q: query })}`,
+      cookieHeader,
+      responseSchema: igdbSearchSchema,
+    });
+    return { query, games: data.games };
+  } catch (error) {
+    if (
+      error instanceof AdminApiError &&
+      Object.hasOwn(igdbErrorMessages, error.code)
+    ) {
+      return {
+        query,
+        games: [],
+        error: igdbErrorMessages[error.code as keyof typeof igdbErrorMessages],
+      };
+    }
+    throw error;
+  }
+}
+
+export async function importGameOperation(
+  input: GameImportInput,
+  dependencies: MutationDependencies,
+): Promise<CatalogMutationResult> {
+  return mutate(dependencies, {
+    request: {
+      path: "/admin/v1/game-imports",
+      method: "POST",
+      body: input,
+      responseSchema: adminGameSchema,
+    },
+    destination: (game) =>
+      `/games/${encodeURIComponent(game.id)}?notice=imported`,
+    returnPath: "/games/import",
+  });
 }
 
 export async function listUsersOperation(
@@ -356,6 +424,16 @@ function commandRequest(input: CatalogCommandInput): {
         },
         reload: { path: `/admin/v1/games/${id}` },
       };
+    case "game.refresh":
+      return {
+        request: {
+          path: `/admin/v1/games/${id}/refresh`,
+          method: "POST",
+          body: command,
+          responseSchema: adminGameSchema,
+        },
+        reload: { path: `/admin/v1/games/${id}` },
+      };
     case "user.suspend":
     case "user.reactivate":
       return {
@@ -401,6 +479,7 @@ function commandRequest(input: CatalogCommandInput): {
 // Messages for the stable Admin API error codes an operator can act on.
 const errorMessages: Record<string, string> = {
   ...logoErrorMessages,
+  ...igdbErrorMessages,
   admin_record_already_exists:
     "Another record already uses that slug or IPEDS unit ID.",
   catalog_dependencies_exist:
@@ -481,7 +560,9 @@ async function mutate<TSchema extends z.ZodType>(
     if (errorMessages[error.code]) {
       const notice = Object.hasOwn(logoErrorNotices, error.code)
         ? logoErrorNotices[error.code as keyof typeof logoErrorNotices]
-        : undefined;
+        : Object.hasOwn(igdbErrorNotices, error.code)
+          ? igdbErrorNotices[error.code as keyof typeof igdbErrorNotices]
+          : undefined;
       return {
         status: "error",
         message: errorMessages[error.code],

@@ -33,6 +33,7 @@ test("public auth recovery and private account mutations work through the runtim
   await page.getByLabel("Password").fill(password);
   await page.getByLabel("Home school").selectOption("school-e2e");
   await page.getByRole("checkbox", { name: /18 or older/ }).check();
+  await page.getByRole("checkbox", { name: /agree to the Terms/ }).check();
   await page.getByRole("button", { name: "Create account" }).click();
   await expect(
     page.getByText("Account created. Check your email"),
@@ -134,6 +135,13 @@ test("event create, report, interest, edit, and cancellation work through the ru
   await page.getByLabel("Ends at").fill("2037-08-15T16:00");
   await page.getByLabel("Location name").fill("Browser Student Union");
   await page.getByLabel("Games").selectOption("game-e2e");
+  // A game the list does not offer is found through search and added.
+  await page.getByLabel("Search for another game").fill("rocket");
+  await expect(page.getByText("2 games found.")).toBeVisible();
+  await page.getByRole("button", { name: "Add Rocket League" }).click();
+  await expect(
+    page.getByRole("list", { name: "Added games" }).getByRole("listitem"),
+  ).toHaveText(/Rocket League \(2015\)/);
   await page.getByLabel("Capacity").fill("24");
   await page.getByRole("button", { name: "Create event" }).click();
 
@@ -143,6 +151,7 @@ test("event create, report, interest, edit, and cancellation work through the ru
   await expect(
     page.getByRole("heading", { name: "Browser Campus Tournament", level: 1 }),
   ).toBeVisible();
+  await expect(page.getByText("Strategy Arena, Rocket League")).toBeVisible();
   await expect(page.getByText("Event created.")).toBeVisible();
 
   await page.getByText("Report this event").click();

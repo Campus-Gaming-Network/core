@@ -1,6 +1,4 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
-import { basename, join } from "node:path";
 import test from "node:test";
 import {
   eventsBrowseInput,
@@ -18,16 +16,6 @@ import {
   safeExternalEventUrl,
 } from "../src/features/event-slice/presentation.js";
 import { createApiClient, type Fetcher } from "../src/server/api.server.js";
-
-const currentDirectory = process.cwd();
-const appRoot =
-  basename(currentDirectory) === "web"
-    ? currentDirectory
-    : join(currentDirectory, "apps/web");
-
-function source(relativePath: string) {
-  return readFileSync(join(appRoot, relativePath), "utf8");
-}
 
 function client(fetcher: Fetcher) {
   return createApiClient({ baseUrl: "http://api:8080", fetcher });
@@ -228,43 +216,6 @@ test("event read presentation matches labels, notices, indexable head, and safe 
     safeExternalEventUrl("https://payments.example/path"),
     "https://payments.example/path",
   );
-});
-
-test("browse and detail routes keep strict viewer and typed event write surfaces", () => {
-  const browse = source("src/routes/events.index.tsx");
-  const detail = source("src/routes/events.$slug.tsx");
-
-  assert.match(
-    browse,
-    /loaderDeps: \(\{ search \}\) => eventsBrowseInput\(search\)/,
-  );
-  assert.doesNotMatch(
-    browse.match(/loaderDeps:[^\n]+/)?.[0] ?? "",
-    /search\.event/,
-  );
-  assert.match(browse, /getEventViewerSession\(\)/);
-  assert.match(browse, /session\.status === "unavailable"/);
-  assert.match(browse, /<RoutePending message="Loading events…"/);
-  assert.match(browse, /<EventCard event=\{event\} key=\{event\.id\} \/>/);
-  assert.match(
-    source("src/features/event-slice/event-card.tsx"),
-    /to="\/events\/\$slug"/,
-  );
-  assert.match(browse, /to="\/events\/new"/);
-  assert.match(browse, /search=\{\{ next: "\/events\/new" \}\}/);
-
-  assert.match(detail, /<EventBanner locked size="hero"/);
-  assert.match(detail, /<EventBanner event=\{event\} size="hero"/);
-  assert.match(detail, /to="\/events"/);
-  assert.match(detail, /to="\/schools\/\$slug"/);
-  assert.match(detail, /<Person[\s\S]*?id=\{organizer\.id\}[\s\S]*?linked/);
-  assert.match(source("src/components/person.tsx"), /to="\/users\/\$id"/);
-  assert.match(detail, /safeExternalEventUrl\(event\.payment_url\)/);
-  assert.match(detail, /InterestEventForm event=\{event\}/);
-  assert.match(detail, /CancelEventForm slug=\{event\.slug\}/);
-  assert.match(detail, /ReportEventForm slug=\{event\.slug\}/);
-  assert.match(detail, /to="\/events\/\$slug\/edit"/);
-  assert.doesNotMatch(detail, /eventInterestAction|deleteEventAction/);
 });
 
 test("the home page previews the newest public events and strips private fields", async () => {

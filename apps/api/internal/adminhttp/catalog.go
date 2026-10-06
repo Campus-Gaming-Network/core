@@ -12,6 +12,7 @@ import (
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminmutation"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/apperror"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/games"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/igdb"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/logoimage"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/operations"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/schools"
@@ -37,6 +38,12 @@ type AdminGames interface {
 	CreateAdmin(context.Context, games.AdminEdit) (games.AdminGame, error)
 	UpdateAdmin(context.Context, string, games.AdminEdit) (games.AdminGame, error)
 	DeleteAdmin(context.Context, string, adminmutation.Command) (games.AdminGame, error)
+	AdminCover(context.Context, string) (games.Cover, error)
+}
+type AdminIGDB interface {
+	SearchIGDB(context.Context, string) ([]games.IGDBResult, error)
+	ImportFromIGDB(context.Context, games.IGDBImport) (games.AdminGame, error)
+	RefreshFromIGDB(context.Context, string, adminmutation.Command) (games.AdminGame, error)
 }
 type AdminUsers interface {
 	ListAdmin(context.Context, adminmutation.Filter) ([]users.AdminUser, error)
@@ -67,6 +74,8 @@ type CatalogDependencies struct {
 	Audit      AuditReader
 	// Logos is nil when logo storage is not configured.
 	Logos AdminLogos
+	// IGDB is nil when the IGDB credentials are not configured.
+	IGDB AdminIGDB
 }
 
 var catalogRoutes = []routePolicy{
@@ -88,6 +97,10 @@ var catalogRoutes = []routePolicy{
 	{Method: "GET", Path: "/admin/v1/games/{id}", Control: controlCapability, Capability: adminaccess.CapabilityGamesManage, Operation: "games.get"},
 	{Method: "PATCH", Path: "/admin/v1/games/{id}", Control: controlCapability, Capability: adminaccess.CapabilityGamesManage, Mutation: true, Operation: "games.update"},
 	{Method: "DELETE", Path: "/admin/v1/games/{id}", Control: controlCapability, Capability: adminaccess.CapabilityGamesManage, Mutation: true, Operation: "games.delete"},
+	{Method: "GET", Path: "/admin/v1/games/{id}/cover", Control: controlCapability, Capability: adminaccess.CapabilityGamesManage, Operation: "games.cover"},
+	{Method: "GET", Path: "/admin/v1/igdb-games", Control: controlCapability, Capability: adminaccess.CapabilityGamesManage, Operation: "games.igdb_search"},
+	{Method: "POST", Path: "/admin/v1/game-imports", Control: controlCapability, Capability: adminaccess.CapabilityGamesManage, Mutation: true, Operation: "games.import"},
+	{Method: "POST", Path: "/admin/v1/games/{id}/refresh", Control: controlCapability, Capability: adminaccess.CapabilityGamesManage, Mutation: true, Operation: "games.refresh"},
 	{Method: "GET", Path: "/admin/v1/users", Control: controlCapability, Capability: adminaccess.CapabilityUsersRead, Operation: "users.list"},
 	{Method: "GET", Path: "/admin/v1/users/{id}", Control: controlCapability, Capability: adminaccess.CapabilityUsersRead, Operation: "users.get"},
 	{Method: "POST", Path: "/admin/v1/users/{id}/suspend", Control: controlCapability, Capability: adminaccess.CapabilityUsersManageStatus, Mutation: true, RequiresRecentAuth: true, Operation: "users.suspend"},
@@ -112,6 +125,10 @@ func (handler *Handler) catalogHandler(operation routeOperation, id string) http
 		}
 		if id != "" && !validAdminUUID(id) {
 			writeAdminApplicationError(w, req, adminmutation.ErrNotFound, "admin_unavailable")
+			return
+		}
+		if (operation == "games.igdb_search" || operation == "games.import" || operation == "games.refresh") && deps.IGDB == nil {
+			writeError(w, http.StatusServiceUnavailable, "igdb_not_configured")
 			return
 		}
 		if req.Method == http.MethodGet {
@@ -149,6 +166,19 @@ func (handler *Handler) catalogHandler(operation routeOperation, id string) http
 			} else {
 				result, err = deps.Games.UpdateAdmin(req.Context(), id, input)
 			}
+		case "games.import":
+			var input games.IGDBImport
+			if err = decodeAdminJSON(w, req, &input); err != nil {
+				break
+			}
+			input.Correlation = correlation
+			var game games.AdminGame
+			game, err = deps.IGDB.ImportFromIGDB(req.Context(), input)
+			if errors.Is(err, games.ErrAlreadyImported) {
+				writeJSON(w, http.StatusConflict, map[string]any{"error": "game_already_imported", "current": game})
+				return
+			}
+			result, status = game, http.StatusCreated
 		case "school_logos.upload", "school_logos.remove":
 			if deps.Logos == nil {
 				writeError(w, http.StatusServiceUnavailable, "logo_storage_unavailable")
@@ -232,6 +262,8 @@ func (handler *Handler) catalogHandler(operation routeOperation, id string) http
 				schoolChanged = err == nil
 			case "games.delete":
 				result, err = deps.Games.DeleteAdmin(req.Context(), id, command)
+			case "games.refresh":
+				result, err = deps.IGDB.RefreshFromIGDB(req.Context(), id, command)
 			case "users.suspend":
 				result, err = deps.Users.SuspendAdmin(req.Context(), id, command)
 			case "users.reactivate":
@@ -266,13 +298,16 @@ func (handler *Handler) catalogHandler(operation routeOperation, id string) http
 				writeError(w, http.StatusUnprocessableEntity, "logo_dimensions_exceeded")
 				return
 			}
+			if writeIGDBError(w, err) {
+				return
+			}
 			if errors.Is(err, adminmutation.ErrConflict) {
 				var current any
 				var readErr error
 				switch operation {
 				case "schools.update", "schools.deactivate", "schools.reactivate", "schools.delete", "school_logos.upload", "school_logos.remove":
 					current, readErr = deps.Schools.GetAdmin(req.Context(), id)
-				case "games.update", "games.delete":
+				case "games.update", "games.delete", "games.refresh":
 					current, readErr = deps.Games.GetAdmin(req.Context(), id)
 				case "users.suspend", "users.reactivate", "users.trust":
 					current, readErr = deps.Users.GetAdmin(req.Context(), id)
@@ -308,6 +343,21 @@ func (handler *Handler) catalogRead(w http.ResponseWriter, req *http.Request, ac
 		result, err = deps.Schools.GetAdmin(req.Context(), id)
 	case "games.get":
 		result, err = deps.Games.GetAdmin(req.Context(), id)
+	case "games.cover":
+		var cover games.Cover
+		if cover, err = deps.Games.AdminCover(req.Context(), id); err != nil {
+			break
+		}
+		// The bytes travel base64-encoded in JSON, so the Admin Console shows
+		// the cover from its own page and loads no image from another origin.
+		result = map[string]any{"content_type": cover.ContentType, "data": cover.Bytes}
+	case "games.igdb_search":
+		if err = validateQueryKeys(req.URL.Query(), map[string]struct{}{"q": {}}); err != nil {
+			break
+		}
+		var matches []games.IGDBResult
+		matches, err = deps.IGDB.SearchIGDB(req.Context(), req.URL.Query().Get("q"))
+		result = map[string]any{"games": matches}
 	case "users.get":
 		result, err = deps.Users.GetAdmin(req.Context(), id)
 	case "schools.audit", "games.audit", "users.audit", "site_grants.audit", "school_grants.audit":
@@ -382,6 +432,9 @@ func (handler *Handler) catalogRead(w http.ResponseWriter, req *http.Request, ac
 		}
 	}
 	if err != nil {
+		if writeIGDBError(w, err) {
+			return
+		}
 		writeAdminApplicationError(w, req, err, "admin_query_failed")
 		return
 	}
@@ -425,4 +478,22 @@ func parseCatalogFilter(req *http.Request, extra ...string) (adminmutation.Filte
 func catalogPage[T any](key string, items []T, filter adminmutation.Filter, position func(T) (time.Time, string)) map[string]any {
 	page := makeCursorPage(items, filter.Limit, filter.After, filter.Before, position)
 	return map[string]any{key: page.Items, "next_cursor": page.NextCursor, "previous_cursor": page.PreviousCursor}
+}
+
+// writeIGDBError answers an IGDB failure with its own code, so the Admin
+// Console can tell an outage from a rate limit or an unusable cover.
+func writeIGDBError(w http.ResponseWriter, err error) bool {
+	switch {
+	case errors.Is(err, igdb.ErrNotFound):
+		writeError(w, http.StatusNotFound, "igdb_game_not_found")
+	case errors.Is(err, igdb.ErrRateLimited):
+		writeError(w, http.StatusServiceUnavailable, "igdb_rate_limited")
+	case errors.Is(err, igdb.ErrUnavailable):
+		writeError(w, http.StatusBadGateway, "igdb_unavailable")
+	case errors.Is(err, igdb.ErrCoverTooLarge), errors.Is(err, igdb.ErrCoverUnsupported):
+		writeError(w, http.StatusUnprocessableEntity, "igdb_cover_unusable")
+	default:
+		return false
+	}
+	return true
 }

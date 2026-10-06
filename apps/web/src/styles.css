@@ -681,6 +681,11 @@ main {
   color: var(--color-muted);
 }
 
+.policy-version {
+  color: var(--color-muted);
+  font-size: 0.9rem;
+}
+
 .school-logo {
   flex: none;
   border-radius: var(--radius-small);

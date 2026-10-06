@@ -4,6 +4,7 @@ import {
   type ApiClient,
 } from "../../server/api.server.js";
 import { optionalViewerProfile } from "../../server/viewer.server.js";
+import { gamePickerErrorMessages } from "../game-picker/contracts.js";
 import {
   gamesResponseDtoSchema,
   schoolsResponseDtoSchema,
@@ -334,6 +335,7 @@ export function safeTeamMutationMessage(error: unknown): string {
     database_unavailable: "The service is starting up. Try again in a moment.",
     idempotency_key_reused:
       "This form was already submitted. Reload the page and try again.",
+    ...gamePickerErrorMessages,
     invalid_request: "Check the form fields and try again.",
     invalid_team_password: "That team password did not match.",
     invalid_team_role: "Choose a valid team member and role.",

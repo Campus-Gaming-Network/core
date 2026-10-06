@@ -9,6 +9,7 @@ import {
 import { FormField } from "../../components/form-field";
 import { FormSection } from "../../components/form-section";
 import type { SchoolDTO } from "../school-slice/contracts";
+import type { SignupPolicies } from "./contracts";
 import {
   forgotPassword,
   resendVerification,
@@ -25,12 +26,15 @@ export function SignupForm({
   initialQuery,
   initialSearchFailed,
   initialStatus,
+  policies,
 }: {
   schools: SchoolDTO[];
   selectedSchoolId?: string;
   initialQuery?: string;
   initialSearchFailed?: boolean;
   initialStatus?: "created" | "failed";
+  /** Undefined when the current versions could not be read. */
+  policies: SignupPolicies | undefined;
 }) {
   const runSignup = useServerFn(signup);
   const mutation = useAuthMutation(
@@ -59,6 +63,7 @@ export function SignupForm({
           timezone: "timezone-error",
           home_school_id: "home_school_id-error",
           age_confirmed: "age_confirmed-error",
+          policies_accepted: "policies_accepted-error",
         }}
         status={
           mutation.message
@@ -163,8 +168,66 @@ export function SignupForm({
           messages={mutation.fieldErrors.age_confirmed}
         />
       </FormSection>
+      <FormSection
+        title="Terms and privacy"
+        description="Read both before you create an account. The links open the exact versions you are accepting."
+      >
+        {policies ? (
+          <>
+            <input
+              name="terms_version"
+              type="hidden"
+              value={policies.termsVersion}
+            />
+            <input
+              name="privacy_version"
+              type="hidden"
+              value={policies.privacyVersion}
+            />
+            <label className="checkbox-field">
+              <input
+                type="checkbox"
+                name="policies_accepted"
+                required
+                {...fieldErrorProps(
+                  mutation.fieldErrors.policies_accepted,
+                  "policies_accepted-error",
+                )}
+              />
+              <span>
+                I agree to the{" "}
+                <Link
+                  search={{ version: policies.termsVersion }}
+                  target="_blank"
+                  to="/terms"
+                >
+                  Terms
+                </Link>{" "}
+                and acknowledge the{" "}
+                <Link
+                  search={{ version: policies.privacyVersion }}
+                  target="_blank"
+                  to="/privacy"
+                >
+                  Privacy Policy
+                </Link>
+                .
+              </span>
+            </label>
+            <FieldError
+              id="policies_accepted-error"
+              messages={mutation.fieldErrors.policies_accepted}
+            />
+          </>
+        ) : (
+          <p role="alert">
+            Sign up is unavailable right now because the Terms and Privacy
+            Policy could not be loaded. Reload the page to try again.
+          </p>
+        )}
+      </FormSection>
       <div className="form-actions">
-        <button type="submit" disabled={mutation.pending}>
+        <button type="submit" disabled={mutation.pending || !policies}>
           {mutation.pending ? "Creating account…" : "Create account"}
         </button>
       </div>

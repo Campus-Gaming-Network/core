@@ -1,3 +1,4 @@
+import { GamePickerExtras } from "../components/game-picker";
 import {
   Link,
   createFileRoute,
@@ -154,21 +155,8 @@ function CreateTeamForm({
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    await mutation.execute(() =>
-      runCreateTeam({
-        data: {
-          name: String(form.get("name") ?? ""),
-          description: String(form.get("description") ?? ""),
-          school_id: String(form.get("school_id") ?? ""),
-          game_ids: form
-            .getAll("game_ids")
-            .filter((value): value is string => typeof value === "string"),
-          password: String(form.get("password") ?? ""),
-          idempotency_key: idempotency.key,
-        },
-      }),
-    );
+    const data = new FormData(event.currentTarget);
+    await mutation.execute(() => runCreateTeam({ data }));
   }
 
   const schoolOptions = uniqueSchools(schools, defaultSchoolID);
@@ -193,6 +181,7 @@ function CreateTeamForm({
           description: "team-description-error",
           school_id: "team-school-error",
           game_ids: "team-games-error",
+          other_game: "team-other-game-error",
           password: "team-password-error",
         }}
         message={
@@ -259,6 +248,10 @@ function CreateTeamForm({
           </div>
           <FieldError id="team-games-error" messages={gameErrors} />
         </fieldset>
+        <GamePickerExtras
+          otherGameErrorId="team-other-game-error"
+          otherGameErrors={mutation.fieldErrors.other_game}
+        />
       </FormSection>
 
       <FormSection

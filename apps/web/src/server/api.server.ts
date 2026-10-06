@@ -1,4 +1,5 @@
 import type * as z from "zod";
+import { gamePickerErrorMessages } from "../features/game-picker/contracts.js";
 
 export type Fetcher = (
   input: string | URL | Request,
@@ -133,6 +134,7 @@ export function safeApiErrorMessage(error: unknown): string {
     email_not_verified: "Please verify your email before logging in.",
     event_full: "That event is full.",
     event_not_found: "That event could not be found.",
+    ...gamePickerErrorMessages,
     event_rsvp_closed: "RSVPs are closed for that event.",
     event_rsvp_email_failed:
       "Your RSVP was saved, but we could not send the confirmation email.",

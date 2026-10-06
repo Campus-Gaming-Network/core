@@ -14,6 +14,7 @@ import (
 
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/apperror"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/auth"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/policies"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/users"
 	"github.com/jackc/pgx/v5"
 )
@@ -25,6 +26,12 @@ type signupRequest struct {
 	HomeSchoolID string `json:"home_school_id"`
 	AgeConfirmed bool   `json:"age_confirmed"`
 	Timezone     string `json:"timezone"`
+	// The person agrees to the Terms and acknowledges the Privacy Policy, each
+	// at the exact version they were shown.
+	TermsAgreed         bool   `json:"terms_agreed"`
+	TermsVersion        string `json:"terms_version"`
+	PrivacyAcknowledged bool   `json:"privacy_acknowledged"`
+	PrivacyVersion      string `json:"privacy_version"`
 }
 
 type loginRequest struct {
@@ -83,6 +90,12 @@ func (r *Router) handleSignup(w http.ResponseWriter, req *http.Request) {
 		HomeSchoolID: input.HomeSchoolID,
 		AgeConfirmed: input.AgeConfirmed,
 		Timezone:     input.Timezone,
+		Policies: policies.Claim{
+			TermsAgreed:         input.TermsAgreed,
+			TermsVersion:        input.TermsVersion,
+			PrivacyAcknowledged: input.PrivacyAcknowledged,
+			PrivacyVersion:      input.PrivacyVersion,
+		},
 	})
 	if err != nil {
 		if users.IsDuplicateEmail(err) {
@@ -466,4 +479,40 @@ func writeProfileError(w http.ResponseWriter, err error) {
 		err = apperror.Wrap(apperror.KindNotFound, "user_not_found", err)
 	}
 	writeApplicationError(w, err, "profile_unavailable")
+}
+
+// handleCurrentPolicies returns the Terms and Privacy versions in effect, so a
+// signup form can show and name the exact versions a person accepts.
+func (r *Router) handleCurrentPolicies(w http.ResponseWriter, req *http.Request) {
+	if r.policies == nil {
+		writeError(w, http.StatusServiceUnavailable, "database_unavailable")
+		return
+	}
+	current, err := r.policies.Current(req.Context(), time.Now())
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "policies_unavailable")
+		return
+	}
+	w.Header().Set("Cache-Control", "no-store")
+	writeJSON(w, http.StatusOK, current)
+}
+
+// handleMyPolicyAcceptances lists the versions the signed-in user accepted.
+func (r *Router) handleMyPolicyAcceptances(w http.ResponseWriter, req *http.Request) {
+	if r.policies == nil {
+		writeError(w, http.StatusServiceUnavailable, "database_unavailable")
+		return
+	}
+	userID, err := auth.RequireUser(req.Context())
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, "authentication_required")
+		return
+	}
+	acceptances, err := r.policies.ListAcceptances(req.Context(), userID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "policy_acceptances_unavailable")
+		return
+	}
+	w.Header().Set("Cache-Control", "private, no-store")
+	writeJSON(w, http.StatusOK, map[string]any{"acceptances": acceptances})
 }

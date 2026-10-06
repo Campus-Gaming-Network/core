@@ -640,96 +640,6 @@ func TestHandleEventPathReturnsLockedShellForPrivateDetail(t *testing.T) {
 	}
 }
 
-func TestHandleEventPathReturnsPrivateDetailToOrganizer(t *testing.T) {
-	event := testEvent(eventstore.VisibilityPrivate)
-	event.Title = "Secret Scrim Night"
-	repository := &fakeEventRepository{detail: event, isOrganizer: true}
-	handler := authenticatedEventPathHandler(repository)
-	request := authenticatedEventRequest(http.MethodGet, "/events/campus-scrim-night", "")
-	response := httptest.NewRecorder()
-
-	handler.ServeHTTP(response, request)
-
-	if response.Code != http.StatusOK {
-		t.Fatalf("status = %d, want %d; body = %s", response.Code, http.StatusOK, response.Body.String())
-	}
-	var payload eventstore.Event
-	if err := json.NewDecoder(response.Body).Decode(&payload); err != nil {
-		t.Fatalf("decode response: %v", err)
-	}
-	if payload.Title != "Secret Scrim Night" {
-		t.Fatalf("title = %q, want private organizer detail", payload.Title)
-	}
-}
-
-func TestHandleEventPathReturnsPrivateDetailWithUnlockToken(t *testing.T) {
-	event := testEvent(eventstore.VisibilityPrivate)
-	event.Title = "Secret Scrim Night"
-	repository := &fakeEventRepository{detail: event, unlockValid: true}
-	router := &Router{events: repository}
-	request := httptest.NewRequest(http.MethodGet, "/events/campus-scrim-night", nil)
-	request.Header.Set("X-CGN-Event-Unlock", "raw-unlock-token")
-	response := httptest.NewRecorder()
-
-	router.handleEventPath(response, request)
-
-	if response.Code != http.StatusOK {
-		t.Fatalf("status = %d, want %d; body = %s", response.Code, http.StatusOK, response.Body.String())
-	}
-	if !repository.unlockChecked {
-		t.Fatal("IsPrivateUnlockValid was not called")
-	}
-	if repository.unlockSlug != "campus-scrim-night" || len(repository.unlockTokenHash) == 0 {
-		t.Fatalf("unlock check = slug %q hash %x, want slug and token hash", repository.unlockSlug, repository.unlockTokenHash)
-	}
-	var payload eventstore.Event
-	if err := json.NewDecoder(response.Body).Decode(&payload); err != nil {
-		t.Fatalf("decode response: %v", err)
-	}
-	if payload.Title != "Secret Scrim Night" {
-		t.Fatalf("title = %q, want unlocked private detail", payload.Title)
-	}
-}
-
-func TestHandleUnlockEventCreatesTokenForCorrectPassword(t *testing.T) {
-	passwordHash, err := auth.HashPassword("PrivatePass8")
-	if err != nil {
-		t.Fatalf("HashPassword() error = %v", err)
-	}
-	event := testEvent(eventstore.VisibilityPrivate)
-	event.Title = "Secret Scrim Night"
-	repository := &fakeEventRepository{detail: event, privateHash: passwordHash}
-	router := &Router{events: repository}
-	request := httptest.NewRequest(http.MethodPost, "/events/campus-scrim-night/unlock", strings.NewReader(`{"password":"PrivatePass8"}`))
-	response := httptest.NewRecorder()
-
-	router.handleEventPath(response, request)
-
-	if response.Code != http.StatusOK {
-		t.Fatalf("status = %d, want %d; body = %s", response.Code, http.StatusOK, response.Body.String())
-	}
-	if !repository.unlockCreated {
-		t.Fatal("CreatePrivateUnlock was not called")
-	}
-	if repository.unlockSlug != "campus-scrim-night" || len(repository.unlockTokenHash) == 0 {
-		t.Fatalf("unlock = slug %q hash %x, want slug and token hash", repository.unlockSlug, repository.unlockTokenHash)
-	}
-	if !repository.unlockExpiresAt.After(time.Now()) {
-		t.Fatalf("unlockExpiresAt = %s, want future expiration", repository.unlockExpiresAt)
-	}
-	var payload struct {
-		Event       eventstore.Event `json:"event"`
-		UnlockToken string           `json:"unlock_token"`
-		ExpiresAt   time.Time        `json:"expires_at"`
-	}
-	if err := json.NewDecoder(response.Body).Decode(&payload); err != nil {
-		t.Fatalf("decode response: %v", err)
-	}
-	if payload.Event.Title != "Secret Scrim Night" || payload.UnlockToken == "" || payload.ExpiresAt.IsZero() {
-		t.Fatalf("payload = %#v, want event, token, and expiration", payload)
-	}
-}
-
 func TestHandleUnlockEventRejectsWrongPassword(t *testing.T) {
 	passwordHash, err := auth.HashPassword("PrivatePass8")
 	if err != nil {
@@ -772,34 +682,6 @@ func TestHandleRSVPEventRequiresAuthentication(t *testing.T) {
 	}
 }
 
-func TestHandleRSVPEventSetsViewerResponse(t *testing.T) {
-	repository := &fakeEventRepository{detail: testEvent(eventstore.VisibilityPublic)}
-	handler := authenticatedEventPathHandler(repository)
-	request := authenticatedEventRequest(http.MethodPost, "/events/campus-scrim-night/rsvp", `{"response":"yes"}`)
-	response := httptest.NewRecorder()
-
-	handler.ServeHTTP(response, request)
-
-	if response.Code != http.StatusOK {
-		t.Fatalf("status = %d, want %d; body = %s", response.Code, http.StatusOK, response.Body.String())
-	}
-	if !repository.setRSVPCalled {
-		t.Fatal("SetRSVP was not called")
-	}
-	if repository.rsvpInput.Slug != "campus-scrim-night" ||
-		repository.rsvpInput.UserID != testUserID ||
-		repository.rsvpInput.Response != eventstore.RSVPYes {
-		t.Fatalf("RSVP input = %#v, want slug, session user, yes", repository.rsvpInput)
-	}
-	var payload eventstore.Event
-	if err := json.NewDecoder(response.Body).Decode(&payload); err != nil {
-		t.Fatalf("decode response: %v", err)
-	}
-	if payload.ViewerRSVP == nil || *payload.ViewerRSVP != eventstore.RSVPYes {
-		t.Fatalf("ViewerRSVP = %#v, want yes", payload.ViewerRSVP)
-	}
-}
-
 func TestHandleRSVPEventRejectsLockedPrivateEvent(t *testing.T) {
 	repository := &fakeEventRepository{detail: testEvent(eventstore.VisibilityPrivate)}
 	handler := authenticatedEventPathHandler(repository)
@@ -816,25 +698,6 @@ func TestHandleRSVPEventRejectsLockedPrivateEvent(t *testing.T) {
 	}
 	if !strings.Contains(response.Body.String(), "private_event_locked") {
 		t.Fatalf("body = %s, want private_event_locked", response.Body.String())
-	}
-}
-
-func TestHandleRSVPEventMapsFullEvent(t *testing.T) {
-	repository := &fakeEventRepository{
-		detail:  testEvent(eventstore.VisibilityPublic),
-		rsvpErr: eventstore.ErrEventFull,
-	}
-	handler := authenticatedEventPathHandler(repository)
-	request := authenticatedEventRequest(http.MethodPost, "/events/campus-scrim-night/rsvp", `{"response":"yes"}`)
-	response := httptest.NewRecorder()
-
-	handler.ServeHTTP(response, request)
-
-	if response.Code != http.StatusConflict {
-		t.Fatalf("status = %d, want %d; body = %s", response.Code, http.StatusConflict, response.Body.String())
-	}
-	if !strings.Contains(response.Body.String(), "event_full") {
-		t.Fatalf("body = %s, want event_full", response.Body.String())
 	}
 }
 

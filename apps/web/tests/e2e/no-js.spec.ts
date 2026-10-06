@@ -31,6 +31,7 @@ test("public auth and support forms complete without JavaScript", async ({
   await page.getByLabel("Password").fill(password);
   await page.getByLabel("Home school").selectOption("school-e2e");
   await page.getByRole("checkbox", { name: /18 or older/ }).check();
+  await page.getByRole("checkbox", { name: /agree to the Terms/ }).check();
   await page.getByRole("button", { name: "Create account" }).click();
   await expect(page).toHaveURL(/\/signup\?auth=created$/);
   await expect(
@@ -240,12 +241,15 @@ test("team forms complete without JavaScript", async ({ context, page }) => {
   await page
     .getByLabel("Description")
     .fill("A team created through a native form submission.");
-  await page.getByRole("checkbox", { name: "Strategy Arena" }).check();
+  // No listed game fits, so the name is typed. Search needs JavaScript.
+  await expect(page.getByLabel("Search for another game")).toHaveCount(0);
+  await page.getByLabel("Game not listed?").fill("Campus Trivia Night");
   await page.getByLabel("Join password").fill("BrowserTeamPass123!");
   await page.getByRole("button", { name: "Create team" }).click();
   await expect(page).toHaveURL(
     /\/teams\/no-javascript-team-[^?]+\?team=created$/,
   );
+  await expect(page.getByText("Campus Trivia Night")).toBeVisible();
 
   await page.getByRole("button", { name: "Make captain" }).click();
   await expect(page).toHaveURL(/\?team=captain-updated$/);
