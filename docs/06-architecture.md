@@ -28,7 +28,7 @@ Side paths:
   Admin Console (TanStack Start, separate deploy; release-gated) ──► Go API
   Resend ──► transactional mail + ICS
   Cloudflare R2 ──► school logos (Admin Console); other uploads later
-  Sentry ──► errors (later)
+  Sentry ──► errors
   Cloudflare ──► DNS / edge protection
   IGDB ──► later game enrichment (via Admin Console / cron); uses the curated seed list
 ```
@@ -55,7 +55,7 @@ See [14 — Architecture diagrams](./14-architecture-diagrams.md) for Mermaid vi
 | Admin Console    | TanStack Start                                                | `apps/admin`, a separate release at admin.campusgamingnetwork.com; in progress and release-gated   |
 | Email            | Resend                                                        | Verification, password reset, RSVP+ICS, etc.                                                       |
 | Object storage   | Cloudflare R2                                                 | School logos via Admin Console (PNG/JPG ≤5 MB); custom event banners later                         |
-| Errors           | Sentry                                                        | API panics and unexpected 500s when `SENTRY_DSN` is set; web app later; never the Admin Console    |
+| Errors           | Sentry                                                        | Web (server and browser) and API failures when `SENTRY_DSN` is set; never the Admin Console        |
 | Avatars          | Boring Avatars Beam drawn by the web app (`/api/avatars/:id`) | No avatar service is contacted; custom avatars later                                               |
 | Maps             | Google Maps embed (mini)                                      | Later nicety; address text first                                                                   |
 | Games data       | Curated seed; IGDB later                                      | Not user-editable; Admin Console takes over management                                             |
@@ -163,14 +163,14 @@ The school and game catalogs are effectively static — roughly 6,200 schools gr
 
 ## Observability
 
-| Concern        | Approach                                                                                 |
-| -------------- | ---------------------------------------------------------------------------------------- |
-| Errors         | App/system logs; the API also reports to Sentry (`internal/errormonitor`), web app later |
-| Health         | Dedicated health checks                                                                  |
-| Audit          | Later polymorphic `audit_logs` (who changed what on which entity)                        |
-| System logs    | App/ops logging (distinct from audit)                                                    |
-| User activity  | Later user-visible activity history                                                      |
-| Entity history | Later school, team, and event change history                                             |
+| Concern        | Approach                                                                                                                                                |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Errors         | App/system logs; the API (`internal/errormonitor`) and the web app (`src/server/error-monitor.server.ts`, `src/error-monitor.ts`) also report to Sentry |
+| Health         | Dedicated health checks                                                                                                                                 |
+| Audit          | Later polymorphic `audit_logs` (who changed what on which entity)                                                                                       |
+| System logs    | App/ops logging (distinct from audit)                                                                                                                   |
+| User activity  | Later user-visible activity history                                                                                                                     |
+| Entity history | Later school, team, and event change history                                                                                                            |
 
 ## Feature flags (later)
 

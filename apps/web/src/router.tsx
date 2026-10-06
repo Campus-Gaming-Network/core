@@ -12,6 +12,11 @@ export function getRouter() {
     defaultPendingComponent: DefaultPending,
     defaultErrorComponent: DefaultError,
     defaultNotFoundComponent: DefaultNotFound,
+    defaultOnCatch: (error) => {
+      void import("./error-monitor").then(({ reportBrowserError }) =>
+        reportBrowserError(error),
+      );
+    },
     scrollRestoration: true,
   });
 }

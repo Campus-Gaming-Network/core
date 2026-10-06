@@ -12,7 +12,7 @@ test("installs explicit fail-closed CSRF middleware for server functions", async
     (candidate) => Reflect.get(candidate, csrfSymbol) === true,
   );
   assert.ok(middleware);
-  assert.equal(middlewares.length, 2);
+  assert.equal(middlewares.length, 3);
 
   const origin = process.env.SITE_URL
     ? new URL(process.env.SITE_URL).origin
@@ -55,9 +55,8 @@ test("installs explicit fail-closed CSRF middleware for server functions", async
 
 test("request middleware adds security headers without weakening route policy", async () => {
   const options = await startInstance.getOptions();
-  const middleware = options.requestMiddleware?.find(
-    (candidate) => Reflect.get(candidate, csrfSymbol) !== true,
-  );
+  // Error reporting is first, the security headers second, and CSRF last.
+  const middleware = options.requestMiddleware?.[1];
   assert.ok(middleware?.options.server);
   const request = new Request("https://campus.example.test/reset-password");
   const result = await middleware.options.server({

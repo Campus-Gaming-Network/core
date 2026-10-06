@@ -6,7 +6,7 @@ Phased delivery for a single developer. Each phase should be shippable. Do not p
 
 **Infra:** Railway (TanStack Start web, Go API, PostgreSQL) · Cloudflare DNS/protection · Resend email (`events@` / `account@`) · curated launch games (6 titles). `notifications@` and `support@` workflows, plus Cloudflare R2 for Admin Console logo uploads, are later.
 
-**Not yet scheduled:** Sentry/error monitoring, clubs, tournaments, on-site payments, usernames, waitlists, team invite links, feature flags, near-you, custom event banner uploads. Admin Console v1 is in progress but remains release-gated and undeployed.
+**Not yet scheduled:** clubs, tournaments, on-site payments, usernames, waitlists, team invite links, feature flags, near-you, custom event banner uploads. Admin Console v1 is in progress but remains release-gated and undeployed.
 
 **School seed:** import all 6,243 operating schools (4,943 main · 1,300 branch) as `is_active=true`; branch campuses use the same UI/UX; review later in the Admin Console.
 
@@ -94,7 +94,8 @@ reliable enough for real users before expanding into clubs and tournaments.
 - Frontend regression coverage for signup, event creation, RSVP, team joining, and dashboard flows
 - Mobile and accessibility pass on primary journeys
 - Reviewed Terms and Privacy content
-- Sentry/error monitoring and basic product analytics
+- **Implemented:** Sentry error monitoring for the web app and the API
+- Basic product analytics
 - **Implemented:** recurring events with weekly, biweekly, and monthly schedules up to one year;
   independent occurrence records with per-occurrence RSVP and cancellation
 - **Implemented:** cancellation notifications as best-effort email to active yes/maybe RSVPs
@@ -151,7 +152,6 @@ feeling unfinished.
 **Goal:** Safe to run with real users at scale.
 
 - Expanded backup retention / point-in-time recovery beyond the launch baseline
-- Sentry/error monitoring
 - Extend the database-backed audit foundation across more domains; add
   user-visible activity history and the notification API/inbox
 - Broader rate limiting

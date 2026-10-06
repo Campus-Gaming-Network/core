@@ -17,15 +17,16 @@ import {
 } from "../components/route-boundaries";
 import { logout } from "../features/event-slice/auth.functions";
 import type { NavigationViewer } from "../features/event-slice/contracts";
-import { getPublicSiteOrigin } from "../server/public-origin.functions";
+import { getPublicRuntimeConfig } from "../server/public-origin.functions";
 import appCSS from "../styles.css?url";
 import componentsCSS from "../components.css?url";
 
 const siteName = "Campus Gaming Network";
 
 export const Route = createRootRoute({
-  beforeLoad: async () => ({ publicOrigin: await getPublicSiteOrigin() }),
+  beforeLoad: async () => getPublicRuntimeConfig(),
   loader: ({ context }) => ({
+    errorMonitoring: context.errorMonitoring,
     publicOrigin: context.publicOrigin,
   }),
   headers: () => ({
@@ -52,10 +53,19 @@ export const Route = createRootRoute({
 
 function RootComponent() {
   const [viewer, setViewer] = useViewerSession();
+  const { errorMonitoring } = Route.useLoaderData();
 
   useEffect(() => {
     document.documentElement.dataset.appHydrated = "true";
   }, []);
+
+  useEffect(() => {
+    if (!errorMonitoring) return;
+    void import("../error-monitor").then(({ startBrowserErrorMonitoring }) => {
+      startBrowserErrorMonitoring(errorMonitoring);
+      document.documentElement.dataset.errorMonitoring = "true";
+    });
+  }, [errorMonitoring]);
 
   return (
     <ViewerContext value={viewer}>
