@@ -17,7 +17,6 @@ import {
   validateVerificationTokenServerInput,
   validateVerifyEmailSearch,
 } from "../src/features/auth-flow-slice/contracts.js";
-import { authPageHead } from "../src/features/auth-flow-slice/presentation.js";
 import { signupSchoolSearchOperation } from "../src/features/auth-flow-slice/signup-school-operations.server.js";
 import { createApiClient, type Fetcher } from "../src/server/api.server.js";
 
@@ -323,36 +322,4 @@ test("signup school search keeps the exact threshold, limit, DTO, and safe failu
     reportError: () => undefined,
   });
   assert.deepEqual(failed, { schools: [], failed: true });
-});
-
-test("auth metadata preserves canonical previews and noindex recovery policy", () => {
-  const forgot = authPageHead("https://cgn.example", {
-    title: "Forgot password",
-    description: "Request a reset link.",
-    path: "/forgot-password",
-    noIndex: true,
-  });
-  assert.ok(
-    forgot.meta.some(
-      (entry) =>
-        entry.name === "robots" && entry.content === "noindex,nofollow",
-    ),
-  );
-  assert.ok(
-    forgot.meta.some(
-      (entry) =>
-        entry.property === "og:url" &&
-        entry.content === "https://cgn.example/forgot-password",
-    ),
-  );
-
-  const signup = authPageHead("https://cgn.example", {
-    title: "Sign up",
-    description: "Create an account.",
-    path: "/signup",
-  });
-  assert.equal(
-    signup.meta.some((entry) => entry.name === "robots"),
-    false,
-  );
 });

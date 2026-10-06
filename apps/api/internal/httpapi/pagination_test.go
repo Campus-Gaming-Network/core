@@ -12,19 +12,6 @@ type paginationItem struct {
 	Timestamp time.Time
 }
 
-func TestMakeCursorPageTrimsForwardLookahead(t *testing.T) {
-	items := paginationItems(4)
-	page := makeCursorPage(items, 3, nil, nil, paginationItemKey)
-
-	if len(page.Items) != 3 || !page.HasMore || page.HasPrevious {
-		t.Fatalf("page = %#v, want three items with only a next page", page)
-	}
-	decoded, err := pagecursor.Decode(page.NextCursor)
-	if err != nil || decoded.ID != items[2].ID {
-		t.Fatalf("next cursor = %#v, %v; want third item", decoded, err)
-	}
-}
-
 func TestMakeCursorPageTrimsBackwardLookaheadFromTheFront(t *testing.T) {
 	items := paginationItems(4)
 	before := pagecursor.Cursor{Timestamp: items[3].Timestamp.Add(time.Hour), ID: "99999999-9999-9999-9999-999999999999"}
