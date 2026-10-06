@@ -186,16 +186,26 @@
   display: none;
 }
 
-.safety-details summary:hover,
 .safety-details summary:focus-visible,
-.safety-link:hover,
 .safety-link:focus-visible {
   color: var(--color-text);
 }
 
-.safety-link:hover,
+@media (hover: hover) {
+  .safety-details summary:hover,
+  .safety-link:hover {
+    color: var(--color-text);
+  }
+}
+
 .safety-link:focus-visible {
   text-decoration: underline;
+}
+
+@media (hover: hover) {
+  .safety-link:hover {
+    text-decoration: underline;
+  }
 }
 
 .safety-details[open] summary {
@@ -324,10 +334,12 @@
   transition: transform 120ms ease;
 }
 
-.card:hover .event-card-action svg,
-.card:hover .discovery-row__action svg,
-.card:hover .school-directory-action svg {
-  transform: translateX(2px);
+@media (hover: hover) {
+  .card:hover .event-card-action svg,
+  .card:hover .discovery-row__action svg,
+  .card:hover .school-directory-action svg {
+    transform: translateX(2px);
+  }
 }
 
 /* Going and interested counts on an event row. */
