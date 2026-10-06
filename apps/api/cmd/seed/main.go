@@ -10,6 +10,8 @@ import (
 
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/config"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/db"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/games"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/igdb"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/seed"
 )
 
@@ -88,6 +90,21 @@ func main() {
 			"user_id", devUser.UserID,
 			"followed_schools", devUser.FollowedCount,
 		)
+	}
+
+	// The starter games need IGDB. Without credentials, or when IGDB is down,
+	// the catalog fills in as admins and users import games.
+	if cfg.IGDBConfigured() {
+		imports := games.NewIGDBService(games.NewPostgresRepository(database), igdb.NewClient(igdb.Config{
+			ClientID: cfg.IGDBClientID, ClientSecret: cfg.IGDBClientSecret,
+			APIURL: cfg.IGDBAPIURL, TokenURL: cfg.IGDBTokenURL, ImageURL: cfg.IGDBImageURL,
+		}))
+		added, err := imports.EnsureStarterGames(ctx)
+		if err != nil {
+			slog.Warn("starter games not fully imported", "imported", added, "error", err)
+		} else {
+			slog.Info("starter games imported", "imported", added)
+		}
 	}
 
 	if !*demo {

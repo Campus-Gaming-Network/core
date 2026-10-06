@@ -113,6 +113,7 @@ function resetCatalog() {
         igdb_id: null,
         last_synced_at: null,
         has_cover: false,
+        user_submitted: false,
       },
     ],
   ]);
@@ -597,6 +598,7 @@ async function handleCatalog(request, response, requestURL, sessionValue) {
       deleted_at: null,
       igdb_id: match.igdb_id,
       has_cover: true,
+      user_submitted: false,
     };
     imported.updated_at = imported.created_at;
     imported.last_synced_at = imported.created_at;
@@ -636,6 +638,7 @@ async function handleCatalog(request, response, requestURL, sessionValue) {
         igdb_id: null,
         last_synced_at: null,
         has_cover: false,
+        user_submitted: false,
       };
       created.updated_at = created.created_at;
       games.set(created.id, created);

@@ -241,11 +241,41 @@ Response:
 | ------ | -------------------------- | ---------------------------------------------- |
 | GET    | `/games`                   | Browse (public); active games only             |
 | GET    | `/games/:slug/cover`       | Stored cover image of an active game           |
+| GET    | `/games/igdb-search?q=`    | Auth; search IGDB from a game picker           |
 | GET    | `/games/:slug/events`      | **(planned)** Public events for game + filters |
 | GET    | `/games/:slug/tournaments` | **(planned)** Tournaments for game + filters   |
 
-End users cannot edit games; site admins import them from IGDB through the
-[Admin API](#admin-api).
+End users cannot edit games. Site admins import and manage them through the
+[Admin API](#admin-api), and a signed-in user can add one while creating an
+event or team.
+
+`GET /games/igdb-search?q=` (2 to 100 characters) returns
+`{ "games": [{ "igdb_id", "name", "release_year"?, "game_id"? }] }`; `game_id`
+is set when the catalog already holds the game. Matches whose catalog game a
+site admin has hidden or deleted are left out. Results are cached for 24 hours,
+so a repeated search does not call IGDB. The route allows 30 searches a minute
+per user (`429` `rate_limited`) and answers `503` `igdb_not_configured` without
+IGDB credentials and `503` `igdb_unavailable` when IGDB fails. The web app
+serves it to the picker at `/api/games/igdb-search`.
+
+`POST /events`, `PATCH /events/:slug`, and `POST /teams` take two fields beside
+`game_ids`. At least one game is required across the three.
+
+- `igdb_game_ids`: up to five IGDB IDs from the search. Each is imported as an
+  active game with its cover if the catalog does not hold it. A cover IGDB
+  cannot supply in a usable form is skipped.
+- `other_game`: a game name of up to 100 characters. It becomes an unlisted
+  game that this event or team uses; the same name typed again reuses it. It
+  goes through the blocked-language check.
+
+Games IGDB tags with its "Erotic" theme are treated as if IGDB did not list
+them: every search leaves them out, and an import or refresh by ID answers
+`igdb_game_not_found`. This applies to the admin routes too.
+
+A game a site admin has hidden or deleted is refused with `422`
+`game_unavailable`. Other codes: `400` `invalid_game_name`, `422`
+`igdb_game_not_found`, `503` `igdb_unavailable`, and `503`
+`igdb_not_configured` when `igdb_game_ids` is sent without IGDB credentials.
 
 `GET /games/:slug/cover` returns the image bytes with `Content-Type`, an
 `ETag`, `Cache-Control: public, max-age=86400`, and
@@ -314,8 +344,8 @@ The IGDB routes need `games.manage`:
   base64-encoded, so the Admin Console can show the cover of a hidden game
   without loading an image from another origin.
 
-Games in admin responses also carry `igdb_id`, `last_synced_at`, and
-`has_cover`. IGDB failures use their own codes: `503` `igdb_not_configured`
+Games in admin responses also carry `igdb_id`, `last_synced_at`, `has_cover`,
+and `user_submitted`. The admin search shares the 24-hour search cache. IGDB failures use their own codes: `503` `igdb_not_configured`
 (no `IGDB_CLIENT_ID` and `IGDB_CLIENT_SECRET` on the API), `503`
 `igdb_rate_limited`, `502` `igdb_unavailable`, `404` `igdb_game_not_found`,
 `422` `igdb_game_invalid`, and `422` `igdb_cover_unusable` (larger than 100 KB

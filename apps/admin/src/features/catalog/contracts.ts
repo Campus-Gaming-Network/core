@@ -43,6 +43,8 @@ export const adminGameSchema = z.object({
   igdb_id: z.number().int().positive().nullable(),
   last_synced_at: timestampSchema.nullable(),
   has_cover: z.boolean(),
+  // A game a user typed in. It is usable on events and teams while hidden.
+  user_submitted: z.boolean(),
 });
 
 // A stored cover, sent as base64 so the console renders it from its own page.

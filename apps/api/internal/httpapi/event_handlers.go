@@ -35,6 +35,7 @@ type createEventRequest struct {
 	PaymentURL      string             `json:"payment_url"`
 	RecurrenceRule  optionalJSONString `json:"recurrence_rule"`
 	RecurrenceUntil optionalJSONString `json:"recurrence_until"`
+	pickedGames
 }
 
 type optionalJSONString struct {
@@ -134,6 +135,9 @@ func (r *Router) handleCreateEvent(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	if request.GameIDs, ok = r.resolvePickedGames(w, req, request.GameIDs, request.pickedGames); !ok {
+		return
+	}
 	input := createEventInputFromRequest(request, userID)
 	input.IdempotencyKey = key
 	if request.RecurrenceUntil.present && strings.TrimSpace(request.RecurrenceUntil.value) != "" {
@@ -208,6 +212,10 @@ func (r *Router) handleUpdateEvent(w http.ResponseWriter, req *http.Request, slu
 		return
 	}
 
+	var ok bool
+	if request.GameIDs, ok = r.resolvePickedGames(w, req, request.GameIDs, request.pickedGames); !ok {
+		return
+	}
 	input := updateEventInputFromRequest(request, slug, userID)
 	if err := eventstore.ValidateUpdateInput(input); err != nil {
 		writeApplicationError(w, err, "event_update_failed")

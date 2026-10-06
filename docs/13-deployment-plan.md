@@ -326,7 +326,7 @@ Successful first-run logs contain both fields below (the exact punctuation depen
 school seed imported rows=6243
 ```
 
-The game catalog starts empty. A site admin imports games from IGDB in the Admin Console once `IGDB_CLIENT_ID` and `IGDB_CLIENT_SECRET` are set on the API. A second seed run safely reports that the catalog was already populated. After capturing the successful log, disconnect its GitHub source or delete `seed`.
+When `IGDB_CLIENT_ID` and `IGDB_CLIENT_SECRET` are set on this service, it also imports a starter set of games from IGDB; an IGDB failure is logged and does not fail the seed. Without the credentials the catalog starts empty and users can still type a game's name. A second seed run safely reports that the catalog was already populated. After capturing the successful log, disconnect its GitHub source or delete `seed`.
 
 ### 10. Deploy and verify the web service
 

@@ -116,6 +116,8 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 - [x] IGDB attribution on the FAQ page
 - [x] Browse/filter events by catalog games
 - [x] End users cannot edit games
+- [x] Users add a missing game from the event and team forms: IGDB search (cached for 24 hours) or a typed name
+- [x] Seed command imports a starter set of games from IGDB
 
 ### Events
 

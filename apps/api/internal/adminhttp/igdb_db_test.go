@@ -12,9 +12,12 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/events"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/games"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/igdb"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/teams"
 )
 
 const fakeRocketLeagueID = 11198
@@ -44,9 +47,14 @@ type fakeIGDB struct {
 	downloads map[string]int
 	// status overrides the game endpoint's status when set.
 	status int
+	// searches counts name searches that reached IGDB.
+	searches int
 }
 
-var fakeIGDBGameID = regexp.MustCompile(`where id = (\d+);`)
+var (
+	fakeIGDBGameID   = regexp.MustCompile(`where id = (\d+);`)
+	fakeIGDBGameSlug = regexp.MustCompile(`where slug = "([^"]*)";`)
+)
 
 func newFakeIGDB(t *testing.T) *fakeIGDB {
 	t.Helper()
@@ -67,9 +75,17 @@ func newFakeIGDB(t *testing.T) *fakeIGDB {
 		}
 		query, _ := io.ReadAll(req.Body)
 		matches := []fakeIGDBGame{}
+		id, slug := fakeIGDBGameID.FindSubmatch(query), fakeIGDBGameSlug.FindSubmatch(query)
+		if id == nil && slug == nil {
+			fake.searches++
+		}
 		for _, game := range fake.games {
-			if id := fakeIGDBGameID.FindSubmatch(query); id != nil {
+			if id != nil {
 				if string(id[1]) == strconv.FormatInt(game.ID, 10) {
+					matches = append(matches, game)
+				}
+			} else if slug != nil {
+				if string(slug[1]) == game.Slug {
 					matches = append(matches, game)
 				}
 			} else if strings.Contains(strings.ToLower(string(query)), strings.ToLower(`search "`+game.Name[:4])) {
@@ -285,5 +301,190 @@ func TestIGDBRefreshKeepsAdminEditsAndReplacesAChangedCover(t *testing.T) {
 	}
 	if code := f.errorCode(t, "POST", fmt.Sprintf("/admin/v1/games/%s/refresh", manual.ID), f.versioned(manual.UpdatedAt), 422); code != "game_not_from_igdb" {
 		t.Fatalf("refresh of a manual game: error = %q", code)
+	}
+}
+
+func TestIGDBSearchIsCachedForADay(t *testing.T) {
+	f := newCatalogFixture(t)
+	ctx := t.Context()
+	service := games.NewIGDBService(f.game, f.igdb.client)
+	want := []games.IGDBResult{{IGDBID: fakeRocketLeagueID, Name: "Rocket League"}}
+
+	// The same search in another case and spacing is one IGDB call.
+	for _, query := range []string{"rocket", "  ROCKET ", "Rocket"} {
+		results, err := service.SearchForPicker(ctx, query)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !reflect.DeepEqual(results, want) {
+			t.Fatalf("search %q = %+v, want %+v", query, results, want)
+		}
+	}
+	if f.igdb.searches != 1 {
+		t.Fatalf("IGDB searches after three equal queries = %d, want 1", f.igdb.searches)
+	}
+
+	// A day-old row is refetched.
+	if _, err := f.pool.Exec(ctx, `UPDATE igdb_search_cache SET fetched_at = NOW() - INTERVAL '25 hours'`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.SearchForPicker(ctx, "rocket"); err != nil {
+		t.Fatal(err)
+	}
+	if f.igdb.searches != 2 {
+		t.Fatalf("IGDB searches after the cache expired = %d, want 2", f.igdb.searches)
+	}
+
+	// A cached match still reflects the catalog: a game an admin imported and
+	// has not shown yet is left out of the picker and kept in the admin search.
+	hidden := f.importGame(t, fakeRocketLeagueID)
+	picker, err := service.SearchForPicker(ctx, "rocket")
+	if err != nil {
+		t.Fatal(err)
+	}
+	admin, err := service.SearchIGDB(ctx, "rocket")
+	if err != nil {
+		t.Fatal(err)
+	}
+	wantAdmin := []games.IGDBResult{{IGDBID: fakeRocketLeagueID, Name: "Rocket League", GameID: hidden.ID}}
+	if len(picker) != 0 || !reflect.DeepEqual(admin, wantAdmin) || f.igdb.searches != 2 {
+		t.Fatalf("picker = %+v, admin = %+v, searches = %d; want none, %+v, 2", picker, admin, f.igdb.searches, wantAdmin)
+	}
+}
+
+func TestAUserCreatesAnEventAndATeamForGamesTheCatalogLacked(t *testing.T) {
+	f := newCatalogFixture(t)
+	ctx := t.Context()
+	service := games.NewIGDBService(f.game, f.igdb.client)
+
+	// A game picked from IGDB search is imported active, with its cover.
+	picked, err := service.EnsureFromIGDB(ctx, fakeRocketLeagueID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	igdbID := int64(fakeRocketLeagueID)
+	wantPicked := games.AdminGame{
+		Game:     games.Game{ID: picked.ID, Name: "Rocket League", Slug: "rocket-league"},
+		IsActive: true, CreatedAt: picked.CreatedAt, UpdatedAt: picked.UpdatedAt,
+		IGDBID: &igdbID, LastSyncedAt: picked.LastSyncedAt, HasCover: true,
+	}
+	if !reflect.DeepEqual(picked, wantPicked) {
+		t.Fatalf("picked game = %+v, want %+v", picked, wantPicked)
+	}
+	if again, err := service.EnsureFromIGDB(ctx, fakeRocketLeagueID); err != nil || !reflect.DeepEqual(again, picked) {
+		t.Fatalf("second pick = %+v, %v; want the same game", again, err)
+	}
+
+	// A typed name becomes an unlisted game, reused by the next person who
+	// types it.
+	typed, err := f.game.EnsureCustom(ctx, "  Campus   Trivia Night ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	wantTyped := games.AdminGame{
+		Game:      games.Game{ID: typed.ID, Name: "Campus Trivia Night", Slug: "campus-trivia-night"},
+		CreatedAt: typed.CreatedAt, UpdatedAt: typed.UpdatedAt, UserSubmitted: true,
+	}
+	if !reflect.DeepEqual(typed, wantTyped) {
+		t.Fatalf("typed game = %+v, want %+v", typed, wantTyped)
+	}
+	if again, err := f.game.EnsureCustom(ctx, "campus trivia night"); err != nil || !reflect.DeepEqual(again, typed) {
+		t.Fatalf("second typed game = %+v, %v; want the same game", again, err)
+	}
+	listed, err := f.game.List(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := []games.Game{{ID: picked.ID, Name: "Rocket League", Slug: "rocket-league", HasCover: true}}; !reflect.DeepEqual(listed, want) {
+		t.Fatalf("public picker = %+v, want only the IGDB game %+v", listed, want)
+	}
+
+	startsAt := time.Date(2030, time.April, 2, 19, 0, 0, 0, time.UTC)
+	event, err := events.NewPostgresRepository(f.pool).Create(ctx, events.CreateParams{CreateInput: events.CreateInput{
+		Title: "Picker Night", CreatorUserID: catalogActorID, HostSchoolID: catalogSchoolID,
+		GameIDs: []string{picked.ID, typed.ID}, Visibility: events.VisibilityPublic, Format: events.FormatOnline,
+		StartsAt: startsAt, EndsAt: startsAt.Add(time.Hour), Timezone: "UTC", OnlineURL: "https://example.test/stream",
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	wantGames := []events.GameSummary{{ID: typed.ID, Name: "Campus Trivia Night", Slug: "campus-trivia-night"}, {ID: picked.ID, Name: "Rocket League", Slug: "rocket-league"}}
+	if !reflect.DeepEqual(event.Games, wantGames) {
+		t.Fatalf("event games = %+v, want %+v", event.Games, wantGames)
+	}
+	team, err := teams.NewPostgresRepository(f.pool).Create(ctx, teams.CreateParams{CreateInput: teams.CreateInput{
+		Name: "Trivia Squad", OwnerUserID: catalogActorID, SchoolID: catalogSchoolID, GameIDs: []string{typed.ID}, Password: "TeamPass8",
+	}, PasswordHash: "hash"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := []teams.GameSummary{{ID: typed.ID, Name: "Campus Trivia Night", Slug: "campus-trivia-night"}}; !reflect.DeepEqual(team.Games, want) {
+		t.Fatalf("team games = %+v, want %+v", team.Games, want)
+	}
+}
+
+func TestHiddenAndDeletedGamesCannotBeAddedByUsers(t *testing.T) {
+	f := newCatalogFixture(t)
+	ctx := t.Context()
+	service := games.NewIGDBService(f.game, f.igdb.client)
+
+	// An admin import stays hidden until an admin shows it.
+	f.importGame(t, fakeRocketLeagueID)
+	if _, err := service.EnsureFromIGDB(ctx, fakeRocketLeagueID); !errors.Is(err, games.ErrGameUnavailable) {
+		t.Fatalf("pick of a hidden game: error = %v, want %v", err, games.ErrGameUnavailable)
+	}
+	if _, err := f.game.EnsureCustom(ctx, "Rocket League"); !errors.Is(err, games.ErrGameUnavailable) {
+		t.Fatalf("typed name of a hidden game: error = %v, want %v", err, games.ErrGameUnavailable)
+	}
+
+	// Deleting a typed game blocks that name.
+	typed, err := f.game.EnsureCustom(ctx, "Blocked Game")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.game.DeleteAdmin(ctx, typed.ID, f.versioned(typed.UpdatedAt)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.game.EnsureCustom(ctx, "blocked game"); !errors.Is(err, games.ErrGameUnavailable) {
+		t.Fatalf("typed name of a deleted game: error = %v, want %v", err, games.ErrGameUnavailable)
+	}
+	if _, err := f.game.EnsureCustom(ctx, "!!!"); !errors.Is(err, games.ErrGameNameInvalid) {
+		t.Fatalf("name with no letters: error = %v, want %v", err, games.ErrGameNameInvalid)
+	}
+
+	// A user's pick is not blocked by a cover IGDB cannot supply in a usable form.
+	f.igdb.games = append(f.igdb.games, fakeIGDBGame{ID: 9, Name: "Bad Cover", Slug: "bad-cover"})
+	f.igdb.setCover(9, "co9")
+	f.igdb.images["co9"] = []byte("<html>not an image</html>")
+	coverless, err := service.EnsureFromIGDB(ctx, 9)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !coverless.IsActive || coverless.HasCover {
+		t.Fatalf("pick with an unusable cover = active %t, has cover %t; want active without a cover", coverless.IsActive, coverless.HasCover)
+	}
+}
+
+func TestStarterGamesAreImportedOnce(t *testing.T) {
+	f := newCatalogFixture(t)
+	ctx := t.Context()
+	service := games.NewIGDBService(f.game, f.igdb.client)
+
+	// The fake IGDB knows one of the starter slugs.
+	for _, want := range []int{1, 0} {
+		added, err := service.EnsureStarterGames(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if added != want {
+			t.Fatalf("starter games added = %d, want %d", added, want)
+		}
+	}
+	listed, err := f.game.List(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := []games.Game{{ID: listed[0].ID, Name: "Rocket League", Slug: "rocket-league", HasCover: true}}; !reflect.DeepEqual(listed, want) {
+		t.Fatalf("public picker = %+v, want %+v", listed, want)
 	}
 }

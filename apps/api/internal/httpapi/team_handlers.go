@@ -19,6 +19,7 @@ type createTeamRequest struct {
 	SchoolID    string   `json:"school_id"`
 	GameIDs     []string `json:"game_ids"`
 	Password    string   `json:"password"`
+	pickedGames
 }
 
 type joinTeamRequest struct {
@@ -156,6 +157,9 @@ func (r *Router) handleCreateTeam(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	if request.GameIDs, ok = r.resolvePickedGames(w, req, request.GameIDs, request.pickedGames); !ok {
+		return
+	}
 	input := teamstore.CreateInput{
 		Name:           request.Name,
 		Description:    request.Description,
