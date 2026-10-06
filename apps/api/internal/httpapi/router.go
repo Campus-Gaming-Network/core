@@ -27,9 +27,11 @@ import (
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/errormonitor"
 	eventstore "github.com/Campus-Gaming-Network/core/apps/api/internal/events"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/games"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/igdb"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/objectstore"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/operations"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/people"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/policies"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/ratelimit"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/safety"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/schools"
@@ -55,13 +57,19 @@ type Router struct {
 	schools schools.Repository
 	follows schools.FollowRepository
 	games   games.Repository
-	events  eventstore.Repository
-	teams   teamstore.Repository
-	safety  safety.Repository
-	users   users.Repository
-	people  people.Repository
-	account *auth.AccountService
-	limiter *ratelimit.Limiter
+	covers  gameCovers
+	// picker is nil when the IGDB credentials are not configured.
+	picker            gamePicker
+	customGames       customGames
+	gameSearchLimiter *ratelimit.Limiter
+	events            eventstore.Repository
+	teams             teamstore.Repository
+	safety            safety.Repository
+	users             users.Repository
+	people            people.Repository
+	policies          policies.Repository
+	account           *auth.AccountService
+	limiter           *ratelimit.Limiter
 	// targetLimiter counts attempts against one email address, token, or
 	// private event across every visitor.
 	targetLimiter *ratelimit.Limiter
@@ -69,11 +77,22 @@ type Router struct {
 	catalog       *schools.CachedRepository
 }
 
+// gameSearchRateLimit is how many IGDB searches one user may make a minute.
+// Results are cached, so most of them never reach IGDB.
+const gameSearchRateLimit = 30
+
+// gameCovers reads stored game covers.
+type gameCovers interface {
+	Cover(ctx context.Context, slug, knownETag string) (games.Cover, error)
+}
+
 func NewRouter(cfg config.Config, pools ...*pgxpool.Pool) http.Handler {
 	router := &Router{
 		cfg: cfg,
 		mux: http.NewServeMux(),
 	}
+	// gameImports is nil when the IGDB credentials are not configured.
+	var gameImports *games.IGDBService
 	if len(pools) > 0 {
 		router.db = pools[0]
 		schoolRepository := schools.NewPostgresRepository(router.db)
@@ -87,7 +106,18 @@ func NewRouter(cfg config.Config, pools ...*pgxpool.Pool) http.Handler {
 		router.catalog = catalog
 		router.schools = catalog
 		router.follows = schoolRepository
-		router.games = games.NewPostgresRepository(router.db)
+		gameRepository := games.NewPostgresRepository(router.db)
+		router.games = gameRepository
+		router.covers = gameRepository
+		router.customGames = gameRepository
+		router.gameSearchLimiter = ratelimit.New(gameSearchRateLimit, time.Minute)
+		if cfg.IGDBConfigured() {
+			gameImports = games.NewIGDBService(gameRepository, igdb.NewClient(igdb.Config{
+				ClientID: cfg.IGDBClientID, ClientSecret: cfg.IGDBClientSecret,
+				APIURL: cfg.IGDBAPIURL, TokenURL: cfg.IGDBTokenURL, ImageURL: cfg.IGDBImageURL,
+			}))
+			router.picker = gameImports
+		}
 		router.events = eventstore.NewPostgresRepository(router.db)
 		router.teams = teamstore.NewPostgresRepository(router.db)
 		router.people = people.NewPostgresRepository(router.db)
@@ -102,6 +132,8 @@ func NewRouter(cfg config.Config, pools ...*pgxpool.Pool) http.Handler {
 			cfg.VerificationTTL,
 			cfg.ResetTTL,
 		)
+		router.policies = policies.NewPostgresRepository(router.db)
+		router.account.Policies = router.policies
 		router.limiter = ratelimit.New(cfg.AuthRateLimit, cfg.AuthRateWindow)
 		router.targetLimiter = ratelimit.New(cfg.AuthRateLimit*targetRateLimitMultiplier, cfg.AuthRateWindow)
 		router.sessionStore = sessionRepository
@@ -135,6 +167,11 @@ func NewRouter(cfg config.Config, pools ...*pgxpool.Pool) http.Handler {
 				go logoRepository.Start(context.Background(), logoReconcileInterval)
 				logos = logoRepository
 			}
+			// A nil service must reach the interface as nil, not as a typed nil.
+			var adminImports adminhttp.AdminIGDB
+			if gameImports != nil {
+				adminImports = gameImports
+			}
 			adminDependencies = adminhttp.Dependencies{
 				Identities:   identityValidator,
 				Users:        users.NewPostgresRepository(router.db),
@@ -146,7 +183,7 @@ func NewRouter(cfg config.Config, pools ...*pgxpool.Pool) http.Handler {
 				Catalog: &adminhttp.CatalogDependencies{
 					Schools: schools.NewPostgresRepository(router.db), Games: games.NewPostgresRepository(router.db),
 					Users: users.NewPostgresRepository(router.db), SiteGrants: adminaccess.NewPostgresRepository(router.db),
-					Cache: router.catalog, Audit: adminaudit.NewPostgresStore(router.db), Logos: logos,
+					Cache: router.catalog, Audit: adminaudit.NewPostgresStore(router.db), Logos: logos, IGDB: adminImports,
 				},
 			}
 		}
@@ -158,6 +195,8 @@ func NewRouter(cfg config.Config, pools ...*pgxpool.Pool) http.Handler {
 	router.mux.HandleFunc("/schools", router.handleSchools)
 	router.mux.HandleFunc("/schools/", router.handleSchoolPath)
 	router.mux.HandleFunc("/games", requireMethod(http.MethodGet, router.handleGames))
+	router.mux.HandleFunc("/games/{slug}/cover", requireMethod(http.MethodGet, router.handleGameCover))
+	router.mux.HandleFunc("/games/igdb-search", requireMethod(http.MethodGet, router.handleGameSearch))
 	router.mux.HandleFunc("/internal/schools/refresh", requireMethod(http.MethodPost, router.handleRefreshCatalog))
 	router.mux.HandleFunc("/internal/error-monitoring/test", requireMethod(http.MethodPost, router.handleErrorMonitoringTest))
 	router.mux.HandleFunc("/events", router.handleEvents)
@@ -172,6 +211,8 @@ func NewRouter(cfg config.Config, pools ...*pgxpool.Pool) http.Handler {
 	router.mux.HandleFunc("/auth/resend-verification", router.handleResendVerification)
 	router.mux.HandleFunc("/auth/forgot-password", router.handleForgotPassword)
 	router.mux.HandleFunc("/auth/reset-password", router.handleResetPassword)
+	router.mux.HandleFunc("/policies/current", requireMethod(http.MethodGet, router.handleCurrentPolicies))
+	router.mux.HandleFunc("/me/policy-acceptances", requireMethod(http.MethodGet, router.handleMyPolicyAcceptances))
 	router.mux.HandleFunc("/me/events", router.handleMyEvents)
 	router.mux.HandleFunc("/me/schools", router.handleMySchools)
 	router.mux.HandleFunc("/me/teams", router.handleMyTeams)
@@ -487,8 +528,46 @@ func (r *Router) handleGames(w http.ResponseWriter, req *http.Request) {
 		writeError(w, http.StatusInternalServerError, "games_unavailable")
 		return
 	}
+	// A stored cover is served by the site, through the web app's cover route.
+	for index, game := range result {
+		if game.HasCover {
+			result[index].CoverURL = strings.TrimSuffix(r.cfg.SiteURL, "/") + "/api/games/" + url.PathEscape(game.Slug) + "/cover"
+		}
+	}
 	setPublicCatalogCache(w)
 	writeJSON(w, http.StatusOK, map[string]any{"games": result})
+}
+
+// gameCoverCacheControl lets browsers and shared caches hold a cover for a
+// day. A refreshed cover is picked up when the ETag is revalidated.
+const gameCoverCacheControl = "public, max-age=86400"
+
+// handleGameCover serves the stored cover of an active game. A hidden or
+// deleted game answers 404, like a game with no cover.
+func (r *Router) handleGameCover(w http.ResponseWriter, req *http.Request) {
+	if r.covers == nil {
+		writeError(w, http.StatusServiceUnavailable, "database_unavailable")
+		return
+	}
+	cover, err := r.covers.Cover(req.Context(), req.PathValue("slug"), strings.Trim(req.Header.Get("If-None-Match"), `"`))
+	if errors.Is(err, games.ErrCoverNotFound) {
+		writeError(w, http.StatusNotFound, "game_cover_not_found")
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "game_cover_unavailable")
+		return
+	}
+	w.Header().Set("Cache-Control", gameCoverCacheControl)
+	w.Header().Set("ETag", `"`+cover.ETag+`"`)
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	if cover.Bytes == nil {
+		w.WriteHeader(http.StatusNotModified)
+		return
+	}
+	w.Header().Set("Content-Type", cover.ContentType)
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(cover.Bytes)
 }
 
 func (r *Router) handleEvents(w http.ResponseWriter, req *http.Request) {

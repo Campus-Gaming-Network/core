@@ -21,7 +21,7 @@ PostgreSQL is the system of record. Conventions first; then core tables. Exact c
 
 Keep the first migration set scoped to shipped features. Create only the tables needed for auth/profile, home school and follows, schools seed, launch games, events, teams, reports/support tickets, and operational needs.
 
-Do **not** create first-pass tables for clubs, tournaments, user activity history, feature flags, site announcements, on-site payments, IGDB sync, or broader Admin Console-only workflows until those phases are actively being built. The operations foundation includes audit history and per-user notifications. Audit history is readable through capability-gated Admin Console API routes; notifications have no HTTP or UI surface yet.
+Do **not** create first-pass tables for clubs, tournaments, user activity history, feature flags, site announcements, on-site payments, IGDB bulk-sync runs, or broader Admin Console-only workflows until those phases are actively being built. The operations foundation includes audit history and per-user notifications. Audit history is readable through capability-gated Admin Console API routes; notifications have no HTTP or UI surface yet.
 
 ## Core tables (logical)
 
@@ -58,6 +58,28 @@ school_admins
   id (stable grant ID), school_id, user_id, created_at, updated_at, deleted_at
   -- school-scoped role grant; soft-revocable and re-grantable; site admins assign it in the Admin Console
 ```
+
+### Policy acceptance
+
+```text
+policy_documents
+  id, document_type ('terms' | 'privacy'), version, effective_at,
+  content_sha256,             -- SHA-256 of the published source file
+  source_ref,                 -- repository path of that file
+  created_at
+  -- unique (document_type, version); a trigger refuses every UPDATE and DELETE
+  -- the version in effect is the latest effective_at that is not in the future
+
+user_policy_acceptances
+  id, user_id, policy_document_id, accepted_at,
+  source ('signup' | 'policy_update')
+  -- unique (user_id, policy_document_id); a trigger refuses every UPDATE
+  -- no IP address or user agent; rows go only when the user row is deleted
+```
+
+Publishing a new version is a new source file under `apps/web/src/policies`
+plus a migration that inserts its row. Accounts created before a version was
+published have no acceptance row for it.
 
 ### Sessions & account tokens
 
@@ -178,12 +200,35 @@ tournament_registrations
 
 ```text
 games
-  id, igdb_id nullable, name, slug, cover_url, is_active, raw_payload jsonb?, last_synced_at, ...
-  -- end users cannot edit; curated seeded with 6 launch games; site admins manage it in the Admin Console
-  -- inactive games leave the public picker but stay on events/teams that already use them; IGDB enrichment later
+  id, igdb_id nullable unique, name, slug, cover_url, is_active, user_submitted, last_synced_at nullable, ...
+  -- end users cannot edit a game; they can add one by picking it from IGDB search or typing its name
+  -- an admin import starts inactive; a game a user picks from IGDB search is imported active
+  -- user_submitted marks a typed name: inactive (not in the picker) but attachable to events and teams
+  -- events and teams accept a game that is active or user_submitted, and never a deleted one
+  -- igdb_id is null for a typed game or one a site admin added by hand
+  -- last_synced_at is set by import and refresh; refresh never overwrites name or slug
+  -- inactive games leave the public picker but stay on events/teams that already use them
+  -- cover_url is an admin-entered URL; a stored cover in game_covers takes its place in API responses
+
+game_covers
+  game_id pk -> games, content_type (image/jpeg | image/png | image/webp),
+  bytes bytea (1 byte to 100 KB), source_image_id, etag, fetched_at
+  -- the IGDB cover, downloaded by the API at import and replaced by refresh when IGDB's image changes
+  -- etag is a hash of the bytes; list queries never select bytes
+
+igdb_search_cache
+  query pk (lowercased, single-spaced), results jsonb, fetched_at
+  -- IGDB search results, reused for 24 hours by the admin and user searches
+  -- expired rows are deleted when a new search is stored
 ```
 
-**Launch game seed:** Rocket League, Valorant, League of Legends, Overwatch 2, Super Smash Bros. Ultimate, CSGO.
+**Catalog source:** migration `000020` removed the six hand-made launch games
+that `000003` seeded, along with their event and team links. The seed command
+imports a starter set from IGDB when credentials are set (`StarterGameSlugs` in
+`apps/api/internal/games/igdb.go`); after that the catalog grows as admins and
+users import games. Slugs come from IGDB, with a numeric suffix when one is
+taken. A typed game's slug is made from its name, and typing a name whose slug
+exists reuses that game.
 
 ### Trust, notify, flags, announcements
 

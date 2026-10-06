@@ -38,11 +38,13 @@ import { Route as TeamsSlugRouteImport } from './routes/teams.$slug'
 import { Route as TeamsNewRouteImport } from './routes/teams.new'
 import { Route as UsersIdRouteImport } from './routes/users.$id'
 import { Route as ApiAvatarsIdRouteImport } from './routes/api.avatars.$id'
+import { Route as ApiGamesIgdbSearchRouteImport } from './routes/api.games.igdb-search'
 import { Route as EventsSlugEditRouteImport } from './routes/events.$slug_.edit'
 import { Route as EventsSlugPeopleRouteImport } from './routes/events.$slug_.people'
 import { Route as SchoolsSlugPeopleRouteImport } from './routes/schools.$slug_.people'
 import { Route as TeamsSlugPeopleRouteImport } from './routes/teams.$slug_.people'
 import { Route as ApiEventsSlugCalendarDoticsRouteImport } from './routes/api.events.$slug.calendar[.]ics'
+import { Route as ApiGamesSlugCoverRouteImport } from './routes/api.games.$slug.cover'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -189,6 +191,11 @@ const ApiAvatarsIdRoute = ApiAvatarsIdRouteImport.update({
   path: '/api/avatars/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiGamesIgdbSearchRoute = ApiGamesIgdbSearchRouteImport.update({
+  id: '/api/games/igdb-search',
+  path: '/api/games/igdb-search',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const EventsSlugEditRoute = EventsSlugEditRouteImport.update({
   id: '/$slug_/edit',
   path: '/$slug/edit',
@@ -215,6 +222,11 @@ const ApiEventsSlugCalendarDoticsRoute =
     path: '/api/events/$slug/calendar.ics',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiGamesSlugCoverRoute = ApiGamesSlugCoverRouteImport.update({
+  id: '/api/games/$slug/cover',
+  path: '/api/games/$slug/cover',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -246,11 +258,13 @@ export interface FileRoutesByFullPath {
   '/schools/': typeof SchoolsIndexRoute
   '/teams/': typeof TeamsIndexRoute
   '/api/avatars/$id': typeof ApiAvatarsIdRoute
+  '/api/games/igdb-search': typeof ApiGamesIgdbSearchRoute
   '/events/$slug/edit': typeof EventsSlugEditRoute
   '/events/$slug/people': typeof EventsSlugPeopleRoute
   '/schools/$slug/people': typeof SchoolsSlugPeopleRoute
   '/teams/$slug/people': typeof TeamsSlugPeopleRoute
   '/api/events/$slug/calendar.ics': typeof ApiEventsSlugCalendarDoticsRoute
+  '/api/games/$slug/cover': typeof ApiGamesSlugCoverRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -279,11 +293,13 @@ export interface FileRoutesByTo {
   '/schools': typeof SchoolsIndexRoute
   '/teams': typeof TeamsIndexRoute
   '/api/avatars/$id': typeof ApiAvatarsIdRoute
+  '/api/games/igdb-search': typeof ApiGamesIgdbSearchRoute
   '/events/$slug/edit': typeof EventsSlugEditRoute
   '/events/$slug/people': typeof EventsSlugPeopleRoute
   '/schools/$slug/people': typeof SchoolsSlugPeopleRoute
   '/teams/$slug/people': typeof TeamsSlugPeopleRoute
   '/api/events/$slug/calendar.ics': typeof ApiEventsSlugCalendarDoticsRoute
+  '/api/games/$slug/cover': typeof ApiGamesSlugCoverRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -316,11 +332,13 @@ export interface FileRoutesById {
   '/schools/': typeof SchoolsIndexRoute
   '/teams/': typeof TeamsIndexRoute
   '/api/avatars/$id': typeof ApiAvatarsIdRoute
+  '/api/games/igdb-search': typeof ApiGamesIgdbSearchRoute
   '/events/$slug_/edit': typeof EventsSlugEditRoute
   '/events/$slug_/people': typeof EventsSlugPeopleRoute
   '/schools/$slug_/people': typeof SchoolsSlugPeopleRoute
   '/teams/$slug_/people': typeof TeamsSlugPeopleRoute
   '/api/events/$slug/calendar.ics': typeof ApiEventsSlugCalendarDoticsRoute
+  '/api/games/$slug/cover': typeof ApiGamesSlugCoverRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -354,11 +372,13 @@ export interface FileRouteTypes {
     | '/schools/'
     | '/teams/'
     | '/api/avatars/$id'
+    | '/api/games/igdb-search'
     | '/events/$slug/edit'
     | '/events/$slug/people'
     | '/schools/$slug/people'
     | '/teams/$slug/people'
     | '/api/events/$slug/calendar.ics'
+    | '/api/games/$slug/cover'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -387,11 +407,13 @@ export interface FileRouteTypes {
     | '/schools'
     | '/teams'
     | '/api/avatars/$id'
+    | '/api/games/igdb-search'
     | '/events/$slug/edit'
     | '/events/$slug/people'
     | '/schools/$slug/people'
     | '/teams/$slug/people'
     | '/api/events/$slug/calendar.ics'
+    | '/api/games/$slug/cover'
   id:
     | '__root__'
     | '/'
@@ -423,11 +445,13 @@ export interface FileRouteTypes {
     | '/schools/'
     | '/teams/'
     | '/api/avatars/$id'
+    | '/api/games/igdb-search'
     | '/events/$slug_/edit'
     | '/events/$slug_/people'
     | '/schools/$slug_/people'
     | '/teams/$slug_/people'
     | '/api/events/$slug/calendar.ics'
+    | '/api/games/$slug/cover'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -452,7 +476,9 @@ export interface RootRouteChildren {
   AuthVerifyEmailRoute: typeof AuthVerifyEmailRoute
   UsersIdRoute: typeof UsersIdRoute
   ApiAvatarsIdRoute: typeof ApiAvatarsIdRoute
+  ApiGamesIgdbSearchRoute: typeof ApiGamesIgdbSearchRoute
   ApiEventsSlugCalendarDoticsRoute: typeof ApiEventsSlugCalendarDoticsRoute
+  ApiGamesSlugCoverRoute: typeof ApiGamesSlugCoverRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -660,6 +686,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAvatarsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/games/igdb-search': {
+      id: '/api/games/igdb-search'
+      path: '/api/games/igdb-search'
+      fullPath: '/api/games/igdb-search'
+      preLoaderRoute: typeof ApiGamesIgdbSearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/events/$slug_/edit': {
       id: '/events/$slug_/edit'
       path: '/$slug/edit'
@@ -693,6 +726,13 @@ declare module '@tanstack/react-router' {
       path: '/api/events/$slug/calendar.ics'
       fullPath: '/api/events/$slug/calendar.ics'
       preLoaderRoute: typeof ApiEventsSlugCalendarDoticsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/games/$slug/cover': {
+      id: '/api/games/$slug/cover'
+      path: '/api/games/$slug/cover'
+      fullPath: '/api/games/$slug/cover'
+      preLoaderRoute: typeof ApiGamesSlugCoverRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -770,7 +810,9 @@ const rootRouteChildren: RootRouteChildren = {
   AuthVerifyEmailRoute: AuthVerifyEmailRoute,
   UsersIdRoute: UsersIdRoute,
   ApiAvatarsIdRoute: ApiAvatarsIdRoute,
+  ApiGamesIgdbSearchRoute: ApiGamesIgdbSearchRoute,
   ApiEventsSlugCalendarDoticsRoute: ApiEventsSlugCalendarDoticsRoute,
+  ApiGamesSlugCoverRoute: ApiGamesSlugCoverRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

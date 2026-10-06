@@ -134,8 +134,8 @@ The two past-event rows are the intended rule; neither is enforced yet, so organ
 
 ## Games
 
-- End users: read-only
-- Create/update/delete: **site admin only, via the Admin Console**; IGDB sync later
+- End users: cannot edit a game. A signed-in user can search IGDB, add a result to the catalog, or type a game name while creating an event or team
+- Create/update/delete, hide, and IGDB refresh: **site admin only, via the Admin Console** (`games.manage`). Hiding or deleting a game stops users from adding it
 
 ## Impersonation (“mimic”)
 

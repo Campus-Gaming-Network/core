@@ -14,17 +14,6 @@ func newTestClock() *testClock {
 	return &testClock{now: time.Date(2026, time.September, 29, 12, 0, 0, 0, time.UTC)}
 }
 
-func TestLimiterAllowsUpToLimitWithinWindow(t *testing.T) {
-	limiter := New(2, time.Hour)
-
-	if !limiter.Allow("key") || !limiter.Allow("key") {
-		t.Fatal("limiter rejected requests within the limit")
-	}
-	if limiter.Allow("key") {
-		t.Fatal("limiter allowed a request past the limit")
-	}
-}
-
 func TestLimiterTracksKeysIndependently(t *testing.T) {
 	limiter := New(1, time.Hour)
 

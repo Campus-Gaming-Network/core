@@ -18,6 +18,14 @@ type AdminGame struct {
 	CreatedAt time.Time  `json:"created_at"`
 	UpdatedAt time.Time  `json:"updated_at"`
 	DeletedAt *time.Time `json:"deleted_at"`
+	// IGDBID is nil for a game that was not imported from IGDB.
+	IGDBID       *int64     `json:"igdb_id"`
+	LastSyncedAt *time.Time `json:"last_synced_at"`
+	// HasCover reports a stored cover. CoverURL stays the admin-entered URL.
+	HasCover bool `json:"has_cover"`
+	// UserSubmitted marks a game a user typed in. It may be attached to events
+	// and teams while it is hidden from the picker.
+	UserSubmitted bool `json:"user_submitted"`
 }
 
 type AdminEdit struct {
@@ -28,11 +36,12 @@ type AdminEdit struct {
 	IsActive bool   `json:"is_active"`
 }
 
-const adminGameColumns = `id::text,name,slug,COALESCE(cover_url,''),is_active,created_at,updated_at,deleted_at`
+const adminGameColumns = `id::text,name,slug,COALESCE(cover_url,''),is_active,created_at,updated_at,deleted_at,igdb_id,last_synced_at,
+	EXISTS(SELECT 1 FROM game_covers WHERE game_covers.game_id=games.id),user_submitted`
 
 func scanAdminGame(row pgx.Row) (AdminGame, error) {
 	var g AdminGame
-	err := row.Scan(&g.ID, &g.Name, &g.Slug, &g.CoverURL, &g.IsActive, &g.CreatedAt, &g.UpdatedAt, &g.DeletedAt)
+	err := row.Scan(&g.ID, &g.Name, &g.Slug, &g.CoverURL, &g.IsActive, &g.CreatedAt, &g.UpdatedAt, &g.DeletedAt, &g.IGDBID, &g.LastSyncedAt, &g.HasCover, &g.UserSubmitted)
 	return g, adminmutation.Error(err)
 }
 

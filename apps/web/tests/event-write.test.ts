@@ -90,6 +90,8 @@ test("event create validation normalizes payloads, local times, and recurrence",
     description: "Bring your controller.",
     host_school_id: school.id,
     game_ids: [game.id],
+    igdb_game_ids: [],
+    other_game: "",
     visibility: "public",
     format: "in_person",
     starts_at: "2037-02-20T02:00:00.000Z",
@@ -578,6 +580,8 @@ function validPayload(): EventMutationPayload {
     description: "Bring your controller.",
     host_school_id: school.id,
     game_ids: [game.id],
+    igdb_game_ids: [],
+    other_game: "",
     visibility: "public",
     format: "in_person",
     starts_at: "2037-02-20T02:00:00.000Z",
@@ -593,3 +597,30 @@ function validPayload(): EventMutationPayload {
     payment_url: "",
   };
 }
+
+test("an event needs one game from the list, from search, or typed in", () => {
+  const searched = validEventForm();
+  searched.set("recurrence_rule", "");
+  searched.delete("game_ids");
+  searched.append("igdb_game_ids", "11198");
+  searched.set("other_game", "  Campus Trivia  ");
+  const accepted = validateCreateEventServerInput(searched);
+  if (!accepted.valid) assert.fail(JSON.stringify(accepted.fieldErrors));
+  assert.deepEqual(
+    {
+      game_ids: accepted.value.game_ids,
+      igdb_game_ids: accepted.value.igdb_game_ids,
+      other_game: accepted.value.other_game,
+    },
+    { game_ids: [], igdb_game_ids: [11198], other_game: "Campus Trivia" },
+  );
+
+  const none = validEventForm();
+  none.set("recurrence_rule", "");
+  none.delete("game_ids");
+  const rejected = validateCreateEventServerInput(none);
+  if (rejected.valid) assert.fail("an event with no game was accepted");
+  assert.deepEqual(rejected.fieldErrors, {
+    game_ids: ["Choose a game, search for one, or type its name."],
+  });
+});

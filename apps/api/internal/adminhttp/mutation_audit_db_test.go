@@ -136,6 +136,13 @@ var mutationCases = map[routeOperation]mutationCase{
 		}
 		return mutationRequest{"DELETE", "/admin/v1/games/" + game.ID, f.versioned(game.UpdatedAt)}
 	}},
+	"games.import": {adminaudit.ActionGameImported, func(t *testing.T, f catalogFixture) mutationRequest {
+		return mutationRequest{"POST", "/admin/v1/game-imports", games.IGDBImport{Command: f.command, IGDBID: fakeRocketLeagueID}}
+	}},
+	"games.refresh": {adminaudit.ActionGameRefreshed, func(t *testing.T, f catalogFixture) mutationRequest {
+		game := decodeCatalog[games.AdminGame](t, f.request(t, "POST", "/admin/v1/game-imports", games.IGDBImport{Command: f.command, IGDBID: fakeRocketLeagueID}, 201))
+		return mutationRequest{"POST", "/admin/v1/games/" + game.ID + "/refresh", f.versioned(game.UpdatedAt)}
+	}},
 	"users.suspend": {adminaudit.ActionUserSuspended, func(t *testing.T, f catalogFixture) mutationRequest {
 		user, err := f.user.GetAdmin(t.Context(), catalogTargetID)
 		if err != nil {

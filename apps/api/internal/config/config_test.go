@@ -47,6 +47,11 @@ var configurationEnvironmentKeys = []string{
 	"R2_ACCESS_KEY_ID",
 	"R2_SECRET_ACCESS_KEY",
 	"R2_PUBLIC_ASSET_ORIGIN",
+	"IGDB_CLIENT_ID",
+	"IGDB_CLIENT_SECRET",
+	"IGDB_API_URL",
+	"IGDB_TOKEN_URL",
+	"IGDB_IMAGE_URL",
 }
 
 func TestLoadAllowsDeliberateLocalDefaults(t *testing.T) {
@@ -358,6 +363,38 @@ func TestLoadAllowsLocalLogoStorageEndpoint(t *testing.T) {
 	t.Setenv("R2_ACCESS_KEY_ID", "")
 	if _, err := Load(); err == nil || !strings.Contains(err.Error(), "must be set together") {
 		t.Fatalf("Load() error = %v, want partial storage rejected", err)
+	}
+}
+
+func TestLoadTreatsIGDBCredentialsAsOptionalButPaired(t *testing.T) {
+	clearConfigurationEnvironment(t)
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	if cfg.IGDBConfigured() {
+		t.Fatal("IGDBConfigured() = true without credentials")
+	}
+
+	t.Setenv("IGDB_CLIENT_ID", "client-id")
+	if _, err := Load(); err == nil || !strings.Contains(err.Error(), "IGDB_CLIENT_ID and IGDB_CLIENT_SECRET must be set together") {
+		t.Fatalf("Load() error = %v, want a lone client ID rejected", err)
+	}
+
+	t.Setenv("IGDB_CLIENT_SECRET", "client-secret")
+	cfg, err = Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	if !cfg.IGDBConfigured() {
+		t.Fatal("IGDBConfigured() = false with both credentials")
+	}
+
+	// The endpoint overrides exist for local fakes and are refused when deployed.
+	setConfigurationEnvironment(t, validStrictEnvironment("production"))
+	t.Setenv("IGDB_API_URL", "https://igdb.example.test/v4")
+	if _, err := Load(); err == nil || !strings.Contains(err.Error(), "IGDB_API_URL must not be set") {
+		t.Fatalf("Load() error = %v, want the override rejected in production", err)
 	}
 }
 

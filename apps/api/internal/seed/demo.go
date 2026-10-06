@@ -231,28 +231,31 @@ func loadDemoSchools(ctx context.Context, pool *pgxpool.Pool) ([]demoSchool, err
 	return schools, nil
 }
 
+// loadDemoGames returns the demo games, adding any the catalog lacks. They
+// share slugs with the IGDB starter set, so an imported game is reused and
+// the demo seed works without IGDB credentials.
 func loadDemoGames(ctx context.Context, pool *pgxpool.Pool) ([]string, error) {
+	slugs := make([]string, 0, len(demoGames))
+	for _, game := range demoGames {
+		if _, err := pool.Exec(ctx, `
+			INSERT INTO games (name, slug) VALUES ($1, $2) ON CONFLICT (slug) DO NOTHING
+		`, game[0], game[1]); err != nil {
+			return nil, fmt.Errorf("insert demo game: %w", err)
+		}
+		slugs = append(slugs, game[1])
+	}
 	rows, err := pool.Query(ctx, `
 		SELECT id::text FROM games WHERE deleted_at IS NULL AND slug = ANY($1) ORDER BY slug
-	`, demoGameSlugs)
+	`, slugs)
 	if err != nil {
 		return nil, fmt.Errorf("load demo games: %w", err)
 	}
-	defer rows.Close()
-
-	var ids []string
-	for rows.Next() {
-		var id string
-		if err := rows.Scan(&id); err != nil {
-			return nil, fmt.Errorf("scan demo game: %w", err)
-		}
-		ids = append(ids, id)
-	}
-	if err := rows.Err(); err != nil {
+	ids, err := pgx.CollectRows(rows, pgx.RowTo[string])
+	if err != nil {
 		return nil, fmt.Errorf("read demo games: %w", err)
 	}
 	if len(ids) == 0 {
-		return nil, errors.New("demo seed needs the launch games; run migrations first")
+		return nil, errors.New("demo seed found no usable games")
 	}
 	return ids, nil
 }

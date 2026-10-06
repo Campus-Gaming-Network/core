@@ -7,6 +7,7 @@ import {
   useEnhancedMutation,
 } from "../../components/enhanced-mutation.js";
 import { FormField } from "../../components/form-field";
+import { GamePickerExtras } from "../../components/game-picker";
 import { FormSection } from "../../components/form-section";
 import { useIdempotencyKey } from "../../components/idempotency-key.js";
 import type {
@@ -71,8 +72,8 @@ export function EventForm({
   )
     ? eventTimeZones
     : ([{ id: timeZone, label: timeZone }, ...eventTimeZones] as const);
-  // The picker lists active games only. Keep an event's retired games
-  // selectable so saving other changes does not drop them.
+  // The picker lists active games only. Keep an event's other games, retired
+  // or typed in, selectable so saving other changes does not drop them.
   const retiredGames =
     event?.games.filter(
       (eventGame) => !games.some((game) => game.id === eventGame.id),
@@ -379,7 +380,6 @@ export function EventForm({
             defaultValue={event?.games.map((game) => game.id)}
             multiple
             name="game_ids"
-            required
           >
             {games.map((game) => (
               <option key={game.id} value={game.id}>
@@ -388,11 +388,15 @@ export function EventForm({
             ))}
             {retiredGames.map((game) => (
               <option key={game.id} value={game.id}>
-                {game.name} (no longer offered)
+                {game.name} (not in the list)
               </option>
             ))}
           </select>
         </FormField>
+        <GamePickerExtras
+          otherGameErrorId="event-other-game-error"
+          otherGameErrors={errors("other_game")}
+        />
         <FormField
           errorId="event-capacity-error"
           errors={errors("capacity")}

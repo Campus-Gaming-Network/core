@@ -12,6 +12,7 @@ import (
 	_ "time/tzdata"
 
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/apperror"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/policies"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/safety"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -80,6 +81,9 @@ type SignupInput struct {
 	HomeSchoolID string
 	AgeConfirmed bool
 	Timezone     string
+	// Policies is what the person says they were shown and accepted. The
+	// account service resolves it against the published versions.
+	Policies policies.Claim
 }
 
 type CreateParams struct {
@@ -89,6 +93,9 @@ type CreateParams struct {
 	HomeSchoolID   string
 	AgeConfirmedAt time.Time
 	Timezone       string
+	// PolicyDocumentIDs are the published Terms and Privacy versions accepted
+	// at signup. They are recorded in the same transaction as the account.
+	PolicyDocumentIDs []string
 }
 
 type ProfileUpdate struct {
@@ -161,7 +168,7 @@ func ValidateSignup(input SignupInput) error {
 	if !input.AgeConfirmed {
 		return apperror.Validation("18+ confirmation is required")
 	}
-	return nil
+	return policies.ValidateClaim(input.Policies)
 }
 
 func ValidateProfileUpdate(update ProfileUpdate, links []SocialLink) error {

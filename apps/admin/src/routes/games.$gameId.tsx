@@ -29,7 +29,7 @@ export const Route = createFileRoute("/games/$gameId")({
 });
 
 function GameDetailPage() {
-  const { game, audit } = Route.useLoaderData();
+  const { game, audit, coverImage } = Route.useLoaderData();
   const search = Route.useSearch();
   const { admin } = Route.useRouteContext();
   const capabilities =
@@ -67,9 +67,32 @@ function GameDetailPage() {
           <DetailFact label="Public picker">
             {game.is_active ? "Shown" : "Hidden"}
           </DetailFact>
-          <DetailFact label="Cover image">
-            {game.cover_url || "Not set"}
+          <DetailFact label="Source">
+            {game.igdb_id !== null
+              ? "IGDB"
+              : game.user_submitted
+                ? "Typed in by a user. Events and teams can use it while it is hidden; delete it to block the name."
+                : "Added by hand"}
           </DetailFact>
+          <DetailFact label="Cover image">
+            {coverImage ? (
+              <img
+                alt={`Cover of ${game.name}`}
+                height={187}
+                src={coverImage}
+                width={132}
+              />
+            ) : (
+              game.cover_url || "Not set"
+            )}
+          </DetailFact>
+          {game.last_synced_at ? (
+            <DetailFact label="Last synced with IGDB">
+              <time dateTime={game.last_synced_at}>
+                {formatTimestamp(game.last_synced_at)}
+              </time>
+            </DetailFact>
+          ) : null}
           <DetailFact label="Last changed">
             <time dateTime={game.updated_at}>
               {formatTimestamp(game.updated_at)}
@@ -87,6 +110,26 @@ function GameDetailPage() {
             </div>
           </div>
           <GameForm game={game} />
+        </section>
+      ) : null}
+
+      {state !== "deleted" && game.igdb_id !== null ? (
+        <section className="detail-panel" aria-labelledby="game-igdb">
+          <div className="panel-heading">
+            <div>
+              <p className="eyebrow">IGDB</p>
+              <h2 id="game-igdb">Sync</h2>
+            </div>
+          </div>
+          <CommandForm
+            command="game.refresh"
+            description="Re-reads this game from IGDB and replaces the cover if IGDB changed it. The name and slug are left as they are."
+            expectedUpdatedAt={game.updated_at}
+            id={game.id}
+            returnPath={path}
+            submitLabel="Refresh from IGDB"
+            title="Refresh"
+          />
         </section>
       ) : null}
 

@@ -78,6 +78,18 @@ type Config struct {
 	// SentryDSN names the error monitoring project. Empty disables reporting.
 	SentryDSN     string
 	SentryRelease string
+	// IGDB credentials are a Twitch application's client ID and secret. The
+	// URLs replace the IGDB and Twitch services for local fakes only.
+	IGDBClientID     string
+	IGDBClientSecret string
+	IGDBAPIURL       string
+	IGDBTokenURL     string
+	IGDBImageURL     string
+}
+
+// IGDBConfigured reports whether games can be searched and imported from IGDB.
+func (cfg Config) IGDBConfigured() bool {
+	return cfg.IGDBClientID != ""
 }
 
 // LogoStorageConfigured reports whether school-logo uploads can be served.
@@ -205,6 +217,11 @@ func Load() (Config, error) {
 		R2PublicAssetOrigin:        os.Getenv("R2_PUBLIC_ASSET_ORIGIN"),
 		SentryDSN:                  strings.TrimSpace(os.Getenv("SENTRY_DSN")),
 		SentryRelease:              firstNonEmptyEnv("SENTRY_RELEASE", "RAILWAY_GIT_COMMIT_SHA"),
+		IGDBClientID:               strings.TrimSpace(os.Getenv("IGDB_CLIENT_ID")),
+		IGDBClientSecret:           strings.TrimSpace(os.Getenv("IGDB_CLIENT_SECRET")),
+		IGDBAPIURL:                 os.Getenv("IGDB_API_URL"),
+		IGDBTokenURL:               os.Getenv("IGDB_TOKEN_URL"),
+		IGDBImageURL:               os.Getenv("IGDB_IMAGE_URL"),
 	}
 
 	if err := cfg.validate(); err != nil {
@@ -298,6 +315,22 @@ func (cfg Config) validate() error {
 				strings.EqualFold(assetOrigin.Hostname(), hostname(cfg.SiteURL)) || strings.EqualFold(assetOrigin.Hostname(), hostname(cfg.AdminSiteURL))) {
 				issues = append(issues, "R2_PUBLIC_ASSET_ORIGIN must be an HTTPS origin on its own non-local hostname")
 			}
+		}
+	}
+
+	// IGDB import is optional. Without credentials the import routes answer
+	// igdb_not_configured.
+	if (cfg.IGDBClientID == "") != (cfg.IGDBClientSecret == "") {
+		issues = append(issues, "IGDB_CLIENT_ID and IGDB_CLIENT_SECRET must be set together")
+	}
+	for _, override := range [][2]string{{"IGDB_API_URL", cfg.IGDBAPIURL}, {"IGDB_TOKEN_URL", cfg.IGDBTokenURL}, {"IGDB_IMAGE_URL", cfg.IGDBImageURL}} {
+		if override[1] == "" {
+			continue
+		}
+		if _, valid := parseHTTPURL(override[1]); !valid {
+			issues = append(issues, override[0]+" must be an absolute HTTP(S) URL")
+		} else if cfg.DeploymentEnvironment.Strict() {
+			issues = append(issues, override[0]+" must not be set; the IGDB and Twitch services are used")
 		}
 	}
 

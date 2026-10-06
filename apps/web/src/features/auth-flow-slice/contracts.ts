@@ -21,6 +21,20 @@ export const authStatusDtoSchema = z.object({
   status: z.string().min(1).max(100),
 });
 
+const policyVersionSchema = z
+  .string()
+  .trim()
+  .regex(/^[0-9a-z][0-9a-z.-]{0,39}$/, "Reload the page and try again.");
+
+/** The Terms and Privacy versions in effect, as the Go API publishes them. */
+export const currentPoliciesDtoSchema = z.object({
+  terms: z.object({ version: policyVersionSchema }),
+  privacy: z.object({ version: policyVersionSchema }),
+});
+
+/** The exact versions a signup form shows and names in its submission. */
+export type SignupPolicies = { termsVersion: string; privacyVersion: string };
+
 export const signupInputSchema = z.object({
   email: emailSchema,
   password: passwordSchema,
@@ -39,6 +53,13 @@ export const signupInputSchema = z.object({
     .min(1, "Time zone is required.")
     .max(100)
     .refine(validIANATimeZone, "Enter a valid IANA time zone."),
+  // One control: the person agrees to the Terms and acknowledges the Privacy
+  // Policy, each at the exact version the form linked to.
+  policies_accepted: z.literal(true, {
+    error: "Agree to the Terms and acknowledge the Privacy Policy.",
+  }),
+  terms_version: policyVersionSchema,
+  privacy_version: policyVersionSchema,
 });
 
 export const emailInputSchema = z.object({ email: emailSchema });
@@ -89,6 +110,9 @@ export function validateSignupServerInput(
     home_school_id: normalizedInputValue(input, "home_school_id"),
     age_confirmed: checkedInputValue(input, "age_confirmed"),
     timezone: normalizedInputValue(input, "timezone") || "America/Los_Angeles",
+    policies_accepted: checkedInputValue(input, "policies_accepted"),
+    terms_version: normalizedInputValue(input, "terms_version"),
+    privacy_version: normalizedInputValue(input, "privacy_version"),
   });
 }
 

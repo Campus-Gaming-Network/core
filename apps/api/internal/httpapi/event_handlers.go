@@ -35,6 +35,7 @@ type createEventRequest struct {
 	PaymentURL      string             `json:"payment_url"`
 	RecurrenceRule  optionalJSONString `json:"recurrence_rule"`
 	RecurrenceUntil optionalJSONString `json:"recurrence_until"`
+	pickedGames
 }
 
 type optionalJSONString struct {
@@ -134,7 +135,13 @@ func (r *Router) handleCreateEvent(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	if !r.checkPickedGames(w, userID, request.pickedGames) {
+		return
+	}
 	input := createEventInputFromRequest(request, userID)
+	if request.pickedGames.pending() {
+		input.GameIDs = append(input.GameIDs, pendingGameID)
+	}
 	input.IdempotencyKey = key
 	if request.RecurrenceUntil.present && strings.TrimSpace(request.RecurrenceUntil.value) != "" {
 		parsed, err := recurrenceEndOfDate(
@@ -149,6 +156,10 @@ func (r *Router) handleCreateEvent(w http.ResponseWriter, req *http.Request) {
 	}
 	if err := eventstore.ValidateCreateInput(input); err != nil {
 		writeApplicationError(w, err, "event_create_failed")
+		return
+	}
+	// Picked games are imported only once the rest of the request is valid.
+	if input.GameIDs, ok = r.resolvePickedGames(w, req, request.GameIDs, request.pickedGames); !ok {
 		return
 	}
 
@@ -208,10 +219,32 @@ func (r *Router) handleUpdateEvent(w http.ResponseWriter, req *http.Request, slu
 		return
 	}
 
+	if !r.checkPickedGames(w, userID, request.pickedGames) {
+		return
+	}
 	input := updateEventInputFromRequest(request, slug, userID)
+	if request.pickedGames.pending() {
+		input.GameIDs = append(input.GameIDs, pendingGameID)
+	}
 	if err := eventstore.ValidateUpdateInput(input); err != nil {
 		writeApplicationError(w, err, "event_update_failed")
 		return
+	}
+	if request.pickedGames.pending() {
+		// Only an organizer's edit may import games. Update checks this again
+		// inside its transaction.
+		organizer, err := r.events.IsOrganizer(req.Context(), slug, userID)
+		if err == nil && !organizer {
+			err = eventstore.ErrOrganizerRequired
+		}
+		if err != nil {
+			writeApplicationError(w, err, "event_update_failed")
+			return
+		}
+		var ok bool
+		if input.GameIDs, ok = r.resolvePickedGames(w, req, request.GameIDs, request.pickedGames); !ok {
+			return
+		}
 	}
 
 	var privatePasswordHash string

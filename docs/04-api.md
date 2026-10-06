@@ -65,15 +65,30 @@ All other paths exist in the Go API.
 
 ### Auth
 
-| Method | Path                        | Notes                                                                                               |
-| ------ | --------------------------- | --------------------------------------------------------------------------------------------------- |
-| POST   | `/auth/signup`              | Rate limited; requires 18+ confirmation and home school selection; sends verification email         |
-| POST   | `/auth/login`               |                                                                                                     |
-| POST   | `/auth/logout`              |                                                                                                     |
-| POST   | `/auth/forgot-password`     |                                                                                                     |
-| POST   | `/auth/reset-password`      |                                                                                                     |
-| POST   | `/auth/verify-email`        | Consumes the token after explicit confirmation on the web verification page; direct GET returns 405 |
-| POST   | `/auth/resend-verification` | Rate limited                                                                                        |
+| Method | Path                        | Notes                                                                                                                                |
+| ------ | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| POST   | `/auth/signup`              | Rate limited; requires 18+ confirmation, home school selection, and the [policy claim](#policy-acceptance); sends verification email |
+| POST   | `/auth/login`               |                                                                                                                                      |
+| POST   | `/auth/logout`              |                                                                                                                                      |
+| POST   | `/auth/forgot-password`     |                                                                                                                                      |
+| POST   | `/auth/reset-password`      |                                                                                                                                      |
+| POST   | `/auth/verify-email`        | Consumes the token after explicit confirmation on the web verification page; direct GET returns 405                                  |
+| POST   | `/auth/resend-verification` | Rate limited                                                                                                                         |
+
+### Policy acceptance
+
+| Method | Path                     | Notes                                                                                                   |
+| ------ | ------------------------ | ------------------------------------------------------------------------------------------------------- |
+| GET    | `/policies/current`      | The Terms and Privacy Policy versions in effect: `version`, `effective_at`, `content_sha256` for each   |
+| GET    | `/me/policy-acceptances` | The signed-in user's acceptances, oldest first: `document_type`, `version`, `accepted_at`, and `source` |
+
+`POST /auth/signup` takes `terms_agreed`, `terms_version`, `privacy_acknowledged`,
+and `privacy_version`. The person agrees to the Terms and acknowledges the
+Privacy Policy; the two are recorded separately. A missing or false flag, or a
+missing version, returns `400 invalid_request`. A version that is not the one
+in effect (stale or never published) returns `409 policy_version_mismatch`, and
+the client shows the current documents again. Both acceptances are written in
+the same transaction as the account.
 
 ### Users / profile
 
@@ -240,11 +255,56 @@ Response:
 | Method | Path                       | Notes                                          |
 | ------ | -------------------------- | ---------------------------------------------- |
 | GET    | `/games`                   | Browse (public); active games only             |
+| GET    | `/games/:slug/cover`       | Stored cover image of an active game           |
+| GET    | `/games/igdb-search?q=`    | Auth; search IGDB from a game picker           |
 | GET    | `/games/:slug/events`      | **(planned)** Public events for game + filters |
 | GET    | `/games/:slug/tournaments` | **(planned)** Tournaments for game + filters   |
 
-End users cannot edit games; site admins manage them through the
-[Admin API](#admin-api). IGDB import is later.
+End users cannot edit games. Site admins import and manage them through the
+[Admin API](#admin-api), and a signed-in user can add one while creating an
+event or team.
+
+`GET /games/igdb-search?q=` (2 to 100 characters) returns
+`{ "games": [{ "igdb_id", "name", "release_year"?, "game_id"? }] }`; `game_id`
+is set when the catalog already holds the game. Matches whose catalog game a
+site admin has hidden or deleted are left out. Results are cached for 24 hours,
+so a repeated search does not call IGDB. The route allows 30 searches a minute
+per user (`429` `rate_limited`) and answers `503` `igdb_not_configured` without
+IGDB credentials and `503` `igdb_unavailable` when IGDB fails. The web app
+serves it to the picker at `/api/games/igdb-search`, where a successful result
+is cacheable by that browser for five minutes (`private, max-age=300`) and
+errors are not cached.
+
+`POST /events`, `PATCH /events/:slug`, and `POST /teams` take two fields beside
+`game_ids`. At least one game is required across the three.
+
+- `igdb_game_ids`: up to five IGDB IDs from the search. Each is imported as an
+  active game with its cover if the catalog does not hold it. If the cover
+  cannot be downloaded or used, the game is imported without it.
+- `other_game`: a game name of up to 100 characters. It becomes an unlisted
+  game that this event or team uses; the same name typed again reuses it. It
+  goes through the blocked-language check.
+
+Games IGDB tags with its "Erotic" theme are treated as if IGDB did not list
+them: every search leaves them out, and an import or refresh by ID answers
+`igdb_game_not_found`. This applies to the admin routes too.
+
+Nothing is imported until the rest of the request is valid and, for an edit,
+the caller is an organizer of the event. A request that names picked or typed
+games also counts against the caller's 30-a-minute search limit.
+
+A game a site admin has hidden or deleted is refused with `422`
+`game_unavailable`. Other codes: `400` `invalid_game_name`, `422`
+`igdb_game_not_found`, `503` `igdb_unavailable`, and `503`
+`igdb_not_configured` when `igdb_game_ids` is sent without IGDB credentials.
+
+`GET /games/:slug/cover` returns the image bytes with `Content-Type`, an
+`ETag`, `Cache-Control: public, max-age=86400`, and
+`X-Content-Type-Options: nosniff`. A matching `If-None-Match` gets `304`. A
+game that is hidden, deleted, or has no stored cover gets `404`
+`game_cover_not_found`. The web app serves the same bytes to browsers at
+`/api/games/:slug/cover`; for a game with a stored cover, `cover_url` in
+`GET /games` is that address on `API_SITE_URL`.
 
 ### Notifications & announcements (later)
 
@@ -282,10 +342,37 @@ capabilities, and step-up rules live in
 | School logos        | `POST /schools/:id/logo` (multipart upload) and `DELETE /schools/:id/logo`                                        |
 | School admins       | `GET`/`POST /schools/:id/admin-grants`, `POST …/:grant_id/revoke`, and `GET …/:grant_id/audit`                    |
 | Games               | List, create, get, update, and delete under `/games`, plus `GET /games/:id/audit`                                 |
+| IGDB import         | `GET /igdb-games?q=`, `POST /game-imports`, `POST /games/:id/refresh`, and `GET /games/:id/cover`                 |
 | Users               | List, get, `suspend`, `reactivate`, `PATCH /users/:id/trust-grants`, and `GET /users/:id/audit`                   |
 | Site admins         | `GET`/`POST /site-admin-grants`, `POST /site-admin-grants/:id/revoke`, and `GET /site-admin-grants/:id/audit`     |
 
-Impersonation, feature flags, and site announcements are later.
+The IGDB routes need `games.manage`:
+
+- `GET /igdb-games?q=` searches IGDB by name (2 to 100 characters) and returns
+  `{ "games": [{ "igdb_id", "name", "release_year"?, "game_id"? }] }`.
+  `game_id` is set when the catalog already holds that IGDB entry. No cover is
+  downloaded.
+- `POST /game-imports` takes `{ "igdb_id", "reason" }`. The API reads the name,
+  slug, and cover from IGDB, creates the game inactive with `igdb_id` and
+  `last_synced_at` set, stores the cover, and writes a `game.imported` audit
+  row. It returns `201` with the game. A repeat import of the same `igdb_id`
+  returns `409` `game_already_imported` with the existing game in `current`.
+- `POST /games/:id/refresh` takes `{ "expected_updated_at", "reason" }`. It
+  sets `last_synced_at`, replaces the cover only when IGDB's image changed,
+  never changes the name or slug, and writes a `game.refreshed` audit row. A
+  game that was not imported gets `422` `game_not_from_igdb`.
+- `GET /games/:id/cover` returns `{ "content_type", "data" }` with the bytes
+  base64-encoded, so the Admin Console can show the cover of a hidden game
+  without loading an image from another origin.
+
+Games in admin responses also carry `igdb_id`, `last_synced_at`, `has_cover`,
+and `user_submitted`. The admin search shares the 24-hour search cache. IGDB failures use their own codes: `503` `igdb_not_configured`
+(no `IGDB_CLIENT_ID` and `IGDB_CLIENT_SECRET` on the API), `503`
+`igdb_rate_limited`, `502` `igdb_unavailable`, `404` `igdb_game_not_found`,
+`422` `igdb_game_invalid`, and `422` `igdb_cover_unusable` (larger than 100 KB
+or not a JPEG, PNG, or WebP). A failed import creates nothing.
+
+Bulk IGDB sync, impersonation, feature flags, and site announcements are later.
 
 ### Health
 
@@ -322,7 +409,7 @@ Impersonation, feature flags, and site announcements are later.
   support messages; reject matches before persistence
 - Reject unexpected HTML; store plain text or tightly sanitized markdown (decision TBD)
 - Payment fields are display/off-site only; validate any `payment_url` as a safe external URL and make clear users are leaving CGN
-- Pagination on every unbounded list endpoint; `GET /games` returns the whole curated active list
+- Pagination on every unbounded list endpoint; `GET /games` returns the whole active list
 
 ## TanStack usage
 
