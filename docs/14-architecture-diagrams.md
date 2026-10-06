@@ -164,7 +164,7 @@ flowchart LR
     Admin["Admin Console (release-gated)<br/>TanStack Start"]
     R2["Later Cloudflare R2<br/>school logos"]
     IGDB["IGDB<br/>game search, import, covers"]
-    Sentry["Later Sentry"]
+    Sentry["Sentry<br/>error monitoring"]
 
     User -->|"HTTPS"| Cloudflare --> Web
     Web -->|"SSR HTML, redirects, opaque cookies"| User
@@ -179,11 +179,11 @@ flowchart LR
     Admin -.->|"shared admin API"| API
     Admin -.-> R2
     API -.->|"admin-started import and refresh"| IGDB
-    Web -.-> Sentry
-    API -.-> Sentry
+    Web -->|"errors"| Sentry
+    API -->|"errors"| Sentry
 
     classDef deferred stroke-dasharray: 6 4,fill:#f7f7f8,color:#52525b;
-    class Admin,R2,IGDB,Sentry deferred;
+    class Admin,R2,IGDB deferred;
 ```
 
 Production exposes only the TanStack Start web service. The Go API and PostgreSQL remain on Railway private networking. Migrations run before a new API deployment is activated, the national school seed runs once per fresh environment, and database backups are a launch gate.

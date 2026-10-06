@@ -23,6 +23,7 @@ import { Route as SignupRouteImport } from './routes/signup'
 import { Route as SupportRouteImport } from './routes/support'
 import { Route as TeamsRouteImport } from './routes/teams'
 import { Route as TermsRouteImport } from './routes/terms'
+import { Route as ApiErrorMonitoringTestRouteImport } from './routes/api.error-monitoring-test'
 import { Route as ApiHealthRouteImport } from './routes/api.health'
 import { Route as ApiNavigationSessionRouteImport } from './routes/api.navigation-session'
 import { Route as ApiSchoolsRouteImport } from './routes/api.schools'
@@ -114,6 +115,11 @@ const TeamsRoute = TeamsRouteImport.update({
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
   path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiErrorMonitoringTestRoute = ApiErrorMonitoringTestRouteImport.update({
+  id: '/api/error-monitoring-test',
+  path: '/api/error-monitoring-test',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiHealthRoute = ApiHealthRouteImport.update({
@@ -243,6 +249,7 @@ export interface FileRoutesByFullPath {
   '/support': typeof SupportRoute
   '/teams': typeof TeamsRouteWithChildren
   '/terms': typeof TermsRoute
+  '/api/error-monitoring-test': typeof ApiErrorMonitoringTestRoute
   '/api/health': typeof ApiHealthRoute
   '/api/navigation-session': typeof ApiNavigationSessionRoute
   '/api/schools': typeof ApiSchoolsRoute
@@ -278,6 +285,7 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/support': typeof SupportRoute
   '/terms': typeof TermsRoute
+  '/api/error-monitoring-test': typeof ApiErrorMonitoringTestRoute
   '/api/health': typeof ApiHealthRoute
   '/api/navigation-session': typeof ApiNavigationSessionRoute
   '/api/schools': typeof ApiSchoolsRoute
@@ -317,6 +325,7 @@ export interface FileRoutesById {
   '/support': typeof SupportRoute
   '/teams': typeof TeamsRouteWithChildren
   '/terms': typeof TermsRoute
+  '/api/error-monitoring-test': typeof ApiErrorMonitoringTestRoute
   '/api/health': typeof ApiHealthRoute
   '/api/navigation-session': typeof ApiNavigationSessionRoute
   '/api/schools': typeof ApiSchoolsRoute
@@ -357,6 +366,7 @@ export interface FileRouteTypes {
     | '/support'
     | '/teams'
     | '/terms'
+    | '/api/error-monitoring-test'
     | '/api/health'
     | '/api/navigation-session'
     | '/api/schools'
@@ -392,6 +402,7 @@ export interface FileRouteTypes {
     | '/signup'
     | '/support'
     | '/terms'
+    | '/api/error-monitoring-test'
     | '/api/health'
     | '/api/navigation-session'
     | '/api/schools'
@@ -430,6 +441,7 @@ export interface FileRouteTypes {
     | '/support'
     | '/teams'
     | '/terms'
+    | '/api/error-monitoring-test'
     | '/api/health'
     | '/api/navigation-session'
     | '/api/schools'
@@ -469,6 +481,7 @@ export interface RootRouteChildren {
   SupportRoute: typeof SupportRoute
   TeamsRoute: typeof TeamsRouteWithChildren
   TermsRoute: typeof TermsRoute
+  ApiErrorMonitoringTestRoute: typeof ApiErrorMonitoringTestRoute
   ApiHealthRoute: typeof ApiHealthRoute
   ApiNavigationSessionRoute: typeof ApiNavigationSessionRoute
   ApiSchoolsRoute: typeof ApiSchoolsRoute
@@ -579,6 +592,13 @@ declare module '@tanstack/react-router' {
       path: '/terms'
       fullPath: '/terms'
       preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/error-monitoring-test': {
+      id: '/api/error-monitoring-test'
+      path: '/api/error-monitoring-test'
+      fullPath: '/api/error-monitoring-test'
+      preLoaderRoute: typeof ApiErrorMonitoringTestRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/health': {
@@ -803,6 +823,7 @@ const rootRouteChildren: RootRouteChildren = {
   SupportRoute: SupportRoute,
   TeamsRoute: TeamsRouteWithChildren,
   TermsRoute: TermsRoute,
+  ApiErrorMonitoringTestRoute: ApiErrorMonitoringTestRoute,
   ApiHealthRoute: ApiHealthRoute,
   ApiNavigationSessionRoute: ApiNavigationSessionRoute,
   ApiSchoolsRoute: ApiSchoolsRoute,

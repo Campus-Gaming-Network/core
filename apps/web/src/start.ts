@@ -3,12 +3,35 @@ import {
   createMiddleware,
   createStart,
 } from "@tanstack/react-start";
+import { reportServerError } from "./server/error-monitor.server.js";
 
 const localSiteOrigin = "http://localhost:3000";
 
 const csrfMiddleware = createCsrfMiddleware({
   filter: ({ handlerType }) => handlerType === "serverFn",
   origin: publicOrigin(),
+});
+
+// Outermost, so it sees a failure from a server route or from any middleware
+// below it.
+const errorReportingMiddleware = createMiddleware().server(async ({ next }) => {
+  try {
+    return await next();
+  } catch (error) {
+    reportServerError(error);
+    throw error;
+  }
+});
+
+const functionErrorReportingMiddleware = createMiddleware({
+  type: "function",
+}).server(async ({ next }) => {
+  try {
+    return await next();
+  } catch (error) {
+    reportServerError(error);
+    throw error;
+  }
 });
 
 const securityHeadersMiddleware = createMiddleware().server(
@@ -50,7 +73,12 @@ const securityHeadersMiddleware = createMiddleware().server(
 );
 
 export const startInstance = createStart(() => ({
-  requestMiddleware: [securityHeadersMiddleware, csrfMiddleware],
+  functionMiddleware: [functionErrorReportingMiddleware],
+  requestMiddleware: [
+    errorReportingMiddleware,
+    securityHeadersMiddleware,
+    csrfMiddleware,
+  ],
 }));
 
 // School logos load from the separate asset origin, and images from nowhere

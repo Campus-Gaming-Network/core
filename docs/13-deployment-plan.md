@@ -268,8 +268,11 @@ API_PROXY_SHARED_SECRET=REPLACE-WITH-STAGING-SHARED-SECRET
 CLOUDFLARE_ORIGIN_SECRET=REPLACE-WITH-STAGING-CLOUDFLARE-SECRET
 SITE_URL=https://REPLACE-WITH-STAGING-WEB-DOMAIN
 R2_PUBLIC_ASSET_ORIGIN=https://REPLACE-WITH-STAGING-ASSET-DOMAIN
+SENTRY_DSN=REPLACE-WITH-CGN-WEB-SENTRY-DSN
 NODE_ENV=production
 ```
+
+`SENTRY_DSN` here is the DSN of the `cgn-web` Sentry project, which is a different value from the API's. The web server and the browser both report to it, tagged `runtime:server` or `runtime:browser`, and `DEPLOYMENT_ENV` is the Sentry environment. The page receives the DSN from the server at run time, so one image serves every environment. The browser loads the SDK only when a DSN is set and contacts Sentry only to report an error; it sends no session pings or breadcrumbs, and the page address is sent without its query string. Server events carry the error and its stack trace and no request data. To confirm server reporting, set `WEB_MAINTENANCE_TOKEN` temporarily and send `POST /api/error-monitoring-test` with it as a bearer token and the site's own `Origin` header; the request answers 500. To confirm browser reporting, run `setTimeout(() => { throw new Error("test") })` in the browser console on any page. Unset the token afterwards.
 
 Return to the API variables and replace `https://REPLACE-WITH-STAGING-WEB-DOMAIN` with the same exact origin. The two `API_PROXY_SHARED_SECRET` values must match exactly.
 
@@ -436,6 +439,7 @@ API_PROXY_SHARED_SECRET=REPLACE-WITH-PRODUCTION-SHARED-SECRET
 CLOUDFLARE_ORIGIN_SECRET=REPLACE-WITH-PRODUCTION-CLOUDFLARE-SECRET
 SITE_URL=https://campusgamingnetwork.com
 R2_PUBLIC_ASSET_ORIGIN=https://REPLACE-WITH-PRODUCTION-ASSET-DOMAIN
+SENTRY_DSN=REPLACE-WITH-CGN-WEB-SENTRY-DSN
 NODE_ENV=production
 ```
 

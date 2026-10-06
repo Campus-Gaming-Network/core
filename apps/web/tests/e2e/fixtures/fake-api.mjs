@@ -167,6 +167,8 @@ const teamMemberPeople = numberedPeople("Team Member", 30, (index) => ({
   role: index === 0 ? "owner" : index < 3 ? "captain" : "member",
 }));
 
+const errorEnvelopes = [];
+
 const server = createServer(async (request, response) => {
   try {
     await handleRequest(request, response);
@@ -205,7 +207,23 @@ async function handleRequest(request, response) {
     transferredOwners.clear();
     consumedVerificationTokens.clear();
     calls.length = 0;
+    errorEnvelopes.length = 0;
     json(response, 200, { reset: true });
+    return;
+  }
+
+  // Stands in for Sentry's ingest endpoint so the web server's own reports
+  // can be read back.
+  if (method === "POST" && url.pathname === "/api/1/envelope/") {
+    let envelope = "";
+    for await (const chunk of request) envelope += chunk;
+    errorEnvelopes.push(envelope);
+    json(response, 200, {});
+    return;
+  }
+
+  if (method === "GET" && url.pathname === "/__test/error-envelopes") {
+    json(response, 200, errorEnvelopes);
     return;
   }
 

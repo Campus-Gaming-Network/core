@@ -137,6 +137,8 @@ services:
       CLOUDFLARE_ORIGIN_SECRET: ${CLOUDFLARE_ORIGIN_SECRET:-}
       SITE_URL: ${SITE_URL:-http://localhost:3000}
       R2_PUBLIC_ASSET_ORIGIN: ${R2_PUBLIC_ASSET_ORIGIN:-http://localhost:9090/cgn-school-logos}
+      SENTRY_DSN: ${WEB_SENTRY_DSN:-}
+      WEB_MAINTENANCE_TOKEN: ${WEB_MAINTENANCE_TOKEN:-}
       HOST: 0.0.0.0
       PORT: 3000
     ports:
