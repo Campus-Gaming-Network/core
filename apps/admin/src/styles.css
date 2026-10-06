@@ -102,10 +102,12 @@
     transition-duration: 150ms;
   }
 
-  input:hover,
-  select:hover,
-  textarea:hover {
-    @apply border-admin-subtle;
+  @media (hover: hover) {
+    input:hover,
+    select:hover,
+    textarea:hover {
+      @apply border-admin-subtle;
+    }
   }
 
   input:focus,
@@ -127,11 +129,13 @@
     transition-duration: 150ms;
   }
 
-  button:hover,
-  .secondary-button:hover,
-  .primary-button:hover,
-  .button:hover {
-    @apply border-admin-accent bg-admin-panel-hover shadow-md;
+  @media (hover: hover) {
+    button:hover,
+    .secondary-button:hover,
+    .primary-button:hover,
+    .button:hover {
+      @apply border-admin-accent bg-admin-panel-hover shadow-md;
+    }
   }
 
   button:disabled {
@@ -193,8 +197,10 @@
     content: "";
   }
 
-  .sidebar nav a:hover {
-    @apply bg-admin-panel-hover text-admin-ink;
+  @media (hover: hover) {
+    .sidebar nav a:hover {
+      @apply bg-admin-panel-hover text-admin-ink;
+    }
   }
 
   .sidebar nav a:focus-visible {
@@ -244,9 +250,11 @@
     font-size: 0.75rem;
   }
 
-  .text-button:hover,
-  .theme-toggle:hover {
-    @apply border-admin-accent bg-admin-accent-soft text-admin-accent shadow-none;
+  @media (hover: hover) {
+    .text-button:hover,
+    .theme-toggle:hover {
+      @apply border-admin-accent bg-admin-accent-soft text-admin-accent shadow-none;
+    }
   }
 
   .theme-toggle__dark {
@@ -336,9 +344,11 @@
     @apply border-admin-accent bg-admin-accent text-admin-accent-contrast shadow-sm;
   }
 
-  .primary-button:hover,
-  .filter-actions > button:hover {
-    @apply border-admin-accent-strong bg-admin-accent-strong text-admin-accent-contrast shadow-md;
+  @media (hover: hover) {
+    .primary-button:hover,
+    .filter-actions > button:hover {
+      @apply border-admin-accent-strong bg-admin-accent-strong text-admin-accent-contrast shadow-md;
+    }
   }
 
   .page-header > .primary-button {
@@ -402,8 +412,10 @@
     letter-spacing: inherit;
   }
 
-  .data-table__sort:hover {
-    @apply bg-admin-panel-hover text-admin-ink shadow-none;
+  @media (hover: hover) {
+    .data-table__sort:hover {
+      @apply bg-admin-panel-hover text-admin-ink shadow-none;
+    }
   }
 
   .data-table__sort:focus-visible {
@@ -452,8 +464,10 @@
     @apply border-b-0;
   }
 
-  .data-table tbody tr:hover {
-    @apply bg-admin-panel-hover;
+  @media (hover: hover) {
+    .data-table tbody tr:hover {
+      @apply bg-admin-panel-hover;
+    }
   }
 
   .entity-link {
@@ -466,10 +480,12 @@
     @apply text-admin-accent underline decoration-admin-border-strong underline-offset-4;
   }
 
-  .entity-link:hover,
-  .detail-facts a:hover,
-  .record-list a:hover {
-    @apply text-admin-accent-strong decoration-current;
+  @media (hover: hover) {
+    .entity-link:hover,
+    .detail-facts a:hover,
+    .record-list a:hover {
+      @apply text-admin-accent-strong decoration-current;
+    }
   }
 
   .assign-to-me {
@@ -480,8 +496,10 @@
     @apply no-underline;
   }
 
-  a.summary-card:hover {
-    @apply border-admin-accent bg-admin-panel-hover;
+  @media (hover: hover) {
+    a.summary-card:hover {
+      @apply border-admin-accent bg-admin-panel-hover;
+    }
   }
 
   a.summary-card:focus-visible {
@@ -520,13 +538,15 @@
     content: "";
   }
 
-  .queue-card:hover {
-    @apply border-admin-border bg-admin-panel-hover shadow-md;
-    transform: translateY(-1px);
-  }
+  @media (hover: hover) {
+    .queue-card:hover {
+      @apply border-admin-border bg-admin-panel-hover shadow-md;
+      transform: translateY(-1px);
+    }
 
-  .queue-card:hover::before {
-    @apply bg-admin-accent;
+    .queue-card:hover::before {
+      @apply bg-admin-accent;
+    }
   }
 
   .queue-card__arrow {
@@ -534,9 +554,11 @@
     transition: transform 150ms;
   }
 
-  .queue-card:hover .queue-card__arrow {
-    @apply border-admin-accent bg-admin-accent text-admin-accent-contrast;
-    transform: translateX(2px);
+  @media (hover: hover) {
+    .queue-card:hover .queue-card__arrow {
+      @apply border-admin-accent bg-admin-accent text-admin-accent-contrast;
+      transform: translateX(2px);
+    }
   }
 
   .queue-card strong {
@@ -596,8 +618,10 @@
     transition-duration: 150ms;
   }
 
-  .pagination a:hover {
-    @apply border-admin-accent bg-admin-panel-hover;
+  @media (hover: hover) {
+    .pagination a:hover {
+      @apply border-admin-accent bg-admin-panel-hover;
+    }
   }
 
   .detail-page {
@@ -614,8 +638,10 @@
     font-size: 0.75rem;
   }
 
-  .copy-id:hover {
-    @apply border-admin-accent bg-admin-accent-soft text-admin-accent shadow-none;
+  @media (hover: hover) {
+    .copy-id:hover {
+      @apply border-admin-accent bg-admin-accent-soft text-admin-accent shadow-none;
+    }
   }
 
   .detail-id {
@@ -626,8 +652,10 @@
     @apply mb-6 inline-flex items-center gap-2 font-semibold text-admin-accent no-underline;
   }
 
-  .back-link:hover {
-    @apply text-admin-accent-strong underline underline-offset-4;
+  @media (hover: hover) {
+    .back-link:hover {
+      @apply text-admin-accent-strong underline underline-offset-4;
+    }
   }
 
   .detail-panel {
@@ -691,8 +719,10 @@
     @apply justify-self-start border-admin-accent bg-admin-accent text-admin-accent-contrast;
   }
 
-  .moderation-form > button:hover {
-    @apply border-admin-accent-strong bg-admin-accent-strong;
+  @media (hover: hover) {
+    .moderation-form > button:hover {
+      @apply border-admin-accent-strong bg-admin-accent-strong;
+    }
   }
 
   .form-grid {
@@ -798,8 +828,10 @@
     @apply m-0;
   }
 
-  .record-list a:hover {
-    @apply underline underline-offset-4;
+  @media (hover: hover) {
+    .record-list a:hover {
+      @apply underline underline-offset-4;
+    }
   }
 
   .command-panel {
@@ -828,9 +860,11 @@
     background: #6d2630;
   }
 
-  .moderation-form > .danger-button:hover {
-    border-color: #e77f8a;
-    background: #822f3a;
+  @media (hover: hover) {
+    .moderation-form > .danger-button:hover {
+      border-color: #e77f8a;
+      background: #822f3a;
+    }
   }
 }
 

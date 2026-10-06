@@ -93,11 +93,19 @@ a:where(:not(.button, .card, .brand, .skip-link, .site-header a)) {
 }
 
 a:where(:not(.button, .card, .brand, .skip-link, .site-header a)):where(
-    :hover,
     :focus-visible
   ) {
   color: var(--color-primary-dark);
   text-decoration-thickness: 2px;
+}
+
+@media (hover: hover) {
+  a:where(:not(.button, .card, .brand, .skip-link, .site-header a)):where(
+      :hover
+    ) {
+    color: var(--color-primary-dark);
+    text-decoration-thickness: 2px;
+  }
 }
 
 a:where(:not(.button, .card, .brand, .skip-link, .site-header a)):where(
@@ -107,32 +115,55 @@ a:where(:not(.button, .card, .brand, .skip-link, .site-header a)):where(
   text-decoration-thickness: 2px;
 }
 
-a.link:hover,
 a.link:focus-visible {
   color: var(--color-primary-dark);
+}
+
+@media (hover: hover) {
+  a.link:hover {
+    color: var(--color-primary-dark);
+  }
 }
 
 a.link:active {
   color: var(--color-primary-pressed);
 }
 
-.site-footer a:hover,
 .site-footer a:focus-visible {
   color: var(--color-text);
 }
 
-.form-error-summary a:hover,
+@media (hover: hover) {
+  .site-footer a:hover {
+    color: var(--color-text);
+  }
+}
+
 .form-error-summary a:focus-visible {
   color: var(--color-danger-dark);
 }
 
+@media (hover: hover) {
+  .form-error-summary a:hover {
+    color: var(--color-danger-dark);
+  }
+}
+
 /* Quiet links drop the underline at rest and gain it on hover and focus. */
-.back-link:hover,
 .back-link:focus-visible {
   color: var(--color-text);
   text-decoration-line: underline;
   text-decoration-thickness: 2px;
   text-underline-offset: 0.18em;
+}
+
+@media (hover: hover) {
+  .back-link:hover {
+    color: var(--color-text);
+    text-decoration-line: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 0.18em;
+  }
 }
 
 button,
@@ -270,11 +301,18 @@ main {
   text-decoration: none;
 }
 
-.site-header nav button:hover:not(:disabled),
 .site-header nav button:focus-visible {
   filter: none;
   border-bottom-color: var(--color-accent);
   color: var(--color-text);
+}
+
+@media (hover: hover) {
+  .site-header nav button:hover:not(:disabled) {
+    filter: none;
+    border-bottom-color: var(--color-accent);
+    color: var(--color-text);
+  }
 }
 
 .site-header nav button[type="submit"]:active {
@@ -299,10 +337,16 @@ main {
 }
 
 .site-header nav a:not(.button)[aria-current="page"],
-.site-header nav a:not(.button):hover,
 .site-header nav a:not(.button):focus-visible {
   border-bottom-color: var(--color-accent);
   color: var(--color-text);
+}
+
+@media (hover: hover) {
+  .site-header nav a:not(.button):hover {
+    border-bottom-color: var(--color-accent);
+    color: var(--color-text);
+  }
 }
 
 /* Account menu, shown once the viewer is known. The trigger reads like the
@@ -387,9 +431,14 @@ main {
   outline-offset: -3px;
 }
 
-.site-header nav .account-menu .account-menu__item:hover:not(:disabled),
 .site-header nav .account-menu .account-menu__item:focus-visible {
   background: var(--color-canvas);
+}
+
+@media (hover: hover) {
+  .site-header nav .account-menu .account-menu__item:hover:not(:disabled) {
+    background: var(--color-canvas);
+  }
 }
 
 .site-header nav .account-menu .account-menu__item[aria-current="page"] {
@@ -664,9 +713,11 @@ main {
   text-decoration: none;
 }
 
-.card--default:hover {
-  border-color: var(--color-border-strong);
-  background: #fffdf8;
+@media (hover: hover) {
+  .card--default:hover {
+    border-color: var(--color-border-strong);
+    background: #fffdf8;
+  }
 }
 
 .school-card {
@@ -833,14 +884,16 @@ main {
   background: transparent;
 }
 
-.school-directory-card.card--default:hover {
-  border-color: var(--color-border-strong);
-  background: transparent;
-}
+@media (hover: hover) {
+  .school-directory-card.card--default:hover {
+    border-color: var(--color-border-strong);
+    background: transparent;
+  }
 
-.school-directory-card.card--default:hover .school-directory-copy strong,
-.school-directory-card.card--default:hover .school-directory-action {
-  color: var(--color-primary);
+  .school-directory-card.card--default:hover .school-directory-copy strong,
+  .school-directory-card.card--default:hover .school-directory-action {
+    color: var(--color-primary);
+  }
 }
 
 .school-directory-mark {
@@ -1310,9 +1363,14 @@ input[type="radio"] {
   text-decoration: none;
 }
 
-.school-community-tabs a:hover,
 .school-community-tabs a[aria-current] {
   color: var(--color-text);
+}
+
+@media (hover: hover) {
+  .school-community-tabs a:hover {
+    color: var(--color-text);
+  }
 }
 
 .school-community-tabs a[aria-current]::after {
@@ -1359,8 +1417,10 @@ input[type="radio"] {
   text-decoration: none;
 }
 
-.school-team-list > a:hover strong {
-  color: var(--color-primary);
+@media (hover: hover) {
+  .school-team-list > a:hover strong {
+    color: var(--color-primary);
+  }
 }
 
 .school-team-list > a > span:last-child {
@@ -1508,9 +1568,11 @@ button:disabled,
 /* One hover treatment for every button variant. Dimming works on the primary,
    destructive, secondary, and per-route button styles without each needing its
    own hover color. */
-button:hover:not(:disabled),
-.button:hover:not([aria-disabled="true"]) {
-  filter: brightness(0.93);
+@media (hover: hover) {
+  button:hover:not(:disabled),
+  .button:hover:not([aria-disabled="true"]) {
+    filter: brightness(0.93);
+  }
 }
 
 :focus-visible {
@@ -1699,13 +1761,15 @@ button:hover:not(:disabled),
     background: var(--color-panel);
   }
 
-  .site-header nav .account-menu__trigger:hover:not(:disabled),
   .site-header nav .account-menu__trigger:focus-visible {
     border-color: var(--color-border-strong);
   }
 
-  .site-header nav .account-menu__trigger:hover:not(:disabled) {
-    filter: brightness(0.93);
+  @media (hover: hover) {
+    .site-header nav .account-menu__trigger:hover:not(:disabled) {
+      border-color: var(--color-border-strong);
+      filter: brightness(0.93);
+    }
   }
 
   .site-header nav .account-menu .account-menu__trigger[aria-expanded="true"] {

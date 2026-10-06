@@ -100,8 +100,10 @@
   line-height: 1.35;
 }
 
-.event-form .choice-card:hover {
-  border-color: var(--color-primary);
+@media (hover: hover) {
+  .event-form .choice-card:hover {
+    border-color: var(--color-primary);
+  }
 }
 
 .event-form .choice-card:has(input:checked) {
@@ -341,9 +343,11 @@
   border-radius: 0 var(--radius-control) var(--radius-control) 0;
 }
 
-.rsvp-form .rsvp-buttons > button:hover:not(:disabled) {
-  background: var(--color-canvas);
-  filter: none;
+@media (hover: hover) {
+  .rsvp-form .rsvp-buttons > button:hover:not(:disabled) {
+    background: var(--color-canvas);
+    filter: none;
+  }
 }
 
 .rsvp-form .rsvp-buttons > button:active {
