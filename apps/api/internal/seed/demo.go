@@ -231,23 +231,22 @@ func loadDemoSchools(ctx context.Context, pool *pgxpool.Pool) ([]demoSchool, err
 	return schools, nil
 }
 
-// loadDemoGames returns the catalog's games. An empty catalog gets the demo
-// placeholder games first, so the demo seed works without IGDB credentials.
+// loadDemoGames returns the demo games, adding any the catalog lacks. They
+// share slugs with the IGDB starter set, so an imported game is reused and
+// the demo seed works without IGDB credentials.
 func loadDemoGames(ctx context.Context, pool *pgxpool.Pool) ([]string, error) {
-	var empty bool
-	if err := pool.QueryRow(ctx, `SELECT NOT EXISTS (SELECT 1 FROM games WHERE deleted_at IS NULL)`).Scan(&empty); err != nil {
-		return nil, fmt.Errorf("check demo games: %w", err)
-	}
-	if empty {
-		for _, game := range demoGames {
-			if _, err := pool.Exec(ctx, `
-				INSERT INTO games (name, slug) VALUES ($1, $2) ON CONFLICT (slug) DO NOTHING
-			`, game[0], game[1]); err != nil {
-				return nil, fmt.Errorf("insert demo game: %w", err)
-			}
+	slugs := make([]string, 0, len(demoGames))
+	for _, game := range demoGames {
+		if _, err := pool.Exec(ctx, `
+			INSERT INTO games (name, slug) VALUES ($1, $2) ON CONFLICT (slug) DO NOTHING
+		`, game[0], game[1]); err != nil {
+			return nil, fmt.Errorf("insert demo game: %w", err)
 		}
+		slugs = append(slugs, game[1])
 	}
-	rows, err := pool.Query(ctx, `SELECT id::text FROM games WHERE deleted_at IS NULL ORDER BY slug`)
+	rows, err := pool.Query(ctx, `
+		SELECT id::text FROM games WHERE deleted_at IS NULL AND slug = ANY($1) ORDER BY slug
+	`, slugs)
 	if err != nil {
 		return nil, fmt.Errorf("load demo games: %w", err)
 	}
