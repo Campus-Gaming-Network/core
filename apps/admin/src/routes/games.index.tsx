@@ -73,10 +73,13 @@ function GamesPage() {
           <p className="eyebrow">Catalog</p>
           <h1>Games</h1>
           <p>
-            The curated game list. Inactive games leave the public picker, but
-            events and teams that already use them keep them.
+            The game catalog, imported from IGDB. Inactive games leave the
+            public picker, but events and teams that already use them keep them.
           </p>
         </div>
+        <Link className="primary-button" to="/games/import">
+          Import from IGDB
+        </Link>
       </header>
 
       <CatalogNoticeView notice={search.notice} />

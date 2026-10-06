@@ -132,6 +132,62 @@ test("a game is added, hidden from the picker, and deleted", async ({
   ).toBeVisible();
 });
 
+test("a game is imported from IGDB, reviewed, and refreshed", async ({
+  context,
+  page,
+}) => {
+  await authenticateAdmin(context);
+  await page.goto("/games");
+  await page.getByRole("link", { name: "Import from IGDB" }).click();
+  await page.getByLabel("Game name").fill("rocket");
+  await page.getByRole("button", { name: "Search IGDB" }).click();
+
+  const matches = panel(page, "Choose a game");
+  await expect(matches.getByRole("radio")).toHaveCount(2);
+  await matches.getByLabel("Rocket League (2015)").check();
+  await matches.getByLabel("Reason").fill("Requested by schools");
+  await matches.getByRole("button", { name: "Import game" }).click();
+
+  // The import lands on the new record, hidden until an admin shows it.
+  await expect(page).toHaveURL(/\/games\/[0-9a-f-]{36}\?notice=imported$/);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    "Rocket League",
+  );
+  await expect(page.getByText("Hidden", { exact: true })).toBeVisible();
+  await expect(
+    panel(page, "Game information").getByText("IGDB", { exact: true }),
+  ).toBeVisible();
+  // The cover renders from the page itself, never from another origin.
+  await expect(
+    page.getByRole("img", { name: "Cover of Rocket League" }),
+  ).toHaveAttribute("src", /^data:image\/png;base64,/);
+  await expect(page.getByText("Game imported from IGDB")).toBeVisible();
+
+  await runCommand(panel(page, "Refresh"), "Monthly sync", "Refresh from IGDB");
+  await expect(page.getByRole("status")).toHaveText("Refreshed from IGDB.");
+  await expect(page.getByText("Game refreshed from IGDB")).toBeVisible();
+
+  // The same search now links to the record instead of offering an import.
+  await page.goto("/games/import?q=rocket");
+  await expect(panel(page, "Choose a game").getByRole("radio")).toHaveCount(1);
+  await expect(
+    panel(page, "Choose a game").getByRole("link", {
+      name: "Rocket League (2015)",
+    }),
+  ).toBeVisible();
+});
+
+test("an IGDB outage is explained on the import page", async ({
+  context,
+  page,
+}) => {
+  await authenticateAdmin(context);
+  await page.goto("/games/import?q=outage");
+  await expect(page.getByRole("alert")).toHaveText(
+    "IGDB could not be reached. Try again later.",
+  );
+});
+
 test("suspension waits for a recent identity confirmation", async ({
   context,
   page,

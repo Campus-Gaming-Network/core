@@ -102,7 +102,7 @@ would add a second description of each endpoint to maintain.
 - **Names** — single `name` field; profile at `/users/:id`.
 - **Schools** — user selects one home school on signup, may follow more schools later; import all 6,243 seed rows (1,300 branches) as active; branch campuses use the same UI/UX as other schools; `unitid` optional.
 - **Paid events** — allowed as informational/off-site payment only; organizers handle payment outside the product.
-- **Launch games** — Rocket League, Valorant, League of Legends, Overwatch 2, Super Smash Bros. Ultimate, CSGO.
+- **Games** — imported from IGDB by site admins; there is no hand-made launch list. Covers are stored in Postgres and the FAQ page credits IGDB.com.
 - **Images** — event banners = default placeholder for now; school logos come later via Admin Console uploads (PNG/JPG only, max 5 MB).
 - **Event slugs** — `slugify(title)-` + 8-char Base64URL(SHA-256(…)).
 - **Recurring events** — weekly, biweekly, or monthly; max one year; occurrences are independent event rows with independent RSVPs and cancellation.

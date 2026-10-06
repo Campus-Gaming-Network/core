@@ -35,8 +35,14 @@ Migration `000018_user_list_visibility.up.sql` adds `users.show_in_lists`
 (default true), the opt-out from the event, school, and team people lists, and
 the partial index that serves the school member list. Apply it before deploying
 the API that reads or writes the column.
+Migration `000020_igdb_game_import.up.sql` adds `games.last_synced_at` and the
+`game_covers` table, which holds each imported game's cover as `bytea`. It also
+deletes the six launch games seeded by `000003`, with the event and team links
+that point at them; games are imported from IGDB from here on. Apply it before
+deploying the API that reads covers. `000019` is left for the policy-acceptance
+migration, which is in review separately.
 Do not add clubs, tournaments, feature flags, site announcements, on-site
-payment tables, IGDB sync tables, or Admin Console-only workflow tables until those
+payment tables, IGDB bulk-sync tables, or Admin Console-only workflow tables until those
 phases are active.
 
 The Go migration runner is `apps/api/cmd/migrate`. It creates

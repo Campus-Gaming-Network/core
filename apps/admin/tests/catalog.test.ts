@@ -8,12 +8,16 @@ import {
   safeReturnPath,
   validateCatalogCommandInput,
   validateCatalogSearch,
+  validateGameImportInput,
   validateLogoUploadInput,
   validateSchoolFormInput,
   type CatalogCommandInput,
 } from "../src/features/catalog/contracts.js";
 import {
+  getGameDetailOperation,
+  importGameOperation,
   runCatalogCommandOperation,
+  searchIGDBOperation,
   saveSchoolOperation,
   uploadSchoolLogoOperation,
 } from "../src/features/catalog/catalog-operations.server.js";
@@ -204,6 +208,15 @@ test("each command calls its named Admin API operation and returns to its page",
         body: { expected_updated_at: version, reason: "Reason" },
       },
       redirectTo: `/schools/${schoolID}?notice=grant-revoked`,
+    },
+    {
+      input: { command: "game.refresh" },
+      request: {
+        path: `/admin/v1/games/${schoolID}/refresh`,
+        method: "POST",
+        body: { expected_updated_at: version, reason: "Reason" },
+      },
+      redirectTo: `/games/${schoolID}?notice=refreshed`,
     },
     {
       input: { command: "user.trust", staff_faculty: "true" },
@@ -668,6 +681,162 @@ test("a school-admin grant resolves the exact email to its account", async () =>
       status: "error",
       message: "Check the highlighted fields and try again.",
       fieldErrors: { user_email: ["No account uses that email address."] },
+    },
+  );
+});
+
+const importedGame = {
+  id: schoolID,
+  name: "Rocket League",
+  slug: "rocket-league",
+  is_active: false,
+  created_at: version,
+  updated_at: version,
+  deleted_at: null,
+  igdb_id: 11198,
+  last_synced_at: version,
+  has_cover: true,
+};
+
+test("an import names only the IGDB entry and a reason", async () => {
+  const form = new FormData();
+  form.set("igdb_id", "11198");
+  form.set("reason", " Requested by schools ");
+  form.set("name", "Ignored: the API reads the name from IGDB");
+  assert.deepEqual(validateGameImportInput(form), {
+    valid: true,
+    value: { igdb_id: 11198, reason: "Requested by schools" },
+  });
+  assert.deepEqual(validateGameImportInput({ igdb_id: "", reason: "" }), {
+    valid: false,
+    id: "",
+    message: "Check the highlighted fields and try again.",
+    fieldErrors: {
+      igdb_id: ["Choose a game to import."],
+      reason: ["Give a reason for the audit log."],
+    },
+  });
+
+  const { api, calls } = recordingApi(() => importedGame);
+  const result = await importGameOperation(
+    { igdb_id: 11198, reason: "Requested by schools" },
+    { api, ...mutation },
+  );
+  assert.deepEqual(
+    { result, calls },
+    {
+      result: {
+        status: "success",
+        redirectTo: `/games/${schoolID}?notice=imported`,
+      },
+      calls: [
+        {
+          path: "/admin/v1/game-imports",
+          method: "POST",
+          body: { igdb_id: 11198, reason: "Requested by schools" },
+        },
+      ],
+    },
+  );
+});
+
+test("IGDB failures explain themselves and name a no-JavaScript notice", async () => {
+  const outcomes = await Promise.all(
+    [
+      new AdminApiError(409, "game_already_imported"),
+      new AdminApiError(503, "igdb_not_configured"),
+      new AdminApiError(503, "igdb_rate_limited"),
+      new AdminApiError(502, "igdb_unavailable"),
+    ].map((error) =>
+      importGameOperation(
+        { igdb_id: 11198, reason: "Requested by schools" },
+        { api: recordingApi(() => error).api, ...mutation },
+      ),
+    ),
+  );
+  assert.deepEqual(outcomes, [
+    {
+      status: "error",
+      message: "That game is already in the catalog.",
+      notice: "already-imported",
+    },
+    {
+      status: "error",
+      message:
+        "IGDB is not configured for this environment. Set the IGDB credentials on the API.",
+      notice: "igdb-not-configured",
+    },
+    {
+      status: "error",
+      message: "IGDB is limiting requests right now. Try again shortly.",
+      notice: "igdb-rate-limited",
+    },
+    {
+      status: "error",
+      message: "IGDB could not be reached. Try again later.",
+      notice: "igdb-unavailable",
+    },
+  ]);
+});
+
+test("an IGDB search skips short queries and reports an outage as a message", async () => {
+  const matches = [
+    { igdb_id: 11198, name: "Rocket League", release_year: 2015 },
+    { igdb_id: 7, name: "Rocket Arena", game_id: schoolID },
+  ];
+  const found = recordingApi(() => ({ games: matches }));
+  const down = recordingApi(() => new AdminApiError(502, "igdb_unavailable"));
+  const read = { cookieHeader: "admin" };
+  assert.deepEqual(
+    {
+      short: await searchIGDBOperation("r", { api: found.api, ...read }),
+      found: await searchIGDBOperation("rocket & co", {
+        api: found.api,
+        ...read,
+      }),
+      down: await searchIGDBOperation("rocket", { api: down.api, ...read }),
+      calls: found.calls,
+    },
+    {
+      short: { query: "r", games: [] },
+      found: { query: "rocket & co", games: matches },
+      down: {
+        query: "rocket",
+        games: [],
+        error: "IGDB could not be reached. Try again later.",
+      },
+      calls: [
+        {
+          path: "/admin/v1/igdb-games?q=rocket+%26+co",
+          method: undefined,
+          body: undefined,
+        },
+      ],
+    },
+  );
+});
+
+test("a stored cover reaches the page as a data URL", async () => {
+  const { api, calls } = recordingApi(({ path }) =>
+    path.endsWith("/cover")
+      ? { content_type: "image/jpeg", data: "/9j/4A==" }
+      : path.includes("/audit")
+        ? { audit_entries: [], next_cursor: "", previous_cursor: "" }
+        : importedGame,
+  );
+  const detail = await getGameDetailOperation(
+    { id: schoolID },
+    { api, cookieHeader: "admin" },
+  );
+  assert.deepEqual(
+    { coverImage: detail.coverImage, paths: calls.map((call) => call.path) },
+    {
+      coverImage: "data:image/jpeg;base64,/9j/4A==",
+      paths: [
+        `/admin/v1/games/${schoolID}`,
+        `/admin/v1/games/${schoolID}/audit?limit=25`,
+        `/admin/v1/games/${schoolID}/cover`,
+      ],
     },
   );
 });

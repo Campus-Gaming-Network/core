@@ -14,6 +14,9 @@ type Game struct {
 	Name     string `json:"name"`
 	Slug     string `json:"slug"`
 	CoverURL string `json:"cover_url,omitempty"`
+	// HasCover reports a stored cover, which the API serves in place of
+	// CoverURL.
+	HasCover bool `json:"-"`
 }
 
 type Repository interface {
@@ -25,7 +28,8 @@ type PostgresRepository struct {
 	pool *pgxpool.Pool
 }
 
-const gameColumns = `id::text, name, slug, COALESCE(cover_url, '')`
+const gameColumns = `id::text, name, slug, COALESCE(cover_url, ''),
+	EXISTS(SELECT 1 FROM game_covers WHERE game_covers.game_id = games.id)`
 
 type gameScanner interface {
 	Scan(dest ...any) error
@@ -71,7 +75,7 @@ func (r *PostgresRepository) GetBySlug(ctx context.Context, slug string) (Game, 
 
 func scanGame(scanner gameScanner) (Game, error) {
 	var game Game
-	err := scanner.Scan(&game.ID, &game.Name, &game.Slug, &game.CoverURL)
+	err := scanner.Scan(&game.ID, &game.Name, &game.Slug, &game.CoverURL, &game.HasCover)
 	if err != nil {
 		return Game{}, err
 	}

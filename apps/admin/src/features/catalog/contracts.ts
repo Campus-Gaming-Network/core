@@ -39,6 +39,36 @@ export const adminGameSchema = z.object({
   created_at: timestampSchema,
   updated_at: timestampSchema,
   deleted_at: timestampSchema.nullable(),
+  // Null for a game that was not imported from IGDB.
+  igdb_id: z.number().int().positive().nullable(),
+  last_synced_at: timestampSchema.nullable(),
+  has_cover: z.boolean(),
+});
+
+// A stored cover, sent as base64 so the console renders it from its own page.
+export const gameCoverSchema = z.object({
+  content_type: z.enum(["image/jpeg", "image/png", "image/webp"]),
+  data: z
+    .string()
+    .max(140_000)
+    .regex(/^[A-Za-z0-9+/]+={0,2}$/),
+});
+
+export const igdbSearchSchema = z.object({
+  games: z.array(
+    z.object({
+      igdb_id: z.number().int().positive(),
+      name: z.string().max(500),
+      release_year: z.number().int().optional(),
+      // The catalog game already imported from this match.
+      game_id: uuidSchema.optional(),
+    }),
+  ),
+});
+export type IGDBMatch = z.output<typeof igdbSearchSchema>["games"][number];
+
+export const igdbSearchInputSchema = z.object({
+  q: z.string().trim().max(100).optional(),
 });
 
 export const accountStatusSchema = z.enum(["active", "suspended", "deleted"]);
@@ -100,6 +130,8 @@ export const catalogAuditEntrySchema = z
       "game.created",
       "game.updated",
       "game.deleted",
+      "game.imported",
+      "game.refreshed",
       "user.suspended",
       "user.reactivated",
       "user.trust_changed",
@@ -292,9 +324,76 @@ export const logoErrorNotices: Partial<
   rate_limited: "rate-limited",
 };
 
+// The Admin API's reasons an IGDB search, import, or refresh fails, and the
+// redirect notice a no-JavaScript form shows for each.
+export const igdbErrorMessages = {
+  game_already_imported: "That game is already in the catalog.",
+  game_not_from_igdb: "This game was not imported from IGDB.",
+  igdb_not_configured:
+    "IGDB is not configured for this environment. Set the IGDB credentials on the API.",
+  igdb_rate_limited: "IGDB is limiting requests right now. Try again shortly.",
+  igdb_unavailable: "IGDB could not be reached. Try again later.",
+  igdb_game_not_found: "IGDB no longer lists that game.",
+  igdb_game_invalid: "IGDB has no usable name for that game.",
+  igdb_cover_unusable:
+    "IGDB's cover for that game is too large or is not a supported image.",
+} as const;
+
+export const igdbErrorNotices: Record<
+  keyof typeof igdbErrorMessages,
+  CatalogNotice
+> = {
+  game_already_imported: "already-imported",
+  game_not_from_igdb: "not-from-igdb",
+  igdb_not_configured: "igdb-not-configured",
+  igdb_rate_limited: "igdb-rate-limited",
+  igdb_unavailable: "igdb-unavailable",
+  igdb_game_not_found: "igdb-game-not-found",
+  igdb_game_invalid: "igdb-game-invalid",
+  igdb_cover_unusable: "igdb-cover-unusable",
+};
+
 // Redirect notices shown after a catalog form. Failures render as alerts.
 export const catalogNotices = {
   created: { message: "Created.", severity: "success" },
+  imported: {
+    message:
+      "Imported from IGDB. The game stays hidden from the public picker until you show it.",
+    severity: "success",
+  },
+  refreshed: { message: "Refreshed from IGDB.", severity: "success" },
+  "already-imported": {
+    message: igdbErrorMessages.game_already_imported,
+    severity: "danger",
+  },
+  "not-from-igdb": {
+    message: igdbErrorMessages.game_not_from_igdb,
+    severity: "danger",
+  },
+  "igdb-not-configured": {
+    message: igdbErrorMessages.igdb_not_configured,
+    severity: "danger",
+  },
+  "igdb-rate-limited": {
+    message: igdbErrorMessages.igdb_rate_limited,
+    severity: "danger",
+  },
+  "igdb-unavailable": {
+    message: igdbErrorMessages.igdb_unavailable,
+    severity: "danger",
+  },
+  "igdb-game-not-found": {
+    message: igdbErrorMessages.igdb_game_not_found,
+    severity: "danger",
+  },
+  "igdb-game-invalid": {
+    message: igdbErrorMessages.igdb_game_invalid,
+    severity: "danger",
+  },
+  "igdb-cover-unusable": {
+    message: igdbErrorMessages.igdb_cover_unusable,
+    severity: "danger",
+  },
   saved: { message: "Changes saved.", severity: "success" },
   deactivated: { message: "School deactivated.", severity: "success" },
   reactivated: { message: "Reactivated.", severity: "success" },
@@ -570,6 +669,7 @@ export const catalogCommands = {
     notice: "grant-revoked",
   },
   "game.delete": { confirm: true, stepUp: false, notice: "deleted" },
+  "game.refresh": { confirm: false, stepUp: false, notice: "refreshed" },
   "user.suspend": { confirm: true, stepUp: true, notice: "suspended" },
   "user.reactivate": { confirm: false, stepUp: true, notice: "reactivated" },
   "user.trust": { confirm: false, stepUp: false, notice: "trust-changed" },
@@ -706,6 +806,32 @@ export function validateCatalogCommandInput(
   return parsed.success
     ? { valid: true, value: parsed.data }
     : invalid(id, parsed.error.issues);
+}
+
+export type GameImportInput = { igdb_id: number; reason: string };
+
+const gameImportSchema = z.object({
+  igdb_id: z.coerce
+    .number<string>("Choose a game to import.")
+    .int("Choose a game to import.")
+    .positive("Choose a game to import."),
+  reason: reasonSchema,
+});
+
+/**
+ * An import names only the IGDB entry. The Go API reads the name, slug, and
+ * cover from IGDB itself.
+ */
+export function validateGameImportInput(
+  input: FormData | object,
+): Validated<GameImportInput> {
+  const parsed = gameImportSchema.safeParse({
+    igdb_id: inputValue(input, "igdb_id"),
+    reason: inputValue(input, "reason"),
+  });
+  return parsed.success
+    ? { valid: true, value: parsed.data }
+    : invalid("", parsed.error.issues);
 }
 
 export type CatalogMutationResult =

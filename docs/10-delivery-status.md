@@ -16,14 +16,14 @@ Work is grouped **Now** (building toward the first public release), **Next** (pl
 4. Production-readiness hardening: monitoring, legal content, performance, and launch checks.
 5. Clubs and tournaments after the current event loop has been validated with real users.
 
-**First release slice:** auth → home school on signup → schools search/follow → events + curated games → teams → dashboard.
+**First release slice:** auth → home school on signup → schools search/follow → events + games → teams → dashboard.
 
 **Engineering backlog:** [17 — Codebase review action plan](./17-codebase-review-action-plan.md)
 orders the 2026-09-05 review findings and records each item's status.
 
 **School seed:** 6,243 operating schools (4,943 main · **1,300 branch**). Import all, `is_active=true`; branch campuses use the same UI/UX; review later in the Admin Console.
 
-**Launch games:** Rocket League · Valorant · League of Legends · Overwatch 2 · Super Smash Bros. Ultimate · CSGO.
+**Games:** imported from IGDB by site admins in the Admin Console. The catalog starts empty; the six hand-made launch games were removed.
 
 ---
 
@@ -108,17 +108,14 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 - [x] Empty states for school list + school page
 - [x] School member list: people whose home school it is, signed-in only (`GET /schools/:slug/members`)
 
-### Games (curated seed)
+### Games (IGDB import)
 
-- [x] Seed/curate launch games:
-  - Rocket League
-  - Valorant
-  - League of Legends
-  - Overwatch 2
-  - Super Smash Bros. Ultimate
-  - CSGO
-- [x] Browse/filter events by these games
-- [x] End users cannot edit games (admin seed; Admin Console later)
+- [x] Site admins search IGDB and import one game at a time; an import starts inactive
+- [x] Covers stored in Postgres and served by the API (`GET /games/:slug/cover`)
+- [x] Refresh an imported game from IGDB without changing its name or slug
+- [x] IGDB attribution on the FAQ page
+- [x] Browse/filter events by catalog games
+- [x] End users cannot edit games
 
 ### Events
 
@@ -211,7 +208,7 @@ Tracked ticket by ticket in [20 — Admin Console v1 engineering plan](./20-admi
 - [ ] User-visible activity history and notification inbox
 - [ ] Site-wide announcements
 - [ ] Impersonation
-- [ ] Broader IGDB game import
+- [ ] Bulk or scheduled IGDB sync (single-game import and refresh are implemented)
 
 ### Larger feature areas
 
@@ -234,7 +231,7 @@ Tracked ticket by ticket in [20 — Admin Console v1 engineering plan](./20-admi
 
 ## Suggested order
 
-1. Foundation + auth + schools + **six launch games**
+1. Foundation + auth + schools + **game catalog**
 2. Events (default banners) + teams + dashboard + legal/support
 3. Admin Console (TanStack Start), separate release — school logos
 4. Work down the Later list by value

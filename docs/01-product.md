@@ -203,8 +203,8 @@ Signup also requires confirming **age 18+**. Alumni can participate. Faculty who
 
 ### Games
 
-- Not editable by end users — curated seed first; IGDB enrichment through the Admin Console later
-- Launch set: Rocket League, Valorant, League of Legends, Overwatch 2, Super Smash Bros. Ultimate, CSGO
+- Not editable by end users. Site admins import games from IGDB through the Admin Console
+- The FAQ page credits IGDB.com for game data
 - Used to browse/filter events (and later tournaments) and show popularity by school
 
 ### Profiles & social

@@ -27,6 +27,30 @@ test("the native catalog form creates a game", async ({
   await expect(page.getByText("Game created")).toBeVisible();
 });
 
+test("the native forms search IGDB and import a game", async ({
+  context,
+  page,
+  request,
+}) => {
+  const reset = await request.post("http://127.0.0.1:18082/__test/reset");
+  expect(reset.ok()).toBe(true);
+  await authenticateAdmin(context);
+  await page.goto("/games/import");
+  await page.getByLabel("Game name").fill("rocket");
+  await page.getByRole("button", { name: "Search IGDB" }).click();
+  await expect(page).toHaveURL(/\/games\/import\?q=rocket$/);
+
+  await page.getByLabel("Rocket Arena (2020)").check();
+  await page.getByLabel("Reason").fill("Imported without JavaScript");
+  await page.getByRole("button", { name: "Import game" }).click();
+
+  await expect(page).toHaveURL(/\/games\/[0-9a-f-]{36}\?notice=imported$/);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    "Rocket Arena",
+  );
+  await expect(page.getByText("Game imported from IGDB")).toBeVisible();
+});
+
 test("the native logo form explains a rejection and uploads a logo", async ({
   context,
   page,
