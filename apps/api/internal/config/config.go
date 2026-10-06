@@ -75,6 +75,9 @@ type Config struct {
 	R2AccessKeyID       string
 	R2SecretAccessKey   string
 	R2PublicAssetOrigin string
+	// SentryDSN names the error monitoring project. Empty disables reporting.
+	SentryDSN     string
+	SentryRelease string
 	// IGDB credentials are a Twitch application's client ID and secret. The
 	// URLs replace the IGDB and Twitch services for local fakes only.
 	IGDBClientID     string
@@ -212,6 +215,8 @@ func Load() (Config, error) {
 		R2AccessKeyID:              os.Getenv("R2_ACCESS_KEY_ID"),
 		R2SecretAccessKey:          os.Getenv("R2_SECRET_ACCESS_KEY"),
 		R2PublicAssetOrigin:        os.Getenv("R2_PUBLIC_ASSET_ORIGIN"),
+		SentryDSN:                  strings.TrimSpace(os.Getenv("SENTRY_DSN")),
+		SentryRelease:              firstNonEmptyEnv("SENTRY_RELEASE", "RAILWAY_GIT_COMMIT_SHA"),
 		IGDBClientID:               strings.TrimSpace(os.Getenv("IGDB_CLIENT_ID")),
 		IGDBClientSecret:           strings.TrimSpace(os.Getenv("IGDB_CLIENT_SECRET")),
 		IGDBAPIURL:                 os.Getenv("IGDB_API_URL"),

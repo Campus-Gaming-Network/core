@@ -210,7 +210,10 @@ API_EVENTS_EMAIL_FROM=CGN Events <events@campusgamingnetwork.com>
 API_CATALOG_REFRESH_INTERVAL=24h
 API_PROXY_SHARED_SECRET=REPLACE-WITH-STAGING-SHARED-SECRET
 ADMIN_ENABLED=false
+SENTRY_DSN=REPLACE-WITH-CGN-API-SENTRY-DSN
 ```
+
+`SENTRY_DSN` is the DSN of the `cgn-api` Sentry project. Staging and production share the project and are told apart by `DEPLOYMENT_ENV`, which the API sends as the Sentry environment. Without it the API starts, logs a warning, and reports nothing. Events carry the error, a stack trace, and the request method and path; they carry no headers, cookies, query strings, bodies, or user, and Admin API failures are not reported. To confirm reporting, set `API_MAINTENANCE_TOKEN` temporarily and send `POST /internal/error-monitoring/test` with it as a bearer token from inside the private network, for example from a shell in the `api` service, because `api` has no public domain. The request answers 500 and the panic appears in Sentry. Unset the token afterwards.
 
 To import games from IGDB, also set `IGDB_CLIENT_ID` and `IGDB_CLIENT_SECRET` to a Twitch developer application's client ID and secret. They are optional and must be set together; without them the import routes answer `igdb_not_configured`. Leave `IGDB_API_URL`, `IGDB_TOKEN_URL`, and `IGDB_IMAGE_URL` unset outside local development. IGDB asks for the attribution on the FAQ page; the partnership itself is tracked in [issue #93](https://github.com/Campus-Gaming-Network/core/issues/93).
 
@@ -420,6 +423,7 @@ API_EVENTS_EMAIL_FROM=CGN Events <events@campusgamingnetwork.com>
 API_CATALOG_REFRESH_INTERVAL=24h
 API_PROXY_SHARED_SECRET=REPLACE-WITH-PRODUCTION-SHARED-SECRET
 ADMIN_ENABLED=false
+SENTRY_DSN=REPLACE-WITH-CGN-API-SENTRY-DSN
 ```
 
 ### Production web variables

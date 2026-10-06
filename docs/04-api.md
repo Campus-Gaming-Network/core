@@ -383,9 +383,10 @@ Bulk IGDB sync, impersonation, feature flags, and site announcements are later.
 
 ### Internal
 
-| Method | Path                        | Notes                                                                                                      |
-| ------ | --------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| POST   | `/internal/schools/refresh` | Operator-only reload of the in-memory school catalog; bearer `API_MAINTENANCE_TOKEN`; 404 when it is unset |
+| Method | Path                              | Notes                                                                                                                                                           |
+| ------ | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| POST   | `/internal/schools/refresh`       | Operator-only reload of the in-memory school catalog; bearer `API_MAINTENANCE_TOKEN`; 404 when it is unset                                                      |
+| POST   | `/internal/error-monitoring/test` | Operator-only deliberate panic that confirms a deployment reports to Sentry; answers 500 `internal_error`; bearer `API_MAINTENANCE_TOKEN`; 404 when it is unset |
 
 ## Email side effects
 
