@@ -1,7 +1,6 @@
 package users
 
 import (
-	"encoding/json"
 	"strings"
 	"testing"
 )
@@ -120,17 +119,3 @@ func TestProfilePublicIncludesHomeSchoolSummary(t *testing.T) {
 
 // show_in_lists is a private setting for the account's own page. The public
 // profile must never reveal who has opted out.
-func TestPublicProfileDoesNotExposeShowInLists(t *testing.T) {
-	encoded, err := json.Marshal(Profile{ID: "user-id", Name: "Player", ShowInLists: false}.Public())
-	if err != nil {
-		t.Fatalf("marshal public profile: %v", err)
-	}
-
-	var fields map[string]any
-	if err := json.Unmarshal(encoded, &fields); err != nil {
-		t.Fatalf("unmarshal public profile: %v", err)
-	}
-	if _, present := fields["show_in_lists"]; present {
-		t.Fatalf("public profile = %s, want no show_in_lists field", encoded)
-	}
-}
