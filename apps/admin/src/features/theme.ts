@@ -19,7 +19,12 @@ export function initialColorTheme(): ColorTheme {
 export function toggleColorTheme(): void {
   const current = normalizeTheme(document.documentElement.dataset.theme);
   const next = nextColorTheme(current ?? "light");
-  document.documentElement.dataset.theme = next;
+  const root = document.documentElement;
+  root.dataset.themeSwitching = "";
+  root.dataset.theme = next;
+  // Reading a computed style applies the new colors before transitions return.
+  void getComputedStyle(root).color;
+  delete root.dataset.themeSwitching;
   document.cookie = [
     `${themeCookie}=${next}`,
     `Max-Age=${themeCookieLifetimeSeconds}`,

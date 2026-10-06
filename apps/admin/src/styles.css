@@ -199,10 +199,12 @@
     @apply text-admin-subtle;
   }
 
-  input:hover,
-  select:hover,
-  textarea:hover {
-    @apply border-admin-subtle;
+  @media (hover: hover) {
+    input:hover,
+    select:hover,
+    textarea:hover {
+      @apply border-admin-subtle;
+    }
   }
 
   input:focus,
@@ -224,11 +226,13 @@
     transition-duration: 150ms;
   }
 
-  button:hover,
-  .secondary-button:hover,
-  .primary-button:hover,
-  .button:hover {
-    @apply bg-admin-surface;
+  @media (hover: hover) {
+    button:hover,
+    .secondary-button:hover,
+    .primary-button:hover,
+    .button:hover {
+      @apply bg-admin-surface;
+    }
   }
 
   button:disabled {
@@ -332,8 +336,7 @@
     @apply flex items-center gap-1.5 rounded-lg px-2 font-medium text-admin-muted no-underline;
     height: 30px;
     line-height: 1;
-    transition-property: background-color, color, box-shadow;
-    transition-duration: 150ms;
+    transition: color 150ms;
   }
 
   .sidebar nav a svg {
@@ -341,9 +344,14 @@
     transition: color 150ms;
   }
 
-  .sidebar nav a:hover,
-  .sidebar nav a:hover svg {
-    @apply text-admin-ink;
+  @media (hover: hover) {
+    .sidebar nav a:hover {
+      @apply bg-admin-surface text-admin-ink;
+    }
+
+    .sidebar nav a:hover svg {
+      @apply text-admin-ink;
+    }
   }
 
   .sidebar nav a:focus-visible {
@@ -403,8 +411,10 @@
     font-size: 12px;
   }
 
-  .text-button:hover {
-    @apply bg-admin-border;
+  @media (hover: hover) {
+    .text-button:hover {
+      @apply bg-admin-border;
+    }
   }
 
   .main-content {
@@ -505,10 +515,12 @@
     box-shadow: var(--admin-shadow-primary);
   }
 
-  .primary-button:hover,
-  .filter-actions > button:hover,
-  .moderation-form > button:hover {
-    @apply bg-admin-accent-strong text-admin-accent-contrast;
+  @media (hover: hover) {
+    .primary-button:hover,
+    .filter-actions > button:hover,
+    .moderation-form > button:hover {
+      @apply bg-admin-accent-strong text-admin-accent-contrast;
+    }
   }
 
   .page-header > .primary-button {
@@ -547,8 +559,10 @@
     transition: background-color 150ms;
   }
 
-  a.summary-card:hover {
-    @apply bg-admin-panel-hover;
+  @media (hover: hover) {
+    a.summary-card:hover {
+      @apply bg-admin-panel-hover;
+    }
   }
 
   a.summary-card strong {
@@ -626,8 +640,10 @@
     @apply border-b-0;
   }
 
-  .data-table tbody tr:hover {
-    @apply bg-admin-panel-hover;
+  @media (hover: hover) {
+    .data-table tbody tr:hover {
+      @apply bg-admin-panel-hover;
+    }
   }
 
   .data-table__sort {
@@ -636,8 +652,10 @@
     font-size: inherit;
   }
 
-  .data-table__sort:hover {
-    @apply bg-admin-surface text-admin-ink;
+  @media (hover: hover) {
+    .data-table__sort:hover {
+      @apply bg-admin-surface text-admin-ink;
+    }
   }
 
   .data-table__sort:focus-visible {
@@ -682,11 +700,13 @@
     @apply text-admin-ink underline decoration-admin-border-strong underline-offset-2;
   }
 
-  .entity-link:hover,
-  .detail-facts a:hover,
-  .record-list a:hover,
-  .page-stack > p > a:hover {
-    @apply text-admin-accent-text decoration-current;
+  @media (hover: hover) {
+    .entity-link:hover,
+    .detail-facts a:hover,
+    .record-list a:hover,
+    .page-stack > p > a:hover {
+      @apply text-admin-accent-text decoration-current;
+    }
   }
 
   .assign-to-me {
@@ -703,16 +723,20 @@
     transition: background-color 150ms;
   }
 
-  .queue-card:hover {
-    @apply bg-admin-panel-hover;
+  @media (hover: hover) {
+    .queue-card:hover {
+      @apply bg-admin-panel-hover;
+    }
   }
 
   .queue-card__arrow {
     @apply absolute right-4 bottom-4 grid h-6 w-6 place-items-center rounded-full bg-admin-surface text-admin-subtle;
   }
 
-  .queue-card:hover .queue-card__arrow {
-    @apply text-admin-ink;
+  @media (hover: hover) {
+    .queue-card:hover .queue-card__arrow {
+      @apply text-admin-ink;
+    }
   }
 
   .queue-card strong {
@@ -738,8 +762,10 @@
     transition: background-color 150ms;
   }
 
-  .pagination a:hover {
-    @apply bg-admin-surface;
+  @media (hover: hover) {
+    .pagination a:hover {
+      @apply bg-admin-surface;
+    }
   }
 
   .detail-page {
@@ -768,8 +794,10 @@
     font-size: 12px;
   }
 
-  .copy-id:hover {
-    @apply bg-admin-border text-admin-ink;
+  @media (hover: hover) {
+    .copy-id:hover {
+      @apply bg-admin-border text-admin-ink;
+    }
   }
 
   .detail-id {
@@ -782,8 +810,10 @@
     line-height: 1;
   }
 
-  .back-link:hover {
-    @apply text-admin-ink;
+  @media (hover: hover) {
+    .back-link:hover {
+      @apply text-admin-ink;
+    }
   }
 
   .detail-panel {
@@ -995,9 +1025,11 @@
     box-shadow: var(--admin-shadow-danger);
   }
 
-  .moderation-form > .danger-button:hover {
-    color: #ffffff;
-    background: #9b1c2c;
+  @media (hover: hover) {
+    .moderation-form > .danger-button:hover {
+      color: #ffffff;
+      background: #9b1c2c;
+    }
   }
 }
 
@@ -1063,6 +1095,14 @@
   .queue-card__topline {
     align-items: flex-start;
   }
+}
+
+/* A theme switch repaints every token at once; fading each one is noise. */
+:root[data-theme-switching],
+:root[data-theme-switching] *,
+:root[data-theme-switching] *::before,
+:root[data-theme-switching] *::after {
+  transition: none !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
