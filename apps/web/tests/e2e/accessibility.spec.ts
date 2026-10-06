@@ -102,6 +102,31 @@ for (const path of [
   });
 }
 
+// iOS Safari zooms the page when a focused control's text is under 16px.
+for (const path of [
+  "/login",
+  "/signup?q=Browser",
+  "/events",
+  "/schools",
+  "/support",
+]) {
+  test(`${path} form controls are at least 16px`, async ({ page }) => {
+    await gotoApp(page, path);
+
+    const sizes = await page
+      .locator(
+        "main :is(input:not([type=checkbox], [type=radio], [type=hidden], [readonly]), select, textarea)",
+      )
+      .evaluateAll((controls) =>
+        controls.map((control) =>
+          parseFloat(getComputedStyle(control).fontSize),
+        ),
+      );
+    expect(sizes.length).toBeGreaterThan(0);
+    expect(sizes.filter((size) => size < 16)).toEqual([]);
+  });
+}
+
 test("enhanced validation feedback identifies the invalid event field", async ({
   page,
 }) => {

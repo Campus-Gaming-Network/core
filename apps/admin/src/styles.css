@@ -176,7 +176,8 @@
     @apply min-w-0 w-full rounded-lg border border-admin-border-strong bg-admin-input px-3 text-admin-ink;
     min-height: 36px;
     font: inherit;
-    font-size: 14px;
+    /* iOS Safari zooms the page when a focused control's text is under 16px. */
+    font-size: 1rem;
     transition: border-color 150ms;
   }
 
@@ -1059,13 +1060,6 @@
   .sidebar-section ul {
     flex-direction: row;
     flex-wrap: wrap;
-  }
-
-  /* Below 16px, iOS Safari zooms the page when a field takes focus. */
-  input,
-  select,
-  textarea {
-    font-size: 16px;
   }
 
   .page-header {
