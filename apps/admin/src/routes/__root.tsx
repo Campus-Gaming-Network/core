@@ -86,6 +86,85 @@ const environmentLabels = {
   production: "Production",
 } as const;
 
+/** Sidebar navigation. `icon` is the path data of a 16px stroked glyph. */
+const navigationSections: {
+  title?: string;
+  items: {
+    to:
+      | "/"
+      | "/reports"
+      | "/support-tickets"
+      | "/schools"
+      | "/games"
+      | "/users"
+      | "/access/site-admins";
+    label: string;
+    icon: string;
+    capability?: AdminSession["capabilities"][number];
+  }[];
+}[] = [
+  {
+    items: [
+      {
+        to: "/",
+        label: "Overview",
+        icon: "M2.5 2.5h4.5v4.5H2.5zM9 2.5h4.5v4.5H9zM2.5 9h4.5v4.5H2.5zM9 9h4.5v4.5H9z",
+      },
+    ],
+  },
+  {
+    title: "Moderation",
+    items: [
+      {
+        to: "/reports",
+        label: "Reports",
+        icon: "M3.5 14V2.5M3.5 3h8.5l-2 3 2 3H3.5",
+        capability: "reports.read",
+      },
+      {
+        to: "/support-tickets",
+        label: "Support tickets",
+        icon: "M2.5 3.5h11v7.5H7L4 13.5V11H2.5z",
+        capability: "support.read",
+      },
+    ],
+  },
+  {
+    title: "Catalog",
+    items: [
+      {
+        to: "/schools",
+        label: "Schools",
+        icon: "M1.5 6 8 3l6.5 3L8 9zM4 7.5v3.5c1 1 2.5 1.5 4 1.5s3-.5 4-1.5V7.5",
+        capability: "schools.read",
+      },
+      {
+        to: "/games",
+        label: "Games",
+        icon: "M4.5 5h7a3 3 0 0 1 0 6c-1 0-1.5-1-2.5-1H7c-1 0-1.5 1-2.5 1a3 3 0 0 1 0-6zM5 7.25v1.5M4.25 8h1.5M11 8h.01",
+        capability: "games.manage",
+      },
+    ],
+  },
+  {
+    title: "Access",
+    items: [
+      {
+        to: "/users",
+        label: "Users",
+        icon: "M8 7.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zM3 13.5c0-2.5 2.2-4 5-4s5 1.5 5 4",
+        capability: "users.read",
+      },
+      {
+        to: "/access/site-admins",
+        label: "Site admins",
+        icon: "M8 2 3 4v3.5c0 3 2 5.3 5 6.5 3-1.2 5-3.5 5-6.5V4zM6 8l1.5 1.5L10 6.5",
+        capability: "site_grants.manage",
+      },
+    ],
+  },
+];
+
 function AuthenticatedShell({
   environment,
   session,
@@ -103,41 +182,72 @@ function AuthenticatedShell({
         Skip to main content
       </a>
       <aside className="sidebar">
-        <Link className="brand" to="/" aria-label="CGN Admin Console home">
-          <span className="brand-mark" aria-hidden="true">
-            CGN
-          </span>
-          <span>Admin Console</span>
-        </Link>
-        <p
-          className={`queue-status environment-badge${environment === "production" ? "" : " queue-status--in_review"}`}
-        >
-          {environmentLabels[environment]}
-        </p>
-        <nav aria-label="Admin navigation">
-          <Link to="/" activeOptions={{ exact: true }}>
-            Overview
+        <div className="sidebar-header">
+          <Link className="brand" to="/" aria-label="CGN Admin Console home">
+            <span className="brand-mark" aria-hidden="true">
+              CGN
+            </span>
+            <span className="brand-text">
+              <strong>Admin Console</strong>
+              <span>Campus Gaming Network</span>
+            </span>
           </Link>
-          {can("reports.read") ? <Link to="/reports">Reports</Link> : null}
-          {can("support.read") ? (
-            <Link to="/support-tickets">Support tickets</Link>
-          ) : null}
-          {can("schools.read") ? <Link to="/schools">Schools</Link> : null}
-          {can("games.manage") ? <Link to="/games">Games</Link> : null}
-          {can("users.read") ? <Link to="/users">Users</Link> : null}
-          {can("site_grants.manage") ? (
-            <Link to="/access/site-admins">Site admins</Link>
-          ) : null}
+          <p
+            className={`queue-status environment-badge${environment === "production" ? "" : " queue-status--in_review"}`}
+          >
+            {environmentLabels[environment]}
+          </p>
+        </div>
+        <nav aria-label="Admin navigation">
+          {navigationSections.map((section) => {
+            const items = section.items.filter(
+              (item) => !item.capability || can(item.capability),
+            );
+            if (!items.length) return null;
+            return (
+              <div className="sidebar-section" key={section.title ?? "home"}>
+                {section.title ? (
+                  <span className="sidebar-section__title">
+                    {section.title}
+                  </span>
+                ) : null}
+                <ul>
+                  {items.map((item) => (
+                    <li key={item.to}>
+                      <Link
+                        to={item.to}
+                        activeOptions={{ exact: item.to === "/" }}
+                      >
+                        <svg
+                          aria-hidden="true"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="1.5"
+                          viewBox="0 0 16 16"
+                        >
+                          <path d={item.icon} />
+                        </svg>
+                        {item.label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            );
+          })}
         </nav>
         <div className="operator-card">
-          <span>Signed in as</span>
-          <strong title={session.email}>{session.email}</strong>
-          <span>
-            Session ends{" "}
-            <time dateTime={session.absolute_expires_at}>
-              {formatTimestamp(session.absolute_expires_at)} UTC
-            </time>
-          </span>
+          <div className="operator-card__identity">
+            <strong title={session.email}>{session.email}</strong>
+            <span>
+              Session ends{" "}
+              <time dateTime={session.absolute_expires_at}>
+                {formatTimestamp(session.absolute_expires_at)} UTC
+              </time>
+            </span>
+          </div>
           <div className="operator-actions">
             <ThemeToggle />
             <LogoutForm />
@@ -181,7 +291,7 @@ function ThemeToggle() {
   return (
     <button
       aria-label="Switch between light and dark mode"
-      className="theme-toggle"
+      className="text-button theme-toggle"
       type="button"
       onClick={toggleColorTheme}
     >
