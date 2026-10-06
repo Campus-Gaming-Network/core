@@ -11,7 +11,9 @@ import {
   catalogDetailInputSchema,
   validateCatalogCommandInput,
   approvedLogoURL,
+  igdbSearchInputSchema,
   validateGameFormInput,
+  validateGameImportInput,
   validateLogoUploadInput,
   validateSchoolFormInput,
   type CatalogMutationResult,
@@ -21,6 +23,7 @@ import {
   getGameDetailOperation,
   getSchoolDetailOperation,
   getUserDetailOperation,
+  importGameOperation,
   listGamesOperation,
   listSchoolsOperation,
   listSiteGrantsOperation,
@@ -28,6 +31,7 @@ import {
   runCatalogCommandOperation,
   saveGameOperation,
   saveSchoolOperation,
+  searchIGDBOperation,
   uploadSchoolLogoOperation,
 } from "./catalog-operations.server.js";
 import { adminEnvironment } from "../../server/environment.server.js";
@@ -63,6 +67,25 @@ export const getGameDetail = createServerFn({ method: "GET" })
   .validator(catalogDetailInputSchema)
   .handler(({ data }) =>
     getGameDetailOperation(data, currentAdminRequest(false)),
+  );
+
+export const searchIGDBGames = createServerFn({ method: "GET" })
+  .validator(igdbSearchInputSchema)
+  .handler(({ data }) =>
+    searchIGDBOperation(data.q, currentAdminRequest(false)),
+  );
+
+export const importGame = createServerFn({
+  method: "POST",
+  strict: { input: false },
+})
+  .validator((input: FormData | object) => validateGameImportInput(input))
+  .handler(({ data }) =>
+    respond(
+      data,
+      () => "/games/import",
+      (value) => importGameOperation(value, currentAdminRequest(true)),
+    ),
   );
 
 export const getUsers = createServerFn({ method: "GET" })

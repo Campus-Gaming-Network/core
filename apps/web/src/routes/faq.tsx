@@ -43,6 +43,13 @@ function FAQPage() {
           </details>
         ))}
       </section>
+      <p>
+        Game data from{" "}
+        <a href="https://www.igdb.com/" rel="noreferrer">
+          IGDB.com
+        </a>
+        .
+      </p>
     </main>
   );
 }

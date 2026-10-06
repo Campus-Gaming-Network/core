@@ -135,7 +135,7 @@ The two past-event rows are the intended rule; neither is enforced yet, so organ
 ## Games
 
 - End users: read-only
-- Create/update/delete: **site admin only, via the Admin Console**; IGDB sync later
+- Create/update/delete, IGDB import, and IGDB refresh: **site admin only, via the Admin Console** (`games.manage`)
 
 ## Impersonation (“mimic”)
 

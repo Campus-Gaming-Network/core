@@ -21,7 +21,7 @@ PostgreSQL is the system of record. Conventions first; then core tables. Exact c
 
 Keep the first migration set scoped to shipped features. Create only the tables needed for auth/profile, home school and follows, schools seed, launch games, events, teams, reports/support tickets, and operational needs.
 
-Do **not** create first-pass tables for clubs, tournaments, user activity history, feature flags, site announcements, on-site payments, IGDB sync, or broader Admin Console-only workflows until those phases are actively being built. The operations foundation includes audit history and per-user notifications. Audit history is readable through capability-gated Admin Console API routes; notifications have no HTTP or UI surface yet.
+Do **not** create first-pass tables for clubs, tournaments, user activity history, feature flags, site announcements, on-site payments, IGDB bulk-sync runs, or broader Admin Console-only workflows until those phases are actively being built. The operations foundation includes audit history and per-user notifications. Audit history is readable through capability-gated Admin Console API routes; notifications have no HTTP or UI surface yet.
 
 ## Core tables (logical)
 
@@ -178,12 +178,23 @@ tournament_registrations
 
 ```text
 games
-  id, igdb_id nullable, name, slug, cover_url, is_active, raw_payload jsonb?, last_synced_at, ...
-  -- end users cannot edit; curated seeded with 6 launch games; site admins manage it in the Admin Console
-  -- inactive games leave the public picker but stay on events/teams that already use them; IGDB enrichment later
+  id, igdb_id nullable unique, name, slug, cover_url, is_active, last_synced_at nullable, ...
+  -- end users cannot edit; site admins import games from IGDB in the Admin Console
+  -- an imported game starts inactive; igdb_id is null only for a game added by hand
+  -- last_synced_at is set by import and refresh; refresh never overwrites name or slug
+  -- inactive games leave the public picker but stay on events/teams that already use them
+  -- cover_url is an admin-entered URL; a stored cover in game_covers takes its place in API responses
+
+game_covers
+  game_id pk -> games, content_type (image/jpeg | image/png | image/webp),
+  bytes bytea (1 byte to 100 KB), source_image_id, etag, fetched_at
+  -- the IGDB cover, downloaded by the API at import and replaced by refresh when IGDB's image changes
+  -- etag is a hash of the bytes; list queries never select bytes
 ```
 
-**Launch game seed:** Rocket League, Valorant, League of Legends, Overwatch 2, Super Smash Bros. Ultimate, CSGO.
+**Catalog source:** the catalog starts empty. Migration `000020` removed the six
+hand-made launch games that `000003` seeded, along with their event and team
+links. Slugs come from IGDB, with a numeric suffix when one is taken.
 
 ### Trust, notify, flags, announcements
 

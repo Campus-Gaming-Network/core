@@ -80,7 +80,8 @@ notifications.
 - Feature flags and site-wide announcements.
 - Arbitrary SQL, database browsers, shell access, or user-defined queries.
 - Bulk mutations, bulk messaging, or unrestricted exports.
-- IGDB synchronization or a broader games-import pipeline.
+- Bulk or scheduled IGDB synchronization. Single-game search, import, and
+  refresh were added after v1 scope was set; see [04 — API](./04-api.md#admin-api).
 - User data export/deletion tooling; those need a separate privacy workflow.
 - Editing passwords, primary emails, MFA methods, or recovery credentials.
 - Rich HTML notes or messages.
@@ -444,6 +445,10 @@ applicable.
 | POST   | `/admin/v1/games`                        | `games.manage`                  | Create curated entry                 |
 | PATCH  | `/admin/v1/games/:id`                    | `games.manage`                  | Edit/version-check entry             |
 | DELETE | `/admin/v1/games/:id`                    | `games.manage`                  | Soft-delete with dependency checks   |
+| GET    | `/admin/v1/igdb-games`                   | `games.manage`                  | Search IGDB by name                  |
+| POST   | `/admin/v1/game-imports`                 | `games.manage`                  | Import one IGDB game, inactive       |
+| POST   | `/admin/v1/games/:id/refresh`            | `games.manage`                  | Re-sync an imported game from IGDB   |
+| GET    | `/admin/v1/games/:id/cover`              | `games.manage`                  | Stored cover for review              |
 | GET    | `/admin/v1/users`                        | `users.read`                    | Bounded exact/prefix search          |
 | GET    | `/admin/v1/users/:id`                    | `users.read`                    | Safe account/grant summary           |
 | POST   | `/admin/v1/users/:id/suspend`            | `users.manage_status` + step-up | Suspend with reason, revoke sessions |

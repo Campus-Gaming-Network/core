@@ -11,7 +11,7 @@ this folder.
 ## Where we are
 
 The first-release product is implemented locally: authentication, profiles,
-schools, launch games, events, teams, dashboard, support, and baseline safety
+schools, an IGDB-imported game catalog, events, teams, dashboard, support, and baseline safety
 intake are in place. TanStack Start is now the canonical main frontend in
 `apps/web`; the temporary parity application has been folded into that path and
 the Next.js source has been removed.

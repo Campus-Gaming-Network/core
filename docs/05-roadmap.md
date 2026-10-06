@@ -4,7 +4,7 @@ Phased delivery for a single developer. Each phase should be shippable. Do not p
 
 **URLs:** first release = `campusgamingnetwork.com` · Admin Console = `admin.campusgamingnetwork.com` (separate TanStack Start release in `apps/admin`; in progress and release-gated).
 
-**Infra:** Railway (TanStack Start web, Go API, PostgreSQL) · Cloudflare DNS/protection · Resend email (`events@` / `account@`) · curated launch games (6 titles). `notifications@` and `support@` workflows, plus Cloudflare R2 for Admin Console logo uploads, are later.
+**Infra:** Railway (TanStack Start web, Go API, PostgreSQL) · Cloudflare DNS/protection · Resend email (`events@` / `account@`) · game catalog imported from IGDB. `notifications@` and `support@` workflows, plus Cloudflare R2 for Admin Console logo uploads, are later.
 
 **Not yet scheduled:** Sentry/error monitoring, clubs, tournaments, on-site payments, usernames, waitlists, team invite links, feature flags, near-you, custom event banner uploads. Admin Console v1 is in progress but remains release-gated and undeployed.
 
@@ -45,7 +45,7 @@ service, and PostgreSQL database, with Cloudflare for DNS/protection.
 - One-time import of **all** `data/schools_seed.csv` rows as `is_active=true` (`unitid` optional on Admin Console creates)
 - Public search/browse schools (Postgres `pg_trgm`); school detail by slug (no clubs list until later)
 - Rate limit signups + resend verification (Resend)
-- Seed launch games: Rocket League, Valorant, League of Legends, Overwatch 2, Super Smash Bros. Ultimate, CSGO
+- Game catalog: imported from IGDB by site admins (the six seeded launch games were removed)
 - Support email + FAQ + About + Terms + Privacy stubs
 - Simple homepage
 
@@ -66,7 +66,7 @@ service, and PostgreSQL database, with Cloudflare for DNS/protection.
 - Show the creator as the event organizer
 - RSVP yes/no/maybe; separate **interested** favorite
 - Registration auto-close; lifecycle UI (upcoming / now / ended / full)
-- Browse/filter public events by the six launch games (**no near-you**)
+- Browse/filter public events by catalog games (**no near-you**)
 - Confirmation email + ICS on RSVP yes via **Resend**
 - Missing/deleted event page
 - Rate limit event creation + private unlock attempts
@@ -116,7 +116,7 @@ feeling unfinished.
 
 - **TanStack Start** Admin Console in `apps/admin` (not shipped in the first release)
 - Schools: create/edit/soft-delete, logos (**Admin Console-only** R2 PNG/JPG ≤5 MB), activation, school admins
-- Games: manage the curated set; IGDB enrichment later; Admin Console-only edits
+- Games: import from IGDB and refresh; Admin Console-only edits
 - Users / ACL grants (school admin, staff/faculty)
 - **Reports** queue
 - **Support tickets** queue
@@ -126,9 +126,9 @@ feeling unfinished.
 
 ## Phase 5 — Games enrichment
 
-**Goal:** Expand beyond the six launch titles.
+**Goal:** Grow the game catalog without one-at-a-time imports.
 
-- Broader game catalog / IGDB import via the Admin Console
+- Bulk or scheduled IGDB sync (single-game import via the Admin Console is implemented)
 - Popular games by school
 - Events/teams keep game associations
 
