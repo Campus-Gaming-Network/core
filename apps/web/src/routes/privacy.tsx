@@ -1,13 +1,21 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, notFound } from "@tanstack/react-router";
+import { PolicyPage } from "../components/policy-page";
 import { publicPageHead } from "../components/public-page-head";
+import { policyDocument, validatePolicySearch } from "../policies";
 
 const description =
   "How Campus Gaming Network collects, uses, and protects your information.";
 
 export const Route = createFileRoute("/privacy")({
-  loader: ({ context }) => context.publicOrigin,
+  validateSearch: validatePolicySearch,
+  loaderDeps: ({ search }) => ({ version: search.version }),
+  loader: ({ context, deps }) => {
+    // A link from the signup form names the exact version a person accepts.
+    if (!policyDocument("privacy", deps.version)) throw notFound();
+    return { publicOrigin: context.publicOrigin };
+  },
   head: ({ loaderData }) =>
-    publicPageHead(loaderData, {
+    publicPageHead(loaderData?.publicOrigin, {
       title: "Privacy",
       description,
       path: "/privacy",
@@ -16,21 +24,6 @@ export const Route = createFileRoute("/privacy")({
 });
 
 function PrivacyPage() {
-  return (
-    <main className="narrow">
-      <section className="page-heading">
-        <p className="eyebrow">Privacy</p>
-        <h1>Privacy placeholder</h1>
-        <p className="lede">
-          Campus Gaming Network stores account, profile, school, and session
-          information. A reviewed privacy policy is still required before public
-          launch.
-        </p>
-      </section>
-      <p>
-        This stub exists so the route is present during Phase 1 UI work without
-        pretending legal copy has been finalized.
-      </p>
-    </main>
-  );
+  const document = policyDocument("privacy", Route.useSearch().version);
+  return document ? <PolicyPage document={document} eyebrow="Privacy" /> : null;
 }

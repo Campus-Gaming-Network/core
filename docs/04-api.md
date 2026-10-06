@@ -65,15 +65,30 @@ All other paths exist in the Go API.
 
 ### Auth
 
-| Method | Path                        | Notes                                                                                               |
-| ------ | --------------------------- | --------------------------------------------------------------------------------------------------- |
-| POST   | `/auth/signup`              | Rate limited; requires 18+ confirmation and home school selection; sends verification email         |
-| POST   | `/auth/login`               |                                                                                                     |
-| POST   | `/auth/logout`              |                                                                                                     |
-| POST   | `/auth/forgot-password`     |                                                                                                     |
-| POST   | `/auth/reset-password`      |                                                                                                     |
-| POST   | `/auth/verify-email`        | Consumes the token after explicit confirmation on the web verification page; direct GET returns 405 |
-| POST   | `/auth/resend-verification` | Rate limited                                                                                        |
+| Method | Path                        | Notes                                                                                                                                |
+| ------ | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| POST   | `/auth/signup`              | Rate limited; requires 18+ confirmation, home school selection, and the [policy claim](#policy-acceptance); sends verification email |
+| POST   | `/auth/login`               |                                                                                                                                      |
+| POST   | `/auth/logout`              |                                                                                                                                      |
+| POST   | `/auth/forgot-password`     |                                                                                                                                      |
+| POST   | `/auth/reset-password`      |                                                                                                                                      |
+| POST   | `/auth/verify-email`        | Consumes the token after explicit confirmation on the web verification page; direct GET returns 405                                  |
+| POST   | `/auth/resend-verification` | Rate limited                                                                                                                         |
+
+### Policy acceptance
+
+| Method | Path                     | Notes                                                                                                   |
+| ------ | ------------------------ | ------------------------------------------------------------------------------------------------------- |
+| GET    | `/policies/current`      | The Terms and Privacy Policy versions in effect: `version`, `effective_at`, `content_sha256` for each   |
+| GET    | `/me/policy-acceptances` | The signed-in user's acceptances, oldest first: `document_type`, `version`, `accepted_at`, and `source` |
+
+`POST /auth/signup` takes `terms_agreed`, `terms_version`, `privacy_acknowledged`,
+and `privacy_version`. The person agrees to the Terms and acknowledges the
+Privacy Policy; the two are recorded separately. A missing or false flag, or a
+missing version, returns `400 invalid_request`. A version that is not the one
+in effect (stale or never published) returns `409 policy_version_mismatch`, and
+the client shows the current documents again. Both acceptances are written in
+the same transaction as the account.
 
 ### Users / profile
 

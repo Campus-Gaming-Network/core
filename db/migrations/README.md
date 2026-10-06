@@ -35,6 +35,12 @@ Migration `000018_user_list_visibility.up.sql` adds `users.show_in_lists`
 (default true), the opt-out from the event, school, and team people lists, and
 the partial index that serves the school member list. Apply it before deploying
 the API that reads or writes the column.
+Migration `000019_policy_acceptance.up.sql` adds the immutable
+`policy_documents` table, the append-only `user_policy_acceptances` table, and
+the first published Terms and Privacy versions. Apply it before deploying the
+API that requires a policy claim at signup. A later version is published by a
+new migration that inserts a row; never edit a published row or its source
+file.
 Do not add clubs, tournaments, feature flags, site announcements, on-site
 payment tables, IGDB sync tables, or Admin Console-only workflow tables until those
 phases are active.

@@ -7,6 +7,8 @@ import {
 import { profileDtoSchema } from "../../server/viewer.server.js";
 import {
   authStatusDtoSchema,
+  currentPoliciesDtoSchema,
+  type SignupPolicies,
   type AuthMutationResult,
   type EmailInput,
   type ResetPasswordInput,
@@ -26,13 +28,48 @@ export async function signupOperation(
   return performAuthMutation(
     {
       path: "/auth/signup",
-      body: input,
+      body: {
+        email: input.email,
+        password: input.password,
+        name: input.name,
+        home_school_id: input.home_school_id,
+        age_confirmed: input.age_confirmed,
+        timezone: input.timezone,
+        // Agreement and acknowledgement are separate facts in the API.
+        terms_agreed: input.policies_accepted,
+        terms_version: input.terms_version,
+        privacy_acknowledged: input.policies_accepted,
+        privacy_version: input.privacy_version,
+      },
       responseSchema: profileDtoSchema,
       successMessage:
         "Account created. Check your email for the verification link before logging in.",
     },
     dependencies,
   );
+}
+
+/**
+ * The Terms and Privacy versions a signup accepts. Without them the form
+ * cannot name what the person agreed to, so signup is unavailable.
+ */
+export async function currentPoliciesOperation({
+  api,
+  reportError = defaultErrorReporter,
+}: Dependencies): Promise<SignupPolicies | undefined> {
+  try {
+    const { data } = await api({
+      path: "/policies/current",
+      responseSchema: currentPoliciesDtoSchema,
+    });
+    return {
+      termsVersion: data.terms.version,
+      privacyVersion: data.privacy.version,
+    };
+  } catch (error) {
+    reportError(error);
+    return undefined;
+  }
 }
 
 export async function forgotPasswordOperation(
@@ -137,6 +174,8 @@ export function authErrorMessage(error: unknown): string {
     home_school_not_found: "Choose an active home school from the list.",
     invalid_or_expired_token: "That link is invalid or has expired.",
     invalid_request: "Check the form fields and try again.",
+    policy_version_mismatch:
+      "Our Terms or Privacy Policy changed. Reload this page, review them, and try again.",
     rate_limited: "Too many attempts. Give it a minute, then try again.",
   };
   return messages[error.code] ?? "Something went wrong. Please try again.";
