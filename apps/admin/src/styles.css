@@ -96,6 +96,8 @@
   textarea {
     @apply min-w-0 w-full rounded-lg border border-admin-border-strong bg-admin-input px-3 py-2.5 text-admin-ink shadow-sm;
     font: inherit;
+    /* iOS Safari zooms the page when a focused control's text is under 16px. */
+    font-size: 1rem;
     transition-property: border-color, box-shadow;
     transition-duration: 150ms;
   }

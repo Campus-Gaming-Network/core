@@ -1095,6 +1095,8 @@ main {
   }
 }
 
+/* Controls take their family from the label around them but not its size:
+   iOS Safari zooms the page when a focused control's text is under 16px. */
 input,
 select,
 textarea {
@@ -1104,6 +1106,7 @@ textarea {
   border-radius: var(--radius-small);
   padding: 0.7rem 0.8rem;
   color: var(--color-text);
+  font-size: 1rem;
   font-weight: 400;
   background: #fff;
 }
