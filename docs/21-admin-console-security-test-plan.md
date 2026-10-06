@@ -124,23 +124,23 @@ The exact resource path may be refined during implementation, but every v1
 operation must appear in this registry and its generated test table before it
 can ship.
 
-| Capability             | V1 operations                                                                                                |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------ |
-| `admin.session.read`   | `GET /admin/v1/session`                                                                                      |
-| `reports.read`         | `GET /admin/v1/reports`, `GET /admin/v1/reports/{id}`                                                        |
-| `reports.manage`       | `PATCH /admin/v1/reports/{id}` for assignment, status, and resolution                                        |
-| `support.read`         | `GET /admin/v1/support-tickets`, `GET /admin/v1/support-tickets/{id}`                                        |
-| `support.manage`       | `PATCH /admin/v1/support-tickets/{id}` for assignment, status, and resolution                                |
-| `users.read`           | `GET /admin/v1/users`, `GET /admin/v1/users/{id}` with bounded search/fields                                 |
-| `users.manage_status`  | `POST /admin/v1/users/{id}/suspend`, `POST /admin/v1/users/{id}/reactivate`                                  |
-| `trust_grants.manage`  | `PATCH /admin/v1/users/{id}/trust-grants` for supported named grants only                                    |
-| `schools.read`         | `GET /admin/v1/schools`, `GET /admin/v1/schools/{id}`                                                        |
-| `schools.manage`       | `POST /admin/v1/schools`, `PATCH/DELETE /admin/v1/schools/{id}`, and named deactivate/reactivate operations  |
-| `school_logos.manage`  | `POST/DELETE /admin/v1/schools/{id}/logo`                                                                    |
-| `games.manage`         | `GET/POST /admin/v1/games`, `PATCH/DELETE /admin/v1/games/{id}`                                              |
-| `school_grants.manage` | `GET/POST /admin/v1/schools/{id}/admin-grants`, `POST /admin/v1/schools/{id}/admin-grants/{grant_id}/revoke` |
-| `site_grants.manage`   | `GET/POST /admin/v1/site-admin-grants`, `POST /admin/v1/site-admin-grants/{id}/revoke`                       |
-| `audit.read`           | `GET /admin/v1/audit` using bounded entity filters and an opaque cursor                                      |
+| Capability             | V1 operations                                                                                                                                                                                     |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `admin.session.read`   | `GET /admin/v1/session`                                                                                                                                                                           |
+| `reports.read`         | `GET /admin/v1/reports`, `GET /admin/v1/reports/{id}`                                                                                                                                             |
+| `reports.manage`       | `PATCH /admin/v1/reports/{id}` for assignment, status, and resolution                                                                                                                             |
+| `support.read`         | `GET /admin/v1/support-tickets`, `GET /admin/v1/support-tickets/{id}`                                                                                                                             |
+| `support.manage`       | `PATCH /admin/v1/support-tickets/{id}` for assignment, status, and resolution                                                                                                                     |
+| `users.read`           | `GET /admin/v1/users`, `GET /admin/v1/users/{id}` with bounded search/fields                                                                                                                      |
+| `users.manage_status`  | `POST /admin/v1/users/{id}/suspend`, `POST /admin/v1/users/{id}/reactivate`                                                                                                                       |
+| `trust_grants.manage`  | `PATCH /admin/v1/users/{id}/trust-grants` for supported named grants only                                                                                                                         |
+| `schools.read`         | `GET /admin/v1/schools`, `GET /admin/v1/schools/{id}`                                                                                                                                             |
+| `schools.manage`       | `POST /admin/v1/schools`, `PATCH/DELETE /admin/v1/schools/{id}`, and named deactivate/reactivate operations                                                                                       |
+| `school_logos.manage`  | `POST/DELETE /admin/v1/schools/{id}/logo`                                                                                                                                                         |
+| `games.manage`         | `GET/POST /admin/v1/games`, `PATCH/DELETE /admin/v1/games/{id}`, `GET /admin/v1/igdb-games`, `POST /admin/v1/game-imports`, `POST /admin/v1/games/{id}/refresh`, `GET /admin/v1/games/{id}/cover` |
+| `school_grants.manage` | `GET/POST /admin/v1/schools/{id}/admin-grants`, `POST /admin/v1/schools/{id}/admin-grants/{grant_id}/revoke`                                                                                      |
+| `site_grants.manage`   | `GET/POST /admin/v1/site-admin-grants`, `POST /admin/v1/site-admin-grants/{id}/revoke`                                                                                                            |
+| `audit.read`           | `GET /admin/v1/audit` using bounded entity filters and an opaque cursor                                                                                                                           |
 
 `site_grants.manage`, user-status changes, and destructive school/game actions require
 authentication within the last 10 minutes. V1 must prevent an administrator

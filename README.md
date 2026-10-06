@@ -19,7 +19,7 @@ safety intake are implemented locally:
 - `.github/workflows/ci.yml` — Go format, vet, and PostgreSQL-backed tests; workspace format, audit, typecheck, lint, unit, build, and browser tests
 
 Implemented locally: identity/profile, 18+ and home-school signup enforcement,
-email verification, password reset, all 6,243 seeded schools, six launch games,
+email verification, password reset, all 6,243 seeded schools, a game catalog imported from IGDB,
 school follow/unfollow, events with RSVP/interested/private unlock/default
 banners, teams with password join/captains/ownership transfer, dashboard
 sections, support tickets, and event/user reports.

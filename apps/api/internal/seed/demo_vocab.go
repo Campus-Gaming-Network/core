@@ -4,9 +4,12 @@ package seed
 // and filler text; these lists give events, teams, and moderation records
 // gaming-specific wording.
 
-var demoGameSlugs = []string{
-	"rocket-league", "valorant", "league-of-legends", "overwatch-2",
-	"super-smash-bros-ultimate", "csgo",
+// demoGames are the games demo events and teams use. The real catalog is
+// imported from IGDB.
+var demoGames = [][2]string{
+	{"Rocket League", "rocket-league"}, {"Valorant", "valorant"},
+	{"League of Legends", "league-of-legends"}, {"Overwatch 2", "overwatch-2"},
+	{"Super Smash Bros. Ultimate", "super-smash-bros-ultimate"}, {"Counter-Strike 2", "counter-strike-2"},
 }
 
 var demoEventKinds = []string{

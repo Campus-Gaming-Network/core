@@ -53,6 +53,14 @@ let schools;
 let schoolsWithHistory;
 let schoolGrants;
 let games;
+// What the fake IGDB knows. Searching for "outage" answers as an IGDB outage.
+const igdbGames = [
+  { igdb_id: 11198, name: "Rocket League", release_year: 2015 },
+  { igdb_id: 133236, name: "Rocket Arena", release_year: 2020 },
+];
+// A one-pixel PNG, base64-encoded as the cover endpoint sends it.
+const coverPNG =
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
 let users;
 let siteGrants;
 let catalogAudit;
@@ -102,6 +110,9 @@ function resetCatalog() {
         created_at: catalogCreatedAt,
         updated_at: catalogCreatedAt,
         deleted_at: null,
+        igdb_id: null,
+        last_synced_at: null,
+        has_cover: false,
       },
     ],
   ]);
@@ -389,7 +400,7 @@ const server = http.createServer(async (request, response) => {
 server.listen(port, "127.0.0.1");
 
 function isCatalogPath(requestURL) {
-  return /^\/admin\/v1\/(schools|games|users|site-admin-grants)(\/|$)/.test(
+  return /^\/admin\/v1\/(schools|games|users|site-admin-grants|igdb-games|game-imports)(\/|$)/.test(
     requestURL.pathname,
   );
 }
@@ -561,10 +572,52 @@ async function handleCatalog(request, response, requestURL, sessionValue) {
     return;
   }
 
+  if (collection === "game-imports") {
+    const match = igdbGames.find((game) => game.igdb_id === body.igdb_id);
+    if (!match) {
+      respond(response, 404, { error: "igdb_game_not_found" });
+      return;
+    }
+    const existing = [...games.values()].find(
+      (game) => game.igdb_id === body.igdb_id,
+    );
+    if (existing) {
+      respond(response, 409, {
+        error: "game_already_imported",
+        current: existing,
+      });
+      return;
+    }
+    const imported = {
+      id: nextID(),
+      name: match.name,
+      slug: match.name.toLowerCase().replaceAll(" ", "-"),
+      is_active: false,
+      created_at: nextTimestamp(),
+      deleted_at: null,
+      igdb_id: match.igdb_id,
+      has_cover: true,
+    };
+    imported.updated_at = imported.created_at;
+    imported.last_synced_at = imported.created_at;
+    games.set(imported.id, imported);
+    recordAudit(imported.id, "game.imported", {}, imported, body.reason);
+    respond(response, 201, imported);
+    return;
+  }
+
   if (collection === "games") {
     const game = id ? games.get(id) : undefined;
     if (id && (!game || game.updated_at !== body.expected_updated_at)) {
       respond(response, 409, { error: "admin_record_conflict", current: game });
+      return;
+    }
+    if (action === "refresh") {
+      const before = { ...game };
+      game.updated_at = nextTimestamp();
+      game.last_synced_at = game.updated_at;
+      recordAudit(id, "game.refreshed", before, game, body.reason);
+      respond(response, 200, game);
       return;
     }
     if (!id) {
@@ -580,6 +633,9 @@ async function handleCatalog(request, response, requestURL, sessionValue) {
         is_active: body.is_active,
         created_at: nextTimestamp(),
         deleted_at: null,
+        igdb_id: null,
+        last_synced_at: null,
+        has_cover: false,
       };
       created.updated_at = created.created_at;
       games.set(created.id, created);
@@ -702,6 +758,31 @@ function respondCatalogRead(response, requestURL, collection, id, action) {
     return;
   }
   const query = (requestURL.searchParams.get("q") ?? "").toLowerCase();
+  if (collection === "igdb-games") {
+    if (query === "outage") {
+      respond(response, 502, { error: "igdb_unavailable" });
+      return;
+    }
+    respond(response, 200, {
+      games: igdbGames
+        .filter((game) => game.name.toLowerCase().startsWith(query))
+        .map((game) => {
+          const imported = [...games.values()].find(
+            (item) => item.igdb_id === game.igdb_id,
+          );
+          return Object.assign(
+            {},
+            game,
+            imported ? { game_id: imported.id } : {},
+          );
+        }),
+    });
+    return;
+  }
+  if (collection === "games" && action === "cover") {
+    respond(response, 200, { content_type: "image/png", data: coverPNG });
+    return;
+  }
   const state = requestURL.searchParams.get("state") ?? "";
   const matches = (record, text) =>
     (!query || text.some((value) => value.toLowerCase().startsWith(query))) &&

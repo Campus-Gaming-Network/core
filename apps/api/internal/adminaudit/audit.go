@@ -31,6 +31,8 @@ const (
 	ActionGameCreated            Action = "game.created"
 	ActionGameUpdated            Action = "game.updated"
 	ActionGameDeleted            Action = "game.deleted"
+	ActionGameImported           Action = "game.imported"
+	ActionGameRefreshed          Action = "game.refreshed"
 	ActionUserSuspended          Action = "user.suspended"
 	ActionUserReactivated        Action = "user.reactivated"
 	ActionTrustChanged           Action = "user.trust_changed"
@@ -310,7 +312,7 @@ func validActionEntity(action Action, entityType EntityType) bool {
 	case ActionSchoolCreated, ActionSchoolUpdated, ActionSchoolDeactivated, ActionSchoolReactivated, ActionSchoolDeleted,
 		ActionSchoolLogoUpdated, ActionSchoolLogoRemoved:
 		return entityType == EntitySchool
-	case ActionGameCreated, ActionGameUpdated, ActionGameDeleted:
+	case ActionGameCreated, ActionGameUpdated, ActionGameDeleted, ActionGameImported, ActionGameRefreshed:
 		return entityType == EntityGame
 	case ActionUserSuspended, ActionUserReactivated, ActionTrustChanged:
 		return entityType == EntityUser

@@ -15,6 +15,7 @@ import { Route as AccessSiteAdminsRouteImport } from './routes/access.site-admin
 import { Route as ApiHealthRouteImport } from './routes/api.health'
 import { Route as GamesIndexRouteImport } from './routes/games.index'
 import { Route as GamesGameIdRouteImport } from './routes/games.$gameId'
+import { Route as GamesImportRouteImport } from './routes/games.import'
 import { Route as ReportsIndexRouteImport } from './routes/reports.index'
 import { Route as ReportsReportIdRouteImport } from './routes/reports.$reportId'
 import { Route as SchoolsIndexRouteImport } from './routes/schools.index'
@@ -53,6 +54,11 @@ const GamesIndexRoute = GamesIndexRouteImport.update({
 const GamesGameIdRoute = GamesGameIdRouteImport.update({
   id: '/games/$gameId',
   path: '/games/$gameId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GamesImportRoute = GamesImportRouteImport.update({
+  id: '/games/import',
+  path: '/games/import',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ReportsIndexRoute = ReportsIndexRouteImport.update({
@@ -107,6 +113,7 @@ export interface FileRoutesByFullPath {
   '/access/site-admins': typeof AccessSiteAdminsRoute
   '/api/health': typeof ApiHealthRoute
   '/games/$gameId': typeof GamesGameIdRoute
+  '/games/import': typeof GamesImportRoute
   '/reports/$reportId': typeof ReportsReportIdRoute
   '/schools/$schoolId': typeof SchoolsSchoolIdRoute
   '/schools/new': typeof SchoolsNewRoute
@@ -124,6 +131,7 @@ export interface FileRoutesByTo {
   '/access/site-admins': typeof AccessSiteAdminsRoute
   '/api/health': typeof ApiHealthRoute
   '/games/$gameId': typeof GamesGameIdRoute
+  '/games/import': typeof GamesImportRoute
   '/reports/$reportId': typeof ReportsReportIdRoute
   '/schools/$schoolId': typeof SchoolsSchoolIdRoute
   '/schools/new': typeof SchoolsNewRoute
@@ -142,6 +150,7 @@ export interface FileRoutesById {
   '/access/site-admins': typeof AccessSiteAdminsRoute
   '/api/health': typeof ApiHealthRoute
   '/games/$gameId': typeof GamesGameIdRoute
+  '/games/import': typeof GamesImportRoute
   '/reports/$reportId': typeof ReportsReportIdRoute
   '/schools/$schoolId': typeof SchoolsSchoolIdRoute
   '/schools/new': typeof SchoolsNewRoute
@@ -161,6 +170,7 @@ export interface FileRouteTypes {
     | '/access/site-admins'
     | '/api/health'
     | '/games/$gameId'
+    | '/games/import'
     | '/reports/$reportId'
     | '/schools/$schoolId'
     | '/schools/new'
@@ -178,6 +188,7 @@ export interface FileRouteTypes {
     | '/access/site-admins'
     | '/api/health'
     | '/games/$gameId'
+    | '/games/import'
     | '/reports/$reportId'
     | '/schools/$schoolId'
     | '/schools/new'
@@ -195,6 +206,7 @@ export interface FileRouteTypes {
     | '/access/site-admins'
     | '/api/health'
     | '/games/$gameId'
+    | '/games/import'
     | '/reports/$reportId'
     | '/schools/$schoolId'
     | '/schools/new'
@@ -213,6 +225,7 @@ export interface RootRouteChildren {
   AccessSiteAdminsRoute: typeof AccessSiteAdminsRoute
   ApiHealthRoute: typeof ApiHealthRoute
   GamesGameIdRoute: typeof GamesGameIdRoute
+  GamesImportRoute: typeof GamesImportRoute
   ReportsReportIdRoute: typeof ReportsReportIdRoute
   SchoolsSchoolIdRoute: typeof SchoolsSchoolIdRoute
   SchoolsNewRoute: typeof SchoolsNewRoute
@@ -267,6 +280,13 @@ declare module '@tanstack/react-router' {
       path: '/games/$gameId'
       fullPath: '/games/$gameId'
       preLoaderRoute: typeof GamesGameIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/games/import': {
+      id: '/games/import'
+      path: '/games/import'
+      fullPath: '/games/import'
+      preLoaderRoute: typeof GamesImportRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reports/': {
@@ -341,6 +361,7 @@ const rootRouteChildren: RootRouteChildren = {
   AccessSiteAdminsRoute: AccessSiteAdminsRoute,
   ApiHealthRoute: ApiHealthRoute,
   GamesGameIdRoute: GamesGameIdRoute,
+  GamesImportRoute: GamesImportRoute,
   ReportsReportIdRoute: ReportsReportIdRoute,
   SchoolsSchoolIdRoute: SchoolsSchoolIdRoute,
   SchoolsNewRoute: SchoolsNewRoute,

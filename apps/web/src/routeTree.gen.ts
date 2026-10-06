@@ -43,6 +43,7 @@ import { Route as EventsSlugPeopleRouteImport } from './routes/events.$slug_.peo
 import { Route as SchoolsSlugPeopleRouteImport } from './routes/schools.$slug_.people'
 import { Route as TeamsSlugPeopleRouteImport } from './routes/teams.$slug_.people'
 import { Route as ApiEventsSlugCalendarDoticsRouteImport } from './routes/api.events.$slug.calendar[.]ics'
+import { Route as ApiGamesSlugCoverRouteImport } from './routes/api.games.$slug.cover'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -215,6 +216,11 @@ const ApiEventsSlugCalendarDoticsRoute =
     path: '/api/events/$slug/calendar.ics',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiGamesSlugCoverRoute = ApiGamesSlugCoverRouteImport.update({
+  id: '/api/games/$slug/cover',
+  path: '/api/games/$slug/cover',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -251,6 +257,7 @@ export interface FileRoutesByFullPath {
   '/schools/$slug/people': typeof SchoolsSlugPeopleRoute
   '/teams/$slug/people': typeof TeamsSlugPeopleRoute
   '/api/events/$slug/calendar.ics': typeof ApiEventsSlugCalendarDoticsRoute
+  '/api/games/$slug/cover': typeof ApiGamesSlugCoverRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -284,6 +291,7 @@ export interface FileRoutesByTo {
   '/schools/$slug/people': typeof SchoolsSlugPeopleRoute
   '/teams/$slug/people': typeof TeamsSlugPeopleRoute
   '/api/events/$slug/calendar.ics': typeof ApiEventsSlugCalendarDoticsRoute
+  '/api/games/$slug/cover': typeof ApiGamesSlugCoverRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -321,6 +329,7 @@ export interface FileRoutesById {
   '/schools/$slug_/people': typeof SchoolsSlugPeopleRoute
   '/teams/$slug_/people': typeof TeamsSlugPeopleRoute
   '/api/events/$slug/calendar.ics': typeof ApiEventsSlugCalendarDoticsRoute
+  '/api/games/$slug/cover': typeof ApiGamesSlugCoverRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -359,6 +368,7 @@ export interface FileRouteTypes {
     | '/schools/$slug/people'
     | '/teams/$slug/people'
     | '/api/events/$slug/calendar.ics'
+    | '/api/games/$slug/cover'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -392,6 +402,7 @@ export interface FileRouteTypes {
     | '/schools/$slug/people'
     | '/teams/$slug/people'
     | '/api/events/$slug/calendar.ics'
+    | '/api/games/$slug/cover'
   id:
     | '__root__'
     | '/'
@@ -428,6 +439,7 @@ export interface FileRouteTypes {
     | '/schools/$slug_/people'
     | '/teams/$slug_/people'
     | '/api/events/$slug/calendar.ics'
+    | '/api/games/$slug/cover'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -453,6 +465,7 @@ export interface RootRouteChildren {
   UsersIdRoute: typeof UsersIdRoute
   ApiAvatarsIdRoute: typeof ApiAvatarsIdRoute
   ApiEventsSlugCalendarDoticsRoute: typeof ApiEventsSlugCalendarDoticsRoute
+  ApiGamesSlugCoverRoute: typeof ApiGamesSlugCoverRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -695,6 +708,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiEventsSlugCalendarDoticsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/games/$slug/cover': {
+      id: '/api/games/$slug/cover'
+      path: '/api/games/$slug/cover'
+      fullPath: '/api/games/$slug/cover'
+      preLoaderRoute: typeof ApiGamesSlugCoverRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -771,6 +791,7 @@ const rootRouteChildren: RootRouteChildren = {
   UsersIdRoute: UsersIdRoute,
   ApiAvatarsIdRoute: ApiAvatarsIdRoute,
   ApiEventsSlugCalendarDoticsRoute: ApiEventsSlugCalendarDoticsRoute,
+  ApiGamesSlugCoverRoute: ApiGamesSlugCoverRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

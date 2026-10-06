@@ -212,6 +212,8 @@ API_PROXY_SHARED_SECRET=REPLACE-WITH-STAGING-SHARED-SECRET
 ADMIN_ENABLED=false
 ```
 
+To import games from IGDB, also set `IGDB_CLIENT_ID` and `IGDB_CLIENT_SECRET` to a Twitch developer application's client ID and secret. They are optional and must be set together; without them the import routes answer `igdb_not_configured`. Leave `IGDB_API_URL`, `IGDB_TOKEN_URL`, and `IGDB_IMAGE_URL` unset outside local development. IGDB asks for the attribution on the FAQ page; the partnership itself is tracked in [issue #93](https://github.com/Campus-Gaming-Network/core/issues/93).
+
 Do not deploy yet because the staging web domain does not exist. Keep `ADMIN_ENABLED=false`; the additive Admin Console migrations may be present while its privileged routes remain disabled. Do not add any `API_DEV_SEED_USER_*` variables outside local development. `API_MAINTENANCE_TOKEN` is optional and should remain unset until the immediate catalog-refresh endpoint is operationally needed.
 
 Railway reference-variable syntax keeps the database URL synchronized without copying credentials by hand.<sup>[[18]](#source-18)</sup>
@@ -324,7 +326,7 @@ Successful first-run logs contain both fields below (the exact punctuation depen
 school seed imported rows=6243
 ```
 
-The six launch games are inserted by database migration `000003`, not by this service. A second seed run safely reports that the catalog was already populated. After capturing the successful log, disconnect its GitHub source or delete `seed`.
+The game catalog starts empty. A site admin imports games from IGDB in the Admin Console once `IGDB_CLIENT_ID` and `IGDB_CLIENT_SECRET` are set on the API. A second seed run safely reports that the catalog was already populated. After capturing the successful log, disconnect its GitHub source or delete `seed`.
 
 ### 10. Deploy and verify the web service
 
@@ -344,7 +346,7 @@ Do not create the production deployment until all checks pass.
 
 - [ ] `/api/health` returns HTTP 200 and reports both services healthy.
 - [ ] School search returns the imported catalog.
-- [ ] The six launch games appear in event filters.
+- [ ] Games imported from IGDB and shown in the Admin Console appear in event filters.
 - [ ] Signup requires the 18+ confirmation and a home school.
 - [ ] Signup sends a verification email to a controlled tester.
 - [ ] Verification requires explicit confirmation; login and logout work.

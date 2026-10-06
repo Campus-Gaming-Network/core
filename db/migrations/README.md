@@ -41,8 +41,13 @@ the first published Terms and Privacy versions. Apply it before deploying the
 API that requires a policy claim at signup. A later version is published by a
 new migration that inserts a row; never edit a published row or its source
 file.
+Migration `000020_igdb_game_import.up.sql` adds `games.last_synced_at` and the
+`game_covers` table, which holds each imported game's cover as `bytea`. It also
+deletes the six launch games seeded by `000003`, with the event and team links
+that point at them; games are imported from IGDB from here on. Apply it before
+deploying the API that reads covers.
 Do not add clubs, tournaments, feature flags, site announcements, on-site
-payment tables, IGDB sync tables, or Admin Console-only workflow tables until those
+payment tables, IGDB bulk-sync tables, or Admin Console-only workflow tables until those
 phases are active.
 
 The Go migration runner is `apps/api/cmd/migrate`. It creates

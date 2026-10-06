@@ -49,6 +49,7 @@ type catalogFixture struct {
 	command    adminmutation.Command
 	actorGrant adminaccess.Grant
 	cache      *schools.CachedRepository
+	igdb       *fakeIGDB
 }
 
 func newCatalogFixture(t *testing.T) catalogFixture {
@@ -123,10 +124,11 @@ func newCatalogFixture(t *testing.T) catalogFixture {
 	if err := f.cache.Refresh(ctx); err != nil {
 		t.Fatal(err)
 	}
+	f.igdb = newFakeIGDB(t)
 	f.handler = NewHandler(Config{Enabled: true, SiteOrigin: "https://admin.example.test", ProxySecret: "proxy-secret", Cookies: adminsession.CookieConfig{Name: "admin_session", CSRFName: "admin_csrf", Secure: true}}, Dependencies{
 		Grants: f.grants, Sessions: f.sessions, Security: adminsecurity.NewPostgresStore(pool),
 		Operations: operations.NewPostgresRepository(pool),
-		Catalog:    &CatalogDependencies{Schools: f.school, Games: f.game, Users: f.user, SiteGrants: f.grants, Cache: f.cache, Audit: adminaudit.NewPostgresStore(pool)},
+		Catalog:    &CatalogDependencies{Schools: f.school, Games: f.game, Users: f.user, SiteGrants: f.grants, Cache: f.cache, Audit: adminaudit.NewPostgresStore(pool), IGDB: games.NewIGDBService(f.game, f.igdb.client)},
 	})
 	return f
 }

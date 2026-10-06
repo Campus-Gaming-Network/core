@@ -255,11 +255,20 @@ Response:
 | Method | Path                       | Notes                                          |
 | ------ | -------------------------- | ---------------------------------------------- |
 | GET    | `/games`                   | Browse (public); active games only             |
+| GET    | `/games/:slug/cover`       | Stored cover image of an active game           |
 | GET    | `/games/:slug/events`      | **(planned)** Public events for game + filters |
 | GET    | `/games/:slug/tournaments` | **(planned)** Tournaments for game + filters   |
 
-End users cannot edit games; site admins manage them through the
-[Admin API](#admin-api). IGDB import is later.
+End users cannot edit games; site admins import them from IGDB through the
+[Admin API](#admin-api).
+
+`GET /games/:slug/cover` returns the image bytes with `Content-Type`, an
+`ETag`, `Cache-Control: public, max-age=86400`, and
+`X-Content-Type-Options: nosniff`. A matching `If-None-Match` gets `304`. A
+game that is hidden, deleted, or has no stored cover gets `404`
+`game_cover_not_found`. The web app serves the same bytes to browsers at
+`/api/games/:slug/cover`; for a game with a stored cover, `cover_url` in
+`GET /games` is that address on `API_SITE_URL`.
 
 ### Notifications & announcements (later)
 
@@ -297,10 +306,37 @@ capabilities, and step-up rules live in
 | School logos        | `POST /schools/:id/logo` (multipart upload) and `DELETE /schools/:id/logo`                                        |
 | School admins       | `GET`/`POST /schools/:id/admin-grants`, `POST …/:grant_id/revoke`, and `GET …/:grant_id/audit`                    |
 | Games               | List, create, get, update, and delete under `/games`, plus `GET /games/:id/audit`                                 |
+| IGDB import         | `GET /igdb-games?q=`, `POST /game-imports`, `POST /games/:id/refresh`, and `GET /games/:id/cover`                 |
 | Users               | List, get, `suspend`, `reactivate`, `PATCH /users/:id/trust-grants`, and `GET /users/:id/audit`                   |
 | Site admins         | `GET`/`POST /site-admin-grants`, `POST /site-admin-grants/:id/revoke`, and `GET /site-admin-grants/:id/audit`     |
 
-Impersonation, feature flags, and site announcements are later.
+The IGDB routes need `games.manage`:
+
+- `GET /igdb-games?q=` searches IGDB by name (2 to 100 characters) and returns
+  `{ "games": [{ "igdb_id", "name", "release_year"?, "game_id"? }] }`.
+  `game_id` is set when the catalog already holds that IGDB entry. No cover is
+  downloaded.
+- `POST /game-imports` takes `{ "igdb_id", "reason" }`. The API reads the name,
+  slug, and cover from IGDB, creates the game inactive with `igdb_id` and
+  `last_synced_at` set, stores the cover, and writes a `game.imported` audit
+  row. It returns `201` with the game. A repeat import of the same `igdb_id`
+  returns `409` `game_already_imported` with the existing game in `current`.
+- `POST /games/:id/refresh` takes `{ "expected_updated_at", "reason" }`. It
+  sets `last_synced_at`, replaces the cover only when IGDB's image changed,
+  never changes the name or slug, and writes a `game.refreshed` audit row. A
+  game that was not imported gets `422` `game_not_from_igdb`.
+- `GET /games/:id/cover` returns `{ "content_type", "data" }` with the bytes
+  base64-encoded, so the Admin Console can show the cover of a hidden game
+  without loading an image from another origin.
+
+Games in admin responses also carry `igdb_id`, `last_synced_at`, and
+`has_cover`. IGDB failures use their own codes: `503` `igdb_not_configured`
+(no `IGDB_CLIENT_ID` and `IGDB_CLIENT_SECRET` on the API), `503`
+`igdb_rate_limited`, `502` `igdb_unavailable`, `404` `igdb_game_not_found`,
+`422` `igdb_game_invalid`, and `422` `igdb_cover_unusable` (larger than 100 KB
+or not a JPEG, PNG, or WebP). A failed import creates nothing.
+
+Bulk IGDB sync, impersonation, feature flags, and site announcements are later.
 
 ### Health
 
@@ -336,7 +372,7 @@ Impersonation, feature flags, and site announcements are later.
   support messages; reject matches before persistence
 - Reject unexpected HTML; store plain text or tightly sanitized markdown (decision TBD)
 - Payment fields are display/off-site only; validate any `payment_url` as a safe external URL and make clear users are leaving CGN
-- Pagination on every unbounded list endpoint; `GET /games` returns the whole curated active list
+- Pagination on every unbounded list endpoint; `GET /games` returns the whole active list
 
 ## TanStack usage
 

@@ -17,7 +17,7 @@ Club   ── games
 Team   ── games, members (URL + password), owner, captains; optional club_id
 Event ── games, organizers, RSVPs, interests, location, capacity, visibility, slug
 Tournament ── games, optional Event, individual | team, capacity, slug
-Game ── curated seed first; later managed through the Admin Console and IGDB (not editable by end users)
+Game ── imported from IGDB through the Admin Console (not editable by end users)
 
 Report ── target: Event | User | …
 Notification ── User                                      (later)
@@ -219,20 +219,12 @@ slug    = slugify(eventTitle) + "-" + short
 
 ### Game
 
-| Field / concept       | Notes                                                |
-| --------------------- | ---------------------------------------------------- |
-| Launch seed           | Curated list (below); not user-editable              |
-| Later                 | IGDB import and enrichment through the Admin Console |
-| Editable by end users | **No** — curated seed first; Admin Console later     |
-
-**launch games**
-
-1. Rocket League
-2. Valorant
-3. League of Legends
-4. Overwatch 2
-5. Super Smash Bros. Ultimate
-6. CSGO
+| Field / concept       | Notes                                                   |
+| --------------------- | ------------------------------------------------------- |
+| Source                | Imported from IGDB, one game at a time, by a site admin |
+| New imports           | Start inactive until a site admin shows them            |
+| Refresh               | Updates the sync time and cover; never the name or slug |
+| Editable by end users | **No**. Site admins manage games in the Admin Console   |
 
 Used for: browse/filter events (and later tournaments) by game; popular games by school; associations on events/teams/clubs/tournaments.
 
