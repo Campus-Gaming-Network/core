@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminhttp"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/config"
 )
 
 // net/http recovers handler panics on its own, but it closes the connection
@@ -160,5 +161,33 @@ func TestAdminServerFailuresLogAtErrorLevelWithAStableClass(t *testing.T) {
 		record["path"] != "/admin/v1/auth/exchange" || record["status"] != float64(http.StatusServiceUnavailable) ||
 		record["error_class"] != adminhttp.ErrorClassInternal {
 		t.Fatalf("record = %#v", record)
+	}
+}
+
+func TestErrorMonitoringTestEndpointRequiresMaintenanceToken(t *testing.T) {
+	tests := []struct {
+		name          string
+		configured    string
+		authorization string
+		wantStatus    int
+		wantBody      string
+	}{
+		{name: "disabled without a configured token", authorization: "Bearer ", wantStatus: http.StatusNotFound, wantBody: "404 page not found\n"},
+		{name: "wrong token", configured: "maintenance-token", authorization: "Bearer other", wantStatus: http.StatusUnauthorized, wantBody: "{\"error\":\"authentication_required\"}\n"},
+		{name: "panics into the recovered 500", configured: "maintenance-token", authorization: "Bearer maintenance-token", wantStatus: http.StatusInternalServerError, wantBody: "{\"error\":\"internal_error\"}\n"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			handler := NewRouter(config.Config{MaintenanceToken: test.configured})
+			request := httptest.NewRequest(http.MethodPost, "/internal/error-monitoring/test", nil)
+			request.Header.Set("Authorization", test.authorization)
+			response := httptest.NewRecorder()
+
+			handler.ServeHTTP(response, request)
+
+			if response.Code != test.wantStatus || response.Body.String() != test.wantBody {
+				t.Fatalf("response = %d %q, want %d %q", response.Code, response.Body.String(), test.wantStatus, test.wantBody)
+			}
+		})
 	}
 }

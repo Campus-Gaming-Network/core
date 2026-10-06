@@ -103,7 +103,8 @@ ratcheting upward rather than treating coverage as a one-time report.
 
 ## Deferred to later hardening
 
-- Sentry SDK integration (later)
+- Sentry SDK integration for the web app (the API reports already; see
+  `apps/api/internal/errormonitor`)
 - TypeScript 7 adoption; revisit when the pinned TanStack Start, Vite, Nitro,
   and related type tooling support it together
 - User-visible activity history and the notification UI/API

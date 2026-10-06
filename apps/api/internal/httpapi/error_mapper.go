@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/apperror"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/errormonitor"
 )
 
 type mappedApplicationError struct {
@@ -47,5 +48,8 @@ func mapApplicationError(err error, fallbackCode string) mappedApplicationError 
 
 func writeApplicationError(w http.ResponseWriter, err error, fallbackCode string) {
 	mapped := mapApplicationError(err, fallbackCode)
+	if mapped.status == http.StatusInternalServerError {
+		errormonitor.CaptureError(err, mapped.code)
+	}
 	writeError(w, mapped.status, mapped.code)
 }

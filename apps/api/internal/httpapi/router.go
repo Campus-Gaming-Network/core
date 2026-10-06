@@ -24,6 +24,7 @@ import (
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminsession"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/auth"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/config"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/errormonitor"
 	eventstore "github.com/Campus-Gaming-Network/core/apps/api/internal/events"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/games"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/objectstore"
@@ -158,6 +159,7 @@ func NewRouter(cfg config.Config, pools ...*pgxpool.Pool) http.Handler {
 	router.mux.HandleFunc("/schools/", router.handleSchoolPath)
 	router.mux.HandleFunc("/games", requireMethod(http.MethodGet, router.handleGames))
 	router.mux.HandleFunc("/internal/schools/refresh", requireMethod(http.MethodPost, router.handleRefreshCatalog))
+	router.mux.HandleFunc("/internal/error-monitoring/test", requireMethod(http.MethodPost, router.handleErrorMonitoringTest))
 	router.mux.HandleFunc("/events", router.handleEvents)
 	router.mux.HandleFunc("/events/", router.handleEventPath)
 	router.mux.HandleFunc("/teams", router.handleTeams)
@@ -822,11 +824,32 @@ func withPanicRecovery(next http.Handler) http.Handler {
 				"path", req.URL.Path,
 				"stack", string(debug.Stack()),
 			)
+			errormonitor.CapturePanic(req, recovered)
 			writeError(w, http.StatusInternalServerError, "internal_error")
 		}()
 
 		next.ServeHTTP(w, req)
 	})
+}
+
+// handleErrorMonitoringTest panics on purpose so an operator can confirm that
+// a deployment's failures reach the error monitoring project.
+//
+// Guarded like handleRefreshCatalog: the endpoint stays disabled unless
+// API_MAINTENANCE_TOKEN is set.
+func (r *Router) handleErrorMonitoringTest(w http.ResponseWriter, req *http.Request) {
+	if r.cfg.MaintenanceToken == "" {
+		http.NotFound(w, req)
+		return
+	}
+
+	provided := strings.TrimPrefix(req.Header.Get("Authorization"), "Bearer ")
+	if subtle.ConstantTimeCompare([]byte(provided), []byte(r.cfg.MaintenanceToken)) != 1 {
+		writeError(w, http.StatusUnauthorized, "authentication_required")
+		return
+	}
+
+	panic("error monitoring test")
 }
 
 // catalogCacheControl marks the school and game catalogs as publicly cacheable.

@@ -6,6 +6,7 @@ require (
 	github.com/aws/aws-sdk-go-v2 v1.47.1
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.113.4
 	github.com/brianvoe/gofakeit/v7 v7.17.1
+	github.com/getsentry/sentry-go v0.49.0
 	github.com/jackc/pgx/v5 v5.10.0
 	golang.org/x/crypto v0.57.0
 	golang.org/x/image v0.46.0

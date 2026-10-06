@@ -75,6 +75,9 @@ type Config struct {
 	R2AccessKeyID       string
 	R2SecretAccessKey   string
 	R2PublicAssetOrigin string
+	// SentryDSN names the error monitoring project. Empty disables reporting.
+	SentryDSN     string
+	SentryRelease string
 }
 
 // LogoStorageConfigured reports whether school-logo uploads can be served.
@@ -200,6 +203,8 @@ func Load() (Config, error) {
 		R2AccessKeyID:              os.Getenv("R2_ACCESS_KEY_ID"),
 		R2SecretAccessKey:          os.Getenv("R2_SECRET_ACCESS_KEY"),
 		R2PublicAssetOrigin:        os.Getenv("R2_PUBLIC_ASSET_ORIGIN"),
+		SentryDSN:                  strings.TrimSpace(os.Getenv("SENTRY_DSN")),
+		SentryRelease:              firstNonEmptyEnv("SENTRY_RELEASE", "RAILWAY_GIT_COMMIT_SHA"),
 	}
 
 	if err := cfg.validate(); err != nil {

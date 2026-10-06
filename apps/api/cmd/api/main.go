@@ -16,6 +16,7 @@ import (
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/db"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/emaildelivery"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/emailoutbox"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/errormonitor"
 	eventstore "github.com/Campus-Gaming-Network/core/apps/api/internal/events"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/httpapi"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/mailhttp"
@@ -27,6 +28,19 @@ func main() {
 	if err != nil {
 		slog.Error("load config", "error", err)
 		os.Exit(1)
+	}
+
+	if err := errormonitor.Init(errormonitor.Options{
+		DSN:         cfg.SentryDSN,
+		Environment: string(cfg.DeploymentEnvironment),
+		Release:     cfg.SentryRelease,
+	}); err != nil {
+		slog.Error("start error monitoring", "error", err)
+		os.Exit(1)
+	}
+	defer errormonitor.Flush()
+	if cfg.SentryDSN == "" && cfg.DeploymentEnvironment.Strict() {
+		slog.Warn("error monitoring is disabled; set SENTRY_DSN to enable it")
 	}
 
 	database, err := db.Open(context.Background(), cfg.DatabaseURL, cfg.DBMaxConns)
