@@ -82,8 +82,10 @@
   text-decoration: none;
 }
 
-.account-nav a:hover {
-  background: var(--color-primary-soft);
+@media (hover: hover) {
+  .account-nav a:hover {
+    background: var(--color-primary-soft);
+  }
 }
 
 .account-events .event-list-item {
@@ -143,8 +145,10 @@
   text-decoration: none;
 }
 
-.account-row:hover {
-  background: var(--color-panel);
+@media (hover: hover) {
+  .account-row:hover {
+    background: var(--color-panel);
+  }
 }
 
 .account-row small {
