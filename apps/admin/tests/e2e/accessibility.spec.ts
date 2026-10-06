@@ -54,6 +54,32 @@ for (const path of [
   });
 }
 
+// iOS Safari zooms the page when a focused control's text is under 16px.
+for (const path of [
+  "/schools",
+  `/schools/${catalogSchoolID}`,
+  "/users",
+  `/users/${memberID}`,
+]) {
+  test(`${path} form controls are at least 16px`, async ({ context, page }) => {
+    await authenticateAdmin(context);
+    await page.goto(path);
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+
+    const sizes = await page
+      .locator(
+        "main :is(input:not([type=checkbox], [type=radio], [type=hidden]), select, textarea)",
+      )
+      .evaluateAll((controls) =>
+        controls.map((control) =>
+          parseFloat(getComputedStyle(control).fontSize),
+        ),
+      );
+    expect(sizes.length).toBeGreaterThan(0);
+    expect(sizes.filter((size) => size < 16)).toEqual([]);
+  });
+}
+
 // On a touch screen :hover latches after a tap and reads as a stuck selected
 // state, so hover styling is limited to pointers that can hover. The test
 // lives in this file because it is the one the mobile project runs.
