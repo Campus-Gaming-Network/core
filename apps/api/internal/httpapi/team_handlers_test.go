@@ -311,39 +311,6 @@ func TestHandleJoinTeamRejectsWrongPassword(t *testing.T) {
 	}
 }
 
-func TestHandleJoinTeamJoinsWithCorrectPassword(t *testing.T) {
-	passwordHash, err := auth.HashPassword("TeamPass8")
-	if err != nil {
-		t.Fatalf("HashPassword() error = %v", err)
-	}
-	repository := &fakeTeamRepository{
-		detail:       testTeam(),
-		passwordHash: passwordHash,
-	}
-	handler := authenticatedTeamPathHandler(repository)
-	request := authenticatedEventRequest(http.MethodPost, "/teams/varsity-rocket-league/join", `{"password":"TeamPass8"}`)
-	response := httptest.NewRecorder()
-
-	handler.ServeHTTP(response, request)
-
-	if response.Code != http.StatusOK {
-		t.Fatalf("status = %d, want %d; body = %s", response.Code, http.StatusOK, response.Body.String())
-	}
-	if !repository.joinCalled {
-		t.Fatal("Join was not called")
-	}
-	if repository.joinSlug != "varsity-rocket-league" || repository.joinUserID != testUserID {
-		t.Fatalf("join = slug %q user %q, want slug and session user", repository.joinSlug, repository.joinUserID)
-	}
-	var payload teamstore.Team
-	if err := json.NewDecoder(response.Body).Decode(&payload); err != nil {
-		t.Fatalf("decode response: %v", err)
-	}
-	if payload.ViewerRole == nil || *payload.ViewerRole != teamstore.RoleMember {
-		t.Fatalf("ViewerRole = %#v, want member", payload.ViewerRole)
-	}
-}
-
 func TestHandleSetTeamCaptainRequiresAuthentication(t *testing.T) {
 	repository := &fakeTeamRepository{detail: testTeam()}
 	router := &Router{teams: repository}

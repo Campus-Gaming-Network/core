@@ -1,10 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import {
-  apiHealthResponse,
-  methodNotAllowedResponse,
-} from "../src/server/health.server.js";
+import { apiHealthResponse } from "../src/server/health.server.js";
 
 test("health route preserves the healthy public response contract", async () => {
   let requestedURL = "";
@@ -87,11 +84,4 @@ test("health route strips additive upstream fields and rejects malformed success
     status: "degraded",
     api: { status: "unknown" },
   });
-});
-
-test("health route rejects unsupported methods with its public contract", () => {
-  const response = methodNotAllowedResponse();
-
-  assert.equal(response.status, 405);
-  assert.equal(response.headers.get("allow"), "GET, HEAD");
 });

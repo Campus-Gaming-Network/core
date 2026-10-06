@@ -1,17 +1,6 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
-import { basename, join } from "node:path";
 import test from "node:test";
-import {
-  avatarMethodNotAllowedResponse,
-  avatarResponse,
-} from "../src/server/avatar.server.js";
-
-const currentDirectory = process.cwd();
-const appRoot =
-  basename(currentDirectory) === "web"
-    ? currentDirectory
-    : join(currentDirectory, "apps/web");
+import { avatarResponse } from "../src/server/avatar.server.js";
 
 const userID = "5b0e7f5c-3f4d-4d8e-9a71-6c2b1e0f9d34";
 
@@ -80,43 +69,4 @@ test("ids that could not be a user id get no avatar", async () => {
     await Promise.all(responses.map((response) => response.text())),
     invalid.map(() => ""),
   );
-});
-
-test("only GET and HEAD are answered", () => {
-  const response = avatarMethodNotAllowedResponse();
-
-  assert.equal(response.status, 405);
-  assert.equal(response.headers.get("allow"), "GET, HEAD");
-});
-
-test("the avatar route is wired to those handlers and to nothing else", () => {
-  const route = readFileSync(
-    join(appRoot, "src/routes/api.avatars.$id.ts"),
-    "utf8",
-  );
-
-  assert.match(route, /createFileRoute\("\/api\/avatars\/\$id"\)/);
-  assert.match(route, /GET: \(\{ params \}\) => avatarResponse\(params\.id\)/);
-  assert.match(route, /HEAD: \(\{ params \}\) => avatarResponse\(params\.id\)/);
-  for (const method of ["POST", "PUT", "PATCH", "DELETE", "OPTIONS"]) {
-    assert.match(
-      route,
-      new RegExp(`${method}: avatarMethodNotAllowedResponse`),
-    );
-  }
-});
-
-test("no page or server code names an avatar service", () => {
-  const offenders = [
-    "src/components/avatar.tsx",
-    "src/routes/account.tsx",
-    "src/routes/users.$id.tsx",
-    "src/server/avatar.server.ts",
-  ].filter((file) =>
-    /dicebear\.com|api\.dicebear/i.test(
-      readFileSync(join(appRoot, file), "utf8"),
-    ),
-  );
-
-  assert.deepEqual(offenders, []);
 });

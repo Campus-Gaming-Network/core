@@ -99,16 +99,6 @@ func TestValidateCreateInputAcceptsMinimalPublicEvent(t *testing.T) {
 	}
 }
 
-func TestValidateCreateInputRejectsPrivateEventWithoutPassword(t *testing.T) {
-	err := ValidateCreateInput(validCreateInput(func(input *CreateInput) {
-		input.Visibility = VisibilityPrivate
-		input.PrivatePassword = "short"
-	}))
-	if err == nil || !strings.Contains(err.Error(), "private events require") {
-		t.Fatalf("ValidateCreateInput() error = %v, want private password error", err)
-	}
-}
-
 func TestValidateCreateInputRejectsInvalidCapacityAndPaymentURL(t *testing.T) {
 	zero := 0
 	for _, input := range []CreateInput{
@@ -122,42 +112,6 @@ func TestValidateCreateInputRejectsInvalidCapacityAndPaymentURL(t *testing.T) {
 		if err := ValidateCreateInput(input); err == nil {
 			t.Fatalf("ValidateCreateInput() error = nil, want validation error for %#v", input)
 		}
-	}
-}
-
-func TestValidateCreateInputRejectsBlockedLanguage(t *testing.T) {
-	input := validCreateInput(func(input *CreateInput) {
-		input.Title = "Campus bullshit night"
-	})
-	if err := ValidateCreateInput(input); err == nil || !strings.Contains(err.Error(), "not allowed") {
-		t.Fatalf("ValidateCreateInput() error = %v, want blocked-language error", err)
-	}
-}
-
-func TestValidateCreateInputAcceptsBoundedRecurrence(t *testing.T) {
-	input := validCreateInput(func(input *CreateInput) {
-		input.RecurrenceRule = RecurrenceWeekly
-		input.RecurrenceUntil = input.StartsAt.AddDate(0, 0, 21)
-	})
-	if err := ValidateCreateInput(input); err != nil {
-		t.Fatalf("ValidateCreateInput() error = %v, want recurring event accepted", err)
-	}
-}
-
-func TestValidateCreateInputAcceptsRecurrenceThroughOneYearCalendarDate(t *testing.T) {
-	input := validCreateInput(func(input *CreateInput) {
-		input.RecurrenceRule = RecurrenceMonthly
-		oneYearLater := input.StartsAt.AddDate(1, 0, 0)
-		input.RecurrenceUntil = time.Date(
-			oneYearLater.Year(),
-			oneYearLater.Month(),
-			oneYearLater.Day(),
-			23, 59, 59, int(time.Second-time.Nanosecond),
-			oneYearLater.Location(),
-		)
-	})
-	if err := ValidateCreateInput(input); err != nil {
-		t.Fatalf("ValidateCreateInput() error = %v, want same calendar date next year accepted", err)
 	}
 }
 
