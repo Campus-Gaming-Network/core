@@ -66,7 +66,7 @@ console.log(
   `Admin Console is ready at http://localhost:3002 as ${localAdminEmail}`,
 );
 
-function run(arguments_, capture = false) {
+function run(arguments_: string[], capture = false): string {
   const result = spawnSync("docker", arguments_, {
     cwd: repositoryRoot,
     env: localEnvironment,

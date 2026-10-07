@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import assert from "node:assert/strict";
-import { spawn } from "node:child_process";
+import { spawn, type ChildProcess } from "node:child_process";
 import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 
@@ -30,8 +30,21 @@ const expectedHealthBody = {
   reason: "api_unreachable",
 };
 
-let activeChild;
-let cleanupPromise;
+type DockerResult = {
+  code: number | null;
+  signal: NodeJS.Signals | null;
+  stdout: string;
+  stderr: string;
+};
+
+type DockerOptions = {
+  check?: boolean;
+  streamOutput?: boolean;
+  timeoutMilliseconds?: number;
+};
+
+let activeChild: ChildProcess | undefined;
+let cleanupPromise: Promise<void> | undefined;
 
 async function main() {
   process.stdout.write(
@@ -167,7 +180,11 @@ async function verifyUnavailableAPIResponse() {
       'process.stdout.write(JSON.stringify({status:response.status,contentType:response.headers.get("content-type"),body}));',
     ].join(""),
   ]);
-  const result = JSON.parse(probe.stdout);
+  const result = JSON.parse(probe.stdout) as {
+    status: number;
+    contentType: string | null;
+    body: unknown;
+  };
 
   assert.equal(
     result.status,
@@ -187,13 +204,13 @@ async function verifyUnavailableAPIResponse() {
 }
 
 function runDocker(
-  arguments_,
+  arguments_: string[],
   {
     check = true,
     streamOutput = false,
     timeoutMilliseconds = commandTimeoutMilliseconds,
-  } = {},
-) {
+  }: DockerOptions = {},
+): Promise<DockerResult> {
   return new Promise((resolve, reject) => {
     const child = spawn("docker", arguments_, {
       cwd: repoRoot,
@@ -205,7 +222,7 @@ function runDocker(
     let stdout = "";
     let stderr = "";
     let timedOut = false;
-    let forceKillTimer;
+    let forceKillTimer: NodeJS.Timeout | undefined;
 
     const timeout = setTimeout(() => {
       timedOut = true;
@@ -218,12 +235,12 @@ function runDocker(
     }, timeoutMilliseconds);
     timeout.unref();
 
-    child.stdout.on("data", (chunk) => {
+    child.stdout.on("data", (chunk: Buffer) => {
       const text = chunk.toString();
       stdout = appendBounded(stdout, text);
       if (streamOutput) process.stdout.write(text);
     });
-    child.stderr.on("data", (chunk) => {
+    child.stderr.on("data", (chunk: Buffer) => {
       const text = chunk.toString();
       stderr = appendBounded(stderr, text);
       if (streamOutput) process.stderr.write(text);
@@ -239,7 +256,7 @@ function runDocker(
       if (forceKillTimer) clearTimeout(forceKillTimer);
       if (activeChild === child) activeChild = undefined;
 
-      const result = { code, signal, stdout, stderr };
+      const result: DockerResult = { code, signal, stdout, stderr };
       if (!check || code === 0) {
         resolve(result);
         return;
@@ -257,14 +274,14 @@ function runDocker(
   });
 }
 
-function appendBounded(current, addition) {
+function appendBounded(current: string, addition: string): string {
   const combined = current + addition;
   return combined.length <= maximumCapturedBytes
     ? combined
     : combined.slice(-maximumCapturedBytes);
 }
 
-function cleanup() {
+function cleanup(): Promise<void> {
   if (!cleanupPromise) {
     cleanupPromise = (async () => {
       activeChild?.kill("SIGTERM");
@@ -294,13 +311,13 @@ function cleanup() {
 for (const [signal, exitCode] of [
   ["SIGINT", 130],
   ["SIGTERM", 143],
-]) {
+] as const) {
   process.once(signal, () => {
     void cleanup().finally(() => process.exit(exitCode));
   });
 }
 
-let failure;
+let failure: unknown;
 try {
   await main();
 } catch (error) {

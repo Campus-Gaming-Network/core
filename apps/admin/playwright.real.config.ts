@@ -50,7 +50,7 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: `${nodeExecutable} tests/e2e-real/fixtures/access-stub.mjs`,
+      command: `${nodeExecutable} tests/e2e-real/fixtures/access-stub.ts`,
       url: `${accessURL}/health`,
       env: { PORT: "18085" },
       stderr: "pipe",
@@ -58,7 +58,7 @@ export default defineConfig({
       timeout: 30_000,
     },
     {
-      command: `${nodeExecutable} tests/e2e-real/fixtures/object-store-stub.mjs`,
+      command: `${nodeExecutable} tests/e2e-real/fixtures/object-store-stub.ts`,
       url: `${objectStoreURL}/health`,
       env: { PORT: "18086" },
       stderr: "pipe",

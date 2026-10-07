@@ -43,7 +43,7 @@ assert.ok(
 );
 
 const clientFiles = readableFiles(publicOutput);
-const clientFindings = [];
+const clientFindings: string[] = [];
 for (const file of clientFiles) {
   const content = readFileSync(file, "utf8");
   for (const marker of forbiddenClientMarkers) {
@@ -53,7 +53,7 @@ for (const file of clientFiles) {
   }
 }
 
-const sourceFindings = [];
+const sourceFindings: string[] = [];
 for (const file of readableFiles(sourceRoot)) {
   const content = readFileSync(file, "utf8");
   for (const { label, pattern } of forbiddenSourcePatterns) {
@@ -74,8 +74,8 @@ if (findings.length > 0) {
   );
 }
 
-function readableFiles(directory) {
-  const files = [];
+function readableFiles(directory: string): string[] {
+  const files: string[] = [];
   for (const entry of readdirSync(directory, { withFileTypes: true })) {
     const absolutePath = path.join(directory, entry.name);
     if (entry.isDirectory()) {
@@ -87,6 +87,6 @@ function readableFiles(directory) {
   return files;
 }
 
-function relative(file) {
+function relative(file: string): string {
   return path.relative(repositoryRoot, file);
 }

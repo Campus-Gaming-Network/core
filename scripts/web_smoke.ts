@@ -1,15 +1,24 @@
 #!/usr/bin/env node
 
 import assert from "node:assert/strict";
-import { spawn, spawnSync } from "node:child_process";
+import { spawn, spawnSync, type ChildProcess } from "node:child_process";
 import {
   accessSync,
   constants as fsConstants,
   readdirSync,
   statSync,
 } from "node:fs";
-import { createServer } from "node:http";
-import { createServer as createNetServer } from "node:net";
+import {
+  createServer,
+  Server as HTTPServer,
+  type IncomingMessage,
+  type OutgoingHttpHeaders,
+  type ServerResponse,
+} from "node:http";
+import {
+  createServer as createNetServer,
+  type Server as NetServer,
+} from "node:net";
 import { homedir } from "node:os";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
@@ -51,9 +60,22 @@ const webRoot = path.join(repositoryRoot, "apps", "web");
 const launcherPath = path.join(webRoot, "src", "production-preflight.ts");
 const outputEntryPath = path.join(webRoot, ".output", "server", "index.mjs");
 
-let fakeAPIServer;
-let webProcess;
-let childOutput;
+type JSONBody = Record<string, unknown>;
+
+type UpstreamCall = {
+  method: string;
+  pathname: string;
+  search: string;
+  cookie: string | undefined;
+  eventUnlock: string | undefined;
+  body: JSONBody | undefined;
+};
+
+type ChildOutput = ReturnType<typeof captureChildOutput>;
+
+let fakeAPIServer: HTTPServer | undefined;
+let webProcess: ChildProcess | undefined;
+let childOutput: ChildOutput | undefined;
 
 const overallController = new AbortController();
 const overallTimer = setTimeout(() => {
@@ -269,7 +291,11 @@ try {
   await closeServer(fakeAPIServer);
 }
 
-async function verifyHomePage(origin, upstreamCalls, overallSignal) {
+async function verifyHomePage(
+  origin: string,
+  upstreamCalls: UpstreamCall[],
+  overallSignal: AbortSignal,
+) {
   const callsBefore = upstreamCalls.length;
   const response = await smokeFetch(`${origin}/`, {}, overallSignal);
   assert.equal(response.status, 200, "GET / must return HTTP 200");
@@ -319,7 +345,11 @@ async function verifyHomePage(origin, upstreamCalls, overallSignal) {
   oneUpstreamCall(calls, "GET", "/games");
 }
 
-async function verifyAccountRoute(origin, upstreamCalls, overallSignal) {
+async function verifyAccountRoute(
+  origin: string,
+  upstreamCalls: UpstreamCall[],
+  overallSignal: AbortSignal,
+) {
   const anonymous = await smokeFetch(
     `${origin}/account`,
     { redirect: "manual" },
@@ -402,9 +432,9 @@ async function verifyAccountRoute(origin, upstreamCalls, overallSignal) {
 }
 
 async function verifyPhase4RouteBoundaries(
-  origin,
-  upstreamCalls,
-  overallSignal,
+  origin: string,
+  upstreamCalls: UpstreamCall[],
+  overallSignal: AbortSignal,
 ) {
   const publicPages = [
     {
@@ -567,7 +597,11 @@ async function verifyPhase4RouteBoundaries(
   );
 }
 
-async function verifyEventBrowse(origin, upstreamCalls, overallSignal) {
+async function verifyEventBrowse(
+  origin: string,
+  upstreamCalls: UpstreamCall[],
+  overallSignal: AbortSignal,
+) {
   const callsBefore = upstreamCalls.length;
   const response = await smokeFetch(
     `${origin}/events?game=smoke-arena&school=${schoolSlug}&format=in_person`,
@@ -617,7 +651,11 @@ async function verifyEventBrowse(origin, upstreamCalls, overallSignal) {
   );
 }
 
-async function verifyTeamRoutes(origin, upstreamCalls, overallSignal) {
+async function verifyTeamRoutes(
+  origin: string,
+  upstreamCalls: UpstreamCall[],
+  overallSignal: AbortSignal,
+) {
   const browseCallsBefore = upstreamCalls.length;
   const browseResponse = await smokeFetch(
     `${origin}/teams?game=smoke-arena&school=${schoolSlug}`,
@@ -721,7 +759,11 @@ async function verifyTeamRoutes(origin, upstreamCalls, overallSignal) {
   );
 }
 
-async function verifySchoolRoutes(origin, upstreamCalls, overallSignal) {
+async function verifySchoolRoutes(
+  origin: string,
+  upstreamCalls: UpstreamCall[],
+  overallSignal: AbortSignal,
+) {
   const browseCallsBefore = upstreamCalls.length;
   const browseResponse = await smokeFetch(
     `${origin}/schools?q=Smoke&state=CA`,
@@ -817,7 +859,11 @@ async function verifySchoolRoutes(origin, upstreamCalls, overallSignal) {
   );
 }
 
-async function verifyPublicProfileRoutes(origin, upstreamCalls, overallSignal) {
+async function verifyPublicProfileRoutes(
+  origin: string,
+  upstreamCalls: UpstreamCall[],
+  overallSignal: AbortSignal,
+) {
   const callsBefore = upstreamCalls.length;
   const response = await smokeFetch(
     `${origin}/users/${publicProfileID}`,
@@ -875,7 +921,7 @@ async function verifyPublicProfileRoutes(origin, upstreamCalls, overallSignal) {
   );
 }
 
-async function verifySchoolsAPI(origin, overallSignal) {
+async function verifySchoolsAPI(origin: string, overallSignal: AbortSignal) {
   const valid = await smokeFetch(
     `${origin}/api/schools?q=Smoke&limit=500`,
     {},
@@ -891,7 +937,10 @@ async function verifySchoolsAPI(origin, overallSignal) {
     "private, max-age=60",
     "School search API responses must preserve the short private cache contract",
   );
-  const body = await valid.json();
+  const body = (await valid.json()) as {
+    limit: number;
+    schools: { name: string }[];
+  };
   assert.equal(body.limit, 50, "School search API limits must clamp to 50");
   assert.equal(body.schools[0]?.name, "Smoke Test University");
   assert.equal(
@@ -933,10 +982,10 @@ async function verifySchoolsAPI(origin, overallSignal) {
 }
 
 async function verifyAuthenticatedWritePages(
-  origin,
-  cookies,
-  upstreamCalls,
-  overallSignal,
+  origin: string,
+  cookies: string,
+  upstreamCalls: UpstreamCall[],
+  overallSignal: AbortSignal,
 ) {
   const callsBefore = upstreamCalls.length;
   const pages = [
@@ -1007,7 +1056,7 @@ async function verifyAuthenticatedWritePages(
   oneUpstreamCall(calls, "GET", `/events/${eventSlug}`);
 }
 
-async function verifyHealthRoute(origin, overallSignal) {
+async function verifyHealthRoute(origin: string, overallSignal: AbortSignal) {
   const response = await smokeFetch(`${origin}/api/health`, {}, overallSignal);
   assert.equal(
     response.status,
@@ -1033,7 +1082,10 @@ async function verifyHealthRoute(origin, overallSignal) {
   );
 }
 
-async function verifyHealthMethodBoundary(origin, overallSignal) {
+async function verifyHealthMethodBoundary(
+  origin: string,
+  overallSignal: AbortSignal,
+) {
   const head = await smokeFetch(
     `${origin}/api/health`,
     { method: "HEAD" },
@@ -1067,9 +1119,9 @@ async function verifyHealthMethodBoundary(origin, overallSignal) {
 }
 
 async function verifyNavigationSessionRoute(
-  origin,
-  upstreamCalls,
-  overallSignal,
+  origin: string,
+  upstreamCalls: UpstreamCall[],
+  overallSignal: AbortSignal,
 ) {
   const meCallsBefore = matchingUpstreamCalls(
     upstreamCalls,
@@ -1162,7 +1214,11 @@ async function verifyNavigationSessionRoute(
   );
 }
 
-async function verifyUnsupportedAPIMethods(origin, path, overallSignal) {
+async function verifyUnsupportedAPIMethods(
+  origin: string,
+  path: string,
+  overallSignal: AbortSignal,
+) {
   for (const method of ["POST", "PUT", "PATCH", "DELETE", "OPTIONS"]) {
     const response = await smokeFetch(
       `${origin}${path}`,
@@ -1183,7 +1239,7 @@ async function verifyUnsupportedAPIMethods(origin, path, overallSignal) {
   }
 }
 
-async function verifyNotFoundPage(origin, overallSignal) {
+async function verifyNotFoundPage(origin: string, overallSignal: AbortSignal) {
   const response = await smokeFetch(
     `${origin}/__web_smoke_missing__`,
     {},
@@ -1214,7 +1270,11 @@ async function verifyNotFoundPage(origin, overallSignal) {
   );
 }
 
-async function verifyEventNotFound(origin, upstreamCalls, overallSignal) {
+async function verifyEventNotFound(
+  origin: string,
+  upstreamCalls: UpstreamCall[],
+  overallSignal: AbortSignal,
+) {
   const callsBefore = upstreamCalls.length;
   const response = await smokeFetch(
     `${origin}/events/${missingEventSlug}`,
@@ -1252,7 +1312,11 @@ async function verifyEventNotFound(origin, upstreamCalls, overallSignal) {
   );
 }
 
-async function verifyLockedEvent(origin, upstreamCalls, overallSignal) {
+async function verifyLockedEvent(
+  origin: string,
+  upstreamCalls: UpstreamCall[],
+  overallSignal: AbortSignal,
+) {
   const callsBefore = upstreamCalls.length;
   const response = await smokeFetch(
     `${origin}/events/${eventSlug}`,
@@ -1315,10 +1379,10 @@ async function verifyLockedEvent(origin, upstreamCalls, overallSignal) {
 }
 
 async function verifyCrossOriginPostRejected(
-  origin,
-  loginAction,
-  upstreamCalls,
-  overallSignal,
+  origin: string,
+  loginAction: string,
+  upstreamCalls: UpstreamCall[],
+  overallSignal: AbortSignal,
 ) {
   const loginCallsBefore = matchingUpstreamCalls(
     upstreamCalls,
@@ -1355,10 +1419,10 @@ async function verifyCrossOriginPostRejected(
 }
 
 async function verifyNativeLogin(
-  origin,
-  loginAction,
-  upstreamCalls,
-  overallSignal,
+  origin: string,
+  loginAction: string,
+  upstreamCalls: UpstreamCall[],
+  overallSignal: AbortSignal,
 ) {
   const callsBefore = upstreamCalls.length;
   const response = await postNativeForm(
@@ -1395,9 +1459,9 @@ async function verifyNativeLogin(
 }
 
 async function verifyAuthenticatedViewerOutage(
-  origin,
-  upstreamCalls,
-  overallSignal,
+  origin: string,
+  upstreamCalls: UpstreamCall[],
+  overallSignal: AbortSignal,
 ) {
   const callsBefore = upstreamCalls.length;
   const response = await smokeFetch(
@@ -1455,11 +1519,11 @@ async function verifyAuthenticatedViewerOutage(
 }
 
 async function verifyNativeUnlock(
-  origin,
-  unlockAction,
-  sessionCookie,
-  upstreamCalls,
-  overallSignal,
+  origin: string,
+  unlockAction: string,
+  sessionCookie: string,
+  upstreamCalls: UpstreamCall[],
+  overallSignal: AbortSignal,
 ) {
   const callsBefore = upstreamCalls.length;
   const response = await postNativeForm(
@@ -1498,10 +1562,10 @@ async function verifyNativeUnlock(
 }
 
 async function verifyUnlockedEvent(
-  origin,
-  cookies,
-  upstreamCalls,
-  overallSignal,
+  origin: string,
+  cookies: string,
+  upstreamCalls: UpstreamCall[],
+  overallSignal: AbortSignal,
 ) {
   const callsBefore = upstreamCalls.length;
   const response = await smokeFetch(
@@ -1566,11 +1630,11 @@ async function verifyUnlockedEvent(
 }
 
 async function verifyNativeRSVP(
-  origin,
-  rsvpAction,
-  cookies,
-  upstreamCalls,
-  overallSignal,
+  origin: string,
+  rsvpAction: string,
+  cookies: string,
+  upstreamCalls: UpstreamCall[],
+  overallSignal: AbortSignal,
 ) {
   const callsBefore = upstreamCalls.length;
   const response = await postNativeForm(
@@ -1607,11 +1671,11 @@ async function verifyNativeRSVP(
 }
 
 async function verifyNativeLogout(
-  origin,
-  logoutAction,
-  cookies,
-  upstreamCalls,
-  overallSignal,
+  origin: string,
+  logoutAction: string,
+  cookies: string,
+  upstreamCalls: UpstreamCall[],
+  overallSignal: AbortSignal,
 ) {
   const callsBefore = upstreamCalls.length;
   const response = await postNativeForm(
@@ -1633,7 +1697,7 @@ async function verifyNativeLogout(
   );
 }
 
-async function getHTML(url, overallSignal, label) {
+async function getHTML(url: string, overallSignal: AbortSignal, label: string) {
   const response = await smokeFetch(url, {}, overallSignal);
   assert.equal(response.status, 200, `${label} must return HTTP 200`);
   assert.match(
@@ -1644,7 +1708,11 @@ async function getHTML(url, overallSignal, label) {
   return response.text();
 }
 
-function discoverFormAction(html, className, origin) {
+function discoverFormAction(
+  html: string,
+  className: string,
+  origin: string,
+): string {
   for (const match of html.matchAll(/<form\b[^>]*>/gi)) {
     const formTag = match[0];
     const classes = htmlAttribute(formTag, "class")?.split(/\s+/) ?? [];
@@ -1666,7 +1734,7 @@ function discoverFormAction(html, className, origin) {
   assert.fail(`Rendered HTML did not contain a form with class ${className}`);
 }
 
-function htmlAttribute(tag, name) {
+function htmlAttribute(tag: string, name: string) {
   const escapedName = escapeRegularExpression(name);
   const match = tag.match(
     new RegExp(
@@ -1677,7 +1745,7 @@ function htmlAttribute(tag, name) {
   return match?.[1] ?? match?.[2] ?? match?.[3];
 }
 
-function decodeHTMLEntities(value) {
+function decodeHTMLEntities(value: string) {
   return value
     .replaceAll("&amp;", "&")
     .replaceAll("&quot;", '"')
@@ -1686,9 +1754,13 @@ function decodeHTMLEntities(value) {
 }
 
 async function postNativeForm(
-  action,
-  fields,
-  { cookie, originHeader, overallSignal },
+  action: string,
+  fields: Record<string, string>,
+  {
+    cookie,
+    originHeader,
+    overallSignal,
+  }: { cookie?: string; originHeader: string; overallSignal: AbortSignal },
 ) {
   const headers = {
     accept: "text/html",
@@ -1708,7 +1780,12 @@ async function postNativeForm(
   );
 }
 
-function assertRedirect(response, origin, destination, label) {
+function assertRedirect(
+  response: Response,
+  origin: string,
+  destination: string,
+  label: string,
+) {
   assert.equal(response.status, 303, `${label} must return HTTP 303`);
   const location = response.headers.get("location");
   assert.ok(location, `${label} must return a Location header`);
@@ -1720,7 +1797,7 @@ function assertRedirect(response, origin, destination, label) {
   );
 }
 
-function assertSensitiveValuesAbsentFromLogs(logs) {
+function assertSensitiveValuesAbsentFromLogs(logs: string) {
   for (const sensitiveValue of [
     "player@example.test",
     "Password12345!",
@@ -1741,7 +1818,12 @@ function assertSensitiveValuesAbsentFromLogs(logs) {
   }
 }
 
-function assertResponseCookie(response, name, value, label) {
+function assertResponseCookie(
+  response: Response,
+  name: string,
+  value: string,
+  label: string,
+) {
   const cookie = response.headers
     .getSetCookie()
     .find((candidate) => candidate.startsWith(`${name}=`));
@@ -1764,7 +1846,11 @@ function assertResponseCookie(response, name, value, label) {
   return `${name}=${value}`;
 }
 
-function assertResponseCookieDeletion(response, name, label) {
+function assertResponseCookieDeletion(
+  response: Response,
+  name: string,
+  label: string,
+) {
   const cookie = response.headers
     .getSetCookie()
     .find((candidate) => candidate.startsWith(`${name}=`));
@@ -1789,7 +1875,11 @@ function assertResponseCookieDeletion(response, name, label) {
   );
 }
 
-function oneUpstreamCall(calls, method, pathname) {
+function oneUpstreamCall(
+  calls: UpstreamCall[],
+  method: string,
+  pathname: string,
+) {
   const matches = matchingUpstreamCalls(calls, method, pathname);
   assert.equal(
     matches.length,
@@ -1799,17 +1889,21 @@ function oneUpstreamCall(calls, method, pathname) {
   return matches[0];
 }
 
-function matchingUpstreamCalls(calls, method, pathname) {
+function matchingUpstreamCalls(
+  calls: UpstreamCall[],
+  method: string,
+  pathname: string,
+) {
   return calls.filter(
     (call) => call.method === method && call.pathname === pathname,
   );
 }
 
-function escapeRegularExpression(value) {
+function escapeRegularExpression(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-function assertSSRDocumentShell(html, label) {
+function assertSSRDocumentShell(html: string, label: string) {
   assert.match(html, /<!DOCTYPE html>/i, `${label} must include a doctype`);
   assert.match(
     html,
@@ -1833,7 +1927,11 @@ function assertSSRDocumentShell(html, label) {
   );
 }
 
-async function smokeFetch(url, options, overallSignal) {
+async function smokeFetch(
+  url: string,
+  options: RequestInit,
+  overallSignal: AbortSignal,
+) {
   const requestSignal = AbortSignal.any([
     overallSignal,
     AbortSignal.timeout(requestTimeoutMilliseconds),
@@ -1851,7 +1949,12 @@ async function smokeFetch(url, options, overallSignal) {
   }
 }
 
-async function waitForWebServer(origin, child, output, overallSignal) {
+async function waitForWebServer(
+  origin: string,
+  child: ChildProcess,
+  output: ChildOutput,
+  overallSignal: AbortSignal,
+) {
   const deadline = Date.now() + startupTimeoutMilliseconds;
 
   while (Date.now() < deadline) {
@@ -1885,8 +1988,8 @@ async function waitForWebServer(origin, child, output, overallSignal) {
   );
 }
 
-async function startFakeAPI(signal) {
-  const calls = [];
+async function startFakeAPI(signal: AbortSignal) {
+  const calls: UpstreamCall[] = [];
   const server = createServer(async (request, response) => {
     try {
       await handleFakeAPIRequest(request, response, calls);
@@ -1899,11 +2002,15 @@ async function startFakeAPI(signal) {
   return { calls, server, origin: `http://127.0.0.1:${port}` };
 }
 
-async function handleFakeAPIRequest(request, response, calls) {
+async function handleFakeAPIRequest(
+  request: IncomingMessage,
+  response: ServerResponse,
+  calls: UpstreamCall[],
+) {
   const method = request.method ?? "GET";
   const requestURL = new URL(request.url ?? "/", "http://fake-api.local");
   const body = await readJSONRequestBody(request);
-  const call = {
+  const call: UpstreamCall = {
     method,
     pathname: requestURL.pathname,
     search: requestURL.search,
@@ -2124,7 +2231,10 @@ async function handleFakeAPIRequest(request, response, calls) {
   writeJSON(response, 404, { error: "not_found" });
 }
 
-function visibleEvent({ viewerRSVP, viewerCanEdit = false } = {}) {
+function visibleEvent({
+  viewerRSVP,
+  viewerCanEdit = false,
+}: { viewerRSVP?: unknown; viewerCanEdit?: boolean } = {}) {
   return {
     id: "event-smoke",
     slug: eventSlug,
@@ -2185,7 +2295,7 @@ function fakePublicEvent() {
   };
 }
 
-function fakeAccountEvent(title, viewerRSVP) {
+function fakeAccountEvent(title: string, viewerRSVP?: string) {
   return {
     id: `account-${title.toLowerCase().replaceAll(" ", "-")}`,
     title,
@@ -2295,8 +2405,10 @@ function fakePublicProfile() {
   };
 }
 
-async function readJSONRequestBody(request) {
-  const chunks = [];
+async function readJSONRequestBody(
+  request: IncomingMessage,
+): Promise<JSONBody | undefined> {
+  const chunks: Buffer[] = [];
   let bytes = 0;
   for await (const chunk of request) {
     bytes += chunk.length;
@@ -2310,14 +2422,17 @@ async function readJSONRequestBody(request) {
     return undefined;
   }
   const text = Buffer.concat(chunks).toString("utf8");
-  return text.trim() ? JSON.parse(text) : undefined;
+  return text.trim() ? (JSON.parse(text) as JSONBody) : undefined;
 }
 
 function writeJSON(
-  response,
-  status,
-  payload,
-  { head = false, headers = {} } = {},
+  response: ServerResponse,
+  status: number,
+  payload: unknown,
+  {
+    head = false,
+    headers = {},
+  }: { head?: boolean; headers?: OutgoingHttpHeaders } = {},
 ) {
   const body = JSON.stringify(payload);
   response.writeHead(status, {
@@ -2328,24 +2443,27 @@ function writeJSON(
   response.end(head ? undefined : body);
 }
 
-function headerValue(value) {
+function headerValue(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
 }
 
-async function findAvailablePort(signal) {
+async function findAvailablePort(signal: AbortSignal) {
   const server = createNetServer();
   const port = await listenOnEphemeralPort(server, signal);
   await closeServer(server);
   return port;
 }
 
-function listenOnEphemeralPort(server, signal) {
+function listenOnEphemeralPort(
+  server: NetServer,
+  signal: AbortSignal,
+): Promise<number> {
   return new Promise((resolve, reject) => {
     const onAbort = () => {
       server.close();
       reject(signal.reason);
     };
-    const onError = (error) => {
+    const onError = (error: Error) => {
       signal.removeEventListener("abort", onAbort);
       reject(error);
     };
@@ -2367,13 +2485,13 @@ function listenOnEphemeralPort(server, signal) {
   });
 }
 
-function captureChildOutput(child) {
+function captureChildOutput(child: ChildProcess) {
   const state = {
     stdout: "",
     stderr: "",
     stdoutTruncated: false,
     stderrTruncated: false,
-    spawnError: undefined,
+    spawnError: undefined as Error | undefined,
     format() {
       return [
         formatCapturedStream("child stdout", this.stdout, this.stdoutTruncated),
@@ -2382,12 +2500,12 @@ function captureChildOutput(child) {
     },
   };
 
-  child.stdout?.on("data", (chunk) => {
+  child.stdout?.on("data", (chunk: Buffer) => {
     const result = appendBounded(state.stdout, chunk);
     state.stdout = result.value;
     state.stdoutTruncated ||= result.truncated;
   });
-  child.stderr?.on("data", (chunk) => {
+  child.stderr?.on("data", (chunk: Buffer) => {
     const result = appendBounded(state.stderr, chunk);
     state.stderr = result.value;
     state.stderrTruncated ||= result.truncated;
@@ -2399,7 +2517,7 @@ function captureChildOutput(child) {
   return state;
 }
 
-function appendBounded(current, chunk) {
+function appendBounded(current: string, chunk: Buffer) {
   const combined = current + String(chunk);
   if (Buffer.byteLength(combined) <= maximumChildOutputBytes) {
     return { value: combined, truncated: false };
@@ -2411,14 +2529,18 @@ function appendBounded(current, chunk) {
   };
 }
 
-function formatCapturedStream(label, value, truncated) {
+function formatCapturedStream(
+  label: string,
+  value: string,
+  truncated: boolean,
+) {
   if (!value) {
     return `--- ${label}: empty ---\n`;
   }
   return `--- ${label}${truncated ? " (leading output truncated)" : ""} ---\n${value}${value.endsWith("\n") ? "" : "\n"}`;
 }
 
-async function terminateChild(child) {
+async function terminateChild(child: ChildProcess | undefined) {
   if (!child || child.exitCode !== null || child.signalCode !== null) {
     return;
   }
@@ -2438,22 +2560,22 @@ async function terminateChild(child) {
   }
 }
 
-function waitForExit(child) {
+function waitForExit(child: ChildProcess): Promise<void> {
   if (child.exitCode !== null || child.signalCode !== null) {
     return Promise.resolve();
   }
-  return new Promise((resolve) => child.once("exit", resolve));
+  return new Promise((resolve) => child.once("exit", () => resolve()));
 }
 
-async function closeServer(server) {
+async function closeServer(server: NetServer | undefined) {
   if (!server?.listening) {
     return;
   }
 
   await Promise.race([
-    new Promise((resolve) => {
-      server.close(resolve);
-      server.closeAllConnections?.();
+    new Promise<void>((resolve) => {
+      server.close(() => resolve());
+      if (server instanceof HTTPServer) server.closeAllConnections();
     }),
     delay(shutdownTimeoutMilliseconds),
   ]);
@@ -2474,7 +2596,7 @@ function findNode24Binary() {
 }
 
 function nodeBinaryCandidates() {
-  const candidates = new Set();
+  const candidates = new Set<string>();
   if (process.env.NODE_24_BINARY) {
     candidates.add(process.env.NODE_24_BINARY);
   }
@@ -2509,7 +2631,7 @@ function nodeBinaryCandidates() {
   return candidates;
 }
 
-function nodeVersion(binary) {
+function nodeVersion(binary: string): string | undefined {
   try {
     accessSync(binary, fsConstants.X_OK);
     if (!statSync(binary).isFile()) {
@@ -2526,7 +2648,7 @@ function nodeVersion(binary) {
   return result.status === 0 ? result.stdout.trim() : undefined;
 }
 
-function compareVersionNames(left, right) {
+function compareVersionNames(left: string, right: string) {
   const leftParts = left.slice(1).split(".").map(Number);
   const rightParts = right.slice(1).split(".").map(Number);
   for (let index = 0; index < 3; index += 1) {
@@ -2538,7 +2660,7 @@ function compareVersionNames(left, right) {
   return 0;
 }
 
-function assertReadableFile(file, message) {
+function assertReadableFile(file: string, message: string) {
   try {
     accessSync(file, fsConstants.R_OK);
     assert.ok(statSync(file).isFile(), message);

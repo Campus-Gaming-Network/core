@@ -19,15 +19,16 @@ const markdownFiles = [
   path.join(repositoryRoot, "AGENTS.md"),
 ];
 
-const anchorsByFile = new Map();
+const anchorsByFile = new Map<string, Set<string>>();
 
 // Anchors are explicit HTML ids plus GitHub's heading anchors: lowercase, drop
 // punctuation other than hyphens and underscores, turn whitespace into
 // hyphens, and suffix repeats with -1, -2, …
-function anchorsFor(file) {
-  if (anchorsByFile.has(file)) return anchorsByFile.get(file);
-  const anchors = new Set();
-  const seen = new Map();
+function anchorsFor(file: string): Set<string> {
+  const known = anchorsByFile.get(file);
+  if (known) return known;
+  const anchors = new Set<string>();
+  const seen = new Map<string, number>();
   let inFence = false;
   for (const line of readFileSync(file, "utf8").split("\n")) {
     if (/^\s*(```|~~~)/.test(line)) inFence = !inFence;
@@ -51,7 +52,7 @@ function anchorsFor(file) {
   return anchors;
 }
 
-const failures = [];
+const failures: string[] = [];
 for (const file of markdownFiles) {
   let inFence = false;
   readFileSync(file, "utf8")

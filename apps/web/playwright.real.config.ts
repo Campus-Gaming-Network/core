@@ -42,7 +42,7 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: `${nodeExecutable} tests/e2e-real/fixtures/resend-stub.mjs`,
+      command: `${nodeExecutable} tests/e2e-real/fixtures/resend-stub.ts`,
       url: `${resendURL}/health`,
       env: {
         PORT: "18083",

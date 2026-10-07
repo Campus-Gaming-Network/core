@@ -3,7 +3,7 @@ import http from "node:http";
 // An S3-compatible bucket for school logos: path-style PUT and DELETE from the
 // API, and public GET for the browser, kept in memory.
 const port = Number.parseInt(process.env.PORT ?? "18086", 10);
-const objects = new Map();
+const objects = new Map<string, { body: Buffer; contentType: string }>();
 
 http
   .createServer((request, response) => {
@@ -13,8 +13,8 @@ http
       return;
     }
     if (request.method === "PUT") {
-      const chunks = [];
-      request.on("data", (chunk) => chunks.push(chunk));
+      const chunks: Buffer[] = [];
+      request.on("data", (chunk: Buffer) => chunks.push(chunk));
       request.on("end", () => {
         objects.set(pathname, {
           body: Buffer.concat(chunks),

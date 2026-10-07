@@ -1,4 +1,129 @@
-import http from "node:http";
+import http, { type IncomingMessage, type ServerResponse } from "node:http";
+
+type SchoolFields = {
+  unitid: number;
+  name: string;
+  alias: string;
+  slug: string;
+  city: string;
+  state: string;
+  zip: string;
+  website_url: string;
+  latitude: number;
+  longitude: number;
+  is_main_campus: boolean;
+  num_branches: number;
+};
+type School = SchoolFields & {
+  id: string;
+  logo_url: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+};
+type SchoolGrant = {
+  id: string;
+  school_id: string;
+  user_id: string;
+  user_name: string;
+  created_at: string;
+  updated_at: string;
+  revoked_at: string | null;
+};
+type Game = {
+  id: string;
+  name: string;
+  slug: string;
+  cover_url?: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+  igdb_id: number | null;
+  last_synced_at: string | null;
+  has_cover: boolean;
+  user_submitted: boolean;
+};
+type User = {
+  id: string;
+  email: string;
+  name: string;
+  home_school_id: string;
+  email_verified_at: string;
+  verification_level: string;
+  account_status: string;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+  site_admin: boolean;
+  school_admin_count: number;
+};
+type SiteGrant = {
+  id: string;
+  user_id: string;
+  user_name: string;
+  role: string;
+  grant_reason: string;
+  granted_at: string;
+  revoked_at?: string;
+  revoke_reason?: string;
+};
+type AuditEntry = {
+  id: string;
+  actor_user_id: string;
+  admin_session_id: string;
+  request_id?: string;
+  action: string;
+  entity_type: string;
+  entity_id: string;
+  before: unknown;
+  after: unknown;
+  metadata: Record<string, unknown>;
+  created_at: string;
+};
+type QueueItem = {
+  id: string;
+  status: string;
+  resolution_note: string;
+  retention_started_at: string | null;
+  created_at: string;
+  updated_at: string;
+  assigned_to_user_id?: string;
+  assigned_to_name?: string;
+};
+type Report = QueueItem & {
+  reporter_user_id: string;
+  target_type: string;
+  target_id: string;
+  reporter_name: string;
+  target_name: string;
+  reason: string;
+};
+type Ticket = QueueItem & {
+  submitter_user_id: string;
+  contact_email: string;
+  name: string;
+  subject: string;
+  message: string;
+};
+// Every field a catalog command reads. The fake trusts the Admin Console to
+// send the ones an operation needs and does not validate them.
+type CommandBody = SchoolFields & {
+  reason: string;
+  expected_updated_at: string;
+  user_id: string;
+  igdb_id: number;
+  cover_url?: string;
+  is_active: boolean;
+  staff_faculty: boolean;
+};
+type QueueBody = {
+  status: string;
+  resolution_note: string;
+  expected_updated_at: string;
+  assigned_to_user_id?: string;
+};
 
 const port = Number.parseInt(process.env.PORT ?? "18082", 10);
 const reportID = "11111111-1111-4111-8111-111111111111";
@@ -37,8 +162,9 @@ const session = {
 // Session cookies starting with "stepped-up" model an operator who confirmed
 // their identity within the last ten minutes. Revoking a session's site-admin
 // grant ends it, as the Go API does.
-const isSteppedUp = (sessionValue) => sessionValue.startsWith("stepped-up");
-const revokedSessions = new Set();
+const isSteppedUp = (sessionValue: string) =>
+  sessionValue.startsWith("stepped-up");
+const revokedSessions = new Set<string>();
 
 const catalogSchoolID = "88888888-8888-4888-8888-888888888888";
 const catalogGameID = "99999999-9999-4999-8999-999999999999";
@@ -49,10 +175,10 @@ const peerAdminID = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
 const peerGrantID = "dddddddd-dddd-4ddd-8ddd-dddddddddddd";
 const catalogCreatedAt = "2026-09-20T12:00:00Z";
 
-let schools;
-let schoolsWithHistory;
-let schoolGrants;
-let games;
+let schools: Map<string, School>;
+let schoolsWithHistory: Set<string>;
+let schoolGrants: SchoolGrant[];
+let games: Map<string, Game>;
 // What the fake IGDB knows. Searching for "outage" answers as an IGDB outage.
 const igdbGames = [
   { igdb_id: 11198, name: "Rocket League", release_year: 2015 },
@@ -61,12 +187,12 @@ const igdbGames = [
 // A one-pixel PNG, base64-encoded as the cover endpoint sends it.
 const coverPNG =
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
-let users;
-let siteGrants;
-let catalogAudit;
-let catalogSequence;
+let users: Map<string, User>;
+let siteGrants: SiteGrant[];
+let catalogAudit: Map<string, AuditEntry[]>;
+let catalogSequence: number;
 // Uploaded logo bytes, served from the asset path like the public R2 origin.
-let logoObjects;
+let logoObjects: Map<string, { bytes: Buffer; type: string }>;
 const assetBase = `http://127.0.0.1:${port}/assets`;
 
 // Restores the seeded catalog so each browser test starts from the same state.
@@ -118,12 +244,14 @@ function resetCatalog() {
     ],
   ]);
   users = new Map(
-    [
-      [memberID, "member@example.test", "Member Player", false],
-      [gatedMemberID, "gated@example.test", "Gated Player", false],
-      [operatorID, "operator@example.test", "Operator", true],
-      [peerAdminID, "peer@example.test", "Peer Admin", true],
-    ].map(([id, email, name, siteAdmin]) => [
+    (
+      [
+        [memberID, "member@example.test", "Member Player", false],
+        [gatedMemberID, "gated@example.test", "Gated Player", false],
+        [operatorID, "operator@example.test", "Operator", true],
+        [peerAdminID, "peer@example.test", "Peer Admin", true],
+      ] as const
+    ).map(([id, email, name, siteAdmin]) => [
       id,
       {
         id,
@@ -147,7 +275,7 @@ function resetCatalog() {
   ].map(([id, userID]) => ({
     id,
     user_id: userID,
-    user_name: users.get(userID).name,
+    user_name: users.get(userID)?.name ?? "",
     role: "site_admin",
     grant_reason: "Launch operator",
     granted_at: catalogCreatedAt,
@@ -159,7 +287,7 @@ function resetCatalog() {
 }
 resetCatalog();
 
-const report = {
+let report: Report = {
   id: reportID,
   reporter_user_id: reporterID,
   target_type: "user",
@@ -174,7 +302,7 @@ const report = {
   updated_at: "2026-09-18T16:05:00Z",
 };
 
-const ticket = {
+let ticket: Ticket = {
   id: ticketID,
   submitter_user_id: reporterID,
   contact_email: "player@example.test",
@@ -189,21 +317,16 @@ const ticket = {
   updated_at: "2026-09-18T16:15:00Z",
 };
 
-const reportAudit = [];
-const ticketAudit = [];
+const reportAudit: AuditEntry[] = [];
+const ticketAudit: AuditEntry[] = [];
 let sequence = 0;
 let forcedConflict = false;
 
 // Restores the seeded queue items so no test depends on an earlier one.
 const seededQueue = structuredClone({ report, ticket });
 function resetQueues() {
-  for (const [item, seed] of [
-    [report, seededQueue.report],
-    [ticket, seededQueue.ticket],
-  ]) {
-    for (const key of Object.keys(item)) delete item[key];
-    Object.assign(item, structuredClone(seed));
-  }
+  report = structuredClone(seededQueue.report);
+  ticket = structuredClone(seededQueue.ticket);
   reportAudit.length = 0;
   ticketAudit.length = 0;
   sequence = 0;
@@ -400,13 +523,18 @@ const server = http.createServer(async (request, response) => {
 
 server.listen(port, "127.0.0.1");
 
-function isCatalogPath(requestURL) {
+function isCatalogPath(requestURL: URL) {
   return /^\/admin\/v1\/(schools|games|users|site-admin-grants|igdb-games|game-imports)(\/|$)/.test(
     requestURL.pathname,
   );
 }
 
-async function handleCatalog(request, response, requestURL, sessionValue) {
+async function handleCatalog(
+  request: IncomingMessage,
+  response: ServerResponse,
+  requestURL: URL,
+  sessionValue: string,
+) {
   const parts = requestURL.pathname.split("/").slice(3);
   const [collection, id, action, grantID, grantAction] = parts;
   if (request.method === "GET") {
@@ -425,7 +553,7 @@ async function handleCatalog(request, response, requestURL, sessionValue) {
     await uploadLogo(request, response, id);
     return;
   }
-  const body = JSON.parse((await readBody(request)) || "{}");
+  const body = JSON.parse((await readBody(request)) || "{}") as CommandBody;
   const recentAuth =
     (collection === "users" &&
       (action === "suspend" || action === "reactivate")) ||
@@ -440,15 +568,17 @@ async function handleCatalog(request, response, requestURL, sessionValue) {
   }
 
   if (collection === "schools" && !id) {
-    const school = {
+    const schoolID = nextID();
+    const now = nextTimestamp();
+    const school: School = {
       ...schoolFields(body),
-      id: nextID(),
+      id: schoolID,
       logo_url: "",
       is_active: true,
-      created_at: nextTimestamp(),
+      created_at: now,
       deleted_at: null,
+      updated_at: now,
     };
-    school.updated_at = school.created_at;
     schools.set(school.id, school);
     recordAudit(school.id, "school.created", {}, school, body.reason);
     respond(response, 201, school);
@@ -475,7 +605,8 @@ async function handleCatalog(request, response, requestURL, sessionValue) {
     const existing = schoolGrants.find(
       (grant) => grant.school_id === id && grant.user_id === body.user_id,
     );
-    if (!schools.has(id) || !users.has(body.user_id)) {
+    const grantee = users.get(body.user_id);
+    if (!schools.has(id) || !grantee) {
       respond(response, 422, { error: "grant_user_not_eligible" });
       return;
     }
@@ -496,15 +627,17 @@ async function handleCatalog(request, response, requestURL, sessionValue) {
       respond(response, 201, existing);
       return;
     }
-    const grant = {
-      id: nextID(),
+    const newGrantID = nextID();
+    const now = nextTimestamp();
+    const grant: SchoolGrant = {
+      id: newGrantID,
       school_id: id,
       user_id: body.user_id,
-      user_name: users.get(body.user_id).name,
-      created_at: nextTimestamp(),
+      user_name: grantee.name,
+      created_at: now,
       revoked_at: null,
+      updated_at: now,
     };
-    grant.updated_at = grant.created_at;
     schoolGrants.push(grant);
     recordAudit(
       grant.id,
@@ -589,19 +722,21 @@ async function handleCatalog(request, response, requestURL, sessionValue) {
       });
       return;
     }
-    const imported = {
-      id: nextID(),
+    const gameID = nextID();
+    const now = nextTimestamp();
+    const imported: Game = {
+      id: gameID,
       name: match.name,
       slug: match.name.toLowerCase().replaceAll(" ", "-"),
       is_active: false,
-      created_at: nextTimestamp(),
+      created_at: now,
       deleted_at: null,
       igdb_id: match.igdb_id,
       has_cover: true,
       user_submitted: false,
+      updated_at: now,
+      last_synced_at: now,
     };
-    imported.updated_at = imported.created_at;
-    imported.last_synced_at = imported.created_at;
     games.set(imported.id, imported);
     recordAudit(imported.id, "game.imported", {}, imported, body.reason);
     respond(response, 201, imported);
@@ -609,8 +744,34 @@ async function handleCatalog(request, response, requestURL, sessionValue) {
   }
 
   if (collection === "games") {
-    const game = id ? games.get(id) : undefined;
-    if (id && (!game || game.updated_at !== body.expected_updated_at)) {
+    if (!id) {
+      if ([...games.values()].some((item) => item.slug === body.slug)) {
+        respond(response, 409, { error: "admin_record_already_exists" });
+        return;
+      }
+      const gameID = nextID();
+      const now = nextTimestamp();
+      const created: Game = {
+        id: gameID,
+        name: body.name,
+        slug: body.slug,
+        ...(body.cover_url ? { cover_url: body.cover_url } : {}),
+        is_active: body.is_active,
+        created_at: now,
+        deleted_at: null,
+        igdb_id: null,
+        last_synced_at: null,
+        has_cover: false,
+        user_submitted: false,
+        updated_at: now,
+      };
+      games.set(created.id, created);
+      recordAudit(created.id, "game.created", {}, created, body.reason);
+      respond(response, 201, created);
+      return;
+    }
+    const game = games.get(id);
+    if (!game || game.updated_at !== body.expected_updated_at) {
       respond(response, 409, { error: "admin_record_conflict", current: game });
       return;
     }
@@ -620,30 +781,6 @@ async function handleCatalog(request, response, requestURL, sessionValue) {
       game.last_synced_at = game.updated_at;
       recordAudit(id, "game.refreshed", before, game, body.reason);
       respond(response, 200, game);
-      return;
-    }
-    if (!id) {
-      if ([...games.values()].some((item) => item.slug === body.slug)) {
-        respond(response, 409, { error: "admin_record_already_exists" });
-        return;
-      }
-      const created = {
-        id: nextID(),
-        name: body.name,
-        slug: body.slug,
-        ...(body.cover_url ? { cover_url: body.cover_url } : {}),
-        is_active: body.is_active,
-        created_at: nextTimestamp(),
-        deleted_at: null,
-        igdb_id: null,
-        last_synced_at: null,
-        has_cover: false,
-        user_submitted: false,
-      };
-      created.updated_at = created.created_at;
-      games.set(created.id, created);
-      recordAudit(created.id, "game.created", {}, created, body.reason);
-      respond(response, 201, created);
       return;
     }
     const before = { ...game };
@@ -698,7 +835,7 @@ async function handleCatalog(request, response, requestURL, sessionValue) {
       respond(response, 409, { error: "admin_record_conflict" });
       return;
     }
-    const grant = {
+    const grant: SiteGrant = {
       id: nextID(),
       user_id: user.id,
       user_name: user.name,
@@ -731,7 +868,8 @@ async function handleCatalog(request, response, requestURL, sessionValue) {
     }
     grant.revoked_at = nextTimestamp();
     grant.revoke_reason = body.reason;
-    users.get(grant.user_id).site_admin = false;
+    const demoted = users.get(grant.user_id);
+    if (demoted) demoted.site_admin = false;
     if (grant.user_id === operatorID) revokedSessions.add(sessionValue);
     recordAudit(
       grant.id,
@@ -746,8 +884,14 @@ async function handleCatalog(request, response, requestURL, sessionValue) {
   respond(response, 404, { error: "not_found" });
 }
 
-function respondCatalogRead(response, requestURL, collection, id, action) {
-  const page = (key, items) =>
+function respondCatalogRead(
+  response: ServerResponse,
+  requestURL: URL,
+  collection: string,
+  id: string,
+  action: string,
+) {
+  const page = (key: string, items: unknown[]) =>
     respond(response, 200, {
       [key]: items,
       next_cursor: "",
@@ -756,7 +900,7 @@ function respondCatalogRead(response, requestURL, collection, id, action) {
   if (action === "audit") {
     page(
       "audit_entries",
-      catalogAudit.get(requestURL.pathname.split("/").at(-2)) ?? [],
+      catalogAudit.get(requestURL.pathname.split("/").at(-2) ?? "") ?? [],
     );
     return;
   }
@@ -787,7 +931,7 @@ function respondCatalogRead(response, requestURL, collection, id, action) {
     return;
   }
   const state = requestURL.searchParams.get("state") ?? "";
-  const matches = (record, text) =>
+  const matches = (record: School | Game | User, text: string[]) =>
     (!query || text.some((value) => value.toLowerCase().startsWith(query))) &&
     (!state || recordState(record) === state);
   if (collection === "schools" && action === "admin-grants") {
@@ -797,11 +941,6 @@ function respondCatalogRead(response, requestURL, collection, id, action) {
     );
     return;
   }
-  const lookup = {
-    schools: [schools, "schools", (school) => [school.name, school.slug]],
-    games: [games, "games", (game) => [game.name, game.slug]],
-    users: [users, "users", (user) => [user.email, user.name]],
-  }[collection];
   if (collection === "site-admin-grants") {
     page(
       "grants",
@@ -812,24 +951,34 @@ function respondCatalogRead(response, requestURL, collection, id, action) {
     );
     return;
   }
-  if (!lookup) {
+  const respondRecords = <T extends School | Game | User>(
+    records: Map<string, T>,
+    key: string,
+    text: (record: T) => string[],
+  ) => {
+    if (id) {
+      const record = records.get(id);
+      if (record) respond(response, 200, record);
+      else respond(response, 404, { error: "admin_record_not_found" });
+      return;
+    }
+    page(
+      key,
+      [...records.values()].filter((record) => matches(record, text(record))),
+    );
+  };
+  if (collection === "schools") {
+    respondRecords(schools, "schools", (school) => [school.name, school.slug]);
+  } else if (collection === "games") {
+    respondRecords(games, "games", (game) => [game.name, game.slug]);
+  } else if (collection === "users") {
+    respondRecords(users, "users", (user) => [user.email, user.name]);
+  } else {
     respond(response, 404, { error: "not_found" });
-    return;
   }
-  const [records, key, text] = lookup;
-  if (id) {
-    const record = records.get(id);
-    if (record) respond(response, 200, record);
-    else respond(response, 404, { error: "admin_record_not_found" });
-    return;
-  }
-  page(
-    key,
-    [...records.values()].filter((record) => matches(record, text(record))),
-  );
 }
 
-function recordState(record) {
+function recordState(record: School | Game | User) {
   if ("account_status" in record) return record.account_status;
   return record.deleted_at
     ? "deleted"
@@ -838,7 +987,7 @@ function recordState(record) {
       : "inactive";
 }
 
-function schoolFields(body) {
+function schoolFields(body: CommandBody): SchoolFields {
   return {
     unitid: body.unitid,
     name: body.name,
@@ -855,7 +1004,13 @@ function schoolFields(body) {
   };
 }
 
-function recordAudit(entityID, action, before, after, reason) {
+function recordAudit(
+  entityID: string,
+  action: string,
+  before: unknown,
+  after: unknown,
+  reason: string,
+) {
   const entries = catalogAudit.get(entityID) ?? [];
   entries.unshift({
     id: nextID(),
@@ -874,8 +1029,12 @@ function recordAudit(entityID, action, before, after, reason) {
 
 // Mirrors the Go API's byte-level decision: the file's name and declared type
 // are ignored, and anything but a PNG or JPEG signature is rejected.
-async function uploadLogo(request, response, id) {
-  const chunks = [];
+async function uploadLogo(
+  request: IncomingMessage,
+  response: ServerResponse,
+  id: string,
+) {
+  const chunks: Buffer[] = [];
   for await (const chunk of request) chunks.push(chunk);
   const form = await new Request("http://fake.test/", {
     method: "POST",
@@ -884,7 +1043,8 @@ async function uploadLogo(request, response, id) {
   }).formData();
   const school = schools.get(id);
   const file = form.get("file");
-  if (!form.get("reason") || !(file instanceof Blob)) {
+  const reason = form.get("reason");
+  if (!reason || !(file instanceof Blob)) {
     respond(response, 400, { error: "invalid_request" });
     return;
   }
@@ -916,7 +1076,7 @@ async function uploadLogo(request, response, id) {
     "school.logo_updated",
     before,
     { logo_url: school.logo_url },
-    form.get("reason"),
+    String(reason),
   );
   respond(response, 200, school);
 }
@@ -933,7 +1093,7 @@ function nextTimestamp() {
     .replace(".000Z", "Z");
 }
 
-function validCSRF(request) {
+function validCSRF(request: IncomingMessage) {
   return (
     request.headers.origin === "http://127.0.0.1:3202" &&
     request.headers["x-cgn-admin-csrf"] === "csrf-token" &&
@@ -941,7 +1101,7 @@ function validCSRF(request) {
   );
 }
 
-function cookieValue(request, name) {
+function cookieValue(request: IncomingMessage, name: string) {
   const match = String(request.headers.cookie ?? "")
     .split(";")
     .map((part) => part.trim())
@@ -949,7 +1109,7 @@ function cookieValue(request, name) {
   return match?.slice(name.length + 1) ?? "";
 }
 
-function matchesFilters(item, requestURL) {
+function matchesFilters(item: QueueItem, requestURL: URL) {
   const status = requestURL.searchParams.get("status");
   const assignee = requestURL.searchParams.get("assignee");
   return (
@@ -961,7 +1121,13 @@ function matchesFilters(item, requestURL) {
   );
 }
 
-async function patchQueueItem(request, response, item, audit, entityType) {
+async function patchQueueItem(
+  request: IncomingMessage,
+  response: ServerResponse,
+  item: QueueItem,
+  audit: AuditEntry[],
+  entityType: string,
+) {
   const cookies = String(request.headers.cookie ?? "");
   if (
     request.headers.origin !== "http://127.0.0.1:3202" ||
@@ -971,7 +1137,7 @@ async function patchQueueItem(request, response, item, audit, entityType) {
     respond(response, 403, { error: "admin_csrf_invalid" });
     return;
   }
-  const body = JSON.parse(await readBody(request));
+  const body = JSON.parse(await readBody(request)) as QueueBody;
   if (
     entityType === "report" &&
     body.resolution_note === "Force conflict once" &&
@@ -1022,7 +1188,7 @@ async function patchQueueItem(request, response, item, audit, entityType) {
   respond(response, 200, item);
 }
 
-function queueState(item) {
+function queueState(item: QueueItem) {
   return {
     status: item.status,
     assigned_to_user_id: item.assigned_to_user_id ?? null,
@@ -1030,11 +1196,11 @@ function queueState(item) {
   };
 }
 
-function readBody(request) {
+function readBody(request: IncomingMessage): Promise<string> {
   return new Promise((resolve, reject) => {
     let body = "";
     request.setEncoding("utf8");
-    request.on("data", (chunk) => {
+    request.on("data", (chunk: string) => {
       body += chunk;
     });
     request.on("end", () => resolve(body));
@@ -1042,7 +1208,7 @@ function readBody(request) {
   });
 }
 
-function respond(response, status, payload) {
+function respond(response: ServerResponse, status: number, payload: unknown) {
   response.writeHead(status);
   response.end(JSON.stringify(payload));
 }
