@@ -111,7 +111,7 @@ for (const expected of pages) {
   });
 }
 
-test("static SSR stays viewer-neutral when a session cookie is present", async ({
+test("static SSR renders the signed-in header in a private document", async ({
   request,
 }) => {
   const reset = await request.post(`${apiURL}/__test/reset`);
@@ -130,13 +130,6 @@ test("static SSR stays viewer-neutral when a session cookie is present", async (
     headers: { cookie: cookie ?? "" },
   });
   expect(response.status()).toBe(200);
-  expect(response.headers()["cache-control"]).toBe(
-    "public, max-age=0, must-revalidate",
-  );
-
-  const upstreamResponse = await request.get(`${apiURL}/__test/upstream-calls`);
-  const upstream = (await upstreamResponse.json()) as {
-    calls: Array<{ method: string; pathname: string }>;
-  };
-  expect(upstream.calls.filter((call) => call.pathname === "/me")).toEqual([]);
+  expect(response.headers()["cache-control"]).toBe("private, no-store");
+  expect(await response.text()).toContain('class="account-menu"');
 });

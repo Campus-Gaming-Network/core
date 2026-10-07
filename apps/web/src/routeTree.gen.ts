@@ -25,7 +25,6 @@ import { Route as TeamsRouteImport } from './routes/teams'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as ApiErrorMonitoringTestRouteImport } from './routes/api.error-monitoring-test'
 import { Route as ApiHealthRouteImport } from './routes/api.health'
-import { Route as ApiNavigationSessionRouteImport } from './routes/api.navigation-session'
 import { Route as ApiSchoolsRouteImport } from './routes/api.schools'
 import { Route as AuthResetPasswordRouteImport } from './routes/auth.reset-password'
 import { Route as AuthVerifyEmailRouteImport } from './routes/auth.verify-email'
@@ -125,11 +124,6 @@ const ApiErrorMonitoringTestRoute = ApiErrorMonitoringTestRouteImport.update({
 const ApiHealthRoute = ApiHealthRouteImport.update({
   id: '/api/health',
   path: '/api/health',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiNavigationSessionRoute = ApiNavigationSessionRouteImport.update({
-  id: '/api/navigation-session',
-  path: '/api/navigation-session',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiSchoolsRoute = ApiSchoolsRouteImport.update({
@@ -251,7 +245,6 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/api/error-monitoring-test': typeof ApiErrorMonitoringTestRoute
   '/api/health': typeof ApiHealthRoute
-  '/api/navigation-session': typeof ApiNavigationSessionRoute
   '/api/schools': typeof ApiSchoolsRoute
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/auth/verify-email': typeof AuthVerifyEmailRoute
@@ -287,7 +280,6 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/api/error-monitoring-test': typeof ApiErrorMonitoringTestRoute
   '/api/health': typeof ApiHealthRoute
-  '/api/navigation-session': typeof ApiNavigationSessionRoute
   '/api/schools': typeof ApiSchoolsRoute
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/auth/verify-email': typeof AuthVerifyEmailRoute
@@ -327,7 +319,6 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/api/error-monitoring-test': typeof ApiErrorMonitoringTestRoute
   '/api/health': typeof ApiHealthRoute
-  '/api/navigation-session': typeof ApiNavigationSessionRoute
   '/api/schools': typeof ApiSchoolsRoute
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/auth/verify-email': typeof AuthVerifyEmailRoute
@@ -368,7 +359,6 @@ export interface FileRouteTypes {
     | '/terms'
     | '/api/error-monitoring-test'
     | '/api/health'
-    | '/api/navigation-session'
     | '/api/schools'
     | '/auth/reset-password'
     | '/auth/verify-email'
@@ -404,7 +394,6 @@ export interface FileRouteTypes {
     | '/terms'
     | '/api/error-monitoring-test'
     | '/api/health'
-    | '/api/navigation-session'
     | '/api/schools'
     | '/auth/reset-password'
     | '/auth/verify-email'
@@ -443,7 +432,6 @@ export interface FileRouteTypes {
     | '/terms'
     | '/api/error-monitoring-test'
     | '/api/health'
-    | '/api/navigation-session'
     | '/api/schools'
     | '/auth/reset-password'
     | '/auth/verify-email'
@@ -483,7 +471,6 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   ApiErrorMonitoringTestRoute: typeof ApiErrorMonitoringTestRoute
   ApiHealthRoute: typeof ApiHealthRoute
-  ApiNavigationSessionRoute: typeof ApiNavigationSessionRoute
   ApiSchoolsRoute: typeof ApiSchoolsRoute
   AuthResetPasswordRoute: typeof AuthResetPasswordRoute
   AuthVerifyEmailRoute: typeof AuthVerifyEmailRoute
@@ -606,13 +593,6 @@ declare module '@tanstack/react-router' {
       path: '/api/health'
       fullPath: '/api/health'
       preLoaderRoute: typeof ApiHealthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/navigation-session': {
-      id: '/api/navigation-session'
-      path: '/api/navigation-session'
-      fullPath: '/api/navigation-session'
-      preLoaderRoute: typeof ApiNavigationSessionRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/schools': {
@@ -825,7 +805,6 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   ApiErrorMonitoringTestRoute: ApiErrorMonitoringTestRoute,
   ApiHealthRoute: ApiHealthRoute,
-  ApiNavigationSessionRoute: ApiNavigationSessionRoute,
   ApiSchoolsRoute: ApiSchoolsRoute,
   AuthResetPasswordRoute: AuthResetPasswordRoute,
   AuthVerifyEmailRoute: AuthVerifyEmailRoute,

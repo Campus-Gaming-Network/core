@@ -16,7 +16,6 @@ import {
   DefaultPending,
 } from "../components/route-boundaries";
 import { logout } from "../features/event-slice/auth.functions";
-import type { NavigationViewer } from "../features/event-slice/contracts";
 import { getPublicRuntimeConfig } from "../server/public-origin.functions";
 import appCSS from "../styles.css?url";
 import componentsCSS from "../components.css?url";
@@ -27,10 +26,15 @@ export const Route = createRootRoute({
   beforeLoad: async () => getPublicRuntimeConfig(),
   loader: ({ context }) => ({
     errorMonitoring: context.errorMonitoring,
+    hasSessionCookie: context.hasSessionCookie,
     publicOrigin: context.publicOrigin,
   }),
-  headers: () => ({
-    "cache-control": "public, max-age=0, must-revalidate",
+  // A document rendered for a session names its viewer in the header, so it
+  // is private. Everyone else gets the same public document.
+  headers: ({ loaderData }) => ({
+    "cache-control": loaderData?.hasSessionCookie
+      ? "private, no-store"
+      : "public, max-age=0, must-revalidate",
     vary: "Cookie",
   }),
   head: () => ({
@@ -52,7 +56,7 @@ export const Route = createRootRoute({
 });
 
 function RootComponent() {
-  const [viewer, setViewer] = useViewerSession();
+  const { viewer } = Route.useRouteContext();
   const { errorMonitoring } = Route.useLoaderData();
 
   useEffect(() => {
@@ -83,7 +87,7 @@ function RootComponent() {
           <Link to="/schools">Schools</Link>
           <Link to="/events">Events</Link>
           <Link to="/teams">Teams</Link>
-          <AuthNavigation onLoggedOut={() => setViewer(null)} viewer={viewer} />
+          <AuthNavigation viewer={viewer} />
         </nav>
       </header>
       <MainContent />
@@ -125,81 +129,7 @@ function MainContent() {
   );
 }
 
-function useViewerSession(): [ViewerState, (viewer: ViewerState) => void] {
-  const router = useRouter();
-  // "pending" until /api/navigation-session answers. The server HTML is
-  // viewer-neutral, so the slot stays invisible rather than flashing the
-  // logged-out links at someone who is signed in. null is a logged-out viewer.
-  const [viewer, setViewer] = useState<NavigationViewer | null | "pending">(
-    "pending",
-  );
-  useEffect(() => {
-    let controller = new AbortController();
-
-    // Asks again after every resolved navigation, so a login, a rename on the
-    // account page, or an expired session shows up in the header. The current
-    // answer stays on screen while the request is in flight.
-    async function refreshViewer() {
-      controller.abort();
-      controller = new AbortController();
-      const { signal } = controller;
-
-      try {
-        const response = await fetch("/api/navigation-session", {
-          cache: "no-store",
-          signal,
-        });
-        if (!response.ok) {
-          setViewer((current) => (current === "pending" ? null : current));
-          return;
-        }
-        const session: unknown = await response.json();
-        const user =
-          typeof session === "object" &&
-          session !== null &&
-          "authenticated" in session &&
-          session.authenticated === true &&
-          "user" in session
-            ? session.user
-            : null;
-        setViewer(
-          typeof user === "object" &&
-            user !== null &&
-            "id" in user &&
-            typeof user.id === "string" &&
-            "name" in user &&
-            typeof user.name === "string"
-            ? { id: user.id, name: user.name }
-            : null,
-        );
-      } catch {
-        // Public navigation stays logged out if session discovery is unavailable.
-        if (!signal.aborted) {
-          setViewer((current) => (current === "pending" ? null : current));
-        }
-      }
-    }
-
-    void refreshViewer();
-    const unsubscribe = router.subscribe("onResolved", () => {
-      void refreshViewer();
-    });
-    return () => {
-      unsubscribe();
-      controller.abort();
-    };
-  }, [router]);
-
-  return [viewer, setViewer];
-}
-
-function AuthNavigation({
-  onLoggedOut,
-  viewer,
-}: {
-  onLoggedOut: () => void;
-  viewer: ViewerState;
-}) {
+function AuthNavigation({ viewer }: { viewer: ViewerState }) {
   const runLogout = useServerFn(logout);
   const router = useRouter();
   const [pending, setPending] = useState(false);
@@ -212,7 +142,6 @@ function AuthNavigation({
 
     try {
       await runLogout();
-      onLoggedOut();
       await router.invalidate();
       await router.navigate({ to: "/", replace: true });
     } catch {
@@ -222,17 +151,11 @@ function AuthNavigation({
     }
   }
 
-  if (viewer === "pending" || viewer === null) {
-    const hidden = viewer === "pending";
+  if (viewer === null) {
     return (
       <>
-        <Link className={hidden ? "nav-pending" : undefined} to="/login">
-          Log in
-        </Link>
-        <Link
-          className={`button button--primary${hidden ? " nav-pending" : ""}`}
-          to="/signup"
-        >
+        <Link to="/login">Log in</Link>
+        <Link className="button button--primary" to="/signup">
           Sign up
         </Link>
       </>
@@ -255,8 +178,12 @@ function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
       <head>
         <HeadContent />
         <noscript>
+          {/* The account menu opens with script. Without it, its links and
+              logout form sit in the header in place of the trigger. */}
           <style>
-            {".nav-pending,.viewer-pending{visibility:visible!important}"}
+            {
+              ".account-menu__trigger{display:none!important}.site-header nav .account-menu__panel[hidden]{display:flex!important;position:static;width:auto;min-width:0;flex-wrap:wrap;align-items:center;border:0;padding:0;background:none;box-shadow:none}.site-header nav .account-menu__panel .logout-form{margin:0;padding:0;border:0}"
+            }
           </style>
         </noscript>
       </head>

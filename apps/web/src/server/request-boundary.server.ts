@@ -1,11 +1,12 @@
 import {
   deleteCookie,
   getCookie,
+  getRequest,
   getRequestHeaders,
   setCookie,
   setResponseHeader,
 } from "@tanstack/react-start/server";
-import { type ApiClient } from "./api.server.js";
+import { type ApiClient, type Fetcher } from "./api.server.js";
 import { createGoBFFClient } from "./bff.server.js";
 import {
   cookieHeaderValue,
@@ -61,13 +62,40 @@ export function sessionRequestForHeaders(
   };
 }
 
+// While one document renders, the root route reads `/me` for the header and
+// the page's loader reads it for itself. They share one upstream read per
+// incoming request and session cookie. A write to `/me` drops the shared read.
+const profileReads = new WeakMap<Request, Map<string, Promise<Response>>>();
+
+function profileSharingFetcher(request: Request): Fetcher {
+  return async (input, init) => {
+    const url = new URL(input instanceof Request ? input.url : input);
+    if (!url.pathname.endsWith("/me")) return fetch(input, init);
+
+    const reads = profileReads.get(request) ?? new Map();
+    profileReads.set(request, reads);
+    const cookie = new Headers(init?.headers).get("cookie") ?? "";
+    if ((init?.method ?? "GET") !== "GET") {
+      reads.delete(cookie);
+      return fetch(input, init);
+    }
+
+    const read = reads.get(cookie) ?? fetch(input, init);
+    reads.set(cookie, read);
+    return (await read).clone();
+  };
+}
+
 export function currentSessionRequest(): SessionRequest {
   const incomingHeaders = getRequestHeaders();
   const configuredCookieName = sessionCookieName();
   const sessionCookieValue = getCookie(configuredCookieName);
 
   return {
-    api: goBFFForHeaders(incomingHeaders),
+    api: createGoBFFClient({
+      incomingHeaders,
+      fetcher: profileSharingFetcher(getRequest()),
+    }),
     cookieHeader: sessionOnlyCookieHeader(
       configuredCookieName,
       sessionCookieValue,

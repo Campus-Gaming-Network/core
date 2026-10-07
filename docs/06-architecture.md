@@ -94,12 +94,14 @@ See [14 — Architecture diagrams](./14-architecture-diagrams.md) for Mermaid vi
 
 - Route `head` functions consume the same validated loader DTO used by the
   rendered page; they do not independently fetch the entity again.
-- The root SSR loader is viewer-neutral. Client navigation decoration uses the
-  private, no-store `/api/navigation-session` endpoint so public documents do
-  not serialize a profile or vary unnecessarily by session. It answers
-  `{ authenticated: false }` for everyone without a valid session, and
-  `{ authenticated: true, user: { id, name } }` (the viewer's own id and name
-  for the header's account menu, nothing else from the profile) otherwise.
+- The root route learns the viewer on the server, so the header's account menu
+  is in the first HTML and never appears late. It carries only the viewer's own
+  id and name, nothing else from the profile. A request with a session cookie
+  makes one upstream `/me` call and its document is `private, no-store`; a
+  request without one makes no upstream call and gets the same public document
+  as every other visitor. The root asks again on every navigation, so a login,
+  a rename, or an expired session shows up in the header. If `/me` is
+  unavailable the header falls back to the logged-out links.
 - Viewer, session, account, private-event, and mutation responses are private or
   no-store. Only explicitly public catalog data receives shared freshness
   headers. TanStack Router client caching is not treated as cross-request or
