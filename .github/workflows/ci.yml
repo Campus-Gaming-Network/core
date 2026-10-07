@@ -61,12 +61,17 @@ jobs:
       - name: Vet
         working-directory: apps/api
         run: go vet ./...
+      - name: Vulnerability check
+        working-directory: apps/api
+        # Reports only vulnerabilities in code the API actually calls, in its
+        # dependencies and in the standard library of the Go version in go.mod.
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.8.0 ./...
       - name: Migrate test database
         working-directory: apps/api
         run: go run ./cmd/migrate -dir ../../db/migrations
       - name: Test
         working-directory: apps/api
-        run: go test ./...
+        run: go test -race ./...
 
   web:
     name: TanStack Start web

@@ -69,6 +69,10 @@ func main() {
 		ReadTimeout:       15 * time.Second,
 		WriteTimeout:      30 * time.Second,
 		IdleTimeout:       60 * time.Second,
+		// Requests carry a session cookie, a few proxy headers, and for the
+		// Admin Console an Access assertion; none comes near this. The default
+		// is 1 MB.
+		MaxHeaderBytes: 64 << 10,
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
