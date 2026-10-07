@@ -284,7 +284,11 @@ visitors see counts only; the API answers them with 401.
 
 ### Content pages
 
-- FAQ
+- FAQ: questions grouped under About, Accounts, Schools, Events, Teams, Games,
+  and Safety and help. Answers describe shipped behavior only and open without
+  JavaScript. Each question has a fixed anchor (for example
+  `/faq#delete-account`) that support replies can link to; an anchor does not
+  change when its question is reworded
 - About
 - Simple homepage (low UGC at launch)
 

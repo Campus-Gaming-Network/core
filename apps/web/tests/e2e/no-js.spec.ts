@@ -390,3 +390,14 @@ test("people lists page with native links and the member-list setting saves with
   await page.goto("/schools/browser-test-university/people");
   await expect(listed).toHaveCount(1);
 });
+
+test("FAQ answers open without JavaScript", async ({ page }) => {
+  await page.goto("/faq");
+
+  const answer = page.getByText("There is no waitlist.");
+  await expect(answer).toBeHidden();
+  await page
+    .getByText("What happens when an event is full?", { exact: true })
+    .click();
+  await expect(answer).toBeVisible();
+});

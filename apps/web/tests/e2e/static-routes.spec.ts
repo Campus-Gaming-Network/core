@@ -75,15 +75,24 @@ for (const expected of pages) {
     ).toBeVisible();
 
     if (expected.path === "/faq") {
-      const schoolQuestion = page.getByText("Can any school be listed?", {
-        exact: true,
-      });
-      await schoolQuestion.click();
+      await expect(page.getByRole("heading", { level: 2 })).toHaveText([
+        "About",
+        "Accounts",
+        "Schools",
+        "Events",
+        "Teams",
+        "Games",
+        "Safety and help",
+      ]);
+      const answer = page.getByText("Schools cannot be added from the site.");
+      await expect(answer).toBeHidden();
+      await page
+        .getByText("My school is not listed. Can I add it?", { exact: true })
+        .click();
+      await expect(answer).toBeVisible();
       await expect(
-        page.getByText(
-          "Phase 1 starts with the seeded school list. Main and branch campuses are shown the same way.",
-        ),
-      ).toBeVisible();
+        answer.getByRole("link", { name: "support request" }),
+      ).toHaveAttribute("href", "/support");
       // IGDB asks for attribution in a static, visible place.
       await expect(page.getByText("Game data from IGDB.com.")).toBeVisible();
       await expect(
@@ -132,4 +141,14 @@ test("static SSR renders the signed-in header in a private document", async ({
   expect(response.status()).toBe(200);
   expect(response.headers()["cache-control"]).toBe("private, no-store");
   expect(await response.text()).toContain('class="account-menu"');
+});
+
+test("a link to one FAQ answer lands on that question", async ({ page }) => {
+  await page.goto("/faq#delete-account");
+
+  const question = page.locator("details:target");
+  await expect(question.locator("summary")).toHaveText(
+    "How do I delete my account?",
+  );
+  await expect(question).toBeInViewport();
 });
