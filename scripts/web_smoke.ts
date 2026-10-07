@@ -146,11 +146,6 @@ try {
   await verifySchoolsAPI(webOrigin, overallController.signal);
   await verifyHealthRoute(webOrigin, overallController.signal);
   await verifyHealthMethodBoundary(webOrigin, overallController.signal);
-  await verifyNavigationSessionRoute(
-    webOrigin,
-    fakeAPI.calls,
-    overallController.signal,
-  );
   await verifyNotFoundPage(webOrigin, overallController.signal);
   await verifyEventNotFound(webOrigin, fakeAPI.calls, overallController.signal);
   const lockedEventHTML = await verifyLockedEvent(
@@ -257,9 +252,6 @@ try {
   process.stdout.write(`  GET /api/health: 200 exact healthy envelope\n`);
   process.stdout.write(
     `  /api/health: HEAD plus all unsupported-method 405 boundaries\n`,
-  );
-  process.stdout.write(
-    `  /api/navigation-session: viewer states, HEAD/no-store, and all 405 boundaries\n`,
   );
   process.stdout.write(`  GET unknown route: 404 noindex shell\n`);
   process.stdout.write(
@@ -401,6 +393,7 @@ async function verifyAccountRoute(
     "Account must remain noindex",
   );
   for (const expected of [
+    'class="account-menu"',
     "Smoke Player",
     "Smoke Dashboard RSVP",
     "Smoke Followed Event",
@@ -424,7 +417,7 @@ async function verifyAccountRoute(
   assert.equal(
     matchingUpstreamCalls(calls, "GET", "/me").length,
     1,
-    "Authenticated account SSR must perform only its account profile read",
+    "Authenticated account SSR must share one profile read between the header and the page",
   );
   oneUpstreamCall(calls, "GET", "/me/events");
   oneUpstreamCall(calls, "GET", "/me/schools");
@@ -1116,102 +1109,6 @@ async function verifyHealthMethodBoundary(
     );
     await response.body?.cancel();
   }
-}
-
-async function verifyNavigationSessionRoute(
-  origin: string,
-  upstreamCalls: UpstreamCall[],
-  overallSignal: AbortSignal,
-) {
-  const meCallsBefore = matchingUpstreamCalls(
-    upstreamCalls,
-    "GET",
-    "/me",
-  ).length;
-  const anonymousResponse = await smokeFetch(
-    `${origin}/api/navigation-session`,
-    {},
-    overallSignal,
-  );
-  assert.equal(
-    anonymousResponse.status,
-    200,
-    "Anonymous GET /api/navigation-session must return HTTP 200",
-  );
-  assert.equal(
-    anonymousResponse.headers.get("cache-control"),
-    "private, no-store",
-    "Anonymous navigation-session response must be private, no-store",
-  );
-  assert.deepEqual(
-    await anonymousResponse.json(),
-    { authenticated: false },
-    "Anonymous navigation-session response must be exactly authenticated=false",
-  );
-  assert.equal(
-    matchingUpstreamCalls(upstreamCalls, "GET", "/me").length,
-    meCallsBefore,
-    "Anonymous navigation-session lookup must not call upstream /me",
-  );
-
-  const authenticatedCallsBefore = upstreamCalls.length;
-  const authenticatedResponse = await smokeFetch(
-    `${origin}/api/navigation-session`,
-    { headers: { cookie: `cgn_session=${sessionToken}` } },
-    overallSignal,
-  );
-  assert.equal(
-    authenticatedResponse.status,
-    200,
-    "Authenticated GET /api/navigation-session must return HTTP 200",
-  );
-  assert.equal(
-    authenticatedResponse.headers.get("cache-control"),
-    "private, no-store",
-    "Authenticated navigation-session response must be private, no-store",
-  );
-  assert.deepEqual(
-    await authenticatedResponse.json(),
-    { authenticated: true, user: { id: "user-smoke", name: "Smoke Player" } },
-    "Exact-session navigation response must be exactly the viewer's id and name",
-  );
-  const meCall = oneUpstreamCall(
-    upstreamCalls.slice(authenticatedCallsBefore),
-    "GET",
-    "/me",
-  );
-  assert.equal(
-    meCall.cookie,
-    `cgn_session=${sessionToken}`,
-    "Authenticated navigation-session lookup must forward the exact session cookie",
-  );
-
-  const headResponse = await smokeFetch(
-    `${origin}/api/navigation-session`,
-    { method: "HEAD" },
-    overallSignal,
-  );
-  assert.equal(
-    headResponse.status,
-    200,
-    "HEAD /api/navigation-session must return HTTP 200",
-  );
-  assert.equal(
-    headResponse.headers.get("cache-control"),
-    "private, no-store",
-    "HEAD /api/navigation-session must preserve the no-store contract",
-  );
-  assert.equal(
-    await headResponse.text(),
-    "",
-    "HEAD /api/navigation-session must not return a body",
-  );
-
-  await verifyUnsupportedAPIMethods(
-    origin,
-    "/api/navigation-session",
-    overallSignal,
-  );
 }
 
 async function verifyUnsupportedAPIMethods(
