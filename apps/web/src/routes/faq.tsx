@@ -54,7 +54,22 @@ const groups: FAQGroup[] = [
           <>
             No. Accounts are free. An organizer can list a paid event, but they
             collect payment themselves somewhere else. Campus Gaming Network
-            does not take payments.
+            does not take payments for events.
+          </>
+        ),
+      },
+      {
+        id: "donate",
+        question: "Can I support the project?",
+        answer: (
+          <>
+            Yes. Campus Gaming Network is built and maintained by one developer,
+            and donations help pay for hosting and development. You can{" "}
+            <a href="https://buymeacoffee.com/cgnbrandon" rel="noreferrer">
+              donate on Buy Me a Coffee
+            </a>
+            . Donating is optional and does not change your account or unlock
+            anything.
           </>
         ),
       },
