@@ -10,10 +10,7 @@ import {
   RoutePending,
 } from "../components/route-boundaries";
 import { PageNoticeView } from "../components/page-notice-view";
-import {
-  getEventViewerSession,
-  logout,
-} from "../features/event-slice/auth.functions";
+import { getEventViewerSession } from "../features/event-slice/auth.functions";
 import { EventCard } from "../features/event-slice/event-card";
 import { getEventsBrowse } from "../features/event-slice/event.functions";
 import {
@@ -80,16 +77,9 @@ function EventsPage() {
           direct link, and private events stay locked until unlocked.
         </p>
         {authenticated ? (
-          <>
-            <ButtonLink variant="primary" to="/events/new">
-              Create event
-            </ButtonLink>
-            <noscript>
-              <form action={logout.url} className="logout-form" method="post">
-                <button type="submit">Log out</button>
-              </form>
-            </noscript>
-          </>
+          <ButtonLink variant="primary" to="/events/new">
+            Create event
+          </ButtonLink>
         ) : (
           <ButtonLink
             variant="primary"

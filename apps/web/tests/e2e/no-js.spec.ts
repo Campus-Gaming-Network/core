@@ -284,22 +284,25 @@ test("team school filter searches, selects by name, and clears without JavaScrip
   await expect(page.getByText("Showing teams from")).toHaveCount(0);
 });
 
-test("a signed-in visitor gets the viewer-neutral header and the page's own logout form", async ({
+test("a signed-in visitor gets the account links and logout form in the header", async ({
   context,
   page,
 }) => {
   await logIn(page, "no-js-header@example.test", "/events");
 
-  // The server HTML never knows the viewer, so there is no account menu without
-  // JavaScript. The page itself carries the logout form.
+  // The account menu cannot open without JavaScript, so its links and logout
+  // form sit in the header in place of the trigger.
+  const navigation = page.getByRole("navigation", { name: "Main navigation" });
+  await expect(navigation.getByRole("link", { name: "Log in" })).toHaveCount(0);
   await expect(
-    page
-      .getByRole("navigation", { name: "Main navigation" })
-      .getByRole("link", { name: "Log in" }),
+    navigation.getByRole("button", { name: "account menu" }),
+  ).toBeHidden();
+  await expect(navigation.getByRole("link", { name: "Account" })).toBeVisible();
+  await expect(
+    navigation.getByRole("link", { name: "Public profile" }),
   ).toBeVisible();
-  await expect(page.locator(".account-menu")).toHaveCount(0);
 
-  await page.getByRole("button", { name: "Log out" }).click();
+  await navigation.getByRole("button", { name: "Log out" }).click();
   await expect(page).toHaveURL(/\/$/);
   await expect
     .poll(async () => hasCookie(await context.cookies(), "cgn_session"))

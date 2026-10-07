@@ -57,12 +57,8 @@ function HomePage() {
               Find your school
             </ButtonLink>
           </div>
-          {viewer === null || viewer === "pending" ? (
-            <p
-              className={
-                viewer === "pending" ? "hero-note viewer-pending" : "hero-note"
-              }
-            >
+          {viewer === null ? (
+            <p className="hero-note">
               New here? <Link to="/signup">Create a free account</Link> to RSVP
               and follow your campus.
             </p>

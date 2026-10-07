@@ -356,12 +356,6 @@
   gap: 0.3rem;
 }
 
-/* Content for visitors only stays invisible until we know who is looking, so
-   a signed-in viewer never sees it flash. */
-.viewer-pending {
-  visibility: hidden;
-}
-
 /* A person in a list: avatar, then name over a line of detail. */
 .person {
   display: flex;

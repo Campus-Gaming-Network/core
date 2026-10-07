@@ -320,10 +320,6 @@ main {
   transform: none;
 }
 
-.site-header nav .nav-pending {
-  visibility: hidden;
-}
-
 .site-header nav .button--primary {
   padding: 0.45rem 0.95rem;
   box-shadow: 0 2px 0 var(--color-primary-dark);

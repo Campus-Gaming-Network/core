@@ -7,9 +7,8 @@ import { Avatar } from "./avatar";
 
 /**
  * The signed-in header's account menu: the viewer's avatar and first name open
- * a disclosure with Account, Public profile, and Log out. It renders only once
- * the client has learned who the viewer is, because the server HTML is
- * viewer-neutral.
+ * a disclosure with Account, Public profile, and Log out. The server HTML
+ * already holds it for a signed-in viewer.
  *
  * The panel is a disclosure of plain links and a native POST form, not an ARIA
  * menu, so it asks for no arrow-key handling: Tab walks through it. It closes

@@ -47,10 +47,7 @@ import {
   setEventInterest,
   unlockEvent,
 } from "../features/event-slice/event.functions";
-import {
-  getEventViewerSession,
-  logout,
-} from "../features/event-slice/auth.functions";
+import { getEventViewerSession } from "../features/event-slice/auth.functions";
 import { EventBanner } from "../features/event-slice/event-banner";
 import type {
   EventDTO,
@@ -266,7 +263,6 @@ export function LockedEventView({
         notice={notice ? eventDetailNotices[notice] : undefined}
       />
       <UnlockEventForm slug={slug} />
-      <NativeLogoutFallback authenticated={authenticated} />
       <div className="actions">
         <ButtonLink variant="secondary" to="/events">
           Browse public events
@@ -338,8 +334,6 @@ function VisibleEventView({
           </p>
         </div>
       </header>
-
-      <NativeLogoutFallback authenticated={authenticated} />
 
       <PageNoticeView
         notice={notice ? eventDetailNotices[notice] : undefined}
@@ -552,18 +546,6 @@ function VisibleEventView({
         </aside>
       </div>
     </main>
-  );
-}
-
-function NativeLogoutFallback({ authenticated }: { authenticated: boolean }) {
-  if (!authenticated) return null;
-
-  return (
-    <noscript>
-      <form action={logout.url} className="logout-form" method="post">
-        <button type="submit">Log out</button>
-      </form>
-    </noscript>
   );
 }
 

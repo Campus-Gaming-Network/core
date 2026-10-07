@@ -108,16 +108,16 @@ The initial implementation tokens live in `apps/web/src/styles.css`.
   last in-page jump. A school with no activity shows one panel with a primary
   "Create the first event" action and a "Start a team" text link, and no
   decorative mark.
-- Because the server HTML is viewer-neutral, the header's authentication slot
-  is rendered invisible until `/api/navigation-session` answers, so signed-in
-  visitors never see the logged-out links flash. Without JavaScript the
-  logged-out links stay visible, and signed-in pages offer their own native
-  logout form instead.
-- Once the answer arrives, a signed-in viewer's slot is an account menu: a
-  trigger with a small avatar (drawn by this site) and the first name, which
-  discloses Account, Public profile, and Log out. The answer carries only the
-  viewer's id and name, and the header asks again after every resolved
-  navigation so a rename or an expired session shows up. The menu is a
+- The server HTML already knows the viewer, so the header's authentication
+  slot is correct on first paint: logged-out links for a visitor, the account
+  menu for a signed-in viewer. Nothing appears late. Without JavaScript the
+  menu cannot open, so its links and logout form sit in the header in place
+  of the trigger.
+- A signed-in viewer's slot is an account menu: a trigger with a small avatar
+  (drawn by this site) and the first name, which discloses Account, Public
+  profile, and Log out. The root route carries only the viewer's id and name,
+  and asks again on every navigation so a rename or an expired session shows
+  up. The menu is a
   disclosure of plain links and the logout form, not an ARIA menu: Tab walks
   through it, and Escape (focus returns to the trigger), a press or focus
   outside it, choosing a link, and any navigation close it. The header paints
