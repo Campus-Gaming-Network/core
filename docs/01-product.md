@@ -289,7 +289,12 @@ visitors see counts only; the API answers them with 401.
   JavaScript. Each question has a fixed anchor (for example
   `/faq#delete-account`) that support replies can link to; an anchor does not
   change when its question is reworded
-- About
+- About: why the site exists, what you can do, who it is for, how it is run,
+  and how to get in touch
+- Donations: optional, through
+  [Buy Me a Coffee](https://buymeacoffee.com/cgnbrandon), linked from the About
+  page and the FAQ's "Can I support the project?" answer. The site takes no
+  payments itself, and donating unlocks nothing
 - Simple homepage (low UGC at launch)
 
 ## UX / design direction

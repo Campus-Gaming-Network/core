@@ -507,6 +507,16 @@ main {
   letter-spacing: -0.045em;
 }
 
+.about-section {
+  max-width: 44rem;
+  margin-bottom: 2rem;
+}
+
+.about-section h2 {
+  margin-block: 0 0.5rem;
+  font-size: 1.25rem;
+}
+
 /* FAQ: questions grouped under headings. Each question is a native
    disclosure, so it opens without JavaScript, and carries an id that a link
    can point at. A linked question is marked, because the browser scrolls to it
