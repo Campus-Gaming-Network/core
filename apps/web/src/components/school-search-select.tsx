@@ -1,21 +1,11 @@
-import {
-  useEffect,
-  useId,
-  useMemo,
-  useState,
-  useSyncExternalStore,
-} from "react";
+import { useHydrated } from "@tanstack/react-router";
+import { useEffect, useId, useMemo, useState } from "react";
 import {
   schoolsResponseDtoSchema,
   type SchoolDTO,
 } from "../features/school-slice/contracts";
 
 const searchDelayMilliseconds = 250;
-
-// Server rendering and hydration see `false`, so the markup matches; a client
-// render of a component that is mounted later (a remount after navigation)
-// sees `true` at once instead of flashing the no-JavaScript select first.
-const subscribeToNothing = () => () => {};
 
 /** The school fields a picker needs; callers may hold a larger school DTO. */
 export type SchoolOption = Pick<
@@ -65,11 +55,10 @@ export function SchoolSearchSelect({
   invalid,
 }: Props) {
   const statusID = useId();
-  const enhanced = useSyncExternalStore(
-    subscribeToNothing,
-    () => true,
-    () => false,
-  );
+  // Server rendering and hydration see `false`, so the markup matches; a
+  // component mounted later (a remount after navigation) sees `true` at once
+  // instead of flashing the no-JavaScript select first.
+  const enhanced = useHydrated();
   const [query, setQuery] = useState(initialQuery);
   const [selectedValue, setSelectedValue] = useState(defaultValue);
   const [retainedSchool, setRetainedSchool] = useState(defaultSchool);

@@ -38,10 +38,12 @@ export const Route = createFileRoute("/teams/$slug_/people")({
     location,
     params,
   }): Promise<TeamPeopleRouteData> => {
-    // The members read runs first: it is what tells a visitor to log in.
-    const people = await getTeamMembers({
-      data: { slug: params.slug, ...deps },
-    });
+    // The members result is checked first: it is what tells a visitor to log
+    // in.
+    const [people, detail] = await Promise.all([
+      getTeamMembers({ data: { slug: params.slug, ...deps } }),
+      getTeamDetail({ data: { slug: params.slug } }),
+    ]);
     if (people.status === "signed_out") {
       throw redirect({ to: "/login", search: { next: location.href } });
     }
@@ -49,7 +51,6 @@ export const Route = createFileRoute("/teams/$slug_/people")({
       throw notFound();
     }
 
-    const detail = await getTeamDetail({ data: { slug: params.slug } });
     if (detail.status === "not_found") {
       throw notFound();
     }
