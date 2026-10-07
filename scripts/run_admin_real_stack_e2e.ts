@@ -49,10 +49,12 @@ const childEnvironment = {
     alg: "RS256",
     use: "sig",
   }),
-  ADMIN_REAL_E2E_PRIVATE_KEY: keyPair.privateKey.export({
-    format: "pem",
-    type: "pkcs8",
-  }),
+  ADMIN_REAL_E2E_PRIVATE_KEY: keyPair.privateKey
+    .export({
+      format: "pem",
+      type: "pkcs8",
+    })
+    .toString(),
 };
 
 const operator = "operator@admin-real.test";
@@ -90,7 +92,7 @@ try {
     apiDirectory,
   );
   await run(goCommand, ["run", "./cmd/e2e-seed", "admin"], apiDirectory);
-  const grant = (args) =>
+  const grant = (args: string[]) =>
     run(goCommand, ["run", "./cmd/cgn-admin", ...args], apiDirectory);
   await grant([
     "grant-site-admin",
@@ -162,8 +164,13 @@ try {
   }
 }
 
-async function run(command, args, cwd, failOnError = true) {
-  const exitCode = await new Promise((resolve, reject) => {
+async function run(
+  command: string,
+  args: string[],
+  cwd: string,
+  failOnError = true,
+): Promise<number> {
+  const exitCode = await new Promise<number>((resolve, reject) => {
     const child = spawn(command, args, {
       cwd,
       env: childEnvironment,

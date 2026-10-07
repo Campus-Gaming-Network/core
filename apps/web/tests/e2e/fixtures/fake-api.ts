@@ -1,4 +1,106 @@
-import { createServer } from "node:http";
+import {
+  createServer,
+  type IncomingMessage,
+  type OutgoingHttpHeaders,
+  type ServerResponse,
+} from "node:http";
+
+// The fields the web server sends in request bodies. The fake trusts their
+// types because only the web server calls it.
+type RequestBody = {
+  address?: string;
+  age_confirmed?: boolean;
+  bio?: string;
+  capacity?: number;
+  captain?: boolean;
+  contact_email?: string;
+  description?: string;
+  email?: string;
+  ends_at?: string;
+  format?: string;
+  game_ids?: string[];
+  home_school_id?: string;
+  igdb_game_ids?: number[];
+  is_paid?: boolean;
+  location_name?: string;
+  message?: string;
+  name?: string;
+  online_url?: string;
+  other_game?: string;
+  password?: string;
+  payment_note?: string;
+  payment_url?: string;
+  privacy_acknowledged?: boolean;
+  privacy_version?: string;
+  reason?: string;
+  recurrence_rule?: string;
+  recurrence_until?: string;
+  response?: string;
+  school_id?: string;
+  show_in_lists?: boolean;
+  social_links?: unknown[];
+  starts_at?: string;
+  subject?: string;
+  terms_agreed?: boolean;
+  terms_version?: string;
+  timezone?: string;
+  title?: string;
+  token?: string;
+  user_id?: string;
+  visibility?: string;
+};
+
+type School = Omit<typeof school, "logo_url"> & {
+  logo_url: string | undefined;
+};
+type Profile = {
+  id: string;
+  email: string;
+  email_verified_at: string;
+  verification_level: string;
+  name: string | undefined;
+  bio: string | undefined;
+  timezone: string | undefined;
+  home_school_id: string;
+  home_school: School;
+  social_links: unknown[] | undefined;
+  role_indicators: string[];
+  show_in_lists: boolean;
+};
+type BrowsableEvent = {
+  id: string;
+  title: string | undefined;
+  slug: string;
+  format: string | undefined;
+  starts_at: string | undefined;
+  ends_at: string | undefined;
+  timezone: string | undefined;
+  location_name?: string;
+  address?: string;
+  online_url?: string;
+  lifecycle: string;
+  host_school: { name: string };
+  games: { name: string | undefined }[];
+  rsvp_yes_count?: number;
+  interest_count?: number;
+};
+type Game = { id: string; name: string | undefined; slug: string };
+type CreatedEvent = ReturnType<typeof createdEventFromBody>;
+type Team = ReturnType<typeof teamFor>;
+type Person = {
+  id: string;
+  name: string | undefined;
+  verification_level: string;
+  role?: string;
+  role_indicators?: string[];
+};
+type UpstreamCall = {
+  method: string;
+  pathname: string;
+  hadValidSession: boolean;
+  hadUnlockToken: boolean;
+  idempotencyKey: string | string[] | null;
+};
 
 const port = Number.parseInt(process.env.PORT ?? "18081", 10);
 const password = "E2EPassword123!";
@@ -6,17 +108,33 @@ const eventPassword = "E2EEventPassword123!";
 
 // The Terms and Privacy version the site also has a published file for.
 const currentPolicyVersion = "draft-2026-10-06";
-const sessions = new Map();
-const unlockTokens = new Map();
-const rsvps = new Map();
-const createdEvents = new Map();
-const createdTeams = new Map();
-const teamRoles = new Map();
-const followedSchools = new Set();
-const promotedCaptains = new Set();
-const transferredOwners = new Set();
-const consumedVerificationTokens = new Set();
-const calls = [];
+const sessions = new Map<string, Profile>();
+const unlockTokens = new Map<string, string>();
+const rsvps = new Map<string, string>();
+const createdEvents = new Map<
+  string,
+  {
+    event: CreatedEvent;
+    ownerSession: string | undefined;
+    interestedSessions: Set<string>;
+    cancelled: boolean;
+  }
+>();
+const createdTeams = new Map<
+  string,
+  {
+    name: string | undefined;
+    description: string | undefined;
+    school: School | undefined;
+    games: Game[];
+  }
+>();
+const teamRoles = new Map<string, string>();
+const followedSchools = new Set<string>();
+const promotedCaptains = new Set<string>();
+const transferredOwners = new Set<string>();
+const consumedVerificationTokens = new Set<string>();
+const calls: UpstreamCall[] = [];
 
 // Stands in for the public R2 asset host; the web server's
 // R2_PUBLIC_ASSET_ORIGIN points here.
@@ -134,7 +252,7 @@ const hazySchool = {
 
 // Events and teams the browser tests visit for their people lists. The first
 // of each is quiet (an empty list) and the second fails its list.
-const publicEventTitles = {
+const publicEventTitles: Record<string, string> = {
   "public-browser-event": "Public Browser Tournament",
   "long-content-event":
     "ExtremelyLongUnbrokenUserSuppliedTournamentTitleThatMustWrapWithoutCreatingHorizontalViewportOverflowAtNarrowWidths",
@@ -146,7 +264,11 @@ const unavailableTeamSlug = "unavailable-people-team";
 
 // People in member lists. Names are numbered, so a page of them and its order
 // are known: 30 people make a full page of 24 and a second page of 6.
-function numberedPeople(label, count, extra = () => ({})) {
+function numberedPeople(
+  label: string,
+  count: number,
+  extra: (index: number) => Partial<Person> = () => ({}),
+): Person[] {
   return Array.from({ length: count }, (_, index) => {
     const number = String(index + 1).padStart(2, "0");
     return {
@@ -167,7 +289,7 @@ const teamMemberPeople = numberedPeople("Team Member", 30, (index) => ({
   role: index === 0 ? "owner" : index < 3 ? "captain" : "member",
 }));
 
-const errorEnvelopes = [];
+const errorEnvelopes: string[] = [];
 
 const server = createServer(async (request, response) => {
   try {
@@ -186,7 +308,10 @@ for (const signal of ["SIGINT", "SIGTERM"]) {
   process.on(signal, () => server.close(() => process.exit(0)));
 }
 
-async function handleRequest(request, response) {
+async function handleRequest(
+  request: IncomingMessage,
+  response: ServerResponse,
+) {
   const method = request.method ?? "GET";
   const url = new URL(request.url ?? "/", "http://fake-api.local");
 
@@ -261,7 +386,7 @@ async function handleRequest(request, response) {
   const body = await readJSONBody(request);
   const sessionToken = cookieValue(request.headers.cookie, "cgn_session");
   const session = sessionToken ? sessions.get(sessionToken) : undefined;
-  const call = {
+  const call: UpstreamCall = {
     method,
     pathname: url.pathname,
     hadValidSession: Boolean(session),
@@ -560,7 +685,7 @@ async function handleRequest(request, response) {
       return;
     }
     // One account has more events than the dashboard previews.
-    const titles = (label) =>
+    const titles = (label: string) =>
       session.email === "dashboard-overflow@example.test"
         ? [1, 2, 3, 4, 5].map((number) => `${label} ${number}`)
         : [label];
@@ -667,6 +792,7 @@ async function handleRequest(request, response) {
       return;
     }
     const slug = `${slugify(body?.title ?? "browser-event")}-${sessionToken.slice(-8)}`;
+    if (!body) throw new Error("POST /events requires a JSON body");
     const event = createdEventFromBody(body, slug, session);
     createdEvents.set(slug, {
       event,
@@ -797,7 +923,7 @@ async function handleRequest(request, response) {
       json(response, 403, { error: "private_event_locked" });
       return;
     }
-    if (!body || !["yes", "maybe", "no"].includes(body.response)) {
+    if (!body?.response || !["yes", "maybe", "no"].includes(body.response)) {
       json(response, 422, { error: "invalid_request" });
       return;
     }
@@ -1008,7 +1134,7 @@ async function handleRequest(request, response) {
   json(response, 404, { error: "not_found" });
 }
 
-function eventFor(slug, viewerRsvp) {
+function eventFor(slug: string, viewerRsvp?: string) {
   return {
     id: `event-${slug}`,
     title: "Invitation-Only Strategy Session",
@@ -1046,7 +1172,7 @@ function eventFor(slug, viewerRsvp) {
   };
 }
 
-function publicEventFor(slug) {
+function publicEventFor(slug: string) {
   return {
     ...eventFor(slug),
     title: publicEventTitles[slug],
@@ -1057,7 +1183,11 @@ function publicEventFor(slug) {
   };
 }
 
-function createdEventFromBody(body, slug, profile) {
+function createdEventFromBody(
+  body: RequestBody,
+  slug: string,
+  profile: Profile,
+) {
   return {
     id: `event-${slug}`,
     title: body.title,
@@ -1102,7 +1232,7 @@ const igdbGames = [
 ];
 
 // The games a create request named: from the list, from IGDB search, or typed.
-function chosenGames(body) {
+function chosenGames(body: RequestBody | undefined): Game[] {
   return [
     ...(body?.game_ids?.includes(game.id) ? [game] : []),
     ...igdbGames
@@ -1124,17 +1254,19 @@ function chosenGames(body) {
   ];
 }
 
-function createdEventFor(slug, sessionToken) {
+function createdEventFor(slug: string, sessionToken: string | undefined) {
   const record = createdEvents.get(slug);
+  if (!record) throw new Error(`No created event has the slug ${slug}`);
   return {
     ...record.event,
     interest_count: record.interestedSessions.size,
-    viewer_interested: record.interestedSessions.has(sessionToken),
+    viewer_interested:
+      sessionToken !== undefined && record.interestedSessions.has(sessionToken),
     viewer_can_edit: record.ownerSession === sessionToken,
   };
 }
 
-function eventBrowseItem(event) {
+function eventBrowseItem(event: BrowsableEvent) {
   return {
     id: event.id,
     title: event.title,
@@ -1154,9 +1286,10 @@ function eventBrowseItem(event) {
   };
 }
 
-function teamFor(slug, sessionToken) {
+function teamFor(slug: string, sessionToken: string | undefined) {
   const created = createdTeams.get(slug);
   const viewerRole = teamRoles.get(teamRoleKey(sessionToken, slug));
+  const viewer = sessionToken ? sessions.get(sessionToken) : undefined;
   const candidateID = "user-browser-teammate";
   const candidateRole = promotedCaptains.has(
     `${sessionToken}:${slug}:${candidateID}`,
@@ -1182,8 +1315,8 @@ function teamFor(slug, sessionToken) {
       ? {
           members: [
             {
-              user_id: sessions.get(sessionToken)?.id ?? "user-browser-owner",
-              name: sessions.get(sessionToken)?.name ?? "Browser Owner",
+              user_id: viewer?.id ?? "user-browser-owner",
+              name: viewer?.name ?? "Browser Owner",
               role: "owner",
             },
             {
@@ -1198,7 +1331,7 @@ function teamFor(slug, sessionToken) {
   };
 }
 
-function publicTeam(team) {
+function publicTeam(team: Team) {
   const {
     viewer_role: _viewerRole,
     members: _members,
@@ -1208,13 +1341,13 @@ function publicTeam(team) {
   return publicFields;
 }
 
-function teamRoleKey(sessionToken, slug) {
+function teamRoleKey(sessionToken: string | undefined, slug: string) {
   return `${sessionToken ?? ""}:${slug}`;
 }
 
 // Anyone signed in appears in a list they belong to unless they turned
 // "Show me in member lists" off.
-function listedPerson(profile, extra = {}) {
+function listedPerson(profile: Profile, extra: Partial<Person> = {}): Person {
   return {
     id: profile.id,
     name: profile.name,
@@ -1229,14 +1362,17 @@ function listedSessions() {
   );
 }
 
-function attendeesFor(slug, listed) {
+function attendeesFor(slug: string, listed: string): Person[] {
   const responded = [...rsvps]
     .filter(
       ([key, response]) =>
         response === listed && key.slice(key.indexOf(":") + 1) === slug,
     )
     .map(([key]) => sessions.get(key.slice(0, key.indexOf(":"))))
-    .filter((profile) => profile && profile.show_in_lists !== false)
+    .filter(
+      (profile): profile is Profile =>
+        profile !== undefined && profile.show_in_lists !== false,
+    )
     .map((profile) => listedPerson(profile));
   const seeded =
     slug === "public-browser-event"
@@ -1247,7 +1383,7 @@ function attendeesFor(slug, listed) {
   return [...responded, ...seeded];
 }
 
-function schoolMembersFor(listedSchool) {
+function schoolMembersFor(listedSchool: School): Person[] {
   if (listedSchool.slug !== school.slug) return [];
   return [
     ...listedSessions()
@@ -1257,13 +1393,16 @@ function schoolMembersFor(listedSchool) {
   ];
 }
 
-function teamMembersFor(slug) {
+function teamMembersFor(slug: string): Person[] {
   if (slug === quietTeamSlug) return [];
   const joined = [...teamRoles]
     .filter(([key]) => key.slice(key.indexOf(":") + 1) === slug)
-    .map(([key, role]) => [sessions.get(key.slice(0, key.indexOf(":"))), role])
-    .filter(([profile]) => profile && profile.show_in_lists !== false)
-    .map(([profile, role]) => listedPerson(profile, { role }));
+    .flatMap(([key, role]) => {
+      const profile = sessions.get(key.slice(0, key.indexOf(":")));
+      return profile && profile.show_in_lists !== false
+        ? [listedPerson(profile, { role })]
+        : [];
+    });
   return [
     ...joined,
     ...(slug === "joinable-browser-team" ? teamMemberPeople : []),
@@ -1272,7 +1411,7 @@ function teamMembersFor(slug) {
 
 // Pages of a list by opaque cursor: `after` starts at an offset, `before` ends
 // at one, and the cursors the page returns point at its own edges.
-function peoplePage(people, url) {
+function peoplePage(people: Person[], url: URL) {
   const limit = Number.parseInt(url.searchParams.get("limit") ?? "25", 10);
   const after = cursorOffset(url.searchParams.get("after"));
   const before = cursorOffset(url.searchParams.get("before"));
@@ -1291,11 +1430,11 @@ function peoplePage(people, url) {
   };
 }
 
-function offsetCursor(offset) {
+function offsetCursor(offset: number) {
   return Buffer.from(`offset:${offset}`).toString("base64url");
 }
 
-function cursorOffset(cursor) {
+function cursorOffset(cursor: string | null) {
   if (!cursor) return undefined;
   const offset = Number.parseInt(
     Buffer.from(cursor, "base64url").toString().replace("offset:", ""),
@@ -1304,7 +1443,7 @@ function cursorOffset(cursor) {
   return Number.isInteger(offset) && offset >= 0 ? offset : undefined;
 }
 
-function dashboardEvent(title, viewerRsvp) {
+function dashboardEvent(title: string, viewerRsvp?: string) {
   return {
     id: `event-${slugify(title)}`,
     title,
@@ -1324,7 +1463,11 @@ function dashboardEvent(title, viewerRsvp) {
 // Browse filters equal to these values make a list endpoint fail, violate its
 // response contract, or return no results, so pages can prove they tell the
 // states apart.
-function respondToBrowseTrigger(response, filter, emptyPage) {
+function respondToBrowseTrigger(
+  response: ServerResponse,
+  filter: string | null,
+  emptyPage: unknown,
+) {
   if (filter === "unavailable-browse") {
     json(response, 503, { error: "database_unavailable" });
     return true;
@@ -1340,7 +1483,7 @@ function respondToBrowseTrigger(response, filter, emptyPage) {
   return false;
 }
 
-function slugify(value) {
+function slugify(value: string) {
   return (
     String(value)
       .trim()
@@ -1350,7 +1493,7 @@ function slugify(value) {
   );
 }
 
-function profileFor(email) {
+function profileFor(email: string): Profile {
   return {
     id: `user-${Buffer.from(email).toString("base64url")}`,
     email,
@@ -1369,7 +1512,7 @@ function profileFor(email) {
   };
 }
 
-function publicProfileFor(id) {
+function publicProfileFor(id: string) {
   return {
     id,
     name: "Reportable Browser Player",
@@ -1382,21 +1525,21 @@ function publicProfileFor(id) {
   };
 }
 
-function rsvpFor(sessionToken, slug) {
+function rsvpFor(sessionToken: string | undefined, slug: string) {
   return sessionToken ? rsvps.get(rsvpKey(sessionToken, slug)) : undefined;
 }
 
-function rsvpKey(sessionToken, slug) {
+function rsvpKey(sessionToken: string, slug: string) {
   return `${sessionToken}:${slug}`;
 }
 
-function countCalls(method, pathname) {
+function countCalls(method: string, pathname: string) {
   return calls.filter(
     (call) => call.method === method && call.pathname === pathname,
   ).length;
 }
 
-function cookieValue(header, name) {
+function cookieValue(header: string | undefined, name: string) {
   for (const part of (header ?? "").split(";")) {
     const separator = part.indexOf("=");
     if (separator >= 0 && part.slice(0, separator).trim() === name) {
@@ -1406,12 +1549,14 @@ function cookieValue(header, name) {
   return undefined;
 }
 
-function singleHeader(value) {
+function singleHeader(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
 }
 
-async function readJSONBody(request) {
-  const chunks = [];
+async function readJSONBody(
+  request: IncomingMessage,
+): Promise<RequestBody | undefined> {
+  const chunks: Buffer[] = [];
   let size = 0;
   for await (const chunk of request) {
     size += chunk.length;
@@ -1424,10 +1569,15 @@ async function readJSONBody(request) {
     return undefined;
   }
   const text = Buffer.concat(chunks).toString("utf8");
-  return text.trim() ? JSON.parse(text) : undefined;
+  return text.trim() ? (JSON.parse(text) as RequestBody) : undefined;
 }
 
-function json(response, status, payload, headers = {}) {
+function json(
+  response: ServerResponse,
+  status: number,
+  payload: unknown,
+  headers: OutgoingHttpHeaders = {},
+) {
   const body = JSON.stringify(payload);
   response.writeHead(status, {
     "content-type": "application/json; charset=utf-8",

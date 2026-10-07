@@ -81,13 +81,15 @@ jobs:
       - name: Validate application containers
         run: pnpm run check:apps-compose
       - name: Production container gate
-        run: node scripts/web_docker_gate.mjs
+        run: node scripts/web_docker_gate.ts
       - name: Install
         run: pnpm install --frozen-lockfile
       - name: Format check
         run: pnpm run fmt:check
       - name: Documentation link check
         run: pnpm run check:docs-links
+      - name: Typecheck repository scripts
+        run: pnpm run typecheck:scripts
       - name: Audit production dependencies
         run: pnpm --filter @campus-gaming-network/web audit --prod --no-optional --audit-level high
       - name: Typecheck

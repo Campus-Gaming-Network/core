@@ -51,7 +51,7 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: `${nodeExecutable} tests/e2e/fixtures/fake-api.mjs`,
+      command: `${nodeExecutable} tests/e2e/fixtures/fake-api.ts`,
       url: `${apiURL}/health`,
       env: { PORT: "18081" },
       reuseExistingServer: false,

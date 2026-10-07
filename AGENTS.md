@@ -36,6 +36,19 @@
   coverage output, and Playwright artifacts.
 - For Go code, also run `pnpm run fmt:api` because Oxfmt does not format Go.
 
+## TypeScript
+
+- Write TypeScript with real types wherever a file can be TypeScript. This
+  includes repository scripts, test fixtures, and one-off or throwaway
+  scripts. Do not add `.js`, `.mjs`, or `.cjs` files.
+- Run scripts directly with Node.js 24 (`node path/to/script.ts`). Node strips
+  the types itself, so use only erasable syntax: no enums, namespaces, or
+  parameter properties.
+- Avoid `any`. Give parsed JSON a declared type, or validate it with Zod where
+  the surrounding code does.
+- After changing `scripts/`, run `pnpm run typecheck:scripts`. Fixtures under
+  `apps/<name>/tests` are typechecked by that application's test command.
+
 ## Web validation
 
 - Use Node.js 24.x for all JavaScript and TypeScript commands.

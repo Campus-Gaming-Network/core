@@ -54,6 +54,7 @@ Run the checks for the area you changed.
 | Admin, browser-visible | `pnpm run build:admin`, `pnpm run test:e2e:admin`                          |
 | Docs                   | `pnpm run check:docs-links`                                                |
 | Apps or Compose        | `pnpm run check:apps-compose`                                              |
+| Scripts (`scripts/`)   | `pnpm run typecheck:scripts`                                               |
 
 - The Playwright suites for web and admin serve the existing `.output` build.
   Always rebuild immediately before running them.

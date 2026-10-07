@@ -1,8 +1,22 @@
-import { createServer } from "node:http";
+import {
+  createServer,
+  type IncomingMessage,
+  type ServerResponse,
+} from "node:http";
 
 const port = Number.parseInt(process.env.PORT ?? "18083", 10);
 const expectedAPIKey = process.env.RESEND_STUB_API_KEY ?? "real-e2e-resend-key";
-const messages = [];
+type StubMessage = {
+  id: string;
+  from: string;
+  to: string[];
+  subject: string;
+  html: string;
+  attachments: unknown[];
+  idempotencyKey: string;
+};
+
+const messages: StubMessage[] = [];
 
 const server = createServer(async (request, response) => {
   const url = new URL(request.url ?? "/", "http://resend-stub.local");
@@ -51,8 +65,10 @@ const server = createServer(async (request, response) => {
 
 server.listen(port, "127.0.0.1");
 
-async function readJSON(request) {
-  const chunks = [];
+async function readJSON(
+  request: IncomingMessage,
+): Promise<Record<string, unknown> | null> {
+  const chunks: Buffer[] = [];
   for await (const chunk of request) chunks.push(chunk);
   try {
     return JSON.parse(Buffer.concat(chunks).toString("utf8"));
@@ -61,7 +77,7 @@ async function readJSON(request) {
   }
 }
 
-function json(response, status, body) {
+function json(response: ServerResponse, status: number, body: unknown) {
   response.writeHead(status, { "content-type": "application/json" });
   response.end(JSON.stringify(body));
 }

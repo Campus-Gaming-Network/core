@@ -34,15 +34,24 @@ if (composeResult.status !== 0) {
   process.exit(composeResult.status ?? 1);
 }
 
-let compose;
+type ComposeConfig = {
+  services?: Record<
+    string,
+    { build?: { context: string; dockerfile?: string } | string }
+  >;
+};
+
+let compose: ComposeConfig;
 try {
-  compose = JSON.parse(composeResult.stdout);
+  compose = JSON.parse(composeResult.stdout) as ComposeConfig;
 } catch (error) {
-  console.error(`Docker Compose returned invalid JSON: ${error.message}`);
+  console.error(
+    `Docker Compose returned invalid JSON: ${error instanceof Error ? error.message : String(error)}`,
+  );
   process.exit(1);
 }
 
-const failures = [];
+const failures: string[] = [];
 
 for (const applicationName of applicationNames) {
   const expectedDockerfile = path.join(
