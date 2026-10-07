@@ -1,4 +1,5 @@
-import { useEffect, useId, useState, useSyncExternalStore } from "react";
+import { useHydrated } from "@tanstack/react-router";
+import { useEffect, useId, useState } from "react";
 import {
   gameSearchResponseSchema,
   type GameSearchMatch,
@@ -7,9 +8,6 @@ import {
 const searchDelayMilliseconds = 250;
 // The forms accept five searched games; see pickedIGDBGameIDsSchema.
 const maximumPickedGames = 5;
-
-// Server rendering and hydration see `false`, so the markup matches.
-const subscribeToNothing = () => () => {};
 
 function matchTitle(match: GameSearchMatch): string {
   return match.release_year
@@ -30,11 +28,8 @@ export function GamePickerExtras({
   otherGameErrorId: string;
 }) {
   const statusID = useId();
-  const enhanced = useSyncExternalStore(
-    subscribeToNothing,
-    () => true,
-    () => false,
-  );
+  // Server rendering and hydration see `false`, so the markup matches.
+  const enhanced = useHydrated();
   const [query, setQuery] = useState("");
   const [matches, setMatches] = useState<GameSearchMatch[]>([]);
   const [picked, setPicked] = useState<GameSearchMatch[]>([]);

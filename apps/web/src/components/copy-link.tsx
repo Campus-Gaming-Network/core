@@ -1,3 +1,4 @@
+import { useHydrated } from "@tanstack/react-router";
 import { Check, Copy } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 
@@ -12,10 +13,8 @@ const failedMessage = "Press Ctrl+C or Cmd+C to copy the selected link";
 export function CopyLink({ label, url }: { label: string; url: string }) {
   const inputID = useId();
   const input = useRef<HTMLInputElement>(null);
-  const [interactive, setInteractive] = useState(false);
+  const interactive = useHydrated();
   const [status, setStatus] = useState<"idle" | "copied" | "failed">("idle");
-
-  useEffect(() => setInteractive(true), []);
 
   useEffect(() => {
     if (status !== "copied") return;

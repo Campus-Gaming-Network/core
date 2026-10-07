@@ -1,3 +1,4 @@
+import { useHydrated } from "@tanstack/react-router";
 import { useEffect, useId, useMemo, useState } from "react";
 import type { SchoolDTO } from "../school-slice/contracts";
 
@@ -21,7 +22,7 @@ export function SchoolPicker({
   const resultsId = useId();
   const statusId = useId();
   const initialSelection = schoolSelection(selectedSchoolId, schools);
-  const [enhanced, setEnhanced] = useState(false);
+  const enhanced = useHydrated();
   const [selected, setSelected] = useState<
     SchoolDTO | SchoolChoice | undefined
   >(initialSelection);
@@ -44,8 +45,6 @@ export function SchoolPicker({
     () => mergeSchools(retained, results),
     [retained, results],
   );
-
-  useEffect(() => setEnhanced(true), []);
 
   useEffect(() => {
     if (!enhanced) return;
