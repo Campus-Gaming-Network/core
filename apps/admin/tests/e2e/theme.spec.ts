@@ -13,30 +13,30 @@ test("the color theme switches immediately and persists across reloads", async (
   const toggle = page.getByRole("button", {
     name: "Switch between light and dark mode",
   });
-  await expect(root).toHaveAttribute("data-theme", "dark");
-  await expect(toggle.getByText("Light mode", { exact: true })).toBeVisible();
-  await expect(toggle.getByText("Dark mode", { exact: true })).toBeHidden();
-  const darkBackground = await root.evaluate(
+  await expect(root).toHaveAttribute("data-theme", "light");
+  await expect(toggle.getByText("Dark mode", { exact: true })).toBeVisible();
+  await expect(toggle.getByText("Light mode", { exact: true })).toBeHidden();
+  const lightBackground = await root.evaluate(
     (element) => getComputedStyle(element).backgroundColor,
   );
 
   await toggle.click();
-  await expect(root).toHaveAttribute("data-theme", "light");
-  await expect(toggle.getByText("Dark mode", { exact: true })).toBeVisible();
-  await expect(toggle.getByText("Light mode", { exact: true })).toBeHidden();
+  await expect(root).toHaveAttribute("data-theme", "dark");
+  await expect(toggle.getByText("Light mode", { exact: true })).toBeVisible();
+  await expect(toggle.getByText("Dark mode", { exact: true })).toBeHidden();
   const accessibility = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa"])
     .analyze();
   expect(accessibility.violations).toEqual([]);
-  const lightBackground = await root.evaluate(
+  const darkBackground = await root.evaluate(
     (element) => getComputedStyle(element).backgroundColor,
   );
-  expect(lightBackground).not.toBe(darkBackground);
+  expect(darkBackground).not.toBe(lightBackground);
 
   await page.reload();
-  await expect(root).toHaveAttribute("data-theme", "light");
-  await expect(toggle.getByText("Dark mode", { exact: true })).toBeVisible();
+  await expect(root).toHaveAttribute("data-theme", "dark");
+  await expect(toggle.getByText("Light mode", { exact: true })).toBeVisible();
 
   await toggle.click();
-  await expect(root).toHaveAttribute("data-theme", "dark");
+  await expect(root).toHaveAttribute("data-theme", "light");
 });

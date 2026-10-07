@@ -12,14 +12,19 @@ const storedTheme = createIsomorphicFn()
 
 /** Returns the persisted theme during both SSR and hydration. */
 export function initialColorTheme(): ColorTheme {
-  return storedTheme() ?? "dark";
+  return storedTheme() ?? "light";
 }
 
 /** Switches the document immediately and persists the choice for future SSR. */
 export function toggleColorTheme(): void {
   const current = normalizeTheme(document.documentElement.dataset.theme);
-  const next = nextColorTheme(current ?? "dark");
-  document.documentElement.dataset.theme = next;
+  const next = nextColorTheme(current ?? "light");
+  const root = document.documentElement;
+  root.dataset.themeSwitching = "";
+  root.dataset.theme = next;
+  // Reading a computed style applies the new colors before transitions return.
+  void getComputedStyle(root).color;
+  delete root.dataset.themeSwitching;
   document.cookie = [
     `${themeCookie}=${next}`,
     `Max-Age=${themeCookieLifetimeSeconds}`,
