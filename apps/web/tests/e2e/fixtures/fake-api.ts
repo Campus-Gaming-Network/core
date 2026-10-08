@@ -1520,7 +1520,15 @@ function publicProfileFor(id: string) {
     verification_level: "verified_student",
     home_school_id: school.id,
     home_school: school,
-    social_links: [],
+    social_links:
+      id === "linked-player"
+        ? [
+            { label: "Channel", url: "https://www.youtube.com/@player" },
+            { label: "Posts", url: "https://x.com/player" },
+            { label: "Stream", url: "https://twitch.tv/player" },
+            { label: "Blog", url: "https://player.example.test/blog" },
+          ]
+        : [],
     role_indicators: [],
   };
 }
