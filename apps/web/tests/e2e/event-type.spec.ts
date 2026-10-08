@@ -64,10 +64,10 @@ test("an event needs a type, shows it, and can be filtered by it", async ({
   await gotoApp(page, "/events");
   const lanCard = page.getByRole("link", { name: /Fall Campus LAN/ });
   const gameNightCard = page.getByRole("link", { name: /Weekly Couch Co-op/ });
-  await expect(lanCard.getByText("LAN · Open to everyone")).toBeVisible();
-  await expect(
-    gameNightCard.getByText("Game night · Open to everyone"),
-  ).toBeVisible();
+  await expect(lanCard.locator(".event-pill--type")).toHaveText("LAN");
+  await expect(gameNightCard.locator(".event-pill--type")).toHaveText(
+    "Game night",
+  );
 
   await page.getByLabel("Filter events by type").selectOption("lan");
   await page.getByRole("button", { name: "Filter" }).click();
