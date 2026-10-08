@@ -673,6 +673,18 @@ main {
   font-weight: 750;
 }
 
+/* A profile link: the site's icon, then the link's label. */
+.social-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.social-link svg {
+  flex: none;
+  color: var(--color-text);
+}
+
 .section {
   margin-top: clamp(3rem, 7vw, 5rem);
 }
