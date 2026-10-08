@@ -10,6 +10,7 @@ import {
 type RequestBody = {
   address?: string;
   age_confirmed?: boolean;
+  audience?: string;
   bio?: string;
   capacity?: number;
   captain?: boolean;
@@ -72,6 +73,7 @@ type BrowsableEvent = {
   title: string | undefined;
   slug: string;
   format: string | undefined;
+  audience?: string;
   starts_at: string | undefined;
   ends_at: string | undefined;
   timezone: string | undefined;
@@ -770,13 +772,18 @@ async function handleRequest(
   if (method === "GET" && url.pathname === "/events") {
     // The home page's preview asks for six; give it a seeded public event.
     const homePreview = url.searchParams.get("limit") === "6";
+    const audience = url.searchParams.get("audience");
     json(response, 200, {
       events: [
         ...(homePreview
           ? [eventBrowseItem(publicEventFor("public-browser-event"))]
           : []),
         ...[...createdEvents.values()]
-          .filter((record) => !record.cancelled)
+          .filter(
+            (record) =>
+              !record.cancelled &&
+              (!audience || record.event.audience === audience),
+          )
           .map((record) => eventBrowseItem(record.event)),
       ],
       limit: 25,
@@ -1195,6 +1202,7 @@ function createdEventFromBody(
     description: body.description,
     visibility: body.visibility,
     format: body.format,
+    audience: body.audience,
     starts_at: body.starts_at,
     ends_at: body.ends_at,
     timezone: body.timezone,
@@ -1272,6 +1280,7 @@ function eventBrowseItem(event: BrowsableEvent) {
     title: event.title,
     slug: event.slug,
     format: event.format,
+    ...(event.audience ? { audience: event.audience } : {}),
     starts_at: event.starts_at,
     ends_at: event.ends_at,
     timezone: event.timezone,

@@ -193,6 +193,7 @@ test("event forms complete without JavaScript", async ({ context, page }) => {
   await page.getByLabel("Location name").fill("No JavaScript Student Union");
   await page.getByRole("radio", { name: "Unlisted" }).check();
   await page.getByLabel("Games").selectOption("game-e2e");
+  await page.getByLabel("Who it's for").selectOption("campus");
   await page.getByLabel("Capacity").fill("24");
   await page.getByRole("button", { name: "Create event" }).click();
   await expect(page).toHaveURL(
@@ -223,6 +224,48 @@ test("event forms complete without JavaScript", async ({ context, page }) => {
   await expect
     .poll(async () => hasCookie(await context.cookies(), "cgn_session"))
     .toBe(false);
+});
+
+test("event audience is chosen, shown, and filtered without JavaScript", async ({
+  page,
+}) => {
+  await logIn(page, "no-js-audience@example.test", "/events/new");
+  for (const event of [
+    { title: "Campus Only Scrim", audience: "campus" },
+    { title: "Everyone Welcome Scrim", audience: "open" },
+  ]) {
+    await page.goto("/events/new");
+    await page.getByLabel("Title").fill(event.title);
+    await page.getByLabel("Starts at").fill("2037-08-15T13:00");
+    await page.getByLabel("Ends at").fill("2037-08-15T16:00");
+    await page.getByLabel("Games").selectOption("game-e2e");
+    await page.getByLabel("Who it's for").selectOption(event.audience);
+    await page.getByRole("button", { name: "Create event" }).click();
+    await expect(page).toHaveURL(/\?event=created$/);
+  }
+  await expect(page.locator(".event-pill-list .event-pill")).toHaveText([
+    "Public",
+    "In person",
+    "Open to everyone",
+  ]);
+
+  await page.goto("/events");
+  const campusCard = page.getByRole("link", { name: /Campus Only Scrim/ });
+  const openCard = page.getByRole("link", { name: /Everyone Welcome Scrim/ });
+  await expect(campusCard.getByText("Host campus only")).toBeVisible();
+  await expect(openCard.getByText("Open to everyone")).toBeVisible();
+
+  await page.getByLabel("Filter events by audience").selectOption("open");
+  await page.getByRole("button", { name: "Filter" }).click();
+  await expect(page).toHaveURL(/[?&]audience=open/);
+  await expect(openCard).toBeVisible();
+  await expect(campusCard).toHaveCount(0);
+
+  await page.goto("/events/public-browser-event");
+  await expect(page.locator(".event-pill-list .event-pill")).toHaveText([
+    "Public",
+    "In person",
+  ]);
 });
 
 test("team forms complete without JavaScript", async ({ context, page }) => {

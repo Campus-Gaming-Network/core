@@ -22,6 +22,7 @@ type createEventRequest struct {
 	GameIDs         []string           `json:"game_ids"`
 	Visibility      string             `json:"visibility"`
 	Format          string             `json:"format"`
+	Audience        string             `json:"audience"`
 	StartsAt        time.Time          `json:"starts_at"`
 	EndsAt          time.Time          `json:"ends_at"`
 	Timezone        string             `json:"timezone"`
@@ -436,6 +437,7 @@ func createEventInputFromRequest(request createEventRequest, userID string) even
 		GameIDs:         request.GameIDs,
 		Visibility:      request.Visibility,
 		Format:          request.Format,
+		Audience:        request.Audience,
 		StartsAt:        request.StartsAt,
 		EndsAt:          request.EndsAt,
 		Timezone:        request.Timezone,
@@ -461,6 +463,7 @@ func updateEventInputFromRequest(request createEventRequest, slug string, userID
 		GameIDs:         request.GameIDs,
 		Visibility:      request.Visibility,
 		Format:          request.Format,
+		Audience:        request.Audience,
 		StartsAt:        request.StartsAt,
 		EndsAt:          request.EndsAt,
 		Timezone:        request.Timezone,

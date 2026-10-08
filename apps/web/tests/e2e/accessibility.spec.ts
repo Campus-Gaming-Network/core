@@ -135,6 +135,7 @@ test("enhanced validation feedback identifies the invalid event field", async ({
   await page.getByLabel("Starts at").fill("2037-08-15T16:00");
   await page.getByLabel("Ends at").fill("2037-08-15T13:00");
   await page.getByLabel("Games").selectOption("game-e2e");
+  await page.getByLabel("Who it's for").selectOption("campus");
   await page.getByRole("button", { name: "Create event" }).click();
 
   const endTime = page.getByLabel("Ends at");
@@ -167,6 +168,7 @@ test("private event validation links to the highlighted password field", async (
   await page.getByLabel("Starts at").fill("2037-08-15T13:00");
   await page.getByLabel("Ends at").fill("2037-08-15T16:00");
   await page.getByLabel("Games").selectOption("game-e2e");
+  await page.getByLabel("Who it's for").selectOption("campus");
   await page.getByRole("radio", { name: "Private" }).check();
   await page.getByRole("button", { name: "Create event" }).click();
 

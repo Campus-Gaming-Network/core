@@ -151,6 +151,8 @@ events
   password_hash nullable,    -- required when private; share URL + password manually
   capacity nullable,         -- max RSVP yes count only; when full, block new yes (no waitlist yet)
   format (online|in_person),
+  audience nullable (open|collegiate|campus|members),
+                              -- who the event is for; null only on events created before the column
   is_paid boolean default false, payment_note nullable, payment_url nullable,
                               -- organizer handles any payment off-site; no CGN checkout/payment records
   location_address, location_lat, location_lng,

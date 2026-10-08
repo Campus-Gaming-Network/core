@@ -408,7 +408,7 @@ func TestAUserCreatesAnEventAndATeamForGamesTheCatalogLacked(t *testing.T) {
 	startsAt := time.Date(2030, time.April, 2, 19, 0, 0, 0, time.UTC)
 	event, err := events.NewPostgresRepository(f.pool).Create(ctx, events.CreateParams{CreateInput: events.CreateInput{
 		Title: "Picker Night", CreatorUserID: catalogActorID, HostSchoolID: catalogSchoolID,
-		GameIDs: []string{picked.ID, typed.ID}, Visibility: events.VisibilityPublic, Format: events.FormatOnline,
+		GameIDs: []string{picked.ID, typed.ID}, Visibility: events.VisibilityPublic, Format: events.FormatOnline, Audience: events.AudienceOpen,
 		StartsAt: startsAt, EndsAt: startsAt.Add(time.Hour), Timezone: "UTC", OnlineURL: "https://example.test/stream",
 	}})
 	if err != nil {

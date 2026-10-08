@@ -741,6 +741,7 @@ func validCreateEventJSON(visibility string, privatePassword string) string {
 		"game_ids":["44444444-4444-4444-4444-444444444444"],
 		"visibility":"` + visibility + `",
 		"format":"in_person",
+		"audience":"campus",
 		"starts_at":"2026-08-15T20:00:00Z",
 		"ends_at":"2026-08-15T22:00:00Z",
 		"timezone":"America/Los_Angeles",

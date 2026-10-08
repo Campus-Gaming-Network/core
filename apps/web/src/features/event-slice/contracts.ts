@@ -18,6 +18,10 @@ const idempotencyKeySchema = z.uuid("Reload the page and try again.");
 
 export const eventRSVPSchema = z.enum(["yes", "maybe", "no"]);
 export const eventFormatSchema = z.enum(["online", "in_person", "hybrid"]);
+export const eventAudienceSchema = z.enum(
+  ["open", "collegiate", "campus", "members"],
+  "Choose who this event is for.",
+);
 export const eventVisibilitySchema = z.enum(["public", "unlisted", "private"]);
 export const recurrenceRuleSchema = z.enum(["weekly", "biweekly", "monthly"]);
 
@@ -55,6 +59,8 @@ export const eventDtoSchema = z.object({
   description: z.string(),
   visibility: z.enum(["public", "unlisted", "private"]),
   format: eventFormatSchema,
+  // Absent on events created before the audience field existed.
+  audience: eventAudienceSchema.optional(),
   starts_at: timestampSchema,
   ends_at: timestampSchema,
   timezone: identifierSchema,
@@ -94,6 +100,8 @@ export const eventBrowseItemDtoSchema = z.object({
   title: z.string(),
   slug: identifierSchema,
   format: eventFormatSchema,
+  // Absent on events created before the audience field existed.
+  audience: eventAudienceSchema.optional(),
   starts_at: timestampSchema,
   ends_at: timestampSchema,
   timezone: identifierSchema,
@@ -124,6 +132,7 @@ export const eventsBrowseInputSchema = z.object({
   game: eventFilterSchema.optional(),
   school: eventFilterSchema.optional(),
   format: eventFormatSchema.optional(),
+  audience: eventAudienceSchema.optional(),
   after: eventCursorSchema.optional(),
   before: eventCursorSchema.optional(),
 });
@@ -201,6 +210,7 @@ const eventMutableInputSchema = z.object({
   other_game: otherGameSchema,
   visibility: eventVisibilitySchema,
   format: eventFormatSchema,
+  audience: eventAudienceSchema,
   starts_at: localDateTimeSchema,
   ends_at: localDateTimeSchema,
   timezone: timeZoneSchema,
@@ -430,6 +440,9 @@ export function validateEventsSearch(
   const school = boundedSearchValue(search.school, eventFilterSchema);
   const formatCandidate = boundedSearchValue(search.format, eventFilterSchema);
   const format = eventFormatSchema.safeParse(formatCandidate);
+  const audience = eventAudienceSchema.safeParse(
+    boundedSearchValue(search.audience, eventFilterSchema),
+  );
   const after = boundedSearchValue(search.after, eventCursorSchema);
   const before = boundedSearchValue(search.before, eventCursorSchema);
   const event = pageNoticeKey(eventBrowseNotices, search.event);
@@ -438,6 +451,7 @@ export function validateEventsSearch(
     ...(game ? { game } : {}),
     ...(school ? { school } : {}),
     ...(format.success ? { format: format.data } : {}),
+    ...(audience.success ? { audience: audience.data } : {}),
     ...(after ? { after } : {}),
     ...(before ? { before } : {}),
     ...(event ? { event } : {}),
@@ -449,6 +463,7 @@ export function eventsBrowseInput(search: EventsSearch): EventsBrowseInput {
     ...(search.game ? { game: search.game } : {}),
     ...(search.school ? { school: search.school } : {}),
     ...(search.format ? { format: search.format } : {}),
+    ...(search.audience ? { audience: search.audience } : {}),
     ...(search.after ? { after: search.after } : {}),
     ...(search.before ? { before: search.before } : {}),
   };
@@ -599,6 +614,7 @@ function eventWriteCandidate(
     other_game: normalizedInputValue(input, "other_game"),
     visibility: normalizedInputValue(input, "visibility"),
     format: normalizedInputValue(input, "format"),
+    audience: normalizedInputValue(input, "audience"),
     starts_at: normalizedInputValue(input, "starts_at"),
     ends_at: normalizedInputValue(input, "ends_at"),
     timezone: normalizedInputValue(input, "timezone") || "America/Los_Angeles",

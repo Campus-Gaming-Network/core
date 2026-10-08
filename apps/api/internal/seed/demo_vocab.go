@@ -23,6 +23,8 @@ var demoEventModifiers = []string{
 	"Weekend Special", "Friendly", "Pro-Am", "Open Invite", "Season Opener", "Alumni Night",
 }
 
+var demoEventAudiences = []string{"open", "collegiate", "campus", "members"}
+
 var demoEventVenues = []string{
 	"Student Union Ballroom", "Esports Arena", "Engineering Hall 204", "Library Media Lab",
 	"Recreation Center Annex", "Innovation Commons", "Residence Hall Lounge", "Campus Theater",

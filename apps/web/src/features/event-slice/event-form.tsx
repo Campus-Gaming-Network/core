@@ -22,7 +22,7 @@ import {
   instantToLocalDateTime,
 } from "./event-time.js";
 import { EventSchoolPicker } from "./event-school-picker.js";
-import { recurrenceRuleLabel } from "./presentation.js";
+import { eventAudienceLabels, recurrenceRuleLabel } from "./presentation.js";
 
 type Props = {
   mode: "create" | "edit";
@@ -37,6 +37,13 @@ type Props = {
   /** Server-rendered key for create mode; see useIdempotencyKey. */
   idempotencyKey?: string;
 };
+
+const audienceOptions = [
+  { value: "open", hint: "anyone can come" },
+  { value: "collegiate", hint: "students at any school" },
+  { value: "campus", hint: "students and staff of the host school" },
+  { value: "members", hint: "members of the hosting group" },
+] as const;
 
 const visibilityOptions = [
   { value: "public", label: "Public", hint: "Anyone can find this event" },
@@ -161,6 +168,23 @@ export function EventForm({
             <option value="in_person">In person</option>
             <option value="online">Online</option>
             <option value="hybrid">Hybrid</option>
+          </select>
+        </FormField>
+
+        {/* No audience is preselected: an event created before the field
+            existed has none, and its organizer must choose one to save. */}
+        <FormField
+          errorId="event-audience-error"
+          errors={errors("audience")}
+          label="Who it's for"
+        >
+          <select defaultValue={event?.audience ?? ""} name="audience" required>
+            <option value="">Choose an audience</option>
+            {audienceOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {eventAudienceLabels[option.value]} ({option.hint})
+              </option>
+            ))}
           </select>
         </FormField>
 

@@ -135,6 +135,7 @@ test("event create, report, interest, edit, and cancellation work through the ru
   await page.getByLabel("Ends at").fill("2037-08-15T16:00");
   await page.getByLabel("Location name").fill("Browser Student Union");
   await page.getByLabel("Games").selectOption("game-e2e");
+  await page.getByLabel("Who it's for").selectOption("campus");
   // A game the list does not offer is found through search and added.
   await page.getByLabel("Search for another game").fill("rocket");
   await expect(page.getByText("2 games found.")).toBeVisible();
