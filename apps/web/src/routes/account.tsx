@@ -14,7 +14,7 @@ import {
   FormErrorSummary,
   useEnhancedMutation,
 } from "../components/enhanced-mutation";
-import { FormField } from "../components/form-field";
+import { FormField, RequiredFieldsNote } from "../components/form-field";
 import { FormSection } from "../components/form-section";
 import {
   deleteAccount,
@@ -435,6 +435,7 @@ function ProfileForm({ profile }: { profile: AccountProfileDTO }) {
           message={mutation.message}
           summaryRef={mutation.errorSummaryRef}
         />
+        <RequiredFieldsNote />
         <FormSection
           title="About you"
           description="How other players see you on your public profile."
@@ -456,6 +457,7 @@ function ProfileForm({ profile }: { profile: AccountProfileDTO }) {
             errorId="profile-bio-error"
             errors={mutation.fieldErrors.bio}
             label="Bio"
+            optional
           >
             <textarea
               name="bio"
@@ -474,7 +476,7 @@ function ProfileForm({ profile }: { profile: AccountProfileDTO }) {
         </FormSection>
         <FormSection
           title="Social links"
-          description="Link to your profiles elsewhere. You can add up to three."
+          description="Optional. Link to your profiles elsewhere. You can add up to three."
         >
           {socialRows.slice(0, shownSocialRows)}
           {shownSocialRows < socialRows.length ? (

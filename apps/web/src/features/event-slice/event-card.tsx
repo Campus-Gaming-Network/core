@@ -4,6 +4,7 @@ import { ArrowRight } from "lucide-react";
 import { CalendarDate } from "../../components/calendar-date";
 import { EventCounts } from "../../components/event-counts";
 import type { EventBrowseItemDTO } from "./contracts.js";
+import { EventFacts } from "./event-facts";
 import {
   eventLifecycleLabel,
   eventLocation,
@@ -38,6 +39,9 @@ export function EventCard({ event }: { event: EventBrowseItemDTO }) {
           {event.games.map((game) => game.name).join(", ")}
         </small>
         <small>{eventLocation(event)}</small>
+        <span className="event-pill-list event-pill-list--compact">
+          <EventFacts event={event} />
+        </span>
         <EventCounts
           going={event.rsvp_yes_count}
           interested={event.interest_count}

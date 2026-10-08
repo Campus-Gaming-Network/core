@@ -10,6 +10,7 @@ import {
 type RequestBody = {
   address?: string;
   age_confirmed?: boolean;
+  audience?: string;
   bio?: string;
   capacity?: number;
   captain?: boolean;
@@ -17,11 +18,12 @@ type RequestBody = {
   description?: string;
   email?: string;
   ends_at?: string;
+  event_type?: string;
   format?: string;
   game_ids?: string[];
   home_school_id?: string;
   igdb_game_ids?: number[];
-  is_paid?: boolean;
+  cost?: string;
   location_name?: string;
   message?: string;
   name?: string;
@@ -72,6 +74,9 @@ type BrowsableEvent = {
   title: string | undefined;
   slug: string;
   format: string | undefined;
+  audience?: string;
+  event_type?: string;
+  cost?: string;
   starts_at: string | undefined;
   ends_at: string | undefined;
   timezone: string | undefined;
@@ -215,6 +220,7 @@ const populatedSchoolEvents = [
     timezone: "America/Denver",
     location_name: "Alpine Student Center",
     lifecycle: "upcoming",
+    cost: "unspecified",
     host_school: { name: populatedSchool.name },
     games: [{ name: game.name }],
     rsvp_yes_count: 12,
@@ -230,6 +236,7 @@ const populatedSchoolEvents = [
     timezone: "America/Denver",
     online_url: "https://summit.example.test/ladder",
     lifecycle: "upcoming",
+    cost: "unspecified",
     host_school: { name: populatedSchool.name },
     games: [{ name: game.name }],
     rsvp_yes_count: 7,
@@ -770,13 +777,22 @@ async function handleRequest(
   if (method === "GET" && url.pathname === "/events") {
     // The home page's preview asks for six; give it a seeded public event.
     const homePreview = url.searchParams.get("limit") === "6";
+    const audience = url.searchParams.get("audience");
+    const type = url.searchParams.get("type");
+    const cost = url.searchParams.get("cost");
     json(response, 200, {
       events: [
         ...(homePreview
           ? [eventBrowseItem(publicEventFor("public-browser-event"))]
           : []),
         ...[...createdEvents.values()]
-          .filter((record) => !record.cancelled)
+          .filter(
+            (record) =>
+              !record.cancelled &&
+              (!audience || record.event.audience === audience) &&
+              (!type || record.event.event_type === type) &&
+              (!cost || record.event.cost === cost),
+          )
           .map((record) => eventBrowseItem(record.event)),
       ],
       limit: 25,
@@ -1151,7 +1167,7 @@ function eventFor(slug: string, viewerRsvp?: string) {
     rsvp_yes_count: viewerRsvp === "yes" ? 1 : 0,
     interest_count: 2,
     lifecycle: "upcoming",
-    is_paid: false,
+    cost: "unspecified",
     host_school: {
       id: "school-e2e",
       name: "Browser Test University",
@@ -1195,6 +1211,8 @@ function createdEventFromBody(
     description: body.description,
     visibility: body.visibility,
     format: body.format,
+    audience: body.audience,
+    event_type: body.event_type,
     starts_at: body.starts_at,
     ends_at: body.ends_at,
     timezone: body.timezone,
@@ -1209,7 +1227,7 @@ function createdEventFromBody(
     ...(body.recurrence_until
       ? { recurrence_until: `${body.recurrence_until}T23:59:59Z` }
       : {}),
-    is_paid: body.is_paid,
+    cost: body.cost,
     ...(body.payment_note ? { payment_note: body.payment_note } : {}),
     ...(body.payment_url ? { payment_url: body.payment_url } : {}),
     host_school: school,
@@ -1272,6 +1290,8 @@ function eventBrowseItem(event: BrowsableEvent) {
     title: event.title,
     slug: event.slug,
     format: event.format,
+    ...(event.audience ? { audience: event.audience } : {}),
+    ...(event.event_type ? { event_type: event.event_type } : {}),
     starts_at: event.starts_at,
     ends_at: event.ends_at,
     timezone: event.timezone,
@@ -1279,6 +1299,7 @@ function eventBrowseItem(event: BrowsableEvent) {
     ...(event.address ? { address: event.address } : {}),
     ...(event.online_url ? { online_url: event.online_url } : {}),
     lifecycle: event.lifecycle,
+    cost: event.cost,
     host_school: { name: event.host_school.name },
     games: event.games.map(({ name }) => ({ name })),
     rsvp_yes_count: event.rsvp_yes_count ?? 0,
@@ -1520,7 +1541,15 @@ function publicProfileFor(id: string) {
     verification_level: "verified_student",
     home_school_id: school.id,
     home_school: school,
-    social_links: [],
+    social_links:
+      id === "linked-player"
+        ? [
+            { label: "Channel", url: "https://www.youtube.com/@player" },
+            { label: "Posts", url: "https://x.com/player" },
+            { label: "Stream", url: "https://twitch.tv/player" },
+            { label: "Blog", url: "https://player.example.test/blog" },
+          ]
+        : [],
     role_indicators: [],
   };
 }

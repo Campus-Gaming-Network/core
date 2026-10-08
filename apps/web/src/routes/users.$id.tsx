@@ -21,6 +21,7 @@ import type {
   ViewerRelationship,
 } from "../features/public-profile/contracts";
 import { validatePublicProfileSearch } from "../features/public-profile/contracts";
+import { SocialLinkIcon } from "../features/public-profile/social-link-icon";
 import {
   getPublicProfilePage,
   reportUser,
@@ -166,7 +167,12 @@ function PublicProfilePage() {
           <h2 id="social-links">Links</h2>
           <div className="pill-list">
             {socialLinks.map((link) => (
-              <a href={link.url} key={link.id ?? `${link.label}-${link.url}`}>
+              <a
+                className="social-link"
+                href={link.url}
+                key={link.id ?? `${link.label}-${link.url}`}
+              >
+                <SocialLinkIcon url={link.url} />
                 {link.label.trim() || "Profile link"}
               </a>
             ))}

@@ -2,7 +2,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Callout } from "../../components/callout";
 import { FormErrorSummary } from "../../components/enhanced-mutation";
-import { FormField } from "../../components/form-field";
+import { FormField, RequiredFieldsNote } from "../../components/form-field";
 import { FormSection } from "../../components/form-section";
 import { useIdempotencyKey } from "../../components/idempotency-key";
 import type { SupportFieldErrors } from "./contracts";
@@ -101,6 +101,7 @@ export function SupportTicketForm({
         </p>
       ) : null}
 
+      <RequiredFieldsNote />
       <FormSection
         title="Contact"
         description="Tell us how to reach you about this request."
@@ -122,6 +123,7 @@ export function SupportTicketForm({
             errorId="name-error"
             errors={result.fieldErrors.name}
             label="Name"
+            optional
           >
             <input name="name" autoComplete="name" maxLength={120} />
           </FormField>

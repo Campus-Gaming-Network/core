@@ -2148,7 +2148,7 @@ function visibleEvent({
     rsvp_yes_count: viewerRSVP === "yes" ? 1 : 0,
     interest_count: 2,
     lifecycle: "upcoming",
-    is_paid: false,
+    cost: "unspecified",
     host_school: {
       id: "school-smoke",
       name: "Smoke Test University",
@@ -2184,6 +2184,7 @@ function fakePublicEvent() {
     location_name: "Smoke Student Union",
     address: "100 Public Campus Way",
     lifecycle: "upcoming",
+    cost: "unspecified",
     host_school: { name: "Smoke Test University" },
     games: [{ name: "Smoke Arena" }],
     rsvp_yes_count: 3,

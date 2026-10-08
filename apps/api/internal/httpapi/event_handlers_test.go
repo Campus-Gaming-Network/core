@@ -18,7 +18,7 @@ func TestHandleEventsReturnsPublicEventsWithFilters(t *testing.T) {
 		testEvent(eventstore.VisibilityPublic),
 	}}
 	router := &Router{events: repository}
-	request := httptest.NewRequest(http.MethodGet, "/events?game=rocket-league&school=example-university&format=online&limit=5", nil)
+	request := httptest.NewRequest(http.MethodGet, "/events?game=rocket-league&school=example-university&format=online&audience=open&type=lan&cost=free&limit=5", nil)
 	response := httptest.NewRecorder()
 
 	router.handleEvents(response, request)
@@ -34,6 +34,15 @@ func TestHandleEventsReturnsPublicEventsWithFilters(t *testing.T) {
 	}
 	if repository.listParams.Format != eventstore.FormatOnline {
 		t.Fatalf("format = %q, want %q", repository.listParams.Format, eventstore.FormatOnline)
+	}
+	if repository.listParams.Audience != eventstore.AudienceOpen {
+		t.Fatalf("audience = %q, want %q", repository.listParams.Audience, eventstore.AudienceOpen)
+	}
+	if repository.listParams.EventType != eventstore.EventTypeLAN {
+		t.Fatalf("event type = %q, want %q", repository.listParams.EventType, eventstore.EventTypeLAN)
+	}
+	if repository.listParams.Cost != eventstore.CostFree {
+		t.Fatalf("cost = %q, want %q", repository.listParams.Cost, eventstore.CostFree)
 	}
 	if repository.listParams.Limit != 6 || repository.listParams.After != nil || repository.listParams.Before != nil {
 		t.Fatalf("list params = %#v, want a six-row first-page fetch", repository.listParams)
@@ -237,8 +246,8 @@ func TestHandleCreateEventCreatesPublicEvent(t *testing.T) {
 	if repository.createParams.Capacity == nil || *repository.createParams.Capacity != 24 {
 		t.Fatalf("Capacity = %v, want 24", repository.createParams.Capacity)
 	}
-	if !repository.createParams.IsPaid {
-		t.Fatal("IsPaid = false, want true")
+	if repository.createParams.Cost != eventstore.CostPaid {
+		t.Fatalf("Cost = %q, want %q", repository.createParams.Cost, eventstore.CostPaid)
 	}
 	if repository.createParams.PaymentNote != "Pay at the venue." {
 		t.Fatalf("PaymentNote = %q, want request payment note", repository.createParams.PaymentNote)
@@ -362,6 +371,36 @@ func TestHandleCreateEventRejectsInvalidInput(t *testing.T) {
 	}
 	if repository.createCalled {
 		t.Fatal("Create was called for invalid input")
+	}
+}
+
+func TestHandleCreateEventRequiresAudience(t *testing.T) {
+	repository := &fakeEventRepository{}
+	handler := authenticatedEventsHandler(repository)
+	body := strings.Replace(validCreateEventJSON(eventstore.VisibilityPublic, ""), `"audience":"campus",`, "", 1)
+	request := withIdempotencyKey(authenticatedEventRequest(http.MethodPost, "/events", body))
+	response := httptest.NewRecorder()
+
+	handler.ServeHTTP(response, request)
+
+	requireErrorContract(t, response, http.StatusBadRequest, "invalid_request")
+	if repository.createCalled {
+		t.Fatal("Create was called without an audience")
+	}
+}
+
+func TestHandleCreateEventRequiresEventType(t *testing.T) {
+	repository := &fakeEventRepository{}
+	handler := authenticatedEventsHandler(repository)
+	body := strings.Replace(validCreateEventJSON(eventstore.VisibilityPublic, ""), `"event_type":"lan",`, "", 1)
+	request := withIdempotencyKey(authenticatedEventRequest(http.MethodPost, "/events", body))
+	response := httptest.NewRecorder()
+
+	handler.ServeHTTP(response, request)
+
+	requireErrorContract(t, response, http.StatusBadRequest, "invalid_request")
+	if repository.createCalled {
+		t.Fatal("Create was called without an event type")
 	}
 }
 

@@ -673,6 +673,18 @@ main {
   font-weight: 750;
 }
 
+/* A profile link: the site's icon, then the link's label. */
+.social-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.social-link svg {
+  flex: none;
+  color: var(--color-text);
+}
+
 .section {
   margin-top: clamp(3rem, 7vw, 5rem);
 }
@@ -777,6 +789,17 @@ main {
 .form-help,
 .form-footer {
   color: var(--color-muted);
+}
+
+/* "(optional)" after a field's label, quieter than the label itself. */
+.field-optional {
+  color: var(--color-muted);
+  font-weight: 500;
+}
+
+.required-fields-note {
+  margin: 0;
+  font-size: 0.875rem;
 }
 
 .policy-version {

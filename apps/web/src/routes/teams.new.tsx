@@ -13,7 +13,7 @@ import {
   fieldErrorProps,
   useEnhancedMutation,
 } from "../components/enhanced-mutation";
-import { FormField } from "../components/form-field";
+import { FormField, RequiredFieldsNote } from "../components/form-field";
 import { FormSection } from "../components/form-section";
 import {
   newIdempotencyKey,
@@ -193,6 +193,7 @@ function CreateTeamForm({
         summaryRef={mutation.errorSummaryRef}
       />
 
+      <RequiredFieldsNote />
       <FormSection
         title="Team basics"
         description="Introduce the team to players browsing the public directory."
@@ -209,6 +210,7 @@ function CreateTeamForm({
           errorId="team-description-error"
           errors={descriptionErrors}
           label="Description"
+          optional
         >
           <textarea maxLength={5000} name="description" rows={6} />
         </FormField>
@@ -222,6 +224,7 @@ function CreateTeamForm({
           errorId="team-school-error"
           errors={schoolErrors}
           label="School link"
+          optional
         >
           <select defaultValue={defaultSchoolID} name="school_id">
             <option value="">No school link</option>

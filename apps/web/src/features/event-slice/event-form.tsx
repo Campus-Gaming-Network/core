@@ -6,7 +6,7 @@ import {
   fieldErrorProps,
   useEnhancedMutation,
 } from "../../components/enhanced-mutation.js";
-import { FormField } from "../../components/form-field";
+import { FormField, RequiredFieldsNote } from "../../components/form-field";
 import { GamePickerExtras } from "../../components/game-picker";
 import { FormSection } from "../../components/form-section";
 import { useIdempotencyKey } from "../../components/idempotency-key.js";
@@ -22,7 +22,11 @@ import {
   instantToLocalDateTime,
 } from "./event-time.js";
 import { EventSchoolPicker } from "./event-school-picker.js";
-import { recurrenceRuleLabel } from "./presentation.js";
+import {
+  eventAudienceLabels,
+  eventTypeLabels,
+  recurrenceRuleLabel,
+} from "./presentation.js";
 
 type Props = {
   mode: "create" | "edit";
@@ -37,6 +41,23 @@ type Props = {
   /** Server-rendered key for create mode; see useIdempotencyKey. */
   idempotencyKey?: string;
 };
+
+const audienceOptions = [
+  { value: "open", hint: "anyone can come" },
+  { value: "collegiate", hint: "students at any school" },
+  { value: "campus", hint: "students and staff of the host school" },
+  { value: "members", hint: "members of the hosting group" },
+] as const;
+
+const costOptions = [
+  {
+    value: "unspecified",
+    label: "Not specified",
+    hint: "Say nothing about cost",
+  },
+  { value: "free", label: "Free", hint: "No charge to attend" },
+  { value: "paid", label: "Paid", hint: "Payment happens off CGN" },
+] as const;
 
 const visibilityOptions = [
   { value: "public", label: "Public", hint: "Anyone can find this event" },
@@ -118,6 +139,7 @@ export function EventForm({
         summaryRef={mutation.errorSummaryRef}
       />
 
+      <RequiredFieldsNote />
       <FormSection
         title="Event basics"
         description="Give people enough information to understand the event at a glance."
@@ -139,6 +161,7 @@ export function EventForm({
           errorId="event-description-error"
           errors={errors("description")}
           label="Description"
+          optional
         >
           <textarea
             defaultValue={event?.description ?? ""}
@@ -161,6 +184,43 @@ export function EventForm({
             <option value="in_person">In person</option>
             <option value="online">Online</option>
             <option value="hybrid">Hybrid</option>
+          </select>
+        </FormField>
+
+        {/* No type is preselected, for the same reason as the audience below. */}
+        <FormField
+          errorId="event-event-type-error"
+          errors={errors("event_type")}
+          label="Event type"
+        >
+          <select
+            defaultValue={event?.event_type ?? ""}
+            name="event_type"
+            required
+          >
+            <option value="">Choose a type</option>
+            {Object.entries(eventTypeLabels).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </FormField>
+
+        {/* No audience is preselected: an event created before the field
+            existed has none, and its organizer must choose one to save. */}
+        <FormField
+          errorId="event-audience-error"
+          errors={errors("audience")}
+          label="Who it's for"
+        >
+          <select defaultValue={event?.audience ?? ""} name="audience" required>
+            <option value="">Choose an audience</option>
+            {audienceOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {eventAudienceLabels[option.value]} ({option.hint})
+              </option>
+            ))}
           </select>
         </FormField>
 
@@ -331,6 +391,7 @@ export function EventForm({
             errorId="event-location-name-error"
             errors={errors("location_name")}
             label="Location name"
+            optional
           >
             <input
               defaultValue={event?.location_name ?? ""}
@@ -343,6 +404,7 @@ export function EventForm({
             errorId="event-online-url-error"
             errors={errors("online_url")}
             label="Online URL"
+            optional
           >
             <input
               defaultValue={event?.online_url ?? ""}
@@ -357,6 +419,7 @@ export function EventForm({
           errorId="event-address-error"
           errors={errors("address")}
           label="Address"
+          optional
         >
           <input
             defaultValue={event?.address ?? ""}
@@ -401,33 +464,48 @@ export function EventForm({
           errorId="event-capacity-error"
           errors={errors("capacity")}
           label="Capacity"
+          optional
         >
           <input
             defaultValue={event?.capacity?.toString() ?? ""}
             min={1}
             name="capacity"
-            placeholder="Optional"
             type="number"
           />
         </FormField>
       </FormSection>
 
       <FormSection
-        title="Paid event details"
-        description="Off-site payment info for events that charge attendees."
+        title="Cost"
+        description="Say whether the event is free. The payment note and link are shown for paid events only."
       >
-        <label className="checkbox-field">
-          <input
-            defaultChecked={event?.is_paid}
-            name="is_paid"
-            type="checkbox"
-          />
-          <span>This event has off-site payment instructions.</span>
-        </label>
+        <fieldset className="choice-group">
+          <legend>Cost</legend>
+          <div className="choice-cards">
+            {costOptions.map((option) => (
+              <label className="choice-card" key={option.value}>
+                <input
+                  defaultChecked={
+                    (event?.cost ?? "unspecified") === option.value
+                  }
+                  name="cost"
+                  required
+                  type="radio"
+                  value={option.value}
+                  {...fieldErrorProps(errors("cost"), "event-cost-error")}
+                />
+                <span className="choice-card-title">{option.label}</span>
+                <span className="choice-card-hint">{option.hint}</span>
+              </label>
+            ))}
+          </div>
+          <FieldError id="event-cost-error" messages={errors("cost")} />
+        </fieldset>
         <FormField
           errorId="event-payment-note-error"
           errors={errors("payment_note")}
           label="Payment note"
+          optional
         >
           <textarea
             defaultValue={event?.payment_note ?? ""}
@@ -441,6 +519,7 @@ export function EventForm({
           errorId="event-payment-url-error"
           errors={errors("payment_url")}
           label="Payment URL"
+          optional
         >
           <input
             defaultValue={event?.payment_url ?? ""}

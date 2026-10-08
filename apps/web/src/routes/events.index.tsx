@@ -19,8 +19,10 @@ import {
   type EventsSearch,
 } from "../features/event-slice/contracts";
 import {
+  eventAudienceLabels,
   eventBrowseNotices,
   eventsHead,
+  eventTypeLabels,
 } from "../features/event-slice/presentation";
 
 export const Route = createFileRoute("/events/")({
@@ -130,6 +132,47 @@ function EventsPage() {
             <option value="hybrid">Hybrid</option>
           </select>
         </label>
+        <label>
+          Type
+          <select
+            aria-label="Filter events by type"
+            defaultValue={search.type ?? ""}
+            name="type"
+          >
+            <option value="">All types</option>
+            {Object.entries(eventTypeLabels).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Audience
+          <select
+            aria-label="Filter events by audience"
+            defaultValue={search.audience ?? ""}
+            name="audience"
+          >
+            <option value="">All audiences</option>
+            {Object.entries(eventAudienceLabels).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Cost
+          <select
+            aria-label="Filter events by cost"
+            defaultValue={search.cost ?? ""}
+            name="cost"
+          >
+            <option value="">Any cost</option>
+            <option value="free">Free</option>
+          </select>
+        </label>
         <button type="submit">Filter</button>
       </form>
 
@@ -179,6 +222,9 @@ function paginationSearch(
     ...(search.game ? { game: search.game } : {}),
     ...(search.school ? { school: search.school } : {}),
     ...(search.format ? { format: search.format } : {}),
+    ...(search.audience ? { audience: search.audience } : {}),
+    ...(search.type ? { type: search.type } : {}),
+    ...(search.cost ? { cost: search.cost } : {}),
     ...cursor,
   };
 }

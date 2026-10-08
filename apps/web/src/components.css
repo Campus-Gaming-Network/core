@@ -118,6 +118,47 @@
   font-weight: 750;
 }
 
+.event-pill svg {
+  flex: none;
+}
+
+.event-pill:has(svg) {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+/* Event facts (EventFacts): each kind of fact has its own color and icon.
+   Format keeps the neutral pill. */
+.event-pill--type {
+  border-color: #cfd9fa;
+  color: var(--color-primary-dark);
+  background: var(--color-primary-soft);
+}
+
+.event-pill--audience {
+  border-color: #ecd98a;
+  color: #5c4300;
+  background: var(--color-accent-soft);
+}
+
+.event-pill--cost {
+  border-color: #bfdfc7;
+  color: var(--color-success);
+  background: var(--color-success-soft);
+}
+
+/* On an event row the facts sit under the copy, smaller than on a page. */
+.event-pill-list--compact {
+  gap: 0.35rem;
+  margin-top: 0.3rem;
+}
+
+.event-pill-list--compact .event-pill {
+  padding: 0.1rem 0.4rem;
+  font-size: 0.6875rem;
+}
+
 /* Team mark: the initial tile shown beside a team name. */
 .team-mark {
   display: inline-grid;
