@@ -26,6 +26,8 @@ func scanEvent(scanner eventScanner, now time.Time) (Event, error) {
 	var paymentURL sql.NullString
 	var recurrenceRule sql.NullString
 	var recurrenceUntil sql.NullTime
+	var audience sql.NullString
+	var eventType sql.NullString
 	var gameIDs []string
 	var gameNames []string
 	var gameSlugs []string
@@ -44,11 +46,13 @@ func scanEvent(scanner eventScanner, now time.Time) (Event, error) {
 		&address,
 		&onlineURL,
 		&capacity,
-		&event.IsPaid,
+		&event.Cost,
 		&paymentNote,
 		&paymentURL,
 		&recurrenceRule,
 		&recurrenceUntil,
+		&audience,
+		&eventType,
 		&event.HostSchool.ID,
 		&event.HostSchool.Name,
 		&event.HostSchool.Slug,
@@ -90,6 +94,12 @@ func scanEvent(scanner eventScanner, now time.Time) (Event, error) {
 		value := recurrenceUntil.Time
 		event.RecurrenceUntil = &value
 	}
+	if audience.Valid {
+		event.Audience = audience.String
+	}
+	if eventType.Valid {
+		event.EventType = eventType.String
+	}
 
 	event.Games = make([]GameSummary, 0, len(gameIDs))
 	for index := range gameIDs {
@@ -114,6 +124,8 @@ func scanEventForUser(scanner eventScanner, now time.Time) (Event, error) {
 	var paymentURL sql.NullString
 	var recurrenceRule sql.NullString
 	var recurrenceUntil sql.NullTime
+	var audience sql.NullString
+	var eventType sql.NullString
 	var viewerRSVP sql.NullString
 	var gameIDs []string
 	var gameNames []string
@@ -133,11 +145,13 @@ func scanEventForUser(scanner eventScanner, now time.Time) (Event, error) {
 		&address,
 		&onlineURL,
 		&capacity,
-		&event.IsPaid,
+		&event.Cost,
 		&paymentNote,
 		&paymentURL,
 		&recurrenceRule,
 		&recurrenceUntil,
+		&audience,
+		&eventType,
 		&event.HostSchool.ID,
 		&event.HostSchool.Name,
 		&event.HostSchool.Slug,
@@ -181,6 +195,12 @@ func scanEventForUser(scanner eventScanner, now time.Time) (Event, error) {
 		value := recurrenceUntil.Time
 		event.RecurrenceUntil = &value
 	}
+	if audience.Valid {
+		event.Audience = audience.String
+	}
+	if eventType.Valid {
+		event.EventType = eventType.String
+	}
 	if viewerRSVP.Valid {
 		event.ViewerRSVP = &viewerRSVP.String
 	}
@@ -202,9 +222,9 @@ func eventSelectSQL(whereClause string, tailClause string) string {
 	return `
 		SELECT e.id::text, e.title, e.slug, e.description, e.visibility,
 		       e.format, e.starts_at, e.ends_at, e.timezone,
-		       e.location_name, e.address, e.online_url, e.capacity, e.is_paid,
+		       e.location_name, e.address, e.online_url, e.capacity, e.cost,
 		       e.payment_note, e.payment_url,
-		       e.recurrence_rule, e.recurrence_until,
+		       e.recurrence_rule, e.recurrence_until, e.audience, e.event_type,
 		       s.id::text, s.name, s.slug, COALESCE(s.city, ''), COALESCE(s.state, ''),
 		       COALESCE(yes_counts.yes_count, 0)::int,
 		       COALESCE(interest_counts.interest_count, 0)::int,
@@ -240,8 +260,9 @@ func eventSelectSQL(whereClause string, tailClause string) string {
 		WHERE ` + whereClause + `
 		GROUP BY e.id, e.title, e.slug, e.description, e.visibility,
 		         e.format, e.starts_at, e.ends_at, e.timezone,
-		         e.location_name, e.address, e.online_url, e.capacity, e.is_paid,
-		         e.payment_note, e.payment_url, e.recurrence_rule, e.recurrence_until,
+		         e.location_name, e.address, e.online_url, e.capacity, e.cost,
+		         e.payment_note, e.payment_url, e.recurrence_rule, e.recurrence_until, e.audience,
+		         e.event_type,
 		         s.id, s.name, s.slug, s.city, s.state, yes_counts.yes_count,
 		         interest_counts.interest_count
 	` + tailClause
@@ -251,9 +272,9 @@ func eventSelectForUserSQL(whereClause string, tailClause string) string {
 	return `
 		SELECT e.id::text, e.title, e.slug, e.description, e.visibility,
 		       e.format, e.starts_at, e.ends_at, e.timezone,
-		       e.location_name, e.address, e.online_url, e.capacity, e.is_paid,
+		       e.location_name, e.address, e.online_url, e.capacity, e.cost,
 		       e.payment_note, e.payment_url,
-		       e.recurrence_rule, e.recurrence_until,
+		       e.recurrence_rule, e.recurrence_until, e.audience, e.event_type,
 		       s.id::text, s.name, s.slug, COALESCE(s.city, ''), COALESCE(s.state, ''),
 		       COALESCE(yes_counts.yes_count, 0)::int,
 		       COALESCE(interest_counts.interest_count, 0)::int,
@@ -297,8 +318,9 @@ func eventSelectForUserSQL(whereClause string, tailClause string) string {
 		WHERE ` + whereClause + `
 		GROUP BY e.id, e.title, e.slug, e.description, e.visibility,
 		         e.format, e.starts_at, e.ends_at, e.timezone,
-		         e.location_name, e.address, e.online_url, e.capacity, e.is_paid,
-		         e.payment_note, e.payment_url, e.recurrence_rule, e.recurrence_until,
+		         e.location_name, e.address, e.online_url, e.capacity, e.cost,
+		         e.payment_note, e.payment_url, e.recurrence_rule, e.recurrence_until, e.audience,
+		         e.event_type,
 		         s.id, s.name, s.slug, s.city, s.state, yes_counts.yes_count,
 		         interest_counts.interest_count, viewer_rsvp.response,
 		         viewer_interest.user_id

@@ -49,6 +49,7 @@ import {
 } from "../features/event-slice/event.functions";
 import { getEventViewerSession } from "../features/event-slice/auth.functions";
 import { EventBanner } from "../features/event-slice/event-banner";
+import { EventFacts } from "../features/event-slice/event-facts";
 import type {
   EventDTO,
   EventDetailDTO,
@@ -56,7 +57,6 @@ import type {
 } from "../features/event-slice/contracts";
 import {
   eventDetailNotices,
-  eventFormatLabel,
   eventLifecycleLabel,
   eventLocation,
   eventRSVPLabel,
@@ -323,7 +323,7 @@ function VisibleEventView({
               </StatusLabel>
             ) : null}
             <StatusLabel>{eventVisibilityLabel(event.visibility)}</StatusLabel>
-            <StatusLabel>{eventFormatLabel(event.format)}</StatusLabel>
+            <EventFacts event={event} />
           </div>
           <h1>{event.title}</h1>
           <p className="event-hostline">
@@ -534,7 +534,7 @@ function VisibleEventView({
             />
           </section>
 
-          {event.is_paid ? (
+          {event.cost === "paid" ? (
             <section className="detail-card">
               <h2>Payment</h2>
               <div className="detail-card-body">

@@ -97,6 +97,8 @@ test("real browser journey crosses the BFF, Go API, Postgres, and email outbox",
   await page.getByLabel("Ends at").fill("2037-08-15T15:00");
   await page.getByLabel("Location name").fill("Real Stack Student Union");
   await page.getByLabel("Games").selectOption({ label: "Strategy Arena" });
+  await page.getByLabel("Event type").selectOption("meeting");
+  await page.getByLabel("Who it's for").selectOption("members");
   await page.getByLabel("Private event password").fill(privateEventPassword);
   await page.getByRole("button", { name: "Create event" }).click();
   await expect(page).toHaveURL(

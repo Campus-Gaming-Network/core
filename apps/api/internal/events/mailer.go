@@ -208,11 +208,16 @@ func (m *ResendMailer) now() time.Time {
 }
 
 func eventConfirmationHTML(event Event, eventURL string) string {
+	audienceHTML := ""
+	if label := AudienceLabel(event.Audience); label != "" {
+		audienceHTML = "<p><strong>Who it's for:</strong> " + html.EscapeString(label) + "</p>"
+	}
 	return fmt.Sprintf(
-		`<h1>You're going to %s</h1><p>Your RSVP is confirmed.</p><p><strong>When:</strong> %s</p><p><strong>Where:</strong> %s</p><p><a href="%s">View event details</a></p>`,
+		`<h1>You're going to %s</h1><p>Your RSVP is confirmed.</p><p><strong>When:</strong> %s</p><p><strong>Where:</strong> %s</p>%s<p><a href="%s">View event details</a></p>`,
 		html.EscapeString(event.Title),
 		html.EscapeString(event.StartsAt.Format(time.RFC1123)),
 		html.EscapeString(icsLocation(event)),
+		audienceHTML,
 		html.EscapeString(eventURL),
 	)
 }
@@ -231,10 +236,29 @@ func eventURL(siteURL string, slug string) string {
 
 func icsDescription(event Event, eventURL string) string {
 	parts := []string{event.Description}
+	if label := AudienceLabel(event.Audience); label != "" {
+		parts = append(parts, "Who it's for: "+label)
+	}
 	if eventURL != "" {
 		parts = append(parts, "View event: "+eventURL)
 	}
 	return strings.TrimSpace(strings.Join(parts, "\n\n"))
+}
+
+// AudienceLabel describes an event's audience for attendees. It returns an
+// empty string for an event with no audience.
+func AudienceLabel(audience string) string {
+	switch audience {
+	case AudienceOpen:
+		return "Open to everyone"
+	case AudienceCollegiate:
+		return "College students"
+	case AudienceCampus:
+		return "Host campus only"
+	case AudienceMembers:
+		return "Members only"
+	}
+	return ""
 }
 
 func icsLocation(event Event) string {

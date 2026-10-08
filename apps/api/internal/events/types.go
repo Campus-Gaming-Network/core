@@ -32,10 +32,31 @@ const (
 	FormatInPerson = "in_person"
 	FormatHybrid   = "hybrid"
 
+	AudienceOpen       = "open"
+	AudienceCollegiate = "collegiate"
+	AudienceCampus     = "campus"
+	AudienceMembers    = "members"
+
+	// EventTypeTournament is a label only. It does not create a tournament.
+	EventTypeGameNight  = "game_night"
+	EventTypeLAN        = "lan"
+	EventTypeTournament = "tournament"
+	EventTypeWatchParty = "watch_party"
+	EventTypeTryout     = "tryout"
+	EventTypeMeeting    = "meeting"
+	EventTypeWorkshop   = "workshop"
+	EventTypeOther      = "other"
+
 	LifecycleUpcoming     = "upcoming"
 	LifecycleHappeningNow = "happening_now"
 	LifecycleEnded        = "ended"
 	LifecycleFull         = "full"
+
+	// CostUnspecified means the organizer did not say whether the event costs
+	// anything. It is not the same as free.
+	CostFree        = "free"
+	CostPaid        = "paid"
+	CostUnspecified = "unspecified"
 
 	RSVPYes   = "yes"
 	RSVPMaybe = "maybe"
@@ -47,12 +68,18 @@ const (
 )
 
 type Event struct {
-	ID               string        `json:"id"`
-	Title            string        `json:"title"`
-	Slug             string        `json:"slug"`
-	Description      string        `json:"description"`
-	Visibility       string        `json:"visibility"`
-	Format           string        `json:"format"`
+	ID          string `json:"id"`
+	Title       string `json:"title"`
+	Slug        string `json:"slug"`
+	Description string `json:"description"`
+	Visibility  string `json:"visibility"`
+	Format      string `json:"format"`
+	// Audience says who the event is for. It is empty for events created
+	// before the field existed.
+	Audience string `json:"audience,omitempty"`
+	// EventType says what kind of event this is. It is empty for events
+	// created before the field existed.
+	EventType        string        `json:"event_type,omitempty"`
 	StartsAt         time.Time     `json:"starts_at"`
 	EndsAt           time.Time     `json:"ends_at"`
 	Timezone         string        `json:"timezone"`
@@ -65,7 +92,7 @@ type Event struct {
 	Lifecycle        string        `json:"lifecycle"`
 	RecurrenceRule   string        `json:"recurrence_rule,omitempty"`
 	RecurrenceUntil  *time.Time    `json:"recurrence_until,omitempty"`
-	IsPaid           bool          `json:"is_paid"`
+	Cost             string        `json:"cost"`
 	PaymentNote      string        `json:"payment_note,omitempty"`
 	PaymentURL       string        `json:"payment_url,omitempty"`
 	HostSchool       SchoolSummary `json:"host_school"`
@@ -108,6 +135,9 @@ type ListParams struct {
 	GameSlug   string
 	SchoolSlug string
 	Format     string
+	Audience   string
+	EventType  string
+	Cost       string
 	Limit      int
 	After      *pagecursor.Cursor
 	Before     *pagecursor.Cursor
@@ -121,6 +151,8 @@ type CreateInput struct {
 	GameIDs         []string
 	Visibility      string
 	Format          string
+	Audience        string
+	EventType       string
 	StartsAt        time.Time
 	EndsAt          time.Time
 	Timezone        string
@@ -129,7 +161,8 @@ type CreateInput struct {
 	OnlineURL       string
 	PrivatePassword string
 	Capacity        *int
-	IsPaid          bool
+	// Cost is free, paid, or unspecified. Empty is stored as unspecified.
+	Cost            string
 	PaymentNote     string
 	PaymentURL      string
 	RecurrenceRule  string
@@ -153,6 +186,8 @@ type UpdateInput struct {
 	GameIDs         []string
 	Visibility      string
 	Format          string
+	Audience        string
+	EventType       string
 	StartsAt        time.Time
 	EndsAt          time.Time
 	Timezone        string
@@ -161,9 +196,10 @@ type UpdateInput struct {
 	OnlineURL       string
 	PrivatePassword string
 	Capacity        *int
-	IsPaid          bool
-	PaymentNote     string
-	PaymentURL      string
+	// Cost is free, paid, or unspecified. Empty is stored as unspecified.
+	Cost        string
+	PaymentNote string
+	PaymentURL  string
 }
 
 type UpdateParams struct {

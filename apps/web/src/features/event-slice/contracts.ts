@@ -18,6 +18,28 @@ const idempotencyKeySchema = z.uuid("Reload the page and try again.");
 
 export const eventRSVPSchema = z.enum(["yes", "maybe", "no"]);
 export const eventFormatSchema = z.enum(["online", "in_person", "hybrid"]);
+export const eventAudienceSchema = z.enum(
+  ["open", "collegiate", "campus", "members"],
+  "Choose who this event is for.",
+);
+export const eventTypeSchema = z.enum(
+  [
+    "game_night",
+    "lan",
+    "tournament",
+    "watch_party",
+    "tryout",
+    "meeting",
+    "workshop",
+    "other",
+  ],
+  "Choose an event type.",
+);
+// "unspecified" means the organizer did not say; it is not the same as free.
+export const eventCostSchema = z.enum(
+  ["free", "paid", "unspecified"],
+  "Choose whether the event is free, paid, or not specified.",
+);
 export const eventVisibilitySchema = z.enum(["public", "unlisted", "private"]);
 export const recurrenceRuleSchema = z.enum(["weekly", "biweekly", "monthly"]);
 
@@ -55,6 +77,10 @@ export const eventDtoSchema = z.object({
   description: z.string(),
   visibility: z.enum(["public", "unlisted", "private"]),
   format: eventFormatSchema,
+  // Absent on events created before the audience field existed.
+  audience: eventAudienceSchema.optional(),
+  // Absent on events created before the type field existed.
+  event_type: eventTypeSchema.optional(),
   starts_at: timestampSchema,
   ends_at: timestampSchema,
   timezone: identifierSchema,
@@ -67,7 +93,7 @@ export const eventDtoSchema = z.object({
   lifecycle: z.enum(["upcoming", "happening_now", "ended", "full"]),
   recurrence_rule: z.enum(["weekly", "biweekly", "monthly"]).optional(),
   recurrence_until: timestampSchema.optional(),
-  is_paid: z.boolean(),
+  cost: eventCostSchema,
   payment_note: z.string().optional(),
   payment_url: z.string().optional(),
   host_school: schoolSummarySchema,
@@ -94,6 +120,10 @@ export const eventBrowseItemDtoSchema = z.object({
   title: z.string(),
   slug: identifierSchema,
   format: eventFormatSchema,
+  // Absent on events created before the audience field existed.
+  audience: eventAudienceSchema.optional(),
+  // Absent on events created before the type field existed.
+  event_type: eventTypeSchema.optional(),
   starts_at: timestampSchema,
   ends_at: timestampSchema,
   timezone: identifierSchema,
@@ -101,6 +131,7 @@ export const eventBrowseItemDtoSchema = z.object({
   address: z.string().optional(),
   online_url: z.string().optional(),
   lifecycle: z.enum(["upcoming", "happening_now", "ended", "full"]),
+  cost: eventCostSchema,
   host_school: z.object({ name: z.string() }),
   games: z.array(z.object({ name: z.string() })),
   rsvp_yes_count: nonNegativeIntegerSchema,
@@ -124,6 +155,9 @@ export const eventsBrowseInputSchema = z.object({
   game: eventFilterSchema.optional(),
   school: eventFilterSchema.optional(),
   format: eventFormatSchema.optional(),
+  audience: eventAudienceSchema.optional(),
+  type: eventTypeSchema.optional(),
+  cost: z.literal("free").optional(),
   after: eventCursorSchema.optional(),
   before: eventCursorSchema.optional(),
 });
@@ -201,6 +235,8 @@ const eventMutableInputSchema = z.object({
   other_game: otherGameSchema,
   visibility: eventVisibilitySchema,
   format: eventFormatSchema,
+  audience: eventAudienceSchema,
+  event_type: eventTypeSchema,
   starts_at: localDateTimeSchema,
   ends_at: localDateTimeSchema,
   timezone: timeZoneSchema,
@@ -216,7 +252,7 @@ const eventMutableInputSchema = z.object({
     .int()
     .positive("Capacity must be a positive whole number.")
     .optional(),
-  is_paid: z.boolean(),
+  cost: eventCostSchema,
   payment_note: optionalText("Payment note", 1000),
   payment_url: optionalHTTPURL("Payment URL", 500),
 });
@@ -430,6 +466,12 @@ export function validateEventsSearch(
   const school = boundedSearchValue(search.school, eventFilterSchema);
   const formatCandidate = boundedSearchValue(search.format, eventFilterSchema);
   const format = eventFormatSchema.safeParse(formatCandidate);
+  const audience = eventAudienceSchema.safeParse(
+    boundedSearchValue(search.audience, eventFilterSchema),
+  );
+  const type = eventTypeSchema.safeParse(
+    boundedSearchValue(search.type, eventFilterSchema),
+  );
   const after = boundedSearchValue(search.after, eventCursorSchema);
   const before = boundedSearchValue(search.before, eventCursorSchema);
   const event = pageNoticeKey(eventBrowseNotices, search.event);
@@ -438,6 +480,9 @@ export function validateEventsSearch(
     ...(game ? { game } : {}),
     ...(school ? { school } : {}),
     ...(format.success ? { format: format.data } : {}),
+    ...(audience.success ? { audience: audience.data } : {}),
+    ...(type.success ? { type: type.data } : {}),
+    ...(search.cost === "free" ? { cost: "free" as const } : {}),
     ...(after ? { after } : {}),
     ...(before ? { before } : {}),
     ...(event ? { event } : {}),
@@ -449,6 +494,9 @@ export function eventsBrowseInput(search: EventsSearch): EventsBrowseInput {
     ...(search.game ? { game: search.game } : {}),
     ...(search.school ? { school: search.school } : {}),
     ...(search.format ? { format: search.format } : {}),
+    ...(search.audience ? { audience: search.audience } : {}),
+    ...(search.type ? { type: search.type } : {}),
+    ...(search.cost ? { cost: search.cost } : {}),
     ...(search.after ? { after: search.after } : {}),
     ...(search.before ? { before: search.before } : {}),
   };
@@ -599,6 +647,8 @@ function eventWriteCandidate(
     other_game: normalizedInputValue(input, "other_game"),
     visibility: normalizedInputValue(input, "visibility"),
     format: normalizedInputValue(input, "format"),
+    audience: normalizedInputValue(input, "audience"),
+    event_type: normalizedInputValue(input, "event_type"),
     starts_at: normalizedInputValue(input, "starts_at"),
     ends_at: normalizedInputValue(input, "ends_at"),
     timezone: normalizedInputValue(input, "timezone") || "America/Los_Angeles",
@@ -607,7 +657,7 @@ function eventWriteCandidate(
     online_url: normalizedInputValue(input, "online_url"),
     private_password: normalizedInputValue(input, "private_password"),
     capacity: normalizedCapacity(input),
-    is_paid: normalizedCheckbox(input, "is_paid"),
+    cost: normalizedInputValue(input, "cost") || "unspecified",
     payment_note: normalizedInputValue(input, "payment_note"),
     payment_url: normalizedInputValue(input, "payment_url"),
     ...(hasInputField(input, "recurrence_rule")
@@ -799,11 +849,6 @@ function normalizedCapacity(input: FormData | object): number | undefined {
         : undefined;
   if (value === undefined || value === null || value === "") return undefined;
   return typeof value === "number" ? value : Number(value);
-}
-
-function normalizedCheckbox(input: FormData | object, name: string): boolean {
-  if (input instanceof FormData) return input.has(name);
-  return name in input && Reflect.get(input, name) === true;
 }
 
 function hasInputField(input: FormData | object, name: string): boolean {

@@ -94,7 +94,7 @@ would add a second description of each endpoint to maintain.
 
 - **US launch only** — international schools are out of scope at launch.
 - **Not yet scheduled** — clubs, tournaments, on-site payments, usernames, waitlists, invite links, feature flags, near-you, custom event banners. Admin Console v1 is in progress but remains release-gated and undeployed.
-- **Events ≠ tournaments** — events are things you attend; tournaments (later) are competitions you enter.
+- **Events ≠ tournaments** — events are things you attend; tournaments (later) are competitions you enter. An event's `tournament` type is a label for browse only: it adds no brackets, entries, or standings and is not the Tournaments entity.
 - **Clubs ≠ teams** — clubs (later) belong to schools; teams are supported now (public pages; password to join).
 - **Event visibility** — `public` · `unlisted` · `private` (blurred/gated + password modal).
 - **RSVP vs interested** — RSVP = yes/no/maybe; interested = favorite (separate).

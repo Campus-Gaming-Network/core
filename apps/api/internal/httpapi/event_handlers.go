@@ -22,6 +22,8 @@ type createEventRequest struct {
 	GameIDs         []string           `json:"game_ids"`
 	Visibility      string             `json:"visibility"`
 	Format          string             `json:"format"`
+	Audience        string             `json:"audience"`
+	EventType       string             `json:"event_type"`
 	StartsAt        time.Time          `json:"starts_at"`
 	EndsAt          time.Time          `json:"ends_at"`
 	Timezone        string             `json:"timezone"`
@@ -30,7 +32,7 @@ type createEventRequest struct {
 	OnlineURL       string             `json:"online_url"`
 	PrivatePassword string             `json:"private_password"`
 	Capacity        *int               `json:"capacity"`
-	IsPaid          bool               `json:"is_paid"`
+	Cost            string             `json:"cost"`
 	PaymentNote     string             `json:"payment_note"`
 	PaymentURL      string             `json:"payment_url"`
 	RecurrenceRule  optionalJSONString `json:"recurrence_rule"`
@@ -436,6 +438,8 @@ func createEventInputFromRequest(request createEventRequest, userID string) even
 		GameIDs:         request.GameIDs,
 		Visibility:      request.Visibility,
 		Format:          request.Format,
+		Audience:        request.Audience,
+		EventType:       request.EventType,
 		StartsAt:        request.StartsAt,
 		EndsAt:          request.EndsAt,
 		Timezone:        request.Timezone,
@@ -444,7 +448,7 @@ func createEventInputFromRequest(request createEventRequest, userID string) even
 		OnlineURL:       request.OnlineURL,
 		PrivatePassword: request.PrivatePassword,
 		Capacity:        request.Capacity,
-		IsPaid:          request.IsPaid,
+		Cost:            request.Cost,
 		PaymentNote:     request.PaymentNote,
 		PaymentURL:      request.PaymentURL,
 		RecurrenceRule:  strings.TrimSpace(request.RecurrenceRule.value),
@@ -461,6 +465,8 @@ func updateEventInputFromRequest(request createEventRequest, slug string, userID
 		GameIDs:         request.GameIDs,
 		Visibility:      request.Visibility,
 		Format:          request.Format,
+		Audience:        request.Audience,
+		EventType:       request.EventType,
 		StartsAt:        request.StartsAt,
 		EndsAt:          request.EndsAt,
 		Timezone:        request.Timezone,
@@ -469,7 +475,7 @@ func updateEventInputFromRequest(request createEventRequest, slug string, userID
 		OnlineURL:       request.OnlineURL,
 		PrivatePassword: request.PrivatePassword,
 		Capacity:        request.Capacity,
-		IsPaid:          request.IsPaid,
+		Cost:            request.Cost,
 		PaymentNote:     request.PaymentNote,
 		PaymentURL:      request.PaymentURL,
 	}

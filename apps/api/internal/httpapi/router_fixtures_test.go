@@ -741,13 +741,15 @@ func validCreateEventJSON(visibility string, privatePassword string) string {
 		"game_ids":["44444444-4444-4444-4444-444444444444"],
 		"visibility":"` + visibility + `",
 		"format":"in_person",
+		"audience":"campus",
+		"event_type":"lan",
 		"starts_at":"2026-08-15T20:00:00Z",
 		"ends_at":"2026-08-15T22:00:00Z",
 		"timezone":"America/Los_Angeles",
 		"location_name":"Student Union",
 		"address":"1 Campus Way",
 		"capacity":24,
-		"is_paid":true,
+		"cost":"paid",
 		"payment_note":"Pay at the venue.",
 		"payment_url":"https://payments.example.test/scrim-night"` + passwordField + `
 	}`

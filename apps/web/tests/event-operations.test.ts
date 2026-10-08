@@ -28,7 +28,7 @@ const event = {
   rsvp_yes_count: 3,
   interest_count: 4,
   lifecycle: "upcoming",
-  is_paid: false,
+  cost: "unspecified",
   host_school: { id: "school-1", name: "Example University", slug: "example" },
   games: [{ id: "game-1", name: "Example Game", slug: "example-game" }],
 };

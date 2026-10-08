@@ -44,7 +44,7 @@ const event = {
   rsvp_yes_count: 2,
   interest_count: 4,
   lifecycle: "upcoming" as const,
-  is_paid: false,
+  cost: "unspecified" as const,
   host_school: school,
   games: [game],
   viewer_can_edit: true,
@@ -62,6 +62,8 @@ function validEventForm(): FormData {
   form.append("game_ids", ` ${game.id} `);
   form.set("visibility", "public");
   form.set("format", "in_person");
+  form.set("audience", "campus");
+  form.set("event_type", "lan");
   form.set("starts_at", "2037-02-19T21:00");
   form.set("ends_at", "2037-02-20T00:00");
   form.set("timezone", "America/New_York");
@@ -70,7 +72,7 @@ function validEventForm(): FormData {
   form.set("online_url", "");
   form.set("private_password", "");
   form.set("capacity", "32");
-  form.set("is_paid", "on");
+  form.set("cost", "paid");
   form.set("payment_note", "");
   form.set("payment_url", "");
   form.set("idempotency_key", idempotencyKey);
@@ -94,6 +96,8 @@ test("event create validation normalizes payloads, local times, and recurrence",
     other_game: "",
     visibility: "public",
     format: "in_person",
+    audience: "campus",
+    event_type: "lan",
     starts_at: "2037-02-20T02:00:00.000Z",
     ends_at: "2037-02-20T05:00:00.000Z",
     timezone: "America/New_York",
@@ -102,12 +106,70 @@ test("event create validation normalizes payloads, local times, and recurrence",
     online_url: "",
     private_password: "",
     capacity: 32,
-    is_paid: true,
+    cost: "paid",
     payment_note: "",
     payment_url: "",
     recurrence_rule: "weekly",
     recurrence_until: "2037-03-19",
     idempotency_key: idempotencyKey,
+  });
+});
+
+test("event create and update require an audience", () => {
+  const create = validEventForm();
+  create.set("recurrence_rule", "");
+  const update = validEventForm();
+  update.set("slug", "campus-tournament");
+  for (const audience of ["", "everyone"]) {
+    create.set("audience", audience);
+    update.set("audience", audience);
+    for (const result of [
+      validateCreateEventServerInput(create),
+      validateUpdateEventServerInput(update),
+    ]) {
+      assert.equal(result.valid, false);
+      if (result.valid) assert.fail("event without an audience was accepted");
+      assert.deepEqual(result.fieldErrors, {
+        audience: ["Choose who this event is for."],
+      });
+    }
+  }
+});
+
+test("event create and update require an event type", () => {
+  const create = validEventForm();
+  create.set("recurrence_rule", "");
+  const update = validEventForm();
+  update.set("slug", "campus-tournament");
+  for (const eventType of ["", "bracket"]) {
+    create.set("event_type", eventType);
+    update.set("event_type", eventType);
+    for (const result of [
+      validateCreateEventServerInput(create),
+      validateUpdateEventServerInput(update),
+    ]) {
+      assert.equal(result.valid, false);
+      if (result.valid) assert.fail("event without a type was accepted");
+      assert.deepEqual(result.fieldErrors, {
+        event_type: ["Choose an event type."],
+      });
+    }
+  }
+});
+
+test("event cost is unspecified unless the organizer says and rejects unknown values", () => {
+  const form = validEventForm();
+  form.set("recurrence_rule", "");
+  form.delete("cost");
+  const unsaid = validateCreateEventServerInput(form);
+  if (!unsaid.valid) assert.fail("event without a cost was rejected");
+  assert.equal(unsaid.value.cost, "unspecified");
+
+  form.set("cost", "donation");
+  const unknown = validateCreateEventServerInput(form);
+  if (unknown.valid) assert.fail("unknown cost was accepted");
+  assert.deepEqual(unknown.fieldErrors, {
+    cost: ["Choose whether the event is free, paid, or not specified."],
   });
 });
 
@@ -584,6 +646,8 @@ function validPayload(): EventMutationPayload {
     other_game: "",
     visibility: "public",
     format: "in_person",
+    audience: "campus",
+    event_type: "lan",
     starts_at: "2037-02-20T02:00:00.000Z",
     ends_at: "2037-02-20T05:00:00.000Z",
     timezone: "America/Los_Angeles",
@@ -592,7 +656,7 @@ function validPayload(): EventMutationPayload {
     online_url: "",
     private_password: "",
     capacity: 32,
-    is_paid: false,
+    cost: "unspecified",
     payment_note: "",
     payment_url: "",
   };
