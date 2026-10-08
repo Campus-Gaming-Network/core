@@ -40,11 +40,12 @@ export function EventCard({ event }: { event: EventBrowseItemDTO }) {
           {event.games.map((game) => game.name).join(", ")}
         </small>
         <small>{eventLocation(event)}</small>
-        {event.event_type || event.audience ? (
+        {event.event_type || event.audience || event.cost === "free" ? (
           <small>
             {[
               event.event_type && eventTypeLabels[event.event_type],
               event.audience && eventAudienceLabels[event.audience],
+              event.cost === "free" && "Free",
             ]
               .filter(Boolean)
               .join(" · ")}

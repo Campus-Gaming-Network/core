@@ -35,6 +35,11 @@ export const eventTypeSchema = z.enum(
   ],
   "Choose an event type.",
 );
+// "unspecified" means the organizer did not say; it is not the same as free.
+export const eventCostSchema = z.enum(
+  ["free", "paid", "unspecified"],
+  "Choose whether the event is free, paid, or not specified.",
+);
 export const eventVisibilitySchema = z.enum(["public", "unlisted", "private"]);
 export const recurrenceRuleSchema = z.enum(["weekly", "biweekly", "monthly"]);
 
@@ -88,7 +93,7 @@ export const eventDtoSchema = z.object({
   lifecycle: z.enum(["upcoming", "happening_now", "ended", "full"]),
   recurrence_rule: z.enum(["weekly", "biweekly", "monthly"]).optional(),
   recurrence_until: timestampSchema.optional(),
-  is_paid: z.boolean(),
+  cost: eventCostSchema,
   payment_note: z.string().optional(),
   payment_url: z.string().optional(),
   host_school: schoolSummarySchema,
@@ -126,6 +131,7 @@ export const eventBrowseItemDtoSchema = z.object({
   address: z.string().optional(),
   online_url: z.string().optional(),
   lifecycle: z.enum(["upcoming", "happening_now", "ended", "full"]),
+  cost: eventCostSchema,
   host_school: z.object({ name: z.string() }),
   games: z.array(z.object({ name: z.string() })),
   rsvp_yes_count: nonNegativeIntegerSchema,
@@ -151,6 +157,7 @@ export const eventsBrowseInputSchema = z.object({
   format: eventFormatSchema.optional(),
   audience: eventAudienceSchema.optional(),
   type: eventTypeSchema.optional(),
+  cost: z.literal("free").optional(),
   after: eventCursorSchema.optional(),
   before: eventCursorSchema.optional(),
 });
@@ -245,7 +252,7 @@ const eventMutableInputSchema = z.object({
     .int()
     .positive("Capacity must be a positive whole number.")
     .optional(),
-  is_paid: z.boolean(),
+  cost: eventCostSchema,
   payment_note: optionalText("Payment note", 1000),
   payment_url: optionalHTTPURL("Payment URL", 500),
 });
@@ -475,6 +482,7 @@ export function validateEventsSearch(
     ...(format.success ? { format: format.data } : {}),
     ...(audience.success ? { audience: audience.data } : {}),
     ...(type.success ? { type: type.data } : {}),
+    ...(search.cost === "free" ? { cost: "free" as const } : {}),
     ...(after ? { after } : {}),
     ...(before ? { before } : {}),
     ...(event ? { event } : {}),
@@ -488,6 +496,7 @@ export function eventsBrowseInput(search: EventsSearch): EventsBrowseInput {
     ...(search.format ? { format: search.format } : {}),
     ...(search.audience ? { audience: search.audience } : {}),
     ...(search.type ? { type: search.type } : {}),
+    ...(search.cost ? { cost: search.cost } : {}),
     ...(search.after ? { after: search.after } : {}),
     ...(search.before ? { before: search.before } : {}),
   };
@@ -648,7 +657,7 @@ function eventWriteCandidate(
     online_url: normalizedInputValue(input, "online_url"),
     private_password: normalizedInputValue(input, "private_password"),
     capacity: normalizedCapacity(input),
-    is_paid: normalizedCheckbox(input, "is_paid"),
+    cost: normalizedInputValue(input, "cost") || "unspecified",
     payment_note: normalizedInputValue(input, "payment_note"),
     payment_url: normalizedInputValue(input, "payment_url"),
     ...(hasInputField(input, "recurrence_rule")
@@ -840,11 +849,6 @@ function normalizedCapacity(input: FormData | object): number | undefined {
         : undefined;
   if (value === undefined || value === null || value === "") return undefined;
   return typeof value === "number" ? value : Number(value);
-}
-
-function normalizedCheckbox(input: FormData | object, name: string): boolean {
-  if (input instanceof FormData) return input.has(name);
-  return name in input && Reflect.get(input, name) === true;
 }
 
 function hasInputField(input: FormData | object, name: string): boolean {

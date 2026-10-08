@@ -44,7 +44,7 @@ const event = {
   rsvp_yes_count: 2,
   interest_count: 4,
   lifecycle: "upcoming" as const,
-  is_paid: false,
+  cost: "unspecified" as const,
   host_school: school,
   games: [game],
   viewer_can_edit: true,
@@ -72,7 +72,7 @@ function validEventForm(): FormData {
   form.set("online_url", "");
   form.set("private_password", "");
   form.set("capacity", "32");
-  form.set("is_paid", "on");
+  form.set("cost", "paid");
   form.set("payment_note", "");
   form.set("payment_url", "");
   form.set("idempotency_key", idempotencyKey);
@@ -106,7 +106,7 @@ test("event create validation normalizes payloads, local times, and recurrence",
     online_url: "",
     private_password: "",
     capacity: 32,
-    is_paid: true,
+    cost: "paid",
     payment_note: "",
     payment_url: "",
     recurrence_rule: "weekly",
@@ -155,6 +155,22 @@ test("event create and update require an event type", () => {
       });
     }
   }
+});
+
+test("event cost is unspecified unless the organizer says and rejects unknown values", () => {
+  const form = validEventForm();
+  form.set("recurrence_rule", "");
+  form.delete("cost");
+  const unsaid = validateCreateEventServerInput(form);
+  if (!unsaid.valid) assert.fail("event without a cost was rejected");
+  assert.equal(unsaid.value.cost, "unspecified");
+
+  form.set("cost", "donation");
+  const unknown = validateCreateEventServerInput(form);
+  if (unknown.valid) assert.fail("unknown cost was accepted");
+  assert.deepEqual(unknown.fieldErrors, {
+    cost: ["Choose whether the event is free, paid, or not specified."],
+  });
 });
 
 test("event update rejects recurrence fields and create enforces relationships and DST", () => {
@@ -640,7 +656,7 @@ function validPayload(): EventMutationPayload {
     online_url: "",
     private_password: "",
     capacity: 32,
-    is_paid: false,
+    cost: "unspecified",
     payment_note: "",
     payment_url: "",
   };

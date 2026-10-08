@@ -749,7 +749,7 @@ func validCreateEventJSON(visibility string, privatePassword string) string {
 		"location_name":"Student Union",
 		"address":"1 Campus Way",
 		"capacity":24,
-		"is_paid":true,
+		"cost":"paid",
 		"payment_note":"Pay at the venue.",
 		"payment_url":"https://payments.example.test/scrim-night"` + passwordField + `
 	}`

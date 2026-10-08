@@ -32,7 +32,7 @@ type createEventRequest struct {
 	OnlineURL       string             `json:"online_url"`
 	PrivatePassword string             `json:"private_password"`
 	Capacity        *int               `json:"capacity"`
-	IsPaid          bool               `json:"is_paid"`
+	Cost            string             `json:"cost"`
 	PaymentNote     string             `json:"payment_note"`
 	PaymentURL      string             `json:"payment_url"`
 	RecurrenceRule  optionalJSONString `json:"recurrence_rule"`
@@ -448,7 +448,7 @@ func createEventInputFromRequest(request createEventRequest, userID string) even
 		OnlineURL:       request.OnlineURL,
 		PrivatePassword: request.PrivatePassword,
 		Capacity:        request.Capacity,
-		IsPaid:          request.IsPaid,
+		Cost:            request.Cost,
 		PaymentNote:     request.PaymentNote,
 		PaymentURL:      request.PaymentURL,
 		RecurrenceRule:  strings.TrimSpace(request.RecurrenceRule.value),
@@ -475,7 +475,7 @@ func updateEventInputFromRequest(request createEventRequest, slug string, userID
 		OnlineURL:       request.OnlineURL,
 		PrivatePassword: request.PrivatePassword,
 		Capacity:        request.Capacity,
-		IsPaid:          request.IsPaid,
+		Cost:            request.Cost,
 		PaymentNote:     request.PaymentNote,
 		PaymentURL:      request.PaymentURL,
 	}

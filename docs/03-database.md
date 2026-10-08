@@ -10,7 +10,7 @@ PostgreSQL is the system of record. Conventions first; then core tables. Exact c
 | Timestamps      | Every table has `created_at`, `updated_at`, `deleted_at` (nullable)                                                                                                                                                                             |
 | Soft deletes    | Default for user-facing rows; queries filter `deleted_at IS NULL` unless admin/history                                                                                                                                                          |
 | Time storage    | Store instants in UTC (`timestamptz`); display in user timezone in app layer                                                                                                                                                                    |
-| Money           | May list paid/off-site-payment events, but CGN does not process payment. Store only lightweight display fields such as `is_paid`, `payment_note`, and optional `payment_url`; use integer cents + currency only if on-site payments ship later. |
+| Money           | May list paid/off-site-payment events, but CGN does not process payment. Store only lightweight display fields such as `cost`, `payment_note`, and an optional `payment_url`; use integer cents + currency only if on-site payments ship later. |
 | Slugs           | Unique URL keys: `schools.slug`; `events.slug` — events use `slugify(title)-` + **8** Base64URL chars of SHA-256(creatorId\|date\|title)                                                                                                        |
 | Images          | Event banners use default placeholder for now; school `logo_url` comes later via Admin Console upload (PNG/JPG only; max 5 MB)                                                                                                                  |
 | Idempotency     | `events`, `teams`, `reports`, and `support_tickets` have a nullable, unique `idempotency_key` UUID. A create request that repeats a key returns the existing row. Recurring occurrences leave it null; only the series root carries the key.    |
@@ -156,7 +156,10 @@ events
                               -- 'tournament' is a label, not a tournament record
   audience nullable (open|collegiate|campus|members),
                               -- who the event is for; null only on events created before the column
-  is_paid boolean default false, payment_note nullable, payment_url nullable,
+  cost (free|paid|unspecified) default unspecified,
+                              -- unspecified = the organizer did not say; never treated as free.
+                              -- Replaced is_paid: true became paid, everything else unspecified
+  payment_note nullable, payment_url nullable,  -- shown for paid events only
                               -- organizer handles any payment off-site; no CGN checkout/payment records
   location_address, location_lat, location_lng,
   starts_at, ends_at, registration_closes_at,

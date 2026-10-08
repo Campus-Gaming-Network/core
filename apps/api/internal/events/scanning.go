@@ -46,7 +46,7 @@ func scanEvent(scanner eventScanner, now time.Time) (Event, error) {
 		&address,
 		&onlineURL,
 		&capacity,
-		&event.IsPaid,
+		&event.Cost,
 		&paymentNote,
 		&paymentURL,
 		&recurrenceRule,
@@ -145,7 +145,7 @@ func scanEventForUser(scanner eventScanner, now time.Time) (Event, error) {
 		&address,
 		&onlineURL,
 		&capacity,
-		&event.IsPaid,
+		&event.Cost,
 		&paymentNote,
 		&paymentURL,
 		&recurrenceRule,
@@ -222,7 +222,7 @@ func eventSelectSQL(whereClause string, tailClause string) string {
 	return `
 		SELECT e.id::text, e.title, e.slug, e.description, e.visibility,
 		       e.format, e.starts_at, e.ends_at, e.timezone,
-		       e.location_name, e.address, e.online_url, e.capacity, e.is_paid,
+		       e.location_name, e.address, e.online_url, e.capacity, e.cost,
 		       e.payment_note, e.payment_url,
 		       e.recurrence_rule, e.recurrence_until, e.audience, e.event_type,
 		       s.id::text, s.name, s.slug, COALESCE(s.city, ''), COALESCE(s.state, ''),
@@ -260,7 +260,7 @@ func eventSelectSQL(whereClause string, tailClause string) string {
 		WHERE ` + whereClause + `
 		GROUP BY e.id, e.title, e.slug, e.description, e.visibility,
 		         e.format, e.starts_at, e.ends_at, e.timezone,
-		         e.location_name, e.address, e.online_url, e.capacity, e.is_paid,
+		         e.location_name, e.address, e.online_url, e.capacity, e.cost,
 		         e.payment_note, e.payment_url, e.recurrence_rule, e.recurrence_until, e.audience,
 		         e.event_type,
 		         s.id, s.name, s.slug, s.city, s.state, yes_counts.yes_count,
@@ -272,7 +272,7 @@ func eventSelectForUserSQL(whereClause string, tailClause string) string {
 	return `
 		SELECT e.id::text, e.title, e.slug, e.description, e.visibility,
 		       e.format, e.starts_at, e.ends_at, e.timezone,
-		       e.location_name, e.address, e.online_url, e.capacity, e.is_paid,
+		       e.location_name, e.address, e.online_url, e.capacity, e.cost,
 		       e.payment_note, e.payment_url,
 		       e.recurrence_rule, e.recurrence_until, e.audience, e.event_type,
 		       s.id::text, s.name, s.slug, COALESCE(s.city, ''), COALESCE(s.state, ''),
@@ -318,7 +318,7 @@ func eventSelectForUserSQL(whereClause string, tailClause string) string {
 		WHERE ` + whereClause + `
 		GROUP BY e.id, e.title, e.slug, e.description, e.visibility,
 		         e.format, e.starts_at, e.ends_at, e.timezone,
-		         e.location_name, e.address, e.online_url, e.capacity, e.is_paid,
+		         e.location_name, e.address, e.online_url, e.capacity, e.cost,
 		         e.payment_note, e.payment_url, e.recurrence_rule, e.recurrence_until, e.audience,
 		         e.event_type,
 		         s.id, s.name, s.slug, s.city, s.state, yes_counts.yes_count,

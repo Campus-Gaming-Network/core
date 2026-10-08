@@ -95,7 +95,7 @@ func (r *PostgresRepository) Update(ctx context.Context, params UpdateParams) (E
 		    online_url = NULLIF($12, ''),
 		    private_password_hash = NULLIF($13, ''),
 		    capacity = $14,
-		    is_paid = $15,
+		    cost = $15,
 		    payment_note = NULLIF($16, ''),
 		    payment_url = NULLIF($17, ''),
 		    audience = $18,
@@ -109,7 +109,7 @@ func (r *PostgresRepository) Update(ctx context.Context, params UpdateParams) (E
 	`, eventID, params.HostSchoolID, params.Title, params.Description, params.Visibility,
 		params.Format, params.StartsAt, params.EndsAt, params.Timezone, params.LocationName,
 		params.Address, params.OnlineURL, privatePasswordHash, nullableInt(params.Capacity),
-		params.IsPaid, params.PaymentNote, params.PaymentURL, params.Audience,
+		params.Cost, params.PaymentNote, params.PaymentURL, params.Audience,
 		params.EventType).Scan(&slug)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Event{}, ErrHostSchoolNotFound

@@ -604,6 +604,7 @@ func (r *Router) handleEvents(w http.ResponseWriter, req *http.Request) {
 		Format:     req.URL.Query().Get("format"),
 		Audience:   req.URL.Query().Get("audience"),
 		EventType:  req.URL.Query().Get("type"),
+		Cost:       req.URL.Query().Get("cost"),
 		Limit:      limit + 1,
 		After:      after,
 		Before:     before,

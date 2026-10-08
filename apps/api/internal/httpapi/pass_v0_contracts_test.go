@@ -452,6 +452,7 @@ var profileContractKeys = []string{
 }
 
 var eventContractKeys = []string{
+	"cost",
 	"description",
 	"ends_at",
 	"format",
@@ -459,7 +460,6 @@ var eventContractKeys = []string{
 	"host_school",
 	"id",
 	"interest_count",
-	"is_paid",
 	"lifecycle",
 	"rsvp_yes_count",
 	"slug",

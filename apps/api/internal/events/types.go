@@ -52,6 +52,12 @@ const (
 	LifecycleEnded        = "ended"
 	LifecycleFull         = "full"
 
+	// CostUnspecified means the organizer did not say whether the event costs
+	// anything. It is not the same as free.
+	CostFree        = "free"
+	CostPaid        = "paid"
+	CostUnspecified = "unspecified"
+
 	RSVPYes   = "yes"
 	RSVPMaybe = "maybe"
 	RSVPNo    = "no"
@@ -86,7 +92,7 @@ type Event struct {
 	Lifecycle        string        `json:"lifecycle"`
 	RecurrenceRule   string        `json:"recurrence_rule,omitempty"`
 	RecurrenceUntil  *time.Time    `json:"recurrence_until,omitempty"`
-	IsPaid           bool          `json:"is_paid"`
+	Cost             string        `json:"cost"`
 	PaymentNote      string        `json:"payment_note,omitempty"`
 	PaymentURL       string        `json:"payment_url,omitempty"`
 	HostSchool       SchoolSummary `json:"host_school"`
@@ -131,6 +137,7 @@ type ListParams struct {
 	Format     string
 	Audience   string
 	EventType  string
+	Cost       string
 	Limit      int
 	After      *pagecursor.Cursor
 	Before     *pagecursor.Cursor
@@ -154,7 +161,8 @@ type CreateInput struct {
 	OnlineURL       string
 	PrivatePassword string
 	Capacity        *int
-	IsPaid          bool
+	// Cost is free, paid, or unspecified. Empty is stored as unspecified.
+	Cost            string
 	PaymentNote     string
 	PaymentURL      string
 	RecurrenceRule  string
@@ -188,9 +196,10 @@ type UpdateInput struct {
 	OnlineURL       string
 	PrivatePassword string
 	Capacity        *int
-	IsPaid          bool
-	PaymentNote     string
-	PaymentURL      string
+	// Cost is free, paid, or unspecified. Empty is stored as unspecified.
+	Cost        string
+	PaymentNote string
+	PaymentURL  string
 }
 
 type UpdateParams struct {

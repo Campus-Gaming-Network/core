@@ -123,6 +123,15 @@ func TestValidateCreateInputRequiresEventType(t *testing.T) {
 	}
 }
 
+func TestValidateCreateInputRejectsUnknownCost(t *testing.T) {
+	err := ValidateCreateInput(validCreateInput(func(input *CreateInput) {
+		input.Cost = "donation"
+	}))
+	if err == nil {
+		t.Fatal("ValidateCreateInput() error = nil for an unknown cost, want validation error")
+	}
+}
+
 func TestValidateCreateInputRejectsInvalidCapacityAndPaymentURL(t *testing.T) {
 	zero := 0
 	for _, input := range []CreateInput{
