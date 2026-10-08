@@ -255,8 +255,12 @@ test("event audience is chosen, shown, and filtered without JavaScript", async (
   await page.goto("/events");
   const campusCard = page.getByRole("link", { name: /Campus Only Scrim/ });
   const openCard = page.getByRole("link", { name: /Everyone Welcome Scrim/ });
-  await expect(campusCard.getByText("Host campus only")).toBeVisible();
-  await expect(openCard.getByText("Open to everyone")).toBeVisible();
+  await expect(campusCard.locator(".event-pill--audience")).toHaveText(
+    "Host campus only",
+  );
+  await expect(openCard.locator(".event-pill--audience")).toHaveText(
+    "Open to everyone",
+  );
 
   await page.getByLabel("Filter events by audience").selectOption("open");
   await page.getByRole("button", { name: "Filter" }).click();

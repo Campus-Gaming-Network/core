@@ -49,6 +49,7 @@ import {
 } from "../features/event-slice/event.functions";
 import { getEventViewerSession } from "../features/event-slice/auth.functions";
 import { EventBanner } from "../features/event-slice/event-banner";
+import { EventFacts } from "../features/event-slice/event-facts";
 import type {
   EventDTO,
   EventDetailDTO,
@@ -56,9 +57,6 @@ import type {
 } from "../features/event-slice/contracts";
 import {
   eventDetailNotices,
-  eventAudienceLabels,
-  eventFormatLabel,
-  eventTypeLabels,
   eventLifecycleLabel,
   eventLocation,
   eventRSVPLabel,
@@ -325,14 +323,7 @@ function VisibleEventView({
               </StatusLabel>
             ) : null}
             <StatusLabel>{eventVisibilityLabel(event.visibility)}</StatusLabel>
-            <StatusLabel>{eventFormatLabel(event.format)}</StatusLabel>
-            {event.event_type ? (
-              <StatusLabel>{eventTypeLabels[event.event_type]}</StatusLabel>
-            ) : null}
-            {event.audience ? (
-              <StatusLabel>{eventAudienceLabels[event.audience]}</StatusLabel>
-            ) : null}
-            {event.cost === "free" ? <StatusLabel>Free</StatusLabel> : null}
+            <EventFacts event={event} />
           </div>
           <h1>{event.title}</h1>
           <p className="event-hostline">

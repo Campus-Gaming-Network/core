@@ -53,15 +53,9 @@ test("free events say so and can be filtered; paid events keep their note", asyn
   const freeCard = page.getByRole("link", { name: /Free Play Friday/ });
   const paidCard = page.getByRole("link", { name: /Ticketed Finals/ });
   const unsaidCard = page.getByRole("link", { name: /Cost Unsaid Meetup/ });
-  await expect(
-    freeCard.getByText("Game night · Open to everyone · Free"),
-  ).toBeVisible();
-  await expect(
-    paidCard.getByText("Game night · Open to everyone", { exact: true }),
-  ).toBeVisible();
-  await expect(
-    unsaidCard.getByText("Game night · Open to everyone", { exact: true }),
-  ).toBeVisible();
+  await expect(freeCard.locator(".event-pill--cost")).toHaveText("Free");
+  await expect(paidCard.locator(".event-pill--cost")).toHaveCount(0);
+  await expect(unsaidCard.locator(".event-pill--cost")).toHaveCount(0);
 
   await page.getByLabel("Filter events by cost").selectOption("free");
   await page.getByRole("button", { name: "Filter" }).click();
