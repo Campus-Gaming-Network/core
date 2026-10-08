@@ -23,6 +23,10 @@ func NormalizeListParams(params ListParams) ListParams {
 	if !validAudience(params.Audience) {
 		params.Audience = ""
 	}
+	params.EventType = strings.TrimSpace(params.EventType)
+	if !validEventType(params.EventType) {
+		params.EventType = ""
+	}
 	if params.Limit < 1 || params.Limit > 101 {
 		params.Limit = 25
 	}
@@ -49,6 +53,7 @@ func ValidateUpdateInput(input UpdateInput) error {
 		Visibility:      input.Visibility,
 		Format:          input.Format,
 		Audience:        input.Audience,
+		EventType:       input.EventType,
 		StartsAt:        input.StartsAt,
 		EndsAt:          input.EndsAt,
 		Timezone:        input.Timezone,
@@ -111,6 +116,9 @@ func validateEventFields(input CreateInput, requirePrivatePassword bool) error {
 	}
 	if !validAudience(input.Audience) {
 		return apperror.Validation("audience must be open, collegiate, campus, or members")
+	}
+	if !validEventType(input.EventType) {
+		return apperror.Validation("event type must be game_night, lan, tournament, watch_party, tryout, meeting, workshop, or other")
 	}
 	if input.StartsAt.IsZero() || input.EndsAt.IsZero() || !input.EndsAt.After(input.StartsAt) {
 		return apperror.Validation("event end time must be after start time")
@@ -202,6 +210,15 @@ func validAudience(value string) bool {
 	return value == AudienceOpen || value == AudienceCollegiate || value == AudienceCampus || value == AudienceMembers
 }
 
+func validEventType(value string) bool {
+	switch value {
+	case EventTypeGameNight, EventTypeLAN, EventTypeTournament, EventTypeWatchParty,
+		EventTypeTryout, EventTypeMeeting, EventTypeWorkshop, EventTypeOther:
+		return true
+	}
+	return false
+}
+
 func validRecurrenceRule(value string) bool {
 	return value == RecurrenceWeekly || value == RecurrenceBiweekly || value == RecurrenceMonthly
 }
@@ -220,6 +237,7 @@ func normalizeCreateParams(params CreateParams) CreateParams {
 	params.Visibility = strings.TrimSpace(params.Visibility)
 	params.Format = strings.TrimSpace(params.Format)
 	params.Audience = strings.TrimSpace(params.Audience)
+	params.EventType = strings.TrimSpace(params.EventType)
 	params.Timezone = strings.TrimSpace(params.Timezone)
 	params.LocationName = strings.TrimSpace(params.LocationName)
 	params.Address = strings.TrimSpace(params.Address)
@@ -242,6 +260,7 @@ func normalizeUpdateParams(params UpdateParams) UpdateParams {
 	params.Visibility = strings.TrimSpace(params.Visibility)
 	params.Format = strings.TrimSpace(params.Format)
 	params.Audience = strings.TrimSpace(params.Audience)
+	params.EventType = strings.TrimSpace(params.EventType)
 	params.Timezone = strings.TrimSpace(params.Timezone)
 	params.LocationName = strings.TrimSpace(params.LocationName)
 	params.Address = strings.TrimSpace(params.Address)

@@ -18,6 +18,7 @@ type RequestBody = {
   description?: string;
   email?: string;
   ends_at?: string;
+  event_type?: string;
   format?: string;
   game_ids?: string[];
   home_school_id?: string;
@@ -74,6 +75,7 @@ type BrowsableEvent = {
   slug: string;
   format: string | undefined;
   audience?: string;
+  event_type?: string;
   starts_at: string | undefined;
   ends_at: string | undefined;
   timezone: string | undefined;
@@ -773,6 +775,7 @@ async function handleRequest(
     // The home page's preview asks for six; give it a seeded public event.
     const homePreview = url.searchParams.get("limit") === "6";
     const audience = url.searchParams.get("audience");
+    const type = url.searchParams.get("type");
     json(response, 200, {
       events: [
         ...(homePreview
@@ -782,7 +785,8 @@ async function handleRequest(
           .filter(
             (record) =>
               !record.cancelled &&
-              (!audience || record.event.audience === audience),
+              (!audience || record.event.audience === audience) &&
+              (!type || record.event.event_type === type),
           )
           .map((record) => eventBrowseItem(record.event)),
       ],
@@ -1203,6 +1207,7 @@ function createdEventFromBody(
     visibility: body.visibility,
     format: body.format,
     audience: body.audience,
+    event_type: body.event_type,
     starts_at: body.starts_at,
     ends_at: body.ends_at,
     timezone: body.timezone,
@@ -1281,6 +1286,7 @@ function eventBrowseItem(event: BrowsableEvent) {
     slug: event.slug,
     format: event.format,
     ...(event.audience ? { audience: event.audience } : {}),
+    ...(event.event_type ? { event_type: event.event_type } : {}),
     starts_at: event.starts_at,
     ends_at: event.ends_at,
     timezone: event.timezone,

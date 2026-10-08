@@ -105,6 +105,7 @@ Signup also requires confirming **age 18+**. Alumni can participate. Faculty who
   apply to the host school or organizer
 - Events can be online, in-person, or hybrid; one-off or recurring; paid events are allowed, but payment happens off-site
 - Event visibility: **public**, **unlisted**, or **private**
+- Event type says what kind of event it is: **game night**, **LAN**, **tournament**, **watch party**, **tryout**, **meeting**, **workshop**, or **other**. Organizers must choose one. It is shown on the event page and event cards and can be filtered in browse. The tournament type is only a label; it does not create a tournament
 - Event audience says who may come: **open** (anyone), **collegiate** (students at any school), **campus** (students and staff of the host school), or **members** (members of the hosting group). Organizers must choose one. It is shown on the event page and event cards and can be filtered in browse. It is information for attendees and does not change who can see the page or RSVP
 - Private events: page content is **not visible/inspectable** until unlocked; show blurred shell + **password modal** (share URL + password manually)
 - Optional **capacity** on events; counts **RSVP yes only**; when full, no more yes RSVPs

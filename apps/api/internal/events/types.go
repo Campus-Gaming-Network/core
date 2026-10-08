@@ -37,6 +37,16 @@ const (
 	AudienceCampus     = "campus"
 	AudienceMembers    = "members"
 
+	// EventTypeTournament is a label only. It does not create a tournament.
+	EventTypeGameNight  = "game_night"
+	EventTypeLAN        = "lan"
+	EventTypeTournament = "tournament"
+	EventTypeWatchParty = "watch_party"
+	EventTypeTryout     = "tryout"
+	EventTypeMeeting    = "meeting"
+	EventTypeWorkshop   = "workshop"
+	EventTypeOther      = "other"
+
 	LifecycleUpcoming     = "upcoming"
 	LifecycleHappeningNow = "happening_now"
 	LifecycleEnded        = "ended"
@@ -60,7 +70,10 @@ type Event struct {
 	Format      string `json:"format"`
 	// Audience says who the event is for. It is empty for events created
 	// before the field existed.
-	Audience         string        `json:"audience,omitempty"`
+	Audience string `json:"audience,omitempty"`
+	// EventType says what kind of event this is. It is empty for events
+	// created before the field existed.
+	EventType        string        `json:"event_type,omitempty"`
 	StartsAt         time.Time     `json:"starts_at"`
 	EndsAt           time.Time     `json:"ends_at"`
 	Timezone         string        `json:"timezone"`
@@ -117,6 +130,7 @@ type ListParams struct {
 	SchoolSlug string
 	Format     string
 	Audience   string
+	EventType  string
 	Limit      int
 	After      *pagecursor.Cursor
 	Before     *pagecursor.Cursor
@@ -131,6 +145,7 @@ type CreateInput struct {
 	Visibility      string
 	Format          string
 	Audience        string
+	EventType       string
 	StartsAt        time.Time
 	EndsAt          time.Time
 	Timezone        string
@@ -164,6 +179,7 @@ type UpdateInput struct {
 	Visibility      string
 	Format          string
 	Audience        string
+	EventType       string
 	StartsAt        time.Time
 	EndsAt          time.Time
 	Timezone        string

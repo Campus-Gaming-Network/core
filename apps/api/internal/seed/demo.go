@@ -421,18 +421,18 @@ func seedDemoEvents(
 				starts_at, ends_at, timezone, location_name, address, online_url,
 				private_password_hash, capacity, is_paid, payment_note, payment_url,
 				recurrence_rule, recurrence_until, recurrence_parent_id, created_at, deleted_at,
-				audience
+				audience, event_type
 			)
 			VALUES (
 				$1::uuid, $2::uuid, $3::uuid, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14,
-				$15, $16, $17, $18, $19, $20, $21, NULLIF($22, '')::uuid, $23, $24, $25
+				$15, $16, $17, $18, $19, $20, $21, NULLIF($22, '')::uuid, $23, $24, $25, $26
 			)
 			ON CONFLICT DO NOTHING
 		`, event.ID, users[event.CreatorIndex].ID, row["school"], title, event.Slug, row["description"],
 			row["visibility"], row["format"], event.StartsAt, endsAt, row["timezone"], row["venue"],
 			row["address"], row["online"], row["password"], nilIfZero(event.Capacity), row["paid"],
 			row["payNote"], row["payURL"], nilIfEmpty(event.Rule), until, event.ParentID,
-			row["created"], row["deleted"], row["audience"])
+			row["created"], row["deleted"], row["audience"], row["type"])
 	}
 
 	for index := 0; index < options.Events; index++ {
@@ -540,7 +540,8 @@ func seedDemoEvents(
 		row := map[string]any{
 			"school": school.ID, "description": description, "visibility": visibility, "format": format,
 			"timezone": demoPick(generator, demoTimezones), "venue": venue, "address": address, "online": online,
-			"password": password, "audience": demoEventAudiences[index%len(demoEventAudiences)], "paid": paid, "payNote": payNote, "payURL": payURL, "created": createdAt,
+			"password": password, "audience": demoEventAudiences[index%len(demoEventAudiences)],
+			"type": demoEventTypes[index%len(demoEventTypes)], "paid": paid, "payNote": payNote, "payURL": payURL, "created": createdAt,
 		}
 		for occurrence := 0; occurrence < occurrences; occurrence++ {
 			start := demoOccurrenceStart(startsAt, rule, step, occurrence)

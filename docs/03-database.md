@@ -151,6 +151,9 @@ events
   password_hash nullable,    -- required when private; share URL + password manually
   capacity nullable,         -- max RSVP yes count only; when full, block new yes (no waitlist yet)
   format (online|in_person),
+  event_type nullable (game_night|lan|tournament|watch_party|tryout|meeting|workshop|other),
+                              -- kind of event; null only on events created before the column.
+                              -- 'tournament' is a label, not a tournament record
   audience nullable (open|collegiate|campus|members),
                               -- who the event is for; null only on events created before the column
   is_paid boolean default false, payment_note nullable, payment_url nullable,

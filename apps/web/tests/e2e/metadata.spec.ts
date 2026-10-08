@@ -182,6 +182,7 @@ test("authenticated pages keep complete private metadata", async ({ page }) => {
   await page.getByLabel("Ends at").fill("2037-08-15T16:00");
   await page.getByLabel("Location name").fill("Browser Student Union");
   await page.getByLabel("Games").selectOption("game-e2e");
+  await page.getByLabel("Event type").selectOption("game_night");
   await page.getByLabel("Who it's for").selectOption("campus");
   await page.getByRole("button", { name: "Create event" }).click();
   await expect(page).toHaveURL(

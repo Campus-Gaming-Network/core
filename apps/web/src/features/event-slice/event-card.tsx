@@ -6,6 +6,7 @@ import { EventCounts } from "../../components/event-counts";
 import type { EventBrowseItemDTO } from "./contracts.js";
 import {
   eventAudienceLabels,
+  eventTypeLabels,
   eventLifecycleLabel,
   eventLocation,
   eventTimeRange,
@@ -39,8 +40,15 @@ export function EventCard({ event }: { event: EventBrowseItemDTO }) {
           {event.games.map((game) => game.name).join(", ")}
         </small>
         <small>{eventLocation(event)}</small>
-        {event.audience ? (
-          <small>{eventAudienceLabels[event.audience]}</small>
+        {event.event_type || event.audience ? (
+          <small>
+            {[
+              event.event_type && eventTypeLabels[event.event_type],
+              event.audience && eventAudienceLabels[event.audience],
+            ]
+              .filter(Boolean)
+              .join(" · ")}
+          </small>
         ) : null}
         <EventCounts
           going={event.rsvp_yes_count}

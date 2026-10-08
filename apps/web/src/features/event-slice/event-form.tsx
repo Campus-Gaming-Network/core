@@ -22,7 +22,11 @@ import {
   instantToLocalDateTime,
 } from "./event-time.js";
 import { EventSchoolPicker } from "./event-school-picker.js";
-import { eventAudienceLabels, recurrenceRuleLabel } from "./presentation.js";
+import {
+  eventAudienceLabels,
+  eventTypeLabels,
+  recurrenceRuleLabel,
+} from "./presentation.js";
 
 type Props = {
   mode: "create" | "edit";
@@ -168,6 +172,26 @@ export function EventForm({
             <option value="in_person">In person</option>
             <option value="online">Online</option>
             <option value="hybrid">Hybrid</option>
+          </select>
+        </FormField>
+
+        {/* No type is preselected, for the same reason as the audience below. */}
+        <FormField
+          errorId="event-event-type-error"
+          errors={errors("event_type")}
+          label="Event type"
+        >
+          <select
+            defaultValue={event?.event_type ?? ""}
+            name="event_type"
+            required
+          >
+            <option value="">Choose a type</option>
+            {Object.entries(eventTypeLabels).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
           </select>
         </FormField>
 

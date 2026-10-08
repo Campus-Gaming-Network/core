@@ -86,6 +86,7 @@ func TestPostgresRepositoryCreatesMonthlySeriesFromOriginalLocalAnchor(t *testin
 		Visibility:      VisibilityPublic,
 		Format:          FormatOnline,
 		Audience:        AudienceOpen,
+		EventType:       EventTypeGameNight,
 		StartsAt:        startsAt,
 		EndsAt:          endsAt,
 		Timezone:        location.String(),

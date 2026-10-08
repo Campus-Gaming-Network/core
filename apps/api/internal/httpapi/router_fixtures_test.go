@@ -742,6 +742,7 @@ func validCreateEventJSON(visibility string, privatePassword string) string {
 		"visibility":"` + visibility + `",
 		"format":"in_person",
 		"audience":"campus",
+		"event_type":"lan",
 		"starts_at":"2026-08-15T20:00:00Z",
 		"ends_at":"2026-08-15T22:00:00Z",
 		"timezone":"America/Los_Angeles",

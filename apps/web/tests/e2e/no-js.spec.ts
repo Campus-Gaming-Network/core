@@ -193,6 +193,7 @@ test("event forms complete without JavaScript", async ({ context, page }) => {
   await page.getByLabel("Location name").fill("No JavaScript Student Union");
   await page.getByRole("radio", { name: "Unlisted" }).check();
   await page.getByLabel("Games").selectOption("game-e2e");
+  await page.getByLabel("Event type").selectOption("game_night");
   await page.getByLabel("Who it's for").selectOption("campus");
   await page.getByLabel("Capacity").fill("24");
   await page.getByRole("button", { name: "Create event" }).click();
@@ -239,6 +240,7 @@ test("event audience is chosen, shown, and filtered without JavaScript", async (
     await page.getByLabel("Starts at").fill("2037-08-15T13:00");
     await page.getByLabel("Ends at").fill("2037-08-15T16:00");
     await page.getByLabel("Games").selectOption("game-e2e");
+    await page.getByLabel("Event type").selectOption("game_night");
     await page.getByLabel("Who it's for").selectOption(event.audience);
     await page.getByRole("button", { name: "Create event" }).click();
     await expect(page).toHaveURL(/\?event=created$/);
@@ -246,6 +248,7 @@ test("event audience is chosen, shown, and filtered without JavaScript", async (
   await expect(page.locator(".event-pill-list .event-pill")).toHaveText([
     "Public",
     "In person",
+    "Game night",
     "Open to everyone",
   ]);
 

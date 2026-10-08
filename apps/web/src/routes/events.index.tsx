@@ -22,6 +22,7 @@ import {
   eventAudienceLabels,
   eventBrowseNotices,
   eventsHead,
+  eventTypeLabels,
 } from "../features/event-slice/presentation";
 
 export const Route = createFileRoute("/events/")({
@@ -132,6 +133,21 @@ function EventsPage() {
           </select>
         </label>
         <label>
+          Type
+          <select
+            aria-label="Filter events by type"
+            defaultValue={search.type ?? ""}
+            name="type"
+          >
+            <option value="">All types</option>
+            {Object.entries(eventTypeLabels).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
           Audience
           <select
             aria-label="Filter events by audience"
@@ -196,6 +212,7 @@ function paginationSearch(
     ...(search.school ? { school: search.school } : {}),
     ...(search.format ? { format: search.format } : {}),
     ...(search.audience ? { audience: search.audience } : {}),
+    ...(search.type ? { type: search.type } : {}),
     ...cursor,
   };
 }

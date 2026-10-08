@@ -91,6 +91,7 @@ func TestValidateCreateInputAcceptsMinimalPublicEvent(t *testing.T) {
 		Visibility:    VisibilityPublic,
 		Format:        FormatInPerson,
 		Audience:      AudienceOpen,
+		EventType:     EventTypeGameNight,
 		StartsAt:      time.Date(2026, 8, 15, 20, 0, 0, 0, time.UTC),
 		EndsAt:        time.Date(2026, 8, 15, 22, 0, 0, 0, time.UTC),
 		Timezone:      "America/Los_Angeles",
@@ -107,6 +108,17 @@ func TestValidateCreateInputRequiresAudience(t *testing.T) {
 		}))
 		if err == nil {
 			t.Fatalf("ValidateCreateInput() error = nil for audience %q, want validation error", audience)
+		}
+	}
+}
+
+func TestValidateCreateInputRequiresEventType(t *testing.T) {
+	for _, eventType := range []string{"", "bracket"} {
+		err := ValidateCreateInput(validCreateInput(func(input *CreateInput) {
+			input.EventType = eventType
+		}))
+		if err == nil {
+			t.Fatalf("ValidateCreateInput() error = nil for event type %q, want validation error", eventType)
 		}
 	}
 }
@@ -345,6 +357,7 @@ func validCreateInput(mutate func(*CreateInput)) CreateInput {
 		Visibility:    VisibilityPublic,
 		Format:        FormatOnline,
 		Audience:      AudienceOpen,
+		EventType:     EventTypeGameNight,
 		StartsAt:      time.Date(2026, 8, 15, 20, 0, 0, 0, time.UTC),
 		EndsAt:        time.Date(2026, 8, 15, 22, 0, 0, 0, time.UTC),
 		Timezone:      "America/Los_Angeles",

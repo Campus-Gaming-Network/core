@@ -58,6 +58,7 @@ import {
   eventDetailNotices,
   eventAudienceLabels,
   eventFormatLabel,
+  eventTypeLabels,
   eventLifecycleLabel,
   eventLocation,
   eventRSVPLabel,
@@ -325,6 +326,9 @@ function VisibleEventView({
             ) : null}
             <StatusLabel>{eventVisibilityLabel(event.visibility)}</StatusLabel>
             <StatusLabel>{eventFormatLabel(event.format)}</StatusLabel>
+            {event.event_type ? (
+              <StatusLabel>{eventTypeLabels[event.event_type]}</StatusLabel>
+            ) : null}
             {event.audience ? (
               <StatusLabel>{eventAudienceLabels[event.audience]}</StatusLabel>
             ) : null}

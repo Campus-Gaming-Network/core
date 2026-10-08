@@ -24,12 +24,12 @@ func (r *PostgresRepository) createWithSlug(ctx context.Context, params CreatePa
 			creator_user_id, host_school_id, title, slug, description, visibility,
 			format, starts_at, ends_at, timezone, location_name, address, online_url,
 			private_password_hash, capacity, is_paid, payment_note, payment_url,
-			recurrence_rule, recurrence_until, idempotency_key, audience
+			recurrence_rule, recurrence_until, idempotency_key, audience, event_type
 		)
 		SELECT $1::uuid, s.id, $3, $4, $5, $6, $7, $8, $9, $10,
 		       NULLIF($11, ''), NULLIF($12, ''), NULLIF($13, ''),
 		       NULLIF($14, ''), $15, $16, NULLIF($17, ''), NULLIF($18, ''),
-		       NULLIF($19, ''), $20, NULLIF($21, '')::uuid, $22
+		       NULLIF($19, ''), $20, NULLIF($21, '')::uuid, $22, $23
 		FROM schools s
 		WHERE s.id = $2::uuid
 		  AND s.deleted_at IS NULL
@@ -41,7 +41,7 @@ func (r *PostgresRepository) createWithSlug(ctx context.Context, params CreatePa
 		params.LocationName, params.Address, params.OnlineURL, params.PrivatePasswordHash,
 		nullableInt(params.Capacity), params.IsPaid, params.PaymentNote, params.PaymentURL,
 		params.RecurrenceRule, nullableTime(params.RecurrenceUntil), params.IdempotencyKey,
-		params.Audience).Scan(&eventID)
+		params.Audience, params.EventType).Scan(&eventID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return "", r.createNoRowsError(ctx, tx, params.HostSchoolID, params.IdempotencyKey)
 	}
@@ -137,12 +137,12 @@ func insertRecurringOccurrence(ctx context.Context, tx pgx.Tx, params CreatePara
 			format, starts_at, ends_at, timezone, location_name, address, online_url,
 			private_password_hash, capacity, is_paid, payment_note, payment_url,
 			recurrence_rule, recurrence_until, recurrence_parent_id, idempotency_key,
-			audience
+			audience, event_type
 		)
 		SELECT $1::uuid, s.id, $3, $4, $5, $6, $7, $8, $9, $10,
 		       NULLIF($11, ''), NULLIF($12, ''), NULLIF($13, ''),
 		       NULLIF($14, ''), $15, $16, NULLIF($17, ''), NULLIF($18, ''),
-		       NULLIF($19, ''), $20, NULLIF($21, '')::uuid, NULLIF($22, '')::uuid, $23
+		       NULLIF($19, ''), $20, NULLIF($21, '')::uuid, NULLIF($22, '')::uuid, $23, $24
 		FROM schools s
 		WHERE s.id = $2::uuid
 		  AND s.deleted_at IS NULL
@@ -154,7 +154,7 @@ func insertRecurringOccurrence(ctx context.Context, tx pgx.Tx, params CreatePara
 		params.LocationName, params.Address, params.OnlineURL, params.PrivatePasswordHash,
 		nullableInt(params.Capacity), params.IsPaid, params.PaymentNote, params.PaymentURL,
 		params.RecurrenceRule, nullableTime(params.RecurrenceUntil), parentID, idempotencyKey,
-		params.Audience).Scan(&eventID)
+		params.Audience, params.EventType).Scan(&eventID)
 	if err != nil {
 		return "", fmt.Errorf("insert recurring event occurrence: %w", err)
 	}
