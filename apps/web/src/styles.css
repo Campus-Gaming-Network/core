@@ -807,7 +807,9 @@ main {
   flex: 0 0 auto;
   place-items: center;
   overflow: hidden;
-  border: 1px solid #cfe4d5;
+  /* A thin dark ring, so an avatar in a light palette color still has an edge
+     against the card or page behind it. */
+  border: 1px solid rgba(23, 25, 31, 0.22);
   border-radius: 999px;
   color: var(--color-success);
   background: var(--color-success-soft);
