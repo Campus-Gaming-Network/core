@@ -18,7 +18,7 @@ func TestHandleEventsReturnsPublicEventsWithFilters(t *testing.T) {
 		testEvent(eventstore.VisibilityPublic),
 	}}
 	router := &Router{events: repository}
-	request := httptest.NewRequest(http.MethodGet, "/events?game=rocket-league&school=example-university&format=online&audience=open&limit=5", nil)
+	request := httptest.NewRequest(http.MethodGet, "/events?game=rocket-league&school=example-university&format=online&audience=open&type=lan&limit=5", nil)
 	response := httptest.NewRecorder()
 
 	router.handleEvents(response, request)
@@ -37,6 +37,9 @@ func TestHandleEventsReturnsPublicEventsWithFilters(t *testing.T) {
 	}
 	if repository.listParams.Audience != eventstore.AudienceOpen {
 		t.Fatalf("audience = %q, want %q", repository.listParams.Audience, eventstore.AudienceOpen)
+	}
+	if repository.listParams.EventType != eventstore.EventTypeLAN {
+		t.Fatalf("event type = %q, want %q", repository.listParams.EventType, eventstore.EventTypeLAN)
 	}
 	if repository.listParams.Limit != 6 || repository.listParams.After != nil || repository.listParams.Before != nil {
 		t.Fatalf("list params = %#v, want a six-row first-page fetch", repository.listParams)
@@ -380,6 +383,21 @@ func TestHandleCreateEventRequiresAudience(t *testing.T) {
 	requireErrorContract(t, response, http.StatusBadRequest, "invalid_request")
 	if repository.createCalled {
 		t.Fatal("Create was called without an audience")
+	}
+}
+
+func TestHandleCreateEventRequiresEventType(t *testing.T) {
+	repository := &fakeEventRepository{}
+	handler := authenticatedEventsHandler(repository)
+	body := strings.Replace(validCreateEventJSON(eventstore.VisibilityPublic, ""), `"event_type":"lan",`, "", 1)
+	request := withIdempotencyKey(authenticatedEventRequest(http.MethodPost, "/events", body))
+	response := httptest.NewRecorder()
+
+	handler.ServeHTTP(response, request)
+
+	requireErrorContract(t, response, http.StatusBadRequest, "invalid_request")
+	if repository.createCalled {
+		t.Fatal("Create was called without an event type")
 	}
 }
 

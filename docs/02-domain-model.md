@@ -137,6 +137,7 @@ SiteAnnouncement ── global banner                        (later)
 | Password           | Required when `visibility = private` (stored hashed); share URL + password manually               |
 | Capacity           | Optional max attendees; counts **RSVP yes only**; when full, block new yes (no waitlist yet)      |
 | Format             | `online` \| `in_person` \| `hybrid`                                                               |
+| Type               | `game_night`, `lan`, `tournament`, `watch_party`, `tryout`, `meeting`, `workshop`, or `other`     |
 | Audience           | `open` \| `collegiate` \| `campus` \| `members`; required, informational (see below)              |
 | Pricing            | Supports free vs paid/off-site-payment events; CGN does not process payment                       |
 | Location           | Physical address; optional mini Google Map                                                        |
@@ -170,6 +171,15 @@ when an event is created or edited and is information only; it never restricts
 who can RSVP. Events created before the field have no audience and show none;
 they are not backfilled. A recurring series copies the audience to each
 occurrence.
+
+**Type**
+
+The event type says what kind of event it is so browse can tell a weekly game
+night from a large LAN. It is required when an event is created or edited.
+Events created before the field have no type and show none. A recurring series
+copies the type to each occurrence. The `tournament` type is a label only: it
+adds no brackets, entries, or standings, and the separate Tournaments entity is
+unchanged.
 
 **Lifecycle display**
 

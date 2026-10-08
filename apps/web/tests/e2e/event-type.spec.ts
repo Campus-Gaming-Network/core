@@ -8,15 +8,15 @@ test.beforeEach(async ({ request }) => {
   expect(response.ok()).toBe(true);
 });
 
-test("an event needs an audience, shows it, and can be filtered by it", async ({
+test("an event needs a type, shows it, and can be filtered by it", async ({
   page,
 }) => {
-  await logIn(page, "audience@example.test", "/events/new");
-  await page.getByLabel("Title").fill("Campus Only Scrim");
+  await logIn(page, "event-type@example.test", "/events/new");
+  await page.getByLabel("Title").fill("Fall Campus LAN");
   await page.getByLabel("Starts at").fill("2037-08-15T13:00");
   await page.getByLabel("Ends at").fill("2037-08-15T16:00");
   await page.getByLabel("Games").selectOption("game-e2e");
-  await page.getByLabel("Event type").selectOption("game_night");
+  await page.getByLabel("Who it's for").selectOption("open");
   // The browser stops an empty required field itself. Turn that off to reach
   // the server's answer, as a client without native validation would.
   await page.locator("form.event-form").evaluate((form: HTMLFormElement) => {
@@ -24,32 +24,32 @@ test("an event needs an audience, shows it, and can be filtered by it", async ({
   });
   await page.getByRole("button", { name: "Create event" }).click();
 
-  const audience = page.getByLabel("Who it's for");
+  const type = page.getByLabel("Event type");
   await page
     .getByRole("alert")
-    .getByRole("link", { name: "Choose who this event is for." })
+    .getByRole("link", { name: "Choose an event type." })
     .click();
-  await expect(audience).toBeFocused();
-  await expect(audience).toHaveAttribute("aria-invalid", "true");
-  await expect(page.locator("#event-audience-error")).toHaveText(
-    "Choose who this event is for.",
+  await expect(type).toBeFocused();
+  await expect(type).toHaveAttribute("aria-invalid", "true");
+  await expect(page.locator("#event-event-type-error")).toHaveText(
+    "Choose an event type.",
   );
 
-  await audience.selectOption("campus");
+  await type.selectOption("lan");
   await page.getByRole("button", { name: "Create event" }).click();
   await expect(page).toHaveURL(
-    /\/events\/campus-only-scrim-[^?]+\?event=created$/,
+    /\/events\/fall-campus-lan-[^?]+\?event=created$/,
   );
   await waitForAppReady(page);
   await expect(page.locator(".event-pill-list .event-pill")).toHaveText([
     "Public",
     "In person",
-    "Game night",
-    "Host campus only",
+    "LAN",
+    "Open to everyone",
   ]);
 
   await gotoApp(page, "/events/new");
-  await page.getByLabel("Title").fill("Everyone Welcome Scrim");
+  await page.getByLabel("Title").fill("Weekly Couch Co-op");
   await page.getByLabel("Starts at").fill("2037-08-16T13:00");
   await page.getByLabel("Ends at").fill("2037-08-16T16:00");
   await page.getByLabel("Games").selectOption("game-e2e");
@@ -57,28 +57,28 @@ test("an event needs an audience, shows it, and can be filtered by it", async ({
   await page.getByLabel("Who it's for").selectOption("open");
   await page.getByRole("button", { name: "Create event" }).click();
   await expect(page).toHaveURL(
-    /\/events\/everyone-welcome-scrim-[^?]+\?event=created$/,
+    /\/events\/weekly-couch-co-op-[^?]+\?event=created$/,
   );
   await waitForAppReady(page);
 
   await gotoApp(page, "/events");
-  const campusCard = page.getByRole("link", { name: /Campus Only Scrim/ });
-  const openCard = page.getByRole("link", { name: /Everyone Welcome Scrim/ });
-  await expect(campusCard.getByText("Host campus only")).toBeVisible();
-  await expect(openCard.getByText("Open to everyone")).toBeVisible();
+  const lanCard = page.getByRole("link", { name: /Fall Campus LAN/ });
+  const gameNightCard = page.getByRole("link", { name: /Weekly Couch Co-op/ });
+  await expect(lanCard.getByText("LAN · Open to everyone")).toBeVisible();
+  await expect(
+    gameNightCard.getByText("Game night · Open to everyone"),
+  ).toBeVisible();
 
-  await page.getByLabel("Filter events by audience").selectOption("open");
+  await page.getByLabel("Filter events by type").selectOption("lan");
   await page.getByRole("button", { name: "Filter" }).click();
-  await expect(page).toHaveURL(/[?&]audience=open/);
+  await expect(page).toHaveURL(/[?&]type=lan/);
   await waitForAppReady(page);
-  await expect(openCard).toBeVisible();
-  await expect(campusCard).toHaveCount(0);
-  await expect(page.getByLabel("Filter events by audience")).toHaveValue(
-    "open",
-  );
+  await expect(lanCard).toBeVisible();
+  await expect(gameNightCard).toHaveCount(0);
+  await expect(page.getByLabel("Filter events by type")).toHaveValue("lan");
 });
 
-test("an event with no audience shows no audience label", async ({ page }) => {
+test("an event with no type shows no type label", async ({ page }) => {
   await gotoApp(page, "/events/public-browser-event");
   await expect(page.locator(".event-pill-list .event-pill")).toHaveText([
     "Public",
@@ -89,6 +89,6 @@ test("an event with no audience shows no audience label", async ({ page }) => {
   await expect(
     page.getByRole("link", { name: /Public Browser Tournament/ }),
   ).not.toContainText(
-    /Open to everyone|College students|Host campus only|Members only/,
+    /Game night|LAN|Watch party|Tryout|Meeting|Workshop|Other/,
   );
 });

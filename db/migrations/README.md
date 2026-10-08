@@ -53,6 +53,9 @@ accepts picked or typed games.
 Migration `000022_event_audience.up.sql` adds the nullable `events.audience`
 column (`open`, `collegiate`, `campus`, `members`). Existing events keep
 `NULL`. Apply it before deploying the API that reads or writes the column.
+Migration `000023_event_type.up.sql` adds the nullable `events.event_type`
+column. Existing events keep `NULL`. Apply it before deploying the API that
+reads or writes the column.
 Do not add clubs, tournaments, feature flags, site announcements, on-site
 payment tables, IGDB bulk-sync tables, or Admin Console-only workflow tables until those
 phases are active.

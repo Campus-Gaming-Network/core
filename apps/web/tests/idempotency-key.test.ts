@@ -41,6 +41,7 @@ const createFlows: CreateFlow[] = [
       visibility: "public",
       format: "in_person",
       audience: "open",
+      event_type: "game_night",
       starts_at: "2037-02-19T21:00",
       ends_at: "2037-02-20T00:00",
       timezone: "America/New_York",

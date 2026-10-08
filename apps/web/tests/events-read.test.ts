@@ -52,6 +52,7 @@ test("event search accepts bounded filters and opaque cursors without loading no
     school: " example-school ",
     format: "hybrid",
     audience: "open",
+    type: "lan",
     after: " opaque+cursor== ",
     before: ["previous/cursor", "ignored"],
     event: "cancelled",
@@ -62,6 +63,7 @@ test("event search accepts bounded filters and opaque cursors without loading no
     school: "example-school",
     format: "hybrid",
     audience: "open",
+    type: "lan",
     after: "opaque+cursor==",
     before: "previous/cursor",
     event: "cancelled",
@@ -71,6 +73,7 @@ test("event search accepts bounded filters and opaque cursors without loading no
     school: "example-school",
     format: "hybrid",
     audience: "open",
+    type: "lan",
     after: "opaque+cursor==",
     before: "previous/cursor",
   });
@@ -79,6 +82,7 @@ test("event search accepts bounded filters and opaque cursors without loading no
     validateEventsSearch({
       format: "teleport",
       audience: "everyone",
+      type: "bracket",
       after: "x".repeat(1025),
       event: "backend-message",
     }),
@@ -94,6 +98,7 @@ test("event browse reads public no-store DTOs and strips viewer/private fields",
       school: "example-school",
       format: "hybrid",
       audience: "open",
+      type: "lan",
       after: "opaque+cursor==",
     },
     {
@@ -127,7 +132,7 @@ test("event browse reads public no-store DTOs and strips viewer/private fields",
     requests.some(
       ({ url }) =>
         url ===
-        "http://api:8080/events?game=example-game&school=example-school&format=hybrid&audience=open&limit=25&after=opaque%2Bcursor%3D%3D",
+        "http://api:8080/events?game=example-game&school=example-school&format=hybrid&audience=open&type=lan&limit=25&after=opaque%2Bcursor%3D%3D",
     ),
   );
   assert.ok(requests.some(({ url }) => url === "http://api:8080/games"));

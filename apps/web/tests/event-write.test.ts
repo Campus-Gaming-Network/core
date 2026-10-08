@@ -63,6 +63,7 @@ function validEventForm(): FormData {
   form.set("visibility", "public");
   form.set("format", "in_person");
   form.set("audience", "campus");
+  form.set("event_type", "lan");
   form.set("starts_at", "2037-02-19T21:00");
   form.set("ends_at", "2037-02-20T00:00");
   form.set("timezone", "America/New_York");
@@ -96,6 +97,7 @@ test("event create validation normalizes payloads, local times, and recurrence",
     visibility: "public",
     format: "in_person",
     audience: "campus",
+    event_type: "lan",
     starts_at: "2037-02-20T02:00:00.000Z",
     ends_at: "2037-02-20T05:00:00.000Z",
     timezone: "America/New_York",
@@ -129,6 +131,27 @@ test("event create and update require an audience", () => {
       if (result.valid) assert.fail("event without an audience was accepted");
       assert.deepEqual(result.fieldErrors, {
         audience: ["Choose who this event is for."],
+      });
+    }
+  }
+});
+
+test("event create and update require an event type", () => {
+  const create = validEventForm();
+  create.set("recurrence_rule", "");
+  const update = validEventForm();
+  update.set("slug", "campus-tournament");
+  for (const eventType of ["", "bracket"]) {
+    create.set("event_type", eventType);
+    update.set("event_type", eventType);
+    for (const result of [
+      validateCreateEventServerInput(create),
+      validateUpdateEventServerInput(update),
+    ]) {
+      assert.equal(result.valid, false);
+      if (result.valid) assert.fail("event without a type was accepted");
+      assert.deepEqual(result.fieldErrors, {
+        event_type: ["Choose an event type."],
       });
     }
   }
@@ -608,6 +631,7 @@ function validPayload(): EventMutationPayload {
     visibility: "public",
     format: "in_person",
     audience: "campus",
+    event_type: "lan",
     starts_at: "2037-02-20T02:00:00.000Z",
     ends_at: "2037-02-20T05:00:00.000Z",
     timezone: "America/Los_Angeles",

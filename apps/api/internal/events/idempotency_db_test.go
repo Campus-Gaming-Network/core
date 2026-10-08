@@ -106,6 +106,7 @@ func TestPostgresRepositoryCreateReplaysIdempotencyKey(t *testing.T) {
 				Visibility:      VisibilityPublic,
 				Format:          FormatOnline,
 				Audience:        AudienceOpen,
+				EventType:       EventTypeGameNight,
 				StartsAt:        startsAt,
 				EndsAt:          startsAt.Add(time.Hour),
 				Timezone:        location.String(),
