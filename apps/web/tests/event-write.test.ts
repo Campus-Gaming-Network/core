@@ -62,6 +62,7 @@ function validEventForm(): FormData {
   form.append("game_ids", ` ${game.id} `);
   form.set("visibility", "public");
   form.set("format", "in_person");
+  form.set("audience", "campus");
   form.set("starts_at", "2037-02-19T21:00");
   form.set("ends_at", "2037-02-20T00:00");
   form.set("timezone", "America/New_York");
@@ -94,6 +95,7 @@ test("event create validation normalizes payloads, local times, and recurrence",
     other_game: "",
     visibility: "public",
     format: "in_person",
+    audience: "campus",
     starts_at: "2037-02-20T02:00:00.000Z",
     ends_at: "2037-02-20T05:00:00.000Z",
     timezone: "America/New_York",
@@ -109,6 +111,27 @@ test("event create validation normalizes payloads, local times, and recurrence",
     recurrence_until: "2037-03-19",
     idempotency_key: idempotencyKey,
   });
+});
+
+test("event create and update require an audience", () => {
+  const create = validEventForm();
+  create.set("recurrence_rule", "");
+  const update = validEventForm();
+  update.set("slug", "campus-tournament");
+  for (const audience of ["", "everyone"]) {
+    create.set("audience", audience);
+    update.set("audience", audience);
+    for (const result of [
+      validateCreateEventServerInput(create),
+      validateUpdateEventServerInput(update),
+    ]) {
+      assert.equal(result.valid, false);
+      if (result.valid) assert.fail("event without an audience was accepted");
+      assert.deepEqual(result.fieldErrors, {
+        audience: ["Choose who this event is for."],
+      });
+    }
+  }
 });
 
 test("event update rejects recurrence fields and create enforces relationships and DST", () => {
@@ -584,6 +607,7 @@ function validPayload(): EventMutationPayload {
     other_game: "",
     visibility: "public",
     format: "in_person",
+    audience: "campus",
     starts_at: "2037-02-20T02:00:00.000Z",
     ends_at: "2037-02-20T05:00:00.000Z",
     timezone: "America/Los_Angeles",

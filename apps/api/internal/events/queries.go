@@ -202,8 +202,9 @@ func (r *PostgresRepository) ListPublic(ctx context.Context, params ListParams) 
 		))
 		AND ($2 = '' OR s.slug = $2)
 		AND ($3 = '' OR e.format = $3)
+		AND ($4 = '' OR e.audience = $4)
 	`
-	arguments := []any{params.GameSlug, params.SchoolSlug, params.Format}
+	arguments := []any{params.GameSlug, params.SchoolSlug, params.Format, params.Audience}
 	// Newest start times first; a previous page reads forward and is reversed.
 	order := "ORDER BY e.starts_at DESC, e.id DESC"
 	if params.After != nil {

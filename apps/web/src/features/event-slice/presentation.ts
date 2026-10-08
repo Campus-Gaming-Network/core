@@ -97,6 +97,13 @@ export function eventFormatLabel(format: EventDTO["format"]): string {
   return labels[format];
 }
 
+export const eventAudienceLabels = {
+  open: "Open to everyone",
+  collegiate: "College students",
+  campus: "Host campus only",
+  members: "Members only",
+} as const satisfies Record<NonNullable<EventDTO["audience"]>, string>;
+
 export function eventRSVPLabel(response: EventRSVP): string {
   const labels = { maybe: "Maybe", no: "No", yes: "Yes" } as const;
   return labels[response];

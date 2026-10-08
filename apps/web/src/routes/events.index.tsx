@@ -19,6 +19,7 @@ import {
   type EventsSearch,
 } from "../features/event-slice/contracts";
 import {
+  eventAudienceLabels,
   eventBrowseNotices,
   eventsHead,
 } from "../features/event-slice/presentation";
@@ -130,6 +131,21 @@ function EventsPage() {
             <option value="hybrid">Hybrid</option>
           </select>
         </label>
+        <label>
+          Audience
+          <select
+            aria-label="Filter events by audience"
+            defaultValue={search.audience ?? ""}
+            name="audience"
+          >
+            <option value="">All audiences</option>
+            {Object.entries(eventAudienceLabels).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </label>
         <button type="submit">Filter</button>
       </form>
 
@@ -179,6 +195,7 @@ function paginationSearch(
     ...(search.game ? { game: search.game } : {}),
     ...(search.school ? { school: search.school } : {}),
     ...(search.format ? { format: search.format } : {}),
+    ...(search.audience ? { audience: search.audience } : {}),
     ...cursor,
   };
 }

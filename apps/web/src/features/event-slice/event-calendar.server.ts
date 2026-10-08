@@ -6,6 +6,7 @@ import {
 } from "../../server/cookies.server.js";
 import { eventSlugInputSchema, type EventDTO } from "./contracts.js";
 import { getEventDetailOperation } from "./event-operations.server.js";
+import { eventAudienceLabels } from "./presentation.js";
 
 type Dependencies = {
   api: ApiClient;
@@ -88,7 +89,13 @@ export async function eventCalendarResponse(
  * event with its own UID.
  */
 export function eventICS(event: EventDTO, eventURL: string, now: Date): string {
-  const description = [event.description, `View event: ${eventURL}`]
+  const description = [
+    event.description,
+    ...(event.audience
+      ? [`Who it's for: ${eventAudienceLabels[event.audience]}`]
+      : []),
+    `View event: ${eventURL}`,
+  ]
     .join("\n\n")
     .trim();
   const location = icsLocation(event);

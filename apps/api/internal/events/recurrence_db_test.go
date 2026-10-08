@@ -85,6 +85,7 @@ func TestPostgresRepositoryCreatesMonthlySeriesFromOriginalLocalAnchor(t *testin
 		GameIDs:         []string{gameID},
 		Visibility:      VisibilityPublic,
 		Format:          FormatOnline,
+		Audience:        AudienceOpen,
 		StartsAt:        startsAt,
 		EndsAt:          endsAt,
 		Timezone:        location.String(),

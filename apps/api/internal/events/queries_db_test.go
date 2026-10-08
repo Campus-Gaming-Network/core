@@ -77,6 +77,7 @@ func TestPostgresRepositoryListPublicPagesNewestFirst(t *testing.T) {
 			GameIDs:       []string{gameID},
 			Visibility:    VisibilityPublic,
 			Format:        FormatOnline,
+			Audience:      AudienceOpen,
 			StartsAt:      startsAt,
 			EndsAt:        startsAt.Add(time.Hour),
 			Timezone:      location.String(),

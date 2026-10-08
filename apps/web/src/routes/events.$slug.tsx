@@ -56,6 +56,7 @@ import type {
 } from "../features/event-slice/contracts";
 import {
   eventDetailNotices,
+  eventAudienceLabels,
   eventFormatLabel,
   eventLifecycleLabel,
   eventLocation,
@@ -324,6 +325,9 @@ function VisibleEventView({
             ) : null}
             <StatusLabel>{eventVisibilityLabel(event.visibility)}</StatusLabel>
             <StatusLabel>{eventFormatLabel(event.format)}</StatusLabel>
+            {event.audience ? (
+              <StatusLabel>{eventAudienceLabels[event.audience]}</StatusLabel>
+            ) : null}
           </div>
           <h1>{event.title}</h1>
           <p className="event-hostline">

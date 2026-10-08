@@ -32,6 +32,11 @@ const (
 	FormatInPerson = "in_person"
 	FormatHybrid   = "hybrid"
 
+	AudienceOpen       = "open"
+	AudienceCollegiate = "collegiate"
+	AudienceCampus     = "campus"
+	AudienceMembers    = "members"
+
 	LifecycleUpcoming     = "upcoming"
 	LifecycleHappeningNow = "happening_now"
 	LifecycleEnded        = "ended"
@@ -47,12 +52,15 @@ const (
 )
 
 type Event struct {
-	ID               string        `json:"id"`
-	Title            string        `json:"title"`
-	Slug             string        `json:"slug"`
-	Description      string        `json:"description"`
-	Visibility       string        `json:"visibility"`
-	Format           string        `json:"format"`
+	ID          string `json:"id"`
+	Title       string `json:"title"`
+	Slug        string `json:"slug"`
+	Description string `json:"description"`
+	Visibility  string `json:"visibility"`
+	Format      string `json:"format"`
+	// Audience says who the event is for. It is empty for events created
+	// before the field existed.
+	Audience         string        `json:"audience,omitempty"`
 	StartsAt         time.Time     `json:"starts_at"`
 	EndsAt           time.Time     `json:"ends_at"`
 	Timezone         string        `json:"timezone"`
@@ -108,6 +116,7 @@ type ListParams struct {
 	GameSlug   string
 	SchoolSlug string
 	Format     string
+	Audience   string
 	Limit      int
 	After      *pagecursor.Cursor
 	Before     *pagecursor.Cursor
@@ -121,6 +130,7 @@ type CreateInput struct {
 	GameIDs         []string
 	Visibility      string
 	Format          string
+	Audience        string
 	StartsAt        time.Time
 	EndsAt          time.Time
 	Timezone        string
@@ -153,6 +163,7 @@ type UpdateInput struct {
 	GameIDs         []string
 	Visibility      string
 	Format          string
+	Audience        string
 	StartsAt        time.Time
 	EndsAt          time.Time
 	Timezone        string

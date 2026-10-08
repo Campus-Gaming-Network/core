@@ -602,6 +602,7 @@ func (r *Router) handleEvents(w http.ResponseWriter, req *http.Request) {
 		GameSlug:   req.URL.Query().Get("game"),
 		SchoolSlug: req.URL.Query().Get("school"),
 		Format:     req.URL.Query().Get("format"),
+		Audience:   req.URL.Query().Get("audience"),
 		Limit:      limit + 1,
 		After:      after,
 		Before:     before,

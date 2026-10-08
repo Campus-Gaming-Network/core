@@ -137,6 +137,7 @@ SiteAnnouncement ── global banner                        (later)
 | Password           | Required when `visibility = private` (stored hashed); share URL + password manually               |
 | Capacity           | Optional max attendees; counts **RSVP yes only**; when full, block new yes (no waitlist yet)      |
 | Format             | `online` \| `in_person` \| `hybrid`                                                               |
+| Audience           | `open` \| `collegiate` \| `campus` \| `members`; required, informational (see below)              |
 | Pricing            | Supports free vs paid/off-site-payment events; CGN does not process payment                       |
 | Location           | Physical address; optional mini Google Map                                                        |
 | Banner             | Default placeholder only; custom user uploads later (moderated)                                   |
@@ -153,6 +154,22 @@ SiteAnnouncement ── global banner                        (later)
 | `public`   | Yes              | Anyone with the page                                                                 |
 | `unlisted` | No               | Anyone with the direct link/slug                                                     |
 | `private`  | No               | Content fully gated (blurred / not inspectable) until password modal unlock succeeds |
+
+**Audience**
+
+| Value        | Who the event is for                  |
+| ------------ | ------------------------------------- |
+| `open`       | Anyone                                |
+| `collegiate` | Students at any school                |
+| `campus`     | Students and staff of the host school |
+| `members`    | Members of the hosting group          |
+
+Audience is separate from visibility: visibility controls who can see the page,
+audience tells a visitor whether the event is meant for them. It is required
+when an event is created or edited and is information only; it never restricts
+who can RSVP. Events created before the field have no audience and show none;
+they are not backfilled. A recurring series copies the audience to each
+occurrence.
 
 **Lifecycle display**
 

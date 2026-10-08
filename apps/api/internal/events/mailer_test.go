@@ -71,6 +71,7 @@ func TestEventICSIncludesEscapedEventDetails(t *testing.T) {
 		Slug:         "rocket-league-finals",
 		Description:  "Bring your squad;\ncheck in early.",
 		Format:       FormatHybrid,
+		Audience:     AudienceCampus,
 		StartsAt:     time.Date(2026, 8, 15, 20, 0, 0, 0, time.UTC),
 		EndsAt:       time.Date(2026, 8, 15, 22, 0, 0, 0, time.UTC),
 		LocationName: "Student Union",
@@ -87,7 +88,7 @@ func TestEventICSIncludesEscapedEventDetails(t *testing.T) {
 		"DTSTART:20260815T200000Z\r\n",
 		"DTEND:20260815T220000Z\r\n",
 		"SUMMARY:Rocket League\\, Finals\r\n",
-		"DESCRIPTION:Bring your squad\\;\\ncheck in early.",
+		"DESCRIPTION:Bring your squad\\;\\ncheck in early.\\n\\nWho it's for: Host campus only\\n\\n",
 		"LOCATION:Student Union\\, 1 Campus Way + Online: https://meet.example.test/event\r\n",
 		"URL:https://campusgamingnetwork.com/events/rocket-league-finals\r\n",
 		"END:VEVENT\r\n",
@@ -115,6 +116,7 @@ func TestResendMailerSendsRSVPConfirmationWithCalendarAttachment(t *testing.T) {
 		Slug:         "rocket-league-finals",
 		Description:  "Bring your squad.",
 		Format:       FormatInPerson,
+		Audience:     AudienceMembers,
 		StartsAt:     time.Date(2026, 8, 15, 20, 0, 0, 0, time.UTC),
 		EndsAt:       time.Date(2026, 8, 15, 22, 0, 0, 0, time.UTC),
 		LocationName: "Student Union",
@@ -172,6 +174,9 @@ func TestResendMailerSendsRSVPConfirmationWithCalendarAttachment(t *testing.T) {
 	}
 	if !strings.Contains(payload.HTML, "Your RSVP is confirmed.") {
 		t.Fatalf("HTML = %q, want RSVP confirmation copy", payload.HTML)
+	}
+	if !strings.Contains(payload.HTML, "<p><strong>Who it's for:</strong> Members only</p>") {
+		t.Fatalf("HTML = %q, want the event audience", payload.HTML)
 	}
 	if len(payload.Attachments) != 1 {
 		t.Fatalf("attachments = %d, want one calendar attachment", len(payload.Attachments))
