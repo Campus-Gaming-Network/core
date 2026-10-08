@@ -2,38 +2,25 @@ package seed
 
 import (
 	"context"
-	"os"
 	"testing"
 	"time"
 
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/dbtest"
 )
 
 // Runs only when API_DATABASE_URL points at a migrated database. Seeding twice
 // must return the same result and leave the same rows, and a reset must remove
 // every demo row.
 func TestEnsureDemoDataIsIdempotentAndResettable(t *testing.T) {
-	url := os.Getenv("API_DATABASE_URL")
-	if url == "" {
-		t.Skip("API_DATABASE_URL not set")
-	}
 	ctx := context.Background()
-	pool, err := pgxpool.New(ctx, url)
-	if err != nil {
-		t.Fatalf("connect: %v", err)
-	}
-	t.Cleanup(pool.Close)
+	// The seed picks schools and games from the whole catalog, so it runs in a
+	// schema of its own where no other package can delete a row it picked.
+	pool := dbtest.NewMigratedSchemaPool(t, "seed")
 
-	var schoolID string
-	if err := pool.QueryRow(ctx, `
-		INSERT INTO schools (name, slug) VALUES ('Demo Guard School', 'demo-guard-school')
-		RETURNING id::text`).Scan(&schoolID); err != nil {
+	if _, err := pool.Exec(ctx, `
+		INSERT INTO schools (name, slug) VALUES ('Demo Guard School', 'demo-guard-school')`); err != nil {
 		t.Fatalf("insert school: %v", err)
 	}
-	t.Cleanup(func() {
-		_ = ResetDemoData(context.Background(), pool)
-		_, _ = pool.Exec(context.Background(), `DELETE FROM schools WHERE id = $1::uuid`, schoolID)
-	})
 
 	options := DemoOptions{
 		Password: "Password12345!",

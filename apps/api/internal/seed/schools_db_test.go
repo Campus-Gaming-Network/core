@@ -2,11 +2,10 @@ package seed
 
 import (
 	"context"
-	"os"
 	"strings"
 	"testing"
 
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/dbtest"
 )
 
 const testSchoolCSV = `unitid,name,alias,slug,city,state,zip,website_url,latitude,longitude,is_main_campus,num_branches
@@ -23,28 +22,17 @@ const testSchoolCSV = `unitid,name,alias,slug,city,state,zip,website_url,latitud
 // by even one row. The import path itself needs an empty catalog and so is
 // covered by a fresh-database run rather than here.
 func TestImportSchoolsSkipsPopulatedCatalog(t *testing.T) {
-	url := os.Getenv("API_DATABASE_URL")
-	if url == "" {
-		t.Skip("API_DATABASE_URL not set")
-	}
 	ctx := context.Background()
-	pool, err := pgxpool.New(ctx, url)
-	if err != nil {
-		t.Fatalf("connect: %v", err)
-	}
-	t.Cleanup(pool.Close)
+	// The test counts every row in schools, so it runs in a schema of its own
+	// where no other package can insert or delete one.
+	pool := dbtest.NewMigratedSchemaPool(t, "seed")
 
 	// Guarantees a populated catalog whose row count does not match the CSV,
 	// which is the case that used to fail.
-	var schoolID string
-	if err := pool.QueryRow(ctx, `
-		INSERT INTO schools (name, slug) VALUES ('Seed Guard School', 'seed-guard-school')
-		RETURNING id::text`).Scan(&schoolID); err != nil {
+	if _, err := pool.Exec(ctx, `
+		INSERT INTO schools (name, slug) VALUES ('Seed Guard School', 'seed-guard-school')`); err != nil {
 		t.Fatalf("insert school: %v", err)
 	}
-	t.Cleanup(func() {
-		_, _ = pool.Exec(context.Background(), `DELETE FROM schools WHERE id = $1::uuid`, schoolID)
-	})
 
 	var before int
 	if err := pool.QueryRow(ctx, `SELECT COUNT(*) FROM schools`).Scan(&before); err != nil {

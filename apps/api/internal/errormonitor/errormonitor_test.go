@@ -12,8 +12,12 @@ import (
 )
 
 // startIngest points reporting at a local stand-in for Sentry and returns a
-// function that flushes and yields every envelope body received so far.
-func startIngest(t *testing.T) func() []string {
+// function that yields the envelope bodies received. Flush gives up after a
+// fixed time, so on a slow runner an envelope can still be in flight when it
+// returns; the function therefore waits for the count the caller expects
+// instead of reading whatever has arrived. With want zero it flushes and
+// yields anything that arrived, which must be nothing.
+func startIngest(t *testing.T) func(want int) []string {
 	t.Helper()
 	bodies := make(chan string, 8)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
@@ -36,9 +40,12 @@ func startIngest(t *testing.T) func() []string {
 		t.Fatalf("Init: %v", err)
 	}
 
-	return func() []string {
+	return func(want int) []string {
 		Flush()
-		received := make([]string, 0, len(bodies))
+		received := make([]string, 0, want)
+		for len(received) < want {
+			received = append(received, <-bodies)
+		}
 		for len(bodies) > 0 {
 			received = append(received, <-bodies)
 		}
@@ -54,7 +61,7 @@ func TestCapturePanicReportsWithoutRequestData(t *testing.T) {
 
 	CapturePanic(req, "boom")
 
-	envelopes := received()
+	envelopes := received(1)
 	if len(envelopes) != 1 {
 		t.Fatalf("envelopes = %d, want 1", len(envelopes))
 	}
@@ -81,7 +88,7 @@ func TestCapturePanicSkipsAdminAPI(t *testing.T) {
 
 	CapturePanic(httptest.NewRequest(http.MethodPost, "/admin/schools", nil), "boom")
 
-	if envelopes := received(); len(envelopes) != 0 {
+	if envelopes := received(0); len(envelopes) != 0 {
 		t.Fatalf("envelopes = %v, want none", envelopes)
 	}
 }
@@ -91,7 +98,7 @@ func TestCaptureErrorReportsErrorCode(t *testing.T) {
 
 	CaptureError(errors.New("query failed"), "events_unavailable")
 
-	envelopes := received()
+	envelopes := received(1)
 	if len(envelopes) != 1 {
 		t.Fatalf("envelopes = %d, want 1", len(envelopes))
 	}

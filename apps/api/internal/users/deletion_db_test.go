@@ -2,7 +2,6 @@ package users
 
 import (
 	"context"
-	"os"
 	"strings"
 	"testing"
 	"time"
@@ -16,26 +15,14 @@ import (
 // database; local runs without one skip while CI provisions PostgreSQL.
 func newDeletionFixture(t *testing.T) (*pgxpool.Pool, string) {
 	t.Helper()
-	url := os.Getenv("API_DATABASE_URL")
-	if url == "" {
-		t.Skip("API_DATABASE_URL not set")
-	}
-	pool, err := pgxpool.New(context.Background(), url)
-	if err != nil {
-		t.Fatalf("connect: %v", err)
-	}
-	t.Cleanup(pool.Close)
+	pool := dbtest.NewMigratedSchemaPool(t, "users")
 
 	var schoolID string
-	slug := "deletion-school-" + strings.ReplaceAll(t.Name(), "/", "-")
 	if err := pool.QueryRow(context.Background(), `
-		INSERT INTO schools (name, slug) VALUES ('Deletion School', $1)
-		RETURNING id::text`, slug).Scan(&schoolID); err != nil {
+		INSERT INTO schools (name, slug) VALUES ('Deletion School', 'deletion-school')
+		RETURNING id::text`).Scan(&schoolID); err != nil {
 		t.Fatalf("insert school: %v", err)
 	}
-	t.Cleanup(func() {
-		pool.Exec(context.Background(), `DELETE FROM schools WHERE id = $1::uuid`, schoolID)
-	})
 	return pool, schoolID
 }
 
