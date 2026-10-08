@@ -34,7 +34,7 @@ const event: EventDTO = {
   rsvp_yes_count: 0,
   interest_count: 0,
   lifecycle: "upcoming",
-  is_paid: false,
+  cost: "unspecified",
   host_school: { id: "school-1", name: "Example University", slug: "example" },
   games: [],
 };

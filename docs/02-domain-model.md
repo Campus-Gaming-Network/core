@@ -139,7 +139,7 @@ SiteAnnouncement ── global banner                        (later)
 | Format             | `online` \| `in_person` \| `hybrid`                                                               |
 | Type               | `game_night`, `lan`, `tournament`, `watch_party`, `tryout`, `meeting`, `workshop`, or `other`     |
 | Audience           | `open` \| `collegiate` \| `campus` \| `members`; required, informational (see below)              |
-| Pricing            | Supports free vs paid/off-site-payment events; CGN does not process payment                       |
+| Cost               | `free` \| `paid` \| `unspecified` (default, shows nothing); CGN does not process payment          |
 | Location           | Physical address; optional mini Google Map                                                        |
 | Banner             | Default placeholder only; custom user uploads later (moderated)                                   |
 | Description        | Character-limited                                                                                 |

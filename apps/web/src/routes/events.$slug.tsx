@@ -332,6 +332,7 @@ function VisibleEventView({
             {event.audience ? (
               <StatusLabel>{eventAudienceLabels[event.audience]}</StatusLabel>
             ) : null}
+            {event.cost === "free" ? <StatusLabel>Free</StatusLabel> : null}
           </div>
           <h1>{event.title}</h1>
           <p className="event-hostline">
@@ -542,7 +543,7 @@ function VisibleEventView({
             />
           </section>
 
-          {event.is_paid ? (
+          {event.cost === "paid" ? (
             <section className="detail-card">
               <h2>Payment</h2>
               <div className="detail-card-body">

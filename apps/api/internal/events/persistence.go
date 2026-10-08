@@ -23,7 +23,7 @@ func (r *PostgresRepository) createWithSlug(ctx context.Context, params CreatePa
 		INSERT INTO events (
 			creator_user_id, host_school_id, title, slug, description, visibility,
 			format, starts_at, ends_at, timezone, location_name, address, online_url,
-			private_password_hash, capacity, is_paid, payment_note, payment_url,
+			private_password_hash, capacity, cost, payment_note, payment_url,
 			recurrence_rule, recurrence_until, idempotency_key, audience, event_type
 		)
 		SELECT $1::uuid, s.id, $3, $4, $5, $6, $7, $8, $9, $10,
@@ -39,7 +39,7 @@ func (r *PostgresRepository) createWithSlug(ctx context.Context, params CreatePa
 	`, params.CreatorUserID, params.HostSchoolID, params.Title, slug, params.Description,
 		params.Visibility, params.Format, params.StartsAt, params.EndsAt, params.Timezone,
 		params.LocationName, params.Address, params.OnlineURL, params.PrivatePasswordHash,
-		nullableInt(params.Capacity), params.IsPaid, params.PaymentNote, params.PaymentURL,
+		nullableInt(params.Capacity), params.Cost, params.PaymentNote, params.PaymentURL,
 		params.RecurrenceRule, nullableTime(params.RecurrenceUntil), params.IdempotencyKey,
 		params.Audience, params.EventType).Scan(&eventID)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -135,7 +135,7 @@ func insertRecurringOccurrence(ctx context.Context, tx pgx.Tx, params CreatePara
 		INSERT INTO events (
 			creator_user_id, host_school_id, title, slug, description, visibility,
 			format, starts_at, ends_at, timezone, location_name, address, online_url,
-			private_password_hash, capacity, is_paid, payment_note, payment_url,
+			private_password_hash, capacity, cost, payment_note, payment_url,
 			recurrence_rule, recurrence_until, recurrence_parent_id, idempotency_key,
 			audience, event_type
 		)
@@ -152,7 +152,7 @@ func insertRecurringOccurrence(ctx context.Context, tx pgx.Tx, params CreatePara
 	`, params.CreatorUserID, params.HostSchoolID, params.Title, slug, params.Description,
 		params.Visibility, params.Format, startsAt, endsAt, params.Timezone,
 		params.LocationName, params.Address, params.OnlineURL, params.PrivatePasswordHash,
-		nullableInt(params.Capacity), params.IsPaid, params.PaymentNote, params.PaymentURL,
+		nullableInt(params.Capacity), params.Cost, params.PaymentNote, params.PaymentURL,
 		params.RecurrenceRule, nullableTime(params.RecurrenceUntil), parentID, idempotencyKey,
 		params.Audience, params.EventType).Scan(&eventID)
 	if err != nil {

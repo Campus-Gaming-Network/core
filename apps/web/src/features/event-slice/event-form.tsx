@@ -49,6 +49,16 @@ const audienceOptions = [
   { value: "members", hint: "members of the hosting group" },
 ] as const;
 
+const costOptions = [
+  {
+    value: "unspecified",
+    label: "Not specified",
+    hint: "Say nothing about cost",
+  },
+  { value: "free", label: "Free", hint: "No charge to attend" },
+  { value: "paid", label: "Paid", hint: "Payment happens off CGN" },
+] as const;
+
 const visibilityOptions = [
   { value: "public", label: "Public", hint: "Anyone can find this event" },
   { value: "unlisted", label: "Unlisted", hint: "Only people with the link" },
@@ -461,17 +471,31 @@ export function EventForm({
       </FormSection>
 
       <FormSection
-        title="Paid event details"
-        description="Off-site payment info for events that charge attendees."
+        title="Cost"
+        description="Say whether the event is free. The payment note and link are shown for paid events only."
       >
-        <label className="checkbox-field">
-          <input
-            defaultChecked={event?.is_paid}
-            name="is_paid"
-            type="checkbox"
-          />
-          <span>This event has off-site payment instructions.</span>
-        </label>
+        <fieldset className="choice-group">
+          <legend>Cost</legend>
+          <div className="choice-cards">
+            {costOptions.map((option) => (
+              <label className="choice-card" key={option.value}>
+                <input
+                  defaultChecked={
+                    (event?.cost ?? "unspecified") === option.value
+                  }
+                  name="cost"
+                  required
+                  type="radio"
+                  value={option.value}
+                  {...fieldErrorProps(errors("cost"), "event-cost-error")}
+                />
+                <span className="choice-card-title">{option.label}</span>
+                <span className="choice-card-hint">{option.hint}</span>
+              </label>
+            ))}
+          </div>
+          <FieldError id="event-cost-error" messages={errors("cost")} />
+        </fieldset>
         <FormField
           errorId="event-payment-note-error"
           errors={errors("payment_note")}

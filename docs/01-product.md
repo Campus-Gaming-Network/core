@@ -104,6 +104,7 @@ Signup also requires confirming **age 18+**. Alumni can participate. Faculty who
 - Event organizers show school-admin or staff/faculty badges when those roles
   apply to the host school or organizer
 - Events can be online, in-person, or hybrid; one-off or recurring; paid events are allowed, but payment happens off-site
+- Event cost is **free**, **paid**, or **not specified** (the default). A free event shows "Free" on its page and card and can be found with the Free filter in browse. A paid event shows its payment note. An event whose organizer did not say shows nothing about cost, so "free" is never implied
 - Event visibility: **public**, **unlisted**, or **private**
 - Event type says what kind of event it is: **game night**, **LAN**, **tournament**, **watch party**, **tryout**, **meeting**, **workshop**, or **other**. Organizers must choose one. It is shown on the event page and event cards and can be filtered in browse. The tournament type is only a label; it does not create a tournament
 - Event audience says who may come: **open** (anyone), **collegiate** (students at any school), **campus** (students and staff of the host school), or **members** (members of the hosting group). Organizers must choose one. It is shown on the event page and event cards and can be filtered in browse. It is information for attendees and does not change who can see the page or RSVP

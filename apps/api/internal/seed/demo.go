@@ -419,7 +419,7 @@ func seedDemoEvents(
 			INSERT INTO events (
 				id, creator_user_id, host_school_id, title, slug, description, visibility, format,
 				starts_at, ends_at, timezone, location_name, address, online_url,
-				private_password_hash, capacity, is_paid, payment_note, payment_url,
+				private_password_hash, capacity, cost, payment_note, payment_url,
 				recurrence_rule, recurrence_until, recurrence_parent_id, created_at, deleted_at,
 				audience, event_type
 			)
@@ -430,7 +430,7 @@ func seedDemoEvents(
 			ON CONFLICT DO NOTHING
 		`, event.ID, users[event.CreatorIndex].ID, row["school"], title, event.Slug, row["description"],
 			row["visibility"], row["format"], event.StartsAt, endsAt, row["timezone"], row["venue"],
-			row["address"], row["online"], row["password"], nilIfZero(event.Capacity), row["paid"],
+			row["address"], row["online"], row["password"], nilIfZero(event.Capacity), row["cost"],
 			row["payNote"], row["payURL"], nilIfEmpty(event.Rule), until, event.ParentID,
 			row["created"], row["deleted"], row["audience"], row["type"])
 	}
@@ -502,7 +502,11 @@ func seedDemoEvents(
 		}
 		paid := generator.IntN(100) < 15
 		var payNote, payURL any
+		// Unpaid events alternate between declared free and unspecified without
+		// drawing from the generator, so the rest of the data set is unchanged.
+		cost := []string{"free", "unspecified"}[index%2]
 		if paid {
+			cost = "paid"
 			payNote = demoPick(generator, demoPaymentNotes)
 			if generator.IntN(2) == 0 {
 				payURL = "https://example.test/pay/" + fmt.Sprint(index)
@@ -541,7 +545,7 @@ func seedDemoEvents(
 			"school": school.ID, "description": description, "visibility": visibility, "format": format,
 			"timezone": demoPick(generator, demoTimezones), "venue": venue, "address": address, "online": online,
 			"password": password, "audience": demoEventAudiences[index%len(demoEventAudiences)],
-			"type": demoEventTypes[index%len(demoEventTypes)], "paid": paid, "payNote": payNote, "payURL": payURL, "created": createdAt,
+			"type": demoEventTypes[index%len(demoEventTypes)], "cost": cost, "payNote": payNote, "payURL": payURL, "created": createdAt,
 		}
 		for occurrence := 0; occurrence < occurrences; occurrence++ {
 			start := demoOccurrenceStart(startsAt, rule, step, occurrence)

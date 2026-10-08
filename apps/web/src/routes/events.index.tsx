@@ -162,6 +162,17 @@ function EventsPage() {
             ))}
           </select>
         </label>
+        <label>
+          Cost
+          <select
+            aria-label="Filter events by cost"
+            defaultValue={search.cost ?? ""}
+            name="cost"
+          >
+            <option value="">Any cost</option>
+            <option value="free">Free</option>
+          </select>
+        </label>
         <button type="submit">Filter</button>
       </form>
 
@@ -213,6 +224,7 @@ function paginationSearch(
     ...(search.format ? { format: search.format } : {}),
     ...(search.audience ? { audience: search.audience } : {}),
     ...(search.type ? { type: search.type } : {}),
+    ...(search.cost ? { cost: search.cost } : {}),
     ...cursor,
   };
 }

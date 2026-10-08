@@ -56,6 +56,11 @@ column (`open`, `collegiate`, `campus`, `members`). Existing events keep
 Migration `000023_event_type.up.sql` adds the nullable `events.event_type`
 column. Existing events keep `NULL`. Apply it before deploying the API that
 reads or writes the column.
+Migration `000024_event_cost.up.sql` replaces `events.is_paid` with
+`events.cost` (`free`, `paid`, `unspecified`). Events with `is_paid = true`
+become `paid` and every other event becomes `unspecified`. It drops `is_paid`,
+so an API built before this migration cannot read events after it; deploy the
+migration and the API together.
 Do not add clubs, tournaments, feature flags, site announcements, on-site
 payment tables, IGDB bulk-sync tables, or Admin Console-only workflow tables until those
 phases are active.
