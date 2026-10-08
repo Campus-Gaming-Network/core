@@ -6,7 +6,7 @@ import {
   fieldErrorProps,
   useEnhancedMutation,
 } from "../../components/enhanced-mutation.js";
-import { FormField } from "../../components/form-field";
+import { FormField, RequiredFieldsNote } from "../../components/form-field";
 import { GamePickerExtras } from "../../components/game-picker";
 import { FormSection } from "../../components/form-section";
 import { useIdempotencyKey } from "../../components/idempotency-key.js";
@@ -118,6 +118,7 @@ export function EventForm({
         summaryRef={mutation.errorSummaryRef}
       />
 
+      <RequiredFieldsNote />
       <FormSection
         title="Event basics"
         description="Give people enough information to understand the event at a glance."
@@ -139,6 +140,7 @@ export function EventForm({
           errorId="event-description-error"
           errors={errors("description")}
           label="Description"
+          optional
         >
           <textarea
             defaultValue={event?.description ?? ""}
@@ -331,6 +333,7 @@ export function EventForm({
             errorId="event-location-name-error"
             errors={errors("location_name")}
             label="Location name"
+            optional
           >
             <input
               defaultValue={event?.location_name ?? ""}
@@ -343,6 +346,7 @@ export function EventForm({
             errorId="event-online-url-error"
             errors={errors("online_url")}
             label="Online URL"
+            optional
           >
             <input
               defaultValue={event?.online_url ?? ""}
@@ -357,6 +361,7 @@ export function EventForm({
           errorId="event-address-error"
           errors={errors("address")}
           label="Address"
+          optional
         >
           <input
             defaultValue={event?.address ?? ""}
@@ -401,12 +406,12 @@ export function EventForm({
           errorId="event-capacity-error"
           errors={errors("capacity")}
           label="Capacity"
+          optional
         >
           <input
             defaultValue={event?.capacity?.toString() ?? ""}
             min={1}
             name="capacity"
-            placeholder="Optional"
             type="number"
           />
         </FormField>
@@ -428,6 +433,7 @@ export function EventForm({
           errorId="event-payment-note-error"
           errors={errors("payment_note")}
           label="Payment note"
+          optional
         >
           <textarea
             defaultValue={event?.payment_note ?? ""}
@@ -441,6 +447,7 @@ export function EventForm({
           errorId="event-payment-url-error"
           errors={errors("payment_url")}
           label="Payment URL"
+          optional
         >
           <input
             defaultValue={event?.payment_url ?? ""}

@@ -779,6 +779,17 @@ main {
   color: var(--color-muted);
 }
 
+/* "(optional)" after a field's label, quieter than the label itself. */
+.field-optional {
+  color: var(--color-muted);
+  font-weight: 500;
+}
+
+.required-fields-note {
+  margin: 0;
+  font-size: 0.875rem;
+}
+
 .policy-version {
   color: var(--color-muted);
   font-size: 0.9rem;

@@ -225,6 +225,19 @@ test("event forms complete without JavaScript", async ({ context, page }) => {
     .toBe(false);
 });
 
+test("optional fields are marked in their labels without JavaScript", async ({
+  page,
+}) => {
+  await page.goto("/support");
+  await expect(
+    page.getByText("Fields are required unless marked optional."),
+  ).toBeVisible();
+  await expect(
+    page.getByLabel("Name (optional)", { exact: true }),
+  ).toBeVisible();
+  await expect(page.locator(".field-optional")).toHaveCount(1);
+});
+
 test("team forms complete without JavaScript", async ({ context, page }) => {
   await logIn(
     page,
