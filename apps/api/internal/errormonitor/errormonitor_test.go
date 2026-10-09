@@ -7,16 +7,17 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/getsentry/sentry-go"
 )
 
 // startIngest points reporting at a local stand-in for Sentry and returns a
-// function that yields the envelope bodies received. Flush gives up after a
-// fixed time, so on a slow runner an envelope can still be in flight when it
-// returns; the function therefore waits for the count the caller expects
-// instead of reading whatever has arrived. With want zero it flushes and
-// yields anything that arrived, which must be nothing.
+// function that yields the envelope bodies received. Flush can return before
+// the transport has delivered an envelope (#140), so the function waits for
+// the count the caller expects instead of reading whatever has arrived, and
+// fails the test if they do not arrive. With want zero it flushes and yields
+// anything that arrived, which must be nothing.
 func startIngest(t *testing.T) func(want int) []string {
 	t.Helper()
 	bodies := make(chan string, 8)
@@ -43,8 +44,15 @@ func startIngest(t *testing.T) func(want int) []string {
 	return func(want int) []string {
 		Flush()
 		received := make([]string, 0, want)
+		// The limit only bounds a failing run; a passing one never waits for it.
+		missing := time.After(10 * time.Second)
 		for len(received) < want {
-			received = append(received, <-bodies)
+			select {
+			case body := <-bodies:
+				received = append(received, body)
+			case <-missing:
+				t.Fatalf("envelopes = %d, want %d", len(received), want)
+			}
 		}
 		for len(bodies) > 0 {
 			received = append(received, <-bodies)
