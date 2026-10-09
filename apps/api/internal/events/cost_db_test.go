@@ -8,12 +8,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/dbtest"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/migrate"
 )
 
 func TestPostgresRepositoryStoresAndFiltersCost(t *testing.T) {
 	ctx := context.Background()
-	pool := newSchemaPool(t)
+	pool := dbtest.NewSchemaPool(t, "events")
 	if err := migrate.Run(ctx, pool, "../../../../db/migrations"); err != nil {
 		t.Fatalf("migrate schema: %v", err)
 	}
@@ -133,7 +134,7 @@ func TestCostMigrationKeepsPaidEventsAndLeavesTheRestUnspecified(t *testing.T) {
 	// The migration runs in a schema of its own so the test can stop at the
 	// version before it, insert rows that still have is_paid, and then apply it.
 	ctx := context.Background()
-	pool := newSchemaPool(t)
+	pool := dbtest.NewSchemaPool(t, "events")
 
 	const migrations = "../../../../db/migrations"
 	files, err := migrate.LoadFiles(migrations)

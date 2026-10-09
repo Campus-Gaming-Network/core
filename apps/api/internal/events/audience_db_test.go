@@ -6,12 +6,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/dbtest"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/migrate"
 )
 
 func TestPostgresRepositoryStoresAndFiltersAudience(t *testing.T) {
 	ctx := context.Background()
-	pool := newSchemaPool(t)
+	pool := dbtest.NewSchemaPool(t, "events")
 	if err := migrate.Run(ctx, pool, "../../../../db/migrations"); err != nil {
 		t.Fatalf("migrate schema: %v", err)
 	}
