@@ -19,6 +19,7 @@ type AdminFields struct {
 	UnitID       *int64   `json:"unitid"`
 	Name         string   `json:"name"`
 	Alias        string   `json:"alias"`
+	ShortName    string   `json:"short_name"`
 	Slug         string   `json:"slug"`
 	City         string   `json:"city"`
 	State        string   `json:"state"`
@@ -47,18 +48,20 @@ type AdminEdit struct {
 
 const adminSchoolColumns = `id::text, unitid, name, COALESCE(alias,''), slug,
  COALESCE(city,''), COALESCE(state,''), COALESCE(zip,''), COALESCE(website_url,''),
- latitude, longitude, is_main_campus, num_branches, COALESCE(logo_url,''), is_active, created_at, updated_at, deleted_at`
+ latitude, longitude, is_main_campus, num_branches, COALESCE(logo_url,''), is_active, created_at, updated_at, deleted_at,
+ COALESCE(short_name,'')`
 
 func scanAdminSchool(row pgx.Row) (AdminSchool, error) {
 	var s AdminSchool
 	err := row.Scan(&s.ID, &s.UnitID, &s.Name, &s.Alias, &s.Slug, &s.City, &s.State, &s.Zip,
 		&s.WebsiteURL, &s.Latitude, &s.Longitude, &s.IsMainCampus, &s.NumBranches, &s.LogoURL,
-		&s.IsActive, &s.CreatedAt, &s.UpdatedAt, &s.DeletedAt)
+		&s.IsActive, &s.CreatedAt, &s.UpdatedAt, &s.DeletedAt, &s.ShortName)
 	return s, adminmutation.Error(err)
 }
 
 func (fields AdminFields) Validate() error {
-	if !adminmutation.Text(fields.Name, 300, true) || !adminmutation.Text(fields.Alias, 300, false) ||
+	if !adminmutation.Text(fields.Name, 300, true) || !adminmutation.Text(fields.Alias, 1000, false) ||
+		!adminmutation.Text(fields.ShortName, 40, false) ||
 		!adminmutation.Slug(fields.Slug) || !adminmutation.Text(fields.City, 100, false) ||
 		!adminmutation.Text(fields.State, 80, false) || !adminmutation.Text(fields.Zip, 20, false) ||
 		!adminmutation.URL(fields.WebsiteURL) || fields.NumBranches < 0 || fields.NumBranches > 10000 ||
@@ -75,6 +78,7 @@ func (fields AdminFields) Validate() error {
 	return nil
 }
 
+// ListAdmin searches anywhere in the name, alias, and slug.
 func (r *PostgresRepository) ListAdmin(ctx context.Context, filter adminmutation.Filter) ([]AdminSchool, error) {
 	if err := filter.Validate(); err != nil {
 		return nil, err
@@ -93,7 +97,7 @@ func (r *PostgresRepository) ListAdmin(ctx context.Context, filter adminmutation
 	 OR ($2 = 'inactive' AND NOT is_active AND deleted_at IS NULL) OR ($2 = 'deleted' AND deleted_at IS NOT NULL))
 	 AND ($3::timestamptz IS NULL OR (NOT $5 AND (created_at,id)<($3,$4::uuid)) OR ($5 AND (created_at,id)>($3,$4::uuid)))
 	 AND ($7 = '' OR upper(COALESCE(state,'')) = upper($7))
-	 ORDER BY created_at `+order+`, id `+order+` LIMIT $6`, adminmutation.Prefix(filter.Query), filter.State, timestamp, id, before, filter.Limit, filter.Region)
+	 ORDER BY created_at `+order+`, id `+order+` LIMIT $6`, adminmutation.Contains(filter.Query), filter.State, timestamp, id, before, filter.Limit, filter.Region)
 	if err != nil {
 		return nil, err
 	}
@@ -132,10 +136,10 @@ func (r *PostgresRepository) CreateAdmin(ctx context.Context, input AdminEdit) (
 	}
 	defer tx.Rollback(ctx)
 	s, err := scanAdminSchool(tx.QueryRow(ctx, `INSERT INTO schools
-	 (unitid,name,alias,slug,city,state,zip,website_url,latitude,longitude,is_main_campus,num_branches)
-	 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING `+adminSchoolColumns,
+	 (unitid,name,alias,slug,city,state,zip,website_url,latitude,longitude,is_main_campus,num_branches,short_name)
+	 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,NULLIF($13,'')) RETURNING `+adminSchoolColumns,
 		input.UnitID, strings.TrimSpace(input.Name), input.Alias, input.Slug, input.City, input.State, input.Zip,
-		input.WebsiteURL, input.Latitude, input.Longitude, input.IsMainCampus, input.NumBranches))
+		input.WebsiteURL, input.Latitude, input.Longitude, input.IsMainCampus, input.NumBranches, strings.TrimSpace(input.ShortName)))
 	if err != nil {
 		return AdminSchool{}, err
 	}
@@ -188,9 +192,9 @@ func (r *PostgresRepository) changeAdmin(ctx context.Context, id string, command
 	switch action {
 	case adminaudit.ActionSchoolUpdated:
 		next, err = scanAdminSchool(tx.QueryRow(ctx, `UPDATE schools SET unitid=$2,name=$3,alias=$4,slug=$5,city=$6,state=$7,zip=$8,website_url=$9,
-		 latitude=$10,longitude=$11,is_main_campus=$12,num_branches=$13 WHERE id=$1::uuid RETURNING `+adminSchoolColumns,
+		 latitude=$10,longitude=$11,is_main_campus=$12,num_branches=$13,short_name=NULLIF($14,'') WHERE id=$1::uuid RETURNING `+adminSchoolColumns,
 			id, fields.UnitID, strings.TrimSpace(fields.Name), fields.Alias, fields.Slug, fields.City, fields.State, fields.Zip, fields.WebsiteURL,
-			fields.Latitude, fields.Longitude, fields.IsMainCampus, fields.NumBranches))
+			fields.Latitude, fields.Longitude, fields.IsMainCampus, fields.NumBranches, strings.TrimSpace(fields.ShortName)))
 	case adminaudit.ActionSchoolDeactivated, adminaudit.ActionSchoolReactivated:
 		active := action == adminaudit.ActionSchoolReactivated
 		if active == current.IsActive {

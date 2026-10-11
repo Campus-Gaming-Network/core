@@ -46,6 +46,7 @@ import {
   teamHead,
   teamRoleLabel,
 } from "../features/team-slice/presentation";
+import { SchoolLogo } from "../components/school-logo";
 import teamCSS from "../features/team-slice/teams.css?url";
 
 export type TeamRouteData = {
@@ -150,6 +151,7 @@ function TeamPage() {
                   to="/schools/$slug"
                   params={{ slug: team.school.slug }}
                 >
+                  <SchoolLogo inline logoURL={team.school.logo_url} size={20} />
                   {team.school.name}
                 </Link>
               ) : (

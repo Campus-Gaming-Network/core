@@ -39,6 +39,7 @@ import {
   schoolDetailNotices,
   schoolHead,
   schoolLocation,
+  schoolShortName,
   safeSchoolWebsite,
 } from "../features/school-slice/presentation";
 import { getTeamsBrowse } from "../features/team-slice/team.functions";
@@ -117,7 +118,9 @@ function SchoolPage() {
   return (
     <main className="detail-page school-community-page">
       <header className="school-profile-header school-community-header">
-        <span className="school-directory-mark school-directory-mark--large">
+        <span
+          className={`school-directory-mark school-directory-mark--large${school.logo_wide ? " school-directory-mark--wide" : ""}`}
+        >
           <span aria-hidden="true">
             {school.name.slice(0, 1).toUpperCase()}
           </span>
@@ -131,7 +134,7 @@ function SchoolPage() {
           <h1>{school.name}</h1>
           <p className="school-community-facts">
             {[
-              school.alias,
+              schoolShortName(school),
               schoolLocation(school),
               school.is_main_campus ? "Main campus" : "Branch campus",
             ]
@@ -345,6 +348,23 @@ function SchoolPage() {
           />
         )}
       </section>
+
+      {school.logo_attribution ? (
+        <p className="school-logo-credit">
+          Logo: {school.logo_attribution.author}
+          {school.logo_attribution.credit
+            ? ` · ${school.logo_attribution.credit}`
+            : ""}
+          {" · "}
+          <a href={school.logo_attribution.source_url}>Source</a>
+          {" · "}
+          <a href={school.logo_attribution.license_url}>
+            {school.logo_attribution.license}
+          </a>
+          {" · "}
+          <a href="/school-logos/credits.html">All school logo credits</a>
+        </p>
+      ) : null}
     </main>
   );
 }

@@ -18,6 +18,7 @@ export const schoolDtoSchema = z.object({
   unitid: z.number().int().optional(),
   name: z.string(),
   alias: z.string().optional(),
+  short_name: z.string().optional(),
   slug: identifierSchema,
   city: z.string().optional(),
   state: z.string().optional(),
@@ -68,8 +69,26 @@ export const schoolFollowInputSchema = z
   .strict();
 export const emptyResponseDtoSchema = z.undefined();
 
-export type SchoolDTO = z.output<typeof schoolDtoSchema>;
-export type SchoolsResponseDTO = z.output<typeof schoolsResponseDtoSchema>;
+export type SchoolDTO = z.output<typeof schoolDtoSchema> & {
+  /** Added by the BFF: a bundled logo the school page gives a wider mark. */
+  logo_wide?: true;
+  /** Added by the BFF: a bundled logo too wide to read in a small square. */
+  logo_wordmark?: true;
+  /** Added by the BFF for bundled logos; never accepted from the upstream API. */
+  logo_attribution?: {
+    author: string;
+    credit: string;
+    license: string;
+    license_url: string;
+    source_url: string;
+  };
+};
+/** A school summary once the BFF has added its bundled logo, if it has one. */
+export type WithSchoolLogo<T> = T & { logo_url?: string };
+export type SchoolsResponseDTO = Omit<
+  z.output<typeof schoolsResponseDtoSchema>,
+  "schools"
+> & { schools: SchoolDTO[] };
 export type GameDTO = z.output<typeof gameDtoSchema>;
 export type SchoolsBrowseInput = z.output<typeof schoolsBrowseInputSchema>;
 export type SchoolSlugInput = z.output<typeof schoolSlugInputSchema>;

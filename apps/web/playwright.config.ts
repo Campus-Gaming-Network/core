@@ -71,6 +71,9 @@ export default defineConfig({
         CLOUDFLARE_ORIGIN_SECRET: "browser-test-origin-secret-0000000",
         SITE_URL: webURL,
         R2_PUBLIC_ASSET_ORIGIN: `${apiURL}/assets`,
+        // The bundled logo images are not in the repository, so the fake API
+        // stands in for the bucket that serves them.
+        BUNDLED_SCHOOL_LOGOS_IN_R2: "true",
         SENTRY_DSN: `http://public@127.0.0.1:18081/1`,
         SENTRY_RELEASE: "browser-test-release",
         WEB_MAINTENANCE_TOKEN: "browser-test-maintenance-token",

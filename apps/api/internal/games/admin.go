@@ -61,7 +61,7 @@ func (r *PostgresRepository) ListAdmin(ctx context.Context, filter adminmutation
 	 WHERE (lower(name) LIKE $1 OR slug LIKE $1)
 	 AND ($2='' OR ($2='active' AND is_active AND deleted_at IS NULL) OR ($2='inactive' AND NOT is_active AND deleted_at IS NULL) OR ($2='deleted' AND deleted_at IS NOT NULL))
 	 AND ($3::timestamptz IS NULL OR (NOT $5 AND (created_at,id)<($3,$4::uuid)) OR ($5 AND (created_at,id)>($3,$4::uuid)))
-	 ORDER BY created_at `+order+`,id `+order+` LIMIT $6`, adminmutation.Prefix(filter.Query), filter.State, timestamp, id, before, filter.Limit)
+	 ORDER BY created_at `+order+`,id `+order+` LIMIT $6`, adminmutation.Contains(filter.Query), filter.State, timestamp, id, before, filter.Limit)
 	if err != nil {
 		return nil, err
 	}

@@ -91,13 +91,19 @@ export function environmentValidationIssues(
     );
   }
 
+  if (bundledLogosInR2(environment) && !logoBase) {
+    issues.push(
+      "BUNDLED_SCHOOL_LOGOS_IN_R2 requires R2_PUBLIC_ASSET_ORIGIN to be set",
+    );
+  }
+
   return issues;
 }
 
 /**
  * Where school logos are served from, or undefined when logos are not
  * configured or the value is unsafe. The main site loads logo images from this
- * address only; without it every school shows no logo.
+ * address for admin-uploaded logos. Bundled local logos need no configuration.
  */
 export function schoolLogoBase(
   environment: Environment = process.env,
@@ -106,6 +112,22 @@ export function schoolLogoBase(
   const strict =
     parseDeploymentEnvironment(environment.DEPLOYMENT_ENV) !== "local";
   return value && parseSchoolLogoBase(value, strict) ? value : undefined;
+}
+
+/**
+ * Where the bundled school logos are served from when they have been synced
+ * to the logo bucket (`pnpm run sync:school-logos`), or undefined to serve the
+ * copies in this application's own public directory.
+ */
+export function bundledSchoolLogoBase(
+  environment: Environment = process.env,
+): string | undefined {
+  const base = schoolLogoBase(environment);
+  return base && bundledLogosInR2(environment) ? `${base}/bundled` : undefined;
+}
+
+function bundledLogosInR2(environment: Environment): boolean {
+  return environment.BUNDLED_SCHOOL_LOGOS_IN_R2?.trim() === "true";
 }
 
 export function assertSafeEnvironment(

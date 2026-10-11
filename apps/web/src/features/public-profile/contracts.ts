@@ -1,5 +1,6 @@
 import * as z from "zod";
 import { pageNoticeKey } from "../../components/page-notice.js";
+import type { WithSchoolLogo } from "../school-slice/contracts.js";
 import { reportUserNotices, type ReportUserNotice } from "./presentation.js";
 
 const identifierSchema = z.string().trim().min(1);
@@ -50,7 +51,9 @@ export const reportUserInputSchema = z.object({
   idempotency_key: z.uuid("Reload the page and try again."),
 });
 
-export type PublicProfileDTO = z.output<typeof publicProfileDtoSchema>;
+export type PublicProfileDTO = z.output<typeof publicProfileDtoSchema> & {
+  home_school?: WithSchoolLogo<z.output<typeof schoolSummarySchema>>;
+};
 export type PublicProfileInput = z.output<typeof publicProfileInputSchema>;
 export type ReportUserInput = z.output<typeof reportUserInputSchema>;
 export type ViewerRelationship = "anonymous" | "self" | "other";

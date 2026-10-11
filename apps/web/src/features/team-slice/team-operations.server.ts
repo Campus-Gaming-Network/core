@@ -5,6 +5,7 @@ import {
 } from "../../server/api.server.js";
 import { optionalViewerProfile } from "../../server/viewer.server.js";
 import { gamePickerErrorMessages } from "../game-picker/contracts.js";
+import { withBundledSchoolLogo } from "../school-slice/school-logos.server.js";
 import {
   gamesResponseDtoSchema,
   schoolsResponseDtoSchema,
@@ -131,7 +132,9 @@ export async function teamDetailOperation(
     const team = teamDtoSchema.parse(data);
     return {
       status: "found",
-      team,
+      team: team.school
+        ? { ...team, school: withBundledSchoolLogo(team.school) }
+        : team,
       ...(data.viewer_role ? { viewerRole: data.viewer_role } : {}),
       ...(data.viewer_role === "owner"
         ? { ownerRoster: data.members ?? [] }

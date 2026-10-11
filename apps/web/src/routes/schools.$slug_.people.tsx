@@ -21,10 +21,11 @@ import {
   peopleHead,
   unavailablePeopleHead,
 } from "../features/people-slice/presentation";
+import { SchoolLogo } from "../components/school-logo";
 import { getSchoolCatalog } from "../features/school-slice/catalog.functions";
 
 type SchoolPeopleRouteData = {
-  school: { slug: string; name: string };
+  school: { slug: string; name: string; logoURL?: string };
   people: PeopleListResult;
   publicOrigin: string;
 };
@@ -59,7 +60,14 @@ export const Route = createFileRoute("/schools/$slug_/people")({
     }
 
     return {
-      school: { slug: catalog.school.slug, name: catalog.school.name },
+      school: {
+        slug: catalog.school.slug,
+        name: catalog.school.name,
+        // A wordmark is unreadable at heading height.
+        ...(catalog.school.logo_url && !catalog.school.logo_wordmark
+          ? { logoURL: catalog.school.logo_url }
+          : {}),
+      },
       people,
       publicOrigin: context.publicOrigin,
     };
@@ -103,7 +111,10 @@ function SchoolPeoplePage() {
         Back to school
       </Link>
       <header className="people-heading">
-        <h1>{`People at ${school.name}`}</h1>
+        <h1>
+          <SchoolLogo inline logoURL={school.logoURL} size={32} />
+          {`People at ${school.name}`}
+        </h1>
         <p className="lede">
           Members who chose this school as their home school. People who chose
           to hide themselves are not shown.

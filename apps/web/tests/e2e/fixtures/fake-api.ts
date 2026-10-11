@@ -84,7 +84,7 @@ type BrowsableEvent = {
   address?: string;
   online_url?: string;
   lifecycle: string;
-  host_school: { name: string };
+  host_school: { name: string; slug: string };
   games: { name: string | undefined }[];
   rsvp_yes_count?: number;
   interest_count?: number;
@@ -175,6 +175,21 @@ const followableSchool = {
   city: "Long Beach",
 };
 
+// A real bundled institution, isolated behind a query so existing scenarios
+// keep their synthetic schools. It deliberately has no admin-uploaded logo.
+const bundledLogoSchool = {
+  ...school,
+  id: "school-bundled-logo-e2e",
+  unitid: 100724,
+  name: "Alabama State University",
+  alias: "",
+  slug: "alabama-state-university",
+  city: "Montgomery",
+  state: "AL",
+  website_url: "https://www.alasu.edu/",
+  logo_url: undefined,
+};
+
 const game = {
   id: "game-e2e",
   name: "Strategy Arena",
@@ -221,7 +236,7 @@ const populatedSchoolEvents = [
     location_name: "Alpine Student Center",
     lifecycle: "upcoming",
     cost: "unspecified",
-    host_school: { name: populatedSchool.name },
+    host_school: { name: populatedSchool.name, slug: populatedSchool.slug },
     games: [{ name: game.name }],
     rsvp_yes_count: 12,
     interest_count: 5,
@@ -237,7 +252,7 @@ const populatedSchoolEvents = [
     online_url: "https://summit.example.test/ladder",
     lifecycle: "upcoming",
     cost: "unspecified",
-    host_school: { name: populatedSchool.name },
+    host_school: { name: populatedSchool.name, slug: populatedSchool.slug },
     games: [{ name: game.name }],
     rsvp_yes_count: 7,
     interest_count: 3,
@@ -466,7 +481,10 @@ async function handleRequest(
     const limit = Number.parseInt(url.searchParams.get("limit") ?? "25", 10);
     const offset = Number.parseInt(url.searchParams.get("offset") ?? "0", 10);
     json(response, 200, {
-      schools: [school].slice(offset, offset + limit),
+      schools: (url.searchParams.get("q") === "logo-coverage"
+        ? [bundledLogoSchool, quietSchool]
+        : [school]
+      ).slice(offset, offset + limit),
       limit,
       offset,
       has_more: false,
@@ -484,6 +502,14 @@ async function handleRequest(
 
   if (method === "GET" && url.pathname === `/schools/${school.slug}`) {
     json(response, 200, school);
+    return;
+  }
+
+  if (
+    method === "GET" &&
+    url.pathname === `/schools/${bundledLogoSchool.slug}`
+  ) {
+    json(response, 200, bundledLogoSchool);
     return;
   }
 
@@ -1300,7 +1326,10 @@ function eventBrowseItem(event: BrowsableEvent) {
     ...(event.online_url ? { online_url: event.online_url } : {}),
     lifecycle: event.lifecycle,
     cost: event.cost,
-    host_school: { name: event.host_school.name },
+    host_school: {
+      name: event.host_school.name,
+      slug: event.host_school.slug,
+    },
     games: event.games.map(({ name }) => ({ name })),
     rsvp_yes_count: event.rsvp_yes_count ?? 0,
     interest_count: event.interest_count ?? 0,
@@ -1473,7 +1502,7 @@ function dashboardEvent(title: string, viewerRsvp?: string) {
     ends_at: "2037-08-18T19:00:00Z",
     timezone: "America/Los_Angeles",
     lifecycle: "upcoming",
-    host_school: { name: school.name },
+    host_school: { name: school.name, slug: school.slug },
     games: [{ name: game.name }],
     rsvp_yes_count: 3,
     interest_count: 2,

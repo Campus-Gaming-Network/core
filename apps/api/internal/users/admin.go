@@ -59,13 +59,14 @@ func (r *PostgresRepository) ListAdmin(ctx context.Context, filter adminmutation
 		order = "ASC"
 	}
 	rows, err := r.pool.Query(ctx, `SELECT `+adminUserColumns+` FROM users u
-	 WHERE (lower(u.email::text) LIKE $1 OR lower(u.name) LIKE $1)
+	 WHERE (lower(u.email::text) LIKE $1 OR lower(u.name) LIKE $9)
 	 AND ($2='' OR u.account_status=$2)
 	 AND ($3::timestamptz IS NULL OR (NOT $5 AND (u.created_at,u.id)<($3,$4::uuid)) OR ($5 AND (u.created_at,u.id)>($3,$4::uuid)))
 	 AND ($7='' OR u.verification_level=$7)
 	 AND ($8='' OR ($8='site_admin' AND EXISTS(SELECT 1 FROM site_role_grants g WHERE g.user_id=u.id AND g.revoked_at IS NULL))
 	 OR ($8='school_admin' AND EXISTS(SELECT 1 FROM school_admins s WHERE s.user_id=u.id AND s.deleted_at IS NULL)))
-	 ORDER BY u.created_at `+order+`,u.id `+order+` LIMIT $6`, adminmutation.Prefix(filter.Query), filter.State, timestamp, id, before, filter.Limit, filter.Verification, filter.Role)
+	 ORDER BY u.created_at `+order+`,u.id `+order+` LIMIT $6`, adminmutation.Prefix(filter.Query), filter.State, timestamp, id, before, filter.Limit, filter.Verification, filter.Role,
+		adminmutation.Contains(filter.Query))
 	if err != nil {
 		return nil, err
 	}

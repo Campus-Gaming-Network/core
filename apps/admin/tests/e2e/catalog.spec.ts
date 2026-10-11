@@ -35,7 +35,7 @@ test("a school is created, edited, and deactivated with an audited reason", asyn
 }) => {
   await authenticateAdmin(context);
   await page.goto("/schools/new");
-  await page.getByLabel("Name").fill("Night Owl College");
+  await page.getByLabel("Name", { exact: true }).fill("Night Owl College");
   await page.getByLabel("Slug").fill("night-owl-college");
   await page.getByLabel("Reason").fill("New member school");
   await page.getByRole("button", { name: "Create school" }).click();
@@ -43,7 +43,7 @@ test("a school is created, edited, and deactivated with an audited reason", asyn
   await expect(page.getByRole("status")).toHaveText("Created.");
 
   const edit = panel(page, "Edit school");
-  await edit.getByLabel("Name").fill("Night Owl University");
+  await edit.getByLabel("Name", { exact: true }).fill("Night Owl University");
   await edit.getByLabel("Reason").fill("Official name");
   await edit.getByRole("button", { name: "Save school" }).click();
   await expect(page).toHaveURL(/notice=saved$/);
@@ -312,7 +312,7 @@ test("a logo is uploaded after rejected files, previewed, and removed", async ({
     "Remove logo",
   );
   await expect(page.getByRole("status")).toHaveText(
-    "Logo removed. The school shows the placeholder again.",
+    "Logo removed. Public pages use a bundled logo when available.",
   );
   await expect(logo.getByRole("img")).toHaveCount(0);
   await expect(page.getByText("Logo updated", { exact: true })).toBeVisible();

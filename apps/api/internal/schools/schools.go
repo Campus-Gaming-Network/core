@@ -11,10 +11,13 @@ import (
 )
 
 type School struct {
-	ID           string   `json:"id"`
-	UnitID       *int64   `json:"unitid,omitempty"`
-	Name         string   `json:"name"`
-	Alias        string   `json:"alias,omitempty"`
+	ID     string `json:"id"`
+	UnitID *int64 `json:"unitid,omitempty"`
+	Name   string `json:"name"`
+	Alias  string `json:"alias,omitempty"`
+	// ShortName is the name an admin chose to show beside Name. Alias is for
+	// search and may list several names.
+	ShortName    string   `json:"short_name,omitempty"`
 	Slug         string   `json:"slug"`
 	City         string   `json:"city,omitempty"`
 	State        string   `json:"state,omitempty"`
@@ -74,7 +77,8 @@ const schoolColumns = `
 	s.id::text, s.unitid, s.name, COALESCE(s.alias, ''), s.slug,
 	COALESCE(s.city, ''), COALESCE(s.state, ''), COALESCE(s.zip, ''),
 	COALESCE(s.website_url, ''), s.latitude, s.longitude,
-	s.is_main_campus, s.num_branches, COALESCE(s.logo_url, '')
+	s.is_main_campus, s.num_branches, COALESCE(s.logo_url, ''),
+	COALESCE(s.short_name, '')
 `
 
 type schoolScanner interface {
@@ -269,7 +273,7 @@ func scanSchool(scanner schoolScanner) (School, error) {
 		&school.ID, &school.UnitID, &school.Name, &school.Alias, &school.Slug,
 		&school.City, &school.State, &school.Zip, &school.WebsiteURL,
 		&school.Latitude, &school.Longitude, &school.IsMainCampus, &school.NumBranches,
-		&school.LogoURL,
+		&school.LogoURL, &school.ShortName,
 	)
 	if err != nil {
 		return School{}, err

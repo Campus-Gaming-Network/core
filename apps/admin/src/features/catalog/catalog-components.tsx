@@ -253,10 +253,19 @@ export function SchoolForm({ school }: { school?: AdminSchool }) {
         />
         <TextField
           errors={errors.alias}
+          help="Other names people search for. Not shown on the public site."
           label="Alias"
           name="alias"
           value={school?.alias}
-          maxLength={300}
+          maxLength={1000}
+        />
+        <TextField
+          errors={errors.short_name}
+          help="Shown beside the name on the public site, for example UIUC. Leave blank to let the site pick one from the alias."
+          label="Short name"
+          name="short_name"
+          value={school?.short_name}
+          maxLength={40}
         />
         <TextField
           errors={errors.unitid}

@@ -71,7 +71,7 @@ test("journey 3: catalog changes reach the public school list", async ({
 }) => {
   await signInThroughAccess(context, operatorEmail);
   await page.goto("/schools/new");
-  await page.getByLabel("Name").fill("Night Owl College");
+  await page.getByLabel("Name", { exact: true }).fill("Night Owl College");
   await page.getByLabel("Slug").fill("night-owl-college");
   await page.getByLabel("Reason").fill("New member school");
   await page.getByRole("button", { name: "Create school" }).click();
@@ -81,7 +81,7 @@ test("journey 3: catalog changes reach the public school list", async ({
   ]);
 
   const edit = panel(page, "Edit school");
-  await edit.getByLabel("Name").fill("Night Owl University");
+  await edit.getByLabel("Name", { exact: true }).fill("Night Owl University");
   await edit.getByLabel("Reason").fill("Official name");
   await edit.getByRole("button", { name: "Save school" }).click();
   await expect(page).toHaveURL(/notice=saved$/);
@@ -194,7 +194,7 @@ test("journey 5: a valid logo uploads and invalid files are refused", async ({
     "Remove logo",
   );
   await expect(page.getByRole("status")).toHaveText(
-    "Logo removed. The school shows the placeholder again.",
+    "Logo removed. Public pages use a bundled logo when available.",
   );
   await expect(logo.getByRole("img")).toHaveCount(0);
 });
