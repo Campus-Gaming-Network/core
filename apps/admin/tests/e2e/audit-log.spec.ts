@@ -14,7 +14,7 @@ test("the audit log lists a change with its record, operator, and reason", async
 }) => {
   await authenticateAdmin(context);
   await page.goto("/schools/new");
-  await page.getByLabel("Name").fill("Night Owl College");
+  await page.getByLabel("Name", { exact: true }).fill("Night Owl College");
   await page.getByLabel("Slug").fill("night-owl-college");
   await page.getByLabel("Reason").fill("New member school");
   await page.getByRole("button", { name: "Create school" }).click();
