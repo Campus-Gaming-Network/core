@@ -177,6 +177,34 @@ func (s *PostgresStore) MarkFailed(ctx context.Context, message Message, next ti
 	return nil
 }
 
+// Backlog summarizes the email that has not been delivered. Pending counts
+// every message still due to be sent, including those being retried. Failed
+// counts the messages that stopped retrying within failedBacklogWindow.
+type Backlog struct {
+	Pending         int        `json:"pending"`
+	Retrying        int        `json:"retrying"`
+	Failed          int        `json:"failed"`
+	OldestPendingAt *time.Time `json:"oldest_pending_at"`
+}
+
+const failedBacklogWindow = 7 * 24 * time.Hour
+
+// Backlog counts undelivered messages.
+func (s *PostgresStore) Backlog(ctx context.Context) (Backlog, error) {
+	var backlog Backlog
+	err := s.pool.QueryRow(ctx, `
+		SELECT COUNT(*) FILTER (WHERE delivered_at IS NULL AND failed_at IS NULL),
+		       COUNT(*) FILTER (WHERE delivered_at IS NULL AND failed_at IS NULL AND attempts > 0),
+		       COUNT(*) FILTER (WHERE failed_at > NOW() - $1::interval),
+		       MIN(created_at) FILTER (WHERE delivered_at IS NULL AND failed_at IS NULL)
+		FROM email_outbox
+	`, failedBacklogWindow).Scan(&backlog.Pending, &backlog.Retrying, &backlog.Failed, &backlog.OldestPendingAt)
+	if err != nil {
+		return Backlog{}, fmt.Errorf("count email outbox backlog: %w", err)
+	}
+	return backlog, nil
+}
+
 type Dispatcher interface {
 	Send(context.Context, Message) (string, error)
 }

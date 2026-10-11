@@ -67,6 +67,7 @@ type OperationsRepository interface {
 
 type Dependencies struct {
 	Catalog      *CatalogDependencies
+	System       *SystemDependencies
 	Identities   IdentityValidator
 	Users        UserFinder
 	Grants       GrantFinder
@@ -109,6 +110,7 @@ const (
 	operationListSupportAudit routeOperation = "list_support_audit"
 	operationCountReports     routeOperation = "count_reports"
 	operationCountSupport     routeOperation = "count_support"
+	operationGetSystem        routeOperation = "get_system"
 )
 
 var routes = append([]routePolicy{
@@ -126,6 +128,7 @@ var routes = append([]routePolicy{
 	{Method: http.MethodGet, Path: "/admin/v1/support-tickets/{id}", Control: controlCapability, Capability: adminaccess.CapabilitySupportRead, Operation: operationGetSupport},
 	{Method: http.MethodPatch, Path: "/admin/v1/support-tickets/{id}", Control: controlCapability, Capability: adminaccess.CapabilitySupportManage, Mutation: true, Operation: operationPatchSupport},
 	{Method: http.MethodGet, Path: "/admin/v1/support-tickets/{id}/audit", Control: controlCapability, Capability: adminaccess.CapabilityAuditRead, Operation: operationListSupportAudit},
+	{Method: http.MethodGet, Path: "/admin/v1/system", Control: controlCapability, Capability: adminaccess.CapabilitySystemRead, Operation: operationGetSystem},
 }, catalogRoutes...)
 
 type Handler struct {
@@ -639,6 +642,7 @@ func validRouteOperation(policy routePolicy) bool {
 		operationListSupportAudit: {Method: http.MethodGet, Path: "/admin/v1/support-tickets/{id}/audit", Capability: adminaccess.CapabilityAuditRead},
 		operationCountReports:     {Method: http.MethodGet, Path: "/admin/v1/report-counts", Capability: adminaccess.CapabilityReportsRead},
 		operationCountSupport:     {Method: http.MethodGet, Path: "/admin/v1/support-ticket-counts", Capability: adminaccess.CapabilitySupportRead},
+		operationGetSystem:        {Method: http.MethodGet, Path: "/admin/v1/system", Capability: adminaccess.CapabilitySystemRead},
 	}
 	definition, ok := expected[policy.Operation]
 	if !ok {

@@ -247,6 +247,7 @@ capabilities so later roles cannot accidentally inherit the whole surface.
 | `trust_grants.manage`  | Change supported non-site trust grants                         |
 | `site_grants.manage`   | Grant/revoke site-admin access with step-up                    |
 | `audit.read`           | Read entity audit history and allowed security-event summaries |
+| `system.read`          | Read dependency checks and the email outbox backlog            |
 
 The role-to-capability map lives in reviewed Go code. It is not editable through
 the database or Admin Console. Authorization middleware receives the required
@@ -488,6 +489,8 @@ Required route groups:
 - `/games`, `/games/$id`;
 - `/users`, `/users/$id`;
 - `/access/site-admins`;
+- `/system`, read-only checks of school logo storage and IGDB plus the email
+  outbox backlog;
 - `/audit-log`, every administrative change newest first, filterable by the
   kind of record changed;
 - `/step-up`, which confirms recent authentication and returns to the page the

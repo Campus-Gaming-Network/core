@@ -98,6 +98,7 @@ const navigationSections: {
       | "/games"
       | "/users"
       | "/access/site-admins"
+      | "/system"
       | "/audit-log";
     label: string;
     icon: string;
@@ -167,6 +168,17 @@ const navigationSections: {
         label: "Audit log",
         icon: "M4 2.5h8v11H4zM6 5.5h4M6 8h4M6 10.5h2.5",
         capability: "audit.read",
+      },
+    ],
+  },
+  {
+    title: "Operations",
+    items: [
+      {
+        to: "/system",
+        label: "System",
+        icon: "M1.5 8h3l2-4.5 3 9 2-4.5h3",
+        capability: "system.read",
       },
     ],
   },

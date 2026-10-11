@@ -52,6 +52,7 @@ const (
 	CapabilityTrustGrantsManage  Capability = "trust_grants.manage"
 	CapabilitySiteGrantsManage   Capability = "site_grants.manage"
 	CapabilityAuditRead          Capability = "audit.read"
+	CapabilitySystemRead         Capability = "system.read"
 )
 
 var siteAdminCapabilities = []Capability{
@@ -70,6 +71,7 @@ var siteAdminCapabilities = []Capability{
 	CapabilityTrustGrantsManage,
 	CapabilitySiteGrantsManage,
 	CapabilityAuditRead,
+	CapabilitySystemRead,
 }
 
 var (

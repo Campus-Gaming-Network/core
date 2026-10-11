@@ -43,6 +43,7 @@ for (const path of [
   "/users",
   `/users/${memberID}`,
   "/access/site-admins",
+  "/system",
   "/audit-log",
   "/step-up?return=%2Fusers",
 ]) {

@@ -71,6 +71,8 @@ func (handler *Handler) operationHandler(operation routeOperation, entityID stri
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			handler.listAuditHistory(w, req, operationsEntitySupportTicket, entityID)
 		})
+	case operationGetSystem:
+		return http.HandlerFunc(handler.getSystem)
 	default:
 		return handler.catalogHandler(operation, entityID)
 	}

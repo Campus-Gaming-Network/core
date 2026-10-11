@@ -24,6 +24,7 @@ import (
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminsession"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/auth"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/config"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/emailoutbox"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/errormonitor"
 	eventstore "github.com/Campus-Gaming-Network/core/apps/api/internal/events"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/games"
@@ -93,6 +94,7 @@ func NewRouter(cfg config.Config, pools ...*pgxpool.Pool) http.Handler {
 	}
 	// gameImports is nil when the IGDB credentials are not configured.
 	var gameImports *games.IGDBService
+	var igdbClient *igdb.Client
 	if len(pools) > 0 {
 		router.db = pools[0]
 		schoolRepository := schools.NewPostgresRepository(router.db)
@@ -112,10 +114,11 @@ func NewRouter(cfg config.Config, pools ...*pgxpool.Pool) http.Handler {
 		router.customGames = gameRepository
 		router.gameSearchLimiter = ratelimit.New(gameSearchRateLimit, time.Minute)
 		if cfg.IGDBConfigured() {
-			gameImports = games.NewIGDBService(gameRepository, igdb.NewClient(igdb.Config{
+			igdbClient = igdb.NewClient(igdb.Config{
 				ClientID: cfg.IGDBClientID, ClientSecret: cfg.IGDBClientSecret,
 				APIURL: cfg.IGDBAPIURL, TokenURL: cfg.IGDBTokenURL, ImageURL: cfg.IGDBImageURL,
-			}))
+			})
+			gameImports = games.NewIGDBService(gameRepository, igdbClient)
 			router.picker = gameImports
 		}
 		router.events = eventstore.NewPostgresRepository(router.db)
@@ -157,12 +160,20 @@ func NewRouter(cfg config.Config, pools ...*pgxpool.Pool) http.Handler {
 			JWKSURL: cfg.CloudflareAccessJWKSURL,
 		}, nil)
 		if sessionErr == nil && transactionErr == nil && identityErr == nil {
+			// A dependency that is not configured must reach the system page
+			// as a nil interface, not as a typed nil.
+			system := &adminhttp.SystemDependencies{Outbox: emailoutbox.NewPostgresStore(router.db)}
+			if igdbClient != nil {
+				system.IGDB = igdbClient
+			}
 			var logos adminhttp.AdminLogos
 			if cfg.LogoStorageConfigured() {
-				logoRepository := schools.NewLogoRepository(router.db, objectstore.NewS3Store(objectstore.Config{
+				logoStore := objectstore.NewS3Store(objectstore.Config{
 					Endpoint: cfg.R2Endpoint, AccountID: cfg.R2AccountID, Bucket: cfg.R2SchoolLogosBucket,
 					AccessKeyID: cfg.R2AccessKeyID, SecretAccessKey: cfg.R2SecretAccessKey,
-				}), cfg.R2PublicAssetOrigin, slog.Default())
+				})
+				system.ObjectStorage = logoStore
+				logoRepository := schools.NewLogoRepository(router.db, logoStore, cfg.R2PublicAssetOrigin, slog.Default())
 				// Like the catalog refresh, reconciliation runs for the life of the process.
 				go logoRepository.Start(context.Background(), logoReconcileInterval)
 				logos = logoRepository
@@ -180,6 +191,7 @@ func NewRouter(cfg config.Config, pools ...*pgxpool.Pool) http.Handler {
 				Security:     adminsecurity.NewPostgresStore(router.db),
 				Transactions: adminTransactions,
 				Operations:   operations.NewPostgresRepository(router.db),
+				System:       system,
 				Catalog: &adminhttp.CatalogDependencies{
 					Schools: schools.NewPostgresRepository(router.db), Games: games.NewPostgresRepository(router.db),
 					Users: users.NewPostgresRepository(router.db), SiteGrants: adminaccess.NewPostgresRepository(router.db),

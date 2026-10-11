@@ -22,6 +22,7 @@ import (
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminsecurity"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminsession"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/auth"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/emailoutbox"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/games"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/migrate"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/operations"
@@ -129,6 +130,7 @@ func newCatalogFixture(t *testing.T) catalogFixture {
 	f.handler = NewHandler(Config{Enabled: true, SiteOrigin: "https://admin.example.test", ProxySecret: "proxy-secret", Cookies: adminsession.CookieConfig{Name: "admin_session", CSRFName: "admin_csrf", Secure: true}}, Dependencies{
 		Grants: f.grants, Sessions: f.sessions, Security: adminsecurity.NewPostgresStore(pool),
 		Operations: operations.NewPostgresRepository(pool),
+		System:     &SystemDependencies{Outbox: emailoutbox.NewPostgresStore(pool)},
 		Catalog:    &CatalogDependencies{Schools: f.school, Games: f.game, Users: f.user, SiteGrants: f.grants, Cache: f.cache, Audit: adminaudit.NewPostgresStore(pool), IGDB: games.NewIGDBService(f.game, f.igdb.client)},
 	})
 	return f

@@ -16,6 +16,7 @@ const capabilitySchema = z.enum([
   "trust_grants.manage",
   "site_grants.manage",
   "audit.read",
+  "system.read",
 ]);
 
 export const adminSessionSchema = z.object({
