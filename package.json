@@ -16,6 +16,8 @@
   "scripts": {
     "check:apps-compose": "node scripts/check_apps_compose.ts",
     "check:docs-links": "node scripts/check_doc_links.ts",
+    "check:school-logos": "node scripts/collect_school_logos.ts --check",
+    "sync:school-logos": "node scripts/sync_school_logos.ts",
     "typecheck:scripts": "tsc -p scripts/tsconfig.json",
     "compose:up": "docker compose up --build",
     "compose:up:demo": "docker compose --profile demo up --build",

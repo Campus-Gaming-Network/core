@@ -5,6 +5,7 @@ import {
   pickedIGDBGameIDsSchema,
 } from "../game-picker/contracts.js";
 import { pageNoticeKey } from "../../components/page-notice.js";
+import type { WithSchoolLogo } from "../school-slice/contracts.js";
 import {
   teamDetailNotices,
   teamBrowseNotices,
@@ -158,7 +159,9 @@ export const teamMutationResponseDtoSchema = z.object({
   slug: identifierSchema,
 });
 
-export type TeamDTO = z.output<typeof teamDtoSchema>;
+export type TeamDTO = z.output<typeof teamDtoSchema> & {
+  school?: WithSchoolLogo<z.output<typeof schoolSummaryDtoSchema>>;
+};
 export type TeamRole = z.output<typeof teamRoleSchema>;
 export type GameSummaryDTO = z.output<typeof gameSummaryDtoSchema>;
 export type SchoolSummaryDTO = z.output<typeof schoolSummaryDtoSchema>;

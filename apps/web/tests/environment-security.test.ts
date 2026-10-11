@@ -5,6 +5,7 @@ import test from "node:test";
 import {
   assertSafeEnvironment,
   environmentValidationIssues,
+  bundledSchoolLogoBase,
   schoolLogoBase,
   validatedPublicOrigin,
 } from "../src/server/environment.server.js";
@@ -238,4 +239,18 @@ test("the school logo location is an optional HTTPS origin outside local", () =>
     schoolLogoBase({ ...strict, R2_PUBLIC_ASSET_ORIGIN: localBase }),
     undefined,
   );
+
+  // Bundled logos come from the bucket only when the switch is on.
+  const synced = { BUNDLED_SCHOOL_LOGOS_IN_R2: "true" };
+  assert.deepEqual(
+    [
+      bundledSchoolLogoBase({ R2_PUBLIC_ASSET_ORIGIN: localBase, ...synced }),
+      bundledSchoolLogoBase({ R2_PUBLIC_ASSET_ORIGIN: localBase }),
+      bundledSchoolLogoBase(synced),
+    ],
+    [`${localBase}/bundled`, undefined, undefined],
+  );
+  assert.deepEqual(environmentValidationIssues({ ...strict, ...synced }), [
+    "BUNDLED_SCHOOL_LOGOS_IN_R2 requires R2_PUBLIC_ASSET_ORIGIN to be set",
+  ]);
 });

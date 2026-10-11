@@ -94,7 +94,10 @@ function SchoolsPage() {
               >
                 <span aria-hidden="true" className="school-directory-mark">
                   {school.name.slice(0, 1).toUpperCase()}
-                  <SchoolLogo logoURL={school.logo_url} size={44} />
+                  <SchoolLogo
+                    logoURL={school.logo_wordmark ? undefined : school.logo_url}
+                    size={44}
+                  />
                 </span>
                 <span className="school-directory-copy">
                   <strong>{school.name}</strong>

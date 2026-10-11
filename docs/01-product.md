@@ -126,7 +126,7 @@ Signup also requires confirming **age 18+**. Alumni can participate. Faculty who
 ### Schools
 
 - Search and browse schools (including while logged out); popular schools (high event volume)
-- School logo comes later via the Admin Console only (PNG/JPG ≤5 MB); placeholder until set; slug URL (duplicate names get auto-increment suffix)
+- School cards and pages show an approved Admin Console logo (PNG/JPG ≤5 MB), otherwise the school's bundled athletics mark, otherwise an identifier-matched bundled institutional logo, otherwise the school initial. Failed images reveal the initial. A wide bundled wordmark appears on the school page only; cards keep the initial. Bundled logos include source and license credits; see [School data](./09-school-data.md#institutional-logos). Slug URLs get numeric suffixes for duplicate names.
 - School names need not be unique
 - School catalog bootstrapped **once** from College Scorecard — import **all** seed rows (main + branch), `is_active=true`; branch campuses use the same UI/UX as other schools; review/deactivate later in the Admin Console
 - Afterward only site admins create/edit/delete schools via the Admin Console (users cannot create schools); `unitid` optional

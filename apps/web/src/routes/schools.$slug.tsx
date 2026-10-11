@@ -117,7 +117,9 @@ function SchoolPage() {
   return (
     <main className="detail-page school-community-page">
       <header className="school-profile-header school-community-header">
-        <span className="school-directory-mark school-directory-mark--large">
+        <span
+          className={`school-directory-mark school-directory-mark--large${school.logo_wide ? " school-directory-mark--wide" : ""}`}
+        >
           <span aria-hidden="true">
             {school.name.slice(0, 1).toUpperCase()}
           </span>
@@ -345,6 +347,23 @@ function SchoolPage() {
           />
         )}
       </section>
+
+      {school.logo_attribution ? (
+        <p className="school-logo-credit">
+          Logo: {school.logo_attribution.author}
+          {school.logo_attribution.credit
+            ? ` · ${school.logo_attribution.credit}`
+            : ""}
+          {" · "}
+          <a href={school.logo_attribution.source_url}>Source</a>
+          {" · "}
+          <a href={school.logo_attribution.license_url}>
+            {school.logo_attribution.license}
+          </a>
+          {" · "}
+          <a href="/school-logos/credits.html">All school logo credits</a>
+        </p>
+      ) : null}
     </main>
   );
 }

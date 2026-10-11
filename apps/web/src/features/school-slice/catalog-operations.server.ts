@@ -5,6 +5,7 @@ import {
 } from "../../server/api.server.js";
 import { schoolLogoBase } from "../../server/environment.server.js";
 import { optionalViewerProfile } from "../../server/viewer.server.js";
+import { bundledSchoolLogo } from "./school-logos.server.js";
 import {
   followedSchoolsResponseDtoSchema,
   gamesResponseDtoSchema,
@@ -229,16 +230,16 @@ export async function readSchools(
   return data;
 }
 
-// The API stores absolute logo URLs. The page renders one only when it points
-// into the configured asset location, so a stray or tampered value never
-// becomes an image request to another host.
+// Approved admin uploads take precedence. Otherwise use an identifier-matched
+// bundled logo; an arbitrary upstream URL never becomes an image request.
 function withVerifiedLogo(
   school: SchoolDTO,
   logoBase: string | undefined,
 ): SchoolDTO {
   const { logo_url: logoURL, ...rest } = school;
+  const fallback = { ...rest, ...bundledSchoolLogo(school) };
   if (!logoURL || !logoBase || !logoURL.startsWith(`${logoBase}/`)) {
-    return rest;
+    return fallback;
   }
   try {
     const parsed = new URL(logoURL);
@@ -248,9 +249,9 @@ function withVerifiedLogo(
       !parsed.password &&
       !parsed.search &&
       !parsed.hash;
-    return valid ? school : rest;
+    return valid ? school : fallback;
   } catch {
-    return rest;
+    return fallback;
   }
 }
 

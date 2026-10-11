@@ -155,6 +155,7 @@ test("event browse reads public no-store DTOs and strips viewer/private fields",
   assert.equal(JSON.stringify(result).includes("internal_rank"), false);
   assert.deepEqual(result.events[0]?.host_school, {
     name: "Example University",
+    slug: "example",
   });
   assert.deepEqual(result.events[0]?.games, [{ name: "Example Game" }]);
 });

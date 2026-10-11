@@ -3,6 +3,7 @@ import { StatusLabel } from "../../components/status-label";
 import { ArrowRight } from "lucide-react";
 import { CalendarDate } from "../../components/calendar-date";
 import { EventCounts } from "../../components/event-counts";
+import { SchoolLogo } from "../../components/school-logo";
 import type { EventBrowseItemDTO } from "./contracts.js";
 import { EventFacts } from "./event-facts";
 import {
@@ -35,6 +36,7 @@ export function EventCard({ event }: { event: EventBrowseItemDTO }) {
         </span>
         <small>{eventTimeRange(event)}</small>
         <small>
+          <SchoolLogo inline logoURL={event.host_school.logo_url} size={16} />
           {event.host_school.name} ·{" "}
           {event.games.map((game) => game.name).join(", ")}
         </small>

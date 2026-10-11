@@ -194,7 +194,7 @@ test("journey 5: a valid logo uploads and invalid files are refused", async ({
     "Remove logo",
   );
   await expect(page.getByRole("status")).toHaveText(
-    "Logo removed. The school shows the placeholder again.",
+    "Logo removed. Public pages use a bundled logo when available.",
   );
   await expect(logo.getByRole("img")).toHaveCount(0);
 });

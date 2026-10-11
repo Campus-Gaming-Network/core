@@ -6,6 +6,7 @@ import {
   type ApiClient,
 } from "../../server/api.server.js";
 import { optionalViewerProfile } from "../../server/viewer.server.js";
+import { withBundledSchoolLogo } from "../school-slice/school-logos.server.js";
 import {
   publicProfileDtoSchema,
   type PublicProfileInput,
@@ -50,7 +51,12 @@ export async function getPublicProfilePageOperation(
       cache: "no-store",
       responseSchema: publicProfileDtoSchema,
     });
-    profile = result.data;
+    profile = result.data.home_school
+      ? {
+          ...result.data,
+          home_school: withBundledSchoolLogo(result.data.home_school),
+        }
+      : result.data;
   } catch (error) {
     if (error instanceof ApiError && error.status === 404) {
       return { status: "not_found" };

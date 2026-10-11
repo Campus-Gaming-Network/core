@@ -312,7 +312,7 @@ test("a logo is uploaded after rejected files, previewed, and removed", async ({
     "Remove logo",
   );
   await expect(page.getByRole("status")).toHaveText(
-    "Logo removed. The school shows the placeholder again.",
+    "Logo removed. Public pages use a bundled logo when available.",
   );
   await expect(logo.getByRole("img")).toHaveCount(0);
   await expect(page.getByText("Logo updated", { exact: true })).toBeVisible();
