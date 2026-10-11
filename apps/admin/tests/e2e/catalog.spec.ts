@@ -35,7 +35,7 @@ test("a school is created, edited, and deactivated with an audited reason", asyn
 }) => {
   await authenticateAdmin(context);
   await page.goto("/schools/new");
-  await page.getByLabel("Name").fill("Night Owl College");
+  await page.getByLabel("Name", { exact: true }).fill("Night Owl College");
   await page.getByLabel("Slug").fill("night-owl-college");
   await page.getByLabel("Reason").fill("New member school");
   await page.getByRole("button", { name: "Create school" }).click();
@@ -43,7 +43,7 @@ test("a school is created, edited, and deactivated with an audited reason", asyn
   await expect(page.getByRole("status")).toHaveText("Created.");
 
   const edit = panel(page, "Edit school");
-  await edit.getByLabel("Name").fill("Night Owl University");
+  await edit.getByLabel("Name", { exact: true }).fill("Night Owl University");
   await edit.getByLabel("Reason").fill("Official name");
   await edit.getByRole("button", { name: "Save school" }).click();
   await expect(page).toHaveURL(/notice=saved$/);

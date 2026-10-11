@@ -15,6 +15,7 @@ export const adminSchoolSchema = z.object({
   name: z.string().max(300),
   // A seeded alias lists every name people search for and can pass 500.
   alias: z.string().max(1000),
+  short_name: z.string().max(40),
   slug: z.string().max(120),
   city: z.string().max(100),
   state: z.string().max(80),
@@ -515,6 +516,10 @@ const schoolFieldsSchema = z
       .string()
       .trim()
       .max(1000, "Keep the alias to 1,000 characters or fewer."),
+    short_name: z
+      .string()
+      .trim()
+      .max(40, "Keep the short name to 40 characters or fewer."),
     slug: slugSchema,
     city: z.string().trim().max(100),
     state: z.string().trim().max(80),
@@ -564,6 +569,7 @@ const schoolFieldsSchema = z
     unitid: fields.unitid ? Number(fields.unitid) : null,
     name: fields.name,
     alias: fields.alias,
+    short_name: fields.short_name,
     slug: fields.slug,
     city: fields.city,
     state: fields.state,
@@ -615,6 +621,7 @@ export function validateSchoolFormInput(
     unitid: inputValue(input, "unitid"),
     name: inputValue(input, "name"),
     alias: inputValue(input, "alias"),
+    short_name: inputValue(input, "short_name"),
     slug: inputValue(input, "slug"),
     city: inputValue(input, "city"),
     state: inputValue(input, "state"),
