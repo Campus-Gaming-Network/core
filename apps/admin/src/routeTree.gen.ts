@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuditLogRouteImport } from './routes/audit-log'
 import { Route as StepUpRouteImport } from './routes/step-up'
 import { Route as AccessSiteAdminsRouteImport } from './routes/access.site-admins'
 import { Route as ApiHealthRouteImport } from './routes/api.health'
@@ -29,6 +30,11 @@ import { Route as UsersUserIdRouteImport } from './routes/users.$userId'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuditLogRoute = AuditLogRouteImport.update({
+  id: '/audit-log',
+  path: '/audit-log',
   getParentRoute: () => rootRouteImport,
 } as any)
 const StepUpRoute = StepUpRouteImport.update({
@@ -109,6 +115,7 @@ const UsersUserIdRoute = UsersUserIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/audit-log': typeof AuditLogRoute
   '/step-up': typeof StepUpRoute
   '/access/site-admins': typeof AccessSiteAdminsRoute
   '/api/health': typeof ApiHealthRoute
@@ -127,6 +134,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/audit-log': typeof AuditLogRoute
   '/step-up': typeof StepUpRoute
   '/access/site-admins': typeof AccessSiteAdminsRoute
   '/api/health': typeof ApiHealthRoute
@@ -146,6 +154,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/audit-log': typeof AuditLogRoute
   '/step-up': typeof StepUpRoute
   '/access/site-admins': typeof AccessSiteAdminsRoute
   '/api/health': typeof ApiHealthRoute
@@ -166,6 +175,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/audit-log'
     | '/step-up'
     | '/access/site-admins'
     | '/api/health'
@@ -184,6 +194,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/audit-log'
     | '/step-up'
     | '/access/site-admins'
     | '/api/health'
@@ -202,6 +213,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/audit-log'
     | '/step-up'
     | '/access/site-admins'
     | '/api/health'
@@ -221,6 +233,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuditLogRoute: typeof AuditLogRoute
   StepUpRoute: typeof StepUpRoute
   AccessSiteAdminsRoute: typeof AccessSiteAdminsRoute
   ApiHealthRoute: typeof ApiHealthRoute
@@ -245,6 +258,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/audit-log': {
+      id: '/audit-log'
+      path: '/audit-log'
+      fullPath: '/audit-log'
+      preLoaderRoute: typeof AuditLogRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/step-up': {
@@ -357,6 +377,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuditLogRoute: AuditLogRoute,
   StepUpRoute: StepUpRoute,
   AccessSiteAdminsRoute: AccessSiteAdminsRoute,
   ApiHealthRoute: ApiHealthRoute,

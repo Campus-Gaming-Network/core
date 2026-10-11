@@ -156,7 +156,7 @@ export const catalogAuditEntrySchema = z
     changed_fields: changedFields(before, after),
   }));
 
-function changedFields(before: unknown, after: unknown): string[] {
+export function changedFields(before: unknown, after: unknown): string[] {
   const previous = auditState(before);
   const next = auditState(after);
   return [...new Set([...Object.keys(previous), ...Object.keys(next)])].filter(

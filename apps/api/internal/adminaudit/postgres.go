@@ -151,6 +151,104 @@ func (store *PostgresStore) List(ctx context.Context, params ListParams) ([]Entr
 	return entries, nil
 }
 
+// ListLog returns a page of every audited change, newest first, with the
+// record each change belongs to.
+func (store *PostgresStore) ListLog(ctx context.Context, params LogParams) ([]LogEntry, error) {
+	if store == nil || store.executor == nil || params.validate() != nil {
+		return nil, ErrInvalidAudit
+	}
+	limit := params.Limit
+	if limit == 0 {
+		limit = 50
+	}
+	var cursorTime any
+	var cursorID any
+	before := params.Before != nil
+	if before {
+		cursorTime = params.Before.Timestamp
+		cursorID = params.Before.ID
+	} else if params.After != nil {
+		cursorTime = params.After.Timestamp
+		cursorID = params.After.ID
+	}
+	order := "ORDER BY created_at DESC, id DESC"
+	if before {
+		order = "ORDER BY created_at, id"
+	}
+	rows, err := store.executor.Query(ctx, `
+		SELECT log.id::text, log.actor_user_id::text, log.admin_session_id::text,
+		       log.request_id, log.action, log.entity_type, log.entity_id::text,
+		       log.before_json, log.after_json, log.metadata, log.created_at,
+		       (SELECT name FROM users WHERE users.id = log.actor_user_id),
+		       CASE
+		           WHEN log.entity_type = 'site_role_grant' THEN 'user'
+		           WHEN log.entity_type = 'school_admin' THEN 'school'
+		           ELSE log.entity_type
+		       END,
+		       CASE
+		           WHEN log.entity_type = 'site_role_grant' THEN site_role_grants.user_id
+		           WHEN log.entity_type = 'school_admin' THEN school_admins.school_id
+		           ELSE log.entity_id
+		       END::text,
+		       COALESCE(target_users.name, schools.name, games.name)
+		FROM (
+		    SELECT *
+		    FROM audit_logs
+		    WHERE ($1 = '' OR entity_type = $1)
+		      AND (
+		          $2::timestamptz IS NULL
+		          OR (NOT $4 AND (created_at, id) < ($2::timestamptz, $3::uuid))
+		          OR ($4 AND (created_at, id) > ($2::timestamptz, $3::uuid))
+		      )
+		    `+order+`
+		    LIMIT $5
+		) AS log
+		LEFT JOIN site_role_grants
+		    ON log.entity_type = 'site_role_grant' AND site_role_grants.id = log.entity_id
+		LEFT JOIN school_admins
+		    ON log.entity_type = 'school_admin' AND school_admins.id = log.entity_id
+		LEFT JOIN users AS target_users
+		    ON target_users.id = CASE
+		        WHEN log.entity_type = 'user' THEN log.entity_id
+		        WHEN log.entity_type = 'site_role_grant' THEN site_role_grants.user_id
+		    END
+		LEFT JOIN schools
+		    ON schools.id = CASE
+		        WHEN log.entity_type = 'school' THEN log.entity_id
+		        WHEN log.entity_type = 'school_admin' THEN school_admins.school_id
+		    END
+		LEFT JOIN games
+		    ON log.entity_type = 'game' AND games.id = log.entity_id
+		ORDER BY log.created_at DESC, log.id DESC
+	`, string(params.EntityType), cursorTime, cursorID, before, limit)
+	if err != nil {
+		return nil, fmt.Errorf("list admin audit log: %w", err)
+	}
+	defer rows.Close()
+
+	entries := make([]LogEntry, 0, limit)
+	for rows.Next() {
+		var entry LogEntry
+		var beforeState, afterState, metadata []byte
+		if err := rows.Scan(
+			&entry.ID, &entry.ActorUserID, &entry.AdminSessionID, &entry.RequestID,
+			&entry.Action, &entry.EntityType, &entry.EntityID,
+			&beforeState, &afterState, &metadata, &entry.CreatedAt, &entry.ActorName,
+			&entry.TargetType, &entry.TargetID, &entry.TargetName,
+		); err != nil {
+			return nil, fmt.Errorf("scan admin audit log entry: %w", err)
+		}
+		entry.Before = json.RawMessage(beforeState)
+		entry.After = json.RawMessage(afterState)
+		entry.Metadata = json.RawMessage(metadata)
+		entries = append(entries, entry)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate admin audit log: %w", err)
+	}
+	return entries, nil
+}
+
 func scanEntry(row pgx.Row) (Entry, error) {
 	var entry Entry
 	var before, after, metadata []byte
