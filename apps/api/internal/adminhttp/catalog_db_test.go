@@ -433,6 +433,36 @@ func TestCatalogPaginationAndLiteralSearch(t *testing.T) {
 	}
 	f.request(t, "GET", "/admin/v1/users?limit=101", nil, 400)
 	f.request(t, "GET", "/admin/v1/users?q=a&q=b", nil, 400)
+	// Names match anywhere, still literally; an email matches from its start.
+	if _, err := f.pool.Exec(ctx, `UPDATE users SET name='Pat Zzqmiddle Example' WHERE id=$1`, catalogTargetID); err != nil {
+		t.Fatal(err)
+	}
+	byName, err := f.user.ListAdmin(ctx, adminmutation.Filter{Query: "zzqmiddle", Limit: 10})
+	if err != nil || len(byName) != 1 || byName[0].ID != catalogTargetID {
+		t.Fatalf("user name search: %#v %v", byName, err)
+	}
+	byEmail, err := f.user.ListAdmin(ctx, adminmutation.Filter{Query: "arget@example.edu", Limit: 10})
+	if err != nil || len(byEmail) != 0 {
+		t.Fatalf("user email search matched mid-address: %#v %v", byEmail, err)
+	}
+	inGame, err := f.game.ListAdmin(ctx, adminmutation.Filter{Query: "age_3", Limit: 10})
+	if err != nil || len(inGame) != 1 || inGame[0].Name != "Page_3" {
+		t.Fatalf("game name search: %#v %v", inGame, err)
+	}
+	// A school matches anywhere in its name, alias, or slug: "_" does not stand
+	// in for the hyphen in another school's name.
+	middle, err := f.school.CreateAdmin(ctx, schools.AdminEdit{Command: f.command, AdminFields: schools.AdminFields{
+		Name: "University of Zzq Urbana_Champaign Campus", Alias: "Zzq|Zzqmiddle|Zzqend", Slug: "university-of-zzq-urbana-champaign",
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, query := range []string{"Urbana_Champaign", "zzqmiddle", "zzq-urbana"} {
+		found, err := f.school.ListAdmin(ctx, adminmutation.Filter{Query: query, Limit: 10})
+		if err != nil || len(found) != 1 || found[0].ID != middle.ID {
+			t.Fatalf("school search %q: %#v %v", query, found, err)
+		}
+	}
 }
 
 func TestCatalogAuditFailuresRollBackDomainAndSessionChanges(t *testing.T) {

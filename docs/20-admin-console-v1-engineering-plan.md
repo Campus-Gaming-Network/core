@@ -449,7 +449,7 @@ applicable.
 | POST   | `/admin/v1/game-imports`                 | `games.manage`                  | Import one IGDB game, inactive       |
 | POST   | `/admin/v1/games/:id/refresh`            | `games.manage`                  | Re-sync an imported game from IGDB   |
 | GET    | `/admin/v1/games/:id/cover`              | `games.manage`                  | Stored cover for review              |
-| GET    | `/admin/v1/users`                        | `users.read`                    | Bounded exact/prefix search          |
+| GET    | `/admin/v1/users`                        | `users.read`                    | Name anywhere, email prefix          |
 | GET    | `/admin/v1/users/:id`                    | `users.read`                    | Safe account/grant summary           |
 | POST   | `/admin/v1/users/:id/suspend`            | `users.manage_status` + step-up | Suspend with reason, revoke sessions |
 | POST   | `/admin/v1/users/:id/reactivate`         | `users.manage_status` + step-up | Reactivate with reason               |
@@ -968,7 +968,9 @@ API contracts for AC-013:
 
 - Lists accept `limit` (1–100), `after` or `before`, and applicable `state`
   filters. Catalog and user searches accept a literal, case-insensitive `q`
-  prefix; wildcard characters do not expand the search. School/game states are
+  search; wildcard characters do not expand it. `q` matches anywhere in a
+  school's name, alias, or slug, a game's name or slug, and a user's name. A
+  user's email matches from its start only. School/game states are
   `active`, `inactive`, and `deleted`; user states are `active`, `suspended`, and
   `deleted`; grant states are `active` and `revoked`.
 - Catalog create/edit bodies contain the complete typed editable form plus
@@ -1090,7 +1092,7 @@ step-up redirect/return, logo upload, session-revocation feedback.
 - Revoked admin sessions stop navigating/mutating immediately.
 
 Implemented: capability-gated school, game, user, and site-admin screens with
-state and prefix search, cursor pagination, and entity audit panels that show
+state and text search, cursor pagination, and entity audit panels that show
 each change's reason and changed field names but not the audited values. Record
 forms edit only the documented fields, and every other change is a named
 command with a required reason; deactivation, deletion, grant revocation,

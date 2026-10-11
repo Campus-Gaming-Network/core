@@ -256,7 +256,7 @@ export function SchoolForm({ school }: { school?: AdminSchool }) {
           label="Alias"
           name="alias"
           value={school?.alias}
-          maxLength={300}
+          maxLength={1000}
         />
         <TextField
           errors={errors.unitid}

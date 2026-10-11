@@ -102,6 +102,11 @@ func Prefix(query string) string {
 	return strings.NewReplacer(`\`, `\\`, "%", `\%`, "_", `\_`).Replace(strings.ToLower(strings.TrimSpace(query))) + "%"
 }
 
+// Contains is Prefix for a match anywhere in the value.
+func Contains(query string) string {
+	return "%" + Prefix(query)
+}
+
 func UUID(id string) bool {
 	var value pgtype.UUID
 	return len(id) == 36 && value.Scan(id) == nil && value.Valid
