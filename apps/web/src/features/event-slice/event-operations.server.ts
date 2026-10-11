@@ -9,6 +9,7 @@ import {
   unlockCookieMutation,
   type CookieMutation,
 } from "../../server/cookies.server.js";
+import { withHostSchoolLogo } from "../school-slice/school-logos.server.js";
 import {
   eventDetailDtoSchema,
   eventDtoSchema,
@@ -226,7 +227,7 @@ export async function homeEventsOperation({
       cache: "no-store",
       responseSchema: eventsBrowseResponseDtoSchema,
     });
-    return { events: data.events, unavailable: false };
+    return { events: data.events.map(withHostSchoolLogo), unavailable: false };
   } catch (error) {
     reportError(error);
     return { events: [], unavailable: true };
@@ -250,7 +251,10 @@ export async function getEventDetailOperation(
       cache: "no-store",
       responseSchema: eventDetailDtoSchema,
     });
-    return { status: "found", event: data };
+    return {
+      status: "found",
+      event: "host_school" in data ? withHostSchoolLogo(data) : data,
+    };
   } catch (error) {
     if (error instanceof ApiError && error.status === 404) {
       return { status: "not_found" };
@@ -566,7 +570,7 @@ async function readEvents(api: ApiClient, input: EventsBrowseInput) {
     cache: "no-store",
     responseSchema: eventsBrowseResponseDtoSchema,
   });
-  return data;
+  return { ...data, events: data.events.map(withHostSchoolLogo) };
 }
 
 function defaultErrorReporter(error: unknown): void {

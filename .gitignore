@@ -52,3 +52,9 @@ bin/
 # Local environment overrides
 .env.local
 .env.*.local
+
+# Bundled school logo images are kept in the R2 logo bucket, not in git; see
+# docs/09-school-data.md. `pnpm run sync:school-logos --pull` fetches them.
+apps/web/public/school-logos/*
+!apps/web/public/school-logos/manifest.json
+!apps/web/public/school-logos/credits.html

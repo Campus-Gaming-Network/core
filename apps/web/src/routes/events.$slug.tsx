@@ -78,6 +78,7 @@ import {
   PeopleSignedOut,
 } from "../features/people-slice/people-views";
 import { verificationDetail } from "../features/people-slice/presentation";
+import { SchoolLogo } from "../components/school-logo";
 
 const siteName = "Campus Gaming Network";
 const privateEventDescription =
@@ -329,6 +330,11 @@ function VisibleEventView({
           <p className="event-hostline">
             Hosted by{" "}
             <Link to="/schools/$slug" params={{ slug: event.host_school.slug }}>
+              <SchoolLogo
+                inline
+                logoURL={event.host_school.logo_url}
+                size={20}
+              />
               {event.host_school.name}
             </Link>
           </p>

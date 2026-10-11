@@ -34,6 +34,7 @@ import { pageNoticeKey } from "../components/page-notice";
 import { Avatar } from "../components/avatar";
 import { PageNoticeView } from "../components/page-notice-view";
 import { RouteErrorView, RoutePending } from "../components/route-boundaries";
+import { SchoolLogo } from "../components/school-logo";
 import { StatusLabel } from "../components/status-label";
 import {
   eventLifecycleLabel,
@@ -174,7 +175,10 @@ function AccountPage() {
                   to="/schools/$slug"
                   params={{ slug: school.slug }}
                 >
-                  <strong>{school.name}</strong>
+                  <strong>
+                    <SchoolLogo inline logoURL={school.logo_url} size={20} />
+                    {school.name}
+                  </strong>
                   <small>{schoolLocation(school)}</small>
                 </Link>
               </li>
@@ -303,6 +307,11 @@ function DashboardEventSection({
                       : ""}
                   </small>
                   <small>
+                    <SchoolLogo
+                      inline
+                      logoURL={event.host_school.logo_url}
+                      size={16}
+                    />
                     {event.host_school.name} ·{" "}
                     {event.games.map((game) => game.name).join(", ")}
                   </small>

@@ -31,15 +31,15 @@ orders the 2026-09-05 review findings and records each item's status.
 
 No blocking decisions left for media/slugs/email. Optional later: exact default banner asset design.
 
-| Topic           | Decision                                                                                           |
-| --------------- | -------------------------------------------------------------------------------------------------- |
-| Event slug hash | **8** Base64URL chars                                                                              |
-| Images          | **PNG or JPG only**; max **5 MB**                                                                  |
-| Event banners   | Default placeholder image/background — **no user uploads yet**                                     |
-| School logos    | Admin Console upload to R2 implemented; the main site shows a logo when one is set                 |
-| Email From      | Now: `events@` / `account@`; later workflows: `notifications@` / `support@campusgamingnetwork.com` |
-| Paid events     | Off-site-payment listings only; no CGN checkout/payments                                           |
-| Deploy path     | Railway hosts TanStack Start, Go API, and PostgreSQL; Cloudflare manages DNS/protection            |
+| Topic           | Decision                                                                                                                                       |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| Event slug hash | **8** Base64URL chars                                                                                                                          |
+| Images          | Admin logo uploads accept **PNG or JPG only**, max **5 MB**; bundled institutional assets also include SVG.                                    |
+| Event banners   | Default placeholder image/background — **no user uploads yet**                                                                                 |
+| School logos    | Admin uploads take precedence over validated bundled logos, then initials; see [coverage and sources](./09-school-data.md#institutional-logos) |
+| Email From      | Now: `events@` / `account@`; later workflows: `notifications@` / `support@campusgamingnetwork.com`                                             |
+| Paid events     | Off-site-payment listings only; no CGN checkout/payments                                                                                       |
+| Deploy path     | Railway hosts TanStack Start, Go API, and PostgreSQL; Cloudflare manages DNS/protection                                                        |
 
 ---
 

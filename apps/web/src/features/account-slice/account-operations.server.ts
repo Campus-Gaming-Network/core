@@ -7,6 +7,10 @@ import {
 } from "../../server/api.server.js";
 import type { CookieMutation } from "../../server/cookies.server.js";
 import {
+  withBundledSchoolLogo,
+  withHostSchoolLogo,
+} from "../school-slice/school-logos.server.js";
+import {
   accountProfileDtoSchema,
   dashboardEventLimit,
   dashboardEventsDtoSchema,
@@ -63,7 +67,11 @@ export async function accountDashboardOperation({
           cookieHeader,
           cache: "no-store",
           responseSchema: dashboardEventsDtoSchema,
-        }).then(({ data }) => data),
+        }).then(({ data }) => ({
+          upcoming_rsvps: data.upcoming_rsvps.map(withHostSchoolLogo),
+          followed_school_events:
+            data.followed_school_events.map(withHostSchoolLogo),
+        })),
       emptyDashboard,
       reportError,
     ),
@@ -74,7 +82,7 @@ export async function accountDashboardOperation({
           cookieHeader,
           cache: "no-store",
           responseSchema: followedSchoolsDtoSchema,
-        }).then(({ data }) => data.schools),
+        }).then(({ data }) => data.schools.map(withBundledSchoolLogo)),
       [],
       reportError,
     ),

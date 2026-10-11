@@ -5,6 +5,7 @@ import {
   pickedIGDBGameIDsSchema,
 } from "../game-picker/contracts.js";
 import { pageNoticeKey } from "../../components/page-notice.js";
+import type { WithSchoolLogo } from "../school-slice/contracts.js";
 import { localDateTimeToInstant } from "./event-time.js";
 import { eventBrowseNotices, type EventBrowseNotice } from "./presentation.js";
 
@@ -132,7 +133,7 @@ export const eventBrowseItemDtoSchema = z.object({
   online_url: z.string().optional(),
   lifecycle: z.enum(["upcoming", "happening_now", "ended", "full"]),
   cost: eventCostSchema,
-  host_school: z.object({ name: z.string() }),
+  host_school: z.object({ name: z.string(), slug: identifierSchema }),
   games: z.array(z.object({ name: z.string() })),
   rsvp_yes_count: nonNegativeIntegerSchema,
   interest_count: nonNegativeIntegerSchema,
@@ -317,10 +318,15 @@ export const eventFormSchoolsResponseDtoSchema = z.object({
 export const idResponseDtoSchema = z.object({ id: identifierSchema });
 export const emptyResponseDtoSchema = z.undefined();
 
-export type EventDTO = z.output<typeof eventDtoSchema>;
+type WithHostSchoolLogo<T extends { host_school: unknown }> = T & {
+  host_school: WithSchoolLogo<T["host_school"]>;
+};
+export type EventDTO = WithHostSchoolLogo<z.output<typeof eventDtoSchema>>;
 export type LockedEventDTO = z.output<typeof lockedEventDtoSchema>;
-export type EventDetailDTO = z.output<typeof eventDetailDtoSchema>;
-export type EventBrowseItemDTO = z.output<typeof eventBrowseItemDtoSchema>;
+export type EventDetailDTO = EventDTO | LockedEventDTO;
+export type EventBrowseItemDTO = WithHostSchoolLogo<
+  z.output<typeof eventBrowseItemDtoSchema>
+>;
 export type EventsBrowseInput = z.output<typeof eventsBrowseInputSchema>;
 export type EventGameDTO = z.output<typeof gameSummaryDtoSchema>;
 export type EventRSVP = z.output<typeof eventRSVPSchema>;

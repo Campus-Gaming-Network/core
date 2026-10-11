@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import logoManifest from "../public/school-logos/manifest.json" with { type: "json" };
+import { withBundledSchoolLogo } from "../src/features/school-slice/school-logos.server.js";
 import {
   homeCatalogOperation,
   schoolCatalogOperation,
@@ -352,6 +354,64 @@ test("school pages render only logos served from the configured asset location",
   );
 });
 
+test("bundled logos require exact seed identity and yield to approved admin uploads", async () => {
+  const logo = logoManifest.athletics[0];
+  const seededSchool = { ...school, unitid: logo.unitid, slug: logo.slug };
+  const assetBase = "https://assets.example.test";
+  const adminLogo = `${assetBase}/school-logos/upload.png`;
+  const bundled = {
+    ...seededSchool,
+    logo_url: logo.asset,
+    logo_attribution: {
+      author: logo.author,
+      credit: logo.attribution,
+      license: logo.license,
+      license_url: logo.license_url,
+      source_url: logo.source_url,
+    },
+  };
+  const cases = [
+    { input: seededSchool, base: undefined, expected: bundled },
+    {
+      input: { ...seededSchool, logo_url: adminLogo },
+      base: assetBase,
+      expected: { ...seededSchool, logo_url: adminLogo },
+    },
+    {
+      input: { ...seededSchool, logo_url: "https://untrusted.test/logo.png" },
+      base: assetBase,
+      expected: bundled,
+    },
+    {
+      input: { ...seededSchool, slug: "a-different-campus" },
+      base: undefined,
+      expected: { ...seededSchool, slug: "a-different-campus" },
+    },
+    {
+      input: { ...seededSchool, unitid: undefined },
+      base: undefined,
+      expected: { ...seededSchool, unitid: undefined },
+    },
+  ];
+  const results = await Promise.all(
+    cases.map(({ input, base }) =>
+      schoolCatalogOperation(
+        { slug: input.slug },
+        { api: client(async () => Response.json(input)), logoBase: base },
+      ),
+    ),
+  );
+  // Zod omits an undefined JSON property when it parses the upstream payload.
+  const { unitid: _unitid, ...withoutUnitID } = seededSchool;
+  assert.deepEqual(
+    results,
+    cases.map(({ expected }, index) => ({
+      status: "found",
+      school: index === cases.length - 1 ? withoutUnitID : expected,
+    })),
+  );
+});
+
 test("the home page advertises popular schools and falls back to the alphabetical list when there is no ranking", async () => {
   const alphabetical = {
     ...school,
@@ -450,5 +510,34 @@ test("the home page says schools are unavailable only when neither list can be r
       unavailable: result.schoolsUnavailable,
     },
     { schools: [], popular: false, unavailable: true },
+  );
+});
+
+test("school summaries get a bundled logo by seed slug, except a wordmark", () => {
+  const athleticsSlugs = new Set(
+    logoManifest.athletics.map((logo) => logo.slug),
+  );
+  // Between 3:2 and 2:1: shown small only because it is an athletics mark.
+  const square = logoManifest.athletics.find(
+    (logo) => logo.width / logo.height > 1.5 && logo.width / logo.height <= 2,
+  )!;
+  // A wordmark with no athletics mark to replace it.
+  const wide = logoManifest.logos.find(
+    (logo) => logo.width / logo.height > 1.5 && !athleticsSlugs.has(logo.slug),
+  )!;
+  const summary = (slug: string) => ({ id: "school-1", name: "School", slug });
+
+  assert.deepEqual(
+    [square.slug, wide.slug, "not-a-seeded-school"].map((slug) =>
+      withBundledSchoolLogo(summary(slug)),
+    ),
+    [
+      {
+        ...summary(square.slug),
+        logo_url: square.asset,
+      },
+      summary(wide.slug),
+      summary("not-a-seeded-school"),
+    ],
   );
 });

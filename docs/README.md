@@ -43,19 +43,20 @@ history only.
 Each kind of fact has one owner. Other docs link to the owner instead of
 restating the fact, so a change needs one edit.
 
-| Fact                                          | Owner                                                                                               |
-| --------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| Product scope and user-facing rules           | [01 — Product](./01-product.md)                                                                     |
-| Entities and business rules                   | [02 — Domain model](./02-domain-model.md)                                                           |
-| Schema                                        | [03 — Database](./03-database.md), with `db/migrations` authoritative                               |
-| Endpoints, fields, status codes, error codes  | [04 — API](./04-api.md)                                                                             |
-| Roles and permissions                         | [07 — Permissions](./07-permissions.md)                                                             |
-| Engineering decisions and cross-cutting rules | [11 — Implementation decisions](./11-implementation-decisions.md)                                   |
-| Feature and launch-gate checklist             | [10 — Delivery status](./10-delivery-status.md)                                                     |
-| Review backlog items and their status         | [17 — Codebase review action plan](./17-codebase-review-action-plan.md)                             |
-| Admin Console tickets and their status        | [20 — Admin Console v1 engineering plan](./20-admin-console-v1-engineering-plan.md)                 |
-| Current milestone, next tasks, and blockers   | [00 — Current state](./00-current-state.md)                                                         |
-| Toolchain versions                            | `apps/api/go.mod`, `.node-version`, `packageManager` in `package.json`, and each app's `Dockerfile` |
+| Fact                                            | Owner                                                                                               |
+| ----------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Product scope and user-facing rules             | [01 — Product](./01-product.md)                                                                     |
+| School seed data, logo provenance, and coverage | [09 — School data](./09-school-data.md)                                                             |
+| Entities and business rules                     | [02 — Domain model](./02-domain-model.md)                                                           |
+| Schema                                          | [03 — Database](./03-database.md), with `db/migrations` authoritative                               |
+| Endpoints, fields, status codes, error codes    | [04 — API](./04-api.md)                                                                             |
+| Roles and permissions                           | [07 — Permissions](./07-permissions.md)                                                             |
+| Engineering decisions and cross-cutting rules   | [11 — Implementation decisions](./11-implementation-decisions.md)                                   |
+| Feature and launch-gate checklist               | [10 — Delivery status](./10-delivery-status.md)                                                     |
+| Review backlog items and their status           | [17 — Codebase review action plan](./17-codebase-review-action-plan.md)                             |
+| Admin Console tickets and their status          | [20 — Admin Console v1 engineering plan](./20-admin-console-v1-engineering-plan.md)                 |
+| Current milestone, next tasks, and blockers     | [00 — Current state](./00-current-state.md)                                                         |
+| Toolchain versions                              | `apps/api/go.mod`, `.node-version`, `packageManager` in `package.json`, and each app's `Dockerfile` |
 
 Open tasks, their status, and their order live in
 [GitHub Issues](https://github.com/Campus-Gaming-Network/core/issues) and the
@@ -103,7 +104,7 @@ would add a second description of each endpoint to maintain.
 - **Schools** — user selects one home school on signup, may follow more schools later; import all 6,243 seed rows (1,300 branches) as active; branch campuses use the same UI/UX as other schools; `unitid` optional.
 - **Paid events** — allowed as informational/off-site payment only; organizers handle payment outside the product.
 - **Games** — imported from IGDB by site admins; there is no hand-made launch list. Covers are stored in Postgres and the FAQ page credits IGDB.com.
-- **Images** — event banners = default placeholder for now; school logos come later via Admin Console uploads (PNG/JPG only, max 5 MB).
+- **Images** — event banners use the default placeholder; school logos use approved uploads, bundled institutional assets, or an initial. See [School data](./09-school-data.md#institutional-logos).
 - **Event slugs** — `slugify(title)-` + 8-char Base64URL(SHA-256(…)).
 - **Recurring events** — weekly, biweekly, or monthly; max one year; occurrences are independent event rows with independent RSVPs and cancellation.
 - **Cancellation email** — best-effort email to active yes/maybe RSVPs after soft cancellation; delivery failure does not undo cancellation.

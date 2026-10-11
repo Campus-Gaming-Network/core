@@ -76,7 +76,7 @@ schools
   slug            -- unique
   city, state, zip
   website_url
-  logo_url        -- NOT from Scorecard; later Admin Console-only upload (PNG/JPG ≤5 MB)
+  logo_url        -- NOT from Scorecard; Admin Console upload override (PNG/JPG ≤5 MB)
   latitude, longitude
   is_main_campus
   num_branches
@@ -84,7 +84,64 @@ schools
   created_at, updated_at, deleted_at
 ```
 
-Logos are **not** in Scorecard and **cannot** be uploaded from the main site. A site admin sets one in the Admin Console; until then the main site shows no logo.
+Logos are **not** in Scorecard and **cannot** be uploaded from the main site. An approved Admin Console upload takes precedence over the bundled collection described below. Removing an uploaded logo restores the bundled logo when available, otherwise the initial.
+
+## Institutional logos
+
+The main site's home cards, school directory, and school pages use local institutional SVG/PNG/JPG assets in `apps/web/public/school-logos/`. By default they are served from the web app itself and require no third-party image requests or R2 configuration; [they can be served from the logo bucket instead](#serving-bundled-logos-from-r2). The BFF matches the catalog's exact `unitid` and seed `slug`; it never guesses by name or inherits a logo from a main campus. Unknown or changed identities show the initial. A failed image also reveals the initial after hydration. Most bundled institutional logos are wide wordmarks that are unreadable in a square mark, so a bundled logo wider than 3:2 gets a wider mark on the school page. Small marks (home cards, the directory, and the inline logos below) leave out an institutional logo wider than 3:2 and an athletics mark wider than 2:1, which is usually a picture rather than a line of text; those schools keep the initial or the name alone.
+
+Other places that name a school show the same bundled logo in front of the name: event cards and event pages (the host school), team pages, public profiles (the home school), the account dashboard, and a school's people page. Those API responses carry a school summary with a slug and no `unitid` or `logo_url`, so the BFF matches the seed slug alone, leaves out the same too-wide logos, and does not show an Admin Console upload there. A school without a match shows its name only.
+
+### Serving bundled logos from R2
+
+`pnpm run sync:school-logos` uploads every file listed in the manifest to the school-logo bucket under `bundled/school-logos/`, beside the Admin Console uploads in `school-logos/`. It reads the API's `R2_*` variables, or targets the local Compose object-storage service when neither `R2_ACCOUNT_ID` nor `R2_ENDPOINT` is set. Each file name carries its content hash, so objects are stored once with a one-year immutable cache lifetime; a rerun uploads only new files and never deletes.
+
+Setting `BUNDLED_SCHOOL_LOGOS_IN_R2=true` on the web app makes it link bundled logos at `R2_PUBLIC_ASSET_ORIGIN/bundled/school-logos/…` instead of its own `/school-logos/…`. Run the sync for that environment's bucket first, and again after each new collection, before deploying the web app that references the new manifest. `manifest.json` and `credits.html` are always served by the web app.
+
+The image files are not in git: `.gitignore` leaves out everything in `apps/web/public/school-logos/` except `manifest.json` and `credits.html`, and the bucket is where they are kept. A deployment built from the repository therefore has no local copies and must set `BUNDLED_SCHOOL_LOGOS_IN_R2=true`. On a fresh checkout, `R2_PUBLIC_ASSET_ORIGIN=<bucket's public address> pnpm run sync:school-logos --pull` downloads the missing files and checks each against its manifest checksum; `--check` and a local stack without the switch need them. The browser suites set the switch and use the fake API as the asset origin, so they do not.
+
+`manifest.json` in that directory records each school, Wikidata entity and label, Commons file page, original branding source when provided, author, copyright terms, attribution, restrictions, retrieval date, dimensions, download URL, and SHA-256 checksum. `credits.html` provides public credits and license links, also linked from the logo credit line at the foot of the school page. SVG files retain their original bytes. PNG and JPEG files larger than 640 pixels on their longer side are downscaled when that makes the file smaller, keeping their proportions; the manifest's `resized_from` records the source dimensions, size, and checksum, and the credits page states the change. Third-party assets are excluded from formatting.
+
+The research joins [Wikidata P1771 (IPEDS ID)](https://www.wikidata.org/wiki/Property:P1771) to Scorecard `UNITID`, then selects P154 institutional logos. It prefers SVG and files with official educational branding sources. Candidates with ambiguous identities, unclear copyright terms, unsupported formats, unsuitable variants, external SVG dependencies, or failed downloads are excluded. Only explicitly recorded public-domain, CC0, CC BY, or CC BY-SA terms are accepted; attribution and license links are retained. This is a snapshot with identifier checks and a visual review of the full collection in contact sheets, not a guarantee that every institution's latest rebrand is represented.
+
+Coverage of institutional logos for the October 9, 2026 UTC collection (athletics marks are counted in their own section below):
+
+| Measure                                                  |       Schools |
+| -------------------------------------------------------- | ------------: |
+| Seed catalog                                             |         6,243 |
+| Identifier-matched logo candidates                       |         1,225 |
+| Bundled and validated logos                              | 1,118 (17.9%) |
+| Candidate schools withheld or rejected                   |           107 |
+| Schools without an indexed logo match                    |         5,018 |
+| Schools using the initial unless an admin uploads a logo |         5,125 |
+
+The bundle contains 429 SVGs, 624 PNGs, and 65 JPGs, totaling about 31.2 MiB after downscaling. Source terms record 1,030 public-domain files, 9 CC0 files, 11 CC BY files, and 68 CC BY-SA files. The exclusion ledger contains 108 schools: the 107 rejected candidates plus UCF, whose known brand-policy exception is recorded despite having no indexed candidate. Coverage includes only individually matched schools; sharing a system or parent institution does not confer a logo match.
+
+Known brand-policy and rebrand exceptions live in [`data/school-logo-review.json`](../data/school-logo-review.json). The collector applies them to the bundle and records their reasons and sources among the exclusions. ASU, Alabama, and UCLA are withheld pending permission; the indexed UAB artwork predates its 2025 refresh. UCF's current external identity also needs a separately reviewed asset/approval. A second visual review withheld 14 more: marks naming a former identity, files titled as old logos, seals, a flag, parent-institution marks, and variants that are incomplete or unreadable on a light background.
+
+Verified rebrand corrections are recorded separately in [`data/school-logo-overrides.json`](../data/school-logo-overrides.json), with an official identity source. Dallas College uses its unified institutional logo rather than the former El Centro College mark. Middlebury Institute and Pikes Peak State College use verified replacements for their former names. Virginia Wesleyan's current Batten University mark is confirmed against its official history; the older seed name remains a catalog edit for the Admin Console. Other observed name changes without a verified reusable replacement, and a Miami Ad School Europe mark incorrectly indexed to the Miami school, are withheld in the review ledger.
+
+### Athletics marks
+
+Where a school has an athletics program, the site shows the program's mark instead of the institutional logo: athletics marks are compact and stay legible in the small square mark, so they also appear on home cards and in the directory. A program is matched through the institution it represents ([Wikidata P1268](https://www.wikidata.org/wiki/Property:P1268)), itself matched by exact IPEDS ID; a program tied to several catalog schools, or a school with several programs, is skipped. The logo is the one in the program's English Wikipedia infobox, otherwise Wikidata's P154. Only a reduced copy (330 pixels wide, PNG or JPEG) is stored, named `<unitid>-athletics-<hash>`, and listed under `athletics` in the manifest.
+
+The October 9, 2026 collection found 1,350 programs for catalog schools and bundled marks for 1,031 of them; 259 of those schools had no institutional logo, so 1,377 schools (22.1%) now have a logo and 902 of them show it in the directory. 319 programs are listed under `athletics_excluded`, 304 because no logo is recorded. Marks invisible on a white background are rejected automatically. [`data/school-athletics-logo-review.json`](../data/school-athletics-logo-review.json) withholds reviewed mismatches.
+
+**526 of the 1,031 athletics marks are non-free.** They are copyrighted artwork that Wikipedia hosts under its non-free content policy, not under a reuse licence. CGN shows them at reduced size, only to identify the school, with no merchandise or endorsement claim, and relies on fair use for that; this is an accepted risk, not a clearance. The manifest marks each with `non_free`, and the credits page says so. A school that objects is handled by adding it to the review ledger.
+
+Copyright reuse terms do **not** grant institutional trademark permission. The collection is for identifying directory entries, with no endorsement or affiliation claim. Commons itself [requires checking individual terms and other restrictions](https://commons.wikimedia.org/wiki/Commons:Reusing_content_outside_Wikimedia). Trademark rights and institution-specific permissions still need assessment for CGN's intended public use; the metadata is not legal clearance. An official website offering a download is not by itself a redistribution license.
+
+Maintenance uses Node.js 24 and is explicit, never a scheduled school-data sync:
+
+```bash
+node scripts/collect_school_logos.ts --collect
+node scripts/collect_school_logos.ts --apply-review
+node scripts/collect_school_logos.ts --optimize
+node scripts/collect_school_logos.ts --collect-athletics
+node scripts/collect_school_logos.ts --check
+```
+
+`--collect` fetches source/license metadata and downloads files with bounded concurrency, validates MIME/signatures and source hashes, and writes the bundle and credits. Its temporary download cache supports retrying interrupted research. `--apply-review` removes newly flagged assets without downloading again. `--optimize` downscales large rasters; `--collect` already runs both. `--check` runs offline and checks checksums, SVG safety, and actual browser decoding for every bundled image. It requires Playwright Chromium, installed with `pnpm exec playwright install chromium` as for the browser suites. It also fails on a logo that is invisible on white. Add `--preview` to generate contact sheets in the system temporary directory, and `--athletics` to preview the athletics marks. A new logo must pass those checks and have a traceable institution match and reuse terms before inclusion. Routine catalog edits and uploaded-logo overrides remain owned by the Admin Console.
 
 ## One-time import (implemented)
 
@@ -102,7 +159,7 @@ go run ./cmd/seed -csv ../../data/schools_seed.csv
 
 ## Known gaps in this download
 
-- **No logos / brand colors**
+- **Scorecard has no logos / brand colors**; bundled-logo coverage is separate from this extract.
 - **Aliases sparse** (~2.3k of 6.2k)
 - Territories and non-state `STABBR` values are present — still “US” for launch scope
 - Includes 1,300 branch campuses and many non-traditional schools; branch campuses use the same UI/UX, and cleanup can happen through the Admin Console over time

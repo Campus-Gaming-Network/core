@@ -285,19 +285,19 @@ Used for: browse/filter events (and later tournaments) by game; popular games by
 
 ## Cross-cutting rules
 
-| Topic             | Rule                                                                                                                                    |
-| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| Timestamps        | Every table: `created_at`, `updated_at`, `deleted_at`                                                                                   |
-| Soft deletes      | Default for user-facing entities (esp. events)                                                                                          |
-| Slugs             | Schools: name + numeric suffix on collision. Events: `slugify(title)-` + first **8** Base64URL chars of SHA-256(creatorId\|date\|title) |
-| Images            | Event banners default placeholder for now; school logos later via Admin Console upload (PNG or JPG only; max 5 MB)                      |
-| Search            | Postgres (`tsvector` / `pg_trgm`) before any external search service                                                                    |
-| Profanity         | Block bad words in user-entered text                                                                                                    |
-| XSS / SQLi        | Prevent via parameterized queries + output encoding / sanitization                                                                      |
-| Rate limits       | Signups, event creation, reports (and general API rate limiting)                                                                        |
-| Content filtering | Basic blocked-term list with word boundaries; reject disallowed user-authored text before persistence                                   |
-| Timezones         | Store events in absolute time; display in user timezone                                                                                 |
-| US scope          | No international school handling at launch                                                                                              |
+| Topic             | Rule                                                                                                                                                                                                                      |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Timestamps        | Every table: `created_at`, `updated_at`, `deleted_at`                                                                                                                                                                     |
+| Soft deletes      | Default for user-facing entities (esp. events)                                                                                                                                                                            |
+| Slugs             | Schools: name + numeric suffix on collision. Events: `slugify(title)-` + first **8** Base64URL chars of SHA-256(creatorId\|date\|title)                                                                                   |
+| Images            | Event banners default placeholder for now; school logos prefer Admin Console uploads (PNG/JPG, max 5 MB), then bundled institutional assets, then an initial. See [School data](./09-school-data.md#institutional-logos). |
+| Search            | Postgres (`tsvector` / `pg_trgm`) before any external search service                                                                                                                                                      |
+| Profanity         | Block bad words in user-entered text                                                                                                                                                                                      |
+| XSS / SQLi        | Prevent via parameterized queries + output encoding / sanitization                                                                                                                                                        |
+| Rate limits       | Signups, event creation, reports (and general API rate limiting)                                                                                                                                                          |
+| Content filtering | Basic blocked-term list with word boundaries; reject disallowed user-authored text before persistence                                                                                                                     |
+| Timezones         | Store events in absolute time; display in user timezone                                                                                                                                                                   |
+| US scope          | No international school handling at launch                                                                                                                                                                                |
 
 ## Relationship cardinality (summary)
 

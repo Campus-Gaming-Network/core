@@ -14,7 +14,8 @@
     "**/out/**",
     "**/playwright-report*/**",
     "**/test-results/**",
-    "**/routeTree.gen.ts"
+    "**/routeTree.gen.ts",
+    "**/public/school-logos/**"
   ],
   "printWidth": 80,
   "sortPackageJson": false

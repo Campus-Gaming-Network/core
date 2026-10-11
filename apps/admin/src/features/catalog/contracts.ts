@@ -433,7 +433,7 @@ export const catalogNotices = {
   },
   "logo-updated": { message: "Logo updated.", severity: "success" },
   "logo-removed": {
-    message: "Logo removed. The school shows the placeholder again.",
+    message: "Logo removed. Public pages use a bundled logo when available.",
     severity: "success",
   },
   "logo-too-large": {

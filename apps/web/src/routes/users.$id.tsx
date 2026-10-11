@@ -1,3 +1,4 @@
+import { SchoolLogo } from "../components/school-logo";
 import {
   Link,
   createFileRoute,
@@ -152,6 +153,11 @@ function PublicProfilePage() {
                 to="/schools/$slug"
                 params={{ slug: profile.home_school.slug }}
               >
+                <SchoolLogo
+                  inline
+                  logoURL={profile.home_school.logo_url}
+                  size={20}
+                />
                 {homeSchool.name}
               </Link>
             ) : (

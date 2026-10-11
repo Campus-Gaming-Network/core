@@ -1,4 +1,5 @@
 import * as z from "zod";
+import type { WithSchoolLogo } from "../school-slice/contracts.js";
 
 const identifierSchema = z.string().trim().min(1);
 const timestampSchema = z.iso.datetime({ offset: true });
@@ -52,7 +53,7 @@ export const dashboardEventDtoSchema = z.object({
   ends_at: timestampSchema,
   timezone: identifierSchema,
   lifecycle: z.enum(["upcoming", "happening_now", "ended", "full"]),
-  host_school: schoolSummarySchema.pick({ name: true }),
+  host_school: schoolSummarySchema.pick({ name: true, slug: true }),
   games: z.array(gameSummarySchema.pick({ name: true })),
   rsvp_yes_count: nonNegativeIntegerSchema,
   interest_count: nonNegativeIntegerSchema,
@@ -124,7 +125,9 @@ export const deleteAccountInputSchema = z.object({
 });
 
 export type AccountProfileDTO = z.output<typeof accountProfileDtoSchema>;
-export type DashboardEventDTO = z.output<typeof dashboardEventDtoSchema>;
+export type DashboardEventDTO = z.output<typeof dashboardEventDtoSchema> & {
+  host_school: WithSchoolLogo<{ name: string; slug: string }>;
+};
 export type AccountTeamDTO = z.output<typeof accountTeamDtoSchema>;
 export type UpdateProfileInput = z.input<typeof updateProfileInputSchema>;
 export type DeleteAccountInput = z.input<typeof deleteAccountInputSchema>;
@@ -134,8 +137,13 @@ export type AccountDashboardResult =
   | {
       status: "found";
       profile: AccountProfileDTO;
-      dashboardEvents: z.output<typeof dashboardEventsDtoSchema>;
-      followedSchools: z.output<typeof followedSchoolsDtoSchema>["schools"];
+      dashboardEvents: {
+        upcoming_rsvps: DashboardEventDTO[];
+        followed_school_events: DashboardEventDTO[];
+      };
+      followedSchools: WithSchoolLogo<
+        z.output<typeof followedSchoolsDtoSchema>["schools"][number]
+      >[];
       teams: AccountTeamDTO[];
       unavailable: {
         dashboardEvents: boolean;

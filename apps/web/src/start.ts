@@ -81,8 +81,7 @@ export const startInstance = createStart(() => ({
   ],
 }));
 
-// School logos load from the separate asset origin, and images from nowhere
-// else.
+// School logos load from our local bundle or the separate admin asset origin.
 function imageSources(): string {
   const base = process.env.R2_PUBLIC_ASSET_ORIGIN?.trim();
   if (!base) return "'self' data:";

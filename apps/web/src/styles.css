@@ -814,6 +814,19 @@ main {
   object-fit: contain;
 }
 
+.school-logo--inline {
+  margin-right: 0.35em;
+  vertical-align: -0.2em;
+}
+
+/* A footnote under the school page, away from the school's own details. */
+.school-logo-credit {
+  margin: 2rem 0 0;
+  color: var(--color-muted);
+  font-size: 0.75rem;
+  overflow-wrap: anywhere;
+}
+
 .list-item > .school-identity {
   display: flex;
   align-items: center;
@@ -998,6 +1011,11 @@ main {
 
 .school-directory-mark--large .school-logo {
   padding: 0.3rem;
+}
+
+/* A wordmark needs width; the initial shows again if its image fails. */
+.school-directory-mark--wide:has(.school-logo) {
+  width: min(12rem, 40vw);
 }
 
 .school-directory-copy {
