@@ -526,9 +526,10 @@ const server = http.createServer(async (request, response) => {
       audit_entries: [...catalogAudit.values(), reportAudit, ticketAudit]
         .flat()
         .filter((entry) => !entityType || entry.entity_type === entityType)
-        .toSorted((left, right) =>
-          right.created_at.localeCompare(left.created_at),
-        )
+        // The filtered array is a fresh copy, and the ES2022 library the
+        // tests compile against has no toSorted.
+        // eslint-disable-next-line unicorn/no-array-sort
+        .sort((left, right) => right.created_at.localeCompare(left.created_at))
         .map((entry) => {
           // A grant's audit row points at the user or school it belongs to.
           const grantUserID = siteGrants.find(

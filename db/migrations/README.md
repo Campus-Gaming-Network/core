@@ -61,8 +61,6 @@ Migration `000024_event_cost.up.sql` replaces `events.is_paid` with
 become `paid` and every other event becomes `unspecified`. It drops `is_paid`,
 so an API built before this migration cannot read events after it; deploy the
 migration and the API together.
-Migration `000026_audit_log_index.up.sql` indexes `audit_logs` by
-`(created_at DESC, id DESC)` for the Admin Console audit log.
 Do not add clubs, tournaments, feature flags, site announcements, on-site
 payment tables, IGDB bulk-sync tables, or Admin Console-only workflow tables until those
 phases are active.
@@ -92,3 +90,5 @@ go run ./cmd/seed -csv ../../data/schools_seed.csv
 Migration `000025_school_short_name.up.sql` adds the nullable
 `schools.short_name`, the name an admin chooses to display beside a school's
 name; `alias` stays the search field.
+Migration `000026_audit_log_index.up.sql` indexes `audit_logs` by
+`(created_at DESC, id DESC)` for the Admin Console audit log.
