@@ -49,13 +49,15 @@ function recordingApi(
 const mutation = { cookieHeader: "admin", headers: {} };
 
 test("school forms convert text fields into the typed API record", () => {
+  // Seeded aliases list every searched name; the longest is past 500.
+  const seededAlias = `${"Example|".repeat(70)}EU`;
   const form = new FormData();
   for (const [name, value] of Object.entries({
     id: schoolID,
     expected_updated_at: version,
     unitid: "123456",
     name: " Example University ",
-    alias: "EU",
+    alias: seededAlias,
     slug: "example-university",
     city: "Irvine",
     state: "CA",
@@ -77,7 +79,7 @@ test("school forms convert text fields into the typed API record", () => {
       expected_updated_at: version,
       unitid: 123456,
       name: "Example University",
-      alias: "EU",
+      alias: seededAlias,
       slug: "example-university",
       city: "Irvine",
       state: "CA",
@@ -446,7 +448,8 @@ test("searches accept only each list's states and one cursor direction", () => {
       after: "x",
       before: "y",
     }),
-    {},
+    // Rejected values are cleared by name so the raw ones do not survive.
+    { q: undefined, state: undefined, after: undefined, before: undefined },
   );
 });
 

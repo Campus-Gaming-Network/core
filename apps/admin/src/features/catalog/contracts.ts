@@ -13,7 +13,8 @@ export const adminSchoolSchema = z.object({
   id: uuidSchema,
   unitid: z.number().int().positive().nullable(),
   name: z.string().max(300),
-  alias: z.string().max(300),
+  // A seeded alias lists every name people search for and can pass 500.
+  alias: z.string().max(1000),
   slug: z.string().max(120),
   city: z.string().max(100),
   state: z.string().max(80),
@@ -259,7 +260,7 @@ export function validateCatalogSearch(kind: CatalogListKind) {
     const verification = verificationFilters.find(
       (value) => value === firstString(search.verification),
     );
-    return {
+    const accepted: CatalogSearch = {
       ...(q.length >= 2 && q.length <= 100 ? { q } : {}),
       ...(states.includes(state) ? { state } : {}),
       ...(kind === "schools" && /^[A-Z]{2}$/.test(region) ? { region } : {}),
@@ -268,6 +269,15 @@ export function validateCatalogSearch(kind: CatalogListKind) {
       ...(after && !before && after.length <= 2048 ? { after } : {}),
       ...(before && !after && before.length <= 2048 ? { before } : {}),
     };
+    // The router keeps a raw value this leaves out, such as the empty `q` a
+    // blank search box submits, and the list operation then rejects it. Clear
+    // each rejected value by name.
+    const rejected = Object.fromEntries(
+      ["q", "state", "region", "role", "verification", "after", "before"]
+        .filter((key) => key in search && !(key in accepted))
+        .map((key) => [key, undefined]),
+    );
+    return { ...rejected, ...accepted };
   };
 }
 
@@ -501,7 +511,10 @@ const schoolFieldsSchema = z
       .trim()
       .min(1, "Name is required.")
       .max(300, "Keep the name to 300 characters or fewer."),
-    alias: z.string().trim().max(300),
+    alias: z
+      .string()
+      .trim()
+      .max(1000, "Keep the alias to 1,000 characters or fewer."),
     slug: slugSchema,
     city: z.string().trim().max(100),
     state: z.string().trim().max(80),

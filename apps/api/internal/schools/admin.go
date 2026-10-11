@@ -58,7 +58,7 @@ func scanAdminSchool(row pgx.Row) (AdminSchool, error) {
 }
 
 func (fields AdminFields) Validate() error {
-	if !adminmutation.Text(fields.Name, 300, true) || !adminmutation.Text(fields.Alias, 300, false) ||
+	if !adminmutation.Text(fields.Name, 300, true) || !adminmutation.Text(fields.Alias, 1000, false) ||
 		!adminmutation.Slug(fields.Slug) || !adminmutation.Text(fields.City, 100, false) ||
 		!adminmutation.Text(fields.State, 80, false) || !adminmutation.Text(fields.Zip, 20, false) ||
 		!adminmutation.URL(fields.WebsiteURL) || fields.NumBranches < 0 || fields.NumBranches > 10000 ||
@@ -75,6 +75,7 @@ func (fields AdminFields) Validate() error {
 	return nil
 }
 
+// ListAdmin searches anywhere in the name, alias, and slug.
 func (r *PostgresRepository) ListAdmin(ctx context.Context, filter adminmutation.Filter) ([]AdminSchool, error) {
 	if err := filter.Validate(); err != nil {
 		return nil, err
@@ -93,7 +94,7 @@ func (r *PostgresRepository) ListAdmin(ctx context.Context, filter adminmutation
 	 OR ($2 = 'inactive' AND NOT is_active AND deleted_at IS NULL) OR ($2 = 'deleted' AND deleted_at IS NOT NULL))
 	 AND ($3::timestamptz IS NULL OR (NOT $5 AND (created_at,id)<($3,$4::uuid)) OR ($5 AND (created_at,id)>($3,$4::uuid)))
 	 AND ($7 = '' OR upper(COALESCE(state,'')) = upper($7))
-	 ORDER BY created_at `+order+`, id `+order+` LIMIT $6`, adminmutation.Prefix(filter.Query), filter.State, timestamp, id, before, filter.Limit, filter.Region)
+	 ORDER BY created_at `+order+`, id `+order+` LIMIT $6`, adminmutation.Contains(filter.Query), filter.State, timestamp, id, before, filter.Limit, filter.Region)
 	if err != nil {
 		return nil, err
 	}
