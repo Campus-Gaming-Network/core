@@ -351,6 +351,18 @@ capabilities, and step-up rules live in
 | IGDB import         | `GET /igdb-games?q=`, `POST /game-imports`, `POST /games/:id/refresh`, and `GET /games/:id/cover`                 |
 | Users               | List, get, `suspend`, `reactivate`, `PATCH /users/:id/trust-grants`, and `GET /users/:id/audit`                   |
 | Site admins         | `GET`/`POST /site-admin-grants`, `POST /site-admin-grants/:id/revoke`, and `GET /site-admin-grants/:id/audit`     |
+| System              | `GET /system`                                                                                                     |
+
+`GET /system` needs `system.read`. It probes school logo storage and IGDB each
+time it is called and returns
+`{ "checks": [{ "name", "status" }], "email_outbox": { "pending", "retrying", "failed", "oldest_pending_at" } }`.
+`name` is `object_storage` or `igdb`; `status` is `ok`, `unreachable`, or
+`not_configured`. A probe that fails or takes longer than three seconds is
+`unreachable`; its cause is logged and never returned. `pending` counts every
+message still due to be sent, `retrying` the pending messages that have failed
+at least once, and `failed` the messages that stopped retrying in the last
+seven days. The route is read-only and cannot report an outage of the API or
+the database, since it is served by both.
 
 The IGDB routes need `games.manage`:
 

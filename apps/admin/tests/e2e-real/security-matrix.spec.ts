@@ -1010,6 +1010,7 @@ test("TRUST-03: the server-injected secret never reaches the browser", async ({
     "/games",
     "/users",
     "/access/site-admins",
+    "/system",
   ]) {
     // Sequential: each navigation is one page load to inspect.
     // eslint-disable-next-line no-await-in-loop

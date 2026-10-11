@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as StepUpRouteImport } from './routes/step-up'
+import { Route as SystemRouteImport } from './routes/system'
 import { Route as AccessSiteAdminsRouteImport } from './routes/access.site-admins'
 import { Route as ApiHealthRouteImport } from './routes/api.health'
 import { Route as GamesIndexRouteImport } from './routes/games.index'
@@ -34,6 +35,11 @@ const IndexRoute = IndexRouteImport.update({
 const StepUpRoute = StepUpRouteImport.update({
   id: '/step-up',
   path: '/step-up',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SystemRoute = SystemRouteImport.update({
+  id: '/system',
+  path: '/system',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AccessSiteAdminsRoute = AccessSiteAdminsRouteImport.update({
@@ -110,6 +116,7 @@ const UsersUserIdRoute = UsersUserIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/step-up': typeof StepUpRoute
+  '/system': typeof SystemRoute
   '/access/site-admins': typeof AccessSiteAdminsRoute
   '/api/health': typeof ApiHealthRoute
   '/games/$gameId': typeof GamesGameIdRoute
@@ -128,6 +135,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/step-up': typeof StepUpRoute
+  '/system': typeof SystemRoute
   '/access/site-admins': typeof AccessSiteAdminsRoute
   '/api/health': typeof ApiHealthRoute
   '/games/$gameId': typeof GamesGameIdRoute
@@ -147,6 +155,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/step-up': typeof StepUpRoute
+  '/system': typeof SystemRoute
   '/access/site-admins': typeof AccessSiteAdminsRoute
   '/api/health': typeof ApiHealthRoute
   '/games/$gameId': typeof GamesGameIdRoute
@@ -167,6 +176,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/step-up'
+    | '/system'
     | '/access/site-admins'
     | '/api/health'
     | '/games/$gameId'
@@ -185,6 +195,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/step-up'
+    | '/system'
     | '/access/site-admins'
     | '/api/health'
     | '/games/$gameId'
@@ -203,6 +214,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/step-up'
+    | '/system'
     | '/access/site-admins'
     | '/api/health'
     | '/games/$gameId'
@@ -222,6 +234,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   StepUpRoute: typeof StepUpRoute
+  SystemRoute: typeof SystemRoute
   AccessSiteAdminsRoute: typeof AccessSiteAdminsRoute
   ApiHealthRoute: typeof ApiHealthRoute
   GamesGameIdRoute: typeof GamesGameIdRoute
@@ -252,6 +265,13 @@ declare module '@tanstack/react-router' {
       path: '/step-up'
       fullPath: '/step-up'
       preLoaderRoute: typeof StepUpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/system': {
+      id: '/system'
+      path: '/system'
+      fullPath: '/system'
+      preLoaderRoute: typeof SystemRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/access/site-admins': {
@@ -358,6 +378,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   StepUpRoute: StepUpRoute,
+  SystemRoute: SystemRoute,
   AccessSiteAdminsRoute: AccessSiteAdminsRoute,
   ApiHealthRoute: ApiHealthRoute,
   GamesGameIdRoute: GamesGameIdRoute,

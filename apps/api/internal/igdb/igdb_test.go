@@ -131,6 +131,18 @@ func TestUpstreamStatusesBecomeTypedErrors(t *testing.T) {
 	}
 }
 
+func TestCheckFollowsWhetherIGDBAnswers(t *testing.T) {
+	fake, config := newFakeIGDB(t)
+	client := NewClient(config)
+	if err := client.Check(t.Context()); err != nil {
+		t.Fatalf("Check() error = %v", err)
+	}
+	fake.gameStatus = http.StatusBadGateway
+	if err := client.Check(t.Context()); !errors.Is(err, ErrUnavailable) {
+		t.Fatalf("Check() error = %v, want ErrUnavailable", err)
+	}
+}
+
 func TestCoverAcceptsOnlySmallImages(t *testing.T) {
 	fake, config := newFakeIGDB(t)
 	client := NewClient(config)

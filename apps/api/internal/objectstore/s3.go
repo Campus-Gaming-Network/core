@@ -61,6 +61,12 @@ func (store *S3Store) Put(ctx context.Context, key, contentType string, body []b
 	return err
 }
 
+// Check reports whether the bucket answers with the configured credentials.
+func (store *S3Store) Check(ctx context.Context) error {
+	_, err := store.client.HeadBucket(ctx, &s3.HeadBucketInput{Bucket: aws.String(store.bucket)})
+	return err
+}
+
 // Delete removes an object; deleting a missing key succeeds.
 func (store *S3Store) Delete(ctx context.Context, key string) error {
 	_, err := store.client.DeleteObject(ctx, &s3.DeleteObjectInput{Bucket: aws.String(store.bucket), Key: aws.String(key)})

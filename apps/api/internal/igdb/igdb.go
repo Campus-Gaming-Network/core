@@ -181,6 +181,13 @@ func (c *Client) Cover(ctx context.Context, imageID string) (Cover, error) {
 	return Cover{ImageID: imageID, ContentType: contentType, Bytes: body}, nil
 }
 
+// Check reports whether IGDB accepts the configured credentials, by asking
+// for a single game ID.
+func (c *Client) Check(ctx context.Context) error {
+	_, err := c.query(ctx, "fields id; limit 1;", false)
+	return err
+}
+
 func (c *Client) games(ctx context.Context, query string) ([]Game, error) {
 	body, err := c.query(ctx, query, false)
 	if err != nil {

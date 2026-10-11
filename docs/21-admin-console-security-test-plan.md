@@ -140,6 +140,7 @@ can ship.
 | `games.manage`         | `GET/POST /admin/v1/games`, `PATCH/DELETE /admin/v1/games/{id}`, `GET /admin/v1/igdb-games`, `POST /admin/v1/game-imports`, `POST /admin/v1/games/{id}/refresh`, `GET /admin/v1/games/{id}/cover` |
 | `school_grants.manage` | `GET/POST /admin/v1/schools/{id}/admin-grants`, `POST /admin/v1/schools/{id}/admin-grants/{grant_id}/revoke`                                                                                      |
 | `site_grants.manage`   | `GET/POST /admin/v1/site-admin-grants`, `POST /admin/v1/site-admin-grants/{id}/revoke`                                                                                                            |
+| `system.read`          | `GET /admin/v1/system`, which returns dependency states and outbox counts and never a probe's error text                                                                                          |
 | `audit.read`           | `GET /admin/v1/audit` using bounded entity filters and an opaque cursor                                                                                                                           |
 
 `site_grants.manage`, user-status changes, and destructive school/game actions require

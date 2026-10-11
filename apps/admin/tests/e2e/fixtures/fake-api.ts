@@ -155,6 +155,7 @@ const session = {
     "trust_grants.manage",
     "site_grants.manage",
     "audit.read",
+    "system.read",
   ],
   authenticated_at: "2026-09-18T15:30:00Z",
   absolute_expires_at: "2026-09-18T23:30:00Z",
@@ -394,6 +395,21 @@ const server = http.createServer(async (request, response) => {
     isCatalogPath(requestURL)
   ) {
     await handleCatalog(request, response, requestURL, sessionValue);
+    return;
+  }
+  if (request.method === "GET" && requestURL.pathname === "/admin/v1/system") {
+    respond(response, 200, {
+      checks: [
+        { name: "object_storage", status: "ok" },
+        { name: "igdb", status: "unreachable" },
+      ],
+      email_outbox: {
+        pending: 2,
+        retrying: 1,
+        failed: 3,
+        oldest_pending_at: "2026-09-18T15:00:00Z",
+      },
+    });
     return;
   }
   if (
