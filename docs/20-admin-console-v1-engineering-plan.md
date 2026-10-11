@@ -419,7 +419,7 @@ applicable.
 | GET    | `/admin/v1/support-ticket-counts` | `support.read`   | Open, in-review, unassigned totals  |
 | GET    | `/admin/v1/support-tickets/:id`   | `support.read`   | Ticket detail                       |
 | PATCH  | `/admin/v1/support-tickets/:id`   | `support.manage` | Assign, transition, resolution note |
-| GET    | `/admin/v1/audit`                 | `audit.read`     | History for one allowed entity      |
+| GET    | `/admin/v1/audit`                 | `audit.read`     | Every audited change, newest first  |
 
 ### Schools and school grants
 
@@ -491,6 +491,8 @@ Required route groups:
 - `/access/site-admins`;
 - `/system`, read-only checks of school logo storage and IGDB plus the email
   outbox backlog;
+- `/audit-log`, every administrative change newest first, filterable by the
+  kind of record changed;
 - `/step-up`, which confirms recent authentication and returns to the page the
   operator came from; and
 - entity-local audit-history panels.

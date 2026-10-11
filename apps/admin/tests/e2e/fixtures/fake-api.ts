@@ -536,6 +536,46 @@ const server = http.createServer(async (request, response) => {
     return;
   }
 
+  if (request.method === "GET" && requestURL.pathname === "/admin/v1/audit") {
+    const entityType = requestURL.searchParams.get("entity_type");
+    respond(response, 200, {
+      audit_entries: [...catalogAudit.values(), reportAudit, ticketAudit]
+        .flat()
+        .filter((entry) => !entityType || entry.entity_type === entityType)
+        // The filtered array is a fresh copy, and the ES2022 library the
+        // tests compile against has no toSorted.
+        // eslint-disable-next-line unicorn/no-array-sort
+        .sort((left, right) => right.created_at.localeCompare(left.created_at))
+        .map((entry) => {
+          // A grant's audit row points at the user or school it belongs to.
+          const grantUserID = siteGrants.find(
+            (grant) => grant.id === entry.entity_id,
+          )?.user_id;
+          const grantSchoolID = schoolGrants.find(
+            (grant) => grant.id === entry.entity_id,
+          )?.school_id;
+          const recordID = grantUserID ?? grantSchoolID ?? entry.entity_id;
+          return Object.assign({}, entry, {
+            actor_name: users.get(entry.actor_user_id)?.name,
+            target_type: grantUserID
+              ? "user"
+              : grantSchoolID
+                ? "school"
+                : entry.entity_type,
+            target_id: recordID,
+            target_name: (
+              users.get(recordID) ??
+              schools.get(recordID) ??
+              games.get(recordID)
+            )?.name,
+          });
+        }),
+      next_cursor: "",
+      previous_cursor: "",
+    });
+    return;
+  }
+
   respond(response, 404, { error: "not_found" });
 });
 

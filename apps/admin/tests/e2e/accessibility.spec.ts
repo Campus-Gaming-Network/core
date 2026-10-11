@@ -44,6 +44,7 @@ for (const path of [
   `/users/${memberID}`,
   "/access/site-admins",
   "/system",
+  "/audit-log",
   "/step-up?return=%2Fusers",
 ]) {
   test(`${path} is accessible at desktop and mobile sizes`, async ({

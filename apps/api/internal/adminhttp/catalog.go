@@ -15,6 +15,7 @@ import (
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/igdb"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/logoimage"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/operations"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/pagecursor"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/schools"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/users"
 )
@@ -64,6 +65,7 @@ type CatalogCache interface {
 }
 type AuditReader interface {
 	List(context.Context, adminaudit.ListParams) ([]adminaudit.Entry, error)
+	ListLog(context.Context, adminaudit.LogParams) ([]adminaudit.LogEntry, error)
 }
 type CatalogDependencies struct {
 	Schools    AdminSchools
@@ -113,6 +115,7 @@ var catalogRoutes = []routePolicy{
 	{Method: "GET", Path: "/admin/v1/games/{id}/audit", Control: controlCapability, Capability: adminaccess.CapabilityAuditRead, Operation: "games.audit"},
 	{Method: "GET", Path: "/admin/v1/users/{id}/audit", Control: controlCapability, Capability: adminaccess.CapabilityAuditRead, Operation: "users.audit"},
 	{Method: "GET", Path: "/admin/v1/site-admin-grants/{id}/audit", Control: controlCapability, Capability: adminaccess.CapabilityAuditRead, Operation: "site_grants.audit"},
+	{Method: "GET", Path: "/admin/v1/audit", Control: controlCapability, Capability: adminaccess.CapabilityAuditRead, Operation: "audit.list"},
 }
 
 func (handler *Handler) catalogHandler(operation routeOperation, id string) http.Handler {
@@ -396,6 +399,31 @@ func (handler *Handler) catalogRead(w http.ResponseWriter, req *http.Request, ac
 		entries, err = deps.Audit.List(req.Context(), adminaudit.ListParams{EntityType: entity, EntityID: id, Limit: filter.Limit + 1, After: filter.After, Before: filter.Before})
 		if err == nil {
 			result = catalogPage("audit_entries", entries, adminmutation.Filter{Limit: filter.Limit, After: filter.After, Before: filter.Before}, func(e adminaudit.Entry) (time.Time, string) { return e.CreatedAt, e.ID })
+		}
+	case "audit.list":
+		if deps.Audit == nil {
+			writeError(w, 503, "admin_unavailable")
+			return
+		}
+		values := req.URL.Query()
+		if err = validateQueryKeys(values, map[string]struct{}{"entity_type": {}, "limit": {}, "after": {}, "before": {}}); err != nil {
+			break
+		}
+		entity := adminaudit.EntityType(values.Get("entity_type"))
+		if entity != "" && !adminaudit.ValidEntityType(entity) {
+			err = apperror.Validation("invalid audit entity type")
+			break
+		}
+		var limit int
+		var after, before *pagecursor.Cursor
+		limit, after, before, err = parsePagination(values)
+		if err != nil {
+			break
+		}
+		var entries []adminaudit.LogEntry
+		entries, err = deps.Audit.ListLog(req.Context(), adminaudit.LogParams{EntityType: entity, Limit: limit + 1, After: after, Before: before})
+		if err == nil {
+			result = catalogPage("audit_entries", entries, adminmutation.Filter{Limit: limit, After: after, Before: before}, func(e adminaudit.LogEntry) (time.Time, string) { return e.CreatedAt, e.ID })
 		}
 	default:
 		var filter adminmutation.Filter

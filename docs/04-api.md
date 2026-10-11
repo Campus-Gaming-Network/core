@@ -352,6 +352,7 @@ capabilities, and step-up rules live in
 | Users               | List, get, `suspend`, `reactivate`, `PATCH /users/:id/trust-grants`, and `GET /users/:id/audit`                   |
 | Site admins         | `GET`/`POST /site-admin-grants`, `POST /site-admin-grants/:id/revoke`, and `GET /site-admin-grants/:id/audit`     |
 | System              | `GET /system`                                                                                                     |
+| Audit log           | `GET /audit`                                                                                                      |
 
 `GET /system` needs `system.read`. It probes school logo storage and IGDB each
 time it is called and returns
@@ -363,6 +364,16 @@ message still due to be sent, `retrying` the pending messages that have failed
 at least once, and `failed` the messages that stopped retrying in the last
 seven days. The route is read-only and cannot report an outage of the API or
 the database, since it is served by both.
+
+`GET /audit` needs `audit.read` and lists every audited change, newest first.
+It takes `limit`, one of `after` or `before`, and an optional `entity_type`
+(`report`, `support_ticket`, `school`, `school_admin`, `game`, `user`, or
+`site_role_grant`). It returns `{ "audit_entries", "next_cursor",
+"previous_cursor" }`. Each entry carries the fields of an entity's audit
+history plus the record to open for it: `target_type` (`report`,
+`support_ticket`, `school`, `game`, or `user`), `target_id`, and
+`target_name`. A school-admin grant points at its school and a site-admin
+grant at its user. Reports and support tickets have no `target_name`.
 
 The IGDB routes need `games.manage`:
 

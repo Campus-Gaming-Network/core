@@ -276,6 +276,7 @@ audit_logs
   created_at
   -- append-oriented domain history; queue mutations write before/after state
   -- shared by school, event, team, club, etc. as those workflows adopt it
+  -- indexed by (created_at DESC, id DESC) for the Admin Console audit log
 
 email_outbox
   id, kind, recipient, payload jsonb, idempotency_key, attempts, next_attempt_at,

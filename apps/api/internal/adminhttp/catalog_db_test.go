@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"reflect"
 	"strings"
@@ -270,6 +271,65 @@ func TestSchoolGrantHTTPPreservesHistoryAndScopesGrantIDs(t *testing.T) {
 		t.Fatalf("grant history: %#v", audit)
 	}
 	f.request(t, "GET", "/admin/v1/schools/10000000-0000-4000-8000-000000000099/admin-grants/"+grant.ID+"/audit", nil, 404)
+}
+
+func TestAuditLogListsEveryChangeWithItsRecord(t *testing.T) {
+	f := newCatalogFixture(t)
+	school := f.newSchool(t, "audit-log")
+	if _, err := f.school.GrantAdmin(t.Context(), catalogSchoolID, schools.GrantAdminInput{Command: f.command, UserID: catalogTargetID}); err != nil {
+		t.Fatal(err)
+	}
+	game, err := f.game.CreateAdmin(t.Context(), games.AdminEdit{Command: f.command, Name: "Audit Game", Slug: "audit-game", IsActive: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	type row struct {
+		Action     adminaudit.Action
+		TargetType adminaudit.EntityType
+		TargetID   string
+		TargetName string
+	}
+	type page struct {
+		Entries        []adminaudit.LogEntry `json:"audit_entries"`
+		NextCursor     string                `json:"next_cursor"`
+		PreviousCursor string                `json:"previous_cursor"`
+	}
+	list := func(query string) (page, []row) {
+		t.Helper()
+		result := decodeCatalog[page](t, f.request(t, "GET", "/admin/v1/audit"+query, nil, 200))
+		rows := make([]row, 0, len(result.Entries))
+		for _, entry := range result.Entries {
+			if entry.TargetID == nil || entry.TargetName == nil {
+				t.Fatalf("audit log entry without a target: %#v", entry)
+			}
+			rows = append(rows, row{entry.Action, entry.TargetType, *entry.TargetID, *entry.TargetName})
+		}
+		return result, rows
+	}
+	want := []row{
+		{adminaudit.ActionGameCreated, adminaudit.EntityGame, game.ID, "Audit Game"},
+		{adminaudit.ActionSchoolGrantGranted, adminaudit.EntitySchool, catalogSchoolID, "Fixture School"},
+		{adminaudit.ActionSchoolCreated, adminaudit.EntitySchool, school.ID, "Matrix audit-log"},
+		{adminaudit.ActionSiteRoleGrantBootstrap, adminaudit.EntityUser, catalogActorID, "Fixture User"},
+	}
+
+	if _, rows := list(""); !reflect.DeepEqual(rows, want) {
+		t.Fatalf("audit log = %#v, want %#v", rows, want)
+	}
+	if _, rows := list("?entity_type=school"); !reflect.DeepEqual(rows, want[2:3]) {
+		t.Fatalf("school audit log = %#v, want %#v", rows, want[2:3])
+	}
+
+	first, firstRows := list("?limit=2")
+	second, secondRows := list("?limit=2&after=" + url.QueryEscape(first.NextCursor))
+	_, previousRows := list("?limit=2&before=" + url.QueryEscape(second.PreviousCursor))
+	if !reflect.DeepEqual(firstRows, want[:2]) || !reflect.DeepEqual(secondRows, want[2:]) ||
+		!reflect.DeepEqual(previousRows, want[:2]) || first.PreviousCursor != "" || second.NextCursor != "" {
+		t.Fatalf("audit log pages = %#v then %#v then back to %#v", first, second, previousRows)
+	}
+
+	f.request(t, "GET", "/admin/v1/audit?entity_type=event", nil, 400)
 }
 
 func TestUserStatusTrustAndSiteGrantHTTP(t *testing.T) {
