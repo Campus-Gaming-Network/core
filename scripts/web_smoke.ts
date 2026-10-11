@@ -2185,7 +2185,7 @@ function fakePublicEvent() {
     address: "100 Public Campus Way",
     lifecycle: "upcoming",
     cost: "unspecified",
-    host_school: { name: "Smoke Test University" },
+    host_school: { name: "Smoke Test University", slug: schoolSlug },
     games: [{ name: "Smoke Arena" }],
     rsvp_yes_count: 3,
     interest_count: 2,
