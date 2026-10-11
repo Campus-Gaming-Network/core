@@ -97,7 +97,8 @@ const navigationSections: {
       | "/schools"
       | "/games"
       | "/users"
-      | "/access/site-admins";
+      | "/access/site-admins"
+      | "/audit-log";
     label: string;
     icon: string;
     capability?: AdminSession["capabilities"][number];
@@ -160,6 +161,12 @@ const navigationSections: {
         label: "Site admins",
         icon: "M8 2 3 4v3.5c0 3 2 5.3 5 6.5 3-1.2 5-3.5 5-6.5V4zM6 8l1.5 1.5L10 6.5",
         capability: "site_grants.manage",
+      },
+      {
+        to: "/audit-log",
+        label: "Audit log",
+        icon: "M4 2.5h8v11H4zM6 5.5h4M6 8h4M6 10.5h2.5",
+        capability: "audit.read",
       },
     ],
   },

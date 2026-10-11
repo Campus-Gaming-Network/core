@@ -169,6 +169,27 @@ type ListParams struct {
 	Before     *pagecursor.Cursor
 }
 
+// LogEntry is one row of the console-wide audit log. The target is the record
+// page an operator opens to see the change in context: a grant points at its
+// user or school, every other entity points at itself.
+type LogEntry struct {
+	Entry
+	TargetType EntityType `json:"target_type"`
+	// TargetID is nil when the granted record no longer exists.
+	TargetID *string `json:"target_id,omitempty"`
+	// TargetName is nil for reports and support tickets, which have no name.
+	TargetName *string `json:"target_name,omitempty"`
+}
+
+// LogParams selects a page of the console-wide audit log. An empty EntityType
+// lists every entity.
+type LogParams struct {
+	EntityType EntityType
+	Limit      int
+	After      *pagecursor.Cursor
+	Before     *pagecursor.Cursor
+}
+
 // Writer is the append-only domain-audit surface. Implementations
 // intentionally expose no update or deletion method.
 type Writer interface {
@@ -241,6 +262,21 @@ func (params ListParams) validate() error {
 		return ErrInvalidAudit
 	}
 	return nil
+}
+
+func (params LogParams) validate() error {
+	if (params.EntityType != "" && !validEntityType(params.EntityType)) || params.Limit < 0 || params.Limit > 201 {
+		return ErrInvalidAudit
+	}
+	if params.After != nil && params.Before != nil {
+		return ErrInvalidAudit
+	}
+	return nil
+}
+
+// ValidEntityType reports whether entityType is one the audit log records.
+func ValidEntityType(entityType EntityType) bool {
+	return validEntityType(entityType)
 }
 
 // ValidateSafeDocuments scans encoded audit/security fixtures for field names
