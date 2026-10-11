@@ -18,6 +18,7 @@ export const schoolDtoSchema = z.object({
   unitid: z.number().int().optional(),
   name: z.string(),
   alias: z.string().optional(),
+  short_name: z.string().optional(),
   slug: identifierSchema,
   city: z.string().optional(),
   state: z.string().optional(),

@@ -167,14 +167,14 @@ func decodeCatalog[T any](t *testing.T, response *httptest.ResponseRecorder) T {
 func TestCatalogHTTPCommandsRefreshCacheAndProtectVersions(t *testing.T) {
 	f := newCatalogFixture(t)
 	ctx := t.Context()
-	fields := schools.AdminFields{Name: "New <script>School</script>", Slug: "new-school", City: "Portland", State: "OR", WebsiteURL: "https://example.test", IsMainCampus: true}
+	fields := schools.AdminFields{Name: "New <script>School</script>", ShortName: "NSS", Slug: "new-school", City: "Portland", State: "OR", WebsiteURL: "https://example.test", IsMainCampus: true}
 	input := schools.AdminEdit{Command: f.command, AdminFields: fields}
 	school := decodeCatalog[schools.AdminSchool](t, f.request(t, "POST", "/admin/v1/schools", input, 201))
 	if !reflect.DeepEqual(school.AdminFields, fields) {
 		t.Fatalf("fields: %#v", school.AdminFields)
 	}
 	public, err := f.cache.GetByID(ctx, school.ID)
-	if err != nil || public.Name != fields.Name {
+	if err != nil || public.Name != fields.Name || public.ShortName != fields.ShortName {
 		t.Fatalf("committed school missing from cache: %#v %v", public, err)
 	}
 	f.request(t, "POST", "/admin/v1/schools", input, 409)
@@ -380,6 +380,7 @@ func TestCatalogRejectsUnknownFieldsAndUnsupportedTransitions(t *testing.T) {
 		{Name: "Invalid URL", Slug: "bad-url", WebsiteURL: "javascript:alert(1)"},
 		{Name: "Invalid slug", Slug: "../admin"},
 		{Name: "Invalid branches", Slug: "bad-branches", NumBranches: -1},
+		{Name: "Long short name", Slug: "long-short-name", ShortName: strings.Repeat("a", 41)},
 	} {
 		f.request(t, "POST", "/admin/v1/schools", schools.AdminEdit{Command: f.command, AdminFields: fields}, 400)
 	}

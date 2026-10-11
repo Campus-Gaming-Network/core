@@ -102,7 +102,7 @@ password_reset_tokens
 ```text
 schools
   id, unitid nullable (unique when present; College Scorecard/IPEDS),
-  name, alias, slug (unique), logo_url,  -- later Admin Console upload (PNG/JPG ≤5 MB); placeholder until set
+  name, alias, short_name, slug (unique), logo_url,  -- later Admin Console upload (PNG/JPG ≤5 MB); placeholder until set
   city, state, zip, website_url,
   latitude, longitude,
   is_main_campus, num_branches, is_active,

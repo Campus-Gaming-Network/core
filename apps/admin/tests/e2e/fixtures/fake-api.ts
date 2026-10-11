@@ -4,6 +4,7 @@ type SchoolFields = {
   unitid: number;
   name: string;
   alias: string;
+  short_name: string;
   slug: string;
   city: string;
   state: string;
@@ -205,6 +206,7 @@ function resetCatalog() {
         unitid: 123456,
         name: "Browser Test University",
         alias: "BTU",
+        short_name: "BTU",
         slug: "browser-test-university",
         city: "Irvine",
         state: "CA",
@@ -992,6 +994,7 @@ function schoolFields(body: CommandBody): SchoolFields {
     unitid: body.unitid,
     name: body.name,
     alias: body.alias,
+    short_name: body.short_name,
     slug: body.slug,
     city: body.city,
     state: body.state,

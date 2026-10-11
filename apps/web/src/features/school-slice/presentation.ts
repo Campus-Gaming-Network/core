@@ -32,6 +32,28 @@ export function schoolLocation(
   return [school.city, school.state].filter(Boolean).join(", ") || fallback;
 }
 
+/**
+ * The short name to show beside a school's name: the one an admin chose, or a
+ * guess from the alias. The catalog's alias is a search field that can list
+ * former names, variants, and misspellings, so the guess is its first acronym,
+ * or the alias itself when it is one short name; otherwise nothing.
+ */
+export function schoolShortName(
+  school: Pick<SchoolDTO, "name" | "alias" | "short_name">,
+): string | undefined {
+  if (school.short_name) return school.short_name;
+  const names = (school.alias ?? "")
+    .split(/[|,;]/)
+    .map((name) => name.trim())
+    .filter(Boolean);
+  const acronym = names.find((name) => /^[A-Z&-]{2,8}$/.test(name));
+  if (acronym) return acronym;
+  const [only] = names;
+  return names.length === 1 && only.length <= 20 && only !== school.name
+    ? only
+    : undefined;
+}
+
 export function safeSchoolWebsite(
   value: string | undefined,
 ): string | undefined {

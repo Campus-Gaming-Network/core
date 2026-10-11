@@ -18,6 +18,7 @@ import {
   safeSchoolWebsite,
   schoolHead,
   schoolLocation,
+  schoolShortName,
 } from "../src/features/school-slice/presentation.js";
 import {
   ApiError,
@@ -282,6 +283,22 @@ test("school metadata is dynamic and external website links allow only HTTP(S)",
     ),
   );
   assert.equal(schoolLocation(school), "Irvine, CA");
+  assert.deepEqual(
+    [
+      "Illinois|Illinios|Urbana-Champaign|University of Illinois at Urbana|UIUC|UICU",
+      "RPI, Rensselaer",
+      "Juilliard",
+      "University of St. Mary, University of St Mary",
+      "Montefiore New Rochelle Hospital d/b/a Montefiore School of Nursing",
+      school.name,
+      "",
+    ].map((alias) => schoolShortName({ name: school.name, alias })),
+    ["UIUC", "RPI", "Juilliard", undefined, undefined, undefined, undefined],
+  );
+  assert.equal(
+    schoolShortName({ ...school, alias: "UIUC|UICU", short_name: "Illinois" }),
+    "Illinois",
+  );
   assert.equal(
     homeHead("https://cgn.example").meta[0]?.title,
     "Campus Gaming Network",

@@ -13,6 +13,7 @@ import {
 import {
   schoolBrowseNotices,
   schoolLocation,
+  schoolShortName,
   schoolsHead,
 } from "../features/school-slice/presentation";
 
@@ -101,7 +102,9 @@ function SchoolsPage() {
                 </span>
                 <span className="school-directory-copy">
                   <strong>{school.name}</strong>
-                  {school.alias ? <small>{school.alias}</small> : null}
+                  {schoolShortName(school) ? (
+                    <small>{schoolShortName(school)}</small>
+                  ) : null}
                   <small>{schoolLocation(school)}</small>
                 </span>
                 <span className="school-directory-action with-arrow">

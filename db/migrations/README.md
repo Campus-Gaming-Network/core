@@ -86,3 +86,7 @@ To run the one-time school bootstrap directly:
 cd apps/api
 go run ./cmd/seed -csv ../../data/schools_seed.csv
 ```
+
+Migration `000025_school_short_name.up.sql` adds the nullable
+`schools.short_name`, the name an admin chooses to display beside a school's
+name; `alias` stays the search field.

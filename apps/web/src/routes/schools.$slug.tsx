@@ -39,6 +39,7 @@ import {
   schoolDetailNotices,
   schoolHead,
   schoolLocation,
+  schoolShortName,
   safeSchoolWebsite,
 } from "../features/school-slice/presentation";
 import { getTeamsBrowse } from "../features/team-slice/team.functions";
@@ -133,7 +134,7 @@ function SchoolPage() {
           <h1>{school.name}</h1>
           <p className="school-community-facts">
             {[
-              school.alias,
+              schoolShortName(school),
               schoolLocation(school),
               school.is_main_campus ? "Main campus" : "Branch campus",
             ]

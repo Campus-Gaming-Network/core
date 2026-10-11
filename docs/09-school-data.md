@@ -25,7 +25,7 @@ Identity and location only (no public/private/nonprofit classification).
 | ------------------------ | ------------------------- | ------------------------------------------------------- |
 | `unitid`                 | `UNITID`                  | Optional in DB; set on seeded rows; unique when present |
 | `name`                   | `INSTNM`                  | Display name (not unique)                               |
-| `alias`                  | `ALIAS`                   | Optional short name                                     |
+| `alias`                  | `ALIAS`                   | Optional names for search; see the note below           |
 | `slug`                   | derived                   | URL slug; collisions get `-2`, `-3`, …                  |
 | `city` / `state` / `zip` | `CITY` / `STABBR` / `ZIP` |                                                         |
 | `website_url`            | `INSTURL`                 | Normalized with `https://` when missing                 |
@@ -72,7 +72,8 @@ schools
   id
   unitid          -- optional, unique when present
   name            -- not unique
-  alias
+  alias           -- search names; may list several
+  short_name      -- NOT from Scorecard; Admin Console choice of the name to display
   slug            -- unique
   city, state, zip
   website_url
@@ -160,7 +161,7 @@ go run ./cmd/seed -csv ../../data/schools_seed.csv
 ## Known gaps in this download
 
 - **Scorecard has no logos / brand colors**; bundled-logo coverage is separate from this extract.
-- **Aliases sparse** (~2.3k of 6.2k)
+- **Aliases sparse** (~2.3k of 6.2k), and a search field rather than a display name: a value can list former names, variants, and misspellings separated by `|`, `,`, or `;`. The main site shows the school's `short_name` when an admin has set one in the Admin Console (40 characters at most; not from Scorecard, empty on seeded rows). Otherwise it guesses from the alias: its first acronym (`UIUC`), or the alias itself when it is a single name of 20 characters or fewer. Otherwise it shows no short name
 - Territories and non-state `STABBR` values are present — still “US” for launch scope
 - Includes 1,300 branch campuses and many non-traditional schools; branch campuses use the same UI/UX, and cleanup can happen through the Admin Console over time
 
