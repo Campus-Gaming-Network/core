@@ -15,7 +15,7 @@ import (
 )
 
 // adminPathPrefix marks the Admin API. Its failures stay in the structured
-// logs because the Admin Console sends nothing to a third party.
+// logs. The Admin Console reports its own errors, without request data.
 const adminPathPrefix = "/admin/"
 
 // Options configures reporting. An empty DSN leaves reporting disabled.

@@ -3,12 +3,14 @@ import {
   adminEnvironment,
   assertSafeEnvironment,
 } from "./server/environment.server";
+import { startErrorMonitoring } from "./server/error-monitor.server";
 import {
   localAccessJWKSResponse,
   withLocalAccessAssertion,
 } from "./server/local-access.server";
 
 assertSafeEnvironment();
+startErrorMonitoring();
 
 const { default: serverEntry } =
   await import("@tanstack/react-start/server-entry");

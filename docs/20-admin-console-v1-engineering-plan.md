@@ -516,7 +516,9 @@ Implementation rules:
   restrictive CSP, `Referrer-Policy: no-referrer`, and
   `Cache-Control: private, no-store`.
 - No analytics, tag managers, support widgets, remote fonts, or third-party
-  scripts.
+  scripts. Error monitoring is the one outside connection: the console's own
+  bundle carries the Sentry SDK and reports errors only when `SENTRY_DSN` is
+  set.
 - Provide keyboard-complete tables/forms, visible focus, labeled statuses, live
   error summaries, and mobile layouts for on-call use.
 
@@ -605,6 +607,21 @@ PUBLIC_SITE_URL
 
 `PUBLIC_SITE_URL` is optional for the Admin BFF. When set, a reported event
 links to its public page; it must be HTTPS outside local development.
+
+`SENTRY_DSN` is optional for the Admin BFF and is the DSN of the `cgn-admin`
+Sentry project. When set, the server and the browser report errors to it,
+tagged `runtime:server` or `runtime:browser`, with `DEPLOYMENT_ENV` as the
+Sentry environment. Server events carry the error and its stack trace and no
+request, cookie, header, or user. The browser loads the SDK from the console's
+own bundle, sends no session pings or breadcrumbs, and sends the page address
+without its query string; the address path can include a record ID. The CSP
+`connect-src` admits the DSN's ingest origin and nothing else beyond the
+console. Without `SENTRY_DSN` the console reports nothing and `connect-src`
+stays `'self'`. To confirm server reporting, set `ADMIN_MAINTENANCE_TOKEN`
+temporarily and, signed in through Access, send
+`POST /api/error-monitoring-test` with it as a bearer token; the request
+answers 500. Unset the token afterwards. Admin API failures in the Go API are
+not reported and stay in the structured logs.
 
 `R2_ENDPOINT` replaces the account endpoint for local S3-compatible storage
 and is rejected in staging and production. Locally, `R2_PUBLIC_ASSET_ORIGIN`

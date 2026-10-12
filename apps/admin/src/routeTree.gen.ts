@@ -14,6 +14,7 @@ import { Route as AuditLogRouteImport } from './routes/audit-log'
 import { Route as StepUpRouteImport } from './routes/step-up'
 import { Route as SystemRouteImport } from './routes/system'
 import { Route as AccessSiteAdminsRouteImport } from './routes/access.site-admins'
+import { Route as ApiErrorMonitoringTestRouteImport } from './routes/api.error-monitoring-test'
 import { Route as ApiHealthRouteImport } from './routes/api.health'
 import { Route as GamesIndexRouteImport } from './routes/games.index'
 import { Route as GamesGameIdRouteImport } from './routes/games.$gameId'
@@ -51,6 +52,11 @@ const SystemRoute = SystemRouteImport.update({
 const AccessSiteAdminsRoute = AccessSiteAdminsRouteImport.update({
   id: '/access/site-admins',
   path: '/access/site-admins',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiErrorMonitoringTestRoute = ApiErrorMonitoringTestRouteImport.update({
+  id: '/api/error-monitoring-test',
+  path: '/api/error-monitoring-test',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiHealthRoute = ApiHealthRouteImport.update({
@@ -125,6 +131,7 @@ export interface FileRoutesByFullPath {
   '/step-up': typeof StepUpRoute
   '/system': typeof SystemRoute
   '/access/site-admins': typeof AccessSiteAdminsRoute
+  '/api/error-monitoring-test': typeof ApiErrorMonitoringTestRoute
   '/api/health': typeof ApiHealthRoute
   '/games/$gameId': typeof GamesGameIdRoute
   '/games/import': typeof GamesImportRoute
@@ -145,6 +152,7 @@ export interface FileRoutesByTo {
   '/step-up': typeof StepUpRoute
   '/system': typeof SystemRoute
   '/access/site-admins': typeof AccessSiteAdminsRoute
+  '/api/error-monitoring-test': typeof ApiErrorMonitoringTestRoute
   '/api/health': typeof ApiHealthRoute
   '/games/$gameId': typeof GamesGameIdRoute
   '/games/import': typeof GamesImportRoute
@@ -166,6 +174,7 @@ export interface FileRoutesById {
   '/step-up': typeof StepUpRoute
   '/system': typeof SystemRoute
   '/access/site-admins': typeof AccessSiteAdminsRoute
+  '/api/error-monitoring-test': typeof ApiErrorMonitoringTestRoute
   '/api/health': typeof ApiHealthRoute
   '/games/$gameId': typeof GamesGameIdRoute
   '/games/import': typeof GamesImportRoute
@@ -188,6 +197,7 @@ export interface FileRouteTypes {
     | '/step-up'
     | '/system'
     | '/access/site-admins'
+    | '/api/error-monitoring-test'
     | '/api/health'
     | '/games/$gameId'
     | '/games/import'
@@ -208,6 +218,7 @@ export interface FileRouteTypes {
     | '/step-up'
     | '/system'
     | '/access/site-admins'
+    | '/api/error-monitoring-test'
     | '/api/health'
     | '/games/$gameId'
     | '/games/import'
@@ -228,6 +239,7 @@ export interface FileRouteTypes {
     | '/step-up'
     | '/system'
     | '/access/site-admins'
+    | '/api/error-monitoring-test'
     | '/api/health'
     | '/games/$gameId'
     | '/games/import'
@@ -249,6 +261,7 @@ export interface RootRouteChildren {
   StepUpRoute: typeof StepUpRoute
   SystemRoute: typeof SystemRoute
   AccessSiteAdminsRoute: typeof AccessSiteAdminsRoute
+  ApiErrorMonitoringTestRoute: typeof ApiErrorMonitoringTestRoute
   ApiHealthRoute: typeof ApiHealthRoute
   GamesGameIdRoute: typeof GamesGameIdRoute
   GamesImportRoute: typeof GamesImportRoute
@@ -299,6 +312,13 @@ declare module '@tanstack/react-router' {
       path: '/access/site-admins'
       fullPath: '/access/site-admins'
       preLoaderRoute: typeof AccessSiteAdminsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/error-monitoring-test': {
+      id: '/api/error-monitoring-test'
+      path: '/api/error-monitoring-test'
+      fullPath: '/api/error-monitoring-test'
+      preLoaderRoute: typeof ApiErrorMonitoringTestRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/health': {
@@ -401,6 +421,7 @@ const rootRouteChildren: RootRouteChildren = {
   StepUpRoute: StepUpRoute,
   SystemRoute: SystemRoute,
   AccessSiteAdminsRoute: AccessSiteAdminsRoute,
+  ApiErrorMonitoringTestRoute: ApiErrorMonitoringTestRoute,
   ApiHealthRoute: ApiHealthRoute,
   GamesGameIdRoute: GamesGameIdRoute,
   GamesImportRoute: GamesImportRoute,

@@ -3,12 +3,38 @@ import {
   createMiddleware,
   createStart,
 } from "@tanstack/react-start";
+import {
+  errorMonitoringConnectSource,
+  reportServerError,
+} from "./server/error-monitor.server.js";
 
 const localAdminOrigin = "http://localhost:3002";
 
 const csrfMiddleware = createCsrfMiddleware({
   filter: ({ handlerType }) => handlerType === "serverFn",
   origin: adminOrigin(),
+});
+
+// Outermost, so it sees a failure from a server route or from any middleware
+// below it.
+const errorReportingMiddleware = createMiddleware().server(async ({ next }) => {
+  try {
+    return await next();
+  } catch (error) {
+    reportServerError(error);
+    throw error;
+  }
+});
+
+const functionErrorReportingMiddleware = createMiddleware({
+  type: "function",
+}).server(async ({ next }) => {
+  try {
+    return await next();
+  } catch (error) {
+    reportServerError(error);
+    throw error;
+  }
 });
 
 const securityHeadersMiddleware = createMiddleware().server(
@@ -22,7 +48,9 @@ const securityHeadersMiddleware = createMiddleware().server(
         "cache-control": "private, no-store",
         // Inline scripts run only with this request's nonce, so injected markup
         // cannot execute. There is no `unsafe-eval`.
-        "content-security-policy": `default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src ${imageSources()}; font-src 'self'; connect-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'nonce-${nonce}'`,
+        // The browser connects to the console and, when error monitoring is
+        // on, to its ingest origin.
+        "content-security-policy": `default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src ${imageSources()}; font-src 'self'; connect-src ${connectSources()}; style-src 'self' 'unsafe-inline'; script-src 'self' 'nonce-${nonce}'`,
         "permissions-policy":
           "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
         "referrer-policy": "no-referrer",
@@ -57,7 +85,12 @@ const securityHeadersMiddleware = createMiddleware().server(
 );
 
 export const startInstance = createStart(() => ({
-  requestMiddleware: [securityHeadersMiddleware, csrfMiddleware],
+  functionMiddleware: [functionErrorReportingMiddleware],
+  requestMiddleware: [
+    errorReportingMiddleware,
+    securityHeadersMiddleware,
+    csrfMiddleware,
+  ],
 }));
 
 // School-logo previews load from the separate asset origin, and nowhere else.
@@ -72,6 +105,11 @@ function imageSources(): string {
   } catch {
     return "'self' data:";
   }
+}
+
+function connectSources(): string {
+  const errorMonitoring = errorMonitoringConnectSource();
+  return errorMonitoring ? `'self' ${errorMonitoring}` : "'self'";
 }
 
 function adminOrigin(): string {
