@@ -1,11 +1,18 @@
 package emailoutbox
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
+	"log/slog"
+	"net/http"
+	"reflect"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/mailhttp"
 )
 
 type claimCall struct {
@@ -155,6 +162,49 @@ func TestWorkerRunOnceSchedulesRetriesAndQuarantinesPoisonMessages(t *testing.T)
 				t.Errorf("terminal failures = %d, want %d", stats.TerminalFailures, wantTerminalFailures)
 			}
 		})
+	}
+}
+
+func TestWorkerLogsProviderStatusWithoutRecipientOrContent(t *testing.T) {
+	store := &recordingStore{messages: []Message{{
+		ID:             "message-1",
+		Kind:           KindAccountVerification,
+		Recipient:      "player@example.com",
+		Payload:        json.RawMessage(`{"token":"verification-token"}`),
+		IdempotencyKey: "account_verification:key",
+	}}}
+	var logs bytes.Buffer
+	worker := NewWorker(store, dispatcherFunc(func(context.Context, Message) (string, error) {
+		return "", Permanent(&mailhttp.ResponseError{
+			StatusCode: http.StatusForbidden,
+			Status:     "403 Forbidden",
+			Detail:     `{"statusCode":403,"name":"validation_error","message":"Cannot send to player@example.com: the example.com domain is not verified."}`,
+		})
+	}), slog.New(slog.NewJSONHandler(&logs, nil)))
+
+	if err := worker.RunOnce(t.Context()); err != nil {
+		t.Fatalf("RunOnce() error = %v", err)
+	}
+
+	var got map[string]any
+	if err := json.Unmarshal(logs.Bytes(), &got); err != nil {
+		t.Fatalf("decode log line %q: %v", logs.String(), err)
+	}
+	delete(got, "time")
+	want := map[string]any{
+		"level":             "WARN",
+		"msg":               "email outbox delivery failed",
+		"outbox_id":         "message-1",
+		"kind":              KindAccountVerification,
+		"attempt":           float64(1),
+		"terminal":          true,
+		"delivery_failures": float64(1),
+		"terminal_failures": float64(1),
+		"provider_status":   float64(http.StatusForbidden),
+		"provider_error":    "validation_error",
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("log line = %v, want %v", got, want)
 	}
 }
 

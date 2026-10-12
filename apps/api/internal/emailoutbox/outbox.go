@@ -13,6 +13,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/mailhttp"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -331,14 +332,25 @@ func (w *Worker) deliver(parent context.Context, message Message) error {
 		terminalCount = w.terminal.Add(1)
 	}
 	if w.Logger != nil {
-		w.Logger.Warn("email outbox delivery failed",
+		attrs := []any{
 			"outbox_id", message.ID,
 			"kind", message.Kind,
 			"attempt", attempt,
 			"terminal", terminal,
 			"delivery_failures", failureCount,
 			"terminal_failures", terminalCount,
-		)
+		}
+		// The provider's status and error name identify the cause without
+		// database access. Its message can name the recipient, so that stays
+		// in the row.
+		var responseError *mailhttp.ResponseError
+		if errors.As(err, &responseError) {
+			attrs = append(attrs,
+				"provider_status", responseError.StatusCode,
+				"provider_error", responseError.ErrorName(),
+			)
+		}
+		w.Logger.Warn("email outbox delivery failed", attrs...)
 	}
 	return nil
 }
