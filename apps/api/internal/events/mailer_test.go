@@ -119,6 +119,7 @@ func TestResendMailerSendsRSVPConfirmationWithCalendarAttachment(t *testing.T) {
 		Audience:     AudienceMembers,
 		StartsAt:     time.Date(2026, 8, 15, 20, 0, 0, 0, time.UTC),
 		EndsAt:       time.Date(2026, 8, 15, 22, 0, 0, 0, time.UTC),
+		Timezone:     "America/Los_Angeles",
 		LocationName: "Student Union",
 	}
 
@@ -174,6 +175,9 @@ func TestResendMailerSendsRSVPConfirmationWithCalendarAttachment(t *testing.T) {
 	}
 	if !strings.Contains(payload.HTML, "Your RSVP is confirmed.") {
 		t.Fatalf("HTML = %q, want RSVP confirmation copy", payload.HTML)
+	}
+	if !strings.Contains(payload.HTML, "<p><strong>When:</strong> Sat, Aug 15, 2026, 1:00 PM PDT</p>") {
+		t.Fatalf("HTML = %q, want the start time in the event's time zone", payload.HTML)
 	}
 	if !strings.Contains(payload.HTML, "<p><strong>Who it's for:</strong> Members only</p>") {
 		t.Fatalf("HTML = %q, want the event audience", payload.HTML)
