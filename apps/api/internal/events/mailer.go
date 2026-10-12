@@ -212,10 +212,16 @@ func eventConfirmationHTML(event Event, eventURL string) string {
 	if label := AudienceLabel(event.Audience); label != "" {
 		audienceHTML = "<p><strong>Who it's for:</strong> " + html.EscapeString(label) + "</p>"
 	}
+	// The event page shows the start in the event's time zone, so the email
+	// does too. A payload without a usable zone falls back to UTC.
+	location, err := time.LoadLocation(event.Timezone)
+	if err != nil {
+		location = time.UTC
+	}
 	return fmt.Sprintf(
 		`<h1>You're going to %s</h1><p>Your RSVP is confirmed.</p><p><strong>When:</strong> %s</p><p><strong>Where:</strong> %s</p>%s<p><a href="%s">View event details</a></p>`,
 		html.EscapeString(event.Title),
-		html.EscapeString(event.StartsAt.Format(time.RFC1123)),
+		html.EscapeString(event.StartsAt.In(location).Format("Mon, Jan 2, 2006, 3:04 PM MST")),
 		html.EscapeString(icsLocation(event)),
 		audienceHTML,
 		html.EscapeString(eventURL),
