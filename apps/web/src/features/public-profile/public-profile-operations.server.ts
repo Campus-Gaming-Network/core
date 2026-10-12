@@ -58,7 +58,12 @@ export async function getPublicProfilePageOperation(
         }
       : result.data;
   } catch (error) {
-    if (error instanceof ApiError && error.status === 404) {
+    // The lookup sends no body or query, so a 400 can only mean the API
+    // rejected the ID's format: no such profile can exist.
+    if (
+      error instanceof ApiError &&
+      (error.status === 404 || error.status === 400)
+    ) {
       return { status: "not_found" };
     }
     reportError(error);

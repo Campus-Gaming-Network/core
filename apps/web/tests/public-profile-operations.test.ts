@@ -206,6 +206,23 @@ test("an exact target 404 remains not-found and does not call /me", async () => 
   assert.equal(calls, 1);
 });
 
+test("a target ID the API rejects as malformed is not-found and is not reported", async () => {
+  const reported: unknown[] = [];
+  const result = await getPublicProfilePageOperation(
+    { id: "definitely-missing" },
+    {
+      api: client(async () =>
+        Response.json({ error: "invalid_id" }, { status: 400 }),
+      ),
+      cookieHeader: "",
+      reportError: (error) => reported.push(error),
+    },
+  );
+
+  assert.deepEqual(result, { status: "not_found" });
+  assert.deepEqual(reported, []);
+});
+
 test("viewer outages and response-contract failures are generic errors, never anonymous", async () => {
   const reported: unknown[] = [];
   const outage = await getPublicProfilePageOperation(
