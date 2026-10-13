@@ -10,6 +10,7 @@ import {
   catalogCommandPage,
   catalogDetailInputSchema,
   validateCatalogCommandInput,
+  approvedBundledLogoURL,
   approvedLogoURL,
   igdbSearchInputSchema,
   validateGameFormInput,
@@ -54,6 +55,10 @@ export const getSchoolDetail = createServerFn({ method: "GET" })
       ...detail,
       logoPreviewURL: approvedLogoURL(
         detail.school.logo_url,
+        adminEnvironment().logoAssetBase,
+      ),
+      bundledLogoPreviewURL: approvedBundledLogoURL(
+        detail.school.bundled_logo_url ?? "",
         adminEnvironment().logoAssetBase,
       ),
     };

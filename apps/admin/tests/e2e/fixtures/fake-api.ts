@@ -196,6 +196,17 @@ let catalogSequence: number;
 // Uploaded logo bytes, served from the asset path like the public R2 origin.
 let logoObjects: Map<string, { bytes: Buffer; type: string }>;
 const assetBase = `http://127.0.0.1:${port}/assets`;
+// The bundled logos the API knows, as in its embedded lookup, and where
+// `sync:school-logos` stores them in the logo bucket.
+const bundledLogos = new Map([
+  [
+    100654,
+    {
+      slug: "alabama-a-m-university",
+      key: "bundled/school-logos/100654-athletics-6d724cd04d41.png",
+    },
+  ],
+]);
 
 // Restores the seeded catalog so each browser test starts from the same state.
 function resetCatalog() {
@@ -285,7 +296,12 @@ function resetCatalog() {
   }));
   catalogAudit = new Map();
   catalogSequence = 0;
-  logoObjects = new Map();
+  logoObjects = new Map(
+    [...bundledLogos.values()].map(({ key }) => [
+      key,
+      { bytes: Buffer.from(coverPNG, "base64"), type: "image/png" },
+    ]),
+  );
   revokedSessions.clear();
 }
 resetCatalog();
@@ -1044,7 +1060,16 @@ function respondCatalogRead(
       [...records.values()].filter((record) => matches(record, text(record))),
     );
   };
-  if (collection === "schools") {
+  if (collection === "schools" && id && schools.has(id)) {
+    const school = schools.get(id)!;
+    const bundled = bundledLogos.get(school.unitid);
+    respond(response, 200, {
+      ...school,
+      ...(bundled?.slug === school.slug
+        ? { bundled_logo_url: `${assetBase}/${bundled.key}` }
+        : {}),
+    });
+  } else if (collection === "schools") {
     respondRecords(schools, "schools", (school) => [school.name, school.slug]);
   } else if (collection === "games") {
     respondRecords(games, "games", (game) => [game.name, game.slug]);

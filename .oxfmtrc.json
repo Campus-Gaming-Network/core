@@ -15,7 +15,8 @@
     "**/playwright-report*/**",
     "**/test-results/**",
     "**/routeTree.gen.ts",
-    "**/public/school-logos/**"
+    "**/public/school-logos/**",
+    "apps/api/internal/schools/bundled_logos.json"
   ],
   "printWidth": 80,
   "sortPackageJson": false
