@@ -50,9 +50,11 @@ test("the console has no HTML escape hatch", () => {
   assert.deepEqual(found, []);
 });
 
-// LOG-05: nothing in the console reports session, token, or record content to
-// a third party, because nothing in it talks to one.
-test("the console loads no third-party analytics or error tracking", () => {
+// LOG-05: the console talks to one third party, its error-monitoring project,
+// through the SDK in its own bundle. The error-monitor tests cover what an
+// event may carry. Any other tracking package, or a host named in the source,
+// fails here.
+test("the console loads no third-party analytics and one error monitor", () => {
   const manifest = JSON.parse(
     readFileSync(join(appRoot, "package.json"), "utf8"),
   ) as {
@@ -68,7 +70,7 @@ test("the console loads no third-party analytics or error tracking", () => {
 
   assert.deepEqual(
     dependencies.filter((name) => tracking.test(name)),
-    [],
+    ["@sentry/browser", "@sentry/node"],
   );
 
   const externalHosts = sources.flatMap(({ path, text }) =>

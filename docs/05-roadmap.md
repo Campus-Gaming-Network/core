@@ -94,7 +94,7 @@ reliable enough for real users before expanding into clubs and tournaments.
 - Frontend regression coverage for signup, event creation, RSVP, team joining, and dashboard flows
 - Mobile and accessibility pass on primary journeys
 - Reviewed Terms and Privacy content
-- **Implemented:** Sentry error monitoring for the web app and the API
+- **Implemented:** Sentry error monitoring for the web app, the Admin Console, and the API
 - Basic product analytics
 - **Implemented:** recurring events with weekly, biweekly, and monthly schedules up to one year;
   independent occurrence records with per-occurrence RSVP and cancellation

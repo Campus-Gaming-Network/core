@@ -336,6 +336,8 @@ function resetQueues() {
   forcedConflict = false;
 }
 
+const errorEnvelopes: string[] = [];
+
 const server = http.createServer(async (request, response) => {
   response.setHeader("content-type", "application/json");
   const requestURL = new URL(
@@ -350,7 +352,24 @@ const server = http.createServer(async (request, response) => {
   if (request.method === "POST" && requestURL.pathname === "/__test/reset") {
     resetCatalog();
     resetQueues();
+    errorEnvelopes.length = 0;
     respond(response, 200, { reset: true });
+    return;
+  }
+  // Stands in for Sentry's ingest endpoint so the console server's own reports
+  // can be read back.
+  if (request.method === "POST" && requestURL.pathname === "/api/1/envelope/") {
+    let envelope = "";
+    for await (const chunk of request) envelope += chunk;
+    errorEnvelopes.push(envelope);
+    respond(response, 200, {});
+    return;
+  }
+  if (
+    request.method === "GET" &&
+    requestURL.pathname === "/__test/error-envelopes"
+  ) {
+    respond(response, 200, errorEnvelopes);
     return;
   }
   if (request.method === "GET" && requestURL.pathname.startsWith("/assets/")) {

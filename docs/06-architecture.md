@@ -41,26 +41,26 @@ See [14 — Architecture diagrams](./14-architecture-diagrams.md) for Mermaid vi
 
 ## Technology choices
 
-| Layer            | Choice                                                        | Notes                                                                                              |
-| ---------------- | ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| Frontend         | TanStack Start + React + TypeScript                           | TanStack Router, Vite, Nitro SSR, code-split routes                                                |
-| UI               | Semantic React + application CSS                              | Keep the runtime dependency surface small and accessible                                           |
-| BFF validation   | Zod                                                           | Runtime Go-response contracts and server-function/native-form input errors; server-only operations |
-| A11y / patterns  | GOV.UK Design System (reference)                              | Prefer accessible, clear components                                                                |
-| Server / API     | Go                                                            | All server domain code in Go                                                                       |
-| Database         | Railway PostgreSQL                                            | Backups required before public launch                                                              |
-| Local dev        | Docker                                                        | Works on all systems; develop on M1 MacBook                                                        |
-| App host         | Railway                                                       | Hosts the TanStack Start web service and Go API                                                    |
-| DNS / edge       | Cloudflare                                                    | DNS and edge protection for campusgamingnetwork.com                                                |
-| Admin Console    | TanStack Start                                                | `apps/admin`, a separate release at admin.campusgamingnetwork.com; in progress and release-gated   |
-| Email            | Resend                                                        | Verification, password reset, RSVP+ICS, etc.                                                       |
-| Object storage   | Cloudflare R2                                                 | School logos via Admin Console (PNG/JPG ≤5 MB); custom event banners later                         |
-| Errors           | Sentry                                                        | Web (server and browser) and API failures when `SENTRY_DSN` is set; never the Admin Console        |
-| Avatars          | Boring Avatars Beam drawn by the web app (`/api/avatars/:id`) | No avatar service is contacted; custom avatars later                                               |
-| Maps             | Google Maps embed (mini)                                      | Later nicety; address text first                                                                   |
-| Games data       | IGDB import via the Admin Console                             | Not user-editable; covers stored in Postgres                                                       |
-| Analytics        | Non-GA tool (TBD)                                             | No Google Analytics (perf)                                                                         |
-| Client data libs | TanStack where justified                                      | Main site uses Start/Router; Query/Table remain optional                                           |
+| Layer            | Choice                                                        | Notes                                                                                                        |
+| ---------------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Frontend         | TanStack Start + React + TypeScript                           | TanStack Router, Vite, Nitro SSR, code-split routes                                                          |
+| UI               | Semantic React + application CSS                              | Keep the runtime dependency surface small and accessible                                                     |
+| BFF validation   | Zod                                                           | Runtime Go-response contracts and server-function/native-form input errors; server-only operations           |
+| A11y / patterns  | GOV.UK Design System (reference)                              | Prefer accessible, clear components                                                                          |
+| Server / API     | Go                                                            | All server domain code in Go                                                                                 |
+| Database         | Railway PostgreSQL                                            | Backups required before public launch                                                                        |
+| Local dev        | Docker                                                        | Works on all systems; develop on M1 MacBook                                                                  |
+| App host         | Railway                                                       | Hosts the TanStack Start web service and Go API                                                              |
+| DNS / edge       | Cloudflare                                                    | DNS and edge protection for campusgamingnetwork.com                                                          |
+| Admin Console    | TanStack Start                                                | `apps/admin`, a separate release at admin.campusgamingnetwork.com; in progress and release-gated             |
+| Email            | Resend                                                        | Verification, password reset, RSVP+ICS, etc.                                                                 |
+| Object storage   | Cloudflare R2                                                 | School logos via Admin Console (PNG/JPG ≤5 MB); custom event banners later                                   |
+| Errors           | Sentry                                                        | Web, Admin Console (each server and browser), and API failures when `SENTRY_DSN` is set; never the Admin API |
+| Avatars          | Boring Avatars Beam drawn by the web app (`/api/avatars/:id`) | No avatar service is contacted; custom avatars later                                                         |
+| Maps             | Google Maps embed (mini)                                      | Later nicety; address text first                                                                             |
+| Games data       | IGDB import via the Admin Console                             | Not user-editable; covers stored in Postgres                                                                 |
+| Analytics        | Non-GA tool (TBD)                                             | No Google Analytics (perf)                                                                                   |
+| Client data libs | TanStack where justified                                      | Main site uses Start/Router; Query/Table remain optional                                                     |
 
 ## Frontend guidelines
 
@@ -165,14 +165,14 @@ The school and game catalogs are effectively static — roughly 6,200 schools gr
 
 ## Observability
 
-| Concern        | Approach                                                                                                                                                |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Errors         | App/system logs; the API (`internal/errormonitor`) and the web app (`src/server/error-monitor.server.ts`, `src/error-monitor.ts`) also report to Sentry |
-| Health         | Dedicated health checks                                                                                                                                 |
-| Audit          | Later polymorphic `audit_logs` (who changed what on which entity)                                                                                       |
-| System logs    | App/ops logging (distinct from audit)                                                                                                                   |
-| User activity  | Later user-visible activity history                                                                                                                     |
-| Entity history | Later school, team, and event change history                                                                                                            |
+| Concern        | Approach                                                                                                                                                                   |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Errors         | App/system logs; the API (`internal/errormonitor`) and the web and admin apps (`src/server/error-monitor.server.ts`, `src/error-monitor.ts` in each) also report to Sentry |
+| Health         | Dedicated health checks                                                                                                                                                    |
+| Audit          | Later polymorphic `audit_logs` (who changed what on which entity)                                                                                                          |
+| System logs    | App/ops logging (distinct from audit)                                                                                                                                      |
+| User activity  | Later user-visible activity history                                                                                                                                        |
+| Entity history | Later school, team, and event change history                                                                                                                               |
 
 ## Feature flags (later)
 

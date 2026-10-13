@@ -7,7 +7,7 @@ import {
   useRouter,
 } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import {
   DefaultError,
   DefaultNotFound,
@@ -44,6 +44,16 @@ export const Route = createRootRoute({
 
 function RootComponent() {
   const { admin } = Route.useRouteContext();
+  const { errorMonitoring } = admin;
+
+  useEffect(() => {
+    if (!errorMonitoring) return;
+    void import("../error-monitor").then(({ startBrowserErrorMonitoring }) => {
+      startBrowserErrorMonitoring(errorMonitoring);
+      document.documentElement.dataset.errorMonitoring = "true";
+    });
+  }, [errorMonitoring]);
+
   if (admin.status === "unauthorized") {
     return (
       <AccessState

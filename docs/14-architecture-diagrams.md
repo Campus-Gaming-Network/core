@@ -181,6 +181,7 @@ flowchart LR
     API -.->|"admin-started import and refresh"| IGDB
     Web -->|"errors"| Sentry
     API -->|"errors"| Sentry
+    Admin -.->|"errors"| Sentry
 
     classDef deferred stroke-dasharray: 6 4,fill:#f7f7f8,color:#52525b;
     class Admin,R2,IGDB deferred;

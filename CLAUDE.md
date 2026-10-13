@@ -75,6 +75,8 @@ Run the checks for the area you changed.
 - The Admin Console never displays a record ID. Show the name and link to the
   record; offer a "Copy <entity> ID" button where an ID is needed.
 - The Admin Console loads no third-party scripts, analytics, or remote fonts.
+  Its one outside connection is error reports to Sentry, sent by the SDK in its
+  own bundle when `SENTRY_DSN` is set.
 - Commit messages use the `type(scope): summary` form, for example
   `feat(admin): ...` or `test(web): ...`.
 

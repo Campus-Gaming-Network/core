@@ -9,6 +9,7 @@ import {
 } from "@tanstack/react-start/server";
 import type { CookieMutation } from "../server/cookies.server.js";
 import { adminEnvironment } from "../server/environment.server.js";
+import { errorMonitoringConfig } from "../server/error-monitor.server.js";
 import { rememberIssuedCookies } from "../server/issued-cookies.server.js";
 import {
   createSessionDependencies,
@@ -31,7 +32,11 @@ export const getAdminShellSession = createServerFn({ method: "GET" }).handler(
     });
     // The environment name lets the shell make staging and local consoles
     // unmistakable from production.
-    return { ...shell, environment: environment.deploymentEnvironment };
+    return {
+      ...shell,
+      environment: environment.deploymentEnvironment,
+      errorMonitoring: errorMonitoringConfig(),
+    };
   },
 );
 
