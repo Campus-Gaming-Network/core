@@ -949,3 +949,50 @@ func assertRetentionAuditTransition(
 		)
 	}
 }
+
+func TestPostgresRepositoryListsEveryReportFiledAgainstAUser(t *testing.T) {
+	fixture := newOperationsFixture(t)
+	ctx := context.Background()
+	insertReport := func(targetType string, targetID string, status QueueStatus, createdAt time.Time) string {
+		t.Helper()
+		var id string
+		if err := fixture.pool.QueryRow(ctx, `
+			INSERT INTO reports (reporter_user_id, target_type, target_id, reason, status, created_at)
+			VALUES ($1::uuid, $2, $3::uuid, 'Target filter fixture', $4, $5)
+			RETURNING id::text
+		`, fixture.reporterID, targetType, targetID, status, createdAt).Scan(&id); err != nil {
+			t.Fatalf("insert report: %v", err)
+		}
+		return id
+	}
+	base := time.Date(2026, time.September, 18, 8, 0, 0, 0, time.UTC)
+	// The fixture's own report is against otherID. Date it so the order is fixed.
+	if _, err := fixture.pool.Exec(ctx, `UPDATE reports SET created_at = $2 WHERE id = $1::uuid`, fixture.reportID, base.Add(time.Minute)); err != nil {
+		t.Fatalf("date fixture report: %v", err)
+	}
+	resolvedID := insertReport("user", fixture.otherID, QueueStatusResolved, base)
+	closedID := insertReport("user", fixture.otherID, QueueStatusClosed, base.Add(-time.Minute))
+	// Neither a report against someone else nor an event report that happens
+	// to share the user's ID is a report against the user.
+	insertReport("user", fixture.actorID, QueueStatusOpen, base)
+	insertReport("event", fixture.otherID, QueueStatusOpen, base)
+
+	reports, err := fixture.repository.ListReports(ctx, QueueFilter{TargetUserID: fixture.otherID, Limit: 10})
+	if err != nil {
+		t.Fatalf("ListReports() error = %v", err)
+	}
+
+	got := make([]string, 0, len(reports))
+	for _, report := range reports {
+		got = append(got, report.ID)
+	}
+	if want := []string{fixture.reportID, resolvedID, closedID}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("reports against the user = %v, want %v", got, want)
+	}
+}
+
+func TestValidateQueueFilterRejectsATargetUserThatIsNotAUUID(t *testing.T) {
+	if err := ValidateQueueFilter(QueueFilter{TargetUserID: "not-a-uuid"}); err == nil {
+		t.Fatal("ValidateQueueFilter() error = nil, want a validation error")
+	}
+}

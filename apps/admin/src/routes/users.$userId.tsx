@@ -11,8 +11,12 @@ import {
   hasRecentStepUp,
   validateCatalogDetailSearch,
 } from "../features/catalog/contracts";
+import { DataTable, dataColumn } from "../components/data-table";
+import { UserLink } from "../components/user-link";
+import type { ReportSummary } from "../features/moderation/contracts";
 import {
   DetailFact,
+  QueueStatusBadge,
   formatTimestamp,
 } from "../features/moderation/moderation-components";
 
@@ -22,15 +26,66 @@ export const Route = createFileRoute("/users/$userId")({
     audit_after: search.audit_after,
     audit_before: search.audit_before,
   }),
-  loader: ({ params, deps }) =>
-    getUserDetail({ data: { id: params.userId, ...deps } }),
+  loader: ({ context, params, deps }) =>
+    getUserDetail({
+      data: {
+        id: params.userId,
+        ...deps,
+        include_reports:
+          context.admin.status === "authenticated" &&
+          context.admin.session.capabilities.includes("reports.read"),
+      },
+    }),
   staleTime: 0,
   head: () => ({ meta: [{ title: "User detail | CGN Admin Console" }] }),
   component: UserDetailPage,
 });
 
+const reportColumns = [
+  dataColumn<ReportSummary>({
+    id: "created_at",
+    header: "Filed",
+    sortValue: (row) => row.created_at,
+    cell: (row) => (
+      <Link
+        className="data-table__primary"
+        params={{ reportId: row.id }}
+        to="/reports/$reportId"
+      >
+        <time dateTime={row.created_at}>{formatTimestamp(row.created_at)}</time>
+      </Link>
+    ),
+  }),
+  dataColumn<ReportSummary>({
+    id: "status",
+    header: "Status",
+    sortValue: (row) => row.status,
+    cell: (row) => <QueueStatusBadge status={row.status} />,
+  }),
+  dataColumn<ReportSummary>({
+    id: "reporter",
+    header: "Reporter",
+    sortValue: (row) => row.reporter_name ?? "Unknown",
+    cell: (row) => (
+      <UserLink name={row.reporter_name} userId={row.reporter_user_id} />
+    ),
+  }),
+  dataColumn<ReportSummary>({
+    id: "assigned_to",
+    header: "Assigned to",
+    sortValue: (row) => row.assigned_to_name ?? "Unassigned",
+    cell: (row) => (
+      <UserLink
+        fallback="Unassigned"
+        name={row.assigned_to_name}
+        userId={row.assigned_to_user_id}
+      />
+    ),
+  }),
+];
+
 function UserDetailPage() {
-  const { user, audit } = Route.useLoaderData();
+  const { user, audit, reports } = Route.useLoaderData();
   const search = Route.useSearch();
   const { admin } = Route.useRouteContext();
   const session = admin.status === "authenticated" ? admin.session : undefined;
@@ -134,6 +189,28 @@ function UserDetailPage() {
               </Link>
             ) : null}
           </div>
+        </section>
+      ) : null}
+
+      {reports ? (
+        <section className="detail-panel" aria-labelledby="reports-against">
+          <div className="panel-heading">
+            <div>
+              <p className="eyebrow">Moderation</p>
+              <h2 id="reports-against">Reports against this user</h2>
+            </div>
+            <span className="count-badge">{reports.length}</span>
+          </div>
+          {reports.length ? (
+            <DataTable
+              columns={reportColumns}
+              data={reports}
+              getRowId={(report) => report.id}
+              label="Reports against this user"
+            />
+          ) : (
+            <p className="field-help">Nobody has reported this account.</p>
+          )}
         </section>
       ) : null}
 

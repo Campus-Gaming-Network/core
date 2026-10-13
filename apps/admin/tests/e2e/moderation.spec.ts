@@ -4,6 +4,7 @@ import {
   memberID,
   operatorID,
   reportID,
+  reportedUserID,
   ticketID,
 } from "./fixtures/admin-session.js";
 
@@ -63,6 +64,25 @@ test("a user page opens queues already filtered to that account", async ({
     memberID,
   );
   await expect(page.getByLabel("Status")).toHaveValue("all");
+});
+
+test("a user page lists the reports against that user, each linking to the report", async ({
+  page,
+}) => {
+  await page.goto(`/users/${reportedUserID}`);
+  const panel = page.getByRole("region", { name: "Reports against this user" });
+  await expect(panel.getByRole("row")).toHaveCount(2);
+  await expect(panel.getByRole("link", { name: "Player One" })).toBeVisible();
+
+  await panel.getByRole("row").nth(1).getByRole("link").first().click();
+  await expect(page).toHaveURL(`/reports/${reportID}`);
+
+  await page.goto(`/users/${memberID}`);
+  await expect(
+    page
+      .getByRole("region", { name: "Reports against this user" })
+      .getByText("Nobody has reported this account."),
+  ).toBeVisible();
 });
 
 test("stale report updates preserve input, show current state, and retry", async ({

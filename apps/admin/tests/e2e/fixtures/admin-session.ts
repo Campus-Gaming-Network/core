@@ -7,6 +7,7 @@ export const catalogSchoolID = "88888888-8888-4888-8888-888888888888";
 export const memberID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 export const gatedMemberID = "ffffffff-ffff-4fff-8fff-ffffffffffff";
 export const operatorID = "33333333-3333-4333-8333-333333333333";
+export const reportedUserID = "55555555-5555-4555-8555-555555555555";
 
 /** A 1×1 PNG and an SVG disguised with a PNG name and type. */
 export const pngLogo = {

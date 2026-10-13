@@ -16,6 +16,7 @@ import {
 } from "../src/features/catalog/contracts.js";
 import {
   getGameDetailOperation,
+  getUserDetailOperation,
   importGameOperation,
   runCatalogCommandOperation,
   searchIGDBOperation,
@@ -867,4 +868,47 @@ test("only synced bundled logo files under the asset origin render as logos", ()
     assert.equal(approvedBundledLogoURL(unsafe, base), "", unsafe);
   }
   assert.equal(approvedBundledLogoURL(url, undefined), "");
+});
+
+test("a user page reads every report against the user, and none without the capability", async () => {
+  const user = { id: userID, name: "Reported Player" };
+  const audit = { audit_entries: [], next_cursor: "", previous_cursor: "" };
+  const { api, calls } = recordingApi(({ path }) =>
+    path.includes("/audit")
+      ? audit
+      : path.endsWith("after=second-page")
+        ? { reports: ["older"], next_cursor: "", previous_cursor: "first" }
+        : path.startsWith("/admin/v1/reports")
+          ? { reports: ["newer"], next_cursor: "second-page" }
+          : user,
+  );
+
+  const withReports = await getUserDetailOperation(
+    { id: userID },
+    { api, cookieHeader: "admin" },
+    true,
+  );
+  const withoutReports = await getUserDetailOperation(
+    { id: userID },
+    { api, cookieHeader: "admin" },
+    false,
+  );
+
+  const userPaths = [
+    `/admin/v1/users/${userID}`,
+    `/admin/v1/users/${userID}/audit?limit=25`,
+  ];
+  assert.deepEqual(
+    { withReports, withoutReports, paths: calls.map((call) => call.path) },
+    {
+      withReports: { user, audit, reports: ["newer", "older"] },
+      withoutReports: { user, audit, reports: undefined },
+      paths: [
+        ...userPaths,
+        `/admin/v1/reports?target_user=${userID}&limit=100`,
+        `/admin/v1/reports?target_user=${userID}&limit=100&after=second-page`,
+        ...userPaths,
+      ],
+    },
+  );
 });

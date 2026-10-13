@@ -308,22 +308,24 @@ func (handler *Handler) listAuditHistory(w http.ResponseWriter, req *http.Reques
 	})
 }
 
-// parseQueueFilter accepts target_type only for the report queue; support
-// tickets have no target.
+// parseQueueFilter accepts target_type and target_user only for the report
+// queue; support tickets have no target.
 func parseQueueFilter(values url.Values, reports bool) (operations.QueueFilter, error) {
 	allowed := map[string]struct{}{
 		"status": {}, "assignee": {}, "user": {}, "limit": {}, "after": {}, "before": {},
 	}
 	if reports {
 		allowed["target_type"] = struct{}{}
+		allowed["target_user"] = struct{}{}
 	}
 	if err := validateQueryKeys(values, allowed); err != nil {
 		return operations.QueueFilter{}, err
 	}
 	filter := operations.QueueFilter{
-		Status:     operations.QueueStatus(values.Get("status")),
-		TargetType: strings.TrimSpace(values.Get("target_type")),
-		UserQuery:  strings.TrimSpace(values.Get("user")),
+		Status:       operations.QueueStatus(values.Get("status")),
+		TargetType:   strings.TrimSpace(values.Get("target_type")),
+		TargetUserID: strings.TrimSpace(values.Get("target_user")),
+		UserQuery:    strings.TrimSpace(values.Get("user")),
 	}
 	if assignee := strings.TrimSpace(values.Get("assignee")); assignee != "" {
 		if assignee == "unassigned" {
