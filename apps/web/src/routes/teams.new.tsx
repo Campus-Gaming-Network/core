@@ -19,6 +19,10 @@ import {
   newIdempotencyKey,
   useIdempotencyKey,
 } from "../components/idempotency-key";
+import {
+  NoScriptSchoolSearch,
+  SchoolSearchSelect,
+} from "../components/school-search-select";
 import { RouteErrorView, RoutePending } from "../components/route-boundaries";
 import {
   newTeamPageInputSchema,
@@ -32,8 +36,6 @@ import {
 } from "../features/team-slice/team.functions";
 import { newTeamHead } from "../features/team-slice/presentation";
 import teamCSS from "../features/team-slice/teams.css?url";
-
-const schoolSearchFormID = "team-school-search-form";
 
 export const Route = createFileRoute("/teams/new")({
   validateSearch: validateNewTeamSearch,
@@ -85,10 +87,7 @@ function NewTeamPage() {
         </p>
       </section>
 
-      {/* The school search is a GET form of its own. HTML cannot nest forms,
-          so this one is empty and the search controls inside the create form
-          join it with the form attribute. */}
-      <form action="/teams/new" id={schoolSearchFormID} method="get" />
+      <NoScriptSchoolSearch action="/teams/new" query={search.school_q ?? ""} />
       <CreateTeamForm
         defaultSchoolID={data.defaultSchoolID}
         games={data.games}
@@ -134,7 +133,6 @@ function CreateTeamForm({
     await mutation.execute(() => runCreateTeam({ data }));
   }
 
-  const schoolOptions = uniqueSchools(schools, defaultSchoolID);
   const nameErrors = mutation.fieldErrors.name;
   const descriptionErrors = mutation.fieldErrors.description;
   const schoolErrors = mutation.fieldErrors.school_id;
@@ -195,43 +193,28 @@ function CreateTeamForm({
         title="Campus and games"
         description="Link the team to a school and choose the games it plays."
       >
-        <div className="team-school-search">
-          <label>
-            Find another school
-            <input
-              defaultValue={schoolQuery}
-              form={schoolSearchFormID}
-              maxLength={200}
-              minLength={2}
-              name="school_q"
-              placeholder="University or college"
-              type="search"
-            />
-          </label>
-          <button form={schoolSearchFormID} type="submit">
-            Search schools
-          </button>
-        </div>
-        {schoolSearchFailed ? (
-          <p role="alert">
-            School search is unavailable. You can still use your home school.
-          </p>
-        ) : null}
-        <FormField
-          errorId="team-school-error"
-          errors={schoolErrors}
-          label="School link"
-          optional
-        >
-          <select defaultValue={defaultSchoolID} name="school_id">
-            <option value="">No school link</option>
-            {schoolOptions.map((school) => (
-              <option key={school.id} value={school.id}>
-                {school.name}
-              </option>
-            ))}
-          </select>
-        </FormField>
+        <SchoolSearchSelect
+          defaultSchool={
+            defaultSchoolID
+              ? {
+                  id: defaultSchoolID,
+                  name: "Your home school",
+                  slug: defaultSchoolID,
+                }
+              : undefined
+          }
+          defaultValue={defaultSchoolID}
+          describedBy={schoolErrors?.length ? "team-school-error" : undefined}
+          emptyLabel="No school link"
+          initialQuery={schoolQuery}
+          initialSchools={schools}
+          initialSearchFailed={schoolSearchFailed}
+          invalid={Boolean(schoolErrors?.length)}
+          label="School link (optional)"
+          name="school_id"
+          valueField="id"
+        />
+        <FieldError id="team-school-error" messages={schoolErrors} />
 
         <fieldset
           className="team-game-group"
@@ -281,21 +264,6 @@ function CreateTeamForm({
       </div>
     </form>
   );
-}
-
-function uniqueSchools(
-  schools: SchoolSummaryDTO[],
-  defaultSchoolID: string,
-): SchoolSummaryDTO[] {
-  const unique = new Map(schools.map((school) => [school.id, school]));
-  if (defaultSchoolID && !unique.has(defaultSchoolID)) {
-    unique.set(defaultSchoolID, {
-      id: defaultSchoolID,
-      name: "Your home school",
-      slug: defaultSchoolID,
-    });
-  }
-  return [...unique.values()];
 }
 
 function NewTeamPending() {

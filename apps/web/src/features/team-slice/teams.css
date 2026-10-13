@@ -1,15 +1,3 @@
-/* The search field and its button share a row where they fit. */
-.team-school-search {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: end;
-  gap: 0.75rem;
-}
-
-.team-school-search > label {
-  flex: 1 1 12rem;
-}
-
 .team-create-form {
   margin-block-start: 1.5rem;
 }

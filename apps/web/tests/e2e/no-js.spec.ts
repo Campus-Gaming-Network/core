@@ -306,13 +306,13 @@ test("team forms complete without JavaScript", async ({ context, page }) => {
 
   await context.clearCookies();
   await logIn(page, "owner-no-js@example.test", "/teams/new");
-  // The search is a form of its own that reloads the page, so search first.
-  await page.getByLabel("Find another school").fill("browser");
-  await page.getByRole("button", { name: "Search schools" }).click();
+  // The search reloads the page, so it sits above the form and runs first.
+  await page.getByLabel("Search schools").fill("browser");
+  await page.getByRole("button", { name: "Search", exact: true }).click();
   await expect(page).toHaveURL((url) => url.search === "?school_q=browser");
   await page
     .getByLabel("School link (optional)")
-    .selectOption({ label: "Browser Test University" });
+    .selectOption({ label: "Browser Test University — Irvine, CA" });
   await page.getByLabel("Team name").fill("No JavaScript Team");
   await page
     .getByLabel("Description")
