@@ -30,7 +30,7 @@ function SupportPage() {
   const { idempotencyKey } = Route.useLoaderData();
 
   return (
-    <main className="narrow">
+    <main className="prose">
       <section className="page-heading">
         <p className="eyebrow">Support</p>
         <h1>Need help?</h1>

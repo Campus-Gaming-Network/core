@@ -82,7 +82,7 @@ function NewEventPage() {
   const schoolQuery = search.school_q ?? "";
 
   return (
-    <main className="narrow">
+    <main>
       <section className="page-heading">
         <p className="eyebrow">Create event</p>
         <h1>Create a campus gaming event</h1>

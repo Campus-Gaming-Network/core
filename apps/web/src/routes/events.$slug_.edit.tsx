@@ -79,7 +79,7 @@ function EditEventPage() {
 
   if (data.status === "denied") {
     return (
-      <main className="narrow">
+      <main>
         <section className="page-heading">
           <p className="eyebrow">Edit event</p>
           <h1>
@@ -102,7 +102,7 @@ function EditEventPage() {
 
   const schoolQuery = search.school_q ?? "";
   return (
-    <main className="narrow">
+    <main>
       <section className="page-heading">
         <p className="eyebrow">Edit event</p>
         <h1>{data.event.title}</h1>

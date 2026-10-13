@@ -19,7 +19,7 @@ type RouteErrorViewProps = Pick<ErrorComponentProps, "reset"> & {
 
 export function RoutePending({ message = "Loading page…" }: RoutePendingProps) {
   return (
-    <main className="narrow route-state" aria-busy="true" aria-live="polite">
+    <main className="prose route-state" aria-busy="true" aria-live="polite">
       <section className="action-panel">
         <p className="eyebrow">Loading</p>
         <h1>{message}</h1>
@@ -60,7 +60,7 @@ export function RouteErrorView({
   );
 
   return (
-    <main className="narrow route-state">
+    <main className="prose route-state">
       <section className="action-panel" role="alert">
         <p className="eyebrow">{eyebrow}</p>
         <h1>{heading}</h1>
@@ -109,7 +109,7 @@ export function DefaultNotFound() {
   const description = "That page does not exist on Campus Gaming Network.";
 
   return (
-    <main className="narrow route-state">
+    <main className="prose route-state">
       <section className="action-panel">
         <title>{title}</title>
         <meta name="description" content={description} />
