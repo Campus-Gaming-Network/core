@@ -1,0 +1,127 @@
+/* Layout for the style guide page only. The pieces it shows are styled by the
+   same sheets as everywhere else; nothing here restyles them. */
+.styleguide-page > .section {
+  scroll-margin-top: 1rem;
+}
+
+.styleguide-intro {
+  max-width: 44rem;
+  margin: 0 0 1.5rem;
+  color: var(--color-muted);
+}
+
+.styleguide-sub {
+  margin: 2rem 0 0.75rem;
+  font-size: 1rem;
+  letter-spacing: -0.01em;
+}
+
+.styleguide-label {
+  margin: 0;
+  color: var(--color-muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.75rem;
+  overflow-wrap: anywhere;
+}
+
+.styleguide-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
+}
+
+.styleguide-row--marks {
+  align-items: flex-end;
+  gap: 1.5rem 2.5rem;
+}
+
+.styleguide-stack {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.styleguide-stack > * {
+  margin: 0;
+}
+
+.styleguide-two {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(1.5rem, 4vw, 3rem);
+  align-items: start;
+}
+
+.styleguide-two > * {
+  min-width: 0;
+  margin: 0;
+}
+
+.styleguide-swatches {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 11rem), 1fr));
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.styleguide-swatches > li {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.styleguide-swatches small {
+  color: var(--color-muted);
+  font-size: 0.8125rem;
+  overflow-wrap: anywhere;
+}
+
+.styleguide-chip {
+  height: 3.5rem;
+  margin-bottom: 0.35rem;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-small);
+}
+
+.styleguide-chip--shape {
+  border-color: var(--color-card-border);
+  background: var(--color-card);
+}
+
+.styleguide-spec {
+  display: grid;
+  grid-template-columns: 11rem minmax(0, 1fr);
+  align-items: baseline;
+  gap: 0.5rem 1.5rem;
+  padding-block: 1.1rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.styleguide-spec > :last-child,
+.styleguide-spec > :last-child > * {
+  margin: 0;
+}
+
+.styleguide-mark {
+  display: grid;
+  gap: 0.5rem;
+  justify-items: start;
+}
+
+.styleguide-calendar {
+  width: 3.5rem;
+}
+
+.styleguide-calendar--large {
+  width: 4.5rem;
+}
+
+@media (max-width: 42rem) {
+  .styleguide-two,
+  .styleguide-spec {
+    grid-template-columns: 1fr;
+  }
+}

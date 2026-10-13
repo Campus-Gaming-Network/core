@@ -43,6 +43,7 @@ for (const path of [
   "/schools/quiet-valley-college",
   "/users/reportable-player",
   "/support",
+  "/styleguide",
 ]) {
   test(`${path} keeps landmarks, headings, and viewport bounds`, async ({
     page,
