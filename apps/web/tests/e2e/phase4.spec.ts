@@ -17,7 +17,36 @@ test("login rejects control-character redirect targets", async ({ page }) => {
   await page.getByLabel("Email").fill("safe-redirect@example.test");
   await page.getByLabel("Password").fill(password);
   await page.getByRole("button", { name: "Log in" }).click();
-  await expect(page).toHaveURL(/\/account$/);
+  await expect(page).toHaveURL(
+    (url) => url.pathname === "/" && url.search === "",
+  );
+});
+
+test("login without a return target lands on the home page", async ({
+  page,
+}) => {
+  await gotoApp(page, "/login");
+  await page.getByLabel("Email").fill("login-home@example.test");
+  await page.getByLabel("Password").fill(password);
+  await page.getByRole("button", { name: "Log in" }).click();
+  await expect(page).toHaveURL(
+    (url) => url.pathname === "/" && url.search === "",
+  );
+});
+
+test("login started from a protected page returns to that page", async ({
+  page,
+}) => {
+  await gotoApp(page, "/account");
+  await expect(page).toHaveURL(
+    (url) => url.pathname === "/login" && url.search === "?next=%2Faccount",
+  );
+  await page.getByLabel("Email").fill("login-return@example.test");
+  await page.getByLabel("Password").fill(password);
+  await page.getByRole("button", { name: "Log in" }).click();
+  await expect(page).toHaveURL(
+    (url) => url.pathname === "/account" && url.search === "",
+  );
 });
 
 test("public auth recovery and private account mutations work through the runtime", async ({
