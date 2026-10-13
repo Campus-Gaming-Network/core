@@ -55,7 +55,7 @@ function SignupPage() {
 
   if (data.created) {
     return (
-      <main className="narrow">
+      <main>
         <SignupConfirmation email={data.email} />
         <p className="form-footer">
           Already verified? <Link to="/login">Log in</Link>
@@ -66,7 +66,7 @@ function SignupPage() {
   const { schoolSearch, policies } = data;
 
   return (
-    <main className="narrow">
+    <main>
       <section className="page-heading">
         <p className="eyebrow">Create account</p>
         <h1>Join with your home school.</h1>

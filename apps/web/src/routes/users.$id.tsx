@@ -121,7 +121,7 @@ function PublicProfilePage() {
   });
 
   return (
-    <main className="narrow">
+    <main>
       <section className="profile-hero">
         <Avatar id={profile.id} name={profile.name} />
         <div>

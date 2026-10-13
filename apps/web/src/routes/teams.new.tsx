@@ -78,7 +78,7 @@ function NewTeamPage() {
   const search = Route.useSearch();
 
   return (
-    <main className="narrow">
+    <main>
       <section className="page-heading">
         <p className="eyebrow">Create team</p>
         <h1>Create a campus gaming team</h1>

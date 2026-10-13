@@ -352,7 +352,7 @@ export const Route = createFileRoute("/faq")({
 
 function FAQPage() {
   return (
-    <main className="narrow">
+    <main className="prose">
       <section className="page-heading">
         <p className="eyebrow">FAQ</p>
         <h1>Frequently asked questions.</h1>

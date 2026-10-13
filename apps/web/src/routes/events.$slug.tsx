@@ -251,7 +251,7 @@ export function LockedEventView({
   notice?: EventDetailNotice;
 }) {
   return (
-    <main className="narrow">
+    <main className="prose">
       <EventBanner locked size="hero" />
       <section className="page-heading">
         <p className="eyebrow">Private event</p>

@@ -35,6 +35,7 @@
   --radius-control: 0.625rem;
   --radius-panel: 1rem;
   --content-width: 72rem;
+  --measure-width: 53.5rem;
   color: var(--color-text);
   background: var(--color-canvas);
   font-family:
@@ -208,6 +209,9 @@ main,
   padding-inline: clamp(1rem, 4vw, 2.25rem);
 }
 
+/* Every page's <main> is --content-width wide, so every page shares one left
+   edge and gutter. Dashboards, forms and lists fill it. Pages of running text mark their main
+   `.prose` and keep a readable measure at the same left edge. */
 main {
   min-height: calc(100vh - 10rem);
   min-height: calc(100svh - 10rem);
@@ -215,21 +219,16 @@ main {
   overflow-wrap: anywhere;
 }
 
-.narrow {
-  width: min(100%, 58rem);
-}
-
-.browse-page,
-.detail-page {
-  width: min(100%, var(--content-width));
+.prose > * {
+  max-width: var(--measure-width);
 }
 
 .auth-page {
   display: grid;
-  width: min(100%, 62rem);
-  grid-template-columns: minmax(15rem, 0.75fr) minmax(20rem, 1.25fr);
+  grid-template-columns: minmax(15rem, 19.7rem) minmax(20rem, 32.8rem);
   column-gap: clamp(2rem, 6vw, 5rem);
   row-gap: 1.5rem;
+  justify-content: space-between;
   align-content: start;
   align-items: start;
 }
@@ -1132,7 +1131,7 @@ main {
 
 .sectioned-form fieldset.form-section {
   display: grid;
-  grid-template-columns: minmax(0, 13rem) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
   grid-template-rows: auto 1fr;
   column-gap: 2rem;
   row-gap: 0.35rem;

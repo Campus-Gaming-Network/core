@@ -14,7 +14,7 @@ export function PolicyPage({
   eyebrow: string;
 }) {
   return (
-    <main className="narrow">
+    <main className="prose">
       <section className="page-heading">
         <p className="eyebrow">{eyebrow}</p>
         <h1>{document.heading}</h1>

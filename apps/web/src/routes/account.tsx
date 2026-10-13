@@ -83,7 +83,7 @@ function AccountPage() {
   const emailVerified = Boolean(data.profile.email_verified_at);
 
   return (
-    <main className="narrow account-page">
+    <main className="account-page">
       <header className="account-header">
         <Avatar id={data.profile.id} name={data.profile.name} />
         <div className="account-identity">
