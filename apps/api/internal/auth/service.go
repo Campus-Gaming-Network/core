@@ -220,6 +220,7 @@ func (s *AccountService) GetPublicProfile(ctx context.Context, userID string) (u
 }
 
 func (s *AccountService) UpdateProfile(ctx context.Context, userID string, update users.ProfileUpdate, links []users.SocialLink) (users.Profile, error) {
+	links = users.NormalizeSocialLinks(links)
 	if err := users.ValidateProfileUpdate(update, links); err != nil {
 		return users.Profile{}, err
 	}

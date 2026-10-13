@@ -36,6 +36,12 @@ const publicProfile = {
   },
   social_links: [
     { id: "social-1", label: "Streaming", url: "https://example.test/player" },
+    {
+      id: "social-2",
+      kind: "discord",
+      label: "Discord",
+      username: "player.one",
+    },
   ],
   role_indicators: ["school_admin"],
   email: "private@example.test",
@@ -92,8 +98,15 @@ test("public profile is a no-store public allowlist and skips /me without the co
       social_links: [
         {
           id: "social-1",
+          kind: "url",
           label: "Streaming",
           url: "https://example.test/player",
+        },
+        {
+          id: "social-2",
+          kind: "discord",
+          label: "Discord",
+          username: "player.one",
         },
       ],
       role_indicators: ["school_admin"],

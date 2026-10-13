@@ -55,7 +55,7 @@ func newProfileFakeUsers(showInLists bool) *profileFakeUsers {
 		Bio:               "Plays on weekends.",
 		Timezone:          "America/Los_Angeles",
 		HomeSchoolID:      "33333333-3333-3333-3333-333333333333",
-		SocialLinks:       []users.SocialLink{{ID: "link-1", Label: "Twitch", URL: "https://twitch.example.test/player"}},
+		SocialLinks:       []users.SocialLink{{ID: "link-1", Kind: users.SocialLinkKindURL, Label: "Twitch", URL: "https://twitch.example.test/player"}},
 		ShowInLists:       showInLists,
 	}}
 }
@@ -160,5 +160,31 @@ func TestMePatchRequiresAuthentication(t *testing.T) {
 	assertError(t, response, http.StatusUnauthorized, "authentication_required")
 	if store.updateCalls != 0 {
 		t.Fatal("the profile was updated for a signed-out visitor")
+	}
+}
+
+func TestMePatchSavesADiscordUsernameAsASocialLink(t *testing.T) {
+	store := newProfileFakeUsers(true)
+
+	got := decodeProfile(t, serveMe(store, authenticatedEventRequest(http.MethodPatch, "/me",
+		`{"social_links":[{"label":"Twitch","url":"https://twitch.example.test/player"},{"kind":"discord","username":"@Player.One"}]}`)))
+
+	want := []users.SocialLink{
+		{Kind: users.SocialLinkKindURL, Label: "Twitch", URL: "https://twitch.example.test/player"},
+		{Kind: users.SocialLinkKindDiscord, Label: users.DiscordSocialLinkLabel, Username: "player.one"},
+	}
+	if !reflect.DeepEqual(got.SocialLinks, want) || !reflect.DeepEqual(store.links, want) {
+		t.Fatalf("response links = %#v, stored links = %#v, want %#v", got.SocialLinks, store.links, want)
+	}
+}
+
+func TestMePatchRejectsAnInvalidDiscordUsername(t *testing.T) {
+	store := newProfileFakeUsers(true)
+
+	response := serveMe(store, authenticatedEventRequest(http.MethodPatch, "/me",
+		`{"social_links":[{"kind":"discord","username":"player#1234"}]}`))
+
+	if response.Code != http.StatusBadRequest || store.updateCalls != 0 {
+		t.Fatalf("status = %d with %d updates, want %d with none; body = %s", response.Code, store.updateCalls, http.StatusBadRequest, response.Body.String())
 	}
 }

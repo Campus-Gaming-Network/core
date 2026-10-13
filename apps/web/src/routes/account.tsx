@@ -366,6 +366,7 @@ function ProfileForm({ profile }: { profile: AccountProfileDTO }) {
           bio: String(form.get("bio") ?? ""),
           timezone: String(form.get("timezone") ?? ""),
           social_links: socialLinks,
+          discord_username: String(form.get("discord_username") ?? ""),
           // A "false" input comes before the checkbox, so the last value is
           // the checkbox when it is checked and the "false" when it is not.
           show_in_lists: form.getAll("show_in_lists").at(-1) === "true",
@@ -374,7 +375,10 @@ function ProfileForm({ profile }: { profile: AccountProfileDTO }) {
     );
   }
 
-  const socialLinks = profile.social_links ?? [];
+  // The URL rows hold the URL links. A Discord username has its own field.
+  const savedLinks = profile.social_links ?? [];
+  const socialLinks = savedLinks.filter((link) => link.kind === "url");
+  const discordLink = savedLinks.find((link) => link.kind === "discord");
   const socialRows = socialLinkSlots.map((index) => (
     <div className="split-fields" key={index}>
       <FormField
@@ -485,7 +489,7 @@ function ProfileForm({ profile }: { profile: AccountProfileDTO }) {
         </FormSection>
         <FormSection
           title="Social links"
-          description="Optional. Link to your profiles elsewhere. You can add up to three."
+          description="Optional. Link to your profiles elsewhere. You can add up to three, and a Discord username."
         >
           {socialRows.slice(0, shownSocialRows)}
           {shownSocialRows < socialRows.length ? (
@@ -499,6 +503,21 @@ function ProfileForm({ profile }: { profile: AccountProfileDTO }) {
               </div>
             </details>
           ) : null}
+          <FormField
+            errorId="profile-discord_username-error"
+            errors={mutation.fieldErrors.discord_username}
+            label="Discord username"
+            optional
+          >
+            <input
+              autoCapitalize="none"
+              autoComplete="off"
+              defaultValue={discordLink?.username ?? ""}
+              maxLength={33}
+              name="discord_username"
+              spellCheck={false}
+            />
+          </FormField>
         </FormSection>
         <FormSection
           title="Privacy"

@@ -13,7 +13,7 @@ import {
   siX,
   siYoutube,
 } from "simple-icons";
-import { socialSite, type SocialSite } from "./social-sites.js";
+import type { SocialSite } from "./social-sites.js";
 
 // Brand marks ship with the app as path data; nothing is fetched.
 const sitePaths: Record<SocialSite, string> = {
@@ -35,8 +35,7 @@ const sitePaths: Record<SocialSite, string> = {
  * The icon for a profile link: the site's mark for a known site, a chain link
  * for any other. It is decorative; the link's text names it.
  */
-export function SocialLinkIcon({ url }: { url: string }) {
-  const site = socialSite(url);
+export function SocialLinkIcon({ site }: { site: SocialSite | undefined }) {
   if (!site) {
     return <LinkIcon aria-hidden="true" data-site="link" size={16} />;
   }

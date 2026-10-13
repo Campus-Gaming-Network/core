@@ -187,13 +187,8 @@ func (r *PostgresRepository) UpdateProfileWithSocialLinks(ctx context.Context, i
 		return Profile{}, fmt.Errorf("archive social links: %w", err)
 	}
 
-	for index, link := range links {
-		if _, err := tx.Exec(ctx, `
-			INSERT INTO user_social_links (user_id, label, url, sort_order)
-			VALUES ($1::uuid, $2, $3, $4)
-		`, id, strings.TrimSpace(link.Label), strings.TrimSpace(link.URL), index); err != nil {
-			return Profile{}, fmt.Errorf("insert social link: %w", err)
-		}
+	if err := insertSocialLinks(ctx, tx, id, links); err != nil {
+		return Profile{}, err
 	}
 
 	profile, err = profileWithAssociations(ctx, tx, profile)

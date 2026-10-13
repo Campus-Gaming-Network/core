@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -339,4 +340,39 @@ func installLifecycleFailureTrigger(t *testing.T, ctx context.Context, pool *pgx
 		_, _ = pool.Exec(context.Background(), fmt.Sprintf("DROP TRIGGER IF EXISTS %s ON %s", identifier, table))
 		_, _ = pool.Exec(context.Background(), "DROP FUNCTION IF EXISTS "+functionName+"()")
 	})
+}
+
+func TestPostgresRepositoryStoresDiscordSocialLinkBesideURLLinks(t *testing.T) {
+	ctx, pool, schoolID, suffix := setupLifecycleDatabaseTest(t)
+	repository := NewPostgresRepository(pool)
+	profile := createLifecycleAccount(
+		t,
+		ctx,
+		repository,
+		schoolID,
+		"discord-"+suffix+"@example.test",
+		[]byte("discord-token-"+suffix),
+		time.Date(2026, time.September, 5, 12, 0, 0, 0, time.UTC),
+	)
+	links := []SocialLink{
+		{Kind: SocialLinkKindURL, Label: "Twitch", URL: "https://twitch.tv/player"},
+		{Kind: SocialLinkKindDiscord, Label: DiscordSocialLinkLabel, Username: "player.one"},
+	}
+
+	if _, err := repository.UpdateProfileWithSocialLinks(ctx, profile.ID, ProfileUpdate{Name: "Player", Timezone: "UTC"}, links); err != nil {
+		t.Fatalf("UpdateProfileWithSocialLinks() error = %v", err)
+	}
+	stored, err := repository.FindByID(ctx, profile.ID)
+	if err != nil {
+		t.Fatalf("FindByID() error = %v", err)
+	}
+
+	got := make([]SocialLink, 0, len(stored.SocialLinks))
+	for _, link := range stored.SocialLinks {
+		link.ID = ""
+		got = append(got, link)
+	}
+	if !reflect.DeepEqual(got, links) {
+		t.Fatalf("stored links = %#v, want %#v", got, links)
+	}
 }

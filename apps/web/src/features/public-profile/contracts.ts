@@ -23,11 +23,21 @@ const schoolSummarySchema = z.object({
   state: z.string().optional(),
 });
 
-const socialLinkSchema = z.object({
-  id: identifierSchema.optional(),
-  label: z.string(),
-  url: z.string(),
-});
+// A link is a URL or a Discord username. A link without a kind is a URL link.
+const socialLinkSchema = z.union([
+  z.object({
+    id: identifierSchema.optional(),
+    kind: z.literal("url").default("url"),
+    label: z.string(),
+    url: z.string(),
+  }),
+  z.object({
+    id: identifierSchema.optional(),
+    kind: z.literal("discord"),
+    label: z.string(),
+    username: z.string(),
+  }),
+]);
 
 /** Public allowlist for loader serialization. */
 export const publicProfileDtoSchema = z.object({

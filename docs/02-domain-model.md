@@ -39,7 +39,7 @@ SiteAnnouncement ── global banner                        (later)
 | Profile URL         | `/users/:id` (database id)                                                                          |
 | Verification level  | `basic` (email verified) \| `verified` (`.edu`) \| `staff_faculty`                                  |
 | Avatar              | Boring Avatars Beam drawn by this site from the user id; initials show when the picture cannot load |
-| Bio, social links   | Profile                                                                                             |
+| Bio, social links   | Profile; a social link is a URL with a label, or a Discord username                                 |
 | Timezone            | Default from system; used to display event times                                                    |
 | School affiliations | Selects one home school during signup; can follow additional schools afterward                      |
 | Majors              | Later: multiple allowed (open question in [08](./08-open-questions.md))                             |
