@@ -102,6 +102,12 @@ See [14 — Architecture diagrams](./14-architecture-diagrams.md) for Mermaid vi
   as every other visitor. The root asks again on every navigation, so a login,
   a rename, or an expired session shows up in the header. If `/me` is
   unavailable the header falls back to the logged-out links.
+- When the API answers `401 authentication_required` to a request that carried
+  a session cookie, the BFF deletes that cookie and adds
+  `x-cgn-session-ended` to its response. A page that is already open sees the
+  header on a server-function response and reloads its routes, so the header
+  shows the logged-out links and a page that needs an account redirects to the
+  login page. An outage or any other error leaves the cookie alone.
 - Viewer, session, account, private-event, and mutation responses are private or
   no-store. Only explicitly public catalog data receives shared freshness
   headers. TanStack Router client caching is not treated as cross-request or

@@ -342,6 +342,14 @@ async function handleRequest(
     return;
   }
 
+  // Ends every session the way a suspension or password reset does, leaving
+  // the rest of the state in place.
+  if (method === "POST" && url.pathname === "/__test/revoke-sessions") {
+    sessions.clear();
+    json(response, 200, { ok: true });
+    return;
+  }
+
   if (method === "POST" && url.pathname === "/__test/reset") {
     sessions.clear();
     unlockTokens.clear();

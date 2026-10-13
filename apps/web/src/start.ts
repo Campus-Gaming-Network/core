@@ -4,6 +4,7 @@ import {
   createStart,
 } from "@tanstack/react-start";
 import { reportServerError } from "./server/error-monitor.server.js";
+import { sessionEndedFetch } from "./session-ended.js";
 
 const localSiteOrigin = "http://localhost:3000";
 
@@ -33,6 +34,12 @@ const functionErrorReportingMiddleware = createMiddleware({
     throw error;
   }
 });
+
+// In the browser, every server function call goes through a fetch that
+// notices when the server has ended the session.
+const sessionEndedMiddleware = createMiddleware({ type: "function" }).client(
+  ({ next }) => next({ fetch: sessionEndedFetch }),
+);
 
 const securityHeadersMiddleware = createMiddleware().server(
   async ({ next, request }) => {
@@ -73,7 +80,10 @@ const securityHeadersMiddleware = createMiddleware().server(
 );
 
 export const startInstance = createStart(() => ({
-  functionMiddleware: [functionErrorReportingMiddleware],
+  functionMiddleware: [
+    sessionEndedMiddleware,
+    functionErrorReportingMiddleware,
+  ],
   requestMiddleware: [
     errorReportingMiddleware,
     securityHeadersMiddleware,

@@ -10,6 +10,7 @@ export type GoBFFClientDependencies = {
   trustRailwayHeaders?: boolean;
   baseUrl?: string;
   fetcher?: Fetcher;
+  onSessionRejected?: () => void;
 };
 
 /**
@@ -24,10 +25,12 @@ export function createGoBFFClient({
   trustRailwayHeaders = Boolean(process.env.RAILWAY_ENVIRONMENT_ID),
   baseUrl = process.env.API_INTERNAL_URL ?? "http://localhost:8080",
   fetcher = fetch,
+  onSessionRejected,
 }: GoBFFClientDependencies): ApiClient {
   return createApiClient({
     baseUrl,
     fetcher,
+    onSessionRejected,
     prepareHeaders: (headers) =>
       headersWithTrustedVisitorIdentity({
         incomingHeaders,

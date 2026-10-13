@@ -29,6 +29,8 @@ export type ApiClientDependencies = {
   baseUrl: string;
   fetcher?: Fetcher;
   prepareHeaders?: (headers: Headers) => Headers;
+  /** Called when the API no longer accepts the session a request carried. */
+  onSessionRejected?: () => void;
 };
 
 export class ApiError extends Error {
@@ -70,6 +72,7 @@ export function createApiClient({
   baseUrl,
   fetcher = fetch,
   prepareHeaders = (headers) => headers,
+  onSessionRejected,
 }: ApiClientDependencies): ApiClient {
   return async <TSchema extends z.ZodType>({
     path,
@@ -98,7 +101,17 @@ export function createApiClient({
     const payload = await readPayload(response);
 
     if (!response.ok) {
-      throw new ApiError(response.status, errorCode(payload, response.status));
+      const code = errorCode(payload, response.status);
+      // Only this answer means the session is gone. An outage, or a 401 for
+      // another reason such as a wrong event password, leaves it alone.
+      if (
+        cookieHeader &&
+        response.status === 401 &&
+        code === "authentication_required"
+      ) {
+        onSessionRejected?.();
+      }
+      throw new ApiError(response.status, code);
     }
 
     const parsed = responseSchema.safeParse(payload);
