@@ -2,9 +2,11 @@
 package mailhttp
 
 import (
+	"encoding/json"
 	"fmt"
 	"net"
 	"net/http"
+	"regexp"
 	"time"
 )
 
@@ -19,6 +21,25 @@ type ResponseError struct {
 
 func (e *ResponseError) Error() string {
 	return fmt.Sprintf("email provider returned %s: %s", e.Status, e.Detail)
+}
+
+// errorNamePattern limits a provider's error name to an identifier, so a
+// response that puts free text there cannot reach the logs.
+var errorNamePattern = regexp.MustCompile(`^[a-z0-9_]{1,64}$`)
+
+// ErrorName returns the provider's machine-readable error name, such as
+// Resend's "validation_error". It is empty when the response carries none.
+func (e *ResponseError) ErrorName() string {
+	var body struct {
+		Name string `json:"name"`
+	}
+	if err := json.Unmarshal([]byte(e.Detail), &body); err != nil {
+		return ""
+	}
+	if !errorNamePattern.MatchString(body.Name) {
+		return ""
+	}
+	return body.Name
 }
 
 func (e *ResponseError) Permanent() bool {

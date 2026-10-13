@@ -283,6 +283,8 @@ email_outbox
   locked_at, locked_by, delivered_at, failed_at, provider_message_id, last_error, ...
   -- durable delivery intent written in the same transaction as the domain change;
   -- the payload is cleared once delivery succeeds or fails permanently
+  -- last_error keeps the provider's full response; the delivery-failure log line
+  -- carries only its HTTP status and error name
 
 activity_logs  (optional separate from audit)
   id, user_id, action, metadata jsonb, created_at
