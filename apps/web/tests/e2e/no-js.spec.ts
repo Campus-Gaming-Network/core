@@ -506,3 +506,26 @@ test("FAQ answers open without JavaScript", async ({ page }) => {
     .click();
   await expect(answer).toBeVisible();
 });
+
+test("school tabs change the sections shown without JavaScript", async ({
+  page,
+}) => {
+  await page.goto("/schools/summit-ridge-university?tab=teams");
+  const tabs = page.getByRole("navigation", { name: "School sections" });
+  await expect(tabs.getByRole("link", { name: "Teams" })).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
+  await expect(
+    page.getByRole("heading", { name: "Upcoming events" }),
+  ).toHaveCount(0);
+
+  await tabs.getByRole("link", { name: "Events" }).click();
+  await expect(page).toHaveURL(/\?tab=events$/);
+  await expect(
+    page.getByRole("heading", { name: "Upcoming events" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Teams", exact: true }),
+  ).toHaveCount(0);
+});
