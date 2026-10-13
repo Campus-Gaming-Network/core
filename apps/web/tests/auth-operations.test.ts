@@ -240,7 +240,30 @@ test("login accepts only local next paths", async () => {
       applyCookie: () => undefined,
     },
   );
-  assert.equal(result.status === "success" && result.redirectTo, "/account");
+  assert.equal(result.status === "success" && result.redirectTo, "/");
+});
+
+test("login without a next path lands on the home page", async () => {
+  const result = await loginOperation(
+    { email: "player@example.com", password: "Password12345!" },
+    {
+      api: client(async () =>
+        Response.json(profile, {
+          headers: {
+            "set-cookie":
+              "cgn_session=session-token; Path=/; HttpOnly; Secure; SameSite=Lax",
+          },
+        }),
+      ),
+      sessionCookieName: "cgn_session",
+      applyCookie: () => undefined,
+    },
+  );
+  assert.deepEqual(result, {
+    status: "success",
+    authenticated: true,
+    redirectTo: "/",
+  });
 });
 
 test("login fails closed without a session cookie and hardens weak flags", async () => {

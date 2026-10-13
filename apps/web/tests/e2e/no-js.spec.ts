@@ -19,7 +19,36 @@ test("native login rejects control-character redirect targets", async ({
   await page.getByLabel("Email").fill("safe-redirect-no-js@example.test");
   await page.getByLabel("Password").fill(password);
   await page.getByRole("button", { name: "Log in" }).click();
-  await expect(page).toHaveURL(/\/account$/);
+  await expect(page).toHaveURL(
+    (url) => url.pathname === "/" && url.search === "",
+  );
+});
+
+test("native login without a return target lands on the home page", async ({
+  page,
+}) => {
+  await page.goto("/login");
+  await page.getByLabel("Email").fill("login-home-no-js@example.test");
+  await page.getByLabel("Password").fill(password);
+  await page.getByRole("button", { name: "Log in" }).click();
+  await expect(page).toHaveURL(
+    (url) => url.pathname === "/" && url.search === "",
+  );
+});
+
+test("native login started from a protected page returns to that page", async ({
+  page,
+}) => {
+  await page.goto("/account");
+  await expect(page).toHaveURL(
+    (url) => url.pathname === "/login" && url.search === "?next=%2Faccount",
+  );
+  await page.getByLabel("Email").fill("login-return-no-js@example.test");
+  await page.getByLabel("Password").fill(password);
+  await page.getByRole("button", { name: "Log in" }).click();
+  await expect(page).toHaveURL(
+    (url) => url.pathname === "/account" && url.search === "",
+  );
 });
 
 test("public auth and support forms complete without JavaScript", async ({
