@@ -1,6 +1,11 @@
 package schools
 
-import "testing"
+import (
+	"encoding/json"
+	"os"
+	"slices"
+	"testing"
+)
 
 func TestBundledLogoAsset(t *testing.T) {
 	alabamaAM, amridge, unknown := int64(100654), int64(100690), int64(1)
@@ -47,5 +52,38 @@ func TestNewAdminSchoolDetailReportsTheBundledLogoInTheLogoBucket(t *testing.T) 
 				t.Fatalf("NewAdminSchoolDetail = %#v; want %#v", got, test.want)
 			}
 		})
+	}
+}
+
+// The lookup is generated from the main site's manifest. CI does not run the
+// script's --check (the image files are not in git), so this fails the Go suite
+// when the two drift, for example after a hand edit or a partial merge.
+func TestBundledLogoLookupMatchesTheManifest(t *testing.T) {
+	data, err := os.ReadFile("../../../web/public/school-logos/manifest.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var manifest struct {
+		Logos     []bundledLogo `json:"logos"`
+		Athletics []bundledLogo `json:"athletics"`
+	}
+	if err := json.Unmarshal(data, &manifest); err != nil {
+		t.Fatal(err)
+	}
+	var want []bundledLogo
+	for _, logo := range manifest.Logos {
+		logo.Athletics = false
+		want = append(want, logo)
+	}
+	for _, logo := range manifest.Athletics {
+		logo.Athletics = true
+		want = append(want, logo)
+	}
+	var got []bundledLogo
+	if err := json.Unmarshal(bundledLogosJSON, &got); err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Equal(got, want) {
+		t.Fatalf("bundled_logos.json differs from the manifest (%d entries, want %d); run node scripts/collect_school_logos.ts --apply-review", len(got), len(want))
 	}
 }
