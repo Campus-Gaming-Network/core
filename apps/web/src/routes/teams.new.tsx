@@ -15,6 +15,7 @@ import {
 } from "../components/enhanced-mutation";
 import { FormField, RequiredFieldsNote } from "../components/form-field";
 import { FormSection } from "../components/form-section";
+import { PasswordInput } from "../components/password-input";
 import {
   newIdempotencyKey,
   useIdempotencyKey,
@@ -266,13 +267,12 @@ function CreateTeamForm({
           errors={passwordErrors}
           label="Join password"
         >
-          <input
+          <PasswordInput
             autoComplete="new-password"
             minLength={8}
             maxLength={200}
             name="password"
             required
-            type="password"
           />
         </FormField>
       </FormSection>
