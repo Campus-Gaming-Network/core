@@ -8,7 +8,7 @@
   },
   "scripts": {
     "dev": "vite dev --host 0.0.0.0",
-    "build": "vite build",
+    "build": "vite build && node src/build-check.ts",
     "start": "node src/production-preflight.ts",
     "typecheck": "tsc --noEmit",
     "lint": "oxlint .",

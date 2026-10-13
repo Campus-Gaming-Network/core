@@ -1,4 +1,7 @@
-@import "tailwindcss";
+/* Scan only this directory for class names. Without it Tailwind scans the
+   whole project, and in an image, which has no .gitignore, the server build
+   also scans the browser build's output and emits a different stylesheet. */
+@import "tailwindcss" source(".");
 
 @theme inline {
   --font-sans:
