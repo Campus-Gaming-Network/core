@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  approvedBundledLogoURL,
   approvedLogoURL,
   catalogAuditPageSchema,
   hasRecentStepUp,
@@ -847,4 +848,23 @@ test("a stored cover reaches the page as a data URL", async () => {
       ],
     },
   );
+});
+
+test("only synced bundled logo files under the asset origin render as logos", () => {
+  const base = "https://assets.example.test";
+  const file = "100654-athletics-6d724cd04d41.png";
+  const url = `${base}/bundled/school-logos/${file}`;
+  assert.equal(approvedBundledLogoURL(url, base), url);
+  for (const unsafe of [
+    `https://other.example.test/bundled/school-logos/${file}`,
+    `${base}/school-logos/${file}`,
+    `${base}/bundled/school-logos/../${file}`,
+    `${base}/bundled/school-logos/${file}?x=1`,
+    `${base}/bundled/school-logos/100654-athletics-6d724cd04d41.gif`,
+    `${base}/bundled/school-logos/`,
+    "",
+  ]) {
+    assert.equal(approvedBundledLogoURL(unsafe, base), "", unsafe);
+  }
+  assert.equal(approvedBundledLogoURL(url, undefined), "");
 });

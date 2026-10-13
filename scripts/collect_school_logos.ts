@@ -9,6 +9,9 @@ import { chromium, type Page } from "@playwright/test";
 // from IPEDS IDs, not fuzzy school names or a shared university-system domain.
 const root = fileURLToPath(new URL("../", import.meta.url));
 const output = join(root, "apps/web/public/school-logos");
+// The Go API embeds this slim lookup of the manifest, since `embed` cannot
+// read outside apps/api. `--check` fails when it drifts from the manifest.
+const apiLookup = join(root, "apps/api/internal/schools/bundled_logos.json");
 const cache = join(tmpdir(), "cgn-school-logo-cache");
 const userAgent =
   "CampusGamingNetworkLogoResearch/1.0 (https://github.com/Campus-Gaming-Network/core)";
@@ -122,20 +125,14 @@ else if (process.argv.includes("--apply-review")) {
     await readFile(join(output, "manifest.json"), "utf8"),
   );
   await applyReview(manifest);
-  await writeFile(
-    join(output, "manifest.json"),
-    JSON.stringify(manifest, null, 2) + "\n",
-  );
+  await writeManifest(manifest);
   await writeCredits(manifest);
 } else if (process.argv.includes("--optimize")) {
   const manifest: Manifest = JSON.parse(
     await readFile(join(output, "manifest.json"), "utf8"),
   );
   await optimize(manifest);
-  await writeFile(
-    join(output, "manifest.json"),
-    JSON.stringify(manifest, null, 2) + "\n",
-  );
+  await writeManifest(manifest);
 } else if (process.argv.includes("--credits"))
   await writeCredits(
     JSON.parse(
@@ -425,10 +422,7 @@ async function collect(): Promise<void> {
   await applyReview(manifest);
   await optimize(manifest);
   manifest.excluded.sort((a, b) => a.unitid - b.unitid);
-  await writeFile(
-    join(output, "manifest.json"),
-    JSON.stringify(manifest, null, 2) + "\n",
-  );
+  await writeManifest(manifest);
   await writeCredits(manifest);
   console.log(
     `Bundled ${manifest.logos.length}/${schools.size} schools; ${ids.length - manifest.logos.length} candidate schools excluded; ${schools.size - ids.length} without a Wikidata logo match.`,
@@ -776,14 +770,44 @@ async function collectAthletics(): Promise<void> {
   for (const file of await readdir(output))
     if (/^\d+-athletics-/.test(file) && !assets.has(file))
       await rm(join(output, file));
-  await writeFile(
-    join(output, "manifest.json"),
-    JSON.stringify(manifest, null, 2) + "\n",
-  );
+  await writeManifest(manifest);
   await writeCredits(manifest);
   console.log(
     `Athletics logos for ${logos.length}/${schools.size} schools (${logos.filter((logo) => logo.non_free).length} non-free); ${excluded.length} programs excluded.`,
   );
+}
+
+type BundledLogoEntry = {
+  unitid: number;
+  slug: string;
+  asset: string;
+  athletics: boolean;
+};
+
+function bundledLogoLookup(manifest: Manifest): string {
+  const entries: BundledLogoEntry[] = [
+    ...manifest.logos.map(({ unitid, slug, asset }) => ({
+      unitid,
+      slug,
+      asset,
+      athletics: false,
+    })),
+    ...(manifest.athletics ?? []).map(({ unitid, slug, asset }) => ({
+      unitid,
+      slug,
+      asset,
+      athletics: true,
+    })),
+  ];
+  return `[\n${entries.map((entry) => `  ${JSON.stringify(entry)}`).join(",\n")}\n]\n`;
+}
+
+async function writeManifest(manifest: Manifest): Promise<void> {
+  await writeFile(
+    join(output, "manifest.json"),
+    JSON.stringify(manifest, null, 2) + "\n",
+  );
+  await writeFile(apiLookup, bundledLogoLookup(manifest));
 }
 
 async function writeCredits(manifest: Manifest): Promise<void> {
@@ -918,6 +942,10 @@ async function check(): Promise<void> {
   const manifest: Manifest = JSON.parse(
     await readFile(join(output, "manifest.json"), "utf8"),
   );
+  if ((await readFile(apiLookup, "utf8")) !== bundledLogoLookup(manifest))
+    throw new Error(
+      "The API's bundled logo lookup does not match the manifest; run --apply-review to rewrite it.",
+    );
   const csv = parseCSV(
     await readFile(join(root, "data/schools_seed.csv"), "utf8"),
   );

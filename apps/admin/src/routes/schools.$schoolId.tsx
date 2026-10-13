@@ -1,6 +1,7 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { CopyIdButton } from "../components/copy-id-button";
 import {
+  BundledLogoPreview,
   CatalogAuditPanel,
   CatalogNoticeView,
   CommandForm,
@@ -38,7 +39,8 @@ export const Route = createFileRoute("/schools/$schoolId")({
 });
 
 function SchoolDetailPage() {
-  const { school, audit, grants, logoPreviewURL } = Route.useLoaderData();
+  const { school, audit, grants, logoPreviewURL, bundledLogoPreviewURL } =
+    Route.useLoaderData();
   const search = Route.useSearch();
   const { admin } = Route.useRouteContext();
   const capabilities =
@@ -109,11 +111,25 @@ function SchoolDetailPage() {
             className="logo-preview"
             src={logoPreviewURL}
           />
+        ) : school.logo_url ? (
+          <p className="empty-copy">
+            The stored logo is not on the approved asset host, so it is not
+            shown. Upload a replacement.
+          </p>
+        ) : bundledLogoPreviewURL ? (
+          <>
+            <BundledLogoPreview
+              name={school.name}
+              url={bundledLogoPreviewURL}
+            />
+            <p className="empty-copy">
+              No logo has been uploaded. Public pages show this bundled logo.
+            </p>
+          </>
         ) : (
           <p className="empty-copy">
-            {school.logo_url
-              ? "The stored logo is not on the approved asset host, so it is not shown. Upload a replacement."
-              : "No logo yet. The school shows the placeholder."}
+            No logo has been uploaded and none is bundled. Public pages show the
+            school&apos;s initial.
           </p>
         )}
         {canManageLogo && state !== "deleted" ? (
@@ -122,7 +138,7 @@ function SchoolDetailPage() {
             {school.logo_url ? (
               <CommandForm
                 command="school.logo_remove"
-                description="Removes the logo from the school's public pages; the placeholder shows instead."
+                description="Removes the uploaded logo. Public pages show the bundled logo when there is one, otherwise the school's initial."
                 expectedUpdatedAt={school.updated_at}
                 id={school.id}
                 returnPath={path}

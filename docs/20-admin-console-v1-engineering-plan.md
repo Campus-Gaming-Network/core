@@ -1055,6 +1055,15 @@ inputs, image bombs, EXIF stripping and orientation, the rate limit, and
 storage, audit, and cleanup failures with reconciliation. Serving headers on
 the asset hostname (`UPLOAD-07`) are verified at deployment in AC-015.
 
+`GET /admin/v1/schools/{id}` also returns `bundled_logo_url` when the school
+has a bundled logo (see [School data](./09-school-data.md#institutional-logos))
+and `R2_PUBLIC_ASSET_ORIGIN` is set: the origin, `/bundled`, and the manifest
+asset path, which is where `pnpm run sync:school-logos` stores the file. It is
+omitted otherwise and is reported whether or not the school has an upload, so
+the school details page can show the logo the main site displays and what
+removing an upload falls back to. The page renders it only from a file under
+`<origin>/bundled/school-logos/`; the `img-src` origin is unchanged.
+
 ### AC-011 — Scaffold and secure `apps/admin`
 
 **Status:** Complete (2026-09-16)

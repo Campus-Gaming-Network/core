@@ -786,3 +786,20 @@ func TestEveryGETRouteLeavesDomainDataUnchanged(t *testing.T) {
 		t.Fatalf("a GET route changed domain data:\nbefore %v\nafter  %v", before, after)
 	}
 }
+
+func TestSchoolDetailReportsOnlyABundledSchoolsLogo(t *testing.T) {
+	f := newCatalogFixture(t)
+	f.handler.dependencies.Catalog.AssetOrigin = "https://assets.example.test"
+	unitID := int64(100654)
+	fields := schools.AdminFields{UnitID: &unitID, Name: "Alabama A & M University", Slug: "alabama-a-m-university"}
+	bundled := decodeCatalog[schools.AdminSchool](t, f.request(t, "POST", "/admin/v1/schools", schools.AdminEdit{Command: f.command, AdminFields: fields}, 201))
+
+	withLogo := decodeCatalog[map[string]any](t, f.request(t, "GET", "/admin/v1/schools/"+bundled.ID, nil, 200))
+	if got, want := withLogo["bundled_logo_url"], "https://assets.example.test/bundled/school-logos/100654-athletics-6d724cd04d41.png"; got != want {
+		t.Fatalf("bundled_logo_url = %v, want %v", got, want)
+	}
+	withoutLogo := decodeCatalog[map[string]any](t, f.request(t, "GET", "/admin/v1/schools/"+catalogSchoolID, nil, 200))
+	if _, present := withoutLogo["bundled_logo_url"]; present {
+		t.Fatalf("a school without a bundled logo reported one: %v", withoutLogo["bundled_logo_url"])
+	}
+}

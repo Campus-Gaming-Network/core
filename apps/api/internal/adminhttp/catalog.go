@@ -78,6 +78,9 @@ type CatalogDependencies struct {
 	Logos AdminLogos
 	// IGDB is nil when the IGDB credentials are not configured.
 	IGDB AdminIGDB
+	// AssetOrigin is the public logo origin without a trailing slash. Empty
+	// means logo storage is not configured.
+	AssetOrigin string
 }
 
 var catalogRoutes = []routePolicy{
@@ -343,7 +346,10 @@ func (handler *Handler) catalogRead(w http.ResponseWriter, req *http.Request, ac
 	var err error
 	switch operation {
 	case "schools.get":
-		result, err = deps.Schools.GetAdmin(req.Context(), id)
+		var school schools.AdminSchool
+		if school, err = deps.Schools.GetAdmin(req.Context(), id); err == nil {
+			result = schools.NewAdminSchoolDetail(school, deps.AssetOrigin)
+		}
 	case "games.get":
 		result, err = deps.Games.GetAdmin(req.Context(), id)
 	case "games.cover":

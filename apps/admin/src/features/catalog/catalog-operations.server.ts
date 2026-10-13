@@ -6,6 +6,7 @@ import {
 } from "../../server/api.server.js";
 import {
   adminGameSchema,
+  adminSchoolDetailSchema,
   adminSchoolSchema,
   adminUserSchema,
   catalogAuditPageSchema,
@@ -68,7 +69,7 @@ export async function getSchoolDetailOperation(
     api({
       path: `/admin/v1/schools/${id}`,
       cookieHeader,
-      responseSchema: adminSchoolSchema,
+      responseSchema: adminSchoolDetailSchema,
     }),
     api({
       path: `/admin/v1/schools/${id}/audit${auditQuery(input)}`,

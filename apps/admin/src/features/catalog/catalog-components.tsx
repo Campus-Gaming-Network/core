@@ -1,7 +1,13 @@
 import { UserLink } from "../../components/user-link";
 import { useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useState, type FormEvent, type ReactNode } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from "react";
 import {
   FieldError,
   formatTimestamp,
@@ -400,6 +406,40 @@ export function GameForm({ game }: { game?: AdminGame }) {
         {pending ? "Saving…" : game ? "Save game" : "Create game"}
       </button>
     </form>
+  );
+}
+
+/**
+ * The bundled logo the main site shows when a school has no upload. The
+ * bucket holds the files only after `sync:school-logos` has run, so a failed
+ * image gives way to text rather than a broken image. Without JavaScript the
+ * browser shows the alt text in the same fixed box.
+ */
+export function BundledLogoPreview({
+  name,
+  url,
+}: {
+  name: string;
+  url: string;
+}) {
+  const image = useRef<HTMLImageElement>(null);
+  const [failedURL, setFailedURL] = useState<string>();
+  useEffect(() => {
+    // An image can fail before hydration installs its error handler.
+    if (image.current?.complete && image.current.naturalWidth === 0)
+      setFailedURL(url);
+  }, [url]);
+  if (failedURL === url)
+    return <p className="empty-copy">The bundled logo could not be loaded.</p>;
+  return (
+    <img
+      alt={`${name} logo`}
+      className="logo-preview"
+      onError={() => setFailedURL(url)}
+      ref={image}
+      referrerPolicy="no-referrer"
+      src={url}
+    />
   );
 }
 

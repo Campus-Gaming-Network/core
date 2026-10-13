@@ -260,6 +260,39 @@ test("revoking your own site-admin access ends the session immediately", async (
   ).toHaveCount(0);
 });
 
+test("a school without an upload shows the bundled logo the public site uses", async ({
+  context,
+  page,
+}) => {
+  await authenticateAdmin(context);
+  await page.goto("/schools/new");
+  await page
+    .getByLabel("Name", { exact: true })
+    .fill("Alabama A & M University");
+  await page.getByLabel("Slug").fill("alabama-a-m-university");
+  await page.getByLabel("Unit ID").fill("100654");
+  await page.getByLabel("Reason").fill("Member school");
+  await page.getByRole("button", { name: "Create school" }).click();
+  await expect(page).toHaveURL(/notice=created$/);
+
+  const logo = panel(page, "Logo");
+  const bundled = logo.getByRole("img", {
+    name: "Alabama A & M University logo",
+  });
+  await expect(bundled).toBeVisible();
+  await expect(
+    logo.getByText(
+      "No logo has been uploaded. Public pages show this bundled logo.",
+    ),
+  ).toBeVisible();
+  // The image loads under the Admin Console's content security policy.
+  await expect
+    .poll(() =>
+      bundled.evaluate((image: HTMLImageElement) => image.naturalWidth),
+    )
+    .toBe(1);
+});
+
 test("a logo is uploaded after rejected files, previewed, and removed", async ({
   context,
   page,
@@ -268,8 +301,11 @@ test("a logo is uploaded after rejected files, previewed, and removed", async ({
   await page.goto(`/schools/${catalogSchoolID}`);
   const logo = panel(page, "Logo");
   await expect(
-    logo.getByText("No logo yet. The school shows the placeholder."),
+    logo.getByText(
+      "No logo has been uploaded and none is bundled. Public pages show the school's initial.",
+    ),
   ).toBeVisible();
+  await expect(logo.getByRole("img")).toHaveCount(0);
   const file = logo.getByLabel("Logo file");
 
   // An oversized file is refused in the browser before it is sent.

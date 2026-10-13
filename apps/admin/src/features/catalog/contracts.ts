@@ -32,6 +32,13 @@ export const adminSchoolSchema = z.object({
   deleted_at: timestampSchema.nullable(),
 });
 
+/** The school details response: the school plus its bundled logo, if any. */
+export const adminSchoolDetailSchema = adminSchoolSchema.extend({
+  // Where the main site's bundled logo lives in the logo bucket. Present
+  // whether or not the school has an upload.
+  bundled_logo_url: z.string().max(2048).optional(),
+});
+
 export const adminGameSchema = z.object({
   id: uuidSchema,
   name: z.string().max(200),
@@ -939,6 +946,24 @@ export function approvedLogoURL(
 ): string {
   if (!assetBase || !logoURL.startsWith(`${assetBase}/`)) return "";
   return logoKeyPattern.test(logoURL.slice(assetBase.length + 1))
+    ? logoURL
+    : "";
+}
+
+const bundledLogoFilePattern =
+  /^\d+(?:-athletics)?-[0-9a-f]{12}\.(?:png|jpg|svg)$/;
+
+/**
+ * A bundled logo is shown only when it is a file `sync:school-logos` stores
+ * under `bundled/school-logos/` in the logo bucket, at the asset origin.
+ */
+export function approvedBundledLogoURL(
+  logoURL: string,
+  assetBase: string | undefined,
+): string {
+  const prefix = `${assetBase}/bundled/school-logos/`;
+  if (!assetBase || !logoURL.startsWith(prefix)) return "";
+  return bundledLogoFilePattern.test(logoURL.slice(prefix.length))
     ? logoURL
     : "";
 }
