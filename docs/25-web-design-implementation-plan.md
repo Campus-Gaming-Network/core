@@ -187,6 +187,21 @@ area's routes. When a component starts rendering in another area, move its
 rules into `components.css` rather than adding a stylesheet link to the new
 route.
 
+### Style guide page
+
+`/styleguide` shows the tokens, type, buttons, forms, and shared components on
+one page, rendered by the real components against made-up fixtures in
+`apps/web/src/features/styleguide/fixtures.ts`. It makes no API calls. The
+token lists are read from the first `:root` block of `styles.css`, so a new
+token appears there without an edit.
+
+The page is reachable in every environment, is marked `noindex`, and is not
+linked from the header or footer. When a shared component is added or gains a
+variant, add it to `apps/web/src/routes/styleguide.tsx`. A few pieces are still
+route-local markup rather than components (the RSVP control, the school tabs,
+and the school, team, and account rows), so the page repeats their markup and
+must be updated by hand when they change.
+
 ## Route and state matrix
 
 ### Current backend support

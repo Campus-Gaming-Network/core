@@ -20,6 +20,7 @@ import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SchoolsRouteImport } from './routes/schools'
 import { Route as SignupRouteImport } from './routes/signup'
+import { Route as StyleguideRouteImport } from './routes/styleguide'
 import { Route as SupportRouteImport } from './routes/support'
 import { Route as TeamsRouteImport } from './routes/teams'
 import { Route as TermsRouteImport } from './routes/terms'
@@ -99,6 +100,11 @@ const SchoolsRoute = SchoolsRouteImport.update({
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
   path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StyleguideRoute = StyleguideRouteImport.update({
+  id: '/styleguide',
+  path: '/styleguide',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SupportRoute = SupportRouteImport.update({
@@ -240,6 +246,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/schools': typeof SchoolsRouteWithChildren
   '/signup': typeof SignupRoute
+  '/styleguide': typeof StyleguideRoute
   '/support': typeof SupportRoute
   '/teams': typeof TeamsRouteWithChildren
   '/terms': typeof TermsRoute
@@ -276,6 +283,7 @@ export interface FileRoutesByTo {
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
+  '/styleguide': typeof StyleguideRoute
   '/support': typeof SupportRoute
   '/terms': typeof TermsRoute
   '/api/error-monitoring-test': typeof ApiErrorMonitoringTestRoute
@@ -314,6 +322,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/schools': typeof SchoolsRouteWithChildren
   '/signup': typeof SignupRoute
+  '/styleguide': typeof StyleguideRoute
   '/support': typeof SupportRoute
   '/teams': typeof TeamsRouteWithChildren
   '/terms': typeof TermsRoute
@@ -354,6 +363,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/schools'
     | '/signup'
+    | '/styleguide'
     | '/support'
     | '/teams'
     | '/terms'
@@ -390,6 +400,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/reset-password'
     | '/signup'
+    | '/styleguide'
     | '/support'
     | '/terms'
     | '/api/error-monitoring-test'
@@ -427,6 +438,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/schools'
     | '/signup'
+    | '/styleguide'
     | '/support'
     | '/teams'
     | '/terms'
@@ -466,6 +478,7 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   SchoolsRoute: typeof SchoolsRouteWithChildren
   SignupRoute: typeof SignupRoute
+  StyleguideRoute: typeof StyleguideRoute
   SupportRoute: typeof SupportRoute
   TeamsRoute: typeof TeamsRouteWithChildren
   TermsRoute: typeof TermsRoute
@@ -558,6 +571,13 @@ declare module '@tanstack/react-router' {
       path: '/signup'
       fullPath: '/signup'
       preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/styleguide': {
+      id: '/styleguide'
+      path: '/styleguide'
+      fullPath: '/styleguide'
+      preLoaderRoute: typeof StyleguideRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/support': {
@@ -800,6 +820,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   SchoolsRoute: SchoolsRouteWithChildren,
   SignupRoute: SignupRoute,
+  StyleguideRoute: StyleguideRoute,
   SupportRoute: SupportRoute,
   TeamsRoute: TeamsRouteWithChildren,
   TermsRoute: TermsRoute,
