@@ -20,12 +20,15 @@ import {
   newIdempotencyKey,
   useIdempotencyKey,
 } from "../components/idempotency-key";
+import {
+  NoScriptSchoolSearch,
+  SchoolSearchSelect,
+} from "../components/school-search-select";
 import { RouteErrorView, RoutePending } from "../components/route-boundaries";
 import {
   newTeamPageInputSchema,
   validateNewTeamSearch,
   type GameSummaryDTO,
-  type NewTeamSearch,
   type SchoolSummaryDTO,
 } from "../features/team-slice/contracts";
 import {
@@ -85,12 +88,14 @@ function NewTeamPage() {
         </p>
       </section>
 
-      <SchoolSearch search={search} failed={data.schoolSearchFailed} />
+      <NoScriptSchoolSearch action="/teams/new" query={search.school_q ?? ""} />
       <CreateTeamForm
         defaultSchoolID={data.defaultSchoolID}
         games={data.games}
         idempotencyKey={data.idempotencyKey}
         initialFailure={search.team === "create-failed"}
+        schoolQuery={search.school_q ?? ""}
+        schoolSearchFailed={data.schoolSearchFailed}
         schools={data.schools}
       />
       <p className="form-footer">
@@ -100,52 +105,21 @@ function NewTeamPage() {
   );
 }
 
-function SchoolSearch({
-  failed,
-  search,
-}: {
-  failed: boolean;
-  search: NewTeamSearch;
-}) {
-  return (
-    <section
-      className="team-school-search"
-      aria-labelledby="school-search-heading"
-    >
-      <h2 id="school-search-heading">Find another school</h2>
-      <form action="/teams/new" className="search-bar" method="get">
-        <label>
-          School name
-          <input
-            defaultValue={search.school_q}
-            minLength={2}
-            maxLength={200}
-            name="school_q"
-            placeholder="University or college"
-          />
-        </label>
-        <button type="submit">Search schools</button>
-      </form>
-      {failed ? (
-        <p role="alert">
-          School search is unavailable. You can still use your home school.
-        </p>
-      ) : null}
-    </section>
-  );
-}
-
 function CreateTeamForm({
   defaultSchoolID,
   games,
   idempotencyKey,
   initialFailure,
+  schoolQuery,
+  schoolSearchFailed,
   schools,
 }: {
   defaultSchoolID: string;
   games: GameSummaryDTO[];
   idempotencyKey: string;
   initialFailure: boolean;
+  schoolQuery: string;
+  schoolSearchFailed: boolean;
   schools: SchoolSummaryDTO[];
 }) {
   const idempotency = useIdempotencyKey(idempotencyKey);
@@ -160,7 +134,6 @@ function CreateTeamForm({
     await mutation.execute(() => runCreateTeam({ data }));
   }
 
-  const schoolOptions = uniqueSchools(schools, defaultSchoolID);
   const nameErrors = mutation.fieldErrors.name;
   const descriptionErrors = mutation.fieldErrors.description;
   const schoolErrors = mutation.fieldErrors.school_id;
@@ -221,21 +194,28 @@ function CreateTeamForm({
         title="Campus and games"
         description="Link the team to a school and choose the games it plays."
       >
-        <FormField
-          errorId="team-school-error"
-          errors={schoolErrors}
-          label="School link"
-          optional
-        >
-          <select defaultValue={defaultSchoolID} name="school_id">
-            <option value="">No school link</option>
-            {schoolOptions.map((school) => (
-              <option key={school.id} value={school.id}>
-                {school.name}
-              </option>
-            ))}
-          </select>
-        </FormField>
+        <SchoolSearchSelect
+          defaultSchool={
+            defaultSchoolID
+              ? {
+                  id: defaultSchoolID,
+                  name: "Your home school",
+                  slug: defaultSchoolID,
+                }
+              : undefined
+          }
+          defaultValue={defaultSchoolID}
+          describedBy={schoolErrors?.length ? "team-school-error" : undefined}
+          emptyLabel="No school link"
+          initialQuery={schoolQuery}
+          initialSchools={schools}
+          initialSearchFailed={schoolSearchFailed}
+          invalid={Boolean(schoolErrors?.length)}
+          label="School link (optional)"
+          name="school_id"
+          valueField="id"
+        />
+        <FieldError id="team-school-error" messages={schoolErrors} />
 
         <fieldset
           className="team-game-group"
@@ -284,21 +264,6 @@ function CreateTeamForm({
       </div>
     </form>
   );
-}
-
-function uniqueSchools(
-  schools: SchoolSummaryDTO[],
-  defaultSchoolID: string,
-): SchoolSummaryDTO[] {
-  const unique = new Map(schools.map((school) => [school.id, school]));
-  if (defaultSchoolID && !unique.has(defaultSchoolID)) {
-    unique.set(defaultSchoolID, {
-      id: defaultSchoolID,
-      name: "Your home school",
-      slug: defaultSchoolID,
-    });
-  }
-  return [...unique.values()];
 }
 
 function NewTeamPending() {
