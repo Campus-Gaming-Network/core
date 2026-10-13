@@ -469,3 +469,25 @@ func TestOperationsQueueCountsAndReportTargetTypeFilter(t *testing.T) {
 		t.Fatalf("support ticket target filter status = %d, want 400", response.Code)
 	}
 }
+
+func TestOperationsReportTargetUserFilter(t *testing.T) {
+	handler, fixture := testHandler(true)
+	serve := func(path string) int {
+		req := trustedRequest(http.MethodGet, path)
+		req.AddCookie(&http.Cookie{Name: "admin_session", Value: "current"})
+		response := httptest.NewRecorder()
+		handler.ServeHTTP(response, req)
+		return response.Code
+	}
+	const userID = "11111111-1111-4111-8111-111111111111"
+
+	if code := serve("/admin/v1/reports?target_user=" + userID); code != http.StatusOK || fixture.operations.listReportFilter.TargetUserID != userID {
+		t.Fatalf("report target user filter = %d %#v", code, fixture.operations.listReportFilter)
+	}
+	if code := serve("/admin/v1/reports?target_user=not-a-uuid"); code != http.StatusBadRequest {
+		t.Fatalf("malformed target user status = %d, want 400", code)
+	}
+	if code := serve("/admin/v1/support-tickets?target_user=" + userID); code != http.StatusBadRequest {
+		t.Fatalf("support ticket target user status = %d, want 400", code)
+	}
+}

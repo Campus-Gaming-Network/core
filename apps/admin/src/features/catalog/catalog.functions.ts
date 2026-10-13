@@ -98,9 +98,13 @@ export const getUsers = createServerFn({ method: "GET" })
   .handler(({ data }) => listUsersOperation(data, currentAdminRequest(false)));
 
 export const getUserDetail = createServerFn({ method: "GET" })
-  .validator(catalogDetailInputSchema)
+  .validator(catalogDetailInputSchema.extend({ include_reports: z.boolean() }))
   .handler(({ data }) =>
-    getUserDetailOperation(data, currentAdminRequest(false)),
+    getUserDetailOperation(
+      data,
+      currentAdminRequest(false),
+      data.include_reports,
+    ),
   );
 
 export const getSiteGrants = createServerFn({ method: "GET" })

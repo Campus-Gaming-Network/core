@@ -34,6 +34,10 @@ import {
   type LogoUploadInput,
   type SchoolFormInput,
 } from "./contracts.js";
+import {
+  reportsPageSchema,
+  type ReportSummary,
+} from "../moderation/contracts.js";
 
 type ReadDependencies = {
   api: ApiClient;
@@ -197,12 +201,17 @@ export async function listUsersOperation(
   return data;
 }
 
+/**
+ * A user with their audit history and, when the operator may read reports,
+ * every report filed against them.
+ */
 export async function getUserDetailOperation(
   input: DetailInput,
   { api, cookieHeader }: ReadDependencies,
+  includeReports: boolean,
 ) {
   const id = encodeURIComponent(input.id);
-  const [user, audit] = await Promise.all([
+  const [user, audit, reports] = await Promise.all([
     api({
       path: `/admin/v1/users/${id}`,
       cookieHeader,
@@ -213,8 +222,35 @@ export async function getUserDetailOperation(
       cookieHeader,
       responseSchema: catalogAuditPageSchema,
     }),
+    includeReports
+      ? reportsAgainstUser(input.id, { api, cookieHeader })
+      : undefined,
   ]);
-  return { user: user.data, audit: audit.data };
+  return { user: user.data, audit: audit.data, reports };
+}
+
+// The API pages reports newest first. A user page lists them all, so this
+// follows the cursor to the end.
+async function reportsAgainstUser(
+  userID: string,
+  { api, cookieHeader }: ReadDependencies,
+): Promise<ReportSummary[]> {
+  const reports: ReportSummary[] = [];
+  let after = "";
+  do {
+    const query = new URLSearchParams({ target_user: userID, limit: "100" });
+    if (after) query.set("after", after);
+    // Each page's cursor comes from the page before it.
+    // eslint-disable-next-line no-await-in-loop
+    const { data } = await api({
+      path: `/admin/v1/reports?${query}`,
+      cookieHeader,
+      responseSchema: reportsPageSchema,
+    });
+    reports.push(...data.reports);
+    after = data.next_cursor;
+  } while (after);
+  return reports;
 }
 
 export async function listSiteGrantsOperation(

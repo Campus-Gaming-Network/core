@@ -101,7 +101,10 @@ type QueueFilter struct {
 	Status QueueStatus
 	// TargetType narrows reports to one reported entity type. Support tickets
 	// have no target and reject it.
-	TargetType       string
+	TargetType string
+	// TargetUserID narrows reports to those filed against one user. Support
+	// tickets have no target and reject it.
+	TargetUserID     string
 	AssignedToUserID *string
 	UserQuery        string
 	Limit            int
@@ -256,6 +259,9 @@ func ValidateQueueFilter(filter QueueFilter) error {
 	if filter.TargetType != "" && filter.TargetType != "event" && filter.TargetType != "user" {
 		return apperror.Validation("report target type must be event or user")
 	}
+	if filter.TargetUserID != "" && !validUUID(filter.TargetUserID) {
+		return apperror.Validation("report target user must be a valid UUID")
+	}
 	if filter.UserQuery != "" && (!utf8.ValidString(filter.UserQuery) || strings.ContainsRune(filter.UserQuery, 0) ||
 		utf8.RuneCountInString(filter.UserQuery) < 2 || utf8.RuneCountInString(filter.UserQuery) > 100) {
 		return apperror.Validation("queue user search must be between 2 and 100 characters")
@@ -360,9 +366,10 @@ func (r *PostgresRepository) ListReports(ctx context.Context, filter QueueFilter
 		      OR ($7 AND (created_at, id) > ($5::timestamptz, $6::uuid))
 		  )
 		  AND ($9 = '' OR target_type = $9)
+		  AND ($10 = '' OR (target_type = 'user' AND target_id = NULLIF($10, '')::uuid))
 		`+order+`
 		LIMIT $8
-	`, filter.Status, assigneeArgument(filter.AssignedToUserID), filter.UserQuery, queueUserPrefix(filter.UserQuery), cursorTime, cursorID, before, pageLimit(filter.Limit), filter.TargetType)
+	`, filter.Status, assigneeArgument(filter.AssignedToUserID), filter.UserQuery, queueUserPrefix(filter.UserQuery), cursorTime, cursorID, before, pageLimit(filter.Limit), filter.TargetType, filter.TargetUserID)
 	if err != nil {
 		return nil, fmt.Errorf("list reports: %w", err)
 	}
@@ -802,6 +809,7 @@ func normalizeQueueFilter(filter QueueFilter) QueueFilter {
 	filter.Status = QueueStatus(strings.TrimSpace(string(filter.Status)))
 	filter.UserQuery = strings.TrimSpace(filter.UserQuery)
 	filter.TargetType = strings.TrimSpace(filter.TargetType)
+	filter.TargetUserID = strings.TrimSpace(filter.TargetUserID)
 	if filter.AssignedToUserID != nil {
 		value := strings.TrimSpace(*filter.AssignedToUserID)
 		filter.AssignedToUserID = &value

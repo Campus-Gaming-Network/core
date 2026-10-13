@@ -464,11 +464,17 @@ events they reference. The console shows those names and offers a copy button
 for a record's own ID; it never displays an ID.
 
 List filters beyond search, state, and cursor are per list: reports accept
-`target_type` (`event` or `user`); schools accept `region` (a state or
+`target_type` (`event` or `user`) and `target_user` (a user ID, which returns
+only the reports filed against that user); schools accept `region` (a state or
 territory code); users accept `role` (`site_admin` or `school_admin`) and
 `verification`. The console picks an assignee from the active site admins and
 grants school-admin access by exact email, which the BFF resolves to the user
 ID the grant endpoint takes.
+
+The user details page lists every report filed against that user, each linking
+to the report, for an operator with `reports.read`. The BFF reads them with
+`target_user`, following the cursor to the end; without the capability it makes
+no request and the page shows no list.
 
 Do not implement a generic `CRUD /admin/users` endpoint. Each high-risk state
 transition is a named operation with its own validation, authorization, audit,

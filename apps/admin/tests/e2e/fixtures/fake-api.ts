@@ -261,6 +261,7 @@ function resetCatalog() {
     (
       [
         [memberID, "member@example.test", "Member Player", false],
+        [targetID, "reported@example.test", "Reported Player", false],
         [gatedMemberID, "gated@example.test", "Gated Player", false],
         [operatorID, "operator@example.test", "Operator", true],
         [peerAdminID, "peer@example.test", "Peer Admin", true],
@@ -462,26 +463,31 @@ const server = http.createServer(async (request, response) => {
     return;
   }
   if (request.method === "GET" && requestURL.pathname === "/admin/v1/reports") {
+    const targetUser = requestURL.searchParams.get("target_user");
+    const againstTargetUser =
+      !targetUser ||
+      (report.target_type === "user" && report.target_id === targetUser);
     respond(response, 200, {
-      reports: matchesFilters(report, requestURL)
-        ? [
-            {
-              id: report.id,
-              reporter_user_id: report.reporter_user_id,
-              target_type: report.target_type,
-              target_id: report.target_id,
-              reporter_name: report.reporter_name,
-              target_name: report.target_name,
-              status: report.status,
-              ...(report.assigned_to_user_id
-                ? { assigned_to_user_id: report.assigned_to_user_id }
-                : {}),
-              retention_started_at: report.retention_started_at,
-              created_at: report.created_at,
-              updated_at: report.updated_at,
-            },
-          ]
-        : [],
+      reports:
+        againstTargetUser && matchesFilters(report, requestURL)
+          ? [
+              {
+                id: report.id,
+                reporter_user_id: report.reporter_user_id,
+                target_type: report.target_type,
+                target_id: report.target_id,
+                reporter_name: report.reporter_name,
+                target_name: report.target_name,
+                status: report.status,
+                ...(report.assigned_to_user_id
+                  ? { assigned_to_user_id: report.assigned_to_user_id }
+                  : {}),
+                retention_started_at: report.retention_started_at,
+                created_at: report.created_at,
+                updated_at: report.updated_at,
+              },
+            ]
+          : [],
       next_cursor: "",
       previous_cursor: "",
     });
