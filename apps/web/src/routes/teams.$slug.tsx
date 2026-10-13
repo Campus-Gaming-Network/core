@@ -15,6 +15,7 @@ import {
   useEnhancedMutation,
 } from "../components/enhanced-mutation";
 import { FormField } from "../components/form-field";
+import { PasswordInput } from "../components/password-input";
 import { PageNoticeView } from "../components/page-notice-view";
 import { Person } from "../components/person";
 import { RouteErrorView, RoutePending } from "../components/route-boundaries";
@@ -296,13 +297,12 @@ function TeamJoinForm({ slug }: { slug: string }) {
         errors={passwordErrors}
         label="Team password"
       >
-        <input
+        <PasswordInput
           autoComplete="current-password"
           minLength={8}
           maxLength={200}
           name="password"
           required
-          type="password"
         />
       </FormField>
       <p className="form-help">

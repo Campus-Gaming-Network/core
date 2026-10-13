@@ -167,6 +167,12 @@ test("event forms complete without JavaScript", async ({ context, page }) => {
   const privateSlug = "private-no-js";
 
   await page.goto(`/events/${privateSlug}`);
+  // Showing the password needs JavaScript, so the button is not offered.
+  await expect(page.getByLabel("Event password")).toHaveAttribute(
+    "type",
+    "password",
+  );
+  await expect(page.getByRole("button", { name: /password/i })).toHaveCount(0);
   await page.getByLabel("Event password").fill("WrongPassword123!");
   await page.getByRole("button", { name: "Unlock event" }).click();
   await expect(page).toHaveURL(
@@ -300,6 +306,7 @@ test("team forms complete without JavaScript", async ({ context, page }) => {
     "no-js-member@example.test",
     "/teams/joinable-browser-team",
   );
+  await expect(page.getByRole("button", { name: /password/i })).toHaveCount(0);
   await page.getByLabel("Team password").fill("BrowserTeamPass123!");
   await page.getByRole("button", { name: "Join team" }).click();
   await expect(page).toHaveURL(/\?team=joined$/);

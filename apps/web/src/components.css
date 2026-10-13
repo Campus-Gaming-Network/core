@@ -363,6 +363,28 @@
   white-space: nowrap;
 }
 
+/* A password input with its show/hide button beside it. The button drops
+   below the field when the form is narrow. */
+.password-input {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 0.5rem;
+}
+
+.password-input input {
+  flex: 1 1 8rem;
+}
+
+.password-input__toggle {
+  flex: none;
+  gap: 0.4rem;
+  padding-inline: 0.8rem;
+  font-size: 0.8125rem;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
 /* A link or label that ends (or starts) with a Lucide arrow. */
 .with-arrow {
   display: inline-flex;

@@ -30,6 +30,7 @@ import {
   useEnhancedMutation,
 } from "../components/enhanced-mutation";
 import { FormField } from "../components/form-field";
+import { PasswordInput } from "../components/password-input";
 import {
   newIdempotencyKey,
   useIdempotencyKey,
@@ -765,9 +766,8 @@ function UnlockEventForm({ slug }: { slug: string }) {
         errors={passwordErrors}
         label="Event password"
       >
-        <input
+        <PasswordInput
           name="password"
-          type="password"
           autoComplete="off"
           required
           minLength={8}

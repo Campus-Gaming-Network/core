@@ -128,6 +128,11 @@ The initial implementation tokens live in `apps/web/src/styles.css`.
   radio-card group, the private-event password sits beneath it and is
   emphasized when Private is selected, and the submit row sits at the end of
   the form (it is not pinned to the window).
+- The team join, team creation, event unlock, and event form password fields
+  use `PasswordInput`, which adds a "Show password" / "Hide password" button
+  beside the field. The button renders only after hydration; without
+  JavaScript the field is a plain password input that submits as before. The
+  account login and reset passwords do not have it.
 - At 42rem and narrower the header is two rows without JavaScript: the brand
   and the primary action (Sign up, or the account menu once signed in) on top,
   and the navigation links as equal 44px cells below: four for a visitor, three

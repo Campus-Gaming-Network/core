@@ -31,7 +31,7 @@ test("team creation supports auth redirects, native search, enhanced POST, and t
   assert.match(newSource, /useServerFn\(createTeam\)/);
   assert.match(newSource, /mutation\.execute/);
   assert.match(newSource, /name="game_ids"/);
-  assert.match(newSource, /type="password"/);
+  assert.match(newSource, /<PasswordInput/);
   assert.match(newSource, /to="\/teams"/);
   assert.match(newSource, /noindex,nofollow|newTeamHead/);
 });
