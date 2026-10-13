@@ -165,11 +165,17 @@ export const catalogAuditEntrySchema = z
     changed_fields: changedFields(before, after),
   }));
 
+// Timestamps the database maintains on every write. An admin never edits them,
+// so they are not reported as changed fields.
+const bookkeepingFields = new Set(["created_at", "updated_at"]);
+
 export function changedFields(before: unknown, after: unknown): string[] {
   const previous = auditState(before);
   const next = auditState(after);
   return [...new Set([...Object.keys(previous), ...Object.keys(next)])].filter(
-    (key) => JSON.stringify(previous[key]) !== JSON.stringify(next[key]),
+    (key) =>
+      !bookkeepingFields.has(key) &&
+      JSON.stringify(previous[key]) !== JSON.stringify(next[key]),
   );
 }
 

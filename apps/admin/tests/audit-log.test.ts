@@ -30,8 +30,16 @@ test("the audit log requests one filtered page and withholds audited values", as
             entity_id: ticketID,
             target_type: "support_ticket",
             target_id: ticketID,
-            before: { status: "open", assigned_to_user_id: null },
-            after: { status: "resolved", assigned_to_user_id: null },
+            before: {
+              status: "open",
+              assigned_to_user_id: null,
+              updated_at: "2026-09-20T11:00:00Z",
+            },
+            after: {
+              status: "resolved",
+              assigned_to_user_id: null,
+              updated_at: createdAt,
+            },
             metadata: { resolution_note_changed: true },
             created_at: createdAt,
           },
