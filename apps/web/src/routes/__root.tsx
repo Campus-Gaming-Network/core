@@ -17,6 +17,7 @@ import {
 } from "../components/route-boundaries";
 import { logout } from "../features/event-slice/auth.functions";
 import { getPublicRuntimeConfig } from "../server/public-origin.functions";
+import { sessionEndedEvent } from "../session-ended";
 import appCSS from "../styles.css?url";
 import componentsCSS from "../components.css?url";
 
@@ -58,10 +59,20 @@ export const Route = createRootRoute({
 function RootComponent() {
   const { viewer } = Route.useRouteContext();
   const { errorMonitoring } = Route.useLoaderData();
+  const router = useRouter();
 
   useEffect(() => {
     document.documentElement.dataset.appHydrated = "true";
   }, []);
+
+  // The server ended the session during a request from this page. Reloading
+  // the routes shows the signed-out header, and a page that needs an account
+  // sends the visitor to log in.
+  useEffect(() => {
+    const showSignedOut = () => void router.invalidate();
+    window.addEventListener(sessionEndedEvent, showSignedOut);
+    return () => window.removeEventListener(sessionEndedEvent, showSignedOut);
+  }, [router]);
 
   useEffect(() => {
     if (!errorMonitoring) return;

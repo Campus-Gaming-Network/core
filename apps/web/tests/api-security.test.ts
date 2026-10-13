@@ -104,3 +104,43 @@ test("upstream errors retain status internally but expose only allowlisted messa
   );
   assert.equal(safeApiErrorMessage(caught).includes("password"), false);
 });
+
+test("only a rejected session cookie reports the session as ended", async () => {
+  const answers = {
+    "rejected session": {
+      cookieHeader: "cgn_session=revoked",
+      status: 401,
+      error: "authentication_required",
+    },
+    "no session sent": {
+      cookieHeader: "",
+      status: 401,
+      error: "authentication_required",
+    },
+    "another 401": {
+      cookieHeader: "cgn_session=valid",
+      status: 401,
+      error: "invalid_event_password",
+    },
+    "upstream outage": {
+      cookieHeader: "cgn_session=valid",
+      status: 503,
+      error: "database_unavailable",
+    },
+  };
+
+  const rejected: string[] = [];
+  await Promise.all(
+    Object.entries(answers).map(([name, { cookieHeader, status, error }]) =>
+      assert.rejects(() =>
+        createApiClient({
+          baseUrl: "http://api:8080",
+          fetcher: async () => Response.json({ error }, { status }),
+          onSessionRejected: () => rejected.push(name),
+        })({ path: "/me", cookieHeader, responseSchema: z.undefined() }),
+      ),
+    ),
+  );
+
+  assert.deepEqual(rejected, ["rejected session"]);
+});

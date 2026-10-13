@@ -6,6 +6,7 @@ import {
   setCookie,
   setResponseHeader,
 } from "@tanstack/react-start/server";
+import { sessionEndedHeader } from "../session-ended.js";
 import { type ApiClient, type Fetcher } from "./api.server.js";
 import { createGoBFFClient } from "./bff.server.js";
 import {
@@ -32,7 +33,18 @@ export function goBFFForHeaders(incomingHeaders: HeaderReader): ApiClient {
 }
 
 export function goBFFForCurrentRequest(): ApiClient {
-  return goBFFForHeaders(getRequestHeaders());
+  return createGoBFFClient({
+    incomingHeaders: getRequestHeaders(),
+    onSessionRejected: endRejectedSession,
+  });
+}
+
+// The API no longer accepts the session this request carried, so the browser
+// drops it too. The header tells a page that is already open to re-read who
+// is signed in.
+function endRejectedSession(): void {
+  deleteCookie(sessionCookieName(), { path: "/" });
+  setResponseHeader(sessionEndedHeader, "true");
 }
 
 export function incomingCookieHeader(
@@ -95,6 +107,7 @@ export function currentSessionRequest(): SessionRequest {
     api: createGoBFFClient({
       incomingHeaders,
       fetcher: profileSharingFetcher(getRequest()),
+      onSessionRejected: endRejectedSession,
     }),
     cookieHeader: sessionOnlyCookieHeader(
       configuredCookieName,
