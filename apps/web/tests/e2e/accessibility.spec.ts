@@ -42,6 +42,7 @@ for (const path of [
   "/schools/summit-ridge-university",
   "/schools/quiet-valley-college",
   "/users/reportable-player",
+  "/users/bundled-logo-player",
   "/support",
   "/styleguide",
 ]) {

@@ -447,3 +447,27 @@ test("report-user mutation leaves auth enforcement at the API and returns safe e
   assert.equal(serialized.includes("Spam"), false);
   assert.equal(reported.length, 2);
 });
+
+test("the home school gets its bundled logo, and a school without one gets none", async () => {
+  const logoURLs = await Promise.all(
+    [
+      { id: "school-bundled", name: "A&M", slug: "alabama-a-m-university" },
+      publicProfile.home_school,
+    ].map(async (home_school) => {
+      const result = await getPublicProfilePageOperation(
+        { id: "user/e2e" },
+        {
+          api: client(async () =>
+            Response.json({ ...publicProfile, home_school }),
+          ),
+          cookieHeader: "",
+        },
+      );
+      assert.equal(result.status, "found");
+      return result.profile.home_school?.logo_url;
+    }),
+  );
+
+  assert.match(logoURLs[0] ?? "", /100654-.*\.(png|jpg|svg|webp)$/);
+  assert.equal(logoURLs[1], undefined);
+});

@@ -190,6 +190,19 @@ const bundledLogoSchool = {
   logo_url: undefined,
 };
 
+// A bundled institution with a logo the profile page can show.
+const bundledProfileSchool = {
+  ...school,
+  id: "school-bundled-profile-e2e",
+  unitid: 100654,
+  name: "Alabama A&M University",
+  alias: "",
+  slug: "alabama-a-m-university",
+  city: "Normal",
+  state: "AL",
+  logo_url: undefined,
+};
+
 const game = {
   id: "game-e2e",
   name: "Strategy Arena",
@@ -1571,13 +1584,15 @@ function profileFor(email: string): Profile {
 }
 
 function publicProfileFor(id: string) {
+  const homeSchool =
+    id === "bundled-logo-player" ? bundledProfileSchool : school;
   return {
     id,
     name: "Reportable Browser Player",
     bio: "A public browser-test profile.",
     verification_level: "verified_student",
-    home_school_id: school.id,
-    home_school: school,
+    home_school_id: homeSchool.id,
+    home_school: homeSchool,
     social_links:
       id === "linked-player"
         ? [
