@@ -117,12 +117,26 @@ export async function updateProfileOperation(
   input: UpdateProfileInput,
   { api, cookieHeader, reportError = defaultErrorReporter }: ReadDependencies,
 ): Promise<AccountMutationResult> {
+  // The API holds a Discord username as one more social link.
+  const {
+    discord_username: discordUsername,
+    social_links: links,
+    ...fields
+  } = input;
   try {
     await api({
       path: "/me",
       method: "PATCH",
       cookieHeader,
-      body: input,
+      body: {
+        ...fields,
+        social_links: [
+          ...links,
+          ...(discordUsername
+            ? [{ kind: "discord", username: discordUsername }]
+            : []),
+        ],
+      },
       responseSchema: accountProfileDtoSchema,
     });
     return {

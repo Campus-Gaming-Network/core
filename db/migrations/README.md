@@ -92,3 +92,7 @@ Migration `000025_school_short_name.up.sql` adds the nullable
 name; `alias` stays the search field.
 Migration `000026_audit_log_index.up.sql` indexes `audit_logs` by
 `(created_at DESC, id DESC)` for the Admin Console audit log.
+Migration `000027_social_link_kind.up.sql` adds `user_social_links.kind`
+(`url`, `discord`) and the nullable `username`, and makes `url` nullable: a
+Discord link stores a username and no URL. Existing rows become `url` links.
+Apply it before deploying the API that reads or writes the columns.

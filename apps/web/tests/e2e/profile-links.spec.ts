@@ -6,7 +6,8 @@ test("profile links show their site's icon, or a chain link for other sites", as
 }) => {
   await gotoApp(page, "/users/linked-player");
 
-  const links = page.getByRole("region", { name: "Links" }).getByRole("link");
+  const region = page.getByRole("region", { name: "Links" });
+  const links = region.getByRole("link");
   await expect(links).toHaveText(["Channel", "Posts", "Stream", "Blog"]);
   expect(
     await links.evaluateAll((elements) =>
@@ -21,5 +22,13 @@ test("profile links show their site's icon, or a chain link for other sites", as
     ["youtube", "x", "twitch", "link"].map((site) => [
       { site, hidden: "true" },
     ]),
+  );
+
+  // A Discord username has no page to link to, so it is text with the mark.
+  const discord = region.getByText("Discord: player.one");
+  await expect(discord).toBeVisible();
+  await expect(discord.locator('svg[data-site="discord"]')).toHaveAttribute(
+    "aria-hidden",
+    "true",
   );
 });

@@ -219,7 +219,7 @@ Signup also requires confirming **age 18+**. Alumni can participate. Faculty who
 - Boring Avatars Beam avatars at launch, drawn by this site from the user id (no avatar service is contacted), with initials showing when the picture cannot load
 - Single **name** field (no usernames; no separate first/last/display)
 - Profile URL: `/users/:id` (database id)
-- Bio + social links
+- Bio + social links. A social link is a URL with a label, or a Discord username, which the profile shows as text
 - Later: school affiliation(s), majors (multiple), and expected graduation (see [08 — Open questions](./08-open-questions.md))
 - Support graduate students, alumni, faculty
 - Visible indicators for school admin and faculty roles

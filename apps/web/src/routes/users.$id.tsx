@@ -23,6 +23,7 @@ import type {
 } from "../features/public-profile/contracts";
 import { validatePublicProfileSearch } from "../features/public-profile/contracts";
 import { SocialLinkIcon } from "../features/public-profile/social-link-icon";
+import { socialSite } from "../features/public-profile/social-sites";
 import {
   getPublicProfilePage,
   reportUser,
@@ -115,7 +116,10 @@ function PublicProfilePage() {
   const { profile, viewer } = Route.useLoaderData();
   const search = Route.useSearch();
   const homeSchool = publicProfileHomeSchool(profile);
-  const socialLinks = (profile.social_links ?? []).flatMap((link) => {
+  const savedLinks = profile.social_links ?? [];
+  const socialLinks = savedLinks.flatMap((link): typeof savedLinks => {
+    // A Discord username has no URL to check.
+    if (link.kind === "discord") return [link];
     const url = safeHTTPURL(link.url);
     return url ? [{ ...link, url }] : [];
   });
@@ -172,16 +176,27 @@ function PublicProfilePage() {
         <section className="section" aria-labelledby="social-links">
           <h2 id="social-links">Links</h2>
           <div className="pill-list">
-            {socialLinks.map((link) => (
-              <a
-                className="social-link"
-                href={link.url}
-                key={link.id ?? `${link.label}-${link.url}`}
-              >
-                <SocialLinkIcon url={link.url} />
-                {link.label.trim() || "Profile link"}
-              </a>
-            ))}
+            {socialLinks.map((link) =>
+              link.kind === "discord" ? (
+                // A Discord username has no page to link to, so it is text.
+                <span
+                  className="social-link"
+                  key={link.id ?? `discord-${link.username}`}
+                >
+                  <SocialLinkIcon site="discord" />
+                  Discord: {link.username}
+                </span>
+              ) : (
+                <a
+                  className="social-link"
+                  href={link.url}
+                  key={link.id ?? `${link.label}-${link.url}`}
+                >
+                  <SocialLinkIcon site={socialSite(link.url)} />
+                  {link.label.trim() || "Profile link"}
+                </a>
+              ),
+            )}
           </div>
         </section>
       ) : (

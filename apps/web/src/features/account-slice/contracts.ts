@@ -23,11 +23,21 @@ const gameSummarySchema = z.object({
   slug: identifierSchema,
 });
 
-const socialLinkSchema = z.object({
-  id: identifierSchema.optional(),
-  label: z.string(),
-  url: z.string(),
-});
+// A link is a URL or a Discord username. A link without a kind is a URL link.
+const socialLinkSchema = z.union([
+  z.object({
+    id: identifierSchema.optional(),
+    kind: z.literal("url").default("url"),
+    label: z.string(),
+    url: z.string(),
+  }),
+  z.object({
+    id: identifierSchema.optional(),
+    kind: z.literal("discord"),
+    label: z.string(),
+    username: z.string(),
+  }),
+]);
 
 export const accountProfileDtoSchema = z.object({
   id: identifierSchema,
@@ -39,7 +49,8 @@ export const accountProfileDtoSchema = z.object({
   timezone: identifierSchema,
   home_school_id: identifierSchema,
   home_school: schoolSummarySchema.optional(),
-  social_links: z.array(socialLinkSchema).max(3).optional(),
+  // Up to three URL links and one Discord username.
+  social_links: z.array(socialLinkSchema).max(4).optional(),
   role_indicators: z.array(z.string()).optional(),
   /** Whether signed-in people see this person in member lists; on by default. */
   show_in_lists: z.boolean().default(true),
@@ -113,6 +124,17 @@ export const updateProfileInputSchema = z.object({
   bio: z.string().trim().max(2000, "Bio must be 2000 characters or fewer."),
   timezone: timeZoneSchema,
   social_links: z.array(profileSocialLinkInputSchema).max(3),
+  // Discord shows a username with a leading "@" and ignores case when a person
+  // types one, so both are accepted and stored the way Discord stores them.
+  discord_username: z
+    .string()
+    .trim()
+    .transform((value) => value.replace(/^@/, "").toLowerCase())
+    .refine(
+      (value) => value === "" || isDiscordUsername(value),
+      "Discord username must be 2 to 32 characters and use only letters, numbers, underscores, and periods, with no two periods in a row.",
+    )
+    .optional(),
   show_in_lists: z.boolean().optional(),
 });
 
@@ -176,6 +198,10 @@ export function validateUpdateProfileInput(
           bio: formString(input, "bio"),
           timezone: formString(input, "timezone"),
           social_links: socialLinksFromForm(input),
+          // A form without the field sends no Discord username.
+          ...(input.has("discord_username")
+            ? { discord_username: formString(input, "discord_username") }
+            : {}),
           // An unchecked checkbox sends nothing, so the form puts a "false"
           // before it and the last value wins. A form without the field
           // leaves the setting alone.
@@ -242,6 +268,10 @@ function isHTTPURL(value: string): boolean {
   } catch {
     return false;
   }
+}
+
+function isDiscordUsername(value: string): boolean {
+  return /^[a-z0-9_.]{2,32}$/.test(value) && !value.includes("..");
 }
 
 function isIANATimeZone(value: string): boolean {

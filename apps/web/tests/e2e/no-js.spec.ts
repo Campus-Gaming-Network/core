@@ -120,7 +120,9 @@ test("account, safety, and school forms complete without JavaScript", async ({
 }) => {
   await logIn(page, "no-js-account@example.test", "/account");
 
-  await page.getByLabel("Name").fill("Updated No JavaScript Player");
+  await page
+    .getByLabel("Name", { exact: true })
+    .fill("Updated No JavaScript Player");
   await page.getByRole("button", { name: "Save profile" }).click();
   await expect(page).toHaveURL(/\/account\?account=profile-updated$/);
   await expect(
@@ -170,8 +172,10 @@ test("account social links reveal extra rows without JavaScript", async ({
   await page
     .getByLabel("Social link 2 URL")
     .fill("https://discord.example.test/player");
+  await page.getByLabel("Discord username").fill("@Player.One");
   await page.getByRole("button", { name: "Save profile" }).click();
   await expect(page).toHaveURL(/\/account\?account=profile-updated$/);
+  await expect(page.getByLabel("Discord username")).toHaveValue("player.one");
 
   await expect(page.getByLabel("Social link 3 label")).toBeVisible();
   await expect(page.getByText("Add another link")).toHaveCount(0);

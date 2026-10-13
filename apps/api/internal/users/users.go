@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/mail"
 	"net/url"
+	"regexp"
 	"strings"
 	"time"
 	_ "time/tzdata"
@@ -63,10 +64,24 @@ type HomeSchool struct {
 	State string `json:"state,omitempty"`
 }
 
+// The kinds of social link. A URL link points at a page. A Discord link is a
+// username, which has no page to link to.
+const (
+	SocialLinkKindURL     = "url"
+	SocialLinkKindDiscord = "discord"
+)
+
+// DiscordSocialLinkLabel is the label every Discord link carries.
+const DiscordSocialLinkLabel = "Discord"
+
+// SocialLink is one entry in a profile's links. A URL link sets URL and a
+// Discord link sets Username; the other field is empty.
 type SocialLink struct {
-	ID    string `json:"id,omitempty"`
-	Label string `json:"label"`
-	URL   string `json:"url"`
+	ID       string `json:"id,omitempty"`
+	Kind     string `json:"kind"`
+	Label    string `json:"label"`
+	URL      string `json:"url,omitempty"`
+	Username string `json:"username,omitempty"`
 }
 
 type Credentials struct {
@@ -199,15 +214,55 @@ func ValidateProfileUpdate(update ProfileUpdate, links []SocialLink) error {
 		if label := strings.TrimSpace(link.Label); label == "" || len(label) > 40 {
 			return apperror.Validation("social link labels are required and must be 40 characters or fewer")
 		}
-		if len(link.URL) > 500 {
-			return apperror.Validation("social link URLs must be 500 characters or fewer")
-		}
-		parsed, err := url.Parse(strings.TrimSpace(link.URL))
-		if err != nil || (parsed.Scheme != "https" && parsed.Scheme != "http") || parsed.Host == "" {
-			return apperror.Validation("social link URLs must be valid HTTP or HTTPS URLs")
+		switch link.Kind {
+		case SocialLinkKindURL:
+			if link.Username != "" {
+				return apperror.Validation("a URL social link cannot have a username")
+			}
+			if len(link.URL) > 500 {
+				return apperror.Validation("social link URLs must be 500 characters or fewer")
+			}
+			parsed, err := url.Parse(strings.TrimSpace(link.URL))
+			if err != nil || (parsed.Scheme != "https" && parsed.Scheme != "http") || parsed.Host == "" {
+				return apperror.Validation("social link URLs must be valid HTTP or HTTPS URLs")
+			}
+		case SocialLinkKindDiscord:
+			if link.URL != "" {
+				return apperror.Validation("a Discord social link cannot have a URL")
+			}
+			if !discordUsernamePattern.MatchString(link.Username) || strings.Contains(link.Username, "..") {
+				return apperror.Validation("Discord usernames must be 2 to 32 characters and use only lowercase letters, numbers, underscores, and periods, with no two periods in a row")
+			}
+		default:
+			return apperror.Validation("social link kind must be url or discord")
 		}
 	}
 	return nil
+}
+
+var discordUsernamePattern = regexp.MustCompile(`^[a-z0-9_.]{2,32}$`)
+
+// NormalizeSocialLinks returns links in the form ValidateProfileUpdate checks
+// and the repository stores. A link without a kind is a URL link. A Discord
+// username loses a leading "@" and is lowercased, and its label is always
+// "Discord".
+func NormalizeSocialLinks(links []SocialLink) []SocialLink {
+	normalized := make([]SocialLink, 0, len(links))
+	for _, link := range links {
+		link.Kind = strings.TrimSpace(link.Kind)
+		link.Label = strings.TrimSpace(link.Label)
+		link.URL = strings.TrimSpace(link.URL)
+		link.Username = strings.TrimSpace(link.Username)
+		switch link.Kind {
+		case "":
+			link.Kind = SocialLinkKindURL
+		case SocialLinkKindDiscord:
+			link.Label = DiscordSocialLinkLabel
+			link.Username = strings.ToLower(strings.TrimPrefix(link.Username, "@"))
+		}
+		normalized = append(normalized, link)
+	}
+	return normalized
 }
 
 type PostgresRepository struct {
@@ -382,17 +437,26 @@ func (r *PostgresRepository) ReplaceSocialLinks(ctx context.Context, id string, 
 		return fmt.Errorf("archive social links: %w", err)
 	}
 
-	for index, link := range links {
-		if _, err := tx.Exec(ctx, `
-			INSERT INTO user_social_links (user_id, label, url, sort_order)
-			VALUES ($1::uuid, $2, $3, $4)
-		`, id, strings.TrimSpace(link.Label), strings.TrimSpace(link.URL), index); err != nil {
-			return fmt.Errorf("insert social link: %w", err)
-		}
+	if err := insertSocialLinks(ctx, tx, id, links); err != nil {
+		return err
 	}
 
 	if err := tx.Commit(ctx); err != nil {
 		return fmt.Errorf("commit social links update: %w", err)
+	}
+	return nil
+}
+
+// insertSocialLinks stores links in order. Each link holds a URL or a
+// username, so the field its kind does not use is stored as NULL.
+func insertSocialLinks(ctx context.Context, tx pgx.Tx, userID string, links []SocialLink) error {
+	for index, link := range NormalizeSocialLinks(links) {
+		if _, err := tx.Exec(ctx, `
+			INSERT INTO user_social_links (user_id, kind, label, url, username, sort_order)
+			VALUES ($1::uuid, $2, $3, NULLIF($4, ''), NULLIF($5, ''), $6)
+		`, userID, link.Kind, link.Label, link.URL, link.Username, index); err != nil {
+			return fmt.Errorf("insert social link: %w", err)
+		}
 	}
 	return nil
 }
@@ -501,7 +565,7 @@ func (r *PostgresRepository) listSocialLinks(ctx context.Context, id string) ([]
 
 func listSocialLinks(ctx context.Context, queryer profileQueryer, id string) ([]SocialLink, error) {
 	rows, err := queryer.Query(ctx, `
-		SELECT id::text, label, url
+		SELECT id::text, kind, label, COALESCE(url, ''), COALESCE(username, '')
 		FROM user_social_links
 		WHERE user_id = $1::uuid AND deleted_at IS NULL
 		ORDER BY sort_order, id
@@ -514,7 +578,7 @@ func listSocialLinks(ctx context.Context, queryer profileQueryer, id string) ([]
 	links := make([]SocialLink, 0)
 	for rows.Next() {
 		var link SocialLink
-		if err := rows.Scan(&link.ID, &link.Label, &link.URL); err != nil {
+		if err := rows.Scan(&link.ID, &link.Kind, &link.Label, &link.URL, &link.Username); err != nil {
 			return nil, fmt.Errorf("scan social link: %w", err)
 		}
 		links = append(links, link)

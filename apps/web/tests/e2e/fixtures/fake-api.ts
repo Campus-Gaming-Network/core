@@ -712,7 +712,12 @@ async function handleRequest(
       name: body?.name,
       bio: body?.bio,
       timezone: body?.timezone,
-      social_links: body?.social_links,
+      // The API labels every Discord link "Discord".
+      social_links: body?.social_links?.map((link) =>
+        typeof link === "object" && link !== null && "username" in link
+          ? { ...link, label: "Discord" }
+          : link,
+      ),
       ...(typeof body?.show_in_lists === "boolean"
         ? { show_in_lists: body.show_in_lists }
         : {}),
@@ -1600,6 +1605,7 @@ function publicProfileFor(id: string) {
             { label: "Posts", url: "https://x.com/player" },
             { label: "Stream", url: "https://twitch.tv/player" },
             { label: "Blog", url: "https://player.example.test/blog" },
+            { kind: "discord", label: "Discord", username: "player.one" },
           ]
         : [],
     role_indicators: [],

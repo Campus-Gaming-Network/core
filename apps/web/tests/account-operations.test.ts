@@ -21,7 +21,9 @@ const profile = {
   bio: "Captain",
   timezone: "America/Los_Angeles",
   home_school_id: "school-1",
-  social_links: [{ label: "Community", url: "https://example.test/player" }],
+  social_links: [
+    { kind: "url", label: "Community", url: "https://example.test/player" },
+  ],
   role_indicators: [],
   show_in_lists: false,
   password_hash: "must-strip",
@@ -156,6 +158,79 @@ test("native profile forms send show_in_lists as the last value and typed input 
     validateUpdateProfileInput({ ...base, show_in_lists: false }),
     { valid: true, value: { ...base, show_in_lists: false } },
   );
+});
+
+test("a Discord username is normalized, checked, and reported on its own field", () => {
+  const base = {
+    name: "Player One",
+    bio: "",
+    timezone: "America/Los_Angeles",
+    social_links: [],
+  };
+
+  const form = profileForm();
+  form.set("discord_username", " @Player.One ");
+  assert.deepEqual(validateUpdateProfileInput(form), {
+    valid: true,
+    value: { ...base, discord_username: "player.one" },
+  });
+
+  const blank = profileForm();
+  blank.set("discord_username", " ");
+  assert.deepEqual(validateUpdateProfileInput(blank), {
+    valid: true,
+    value: { ...base, discord_username: "" },
+  });
+
+  const message =
+    "Discord username must be 2 to 32 characters and use only letters, numbers, underscores, and periods, with no two periods in a row.";
+  for (const username of [
+    "a",
+    "a".repeat(33),
+    "player..one",
+    "player#1234",
+    "player one",
+    "https://discord.gg/invite",
+  ]) {
+    assert.deepEqual(
+      validateUpdateProfileInput({ ...base, discord_username: username }),
+      {
+        valid: false,
+        message: "Check the highlighted fields and try again.",
+        fieldErrors: { discord_username: [message] },
+      },
+      username,
+    );
+  }
+});
+
+test("profile update sends a Discord username as a social link after the URL links", async () => {
+  const bodies: unknown[] = [];
+  const api = (async (options) => {
+    bodies.push(options.body);
+    return result(profile);
+  }) as ApiClient;
+  const links = [{ label: "Stream", url: "https://twitch.tv/player" }];
+  const fields = {
+    name: "Player One",
+    bio: "",
+    timezone: "America/Los_Angeles",
+  };
+
+  for (const discordUsername of ["player.one", ""]) {
+    await updateProfileOperation(
+      { ...fields, social_links: links, discord_username: discordUsername },
+      { api, cookieHeader: "cgn_session=secret" },
+    );
+  }
+
+  assert.deepEqual(bodies, [
+    {
+      ...fields,
+      social_links: [...links, { kind: "discord", username: "player.one" }],
+    },
+    { ...fields, social_links: links },
+  ]);
 });
 
 test("profile update sends only validated fields and deletion drops the local root cookie", async () => {

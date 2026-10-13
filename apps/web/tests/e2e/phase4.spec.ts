@@ -102,7 +102,7 @@ test("public auth recovery and private account mutations work through the runtim
 
   await logIn(page, `account-${device}@example.test`, "/account");
   await expect(page.getByText("Browser Dashboard RSVP")).toBeVisible();
-  await page.getByLabel("Name").fill("Updated Browser Player");
+  await page.getByLabel("Name", { exact: true }).fill("Updated Browser Player");
   await page.getByRole("button", { name: "Save profile" }).click();
   await expect(page).toHaveURL(/\/account\?account=profile-updated$/);
   await expect(
@@ -138,8 +138,14 @@ test("account social links reveal extra rows and save through the runtime", asyn
   await page
     .getByLabel("Social link 2 URL")
     .fill("https://discord.example.test/player");
+  await page.getByLabel("Discord username").fill("@Player.One");
   await page.getByRole("button", { name: "Save profile" }).click();
   await expect(page).toHaveURL(/\/account\?account=profile-updated$/);
+  // The field keeps what was typed; its saved value is the normalized name.
+  await expect(page.getByLabel("Discord username")).toHaveAttribute(
+    "value",
+    "player.one",
+  );
 
   await expect(page.getByLabel("Social link 3 label")).toBeVisible();
   await expect(page.getByText("Add another link")).toHaveCount(0);

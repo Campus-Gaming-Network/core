@@ -43,7 +43,12 @@ users
   -- on delete account: scrub PII; name becomes "Deleted User"
 
 user_social_links
-  id, user_id, label, url, ...
+  id, user_id,
+  kind,                       -- url | discord
+  label,
+  url,                        -- set when kind is url, otherwise NULL
+  username,                   -- set when kind is discord, otherwise NULL
+  sort_order, ...
 
 user_majors  (later)
   id, user_id, major_name (or major_id FK if normalized)
