@@ -1480,6 +1480,10 @@ input[type="radio"] {
   padding-top: 2rem;
 }
 
+.school-community-content--single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .school-community-content > section {
   scroll-margin-top: 1rem;
 }
