@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import type { FormEvent, RefObject } from "react";
+import { useEffect, useRef, type FormEvent, type RefObject } from "react";
 import {
   FieldError,
   FormErrorSummary,
@@ -32,7 +32,7 @@ export function SignupForm({
   selectedSchoolId?: string;
   initialQuery?: string;
   initialSearchFailed?: boolean;
-  initialStatus?: "created" | "failed";
+  initialStatus?: "failed";
   /** Undefined when the current versions could not be read. */
   policies: SignupPolicies | undefined;
 }) {
@@ -68,19 +68,15 @@ export function SignupForm({
         status={
           mutation.message
             ? mutation.status
-            : initialStatus === "created"
-              ? "success"
-              : initialStatus === "failed"
-                ? "error"
-                : "idle"
+            : initialStatus === "failed"
+              ? "error"
+              : "idle"
         }
         message={
           mutation.message ||
-          (initialStatus === "created"
-            ? "Account created. Check your email for the verification link before logging in."
-            : initialStatus === "failed"
-              ? "We could not create your account. Please try again."
-              : "")
+          (initialStatus === "failed"
+            ? "We could not create your account. Please try again."
+            : "")
         }
         summaryRef={mutation.errorSummaryRef}
       />
@@ -343,10 +339,55 @@ export function ResetPasswordForm({ token }: { token: string }) {
   );
 }
 
+/**
+ * Replaces the signup form once the account exists, so the next step is the
+ * only thing on the page.
+ */
+export function SignupConfirmation({ email }: { email: string | null }) {
+  const headingRef = useRef<HTMLHeadingElement>(null);
+
+  // The form's submit button sits far down the page, and arriving here does not
+  // change the path, so the root layout's focus handling does not run.
+  useEffect(() => {
+    headingRef.current?.focus();
+  }, []);
+
+  return (
+    <>
+      <section className="page-heading">
+        <p className="eyebrow">Account created</p>
+        <h1 ref={headingRef} tabIndex={-1}>
+          Check your email.
+        </h1>
+        <p className="lede">
+          {email ? (
+            <>
+              We sent a verification link to <strong>{email}</strong>.
+            </>
+          ) : (
+            "We sent a verification link to the address you signed up with."
+          )}{" "}
+          Open it to verify your email, then log in.
+        </p>
+      </section>
+      <section className="form-stack" aria-labelledby="resend-heading">
+        <h2 id="resend-heading">Did not get it?</h2>
+        <p>
+          Check your spam folder, or send the link again. If the address above
+          is wrong, <Link to="/signup">sign up again</Link> with the right one.
+        </p>
+        <ResendVerificationForm defaultEmail={email ?? undefined} />
+      </section>
+    </>
+  );
+}
+
 export function ResendVerificationForm({
   initialStatus,
+  defaultEmail,
 }: {
   initialStatus?: "sent" | "failed";
+  defaultEmail?: string;
 }) {
   const runResend = useServerFn(resendVerification);
   const mutation = useAuthMutation(
@@ -393,7 +434,13 @@ export function ResendVerificationForm({
         errors={mutation.fieldErrors.email}
         label="Email"
       >
-        <input name="email" type="email" autoComplete="email" required />
+        <input
+          name="email"
+          type="email"
+          autoComplete="email"
+          defaultValue={defaultEmail}
+          required
+        />
       </FormField>
       <button type="submit" disabled={mutation.pending}>
         {mutation.pending ? "Sending…" : "Resend verification"}

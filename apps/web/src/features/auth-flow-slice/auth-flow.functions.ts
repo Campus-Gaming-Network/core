@@ -1,6 +1,12 @@
 import { redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
+import { getCookie } from "@tanstack/react-start/server";
 import {
+  signupEmailCookieMutation,
+  signupEmailCookieName,
+} from "../../server/cookies.server.js";
+import {
+  applyCookieMutation,
   goBFFForCurrentRequest,
   isNativeFormPost,
   setPrivateNoStoreResponse,
@@ -14,6 +20,7 @@ import {
   verifyEmailOperation,
 } from "./auth-flow-operations.server.js";
 import {
+  emailInputSchema,
   validateEmailServerInput,
   validateResetPasswordServerInput,
   validateSignupServerInput,
@@ -24,6 +31,8 @@ import {
   type VerificationTokenInput,
 } from "./contracts.js";
 import { signupSchoolSearchOperation } from "./signup-school-operations.server.js";
+
+const signupCreatedHref = "/signup?auth=created";
 
 export const establishPrivateAuthPage = createServerFn({
   method: "GET",
@@ -60,15 +69,34 @@ export const signup = createServerFn({
     const result = await signupOperation(data.value, {
       api: goBFFForCurrentRequest(),
     });
-    if (nativeForm) {
-      nativeRedirect(
-        result.status === "success"
-          ? "/signup?auth=created"
-          : "/signup?auth=failed",
-      );
+    if (result.status !== "success") {
+      if (nativeForm) nativeRedirect("/signup?auth=failed");
+      return result;
     }
-    return result;
+
+    applyCookieMutation(
+      signupEmailCookieMutation(
+        data.value.email,
+        process.env.NODE_ENV === "production",
+      ),
+    );
+    if (nativeForm) nativeRedirect(signupCreatedHref);
+    return { ...result, redirectTo: signupCreatedHref };
   });
+
+/**
+ * The address the confirmation screen names, or null when the signup cookie
+ * is missing, expired, or not an email address.
+ */
+export const getSignupConfirmationEmail = createServerFn({
+  method: "GET",
+}).handler(() => {
+  setPrivateNoStoreResponse();
+  const parsed = emailInputSchema.safeParse({
+    email: getCookie(signupEmailCookieName),
+  });
+  return parsed.success ? parsed.data.email : null;
+});
 
 export const forgotPassword = createServerFn({
   method: "POST",
