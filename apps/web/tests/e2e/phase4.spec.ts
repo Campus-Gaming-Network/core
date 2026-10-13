@@ -17,7 +17,36 @@ test("login rejects control-character redirect targets", async ({ page }) => {
   await page.getByLabel("Email").fill("safe-redirect@example.test");
   await page.getByLabel("Password").fill(password);
   await page.getByRole("button", { name: "Log in" }).click();
-  await expect(page).toHaveURL(/\/account$/);
+  await expect(page).toHaveURL(
+    (url) => url.pathname === "/" && url.search === "",
+  );
+});
+
+test("login without a return target lands on the home page", async ({
+  page,
+}) => {
+  await gotoApp(page, "/login");
+  await page.getByLabel("Email").fill("login-home@example.test");
+  await page.getByLabel("Password").fill(password);
+  await page.getByRole("button", { name: "Log in" }).click();
+  await expect(page).toHaveURL(
+    (url) => url.pathname === "/" && url.search === "",
+  );
+});
+
+test("login started from a protected page returns to that page", async ({
+  page,
+}) => {
+  await gotoApp(page, "/account");
+  await expect(page).toHaveURL(
+    (url) => url.pathname === "/login" && url.search === "?next=%2Faccount",
+  );
+  await page.getByLabel("Email").fill("login-return@example.test");
+  await page.getByLabel("Password").fill(password);
+  await page.getByRole("button", { name: "Log in" }).click();
+  await expect(page).toHaveURL(
+    (url) => url.pathname === "/account" && url.search === "",
+  );
 });
 
 test("public auth recovery and private account mutations work through the runtime", async ({
@@ -211,6 +240,14 @@ test("team creation, joining, captain changes, and ownership transfer work throu
   await page
     .getByLabel("Description")
     .fill("A team created by the Start browser parity suite.");
+  // The search runs in place, so the fields above keep what was typed.
+  await page.getByLabel("Search schools").fill("browser");
+  await expect(
+    page.getByRole("option", { name: "Browser Test University — Irvine, CA" }),
+  ).toHaveCount(1);
+  await page
+    .getByLabel("School link (optional)")
+    .selectOption({ label: "Browser Test University — Irvine, CA" });
   await page.getByRole("checkbox", { name: "Strategy Arena" }).check();
   await page.getByLabel("Join password").fill("BrowserTeamPass123!");
   await page.getByRole("button", { name: "Create team" }).click();
@@ -218,6 +255,12 @@ test("team creation, joining, captain changes, and ownership transfer work throu
     /\/teams\/browser-migration-team-[^?]+\?team=created$/,
   );
   await expect(page.getByText("Your role: Owner.")).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Browser Migration Team", level: 1 }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Browser Test University" }),
+  ).toBeVisible();
 
   await page.getByRole("button", { name: "Make captain" }).click();
   await expect(page).toHaveURL(/\?team=captain-updated$/);

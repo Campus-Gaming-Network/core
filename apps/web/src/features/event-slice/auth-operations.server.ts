@@ -129,7 +129,7 @@ export async function loginOperation(
     return {
       status: "success",
       authenticated: true,
-      redirectTo: safeLocalNext(input.next) ?? "/account",
+      redirectTo: safeLocalNext(input.next) ?? "/",
     };
   } catch (error) {
     reportError(error);

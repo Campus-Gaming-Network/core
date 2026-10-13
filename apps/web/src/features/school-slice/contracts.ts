@@ -149,13 +149,17 @@ export function validateSchoolsSearch(
   };
 }
 
-export type SchoolSearch = { follow?: SchoolDetailNotice };
+export type SchoolTab = "events" | "teams";
+
+export type SchoolSearch = { follow?: SchoolDetailNotice; tab?: SchoolTab };
 
 export function validateSchoolSearch(
   search: Record<string, unknown>,
 ): SchoolSearch {
   const follow = pageNoticeKey(schoolDetailNotices, search.follow);
-  return follow ? { follow } : {};
+  const tab =
+    search.tab === "events" || search.tab === "teams" ? search.tab : undefined;
+  return { ...(follow ? { follow } : {}), ...(tab ? { tab } : {}) };
 }
 
 export function schoolsBrowseInput(search: SchoolsSearch): SchoolsBrowseInput {

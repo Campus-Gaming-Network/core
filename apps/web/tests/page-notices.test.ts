@@ -121,6 +121,11 @@ test("search validators read notices from their own page", () => {
   assert.deepEqual(validateSchoolSearch({ follow: "added" }), {
     follow: "added",
   });
+  assert.deepEqual(validateSchoolSearch({ follow: "added", tab: "teams" }), {
+    follow: "added",
+    tab: "teams",
+  });
+  assert.deepEqual(validateSchoolSearch({ tab: "people" }), {});
   assert.deepEqual(validatePublicProfileSearch({ report: "failed" }), {
     report: "failed",
   });

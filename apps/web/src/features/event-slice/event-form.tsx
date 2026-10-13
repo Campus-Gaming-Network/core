@@ -7,6 +7,7 @@ import {
   useEnhancedMutation,
 } from "../../components/enhanced-mutation.js";
 import { FormField, RequiredFieldsNote } from "../../components/form-field";
+import { PasswordInput } from "../../components/password-input";
 import { GamePickerExtras } from "../../components/game-picker";
 import { FormSection } from "../../components/form-section";
 import { useIdempotencyKey } from "../../components/idempotency-key.js";
@@ -262,7 +263,7 @@ export function EventForm({
             errors={errors("private_password")}
             label="Private event password"
           >
-            <input
+            <PasswordInput
               minLength={8}
               maxLength={256}
               name="private_password"
@@ -271,7 +272,6 @@ export function EventForm({
                   ? "Leave blank to keep current password"
                   : "Required for private events"
               }
-              type="password"
             />
           </FormField>
           <p className="form-help">

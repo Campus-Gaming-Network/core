@@ -1,4 +1,4 @@
-import { cloneElement, type ReactElement } from "react";
+import { cloneElement, useId, type ReactElement } from "react";
 import { FieldError, fieldErrorProps } from "./enhanced-mutation";
 
 /**
@@ -17,6 +17,8 @@ export function FormField({
 }: {
   children: ReactElement<{
     "aria-describedby"?: string;
+    "aria-label"?: string;
+    "aria-labelledby"?: string;
     "aria-invalid"?: boolean;
   }>;
   errorId: string;
@@ -24,17 +26,20 @@ export function FormField({
   label: string;
   optional?: boolean;
 }) {
+  const labelID = useId();
   return (
     <label>
-      {/* Labels are grids, so the marker shares a cell with the label text. */}
-      {optional ? (
-        <span>
-          {label} <span className="field-optional">(optional)</span>
-        </span>
-      ) : (
-        label
-      )}
-      {cloneElement(children, fieldErrorProps(errors, errorId))}
+      {/* Labels are grids, so the marker shares a cell with the label text.
+          The control names itself from this text alone, so a button beside
+          it (such as the password toggle) does not become part of its name. */}
+      <span id={labelID}>
+        {label}
+        {optional ? <span className="field-optional"> (optional)</span> : null}
+      </span>
+      {cloneElement(children, {
+        ...(children.props["aria-label"] ? {} : { "aria-labelledby": labelID }),
+        ...fieldErrorProps(errors, errorId),
+      })}
       <FieldError id={errorId} messages={errors} />
     </label>
   );

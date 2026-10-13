@@ -30,6 +30,7 @@ import {
   useEnhancedMutation,
 } from "../components/enhanced-mutation";
 import { FormField } from "../components/form-field";
+import { PasswordInput } from "../components/password-input";
 import {
   newIdempotencyKey,
   useIdempotencyKey,
@@ -521,7 +522,7 @@ function VisibleEventView({
             <div className="detail-card-row">
               <MapPin aria-hidden="true" size={18} strokeWidth={1.75} />
               <div>
-                <strong>{eventLocation(event)}</strong>
+                <strong>{eventLocation(event, "N/A")}</strong>
                 {event.address ? <small>{event.address}</small> : null}
                 {directionsURL ? (
                   <a className="text-action" href={directionsURL}>
@@ -765,9 +766,8 @@ function UnlockEventForm({ slug }: { slug: string }) {
         errors={passwordErrors}
         label="Event password"
       >
-        <input
+        <PasswordInput
           name="password"
-          type="password"
           autoComplete="off"
           required
           minLength={8}
