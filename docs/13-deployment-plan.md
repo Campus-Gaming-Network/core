@@ -6,7 +6,7 @@ This is the operator runbook for deploying the public Campus Gaming Network (CGN
 
 The instructions are dashboard-first and do not require the Railway CLI. Provider screens change over time; when a label has moved, use the linked official page, which includes current screenshots.
 
-This guide does not deploy the unfinished Admin Console. Keep `ADMIN_ENABLED=false` and do not deploy `apps/admin` until the production-hardening and independent-review gate in [20 — Admin Console v1 engineering plan](./20-admin-console-v1-engineering-plan.md) is complete. The separate [22 — Admin Console access runbook](./22-admin-console-access-runbook.md) governs its eventual Cloudflare Access setup and rollout.
+The public deployment below does not include the Admin Console. Staging runs it as a separate `admin` service, described in [Deploy the Admin Console to staging](#deploy-the-admin-console-to-staging). In production, keep `ADMIN_ENABLED=false` and do not deploy `apps/admin` until the production-hardening and independent-review gate in [20 — Admin Console v1 engineering plan](./20-admin-console-v1-engineering-plan.md) is complete. The separate [22 — Admin Console access runbook](./22-admin-console-access-runbook.md) governs first-admin bootstrap and recovery.
 
 ## The finished public deployment
 
@@ -288,7 +288,7 @@ Before applying:
 - Confirm API and web use the same staging proxy secret.
 - Confirm the Resend key is on `api` only.
 - Confirm the Cloudflare origin secret is on `web` only.
-- Confirm `ADMIN_ENABLED=false` and that no `admin` service is deployed.
+- Confirm `ADMIN_ENABLED=false` and that no `admin` service is deployed. The Admin Console is added afterwards, in [Deploy the Admin Console to staging](#deploy-the-admin-console-to-staging).
 - Confirm `api` and `postgres` have no public networking.
 - Confirm every service is in the same region.
 - Enable **Wait for CI** on `api` and `web`.
@@ -380,6 +380,110 @@ curl --silent --output /dev/null --write-out '%{http_code}\n' \
 ```
 
 Expected result: `404`.
+
+## Deploy the Admin Console to staging
+
+Do this after the public staging deployment is accepted. The Admin Console is a third Railway service, `admin`, reached only through Cloudflare Access. It needs a hostname on a Cloudflare zone, because Access cannot protect a `*.up.railway.app` address. Staging uses `admin-staging.campusgamingnetwork.com`.
+
+Work in this order. Each step leaves staging working if the next one is delayed.
+
+### 1. Create the Access application
+
+In Cloudflare Zero Trust, create a self-hosted Access application for the staging admin hostname, with one reusable Allow policy that names each operator's email address. Create it before the DNS record so the hostname is never reachable without it. Note the team domain and the application's audience tag; neither is a secret.
+
+### 2. Create the `admin` service
+
+Create an empty service named `admin`, set its variables and settings, and connect it to the `next` branch last, so the first build starts with a complete configuration.
+
+| Admin setting        | Value                                   |
+| -------------------- | --------------------------------------- |
+| Root Directory       | `/`                                     |
+| Dockerfile Path      | `/apps/admin/Dockerfile`                |
+| Start command        | `node src/production-preflight.ts`      |
+| Health-check path    | `/api/health`                           |
+| Health-check timeout | `120` seconds                           |
+| Restart policy       | `On Failure`, `10` restarts             |
+| Custom domain        | The staging admin hostname, port `3002` |
+
+```text
+DEPLOYMENT_ENV=staging
+PORT=3002
+ADMIN_SITE_URL=https://REPLACE-WITH-STAGING-ADMIN-DOMAIN
+ADMIN_API_INTERNAL_URL=http://api.railway.internal:8080
+ADMIN_API_PROXY_SHARED_SECRET=REPLACE-WITH-STAGING-ADMIN-SHARED-SECRET
+ADMIN_SESSION_COOKIE=__Host-cgn_admin_session
+ADMIN_CSRF_COOKIE=__Host-cgn_admin_csrf
+CLOUDFLARE_ACCESS_TEAM_DOMAIN=https://REPLACE-WITH-TEAM.cloudflareaccess.com
+CLOUDFLARE_ACCESS_JWKS_URL=https://REPLACE-WITH-TEAM.cloudflareaccess.com/cdn-cgi/access/certs
+CLOUDFLARE_ACCESS_AUDIENCE=REPLACE-WITH-ACCESS-AUDIENCE-TAG
+R2_PUBLIC_ASSET_ORIGIN=https://REPLACE-WITH-STAGING-ASSET-DOMAIN
+PUBLIC_SITE_URL=https://REPLACE-WITH-STAGING-WEB-DOMAIN
+```
+
+`ADMIN_API_PROXY_SHARED_SECRET` is a new random value of at least 32 characters. It must differ from `API_PROXY_SHARED_SECRET`. The service refuses to start if a required value is missing or unsafe, and names the variable in its log.
+
+Add the custom domain in Railway, then create the two DNS records it asks for in Cloudflare: the CNAME, proxied, and the `_railway-verify` TXT record. The CNAME must stay proxied, because Access only applies to traffic that passes through Cloudflare.
+
+### 3. Give the API a restricted database role
+
+With `ADMIN_ENABLED=true` in staging or production, the API exits at startup with `Admin Console runtime database role has unsafe audit/security-event privileges` unless the role it connects as:
+
+- does not own `audit_logs` or `admin_security_events`; and
+- has `SELECT` and `INSERT` on both, and no `UPDATE`, `DELETE`, or `TRUNCATE`.
+
+The database owner cannot pass this check, so the API and its migrations use different roles.
+
+1. As the owner, create the runtime role. Choose a new random password and keep it out of shell history.
+
+   ```sql
+   CREATE ROLE cgn_api_runtime LOGIN PASSWORD 'REPLACE-WITH-RUNTIME-PASSWORD';
+   GRANT CONNECT ON DATABASE railway TO cgn_api_runtime;
+   GRANT USAGE ON SCHEMA public TO cgn_api_runtime;
+   GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO cgn_api_runtime;
+   REVOKE INSERT, UPDATE, DELETE ON schema_migrations FROM cgn_api_runtime;
+   REVOKE UPDATE, DELETE ON audit_logs, admin_security_events FROM cgn_api_runtime;
+   GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO cgn_api_runtime;
+   ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
+     GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO cgn_api_runtime;
+   ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
+     GRANT USAGE, SELECT ON SEQUENCES TO cgn_api_runtime;
+   ```
+
+   The default privileges give the runtime role the same access to tables that later migrations create. A migration that adds another append-only table must revoke `UPDATE` and `DELETE` on it from this role.
+
+2. On `api`, add `API_MIGRATION_DATABASE_URL=${{postgres.DATABASE_URL}}`, the owner's URL.
+3. Change the `api` pre-deploy command so migrations run as the owner:
+
+   ```text
+   sh -c 'API_DATABASE_URL="$API_MIGRATION_DATABASE_URL" exec cgn-migrate -dir /migrations'
+   ```
+
+4. Set `API_DATABASE_URL` on `api` to the runtime role's URL, on the same private host and database.
+
+### 4. Turn on the admin routes
+
+Add these to `api`, with the same Access values and shared secret as `admin`:
+
+```text
+ADMIN_SITE_URL=https://REPLACE-WITH-STAGING-ADMIN-DOMAIN
+ADMIN_API_PROXY_SHARED_SECRET=REPLACE-WITH-STAGING-ADMIN-SHARED-SECRET
+ADMIN_COOKIE_SECURE=true
+ADMIN_SESSION_COOKIE=__Host-cgn_admin_session
+ADMIN_CSRF_COOKIE=__Host-cgn_admin_csrf
+CLOUDFLARE_ACCESS_TEAM_DOMAIN=https://REPLACE-WITH-TEAM.cloudflareaccess.com
+CLOUDFLARE_ACCESS_JWKS_URL=https://REPLACE-WITH-TEAM.cloudflareaccess.com/cdn-cgi/access/certs
+CLOUDFLARE_ACCESS_AUDIENCE=REPLACE-WITH-ACCESS-AUDIENCE-TAG
+```
+
+Set `ADMIN_ENABLED=true` last and let the API redeploy. If the new deployment fails its health check, Railway keeps the previous one serving; read the deployment log, and set `ADMIN_ENABLED=false` again while you correct the cause.
+
+### 5. Verify and bootstrap
+
+- Opening the admin hostname redirects to the Access sign-in.
+- A request sent to the Railway origin with the admin hostname, bypassing Cloudflare, answers `403`. Only `/api/health` answers `200`.
+- The public site still loads.
+
+The operator then needs a verified CGN account whose email matches their Access identity. Grant the first site administrator from a shell in the `api` service, following [22 — Admin Console access runbook](./22-admin-console-access-runbook.md#bootstrap-the-first-site-administrator).
 
 ## Backups and restore rehearsal
 
