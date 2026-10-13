@@ -47,6 +47,7 @@ export function formatEventDate(value: string, timeZone: string): string {
 
 export function eventLocation(
   event: Pick<EventDTO, "format" | "location_name" | "address" | "online_url">,
+  fallback = "Location pending",
 ): string {
   if (event.format === "online") {
     return event.online_url ? "Online" : "Online details pending";
@@ -62,7 +63,7 @@ export function eventLocation(
       : "Hybrid details pending";
   }
 
-  return inPersonLocation || "Location pending";
+  return inPersonLocation || fallback;
 }
 
 export function eventLifecycleLabel(
