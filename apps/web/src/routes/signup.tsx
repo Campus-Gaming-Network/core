@@ -1,8 +1,12 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { SignupForm } from "../features/auth-flow-slice/auth-forms";
+import {
+  SignupConfirmation,
+  SignupForm,
+} from "../features/auth-flow-slice/auth-forms";
 import "../features/auth-flow-slice/auth-flow.css";
 import {
   getCurrentPolicies,
+  getSignupConfirmationEmail,
   getSignupSchools,
 } from "../features/auth-flow-slice/auth-flow.functions";
 import { validateSignupSearch } from "../features/auth-flow-slice/contracts";
@@ -13,13 +17,28 @@ const description =
 
 export const Route = createFileRoute("/signup")({
   validateSearch: validateSignupSearch,
-  loaderDeps: ({ search }) => ({ query: search.q ?? "" }),
+  loaderDeps: ({ search }) => ({
+    query: search.q ?? "",
+    created: search.auth === "created",
+  }),
   loader: async ({ context, deps }) => {
+    if (deps.created) {
+      return {
+        created: true as const,
+        email: await getSignupConfirmationEmail(),
+        publicOrigin: context.publicOrigin,
+      };
+    }
     const [schoolSearch, policies] = await Promise.all([
       getSignupSchools({ data: deps.query }),
       getCurrentPolicies(),
     ]);
-    return { schoolSearch, policies, publicOrigin: context.publicOrigin };
+    return {
+      created: false as const,
+      schoolSearch,
+      policies,
+      publicOrigin: context.publicOrigin,
+    };
   },
   head: ({ loaderData }) =>
     authPageHead(loaderData?.publicOrigin, {
@@ -32,7 +51,19 @@ export const Route = createFileRoute("/signup")({
 
 function SignupPage() {
   const search = Route.useSearch();
-  const { schoolSearch, policies } = Route.useLoaderData();
+  const data = Route.useLoaderData();
+
+  if (data.created) {
+    return (
+      <main className="narrow">
+        <SignupConfirmation email={data.email} />
+        <p className="form-footer">
+          Already verified? <Link to="/login">Log in</Link>
+        </p>
+      </main>
+    );
+  }
+  const { schoolSearch, policies } = data;
 
   return (
     <main className="narrow">
@@ -66,7 +97,7 @@ function SignupPage() {
         selectedSchoolId={search.school_id}
         initialQuery={search.q}
         initialSearchFailed={schoolSearch.failed}
-        initialStatus={search.auth}
+        initialStatus={search.auth === "failed" ? "failed" : undefined}
         policies={policies}
       />
       <p className="form-footer">

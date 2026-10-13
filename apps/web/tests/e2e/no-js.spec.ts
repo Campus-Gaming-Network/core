@@ -35,8 +35,14 @@ test("public auth and support forms complete without JavaScript", async ({
   await page.getByRole("button", { name: "Create account" }).click();
   await expect(page).toHaveURL(/\/signup\?auth=created$/);
   await expect(
-    page.getByText("Account created. Check your email"),
+    page.getByRole("heading", { name: "Check your email.", level: 1 }),
   ).toBeVisible();
+  await expect(page.getByRole("main")).toContainText(
+    "We sent a verification link to no-js-signup@example.test.",
+  );
+  await expect(
+    page.getByRole("button", { name: "Create account" }),
+  ).toHaveCount(0);
 
   await page.goto("/forgot-password");
   await page.getByLabel("Email").fill("no-js-recovery@example.test");

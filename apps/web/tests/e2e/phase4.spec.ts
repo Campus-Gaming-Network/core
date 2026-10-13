@@ -35,9 +35,19 @@ test("public auth recovery and private account mutations work through the runtim
   await page.getByRole("checkbox", { name: /18 or older/ }).check();
   await page.getByRole("checkbox", { name: /agree to the Terms/ }).check();
   await page.getByRole("button", { name: "Create account" }).click();
+  await expect(page).toHaveURL(/\/signup\?auth=created$/);
   await expect(
-    page.getByText("Account created. Check your email"),
-  ).toBeVisible();
+    page.getByRole("heading", { name: "Check your email.", level: 1 }),
+  ).toBeFocused();
+  await expect(page.getByRole("main")).toContainText(
+    `We sent a verification link to signup-${device}@example.test.`,
+  );
+  await expect(
+    page.getByRole("button", { name: "Create account" }),
+  ).toHaveCount(0);
+  await expect(page.getByLabel("Email")).toHaveValue(
+    `signup-${device}@example.test`,
+  );
 
   await gotoApp(page, "/forgot-password");
   await page.getByLabel("Email").fill(`recovery-${device}@example.test`);

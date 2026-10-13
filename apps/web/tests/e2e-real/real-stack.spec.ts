@@ -234,10 +234,11 @@ async function signUpVerifyAndLogIn(
   await page.getByRole("checkbox", { name: /agree to the Terms/ }).check();
   await page.getByRole("button", { name: "Create account" }).click();
   await expect(
-    page
-      .getByRole("status")
-      .filter({ hasText: "Account created. Check your email" }),
+    page.getByRole("heading", { name: "Check your email.", level: 1 }),
   ).toBeVisible();
+  await expect(page.getByRole("main")).toContainText(
+    `We sent a verification link to ${email}.`,
+  );
 
   const message = await waitForMessage(
     request,

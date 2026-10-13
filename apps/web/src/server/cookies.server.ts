@@ -76,6 +76,32 @@ export function unlockCookieMutation(
   };
 }
 
+export const signupEmailCookieName = "cgn_signup_email";
+
+/**
+ * Carries the address a signup used to the confirmation screen without
+ * putting it in the URL. Short-lived. The path is the whole site because the
+ * confirmation reads it through a server function when it renders in the
+ * browser.
+ */
+export function signupEmailCookieMutation(
+  email: string,
+  production: boolean,
+): CookieMutation {
+  return {
+    kind: "set",
+    name: signupEmailCookieName,
+    value: email,
+    options: {
+      path: "/",
+      maxAge: 600,
+      httpOnly: true,
+      secure: production,
+      sameSite: "lax",
+    },
+  };
+}
+
 export function mirroredSessionCookieMutation(
   headers: Headers,
   expectedName: string,
