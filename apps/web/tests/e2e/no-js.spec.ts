@@ -306,6 +306,13 @@ test("team forms complete without JavaScript", async ({ context, page }) => {
 
   await context.clearCookies();
   await logIn(page, "owner-no-js@example.test", "/teams/new");
+  // The search is a form of its own that reloads the page, so search first.
+  await page.getByLabel("Find another school").fill("browser");
+  await page.getByRole("button", { name: "Search schools" }).click();
+  await expect(page).toHaveURL((url) => url.search === "?school_q=browser");
+  await page
+    .getByLabel("School link (optional)")
+    .selectOption({ label: "Browser Test University" });
   await page.getByLabel("Team name").fill("No JavaScript Team");
   await page
     .getByLabel("Description")
@@ -319,6 +326,9 @@ test("team forms complete without JavaScript", async ({ context, page }) => {
     /\/teams\/no-javascript-team-[^?]+\?team=created$/,
   );
   await expect(page.getByText("Campus Trivia Night")).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Browser Test University" }),
+  ).toBeVisible();
 
   await page.getByRole("button", { name: "Make captain" }).click();
   await expect(page).toHaveURL(/\?team=captain-updated$/);

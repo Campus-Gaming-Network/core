@@ -1,5 +1,5 @@
 import { expect, test, type BrowserContext } from "@playwright/test";
-import { gotoApp, logIn } from "./fixtures/app-navigation.js";
+import { gotoApp, logIn, waitForAppReady } from "./fixtures/app-navigation.js";
 
 const apiURL = "http://127.0.0.1:18081";
 const password = "E2EPassword123!";
@@ -207,6 +207,13 @@ test("team creation, joining, captain changes, and ownership transfer work throu
 
   await context.clearCookies();
   await logIn(page, `owner-${device}@example.test`, "/teams/new");
+  await page.getByLabel("Find another school").fill("browser");
+  await page.getByRole("button", { name: "Search schools" }).click();
+  await waitForAppReady(page);
+  await expect(page).toHaveURL((url) => url.search === "?school_q=browser");
+  await page
+    .getByLabel("School link (optional)")
+    .selectOption({ label: "Browser Test University" });
   await page.getByLabel("Team name").fill("Browser Migration Team");
   await page
     .getByLabel("Description")
@@ -218,6 +225,9 @@ test("team creation, joining, captain changes, and ownership transfer work throu
     /\/teams\/browser-migration-team-[^?]+\?team=created$/,
   );
   await expect(page.getByText("Your role: Owner.")).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Browser Test University" }),
+  ).toBeVisible();
 
   await page.getByRole("button", { name: "Make captain" }).click();
   await expect(page).toHaveURL(/\?team=captain-updated$/);

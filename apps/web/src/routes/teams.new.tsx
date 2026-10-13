@@ -24,7 +24,6 @@ import {
   newTeamPageInputSchema,
   validateNewTeamSearch,
   type GameSummaryDTO,
-  type NewTeamSearch,
   type SchoolSummaryDTO,
 } from "../features/team-slice/contracts";
 import {
@@ -33,6 +32,8 @@ import {
 } from "../features/team-slice/team.functions";
 import { newTeamHead } from "../features/team-slice/presentation";
 import teamCSS from "../features/team-slice/teams.css?url";
+
+const schoolSearchFormID = "team-school-search-form";
 
 export const Route = createFileRoute("/teams/new")({
   validateSearch: validateNewTeamSearch,
@@ -84,12 +85,17 @@ function NewTeamPage() {
         </p>
       </section>
 
-      <SchoolSearch search={search} failed={data.schoolSearchFailed} />
+      {/* The school search is a GET form of its own. HTML cannot nest forms,
+          so this one is empty and the search controls inside the create form
+          join it with the form attribute. */}
+      <form action="/teams/new" id={schoolSearchFormID} method="get" />
       <CreateTeamForm
         defaultSchoolID={data.defaultSchoolID}
         games={data.games}
         idempotencyKey={data.idempotencyKey}
         initialFailure={search.team === "create-failed"}
+        schoolQuery={search.school_q ?? ""}
+        schoolSearchFailed={data.schoolSearchFailed}
         schools={data.schools}
       />
       <p className="form-footer">
@@ -99,52 +105,21 @@ function NewTeamPage() {
   );
 }
 
-function SchoolSearch({
-  failed,
-  search,
-}: {
-  failed: boolean;
-  search: NewTeamSearch;
-}) {
-  return (
-    <section
-      className="team-school-search"
-      aria-labelledby="school-search-heading"
-    >
-      <h2 id="school-search-heading">Find another school</h2>
-      <form action="/teams/new" className="search-bar" method="get">
-        <label>
-          School name
-          <input
-            defaultValue={search.school_q}
-            minLength={2}
-            maxLength={200}
-            name="school_q"
-            placeholder="University or college"
-          />
-        </label>
-        <button type="submit">Search schools</button>
-      </form>
-      {failed ? (
-        <p role="alert">
-          School search is unavailable. You can still use your home school.
-        </p>
-      ) : null}
-    </section>
-  );
-}
-
 function CreateTeamForm({
   defaultSchoolID,
   games,
   idempotencyKey,
   initialFailure,
+  schoolQuery,
+  schoolSearchFailed,
   schools,
 }: {
   defaultSchoolID: string;
   games: GameSummaryDTO[];
   idempotencyKey: string;
   initialFailure: boolean;
+  schoolQuery: string;
+  schoolSearchFailed: boolean;
   schools: SchoolSummaryDTO[];
 }) {
   const idempotency = useIdempotencyKey(idempotencyKey);
@@ -220,6 +195,28 @@ function CreateTeamForm({
         title="Campus and games"
         description="Link the team to a school and choose the games it plays."
       >
+        <div className="team-school-search">
+          <label>
+            Find another school
+            <input
+              defaultValue={schoolQuery}
+              form={schoolSearchFormID}
+              maxLength={200}
+              minLength={2}
+              name="school_q"
+              placeholder="University or college"
+              type="search"
+            />
+          </label>
+          <button form={schoolSearchFormID} type="submit">
+            Search schools
+          </button>
+        </div>
+        {schoolSearchFailed ? (
+          <p role="alert">
+            School search is unavailable. You can still use your home school.
+          </p>
+        ) : null}
         <FormField
           errorId="team-school-error"
           errors={schoolErrors}
