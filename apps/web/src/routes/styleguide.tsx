@@ -19,6 +19,7 @@ import { CopyLink } from "../components/copy-link";
 import { FormErrorSummary } from "../components/enhanced-mutation";
 import { FormField, RequiredFieldsNote } from "../components/form-field";
 import { FormSection } from "../components/form-section";
+import { PasswordInput } from "../components/password-input";
 import { PageNoticeView } from "../components/page-notice-view";
 import { Person } from "../components/person";
 import { publicPageHead } from "../components/public-page-head";
@@ -825,7 +826,7 @@ function FormsSection() {
               errorId="styleguide-password-error"
               label="Event password"
             >
-              <input type="text" />
+              <PasswordInput />
             </FormField>
             <p className="form-help">
               This box is highlighted while Private is selected.

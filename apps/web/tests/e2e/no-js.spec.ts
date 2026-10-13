@@ -19,7 +19,36 @@ test("native login rejects control-character redirect targets", async ({
   await page.getByLabel("Email").fill("safe-redirect-no-js@example.test");
   await page.getByLabel("Password").fill(password);
   await page.getByRole("button", { name: "Log in" }).click();
-  await expect(page).toHaveURL(/\/account$/);
+  await expect(page).toHaveURL(
+    (url) => url.pathname === "/" && url.search === "",
+  );
+});
+
+test("native login without a return target lands on the home page", async ({
+  page,
+}) => {
+  await page.goto("/login");
+  await page.getByLabel("Email").fill("login-home-no-js@example.test");
+  await page.getByLabel("Password").fill(password);
+  await page.getByRole("button", { name: "Log in" }).click();
+  await expect(page).toHaveURL(
+    (url) => url.pathname === "/" && url.search === "",
+  );
+});
+
+test("native login started from a protected page returns to that page", async ({
+  page,
+}) => {
+  await page.goto("/account");
+  await expect(page).toHaveURL(
+    (url) => url.pathname === "/login" && url.search === "?next=%2Faccount",
+  );
+  await page.getByLabel("Email").fill("login-return-no-js@example.test");
+  await page.getByLabel("Password").fill(password);
+  await page.getByRole("button", { name: "Log in" }).click();
+  await expect(page).toHaveURL(
+    (url) => url.pathname === "/account" && url.search === "",
+  );
 });
 
 test("public auth and support forms complete without JavaScript", async ({
@@ -167,6 +196,12 @@ test("event forms complete without JavaScript", async ({ context, page }) => {
   const privateSlug = "private-no-js";
 
   await page.goto(`/events/${privateSlug}`);
+  // Showing the password needs JavaScript, so the button is not offered.
+  await expect(page.getByLabel("Event password")).toHaveAttribute(
+    "type",
+    "password",
+  );
+  await expect(page.getByRole("button", { name: /password/i })).toHaveCount(0);
   await page.getByLabel("Event password").fill("WrongPassword123!");
   await page.getByRole("button", { name: "Unlock event" }).click();
   await expect(page).toHaveURL(
@@ -300,12 +335,20 @@ test("team forms complete without JavaScript", async ({ context, page }) => {
     "no-js-member@example.test",
     "/teams/joinable-browser-team",
   );
+  await expect(page.getByRole("button", { name: /password/i })).toHaveCount(0);
   await page.getByLabel("Team password").fill("BrowserTeamPass123!");
   await page.getByRole("button", { name: "Join team" }).click();
   await expect(page).toHaveURL(/\?team=joined$/);
 
   await context.clearCookies();
   await logIn(page, "owner-no-js@example.test", "/teams/new");
+  // The search reloads the page, so it sits above the form and runs first.
+  await page.getByLabel("Search schools").fill("browser");
+  await page.getByRole("button", { name: "Search", exact: true }).click();
+  await expect(page).toHaveURL((url) => url.search === "?school_q=browser");
+  await page
+    .getByLabel("School link (optional)")
+    .selectOption({ label: "Browser Test University — Irvine, CA" });
   await page.getByLabel("Team name").fill("No JavaScript Team");
   await page
     .getByLabel("Description")
@@ -319,6 +362,9 @@ test("team forms complete without JavaScript", async ({ context, page }) => {
     /\/teams\/no-javascript-team-[^?]+\?team=created$/,
   );
   await expect(page.getByText("Campus Trivia Night")).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Browser Test University" }),
+  ).toBeVisible();
 
   await page.getByRole("button", { name: "Make captain" }).click();
   await expect(page).toHaveURL(/\?team=captain-updated$/);
@@ -469,4 +515,27 @@ test("FAQ answers open without JavaScript", async ({ page }) => {
     .getByText("What happens when an event is full?", { exact: true })
     .click();
   await expect(answer).toBeVisible();
+});
+
+test("school tabs change the sections shown without JavaScript", async ({
+  page,
+}) => {
+  await page.goto("/schools/summit-ridge-university?tab=teams");
+  const tabs = page.getByRole("navigation", { name: "School sections" });
+  await expect(tabs.getByRole("link", { name: "Teams" })).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
+  await expect(
+    page.getByRole("heading", { name: "Upcoming events" }),
+  ).toHaveCount(0);
+
+  await tabs.getByRole("link", { name: "Events" }).click();
+  await expect(page).toHaveURL(/\?tab=events$/);
+  await expect(
+    page.getByRole("heading", { name: "Upcoming events" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Teams", exact: true }),
+  ).toHaveCount(0);
 });

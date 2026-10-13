@@ -6,7 +6,7 @@ import {
 } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { ArrowRight, ArrowUpRight, Check } from "lucide-react";
-import { useEffect, useState, type FormEvent } from "react";
+import type { FormEvent } from "react";
 import { ButtonLink } from "../components/button-link";
 import { useEnhancedMutation } from "../components/enhanced-mutation";
 import { PageNoticeView } from "../components/page-notice-view";
@@ -101,19 +101,7 @@ function SchoolPage() {
   const { school, viewer, events, teams, members } = Route.useLoaderData();
   const search = Route.useSearch();
   const website = safeSchoolWebsite(school.website_url);
-  const [hash, setHash] = useState("");
-
-  // The tabs are in-page links, so the visitor's last jump decides which one
-  // is current. The server HTML starts on Overview, matching a page with no
-  // fragment.
-  useEffect(() => {
-    const sync = () => setHash(window.location.hash);
-    sync();
-    window.addEventListener("hashchange", sync);
-    return () => window.removeEventListener("hashchange", sync);
-  }, []);
-  const onEvents = hash === "#school-events";
-  const onTeams = hash === "#school-teams";
+  const tab = search.tab;
 
   return (
     <main className="detail-page school-community-page">
@@ -217,109 +205,123 @@ function SchoolPage() {
       ) : (
         <>
           <nav className="school-community-tabs" aria-label="School sections">
-            <a
-              aria-current={!onEvents && !onTeams ? "location" : undefined}
-              href="#overview"
+            <Link
+              aria-current={tab === undefined ? "page" : undefined}
+              to="/schools/$slug"
+              params={{ slug: school.slug }}
             >
               Overview
-            </a>
-            <a
-              aria-current={onEvents ? "location" : undefined}
-              href="#school-events"
+            </Link>
+            <Link
+              aria-current={tab === "events" ? "page" : undefined}
+              to="/schools/$slug"
+              params={{ slug: school.slug }}
+              search={{ tab: "events" }}
             >
               Events
-            </a>
-            <a
-              aria-current={onTeams ? "location" : undefined}
-              href="#school-teams"
+            </Link>
+            <Link
+              aria-current={tab === "teams" ? "page" : undefined}
+              to="/schools/$slug"
+              params={{ slug: school.slug }}
+              search={{ tab: "teams" }}
             >
               Teams
-            </a>
+            </Link>
           </nav>
 
-          <div className="school-community-content" id="overview">
-            <section id="school-events" aria-labelledby="school-events-heading">
-              <div className="section-heading">
-                <h2 id="school-events-heading">Upcoming events</h2>
-                <Link to="/events" search={{ school: school.slug }}>
-                  View all events
-                </Link>
-              </div>
-              {events.eventsUnavailable ? (
-                <div className="school-inline-empty">
-                  <p>
-                    Events are unavailable right now. Please check back soon.
-                  </p>
-                </div>
-              ) : events.events.length > 0 ? (
-                <div className="list">
-                  {events.events.slice(0, 4).map((event) => (
-                    <EventCard event={event} key={event.id} />
-                  ))}
-                </div>
-              ) : (
-                <div className="school-inline-empty">
-                  <p>No upcoming events yet.</p>
-                  <Link className="link with-arrow" to="/events/new">
-                    Create the first event
-                    <ArrowRight
-                      aria-hidden="true"
-                      size={14}
-                      strokeWidth={2.25}
-                    />
+          <div
+            className={`school-community-content${tab ? " school-community-content--single" : ""}`}
+          >
+            {tab !== "teams" ? (
+              <section
+                id="school-events"
+                aria-labelledby="school-events-heading"
+              >
+                <div className="section-heading">
+                  <h2 id="school-events-heading">Upcoming events</h2>
+                  <Link to="/events" search={{ school: school.slug }}>
+                    View all events
                   </Link>
                 </div>
-              )}
-            </section>
-
-            <section id="school-teams" aria-labelledby="school-teams-heading">
-              <div className="section-heading">
-                <h2 id="school-teams-heading">Teams</h2>
-                <Link to="/teams" search={{ school: school.slug }}>
-                  View all teams
-                </Link>
-              </div>
-              {teams.teamsUnavailable ? (
-                <div className="school-inline-empty">
-                  <p>
-                    Teams are unavailable right now. Please check back soon.
-                  </p>
-                </div>
-              ) : teams.teams.length > 0 ? (
-                <div className="school-team-list">
-                  {teams.teams.slice(0, 4).map((team) => (
-                    <Link
-                      key={team.id}
-                      to="/teams/$slug"
-                      params={{ slug: team.slug }}
-                    >
-                      <span aria-hidden="true" className="team-mark">
-                        {team.name.slice(0, 1).toUpperCase()}
-                      </span>
-                      <span>
-                        <strong>{team.name}</strong>
-                        <small>
-                          {team.member_count} member
-                          {team.member_count === 1 ? "" : "s"}
-                        </small>
-                      </span>
+                {events.eventsUnavailable ? (
+                  <div className="school-inline-empty">
+                    <p>
+                      Events are unavailable right now. Please check back soon.
+                    </p>
+                  </div>
+                ) : events.events.length > 0 ? (
+                  <div className="list">
+                    {events.events.slice(0, 4).map((event) => (
+                      <EventCard event={event} key={event.id} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="school-inline-empty">
+                    <p>No upcoming events yet.</p>
+                    <Link className="link with-arrow" to="/events/new">
+                      Create the first event
+                      <ArrowRight
+                        aria-hidden="true"
+                        size={14}
+                        strokeWidth={2.25}
+                      />
                     </Link>
-                  ))}
-                </div>
-              ) : (
-                <div className="school-inline-empty">
-                  <p>No teams have formed yet.</p>
-                  <Link className="link with-arrow" to="/teams/new">
-                    Start a team
-                    <ArrowRight
-                      aria-hidden="true"
-                      size={14}
-                      strokeWidth={2.25}
-                    />
+                  </div>
+                )}
+              </section>
+            ) : null}
+
+            {tab !== "events" ? (
+              <section id="school-teams" aria-labelledby="school-teams-heading">
+                <div className="section-heading">
+                  <h2 id="school-teams-heading">Teams</h2>
+                  <Link to="/teams" search={{ school: school.slug }}>
+                    View all teams
                   </Link>
                 </div>
-              )}
-            </section>
+                {teams.teamsUnavailable ? (
+                  <div className="school-inline-empty">
+                    <p>
+                      Teams are unavailable right now. Please check back soon.
+                    </p>
+                  </div>
+                ) : teams.teams.length > 0 ? (
+                  <div className="school-team-list">
+                    {teams.teams.slice(0, 4).map((team) => (
+                      <Link
+                        key={team.id}
+                        to="/teams/$slug"
+                        params={{ slug: team.slug }}
+                      >
+                        <span aria-hidden="true" className="team-mark">
+                          {team.name.slice(0, 1).toUpperCase()}
+                        </span>
+                        <span>
+                          <strong>{team.name}</strong>
+                          <small>
+                            {team.member_count} member
+                            {team.member_count === 1 ? "" : "s"}
+                          </small>
+                        </span>
+                      </Link>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="school-inline-empty">
+                    <p>No teams have formed yet.</p>
+                    <Link className="link with-arrow" to="/teams/new">
+                      Start a team
+                      <ArrowRight
+                        aria-hidden="true"
+                        size={14}
+                        strokeWidth={2.25}
+                      />
+                    </Link>
+                  </div>
+                )}
+              </section>
+            ) : null}
           </div>
         </>
       )}

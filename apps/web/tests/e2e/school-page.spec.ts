@@ -22,28 +22,32 @@ test("the school header joins the alias, location, and campus type beside Follow
   ).toHaveText("QVC · Boise, ID · Branch campus");
 });
 
-test("the school tabs mark the section a keyboard jump lands on", async ({
-  page,
-}) => {
+test("each school tab changes the sections shown", async ({ page }) => {
   await gotoApp(page, "/schools/summit-ridge-university");
   const tabs = page.getByRole("navigation", { name: "School sections" });
-  const current = () =>
-    tabs
-      .getByRole("link")
-      .evaluateAll((links) =>
-        links.map((link) => link.getAttribute("aria-current")),
-      );
-  await expect.poll(current).toEqual(["location", null, null]);
+  const events = page.getByRole("heading", { name: "Upcoming events" });
+  const teams = page.getByRole("heading", { name: "Teams", exact: true });
+  await expect(events).toBeVisible();
+  await expect(teams).toBeVisible();
 
-  await tabs.getByRole("link", { name: "Teams" }).focus();
-  await page.keyboard.press("Enter");
-  await expect(page).toHaveURL(/#school-teams$/);
-  await expect.poll(current).toEqual([null, null, "location"]);
+  await tabs.getByRole("link", { name: "Teams" }).click();
+  await expect(page).toHaveURL(/\?tab=teams$/);
+  await expect(tabs.getByRole("link", { name: "Teams" })).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
+  await expect(teams).toBeVisible();
+  await expect(events).toHaveCount(0);
 
-  await tabs.getByRole("link", { name: "Events" }).focus();
-  await page.keyboard.press("Enter");
-  await expect(page).toHaveURL(/#school-events$/);
-  await expect.poll(current).toEqual([null, "location", null]);
+  await tabs.getByRole("link", { name: "Events" }).click();
+  await expect(page).toHaveURL(/\?tab=events$/);
+  await expect(events).toBeVisible();
+  await expect(teams).toHaveCount(0);
+
+  await tabs.getByRole("link", { name: "Overview" }).click();
+  await expect(page).toHaveURL(/\/schools\/summit-ridge-university$/);
+  await expect(events).toBeVisible();
+  await expect(teams).toBeVisible();
 });
 
 test("a school with nothing scheduled offers one primary action, a text link, and no tabs", async ({

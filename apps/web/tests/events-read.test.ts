@@ -228,6 +228,16 @@ test("event read presentation matches labels, notices, indexable head, and safe 
     eventLocation(browseEvent),
     "Student Union · 100 Campus Drive + online",
   );
+  const unlocated = {
+    ...browseEvent,
+    format: "in_person" as const,
+    location_name: undefined,
+    address: undefined,
+  };
+  assert.deepEqual(
+    [eventLocation(unlocated), eventLocation(unlocated, "N/A")],
+    ["Location pending", "N/A"],
+  );
   assert.equal(safeExternalEventUrl("javascript:alert(1)"), undefined);
   assert.equal(
     safeExternalEventUrl("https://payments.example/path"),

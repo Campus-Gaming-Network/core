@@ -24,14 +24,13 @@ const newSource = readFileSync(
 test("team creation supports auth redirects, native search, enhanced POST, and typed links", () => {
   assert.match(newSource, /to: "\/login"/);
   assert.match(newSource, /search: \{ next: "\/teams\/new" \}/);
-  assert.match(newSource, /action="\/teams\/new"/);
-  assert.match(newSource, /method="get"/);
-  assert.match(newSource, /name="school_q"/);
+  assert.match(newSource, /<NoScriptSchoolSearch action="\/teams\/new"/);
+  assert.match(newSource, /name="school_id"/);
   assert.match(newSource, /action=\{createTeam\.url\}/);
   assert.match(newSource, /useServerFn\(createTeam\)/);
   assert.match(newSource, /mutation\.execute/);
   assert.match(newSource, /name="game_ids"/);
-  assert.match(newSource, /type="password"/);
+  assert.match(newSource, /<PasswordInput/);
   assert.match(newSource, /to="\/teams"/);
   assert.match(newSource, /noindex,nofollow|newTeamHead/);
 });
