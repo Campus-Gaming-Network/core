@@ -8,7 +8,7 @@ import {
 import { useServerFn } from "@tanstack/react-start";
 import { ArrowRight } from "lucide-react";
 import { type FormEvent, useRef, useState } from "react";
-import { Breadcrumbs } from "../components/breadcrumbs";
+import { BreadcrumbLink, Breadcrumbs } from "../components/breadcrumbs";
 import { ButtonLink } from "../components/button-link";
 import { KeyInformation } from "../components/key-information";
 import { PageHeading } from "../components/page-heading";
@@ -119,7 +119,7 @@ function TeamPage() {
   return (
     <main className="detail-page">
       <Breadcrumbs current={team.name}>
-        <Link to="/teams">Teams</Link>
+        <BreadcrumbLink to="/teams">Teams</BreadcrumbLink>
       </Breadcrumbs>
       <PageHeading
         identity={

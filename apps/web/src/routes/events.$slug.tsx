@@ -17,7 +17,7 @@ import {
   X,
 } from "lucide-react";
 import { type FormEvent, useRef, useState } from "react";
-import { Breadcrumbs } from "../components/breadcrumbs";
+import { BreadcrumbLink, Breadcrumbs } from "../components/breadcrumbs";
 import { ButtonLink } from "../components/button-link";
 import { CalendarDate } from "../components/calendar-date";
 import { Callout } from "../components/callout";
@@ -312,7 +312,7 @@ function VisibleEventView({
     <main className="event-page">
       <EventBanner event={event} size="hero" />
       <Breadcrumbs current={event.title}>
-        <Link to="/events">Events</Link>
+        <BreadcrumbLink to="/events">Events</BreadcrumbLink>
       </Breadcrumbs>
       <PageHeading
         identity={
@@ -337,7 +337,7 @@ function VisibleEventView({
           </>
         }
         tags={
-          <>
+          <div className="event-pill-list">
             {event.lifecycle !== "upcoming" ? (
               <StatusLabel status={event.lifecycle}>
                 {eventLifecycleLabel(event.lifecycle)}
@@ -345,7 +345,7 @@ function VisibleEventView({
             ) : null}
             <StatusLabel>{eventVisibilityLabel(event.visibility)}</StatusLabel>
             <EventFacts event={event} />
-          </>
+          </div>
         }
       />
 

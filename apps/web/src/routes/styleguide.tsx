@@ -11,7 +11,7 @@ import {
 import { useRef, useState, type FormEvent } from "react";
 import { AccountMenu } from "../components/account-menu";
 import { Avatar } from "../components/avatar";
-import { Breadcrumbs } from "../components/breadcrumbs";
+import { BreadcrumbLink, Breadcrumbs } from "../components/breadcrumbs";
 import { ButtonLink } from "../components/button-link";
 import { CalendarDate } from "../components/calendar-date";
 import { Callout } from "../components/callout";
@@ -961,7 +961,7 @@ function DetailHeaderSection() {
         <>
           <h3 className="styleguide-sub">Team</h3>
           <Breadcrumbs current={team.name}>
-            <Link to="/teams">Teams</Link>
+            <BreadcrumbLink to="/teams">Teams</BreadcrumbLink>
           </Breadcrumbs>
           <PageHeading
             actions={

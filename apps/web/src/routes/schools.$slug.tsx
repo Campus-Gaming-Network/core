@@ -7,7 +7,7 @@ import {
 import { useServerFn } from "@tanstack/react-start";
 import { ArrowRight, ArrowUpRight, Check } from "lucide-react";
 import type { FormEvent } from "react";
-import { Breadcrumbs } from "../components/breadcrumbs";
+import { BreadcrumbLink, Breadcrumbs } from "../components/breadcrumbs";
 import { ButtonLink } from "../components/button-link";
 import { useEnhancedMutation } from "../components/enhanced-mutation";
 import { KeyInformation } from "../components/key-information";
@@ -118,7 +118,7 @@ function SchoolPage() {
   return (
     <main className="detail-page school-community-page">
       <Breadcrumbs current={school.name}>
-        <Link to="/schools">Schools</Link>
+        <BreadcrumbLink to="/schools">Schools</BreadcrumbLink>
       </Breadcrumbs>
       <PageHeading
         identity={
