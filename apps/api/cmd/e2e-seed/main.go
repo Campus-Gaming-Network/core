@@ -10,6 +10,7 @@ import (
 
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/config"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/db"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/redact"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -43,6 +44,8 @@ const (
 )
 
 func main() {
+	slog.SetDefault(redact.NewLogger(os.Stderr))
+
 	adminMode := len(os.Args) > 1 && os.Args[1] == "admin"
 	if adminMode {
 		primarySchoolID = "10000000-0000-4000-8000-000000000001"
@@ -58,7 +61,7 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	database, err := db.Open(ctx, cfg.DatabaseURL, cfg.DBMaxConns)
+	database, err := db.Open(ctx, cfg.DatabaseURL, db.Options{MaxConns: cfg.DBMaxConns})
 	if err != nil {
 		slog.Error("open database", "error", err)
 		os.Exit(1)

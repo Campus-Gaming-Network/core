@@ -129,6 +129,10 @@ type GameSummary struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
 	Slug string `json:"slug"`
+	// HasCover reports a cover the site serves at /api/games/{slug}/cover.
+	// It is false for a game hidden since the event chose it, whose cover
+	// the site no longer serves.
+	HasCover bool `json:"has_cover"`
 }
 
 type ListParams struct {

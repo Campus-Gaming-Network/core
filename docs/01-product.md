@@ -92,6 +92,8 @@ Signup also requires confirming **age 18+**. Alumni can participate. Faculty who
   the same event data the page shows, with the same UID as the RSVP email's
   attachment. A locked private event, a missing event, and a cancelled event
   answer 404 and expose nothing
+- A visible event page lists the event's games, each with its cover when the
+  catalog stores one
 - A visible event page has a **Share** card with the event's public link as
   selectable text and a **Copy link** button (the button needs JavaScript; the
   link text does not). Sharing a private event's link reveals nothing without

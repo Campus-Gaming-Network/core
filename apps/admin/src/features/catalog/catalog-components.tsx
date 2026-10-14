@@ -535,26 +535,41 @@ export function GameImportForm({ matches }: { matches: IGDBMatch[] }) {
       <FormFeedback message={feedback.message} />
       <fieldset>
         <legend>IGDB matches</legend>
-        {matches.map((match) =>
-          match.game_id ? (
-            <p key={match.igdb_id}>
-              <a href={`/games/${encodeURIComponent(match.game_id)}`}>
-                {matchTitle(match)}
-              </a>{" "}
-              is already in the catalog.
+        {matches.map((match) => {
+          const thumbnail = match.thumbnail ? (
+            <img
+              alt=""
+              className="igdb-thumbnail"
+              height={64}
+              src={match.thumbnail}
+              width={45}
+            />
+          ) : (
+            <span aria-hidden="true" className="igdb-thumbnail" />
+          );
+          return match.game_id ? (
+            <p className="igdb-match" key={match.igdb_id}>
+              {thumbnail}
+              <span>
+                <a href={`/games/${encodeURIComponent(match.game_id)}`}>
+                  {matchTitle(match)}
+                </a>{" "}
+                is already in the catalog.
+              </span>
             </p>
           ) : (
-            <label className="checkbox-field" key={match.igdb_id}>
+            <label className="checkbox-field igdb-match" key={match.igdb_id}>
               <input
                 name="igdb_id"
                 required
                 type="radio"
                 value={match.igdb_id}
               />
+              {thumbnail}
               {matchTitle(match)}
             </label>
-          ),
-        )}
+          );
+        })}
         <FieldError
           id="igdb-id-error"
           messages={feedback.fieldErrors.igdb_id}

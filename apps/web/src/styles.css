@@ -1416,6 +1416,34 @@ input[type="radio"] {
   color: var(--color-muted);
 }
 
+/* An event's games, each beside its cover or a placeholder of the same size. */
+.event-game-list {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.event-game-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.event-game-cover {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 3rem;
+  height: 4rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-small);
+  background: var(--color-border);
+  color: var(--color-muted);
+  object-fit: cover;
+}
+
 .action-panel {
   margin-top: 2rem;
 }

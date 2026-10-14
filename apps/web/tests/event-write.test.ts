@@ -46,7 +46,7 @@ const event = {
   lifecycle: "upcoming" as const,
   cost: "unspecified" as const,
   host_school: school,
-  games: [game],
+  games: [{ ...game, has_cover: true }],
   viewer_can_edit: true,
 };
 

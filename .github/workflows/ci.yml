@@ -6,6 +6,11 @@ on:
     branches:
       - main
       - next
+  # The web and admin browser suites are paused while the UI changes quickly
+  # before release. They run only when this workflow is started by hand from
+  # the Actions tab. Remove the `workflow_dispatch` conditions below to turn
+  # them back on.
+  workflow_dispatch:
 
 # Jobs only read the repository; none needs to write to it or to packages.
 permissions:
@@ -128,6 +133,8 @@ jobs:
     # it is split across jobs instead of across workers. Each shard starts its
     # own servers.
     name: Web browser tests (${{ matrix.runtime }} ${{ matrix.shard }}/${{ matrix.shards }})
+    # Paused; see the note on `workflow_dispatch` at the top of this file.
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
@@ -199,13 +206,17 @@ jobs:
       - name: Build
         working-directory: apps/admin
         run: pnpm run build
+      # The browser steps are paused; see the note on `workflow_dispatch` at
+      # the top of this file.
       - name: Install Playwright browser
+        if: github.event_name == 'workflow_dispatch'
         working-directory: apps/admin
         # The tests run headless, so only the headless shell is needed. The
         # runner image already has Chromium's shared libraries, and
         # `--with-deps` spent most of this step in `apt`.
         run: pnpm exec playwright install --only-shell chromium
       - name: Browser tests
+        if: github.event_name == 'workflow_dispatch'
         id: browser_tests
         continue-on-error: true
         working-directory: apps/admin
@@ -226,6 +237,8 @@ jobs:
 
   real-stack:
     name: Real BFF → Go → Postgres browser tests
+    # Paused; see the note on `workflow_dispatch` at the top of this file.
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     services:
       postgres:

@@ -1019,6 +1019,16 @@
     @apply h-4 w-4 shrink-0;
   }
 
+  .igdb-match {
+    @apply m-0 flex items-center gap-3;
+  }
+
+  .igdb-thumbnail {
+    @apply block shrink-0 rounded border border-admin-border bg-admin-surface object-cover;
+    width: 45px;
+    height: 64px;
+  }
+
   .related-actions {
     @apply flex flex-wrap gap-2;
   }
