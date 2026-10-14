@@ -4,6 +4,7 @@ import { ApiError, type ApiClient } from "../src/server/api.server.js";
 import {
   accountDashboardOperation,
   deleteAccountOperation,
+  directorySidebarOperation,
   updateProfileOperation,
 } from "../src/features/account-slice/account-operations.server.js";
 import {
@@ -98,6 +99,69 @@ test("account dashboard distinguishes 401 from an upstream outage", async () => 
       reportError: () => undefined,
     }),
     { status: "error", message: "Account details are unavailable." },
+  );
+});
+
+test("the directory sidebar lists the home school and the first five follows", async () => {
+  const homeSchool = {
+    id: "school-1",
+    name: "Home University",
+    slug: "home-university",
+    city: "Irvine",
+    state: "CA",
+  };
+  const follows = [1, 2, 3, 4, 5, 6].map((number) => ({
+    id: `school-follow-${number}`,
+    name: `Followed College ${number}`,
+    slug: `followed-college-${number}`,
+  }));
+  const api = (async ({ path }) => {
+    if (path === "/me") {
+      return result(
+        accountProfileDtoSchema.parse({ ...profile, home_school: homeSchool }),
+      );
+    }
+    if (path === "/me/schools") return result({ schools: follows });
+    throw new Error(`Unexpected path ${path}`);
+  }) as ApiClient;
+
+  assert.deepEqual(
+    await directorySidebarOperation({ api, cookieHeader: "cgn_session=live" }),
+    {
+      status: "found",
+      homeSchool,
+      followedSchools: follows.slice(0, 5),
+      moreFollowedSchools: true,
+    },
+  );
+});
+
+test("the directory sidebar is a visitor's on 401 and unavailable when a read fails", async () => {
+  const unauthorized = (async () => {
+    throw new ApiError(401, "authentication_required");
+  }) as ApiClient;
+  const reported: unknown[] = [];
+  assert.deepEqual(
+    await directorySidebarOperation({
+      api: unauthorized,
+      cookieHeader: "cgn_session=old",
+      reportError: (error) => reported.push(error),
+    }),
+    { status: "visitor" },
+  );
+  assert.deepEqual(reported, []);
+
+  const followsDown = (async ({ path }) => {
+    if (path === "/me") return result(accountProfileDtoSchema.parse(profile));
+    throw new ApiError(503, "followed_schools_unavailable");
+  }) as ApiClient;
+  assert.deepEqual(
+    await directorySidebarOperation({
+      api: followsDown,
+      cookieHeader: "cgn_session=live",
+      reportError: () => undefined,
+    }),
+    { status: "unavailable" },
   );
 });
 

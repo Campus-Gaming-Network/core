@@ -564,6 +564,27 @@ test("people lists page with native links and the member-list setting saves with
   await expect(listed).toHaveCount(1);
 });
 
+test("the directory sidebar renders from the server without JavaScript", async ({
+  page,
+}) => {
+  await page.goto("/login?next=%2Fteams");
+  await page.getByLabel("Email").fill("sidebar-no-js@example.test");
+  await page.getByLabel("Password").fill(password);
+  await page.getByRole("button", { name: "Log in" }).click();
+  await expect(page).toHaveURL((url) => url.pathname === "/teams");
+
+  const sidebar = page.getByRole("complementary", { name: "Directory" });
+  await expect(
+    sidebar.getByRole("navigation", { name: "Directories" }).getByRole("link"),
+  ).toHaveText(["Events", "Teams", "Schools"]);
+  await expect(
+    sidebar.getByRole("link", { name: "Teams", exact: true }),
+  ).toHaveAttribute("aria-current", "page");
+  await expect(
+    sidebar.getByRole("link", { name: "Browser Test University Irvine, CA" }),
+  ).toHaveAttribute("href", "/schools/browser-test-university");
+});
+
 test("FAQ answers open without JavaScript", async ({ page }) => {
   await page.goto("/faq");
 

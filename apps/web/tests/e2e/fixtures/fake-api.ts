@@ -817,6 +817,24 @@ async function handleRequest(
   }
 
   if (method === "GET" && url.pathname === "/me/schools") {
+    // One account cannot load its followed schools, and one follows more
+    // schools than the directory sidebar lists.
+    if (session?.email === "sidebar-unavailable@example.test") {
+      json(response, 503, { error: "followed_schools_unavailable" });
+      return;
+    }
+    if (session?.email === "sidebar-many-follows@example.test") {
+      json(response, 200, {
+        schools: [1, 2, 3, 4, 5, 6].map((number) => ({
+          id: `school-sidebar-follow-${number}`,
+          name: `Sidebar Follow College ${number}`,
+          slug: `sidebar-follow-college-${number}`,
+          city: "Fresno",
+          state: "CA",
+        })),
+      });
+      return;
+    }
     json(
       response,
       session ? 200 : 401,

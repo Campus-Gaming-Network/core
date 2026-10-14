@@ -1,3 +1,4 @@
+import type { DirectorySidebarResult } from "../account-slice/contracts";
 import type {
   EventBrowseItemDTO,
   NavigationViewer,
@@ -54,6 +55,31 @@ export const exampleSchools: {
     location: "Asheville, NC",
   },
 ];
+
+/** A signed-in viewer's directory sidebar: more follows than it lists. */
+export const exampleDirectorySidebar: DirectorySidebarResult = {
+  status: "found",
+  homeSchool: {
+    id: "styleguide-school-summit-ridge",
+    name: "Summit Ridge University",
+    slug: "styleguide-summit-ridge",
+    city: "Boulder",
+    state: "CO",
+  },
+  followedSchools: [
+    {
+      id: "styleguide-school-lakeshore-state",
+      name: "Lakeshore State College",
+      slug: "styleguide-lakeshore-state",
+    },
+    {
+      id: "styleguide-school-harbor-point",
+      name: "Harbor Point Institute",
+      slug: "styleguide-harbor-point",
+    },
+  ],
+  moreFollowedSchools: true,
+};
 
 export const exampleTeams: {
   name: string;

@@ -10,12 +10,14 @@ import {
   accountDashboardOperation,
   accountProfileOperation,
   deleteAccountOperation,
+  directorySidebarOperation,
   updateProfileOperation,
 } from "./account-operations.server.js";
 import {
   validateDeleteAccountInput,
   validateUpdateProfileInput,
   type DeleteAccountInput,
+  type DirectorySidebarResult,
   type UpdateProfileInput,
 } from "./contracts.js";
 
@@ -31,6 +33,27 @@ export const getAccountDashboard = createServerFn({ method: "GET" }).handler(
     });
   },
 );
+
+// A visitor's request makes no upstream call and leaves the page's caching
+// alone; a viewer's makes the page private.
+export const getDirectorySidebar = createServerFn({ method: "GET" }).handler(
+  async (): Promise<DirectorySidebarResult> => {
+    const request = currentSessionRequest();
+    if (!request.sessionCookieValue) return { status: "visitor" };
+    setPrivateNoStoreResponse();
+    return directorySidebarOperation({
+      api: request.api,
+      cookieHeader: request.cookieHeader,
+    });
+  },
+);
+
+/** The sidebar for a directory loader; a failed call never fails the page. */
+export function loadDirectorySidebar(): Promise<DirectorySidebarResult> {
+  return getDirectorySidebar().catch(() => ({
+    status: "unavailable" as const,
+  }));
+}
 
 export const getAccountProfile = createServerFn({ method: "GET" }).handler(
   async () => {

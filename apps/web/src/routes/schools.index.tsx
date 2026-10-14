@@ -3,6 +3,8 @@ import {
   DirectoryRow,
   directoryRowClassName,
 } from "../components/directory-row";
+import { DirectorySidebar } from "../components/directory-sidebar";
+import { loadDirectorySidebar } from "../features/account-slice/account.functions";
 import { PageNoticeView } from "../components/page-notice-view";
 import { ListUnavailable, RoutePending } from "../components/route-boundaries";
 import { SchoolLogo } from "../components/school-logo";
@@ -23,10 +25,13 @@ import {
 export const Route = createFileRoute("/schools/")({
   validateSearch: validateSchoolsSearch,
   loaderDeps: ({ search }) => schoolsBrowseInput(search),
-  loader: async ({ context, deps }) => ({
-    catalog: await getSchoolsCatalog({ data: deps }),
-    publicOrigin: context.publicOrigin,
-  }),
+  loader: async ({ context, deps }) => {
+    const [catalog, sidebar] = await Promise.all([
+      getSchoolsCatalog({ data: deps }),
+      loadDirectorySidebar(),
+    ]);
+    return { catalog, sidebar, publicOrigin: context.publicOrigin };
+  },
   staleTime: catalogClientStaleTime,
   head: ({ loaderData }) => schoolsHead(loaderData?.publicOrigin),
   pendingComponent: SchoolsPending,
@@ -34,7 +39,7 @@ export const Route = createFileRoute("/schools/")({
 });
 
 function SchoolsPage() {
-  const { catalog } = Route.useLoaderData();
+  const { catalog, sidebar } = Route.useLoaderData();
   const search = Route.useSearch();
   const page = search.page ?? 1;
   const previousSearch =
@@ -46,7 +51,8 @@ function SchoolsPage() {
     : undefined;
 
   return (
-    <main className="browse-page school-directory-page">
+    <main className="browse-page directory-page school-directory-page">
+      <DirectorySidebar current="schools" sidebar={sidebar} />
       <section className="page-heading browse-heading">
         <p className="eyebrow">Schools</p>
         <h1>Browse schools</h1>
