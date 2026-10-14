@@ -445,16 +445,27 @@ func (r *Router) clearSessionCookie(w http.ResponseWriter) {
 	})
 }
 
+// writeDecodeError answers 413 when the body exceeded the size limit and 400
+// for any other malformed JSON.
+func writeDecodeError(w http.ResponseWriter, err error) {
+	var tooLarge *http.MaxBytesError
+	if errors.As(err, &tooLarge) {
+		writeError(w, http.StatusRequestEntityTooLarge, "request_too_large")
+		return
+	}
+	writeError(w, http.StatusBadRequest, "invalid_json")
+}
+
 func decodeJSON(w http.ResponseWriter, req *http.Request, destination any) bool {
 	decoder := json.NewDecoder(http.MaxBytesReader(w, req.Body, 1<<20))
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(destination); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid_json")
+		writeDecodeError(w, err)
 		return false
 	}
 	var extra any
 	if err := decoder.Decode(&extra); err != io.EOF {
-		writeError(w, http.StatusBadRequest, "invalid_json")
+		writeDecodeError(w, err)
 		return false
 	}
 	return true

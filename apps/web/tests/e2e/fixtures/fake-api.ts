@@ -89,7 +89,12 @@ type BrowsableEvent = {
   rsvp_yes_count?: number;
   interest_count?: number;
 };
-type Game = { id: string; name: string | undefined; slug: string };
+type Game = {
+  id: string;
+  name: string | undefined;
+  slug: string;
+  has_cover: boolean;
+};
 type CreatedEvent = ReturnType<typeof createdEventFromBody>;
 type Team = ReturnType<typeof teamFor>;
 type Person = {
@@ -207,6 +212,7 @@ const game = {
   id: "game-e2e",
   name: "Strategy Arena",
   slug: "strategy-arena",
+  has_cover: true,
 };
 
 // Schools that only the visual-regression matrix visits, so no other spec's
@@ -474,6 +480,15 @@ async function handleRequest(
         match.name.toLowerCase().startsWith(query),
       ),
     });
+    return;
+  }
+
+  if (method === "GET" && url.pathname === `/games/${game.slug}/cover`) {
+    response.writeHead(200, {
+      "content-type": "image/png",
+      "content-length": logoPNG.length,
+    });
+    response.end(logoPNG);
     return;
   }
 
@@ -1243,7 +1258,7 @@ function eventFor(slug: string, viewerRsvp?: string) {
       city: "Irvine",
       state: "CA",
     },
-    games: [{ id: "game-e2e", name: "Strategy Arena", slug: "strategy-arena" }],
+    games: [game],
     organizers: [
       {
         id: "user-e2e",
@@ -1327,6 +1342,7 @@ function chosenGames(body: RequestBody | undefined): Game[] {
         id: `game-igdb-${match.igdb_id}`,
         name: match.name,
         slug: slugify(match.name),
+        has_cover: false,
       })),
     ...(body?.other_game
       ? [
@@ -1334,6 +1350,7 @@ function chosenGames(body: RequestBody | undefined): Game[] {
             id: "game-typed",
             name: body.other_game,
             slug: slugify(body.other_game),
+            has_cover: false,
           },
         ]
       : []),

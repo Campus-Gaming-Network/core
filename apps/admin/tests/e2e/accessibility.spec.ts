@@ -7,6 +7,10 @@ import {
   reportID,
 } from "./fixtures/admin-session.js";
 
+// WCAG 2.0 and 2.1 levels A and AA; serious and critical findings fail,
+// and so do moderate and minor ones.
+const wcagTags = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
+
 test("the denied-by-default shell is accessible at desktop and mobile sizes", async ({
   page,
 }) => {
@@ -16,9 +20,7 @@ test("the denied-by-default shell is accessible at desktop and mobile sizes", as
   await expect(page.locator("main")).toHaveCount(1);
   expect(await horizontalOverflow(page)).toBeLessThanOrEqual(1);
 
-  const results = await new AxeBuilder({ page })
-    .withTags(["wcag2a", "wcag2aa"])
-    .analyze();
+  const results = await new AxeBuilder({ page }).withTags(wcagTags).analyze();
   expect(
     results.violations.map((violation) => ({
       id: violation.id,
@@ -37,6 +39,7 @@ test("the moderation queue and detail are accessible at desktop and mobile sizes
 });
 
 for (const path of [
+  "/",
   "/schools",
   `/schools/${catalogSchoolID}`,
   "/games",
@@ -138,9 +141,7 @@ async function assertAccessiblePath(page: Page, path: string): Promise<void> {
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   expect(await horizontalOverflow(page)).toBeLessThanOrEqual(1);
 
-  const results = await new AxeBuilder({ page })
-    .withTags(["wcag2a", "wcag2aa"])
-    .analyze();
+  const results = await new AxeBuilder({ page }).withTags(wcagTags).analyze();
   expect(
     results.violations.map((violation) => ({
       id: violation.id,

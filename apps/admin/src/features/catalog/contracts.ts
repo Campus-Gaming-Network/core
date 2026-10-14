@@ -73,6 +73,11 @@ export const igdbSearchSchema = z.object({
       release_year: z.number().int().optional(),
       // The catalog game already imported from this match.
       game_id: uuidSchema.optional(),
+      // A small cover, absent when IGDB has none or it could not be fetched.
+      // A data URL, so the console loads no image from IGDB.
+      thumbnail: gameCoverSchema
+        .transform((cover) => `data:${cover.content_type};base64,${cover.data}`)
+        .optional(),
     }),
   ),
 });

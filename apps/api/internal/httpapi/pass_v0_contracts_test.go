@@ -541,7 +541,7 @@ func requireEventAssociationsContract(t *testing.T, event map[string]any) {
 	if !ok {
 		t.Fatalf("games[0] = %#v, want JSON object", games[0])
 	}
-	requireExactKeysContract(t, game, []string{"id", "name", "slug"})
+	requireExactKeysContract(t, game, []string{"has_cover", "id", "name", "slug"})
 }
 
 func requireTeamContract(t *testing.T, value any, keys []string) map[string]any {
