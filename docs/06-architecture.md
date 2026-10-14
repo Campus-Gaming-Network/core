@@ -217,6 +217,17 @@ The school and game catalogs are effectively static — roughly 6,200 schools gr
 | User activity  | Later user-visible activity history                                                                                                                                        |
 | Entity history | Later school, team, and event change history                                                                                                                               |
 
+### Logging and redaction policy
+
+Logs and error reports never carry personal data or credentials.
+
+- Request logs hold the method, a route template or bounded path, status, request ID, verified actor ID, and duration. Never log headers, cookies, query strings, request or response bodies, email addresses, names, tokens, or passwords.
+- The API installs `internal/redact` as the default `slog` logger in every command. Attributes under a key containing `password`, `secret`, `token`, `authorization`, `cookie`, `api_key`, `email`, `recipient`, `dsn`, or `csrf` are replaced with `[redacted]`. Other string and error values have email addresses, `token=`-style query parameters, and bearer credentials masked. Do not rely on this alone: leave sensitive values out of log calls.
+- Error wrapping can embed an email or token (a database constraint detail, a provider response). The scrubber masks it in logs and in Sentry, but the email outbox also keeps provider messages out of logs.
+- Sentry events from the API (`errormonitor`, through `redact.Event`) and from both TanStack Start apps (`src/error-scrub.ts`, through `beforeSend`) drop request, user, breadcrumb, and stack-frame variable data. They mask the message, exception text, transaction, tags, extra data, and contexts. A browser event keeps its page URL without the query string.
+- Server-side `console` logging in `*.server.ts` files names an operation or a response path and never a request body, header, or identifier supplied by a visitor.
+- Add a test that captures log output or the Sentry event whenever a new log call or event field could carry visitor-supplied text.
+
 ## Feature flags (later)
 
 **Not scheduled yet.** When added later:

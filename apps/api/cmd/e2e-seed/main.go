@@ -10,6 +10,7 @@ import (
 
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/config"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/db"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/redact"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -43,6 +44,8 @@ const (
 )
 
 func main() {
+	slog.SetDefault(redact.NewLogger(os.Stderr))
+
 	adminMode := len(os.Args) > 1 && os.Args[1] == "admin"
 	if adminMode {
 		primarySchoolID = "10000000-0000-4000-8000-000000000001"

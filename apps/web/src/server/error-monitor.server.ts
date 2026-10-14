@@ -1,6 +1,7 @@
 import { timingSafeEqual } from "node:crypto";
 import * as Sentry from "@sentry/node";
 import { isNotFound, isRedirect } from "@tanstack/react-router";
+import { scrubEvent } from "../error-scrub.js";
 import { ApiError } from "./api.server.js";
 
 type Environment = Readonly<Record<string, string | undefined>>;
@@ -67,12 +68,7 @@ export function startErrorMonitoring(
     ...config,
     defaultIntegrations: false,
     initialScope: { tags: { runtime: "server" } },
-    beforeSend(event) {
-      delete event.request;
-      delete event.user;
-      delete event.breadcrumbs;
-      return event;
-    },
+    beforeSend: (event) => scrubEvent(event),
   });
 }
 

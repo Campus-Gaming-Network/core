@@ -10,9 +10,12 @@ import (
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/config"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/db"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/migrate"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/redact"
 )
 
 func main() {
+	slog.SetDefault(redact.NewLogger(os.Stderr))
+
 	directory := flag.String("dir", "../../db/migrations", "directory containing versioned *.up.sql migrations")
 	flag.Parse()
 
