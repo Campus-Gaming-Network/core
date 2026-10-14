@@ -8,7 +8,7 @@ test.beforeEach(async ({ request }) => {
   expect(response.ok()).toBe(true);
 });
 
-test("a logged-out viewer finds RSVP first in the sidebar and event details after the description", async ({
+test("a logged-out viewer finds RSVP first in the sidebar and key information after when and where", async ({
   page,
 }) => {
   await gotoApp(page, "/events/public-browser-event");
@@ -17,10 +17,10 @@ test("a logged-out viewer finds RSVP first in the sidebar and event details afte
     page.locator("main").getByRole("heading", { level: 2 }),
   ).toHaveText([
     "About this event",
-    "Event details",
     "Organizers",
     "RSVP",
     "When and where",
+    "Key information",
     "Share",
   ]);
   await expect(
@@ -36,16 +36,24 @@ test("RSVP is the first card when the event page stacks on phones", async ({
   test.skip(testInfo.project.name !== "mobile-chromium");
   await gotoApp(page, "/events/public-browser-event");
 
-  // DOM order is About, Event details, Organizers, then the sidebar's RSVP,
-  // When and where, and Share. Stacked on a phone, the sidebar comes first.
-  const [about, details, organizers, rsvp, whenAndWhere, share] = await page
-    .locator("main h2")
-    .evaluateAll((headings) =>
-      headings.map((heading) => heading.getBoundingClientRect().top),
-    );
-  const stacked = [rsvp, whenAndWhere, share, about, details, organizers];
+  // DOM order is About, Organizers, then the sidebar's RSVP, When and where,
+  // Key information, and Share. Stacked on a phone, the sidebar comes first.
+  const [about, organizers, rsvp, whenAndWhere, keyInformation, share] =
+    await page
+      .locator("main h2")
+      .evaluateAll((headings) =>
+        headings.map((heading) => heading.getBoundingClientRect().top),
+      );
+  const stacked = [
+    rsvp,
+    whenAndWhere,
+    keyInformation,
+    share,
+    about,
+    organizers,
+  ];
   expect(
     stacked.every((top, index) => index === 0 || top > stacked[index - 1]),
-    `RSVP, When and where, Share, About, Event details, Organizers must stack top to bottom, got ${stacked.join(", ")}`,
+    `RSVP, When and where, Key information, Share, About, Organizers must stack top to bottom, got ${stacked.join(", ")}`,
   ).toBe(true);
 });

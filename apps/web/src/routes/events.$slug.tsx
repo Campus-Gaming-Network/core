@@ -6,7 +6,6 @@ import {
 } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import {
-  ArrowLeft,
   ArrowRight,
   CalendarDays,
   Check,
@@ -18,6 +17,7 @@ import {
   X,
 } from "lucide-react";
 import { type FormEvent, useRef, useState } from "react";
+import { Breadcrumbs } from "../components/breadcrumbs";
 import { ButtonLink } from "../components/button-link";
 import { CalendarDate } from "../components/calendar-date";
 import { Callout } from "../components/callout";
@@ -30,6 +30,8 @@ import {
   useEnhancedMutation,
 } from "../components/enhanced-mutation";
 import { FormField } from "../components/form-field";
+import { KeyInformation } from "../components/key-information";
+import { PageHeading } from "../components/page-heading";
 import { PasswordInput } from "../components/password-input";
 import {
   newIdempotencyKey,
@@ -57,11 +59,13 @@ import type {
   LockedEventDTO,
 } from "../features/event-slice/contracts";
 import {
+  eventAudienceLabels,
   eventDetailNotices,
   eventLifecycleLabel,
   eventLocation,
   eventRSVPLabel,
   eventTimeRange,
+  eventTypeLabels,
   eventVisibilityLabel,
   formatEventDate,
   recurrenceRuleLabel,
@@ -307,28 +311,20 @@ function VisibleEventView({
   return (
     <main className="event-page">
       <EventBanner event={event} size="hero" />
-      <Link className="back-link with-arrow" to="/events">
-        <ArrowLeft aria-hidden="true" size={14} strokeWidth={2.25} />
-        Back to events
-      </Link>
-      <header className="event-detail-header">
-        <CalendarDate
-          size="large"
-          startsAt={event.starts_at}
-          timezone={event.timezone}
-        />
-        <div>
-          <div className="event-pill-list">
-            {event.lifecycle !== "upcoming" ? (
-              <StatusLabel status={event.lifecycle}>
-                {eventLifecycleLabel(event.lifecycle)}
-              </StatusLabel>
-            ) : null}
-            <StatusLabel>{eventVisibilityLabel(event.visibility)}</StatusLabel>
-            <EventFacts event={event} />
-          </div>
-          <h1>{event.title}</h1>
-          <p className="event-hostline">
+      <Breadcrumbs current={event.title}>
+        <Link to="/events">Events</Link>
+      </Breadcrumbs>
+      <PageHeading
+        identity={
+          <CalendarDate
+            size="large"
+            startsAt={event.starts_at}
+            timezone={event.timezone}
+          />
+        }
+        title={event.title}
+        supporting={
+          <>
             Hosted by{" "}
             <Link to="/schools/$slug" params={{ slug: event.host_school.slug }}>
               <SchoolLogo
@@ -338,9 +334,20 @@ function VisibleEventView({
               />
               {event.host_school.name}
             </Link>
-          </p>
-        </div>
-      </header>
+          </>
+        }
+        tags={
+          <>
+            {event.lifecycle !== "upcoming" ? (
+              <StatusLabel status={event.lifecycle}>
+                {eventLifecycleLabel(event.lifecycle)}
+              </StatusLabel>
+            ) : null}
+            <StatusLabel>{eventVisibilityLabel(event.visibility)}</StatusLabel>
+            <EventFacts event={event} />
+          </>
+        }
+      />
 
       <PageNoticeView
         notice={notice ? eventDetailNotices[notice] : undefined}
@@ -353,42 +360,6 @@ function VisibleEventView({
             <p className="lede">
               {event.description || "Event details are coming soon."}
             </p>
-          </section>
-
-          <section
-            className="detail-card event-facts"
-            aria-labelledby="event-facts-title"
-          >
-            <h2 id="event-facts-title">Event details</h2>
-            <div className="detail-row">
-              <span>Games</span>
-              <strong>
-                {event.games.length > 0
-                  ? event.games.map((game) => game.name).join(", ")
-                  : "To be announced"}
-              </strong>
-            </div>
-            <div className="detail-row">
-              <span>{event.capacity ? "Attending" : "Going"}</span>
-              <strong>
-                {event.capacity
-                  ? `${event.rsvp_yes_count} of ${event.capacity}`
-                  : event.rsvp_yes_count}
-              </strong>
-            </div>
-            <div className="detail-row">
-              <span>Interested</span>
-              <strong>{event.interest_count}</strong>
-            </div>
-            {event.recurrence_rule && event.recurrence_until ? (
-              <div className="detail-row">
-                <span>Repeats</span>
-                <strong>
-                  {recurrenceRuleLabel(event.recurrence_rule)} until{" "}
-                  {formatEventDate(event.recurrence_until, event.timezone)}
-                </strong>
-              </div>
-            ) : null}
           </section>
 
           {authenticated ? (
@@ -532,6 +503,52 @@ function VisibleEventView({
               </div>
             </div>
           </section>
+
+          <KeyInformation
+            facts={[
+              {
+                term: "Games",
+                value:
+                  event.games.length > 0
+                    ? event.games.map((game) => game.name).join(", ")
+                    : "To be announced",
+              },
+              ...(event.event_type
+                ? [{ term: "Type", value: eventTypeLabels[event.event_type] }]
+                : []),
+              ...(event.audience
+                ? [
+                    {
+                      term: "Audience",
+                      value: eventAudienceLabels[event.audience],
+                    },
+                  ]
+                : []),
+              ...(event.cost !== "unspecified"
+                ? [
+                    {
+                      term: "Cost",
+                      value: event.cost === "free" ? "Free" : "Paid",
+                    },
+                  ]
+                : []),
+              {
+                term: event.capacity ? "Attending" : "Going",
+                value: event.capacity
+                  ? `${event.rsvp_yes_count} of ${event.capacity}`
+                  : event.rsvp_yes_count,
+              },
+              { term: "Interested", value: event.interest_count },
+              ...(event.recurrence_rule && event.recurrence_until
+                ? [
+                    {
+                      term: "Repeats",
+                      value: `${recurrenceRuleLabel(event.recurrence_rule)} until ${formatEventDate(event.recurrence_until, event.timezone)}`,
+                    },
+                  ]
+                : []),
+            ]}
+          />
 
           <section className="detail-card">
             <h2>Share</h2>

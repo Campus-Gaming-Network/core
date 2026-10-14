@@ -11,6 +11,7 @@ import {
 import { useRef, useState, type FormEvent } from "react";
 import { AccountMenu } from "../components/account-menu";
 import { Avatar } from "../components/avatar";
+import { Breadcrumbs } from "../components/breadcrumbs";
 import { ButtonLink } from "../components/button-link";
 import { CalendarDate } from "../components/calendar-date";
 import { Callout } from "../components/callout";
@@ -19,11 +20,14 @@ import { CopyLink } from "../components/copy-link";
 import { FormErrorSummary } from "../components/enhanced-mutation";
 import { FormField, RequiredFieldsNote } from "../components/form-field";
 import { FormSection } from "../components/form-section";
+import { KeyInformation } from "../components/key-information";
+import { PageHeading } from "../components/page-heading";
 import { PasswordInput } from "../components/password-input";
 import { PageNoticeView } from "../components/page-notice-view";
 import { Person } from "../components/person";
 import { publicPageHead } from "../components/public-page-head";
 import { StatusLabel } from "../components/status-label";
+import { TabLink, Tabs } from "../components/tabs";
 import accountCSS from "../features/account-slice/account.css?url";
 import type { EventRSVP } from "../features/event-slice/contracts";
 import { EventCard } from "../features/event-slice/event-card";
@@ -68,6 +72,7 @@ const sections = [
   ["marks", "Marks"],
   ["lists", "Lists and cards"],
   ["navigation", "Navigation"],
+  ["detail-header", "Detail page header"],
   ["event-controls", "Event controls"],
   ["dialog", "Dialog"],
   ["disclosure", "Disclosure"],
@@ -636,6 +641,7 @@ function StyleguidePage() {
       </section>
 
       <NavigationSection />
+      <DetailHeaderSection />
       <EventControlsSection />
       <DialogSection />
 
@@ -855,8 +861,8 @@ function NavigationSection() {
         <h2 id="styleguide-navigation-title">Navigation</h2>
       </div>
       <p className="styleguide-intro">
-        The yellow accent marks where you are: under the current header link and
-        under the current tab. A signed-in header swaps Log in and Sign up for
+        The yellow accent marks the current header link, and a blue underline
+        marks the current tab. A signed-in header swaps Log in and Sign up for
         the account menu.
       </p>
 
@@ -882,18 +888,19 @@ function NavigationSection() {
       </div>
 
       <h3 className="styleguide-sub">Tabs</h3>
-      <nav aria-label="Tabs example" className="school-community-tabs">
+      <Tabs label="Tabs example">
         {["Overview", "Events", "Teams"].map((label) => (
-          <a
-            aria-current={tab === label ? "location" : undefined}
-            href="#styleguide-navigation"
+          <TabLink
+            current={tab === label}
+            hash="styleguide-navigation"
             key={label}
             onClick={() => setTab(label)}
+            to="/styleguide"
           >
             {label}
-          </a>
+          </TabLink>
         ))}
-      </nav>
+      </Tabs>
 
       <h3 className="styleguide-sub">Account rows</h3>
       <ul className="account-rows">
@@ -925,6 +932,100 @@ function NavigationSection() {
           url="https://example.edu/events/rocket-league-3v3-bracket"
         />
       </div>
+    </section>
+  );
+}
+
+function DetailHeaderSection() {
+  const team = exampleTeams[0];
+  const event = exampleEvents[1];
+
+  return (
+    <section
+      aria-labelledby="styleguide-detail-header-title"
+      className="section"
+      id="styleguide-detail-header"
+    >
+      <div className="section-heading">
+        <p className="eyebrow">Event, school, and team pages</p>
+        <h2 id="styleguide-detail-header-title">Detail page header</h2>
+      </div>
+      <p className="styleguide-intro">
+        Breadcrumbs, then the heading: an identity mark, the title, a supporting
+        line, tags, and actions on the right (below the title on a phone). Key
+        information sits in the side panel. On a real page the title is the
+        page&apos;s h1; here it is an h2.
+      </p>
+
+      {team ? (
+        <>
+          <h3 className="styleguide-sub">Team</h3>
+          <Breadcrumbs current={team.name}>
+            <Link to="/teams">Teams</Link>
+          </Breadcrumbs>
+          <PageHeading
+            actions={
+              <ButtonLink to="/login" variant="primary">
+                Log in to join
+              </ButtonLink>
+            }
+            identity={
+              <span aria-hidden="true" className="team-mark team-mark--large">
+                {team.name.slice(0, 1)}
+              </span>
+            }
+            level={2}
+            supporting={`${team.school} · ${team.games}`}
+            title={team.name}
+          />
+          <Tabs label="Team sections example">
+            <TabLink current hash="styleguide-detail-header" to="/styleguide">
+              Overview
+            </TabLink>
+            <TabLink
+              current={false}
+              hash="styleguide-detail-header"
+              to="/styleguide"
+            >
+              Members
+            </TabLink>
+          </Tabs>
+          <h3 className="styleguide-sub">Key information</h3>
+          <div className="styleguide-side-panel">
+            <KeyInformation
+              facts={[
+                { term: "Games", value: team.games },
+                { term: "School", value: team.school },
+                { term: "Members", value: team.members },
+              ]}
+            />
+          </div>
+        </>
+      ) : null}
+
+      {event ? (
+        <>
+          <h3 className="styleguide-sub">Event, with tags</h3>
+          <PageHeading
+            identity={
+              <CalendarDate
+                size="large"
+                startsAt={event.starts_at}
+                timezone={event.timezone}
+              />
+            }
+            level={2}
+            supporting={`Hosted by ${event.host_school.name}`}
+            tags={
+              <>
+                <StatusLabel>Public</StatusLabel>
+                <EventFacts event={event} />
+              </>
+            }
+            title={event.title}
+          />
+        </>
+      ) : null}
     </section>
   );
 }
