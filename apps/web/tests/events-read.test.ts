@@ -9,6 +9,10 @@ import {
   homeEventsOperation,
 } from "../src/features/event-slice/event-operations.server.js";
 import {
+  currentEventScope,
+  eventScopeSearch,
+} from "../src/features/event-slice/event-scope.js";
+import {
   eventFormatLabel,
   eventLifecycleLabel,
   eventLocation,
@@ -293,4 +297,65 @@ test("a failed or malformed events read leaves the home page up and says so", as
     assert.deepEqual(result, { events: [], unavailable: true });
   }
   assert.equal(reported.length, 3);
+});
+
+test("the selected scope tab follows the query and conflicting filters select All events", () => {
+  const scopes = [
+    {},
+    { school: "summit-ridge" },
+    { school: "other-school" },
+    { format: "online" },
+    { format: "in_person" },
+    { type: "tournament" },
+    { type: "lan" },
+    { format: "online", type: "tournament" },
+    { school: "summit-ridge", format: "online" },
+    { game: "valorant", audience: "open", cost: "free", type: "tournament" },
+  ].map((query) =>
+    currentEventScope(validateEventsSearch(query), "summit-ridge"),
+  );
+
+  assert.deepEqual(scopes, [
+    "all",
+    "my-school",
+    "all",
+    "online",
+    "all",
+    "tournaments",
+    "all",
+    "all",
+    "all",
+    "tournaments",
+  ]);
+  assert.equal(
+    currentEventScope(
+      validateEventsSearch({ school: "summit-ridge" }),
+      undefined,
+    ),
+    "all",
+  );
+});
+
+test("a scope tab keeps the other filters, swaps the scope filter, and drops cursors", () => {
+  const search = validateEventsSearch({
+    game: "valorant",
+    school: "other-school",
+    format: "in_person",
+    audience: "open",
+    type: "lan",
+    cost: "free",
+    after: "cursor-after",
+    event: "cancelled",
+  });
+  const links = (["all", "my-school", "online", "tournaments"] as const).map(
+    (scope) => eventScopeSearch(search, scope, "summit-ridge"),
+  );
+  const kept = { game: "valorant", audience: "open", cost: "free" };
+
+  assert.deepEqual(links, [
+    kept,
+    { ...kept, school: "summit-ridge" },
+    { ...kept, format: "online" },
+    { ...kept, type: "tournament" },
+  ]);
 });

@@ -449,6 +449,35 @@ test("a signed-in visitor gets the account links and logout form in the header",
     .toBe(false);
 });
 
+test("event scope tabs are plain links that keep the other filters", async ({
+  page,
+  request,
+}) => {
+  const seeded = await request.post(`${apiURL}/__test/scope-events`);
+  expect(seeded.ok()).toBe(true);
+  await logIn(page, "no-js-scope@example.test", "/events?audience=open");
+
+  const tabs = page.getByRole("navigation", { name: "Event scope" });
+  const titles = page.locator(".directory-row .directory-row__name");
+  await expect(tabs.locator("[aria-current]")).toHaveText("All events");
+
+  await tabs.getByRole("link", { name: "Tournaments" }).click();
+  await expect(page).toHaveURL(/\/events\?audience=open&type=tournament$/);
+  await expect(tabs.locator("[aria-current]")).toHaveText("Tournaments");
+  await expect(titles).toHaveText(["Summit Ridge Spring Cup"]);
+  await expect(page.getByLabel("Filter events by type")).toHaveValue(
+    "tournament",
+  );
+
+  await tabs.getByRole("link", { name: "My school" }).click();
+  await expect(page).toHaveURL(
+    /\/events\?school=browser-test-university&audience=open$/,
+  );
+  await expect(tabs.locator("[aria-current]")).toHaveText("My school");
+  await expect(titles).toHaveText(["Home Campus LAN"]);
+  await expect(page.getByLabel("Filter events by type")).toHaveValue("");
+});
+
 async function logIn(page: Page, email: string, next: string) {
   await page.goto(`/login?next=${encodeURIComponent(next)}`);
   await page.getByLabel("Email").fill(email);

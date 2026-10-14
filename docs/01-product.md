@@ -73,6 +73,10 @@ Signup also requires confirming **age 18+**. Alumni can participate. Faculty who
 
 - Search or browse schools (works **logged out**); each school has a logo and slug URL
 - Browse/filter events by game (and other filters) — no near-you yet
+- The event directory has scope tabs: All events, My school (events hosted at
+  the viewer's home school; shown only when signed in), Online, and
+  Tournaments. A tab keeps the game, audience, and cost filters, and its URL
+  can be shared
 - Select a home school during signup; follow additional schools afterward (logged in)
 - See popular games by school
 - Dashboard: upcoming events, activity at followed schools, team activity

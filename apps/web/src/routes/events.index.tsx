@@ -10,8 +10,9 @@ import {
   RoutePending,
 } from "../components/route-boundaries";
 import { PageNoticeView } from "../components/page-notice-view";
-import { getEventViewerSession } from "../features/event-slice/auth.functions";
+import { getEventsViewer } from "../features/event-slice/auth.functions";
 import { EventCard } from "../features/event-slice/event-card";
+import { EventScopeTabs } from "../features/event-slice/event-scope-tabs";
 import { getEventsBrowse } from "../features/event-slice/event.functions";
 import {
   eventsBrowseInput,
@@ -31,7 +32,7 @@ export const Route = createFileRoute("/events/")({
   loader: async ({ context, deps }) => {
     const [browse, session] = await Promise.all([
       getEventsBrowse({ data: deps }),
-      getEventViewerSession(),
+      getEventsViewer(),
     ]);
     if (session.status === "unavailable") {
       throw new Error("Event viewer session is unavailable");
@@ -40,6 +41,8 @@ export const Route = createFileRoute("/events/")({
     return {
       browse,
       authenticated: session.status === "authenticated",
+      homeSchool:
+        session.status === "authenticated" ? session.homeSchool : undefined,
       hasSessionCookie: session.hasSessionCookie,
       publicOrigin: context.publicOrigin,
     };
@@ -58,7 +61,7 @@ export const Route = createFileRoute("/events/")({
 });
 
 function EventsPage() {
-  const { authenticated, browse } = Route.useLoaderData();
+  const { authenticated, browse, homeSchool } = Route.useLoaderData();
   const search = Route.useSearch();
   const previousSearch =
     browse.has_previous && browse.previous_cursor
@@ -97,7 +100,14 @@ function EventsPage() {
         notice={search.event ? eventBrowseNotices[search.event] : undefined}
       />
 
-      <form action="/events" className="search-bar" method="get">
+      {/* The selects start from the URL. A scope tab navigates without a
+          page load, so the key remounts the form to pick up the new query. */}
+      <form
+        action="/events"
+        className="search-bar"
+        key={JSON.stringify(paginationSearch(search, {}))}
+        method="get"
+      >
         {search.school ? (
           <input name="school" type="hidden" value={search.school} />
         ) : null}
@@ -175,6 +185,8 @@ function EventsPage() {
         </label>
         <button type="submit">Filter</button>
       </form>
+
+      <EventScopeTabs homeSchool={homeSchool} search={search} />
 
       {browse.eventsUnavailable ? (
         <ListUnavailable heading="Events are unavailable right now" />

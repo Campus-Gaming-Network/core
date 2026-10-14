@@ -37,6 +37,7 @@ import accountCSS from "../features/account-slice/account.css?url";
 import type { EventRSVP } from "../features/event-slice/contracts";
 import { EventCard } from "../features/event-slice/event-card";
 import { EventFacts } from "../features/event-slice/event-facts";
+import { EventScopeTabs } from "../features/event-slice/event-scope-tabs";
 import eventCSS from "../features/event-slice/events.css?url";
 import {
   eventLifecycleLabel,
@@ -917,6 +918,16 @@ function NavigationSection() {
           </TabLink>
         ))}
       </Tabs>
+
+      <h3 className="styleguide-sub">Event scope tabs</h3>
+      <p className="styleguide-intro">
+        The same tabs over the events directory. Each links to /events with its
+        filter; My school shows only to a signed-in viewer with a home school.
+      </p>
+      <EventScopeTabs
+        homeSchool={{ name: "Summit Ridge University", slug: "summit-ridge" }}
+        search={{ type: "tournament" }}
+      />
 
       <h3 className="styleguide-sub">Account rows</h3>
       <ul className="account-rows">

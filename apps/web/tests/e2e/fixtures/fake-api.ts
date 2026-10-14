@@ -396,6 +396,63 @@ async function handleRequest(
     return;
   }
 
+  // Seeds three public events that the events directory's scope tabs tell
+  // apart: a LAN at the browser player's home school, an online game night,
+  // and a tournament, the last two hosted at Summit Ridge.
+  if (method === "POST" && url.pathname === "/__test/scope-events") {
+    const organizer = profileFor("scope-organizer@example.test");
+    for (const seed of [
+      {
+        title: "Home Campus LAN",
+        format: "in_person",
+        event_type: "lan",
+        location_name: "Browser Student Union",
+        host_school: school,
+      },
+      {
+        title: "Online Ladder Night",
+        format: "online",
+        event_type: "game_night",
+        online_url: "https://play.example.test/ladder",
+        host_school: populatedSchool,
+      },
+      {
+        title: "Summit Ridge Spring Cup",
+        format: "in_person",
+        event_type: "tournament",
+        location_name: "Alpine Student Center",
+        host_school: populatedSchool,
+      },
+    ]) {
+      const slug = slugify(seed.title);
+      createdEvents.set(slug, {
+        event: {
+          ...createdEventFromBody(
+            {
+              ...seed,
+              description: "A browser-test event for the scope tabs.",
+              visibility: "public",
+              audience: "open",
+              starts_at: "2037-09-20T01:00:00Z",
+              ends_at: "2037-09-20T04:00:00Z",
+              timezone: "America/Los_Angeles",
+              cost: "unspecified",
+              game_ids: [game.id],
+            },
+            slug,
+            organizer,
+          ),
+          host_school: seed.host_school,
+        },
+        ownerSession: undefined,
+        interestedSessions: new Set(),
+        cancelled: false,
+      });
+    }
+    json(response, 200, { seeded: true });
+    return;
+  }
+
   if (method === "GET" && url.pathname === "/__test/error-envelopes") {
     json(response, 200, errorEnvelopes);
     return;
@@ -847,6 +904,8 @@ async function handleRequest(
     const audience = url.searchParams.get("audience");
     const type = url.searchParams.get("type");
     const cost = url.searchParams.get("cost");
+    const format = url.searchParams.get("format");
+    const hostSchool = url.searchParams.get("school");
     json(response, 200, {
       events: [
         ...(homePreview
@@ -858,7 +917,9 @@ async function handleRequest(
               !record.cancelled &&
               (!audience || record.event.audience === audience) &&
               (!type || record.event.event_type === type) &&
-              (!cost || record.event.cost === cost),
+              (!cost || record.event.cost === cost) &&
+              (!format || record.event.format === format) &&
+              (!hostSchool || record.event.host_school.slug === hostSchool),
           )
           .map((record) => eventBrowseItem(record.event)),
       ],

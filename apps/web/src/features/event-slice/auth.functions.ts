@@ -9,6 +9,7 @@ import {
 } from "../../server/request-boundary.server.js";
 import {
   getEventViewerSessionOperation,
+  getEventsViewerOperation,
   loginOperation,
   logoutOperation,
 } from "./auth-operations.server.js";
@@ -27,6 +28,25 @@ export const getEventViewerSession = createServerFn({ method: "GET" }).handler(
 
     return {
       ...viewerSession,
+      hasSessionCookie: Boolean(request.sessionCookieValue),
+    };
+  },
+);
+
+/** The strict viewer session plus the home school for the My school tab. */
+export const getEventsViewer = createServerFn({ method: "GET" }).handler(
+  async () => {
+    const request = currentSessionRequest();
+    setViewerResponseCache(Boolean(request.sessionCookieValue));
+
+    const viewer = await getEventsViewerOperation({
+      api: request.api,
+      cookieHeader: request.cookieHeader,
+      sessionCookieValue: request.sessionCookieValue,
+    });
+
+    return {
+      ...viewer,
       hasSessionCookie: Boolean(request.sessionCookieValue),
     };
   },
