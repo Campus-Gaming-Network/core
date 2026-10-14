@@ -1,7 +1,6 @@
 import type { PageNotice } from "../../components/page-notice.js";
+import { pageHead, siteName } from "../../components/public-page-head.js";
 import type { PublicProfileDTO } from "./contracts.js";
-
-const siteName = "Campus Gaming Network";
 
 export const reportUserNotices = {
   failed: {
@@ -13,22 +12,22 @@ export const reportUserNotices = {
 
 export type ReportUserNotice = keyof typeof reportUserNotices;
 
-export function publicProfileMetadata(
-  profile: PublicProfileDTO,
-  publicOrigin: string,
-): { description: string; title: string; url: string } {
-  const homeSchool = publicProfileHomeSchool(profile);
-  const bio = profile.bio?.trim();
-
-  return {
-    title: `${profile.name} | ${siteName}`,
-    description:
-      bio ||
-      (homeSchool.name
-        ? `${profile.name} plays at ${homeSchool.name} on ${siteName}.`
-        : `${profile.name} on ${siteName}.`),
-    url: `${publicOrigin}/users/${encodeURIComponent(profile.id)}`,
-  };
+/**
+ * A profile is open to anyone with its link, but the page head never names the
+ * person. The profile does not say whether its owner opted out of people
+ * lists, so a preview or search result could expose someone who asked not to
+ * be listed. Every profile gets the same generic card and stays out of search.
+ */
+export function publicProfileHead(loaderData?: {
+  profile: { id: string };
+  publicOrigin: string;
+}) {
+  return pageHead(loaderData?.publicOrigin, {
+    title: "Player profile",
+    description: `A player on ${siteName}. Open the link to see their profile.`,
+    path: `/users/${encodeURIComponent(loaderData?.profile.id ?? "")}`,
+    noIndex: true,
+  });
 }
 
 export function verificationLabel(level: string): string {

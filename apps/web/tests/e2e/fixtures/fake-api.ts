@@ -501,6 +501,22 @@ async function handleRequest(
   };
   calls.push(call);
 
+  if (method === "GET" && url.pathname === "/sitemap") {
+    // The real endpoint lists only public events open to everyone, so the
+    // fixture's private and campus events are absent on purpose.
+    json(response, 200, {
+      events: [
+        {
+          slug: populatedSchoolEvents[0].slug,
+          updated_at: "2037-09-01T12:00:00Z",
+        },
+      ],
+      schools: [{ slug: school.slug, updated_at: "2037-09-01T12:00:00Z" }],
+      teams: [],
+    });
+    return;
+  }
+
   if (method === "GET" && url.pathname === "/games") {
     json(response, 200, { games: [game] });
     return;

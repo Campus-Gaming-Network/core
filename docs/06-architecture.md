@@ -77,8 +77,13 @@ See [14 — Architecture diagrams](./14-architecture-diagrams.md) for Mermaid vi
   through its TanStack Router `head` definition and the shared helpers in
   `apps/web/src/components/public-page-head.ts` plus feature presentation
   modules.
-- Authenticated pages, one-time-token flows, private events, and unlisted events set `noIndex`. See [07 — Permissions](./07-permissions.md) for the discovery rule this enforces.
-- A locked private event must expose only a generic title and description. Metadata is part of the gating guarantee, not an exception to it.
+- Every indexable page has a canonical link and a preview image
+  (`/og-default.png`, 1200 by 630) with a `summary_large_image` card. A school
+  page uses its logo and a `summary` card instead.
+- Authenticated pages, login and signup, one-time-token flows, public profiles, unlisted events, and private events set `noIndex`. A `noindex` page has no canonical link, preview image, or structured data. See [07 — Permissions](./07-permissions.md) for the discovery rule this enforces.
+- A locked private event, and an event whose audience is a campus or a group, must expose only a generic title and description. Metadata is part of the gating guarantee, not an exception to it. A public profile also gets a generic title and description, because the profile does not say whether its owner opted out of people lists.
+- Structured data (JSON-LD) is limited to a public event open to everyone (`Event`, with the start and end time in the event's own UTC offset, the attendance mode, its location, and the host school as organizer), a team (`SportsTeam`), and a school (`CollegeOrUniversity`). No person's name, an online event's meeting link, or a roster is ever written to it. Event head logic lives in `apps/web/src/features/event-slice/event-head.ts`.
+- `/robots.txt` allows crawlers only when `DEPLOYMENT_ENV` is `production`, and then points to `/sitemap.xml`; staging and local builds disallow everything. Pages that stay out of search use `noindex` rather than a `Disallow` rule, since a crawler that cannot fetch a page never sees its `noindex`. `/sitemap.xml` lists the fixed public pages and the slugs from the API's `GET /sitemap`.
 
 ### Error and loading boundaries
 

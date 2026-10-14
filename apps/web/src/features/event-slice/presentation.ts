@@ -1,27 +1,16 @@
 import type { PageNotice } from "../../components/page-notice.js";
+import { pageHead } from "../../components/public-page-head.js";
 import type { EventBrowseItemDTO, EventDTO, EventRSVP } from "./contracts.js";
 
 export const eventsDescription =
   "Browse upcoming collegiate gaming events and filter them by game or school.";
 
-const siteName = "Campus Gaming Network";
-
-export function eventsHead(publicOrigin = "http://localhost:3000") {
-  const title = `Events | ${siteName}`;
-  return {
-    meta: [
-      { title },
-      { name: "description", content: eventsDescription },
-      { property: "og:type", content: "website" },
-      { property: "og:site_name", content: siteName },
-      { property: "og:title", content: title },
-      { property: "og:description", content: eventsDescription },
-      { property: "og:url", content: `${publicOrigin}/events` },
-      { name: "twitter:card", content: "summary" },
-      { name: "twitter:title", content: title },
-      { name: "twitter:description", content: eventsDescription },
-    ],
-  };
+export function eventsHead(publicOrigin?: string) {
+  return pageHead(publicOrigin, {
+    title: "Events",
+    description: eventsDescription,
+    path: "/events",
+  });
 }
 
 export function eventTimeRange(

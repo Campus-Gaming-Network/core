@@ -425,6 +425,12 @@ or not a JPEG, PNG, or WebP). A failed import creates nothing.
 
 Bulk IGDB sync, impersonation, feature flags, and site announcements are later.
 
+### Sitemap
+
+| Method | Path       | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| ------ | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/sitemap` | Public, no session. `{ events, schools, teams }`, each a list of `{ slug, updated_at }` and nothing else, up to 10,000 per list. Events are `public` with audience `open`, `collegiate`, or none, not deleted, and ended within the last 90 days or still ahead; unlisted and private events and events for a campus or group are never listed. Schools are active; teams are not deleted. People are never listed. Cached like the catalog |
+
 ### Health
 
 | Method | Path      | Notes           |

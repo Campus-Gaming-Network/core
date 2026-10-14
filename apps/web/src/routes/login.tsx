@@ -6,6 +6,7 @@ import {
   useEnhancedMutation,
 } from "../components/enhanced-mutation";
 import { FormField } from "../components/form-field";
+import { authPageHead } from "../features/auth-flow-slice/presentation";
 import { login } from "../features/event-slice/auth.functions";
 import { safeLocalPath } from "../safe-local-path";
 
@@ -19,41 +20,13 @@ type LoginSearch = {
 export const Route = createFileRoute("/login")({
   loader: ({ context }) => context.publicOrigin,
   validateSearch: validateLoginSearch,
-  head: ({ loaderData }) => ({
-    meta: [
-      { title: "Log in | Campus Gaming Network" },
-      {
-        name: "description",
-        content:
-          "Log in to your Campus Gaming Network account to RSVP to events and manage teams.",
-      },
-      { property: "og:type", content: "website" },
-      { property: "og:site_name", content: "Campus Gaming Network" },
-      {
-        property: "og:title",
-        content: "Log in | Campus Gaming Network",
-      },
-      {
-        property: "og:description",
-        content:
-          "Log in to your Campus Gaming Network account to RSVP to events and manage teams.",
-      },
-      {
-        property: "og:url",
-        content: `${loaderData ?? "http://localhost:3000"}/login`,
-      },
-      { name: "twitter:card", content: "summary" },
-      {
-        name: "twitter:title",
-        content: "Log in | Campus Gaming Network",
-      },
-      {
-        name: "twitter:description",
-        content:
-          "Log in to your Campus Gaming Network account to RSVP to events and manage teams.",
-      },
-    ],
-  }),
+  head: ({ loaderData }) =>
+    authPageHead(loaderData, {
+      title: "Log in",
+      description:
+        "Log in to your Campus Gaming Network account to RSVP to events and manage teams.",
+      path: "/login",
+    }),
   component: LoginPage,
 });
 

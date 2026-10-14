@@ -13,7 +13,6 @@ import {
 } from "../src/features/public-profile/public-profile-operations.server.js";
 import {
   publicProfileHomeSchool,
-  publicProfileMetadata,
   roleIndicatorLabel,
   safeHTTPURL,
   userInitials,
@@ -276,24 +275,12 @@ test("viewer outages and response-contract failures are generic errors, never an
   assert.equal(reported.length, 2);
 });
 
-test("public profile presentation keeps metadata and outbound URLs safe", () => {
+test("public profile presentation keeps outbound URLs safe", () => {
   const profile = publicProfileDtoSchema.parse({
     ...publicProfile,
     bio: "   ",
     email: "private@example.test",
   });
-  const metadata = publicProfileMetadata(profile, "https://cgn.example");
-
-  assert.deepEqual(metadata, {
-    title: "Player One | Campus Gaming Network",
-    description:
-      "Player One plays at Example University on Campus Gaming Network.",
-    url: "https://cgn.example/users/user%2Fe2e",
-  });
-  assert.equal(
-    JSON.stringify(metadata).includes("private@example.test"),
-    false,
-  );
   assert.deepEqual(publicProfileHomeSchool(profile), {
     name: "Example University",
     location: "Irvine, CA",

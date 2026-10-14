@@ -54,10 +54,13 @@ export const Route = createFileRoute("/teams/")({
       : "public, max-age=0, must-revalidate",
     vary: "Cookie",
   }),
-  head: ({ loaderData }) => ({
-    ...teamsHead(loaderData?.publicOrigin),
-    links: [{ rel: "stylesheet", href: teamCSS }],
-  }),
+  head: ({ loaderData }) => {
+    const head = teamsHead(loaderData?.publicOrigin);
+    return {
+      ...head,
+      links: [...head.links, { rel: "stylesheet", href: teamCSS }],
+    };
+  },
   pendingComponent: TeamsPending,
   component: TeamsPage,
 });
