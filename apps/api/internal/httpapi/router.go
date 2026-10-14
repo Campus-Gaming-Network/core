@@ -36,6 +36,7 @@ import (
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/ratelimit"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/safety"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/schools"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/sitemap"
 	teamstore "github.com/Campus-Gaming-Network/core/apps/api/internal/teams"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/users"
 	"github.com/jackc/pgx/v5"
@@ -76,6 +77,7 @@ type Router struct {
 	targetLimiter *ratelimit.Limiter
 	sessionStore  *auth.SessionRepository
 	catalog       *schools.CachedRepository
+	sitemap       sitemap.Repository
 }
 
 // gameSearchRateLimit is how many IGDB searches one user may make a minute.
@@ -123,6 +125,7 @@ func NewRouter(cfg config.Config, pools ...*pgxpool.Pool) http.Handler {
 		}
 		router.events = eventstore.NewPostgresRepository(router.db)
 		router.teams = teamstore.NewPostgresRepository(router.db)
+		router.sitemap = sitemap.NewPostgresRepository(router.db)
 		router.people = people.NewPostgresRepository(router.db)
 		router.safety = safety.NewPostgresRepository(router.db)
 		router.users = userRepository
@@ -207,6 +210,7 @@ func NewRouter(cfg config.Config, pools ...*pgxpool.Pool) http.Handler {
 	router.mux.HandleFunc("/ready", requireMethod(http.MethodGet, router.handleReady))
 	router.mux.HandleFunc("/schools", router.handleSchools)
 	router.mux.HandleFunc("/schools/", router.handleSchoolPath)
+	router.mux.HandleFunc("/sitemap", requireMethod(http.MethodGet, router.handleSitemap))
 	router.mux.HandleFunc("/games", requireMethod(http.MethodGet, router.handleGames))
 	router.mux.HandleFunc("/games/{slug}/cover", requireMethod(http.MethodGet, router.handleGameCover))
 	router.mux.HandleFunc("/games/igdb-search", requireMethod(http.MethodGet, router.handleGameSearch))
@@ -549,6 +553,22 @@ func (r *Router) handleGames(w http.ResponseWriter, req *http.Request) {
 	}
 	setPublicCatalogCache(w)
 	writeJSON(w, http.StatusOK, map[string]any{"games": result})
+}
+
+// handleSitemap lists the slugs of the public pages a crawler may index. It
+// needs no session and leaves out anything not open to every visitor.
+func (r *Router) handleSitemap(w http.ResponseWriter, req *http.Request) {
+	if r.sitemap == nil {
+		writeError(w, http.StatusServiceUnavailable, "database_unavailable")
+		return
+	}
+	entries, err := r.sitemap.Entries(req.Context())
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "sitemap_unavailable")
+		return
+	}
+	setPublicCatalogCache(w)
+	writeJSON(w, http.StatusOK, entries)
 }
 
 // gameCoverCacheControl lets browsers and shared caches hold a cover for a

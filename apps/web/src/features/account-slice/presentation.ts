@@ -1,6 +1,5 @@
 import type { PageNotice } from "../../components/page-notice.js";
-
-const siteName = "Campus Gaming Network";
+import { pageHead } from "../../components/public-page-head.js";
 
 export const accountNotices = {
   "delete-failed": {
@@ -24,43 +23,20 @@ export const homeAccountNotices = {
 const accountDescription =
   "Manage your Campus Gaming Network profile, home school, and followed schools.";
 
-export function settingsProfileHead(publicOrigin = "http://localhost:3000") {
-  const title = `Edit profile | ${siteName}`;
-  const description = "Edit your public Campus Gaming Network profile.";
-
-  return {
-    meta: [
-      { title },
-      { name: "description", content: description },
-      { name: "robots", content: "noindex,nofollow" },
-      { property: "og:type", content: "website" },
-      { property: "og:site_name", content: siteName },
-      { property: "og:title", content: title },
-      { property: "og:description", content: description },
-      { property: "og:url", content: `${publicOrigin}/settings/profile` },
-      { name: "twitter:card", content: "summary" },
-      { name: "twitter:title", content: title },
-      { name: "twitter:description", content: description },
-    ],
-  };
+export function settingsProfileHead(publicOrigin?: string) {
+  return pageHead(publicOrigin, {
+    title: "Edit profile",
+    description: "Edit your public Campus Gaming Network profile.",
+    path: "/settings/profile",
+    noIndex: true,
+  });
 }
 
-export function accountHead(publicOrigin = "http://localhost:3000") {
-  const title = `Account | ${siteName}`;
-
-  return {
-    meta: [
-      { title },
-      { name: "description", content: accountDescription },
-      { name: "robots", content: "noindex,nofollow" },
-      { property: "og:type", content: "website" },
-      { property: "og:site_name", content: siteName },
-      { property: "og:title", content: title },
-      { property: "og:description", content: accountDescription },
-      { property: "og:url", content: `${publicOrigin}/account` },
-      { name: "twitter:card", content: "summary" },
-      { name: "twitter:title", content: title },
-      { name: "twitter:description", content: accountDescription },
-    ],
-  };
+export function accountHead(publicOrigin?: string) {
+  return pageHead(publicOrigin, {
+    title: "Account",
+    description: accountDescription,
+    path: "/account",
+    noIndex: true,
+  });
 }

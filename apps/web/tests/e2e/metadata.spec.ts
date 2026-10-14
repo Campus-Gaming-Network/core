@@ -12,6 +12,9 @@ type MetadataContract = {
   cache: typeof publicCache | typeof privateCache;
   noIndex?: boolean;
   openGraphPath?: string;
+  /** "summary" for a page with its own small image, such as a school logo;
+   * "any" while a route builds its own head. */
+  card?: "any" | "summary";
 };
 
 const pages: MetadataContract[] = [
@@ -55,12 +58,14 @@ const pages: MetadataContract[] = [
     path: "/login",
     title: "Log in | Campus Gaming Network",
     cache: publicCache,
+    noIndex: true,
     openGraphPath: "/login",
   },
   {
     path: "/signup?q=Browser",
     title: "Sign up | Campus Gaming Network",
     cache: publicCache,
+    noIndex: true,
     openGraphPath: "/signup",
   },
   {
@@ -95,6 +100,7 @@ const pages: MetadataContract[] = [
     title: "Public Browser Tournament | Campus Gaming Network",
     cache: privateCache,
     openGraphPath: "/events/public-browser-event",
+    card: "any",
   },
   {
     path: "/events/private-browser-event",
@@ -124,12 +130,14 @@ const pages: MetadataContract[] = [
     path: "/schools/follow-browser-university",
     title: "Follow Browser University | Campus Gaming Network",
     cache: privateCache,
+    card: "summary",
     openGraphPath: "/schools/follow-browser-university",
   },
   {
     path: "/users/reportable-player",
-    title: "Reportable Browser Player | Campus Gaming Network",
+    title: "Player profile | Campus Gaming Network",
     cache: publicCache,
+    noIndex: true,
     openGraphPath: "/users/reportable-player",
   },
 ];
@@ -284,10 +292,17 @@ async function assertMetadataContract(
     "content",
     description,
   );
-  await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute(
-    "content",
-    "summary",
-  );
+  if (expected.card !== "any") {
+    await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute(
+      "content",
+      expected.noIndex || expected.card === "summary"
+        ? "summary"
+        : "summary_large_image",
+    );
+    await expect(page.locator('meta[property="og:image"]')).toHaveCount(
+      expected.noIndex ? 0 : 1,
+    );
+  }
   await expect(page.locator('meta[name="twitter:title"]')).toHaveAttribute(
     "content",
     expected.title,
@@ -306,10 +321,17 @@ async function assertMetadataContract(
   }
 
   const robots = page.locator('meta[name="robots"]');
+  const canonical = page.locator('link[rel="canonical"]');
   if (expected.noIndex) {
     await expect(robots).toHaveAttribute("content", "noindex,nofollow");
+    await expect(canonical).toHaveCount(0);
   } else {
     await expect(robots).toHaveCount(0);
+    if (expected.card === "any") return;
+    await expect(canonical).toHaveAttribute(
+      "href",
+      `${siteOrigin}${expected.openGraphPath}`,
+    );
   }
 }
 

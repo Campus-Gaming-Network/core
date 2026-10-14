@@ -100,10 +100,13 @@ export const Route = createFileRoute("/teams/$slug")({
       : "public, max-age=0, must-revalidate",
     vary: "Cookie",
   }),
-  head: ({ loaderData }) => ({
-    ...teamHead(loaderData?.team, loaderData?.publicOrigin),
-    links: [{ rel: "stylesheet", href: teamCSS }],
-  }),
+  head: ({ loaderData }) => {
+    const head = teamHead(loaderData?.team, loaderData?.publicOrigin);
+    return {
+      ...head,
+      links: [...head.links, { rel: "stylesheet", href: teamCSS }],
+    };
+  },
   pendingComponent: TeamPending,
   errorComponent: TeamError,
   component: TeamPage,

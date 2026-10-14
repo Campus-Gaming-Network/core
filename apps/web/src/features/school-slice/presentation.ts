@@ -1,5 +1,12 @@
 import type { PageNotice } from "../../components/page-notice.js";
+import {
+  absoluteUrl,
+  pageHead,
+  siteName,
+} from "../../components/public-page-head.js";
 import type { SchoolDTO } from "./contracts.js";
+
+export { siteName };
 
 // Native follow forms redirect failures to the school page, or to the browse
 // page when the submitted slug was unusable.
@@ -19,7 +26,6 @@ export const schoolDetailNotices = {
 export type SchoolBrowseNotice = keyof typeof schoolBrowseNotices;
 export type SchoolDetailNotice = keyof typeof schoolDetailNotices;
 
-export const siteName = "Campus Gaming Network";
 export const homeDescription =
   "Discover collegiate gaming events, teams, and campus activity. Follow your school and find the scene around you.";
 export const schoolsDescription =
@@ -68,26 +74,26 @@ export function safeSchoolWebsite(
   }
 }
 
-export function homeHead(publicOrigin = "http://localhost:3000") {
-  return pageHead({
+export function homeHead(publicOrigin?: string) {
+  return pageHead(publicOrigin, {
     bareTitle: true,
     title: siteName,
     description: homeDescription,
-    url: publicOrigin,
+    path: "",
   });
 }
 
-export function schoolsHead(publicOrigin = "http://localhost:3000") {
-  return pageHead({
+export function schoolsHead(publicOrigin?: string) {
+  return pageHead(publicOrigin, {
     title: "Schools",
     description: schoolsDescription,
-    url: `${publicOrigin}/schools`,
+    path: "/schools",
   });
 }
 
 export function schoolHead(
   school: SchoolDTO | undefined,
-  publicOrigin = "http://localhost:3000",
+  publicOrigin?: string,
 ) {
   if (!school) {
     return {
@@ -96,43 +102,38 @@ export function schoolHead(
         { name: "description", content: "School details are unavailable." },
         { name: "robots", content: "noindex,nofollow" },
       ],
+      links: [],
     };
   }
 
   const location = schoolLocation(school);
   const description = `Campus gaming events, teams, and activity at ${school.name} in ${location}.`;
+  const path = `/schools/${encodeURIComponent(school.slug)}` as const;
+  const logo = safeSchoolWebsite(school.logo_url);
+  const website = safeSchoolWebsite(school.website_url);
 
-  return pageHead({
+  return pageHead(publicOrigin, {
     title: school.name,
     description,
-    url: `${publicOrigin}/schools/${encodeURIComponent(school.slug)}`,
+    path,
+    ...(logo ? { image: logo } : {}),
+    jsonLd: {
+      "@context": "https://schema.org",
+      "@type": "CollegeOrUniversity",
+      name: school.name,
+      url: absoluteUrl(publicOrigin, path),
+      ...(website ? { sameAs: [website] } : {}),
+      ...(logo ? { logo } : {}),
+      ...(school.city || school.state
+        ? {
+            address: {
+              "@type": "PostalAddress",
+              ...(school.city ? { addressLocality: school.city } : {}),
+              ...(school.state ? { addressRegion: school.state } : {}),
+              addressCountry: "US",
+            },
+          }
+        : {}),
+    },
   });
-}
-
-function pageHead({
-  bareTitle = false,
-  title,
-  description,
-  url,
-}: {
-  bareTitle?: boolean;
-  title: string;
-  description: string;
-  url: string;
-}) {
-  const fullTitle = bareTitle ? title : `${title} | ${siteName}`;
-  return {
-    meta: [
-      { title: fullTitle },
-      { name: "description", content: description },
-      { property: "og:type", content: "website" },
-      { property: "og:site_name", content: siteName },
-      { property: "og:title", content: fullTitle },
-      { property: "og:description", content: description },
-      { property: "og:url", content: url },
-      { name: "twitter:card", content: "summary" },
-      { name: "twitter:title", content: fullTitle },
-      { name: "twitter:description", content: description },
-    ],
-  };
 }

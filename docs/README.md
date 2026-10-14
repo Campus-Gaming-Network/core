@@ -110,7 +110,7 @@ would add a second description of each endpoint to maintain.
 - **Cancellation email** — best-effort email to active yes/maybe RSVPs after soft cancellation; delivery failure does not undo cancellation.
 - **Trust indicators** — public profiles expose verified-student, staff/faculty, and active school-admin indicators; event details expose applicable organizer indicators.
 - **Content filtering** — reject a small word-boundary blocked-term list in user-authored names, bios, event/team text, reports, and support messages before persistence.
-- **Page metadata** — every route sets its own title/description/Open Graph tags; authenticated, token, private, and unlisted routes are `noindex`. A locked private event exposes only a generic title.
+- **Page metadata** — every route sets its own title/description/Open Graph tags; authenticated, auth, token, profile, private, and unlisted routes are `noindex`. A locked private event, and an event for one campus or group, expose only a generic title.
 - **Not-found routes** — missing entities must return HTTP 404, never a soft 404.
 - **Infra** — Railway hosts TanStack Start, the Go API, and production Postgres for the main site; Cloudflare manages DNS/protection; Resend handles email. The separate TanStack Start Admin Console and Cloudflare R2 remain undeployed until their security and release gates pass.
 - **Search** — Postgres full-text / trigram first; no Elasticsearch until proven necessary.

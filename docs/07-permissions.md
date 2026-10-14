@@ -174,4 +174,4 @@ Apply stricter limits to:
 
 Failed authZ returns **403**; missing resource **404**. Do not leak private/unlisted events via search — only `public` appears in discovery.
 
-On the web side this is enforced in page metadata as well as in responses: a locked private event renders only a generic "Private event" title with `noindex`, and unlisted events resolve normally but are also `noindex`. Metadata is part of the gating guarantee — see [06 — Architecture](./06-architecture.md).
+On the web side this is enforced in page metadata as well as in responses: a locked private event renders only a generic "Private event" title with `noindex`, and unlisted events resolve normally but are also `noindex`. An event for a campus or a group (audience `campus` or `members`) and a public profile also get a generic preview and `noindex`, and neither appears in the sitemap. Metadata is part of the gating guarantee — see [06 — Architecture](./06-architecture.md).

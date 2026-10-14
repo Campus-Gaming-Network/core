@@ -36,6 +36,7 @@ export default defineConfig({
         "**/idempotency.spec.ts",
         "**/metadata.spec.ts",
         "**/security-headers.spec.ts",
+        "**/seo.spec.ts",
         "**/static-routes.spec.ts",
       ],
       use: { ...devices["Pixel 5"] },

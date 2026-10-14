@@ -29,15 +29,13 @@ import {
   reportUser,
 } from "../features/public-profile/public-profile.functions";
 import {
+  publicProfileHead,
   publicProfileHomeSchool,
-  publicProfileMetadata,
   reportUserNotices,
   roleIndicatorLabel,
   safeHTTPURL,
   verificationLabel,
 } from "../features/public-profile/presentation";
-
-const siteName = "Campus Gaming Network";
 
 export type PublicProfileRouteData = {
   profile: PublicProfileDTO;
@@ -80,37 +78,6 @@ export const Route = createFileRoute("/users/$id")({
   errorComponent: PublicProfileError,
   component: PublicProfilePage,
 });
-
-export function publicProfileHead(loaderData?: PublicProfileRouteData) {
-  if (!loaderData) {
-    return {
-      meta: [
-        { title: `Public profile | ${siteName}` },
-        { name: "robots", content: "noindex,nofollow" },
-      ],
-    };
-  }
-
-  const metadata = publicProfileMetadata(
-    loaderData.profile,
-    loaderData.publicOrigin,
-  );
-
-  return {
-    meta: [
-      { title: metadata.title },
-      { name: "description", content: metadata.description },
-      { property: "og:type", content: "website" },
-      { property: "og:site_name", content: siteName },
-      { property: "og:title", content: metadata.title },
-      { property: "og:description", content: metadata.description },
-      { property: "og:url", content: metadata.url },
-      { name: "twitter:card", content: "summary" },
-      { name: "twitter:title", content: metadata.title },
-      { name: "twitter:description", content: metadata.description },
-    ],
-  };
-}
 
 function PublicProfilePage() {
   const { profile, viewer } = Route.useLoaderData();

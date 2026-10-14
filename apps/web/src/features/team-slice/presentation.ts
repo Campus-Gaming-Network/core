@@ -1,4 +1,10 @@
 import type { PageNotice } from "../../components/page-notice.js";
+import {
+  absoluteUrl,
+  pageHead,
+  previewText,
+  siteName,
+} from "../../components/public-page-head.js";
 import type { TeamDTO, TeamRole } from "./contracts.js";
 
 // Native team forms redirect failures to the team page, or to the browse page
@@ -28,7 +34,6 @@ export const teamDetailNotices = {
 export type TeamBrowseNotice = keyof typeof teamBrowseNotices;
 export type TeamDetailNotice = keyof typeof teamDetailNotices;
 
-const siteName = "Campus Gaming Network";
 export const teamsDescription =
   "Browse collegiate gaming teams and find one to join on your campus.";
 export const newTeamDescription = "Start a new collegiate gaming team.";
@@ -42,18 +47,15 @@ export function teamRoleLabel(role: TeamRole): string {
   return labels[role];
 }
 
-export function teamsHead(publicOrigin = "http://localhost:3000") {
-  return pageHead({
+export function teamsHead(publicOrigin?: string) {
+  return pageHead(publicOrigin, {
     title: "Teams",
     description: teamsDescription,
-    url: `${publicOrigin}/teams`,
+    path: "/teams",
   });
 }
 
-export function teamHead(
-  team: TeamDTO | undefined,
-  publicOrigin = "http://localhost:3000",
-) {
+export function teamHead(team: TeamDTO | undefined, publicOrigin?: string) {
   if (!team) {
     return {
       meta: [
@@ -61,60 +63,48 @@ export function teamHead(
         { name: "description", content: "Team details are unavailable." },
         { name: "robots", content: "noindex,nofollow" },
       ],
+      links: [],
     };
   }
 
-  const description =
+  const description = previewText(
     team.description.trim() ||
-    `A collegiate gaming team at ${team.school?.name ?? siteName}.`;
-  return pageHead({
+      `A collegiate gaming team at ${team.school?.name ?? siteName}.`,
+  );
+  const path = `/teams/${encodeURIComponent(team.slug)}` as const;
+  // The roster is never part of the head: a team page names its school only.
+  return pageHead(publicOrigin, {
     title: team.name,
     description,
-    url: `${publicOrigin}/teams/${encodeURIComponent(team.slug)}`,
+    path,
+    jsonLd: {
+      "@context": "https://schema.org",
+      "@type": "SportsTeam",
+      name: team.name,
+      url: absoluteUrl(publicOrigin, path),
+      description,
+      sport: "Esports",
+      ...(team.school
+        ? {
+            parentOrganization: {
+              "@type": "CollegeOrUniversity",
+              name: team.school.name,
+              url: absoluteUrl(
+                publicOrigin,
+                `/schools/${encodeURIComponent(team.school.slug)}`,
+              ),
+            },
+          }
+        : {}),
+    },
   });
 }
 
-export function newTeamHead(publicOrigin = "http://localhost:3000") {
-  const title = `Start a team | ${siteName}`;
-  return {
-    meta: [
-      { title },
-      { name: "description", content: newTeamDescription },
-      { name: "robots", content: "noindex,nofollow" },
-      { property: "og:type", content: "website" },
-      { property: "og:site_name", content: siteName },
-      { property: "og:title", content: title },
-      { property: "og:description", content: newTeamDescription },
-      { property: "og:url", content: `${publicOrigin}/teams/new` },
-      { name: "twitter:card", content: "summary" },
-      { name: "twitter:title", content: title },
-      { name: "twitter:description", content: newTeamDescription },
-    ],
-  };
-}
-
-function pageHead({
-  title,
-  description,
-  url,
-}: {
-  title: string;
-  description: string;
-  url: string;
-}) {
-  const fullTitle = `${title} | ${siteName}`;
-  return {
-    meta: [
-      { title: fullTitle },
-      { name: "description", content: description },
-      { property: "og:type", content: "website" },
-      { property: "og:site_name", content: siteName },
-      { property: "og:title", content: fullTitle },
-      { property: "og:description", content: description },
-      { property: "og:url", content: url },
-      { name: "twitter:card", content: "summary" },
-      { name: "twitter:title", content: fullTitle },
-      { name: "twitter:description", content: description },
-    ],
-  };
+export function newTeamHead(publicOrigin?: string) {
+  return pageHead(publicOrigin, {
+    title: "Start a team",
+    description: newTeamDescription,
+    path: "/teams/new",
+    noIndex: true,
+  });
 }

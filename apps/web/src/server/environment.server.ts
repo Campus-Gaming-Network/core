@@ -151,6 +151,16 @@ export function validatedPublicOrigin(
   ).origin;
 }
 
+/**
+ * The environment this process runs in. A missing or unusable DEPLOYMENT_ENV
+ * counts as local, which the production preflight already refuses to boot with.
+ */
+export function runtimeEnvironment(
+  environment: Environment = process.env,
+): DeploymentEnvironment {
+  return parseDeploymentEnvironment(environment.DEPLOYMENT_ENV) ?? "local";
+}
+
 function parseDeploymentEnvironment(
   value: string | undefined,
 ): DeploymentEnvironment | undefined {

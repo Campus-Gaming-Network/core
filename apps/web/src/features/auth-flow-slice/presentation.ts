@@ -1,5 +1,6 @@
 import { publicPageHead } from "../../components/public-page-head.js";
 
+/** Head for a login, signup, or password page. None of them belong in search. */
 export function authPageHead(
   publicOrigin: string | undefined,
   options: {
@@ -9,11 +10,5 @@ export function authPageHead(
     noIndex?: boolean;
   },
 ) {
-  const head = publicPageHead(publicOrigin, options);
-  return options.noIndex
-    ? {
-        ...head,
-        meta: [...head.meta, { name: "robots", content: "noindex,nofollow" }],
-      }
-    : head;
+  return publicPageHead(publicOrigin, { ...options, noIndex: true });
 }

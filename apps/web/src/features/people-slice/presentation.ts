@@ -1,11 +1,10 @@
+import { pageHead, siteName } from "../../components/public-page-head.js";
 import {
   roleIndicatorLabel,
   verificationLabel,
 } from "../event-slice/presentation.js";
 import { teamRoleLabel } from "../team-slice/presentation.js";
 import type { PersonDTO } from "./contracts.js";
-
-const siteName = "Campus Gaming Network";
 
 /**
  * The line under a person's name: their verification and any role indicators,
@@ -35,31 +34,15 @@ export function personDetail(person: PersonDTO): string {
 export function peopleHead({
   description,
   path,
-  publicOrigin = "http://localhost:3000",
+  publicOrigin,
   title,
 }: {
   description: string;
-  path: string;
+  path: `/${string}`;
   publicOrigin?: string;
   title: string;
 }) {
-  const fullTitle = `${title} | ${siteName}`;
-
-  return {
-    meta: [
-      { title: fullTitle },
-      { name: "description", content: description },
-      { name: "robots", content: "noindex,nofollow" },
-      { property: "og:type", content: "website" },
-      { property: "og:site_name", content: siteName },
-      { property: "og:title", content: fullTitle },
-      { property: "og:description", content: description },
-      { property: "og:url", content: `${publicOrigin}${path}` },
-      { name: "twitter:card", content: "summary" },
-      { name: "twitter:title", content: fullTitle },
-      { name: "twitter:description", content: description },
-    ],
-  };
+  return pageHead(publicOrigin, { description, path, title, noIndex: true });
 }
 
 /** Head for a people page whose loader did not finish. */

@@ -15,8 +15,6 @@ const routeSource = readFileSync(
 
 test("profile route has a real 404, safe dynamic head, and viewer-aware caching", () => {
   assert.match(routeSource, /throw notFound\(\)/);
-  assert.match(routeSource, /publicProfileMetadata\(/);
-  assert.match(routeSource, /content: metadata\.url/);
   assert.match(routeSource, /private, no-store/);
   assert.match(routeSource, /public, max-age=0, must-revalidate/);
   assert.match(routeSource, /vary: "Cookie"/);
