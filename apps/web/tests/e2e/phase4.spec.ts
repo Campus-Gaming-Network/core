@@ -229,7 +229,19 @@ test("event create, report, interest, edit, and cancellation work through the ru
   await expect(
     page.getByRole("heading", { name: "Browser Campus Tournament", level: 1 }),
   ).toBeVisible();
-  await expect(page.getByText("Strategy Arena, Rocket League")).toBeVisible();
+  const games = page.getByRole("list", { name: "Games" });
+  await expect(games.getByRole("listitem")).toHaveText([
+    "Strategy Arena",
+    "Rocket League",
+  ]);
+  // A catalog game's cover comes from this site; a just-picked game has none.
+  const cover = games.locator("img");
+  await expect(cover).toHaveCount(1);
+  await expect(cover).toHaveAttribute("src", "/api/games/strategy-arena/cover");
+  await cover.scrollIntoViewIfNeeded();
+  await expect
+    .poll(() => cover.evaluate((node: HTMLImageElement) => node.naturalWidth))
+    .toBeGreaterThan(0);
   await expect(page.getByText("Event created.")).toBeVisible();
 
   await page.getByText("Report this event").click();

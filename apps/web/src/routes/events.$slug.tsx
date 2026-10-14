@@ -12,6 +12,7 @@ import {
   Check,
   CircleHelp,
   Flag,
+  Gamepad2,
   Mail,
   MapPin,
   Star,
@@ -362,11 +363,31 @@ function VisibleEventView({
             <h2 id="event-facts-title">Event details</h2>
             <div className="detail-row">
               <span>Games</span>
-              <strong>
-                {event.games.length > 0
-                  ? event.games.map((game) => game.name).join(", ")
-                  : "To be announced"}
-              </strong>
+              {event.games.length > 0 ? (
+                <ul aria-label="Games" className="event-game-list">
+                  {event.games.map((game) => (
+                    <li key={game.id}>
+                      {game.has_cover ? (
+                        <img
+                          alt=""
+                          className="event-game-cover"
+                          height={64}
+                          loading="lazy"
+                          src={`/api/games/${encodeURIComponent(game.slug)}/cover`}
+                          width={48}
+                        />
+                      ) : (
+                        <span className="event-game-cover" aria-hidden="true">
+                          <Gamepad2 size={18} strokeWidth={2} />
+                        </span>
+                      )}
+                      <strong>{game.name}</strong>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <strong>To be announced</strong>
+              )}
             </div>
             <div className="detail-row">
               <span>{event.capacity ? "Attending" : "Going"}</span>
