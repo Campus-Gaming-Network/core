@@ -82,9 +82,13 @@ test("request middleware adds security headers without weakening route policy", 
     result.response.headers.get("x-content-type-options"),
     "nosniff",
   );
+  assert.equal(
+    result.response.headers.get("cross-origin-opener-policy"),
+    "same-origin",
+  );
   assert.match(
     result.response.headers.get("content-security-policy") ?? "",
-    /frame-ancestors 'none'/,
+    /^default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src [^;]+; font-src 'self'; connect-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'nonce-[A-Za-z0-9+/]{22}=='$/,
   );
 });
 
