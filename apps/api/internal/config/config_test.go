@@ -14,6 +14,10 @@ var configurationEnvironmentKeys = []string{
 	"API_DB_PORT",
 	"API_DB_CONNECT_TIMEOUT",
 	"API_DB_MAX_CONNS",
+	"API_DB_MAX_CONN_LIFETIME",
+	"API_DB_MAX_CONN_IDLE_TIME",
+	"API_DB_STATEMENT_TIMEOUT",
+	"API_SHUTDOWN_TIMEOUT",
 	"API_SESSION_COOKIE",
 	"API_SESSION_TTL",
 	"API_COOKIE_SECURE",
@@ -256,6 +260,10 @@ func TestLoadRejectsUnsafeProductionSettings(t *testing.T) {
 		{name: "non-positive auth rate limit", values: map[string]string{"API_AUTH_RATE_LIMIT": "0"}, wantErr: "API_AUTH_RATE_LIMIT"},
 		{name: "non-positive auth rate window", values: map[string]string{"API_AUTH_RATE_WINDOW": "0s"}, wantErr: "API_AUTH_RATE_WINDOW"},
 		{name: "negative database connections", values: map[string]string{"API_DB_MAX_CONNS": "-1"}, wantErr: "API_DB_MAX_CONNS"},
+		{name: "non-positive connection lifetime", values: map[string]string{"API_DB_MAX_CONN_LIFETIME": "0s"}, wantErr: "API_DB_MAX_CONN_LIFETIME"},
+		{name: "non-positive connection idle time", values: map[string]string{"API_DB_MAX_CONN_IDLE_TIME": "0s"}, wantErr: "API_DB_MAX_CONN_IDLE_TIME"},
+		{name: "non-positive statement timeout", values: map[string]string{"API_DB_STATEMENT_TIMEOUT": "0s"}, wantErr: "API_DB_STATEMENT_TIMEOUT"},
+		{name: "non-positive shutdown timeout", values: map[string]string{"API_SHUTDOWN_TIMEOUT": "0s"}, wantErr: "API_SHUTDOWN_TIMEOUT"},
 		{name: "non-positive catalog refresh", values: map[string]string{"API_CATALOG_REFRESH_INTERVAL": "0s"}, wantErr: "API_CATALOG_REFRESH_INTERVAL"},
 	}
 

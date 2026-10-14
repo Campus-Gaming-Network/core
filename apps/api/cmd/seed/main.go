@@ -45,7 +45,7 @@ func main() {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancel()
-	database, err := db.Open(ctx, cfg.DatabaseURL, cfg.DBMaxConns)
+	database, err := db.Open(ctx, cfg.DatabaseURL, db.Options{MaxConns: cfg.DBMaxConns})
 	if err != nil {
 		slog.Error("open database", "error", err)
 		os.Exit(1)

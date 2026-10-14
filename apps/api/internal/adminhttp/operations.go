@@ -437,6 +437,10 @@ func decodeAdminJSON(w http.ResponseWriter, req *http.Request, target any) error
 	decoder := json.NewDecoder(req.Body)
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(target); err != nil {
+		var tooLarge *http.MaxBytesError
+		if errors.As(err, &tooLarge) {
+			return apperror.Wrap(apperror.KindTooLarge, "request_too_large", err)
+		}
 		return apperror.Wrap(apperror.KindValidation, "invalid_request", err)
 	}
 	var trailing any
@@ -467,6 +471,8 @@ func writeAdminApplicationError(w http.ResponseWriter, req *http.Request, err er
 		status = http.StatusForbidden
 	case apperror.KindUnprocessable:
 		status = http.StatusUnprocessableEntity
+	case apperror.KindTooLarge:
+		status = http.StatusRequestEntityTooLarge
 	}
 	writeError(w, status, code)
 }
