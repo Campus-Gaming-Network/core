@@ -21,9 +21,12 @@ import (
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/httpapi"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/mailhttp"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/maintenance"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/redact"
 )
 
 func main() {
+	slog.SetDefault(redact.NewLogger(os.Stderr))
+
 	cfg, err := config.Load()
 	if err != nil {
 		slog.Error("load config", "error", err)

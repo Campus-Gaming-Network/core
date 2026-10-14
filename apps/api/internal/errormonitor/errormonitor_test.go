@@ -48,6 +48,22 @@ func startIngest(t *testing.T) func() []string {
 	}
 }
 
+func TestCaptureErrorMasksPersonalDataInMessages(t *testing.T) {
+	received := startIngest(t)
+
+	CaptureError(errors.New("insert user pat.example@fake.invalid: reset link ?token=tok-fake-0123456789"), "internal_error")
+
+	envelopes := received()
+	if len(envelopes) != 1 {
+		t.Fatalf("envelopes = %d, want 1", len(envelopes))
+	}
+	for _, secret := range []string{"pat.example", "tok-fake-0123456789"} {
+		if strings.Contains(envelopes[0], secret) {
+			t.Errorf("envelope contains %s: %s", secret, envelopes[0])
+		}
+	}
+}
+
 func TestCapturePanicReportsWithoutRequestData(t *testing.T) {
 	received := startIngest(t)
 	req := httptest.NewRequest(http.MethodPost, "/events/spring-lan?invite=query-secret", strings.NewReader("body-secret"))
