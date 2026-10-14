@@ -950,36 +950,6 @@ main {
   font-size: 0.875rem;
 }
 
-.school-directory-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  column-gap: clamp(2rem, 5vw, 4rem);
-}
-
-.school-directory-card {
-  display: grid;
-  min-height: 6.5rem;
-  grid-template-columns: 2.75rem minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 1rem;
-  border-width: 0 0 1px;
-  border-radius: 0;
-  padding-inline: 0;
-  background: transparent;
-}
-
-@media (hover: hover) {
-  .school-directory-card.card--default:hover {
-    border-color: var(--color-border-strong);
-    background: transparent;
-  }
-
-  .school-directory-card.card--default:hover .school-directory-copy strong,
-  .school-directory-card.card--default:hover .school-directory-action {
-    color: var(--color-primary);
-  }
-}
-
 .school-directory-mark {
   position: relative;
   display: inline-grid;
@@ -1017,24 +987,6 @@ main {
   width: min(12rem, 40vw);
 }
 
-.school-directory-copy {
-  display: grid;
-  min-width: 0;
-  gap: 0.2rem;
-}
-
-.school-directory-copy small {
-  color: var(--color-muted);
-  font-size: 0.8125rem;
-}
-
-.school-directory-action {
-  color: var(--color-primary);
-  font-size: 0.8125rem;
-  font-weight: 800;
-  white-space: nowrap;
-}
-
 .search-bar label {
   display: grid;
   gap: 0.4rem;
@@ -1044,29 +996,6 @@ main {
 
 .list {
   display: grid;
-}
-
-.discovery-list {
-  border-top: 1px solid var(--color-border);
-}
-
-.discovery-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
-  align-items: center;
-  padding-block: 1.15rem;
-}
-
-.discovery-row__meta {
-  color: var(--color-muted);
-  font-size: 0.875rem;
-}
-
-.discovery-row__action {
-  color: var(--color-primary);
-  font-size: 0.8125rem;
-  font-weight: 800;
-  white-space: nowrap;
 }
 
 .list-item {
@@ -1817,10 +1746,6 @@ button:disabled,
     grid-column: auto;
   }
 
-  .school-directory-grid {
-    grid-template-columns: 1fr;
-  }
-
   .auth-page > .page-heading {
     position: static;
   }
@@ -1860,14 +1785,6 @@ button:disabled,
     flex-direction: column;
   }
 
-  .school-directory-card {
-    grid-template-columns: 2.75rem minmax(0, 1fr);
-  }
-
-  .school-directory-action {
-    grid-column: 2;
-  }
-
   .detail-row {
     grid-template-columns: 1fr;
     gap: 0.25rem;
@@ -1875,14 +1792,6 @@ button:disabled,
 
   .detail-card .detail-row {
     grid-template-columns: 1fr;
-  }
-
-  .discovery-row {
-    grid-template-columns: 1fr;
-  }
-
-  .discovery-row__action {
-    margin-top: 0.35rem;
   }
 
   .school-directory-mark--large {

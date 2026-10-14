@@ -1,10 +1,9 @@
-/* Styles for pieces that render in more than one route area (event rows,
-   status labels, team marks). The root route loads this sheet after
+/* Styles for pieces that render in more than one route area (directory rows,
+   event rows, status labels, team marks). The root route loads this sheet after
    styles.css, so these pieces look the same on every page. A rule that only
    one route area uses belongs in that feature's own stylesheet. */
 
-/* Event row: the compact list item used by EventCard and the account
-   dashboard. */
+/* Account dashboard event row. Directory lists use `.directory-row` below. */
 .event-list-item {
   display: grid;
   grid-template-columns: 3.5rem minmax(0, 1fr) auto;
@@ -24,6 +23,86 @@
   min-width: 0;
   gap: 0.15rem;
 }
+
+/* ==== Directory row (DirectoryRow) ====
+   One compact row for the event, team, and school directories: identity tile,
+   name, a muted meta line (host or school, then location), neutral labels,
+   counts, and one action. The whole row is one link. */
+.directory-row {
+  display: grid;
+  grid-template-columns: 3.5rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1rem;
+  padding-block: 1.1rem;
+}
+
+/* The calendar tile fills the column; a team or school mark sits centered. */
+.directory-row > .directory-row__identity {
+  display: grid;
+  align-self: start;
+  justify-items: center;
+}
+
+.directory-row__copy {
+  display: grid;
+  min-width: 0;
+  gap: 0.15rem;
+  overflow-wrap: anywhere;
+}
+
+.directory-row__copy > .event-status {
+  margin-bottom: 0.15rem;
+}
+
+.directory-row__name {
+  font-size: 1rem;
+}
+
+.directory-row__detail,
+.directory-row__meta,
+.directory-row__count {
+  font-size: 0.8125rem;
+}
+
+.directory-row__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-block: 0.3rem 0.1rem;
+}
+
+.directory-row__tags .event-pill {
+  padding: 0.1rem 0.4rem;
+  font-size: 0.6875rem;
+}
+
+.directory-row__count {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-top: 0.15rem;
+}
+
+.directory-row__action {
+  color: var(--color-primary);
+  font-size: 0.8125rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+/* On a phone the action drops under the copy, so the row reads identity,
+   name, meta, labels, counts, then the action. */
+@media (max-width: 42rem) {
+  .directory-row {
+    grid-template-columns: 3rem minmax(0, 1fr);
+    gap: 0.4rem 0.85rem;
+  }
+
+  .directory-row__action {
+    grid-column: 2;
+  }
+}
+/* ==== End directory row ==== */
 
 /* Calendar tile (CalendarDate): the month on a colored band over a large day
    number. It fills its grid column, so the column width sets its size. */
@@ -146,17 +225,6 @@
   border-color: #bfdfc7;
   color: var(--color-success);
   background: var(--color-success-soft);
-}
-
-/* On an event row the facts sit under the copy, smaller than on a page. */
-.event-pill-list--compact {
-  gap: 0.35rem;
-  margin-top: 0.3rem;
-}
-
-.event-pill-list--compact .event-pill {
-  padding: 0.1rem 0.4rem;
-  font-size: 0.6875rem;
 }
 
 /* Team mark: the initial tile shown beside a team name. */
@@ -407,8 +475,7 @@
 
 @media (hover: hover) {
   .card:hover .event-card-action svg,
-  .card:hover .discovery-row__action svg,
-  .card:hover .school-directory-action svg {
+  .card:hover .directory-row__action svg {
     transform: translateX(2px);
   }
 }

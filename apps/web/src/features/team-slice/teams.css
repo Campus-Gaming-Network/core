@@ -140,26 +140,6 @@
   background: transparent;
 }
 
-.team-discovery-row {
-  display: grid;
-  grid-template-columns: 2.75rem minmax(0, 1fr) auto auto;
-  align-items: center;
-  gap: 1rem;
-  padding-block: 1.15rem;
-}
-
-.team-discovery-copy {
-  display: grid;
-  min-width: 0;
-  gap: 0.15rem;
-}
-
-.team-discovery-copy small,
-.team-member-count {
-  color: var(--color-muted);
-  font-size: 0.8125rem;
-}
-
 .team-detail-main {
   min-width: 0;
 }
@@ -193,16 +173,5 @@
 @media (max-width: 52rem) {
   .team-filter-bar > button {
     flex-basis: 100%;
-  }
-}
-
-@media (max-width: 42rem) {
-  .team-discovery-row {
-    grid-template-columns: 2.75rem minmax(0, 1fr);
-  }
-
-  .team-member-count,
-  .team-discovery-row .discovery-row__action {
-    grid-column: 2;
   }
 }

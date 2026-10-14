@@ -1,5 +1,8 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { ArrowRight } from "lucide-react";
+import {
+  DirectoryRow,
+  directoryRowClassName,
+} from "../components/directory-row";
 import { PageNoticeView } from "../components/page-notice-view";
 import { ListUnavailable, RoutePending } from "../components/route-boundaries";
 import { SchoolLogo } from "../components/school-logo";
@@ -85,32 +88,30 @@ function SchoolsPage() {
               Showing {catalog.schools.length} · Page {page}
             </span>
           </div>
-          <div className="school-directory-grid">
+          <div className="list">
             {catalog.schools.map((school) => (
               <Link
-                className="card card--default school-directory-card"
+                className={directoryRowClassName}
                 key={school.id}
                 to="/schools/$slug"
                 params={{ slug: school.slug }}
               >
-                <span aria-hidden="true" className="school-directory-mark">
-                  {school.name.slice(0, 1).toUpperCase()}
-                  <SchoolLogo
-                    logoURL={school.logo_wordmark ? undefined : school.logo_url}
-                    size={44}
-                  />
-                </span>
-                <span className="school-directory-copy">
-                  <strong>{school.name}</strong>
-                  {schoolShortName(school) ? (
-                    <small>{schoolShortName(school)}</small>
-                  ) : null}
-                  <small>{schoolLocation(school)}</small>
-                </span>
-                <span className="school-directory-action with-arrow">
-                  View school
-                  <ArrowRight aria-hidden="true" size={14} strokeWidth={2.25} />
-                </span>
+                <DirectoryRow
+                  action="View school"
+                  identity={
+                    <span aria-hidden="true" className="school-directory-mark">
+                      {school.name.slice(0, 1).toUpperCase()}
+                      <SchoolLogo
+                        logoURL={
+                          school.logo_wordmark ? undefined : school.logo_url
+                        }
+                        size={44}
+                      />
+                    </span>
+                  }
+                  meta={[schoolShortName(school), schoolLocation(school)]}
+                  name={school.name}
+                />
               </Link>
             ))}
           </div>

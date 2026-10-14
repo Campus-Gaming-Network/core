@@ -28,11 +28,13 @@ export const examplePeople: { id: string; name: string; detail: string }[] = [
 
 export const exampleSchools: {
   name: string;
+  shortName?: string;
   slug: string;
   location: string;
 }[] = [
   {
     name: "Summit Ridge University",
+    shortName: "SRU",
     slug: "styleguide-summit-ridge",
     location: "Boulder, CO",
   },
@@ -56,22 +58,25 @@ export const exampleSchools: {
 export const exampleTeams: {
   name: string;
   slug: string;
-  games: string;
+  games: string[];
   school: string;
+  location: string;
   members: number;
 }[] = [
   {
     name: "Ridge Rocketeers",
     slug: "styleguide-ridge-rocketeers",
-    games: "Rocket League",
+    games: ["Rocket League", "Overwatch 2"],
     school: "Summit Ridge University",
+    location: "Boulder, CO",
     members: 12,
   },
   {
     name: "Lakeshore Tacticians",
     slug: "styleguide-lakeshore-tacticians",
-    games: "Valorant",
+    games: ["Valorant"],
     school: "Lakeshore State College",
+    location: "Duluth, MN",
     members: 7,
   },
 ];

@@ -1,6 +1,10 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { ArrowRight } from "lucide-react";
+import { Users } from "lucide-react";
 import { ButtonLink } from "../components/button-link";
+import {
+  DirectoryRow,
+  directoryRowClassName,
+} from "../components/directory-row";
 import { PageNoticeView } from "../components/page-notice-view";
 import { ListUnavailable, RoutePending } from "../components/route-boundaries";
 import {
@@ -18,6 +22,7 @@ import {
   teamBrowseNotices,
   teamsHead,
 } from "../features/team-slice/presentation";
+import { schoolLocation } from "../features/school-slice/presentation";
 import teamCSS from "../features/team-slice/teams.css?url";
 
 export const Route = createFileRoute("/teams/")({
@@ -158,29 +163,36 @@ function TeamsPage() {
       {catalog.teamsUnavailable ? (
         <ListUnavailable heading="Teams are unavailable right now" />
       ) : catalog.teams.length > 0 ? (
-        <div className="list discovery-list">
+        <div className="list">
           {catalog.teams.map((team) => (
             <Link
-              className="card card--default list-item team-discovery-row"
+              className={directoryRowClassName}
               key={team.id}
               to="/teams/$slug"
               params={{ slug: team.slug }}
             >
-              <span aria-hidden="true" className="team-mark">
-                {team.name.slice(0, 1).toUpperCase()}
-              </span>
-              <span className="team-discovery-copy">
-                <strong>{team.name}</strong>
-                <small>{team.games.map((game) => game.name).join(", ")}</small>
-                <small>{team.school?.name ?? "Independent team"}</small>
-              </span>
-              <span className="team-member-count">
-                {team.member_count} member{team.member_count === 1 ? "" : "s"}
-              </span>
-              <span className="discovery-row__action with-arrow">
-                View team
-                <ArrowRight aria-hidden="true" size={14} strokeWidth={2.25} />
-              </span>
+              <DirectoryRow
+                action="View team"
+                counts={
+                  <small className="directory-row__count">
+                    <Users aria-hidden="true" size={14} strokeWidth={1.75} />
+                    {team.member_count} member
+                    {team.member_count === 1 ? "" : "s"}
+                  </small>
+                }
+                identity={
+                  <span aria-hidden="true" className="team-mark">
+                    {team.name.slice(0, 1).toUpperCase()}
+                  </span>
+                }
+                meta={
+                  team.school
+                    ? [team.school.name, schoolLocation(team.school, "")]
+                    : ["Independent team"]
+                }
+                name={team.name}
+                tags={team.games.map((game) => game.name)}
+              />
             </Link>
           ))}
         </div>
