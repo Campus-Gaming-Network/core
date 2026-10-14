@@ -78,6 +78,11 @@ change:
 - Feature shipped, launch gate cleared, or ticket status changed: close or
   update its GitHub issue. Do not tick checkboxes in the docs.
 - Toolchain bump: the configuration files only; docs point at them.
+- Routes are listed as table rows whose first cell is the method and whose
+  second is the path in backticks, with `:name` parameters (public routes in
+  04, Admin API routes in 20). `go test ./...` fails when those rows and the
+  routes the Go API registers disagree; see
+  `apps/api/internal/httpapi/api_docs_test.go`.
 - Run `pnpm run check:docs-links` to verify relative links and heading anchors.
 
 Generating the endpoint reference from code was considered and not adopted: the

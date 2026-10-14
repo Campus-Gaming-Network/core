@@ -105,6 +105,15 @@ func newFakeIGDB(t *testing.T) *fakeIGDB {
 		}
 		w.Write(fake.images[imageID])
 	})
+	// Admin search thumbnails come from the same images, uncounted.
+	mux.HandleFunc("GET /images/t_cover_small/{file}", func(w http.ResponseWriter, req *http.Request) {
+		imageID := strings.TrimSuffix(req.PathValue("file"), ".jpg")
+		if status := fake.imageStatus[imageID]; status != 0 {
+			w.WriteHeader(status)
+			return
+		}
+		w.Write(fake.images[imageID])
+	})
 	server := httptest.NewServer(mux)
 	t.Cleanup(server.Close)
 	fake.client = igdb.NewClient(igdb.Config{
@@ -143,8 +152,9 @@ func TestIGDBImportCreatesAnInactiveGameWithItsCover(t *testing.T) {
 	type searchPage struct {
 		Games []games.IGDBResult `json:"games"`
 	}
+	thumbnail := &games.Thumbnail{ContentType: "image/jpeg", Data: fakeJPEG}
 	found := decodeCatalog[searchPage](t, f.request(t, "GET", "/admin/v1/igdb-games?q=rocket", nil, 200))
-	if want := (searchPage{Games: []games.IGDBResult{{IGDBID: fakeRocketLeagueID, Name: "Rocket League"}}}); !reflect.DeepEqual(found, want) {
+	if want := (searchPage{Games: []games.IGDBResult{{IGDBID: fakeRocketLeagueID, Name: "Rocket League", Thumbnail: thumbnail}}}); !reflect.DeepEqual(found, want) {
 		t.Fatalf("search = %+v, want %+v", found, want)
 	}
 
@@ -168,7 +178,7 @@ func TestIGDBImportCreatesAnInactiveGameWithItsCover(t *testing.T) {
 		t.Fatalf("repeat import = %+v, want the existing game", repeat)
 	}
 	found = decodeCatalog[searchPage](t, f.request(t, "GET", "/admin/v1/igdb-games?q=rocket", nil, 200))
-	if want := (searchPage{Games: []games.IGDBResult{{IGDBID: fakeRocketLeagueID, Name: "Rocket League", GameID: game.ID}}}); !reflect.DeepEqual(found, want) {
+	if want := (searchPage{Games: []games.IGDBResult{{IGDBID: fakeRocketLeagueID, Name: "Rocket League", GameID: game.ID, Thumbnail: thumbnail}}}); !reflect.DeepEqual(found, want) {
 		t.Fatalf("search after import = %+v, want %+v", found, want)
 	}
 
@@ -352,9 +362,20 @@ func TestIGDBSearchIsCachedForADay(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	wantAdmin := []games.IGDBResult{{IGDBID: fakeRocketLeagueID, Name: "Rocket League", GameID: hidden.ID}}
+	wantAdmin := []games.IGDBResult{{IGDBID: fakeRocketLeagueID, Name: "Rocket League", GameID: hidden.ID, Thumbnail: &games.Thumbnail{ContentType: "image/jpeg", Data: fakeJPEG}}}
 	if len(picker) != 0 || !reflect.DeepEqual(admin, wantAdmin) || f.igdb.searches != 2 {
 		t.Fatalf("picker = %+v, admin = %+v, searches = %d; want none, %+v, 2", picker, admin, f.igdb.searches, wantAdmin)
+	}
+
+	// A thumbnail IGDB cannot serve is left out; the search still succeeds.
+	f.igdb.imageStatus = map[string]int{"co1": http.StatusNotFound}
+	admin, err = service.SearchIGDB(ctx, "rocket")
+	if err != nil {
+		t.Fatal(err)
+	}
+	wantAdmin[0].Thumbnail = nil
+	if !reflect.DeepEqual(admin, wantAdmin) {
+		t.Fatalf("admin search without a thumbnail = %+v, want %+v", admin, wantAdmin)
 	}
 }
 
@@ -414,9 +435,21 @@ func TestAUserCreatesAnEventAndATeamForGamesTheCatalogLacked(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	wantGames := []events.GameSummary{{ID: typed.ID, Name: "Campus Trivia Night", Slug: "campus-trivia-night"}, {ID: picked.ID, Name: "Rocket League", Slug: "rocket-league"}}
+	wantGames := []events.GameSummary{{ID: typed.ID, Name: "Campus Trivia Night", Slug: "campus-trivia-night"}, {ID: picked.ID, Name: "Rocket League", Slug: "rocket-league", HasCover: true}}
 	if !reflect.DeepEqual(event.Games, wantGames) {
 		t.Fatalf("event games = %+v, want %+v", event.Games, wantGames)
+	}
+	// The site stops serving a hidden game's cover, so the event stops naming it.
+	if _, err := f.pool.Exec(ctx, `UPDATE games SET is_active=FALSE WHERE id=$1::uuid`, picked.ID); err != nil {
+		t.Fatal(err)
+	}
+	reread, err := events.NewPostgresRepository(f.pool).GetBySlug(ctx, event.Slug)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wantGames[1].HasCover = false
+	if !reflect.DeepEqual(reread.Games, wantGames) {
+		t.Fatalf("event games after hiding = %+v, want %+v", reread.Games, wantGames)
 	}
 	team, err := teams.NewPostgresRepository(f.pool).Create(ctx, teams.CreateParams{CreateInput: teams.CreateInput{
 		Name: "Trivia Squad", OwnerUserID: catalogActorID, SchoolID: catalogSchoolID, GameIDs: []string{typed.ID}, Password: "TeamPass8",

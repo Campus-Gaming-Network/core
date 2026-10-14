@@ -59,7 +59,7 @@ func run(ctx context.Context, args []string, stdout, stderr io.Writer) error {
 	if databaseURL == "" {
 		return errors.New("API_DATABASE_URL must be explicitly set")
 	}
-	pool, err := db.Open(ctx, databaseURL, 2)
+	pool, err := db.Open(ctx, databaseURL, db.Options{MaxConns: 2})
 	if err != nil {
 		return errors.New("could not open the configured database")
 	}

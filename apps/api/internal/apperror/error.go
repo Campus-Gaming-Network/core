@@ -15,6 +15,8 @@ const (
 	KindConflict
 	KindAuthentication
 	KindAuthorization
+	// KindTooLarge marks a request body that exceeds the size limit.
+	KindTooLarge
 )
 
 // Error carries a stable machine code while preserving the underlying cause.

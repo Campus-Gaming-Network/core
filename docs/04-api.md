@@ -179,6 +179,8 @@ An event's `audience` (`open`, `collegiate`, `campus`, or `members`) says who it
 
 An event's `cost` is `free`, `paid`, or `unspecified`; it replaces the former `is_paid` boolean. Every event response includes it. `POST /events` and `PATCH /events/:slug` accept it, store a missing value as `unspecified`, and return `400 invalid_request` for an unknown value. `unspecified` means the organizer did not say and is never treated as free. `GET /events?cost=free` returns only events declared free; an unknown `cost` filter is ignored. `payment_note` and `payment_url` are unchanged and describe paid events.
 
+Each entry in an event's `games` is `{ "id", "name", "slug", "has_cover" }`. `has_cover` is true when the site serves the game's cover at `/api/games/:slug/cover`, so it is false for a game with no stored cover and for one a site admin has hidden since the event chose it.
+
 Discovery lists only `visibility = public`. Unlisted is link/slug only. Private: do not leak event details in HTML/JSON before unlock — blurred shell + password modal only. Capacity = count of RSVP `yes`; full → cannot RSVP yes (no waitlist). Paid events are allowed only as off-site-payment listings: no checkout, payment intent, refund, tax, payout, or ledger behavior in CGN.
 
 Recurring creation expands into independent event occurrences. The supported
@@ -394,9 +396,13 @@ grant at its user. Reports and support tickets have no `target_name`.
 The IGDB routes need `games.manage`:
 
 - `GET /igdb-games?q=` searches IGDB by name (2 to 100 characters) and returns
-  `{ "games": [{ "igdb_id", "name", "release_year"?, "game_id"? }] }`.
-  `game_id` is set when the catalog already holds that IGDB entry. No cover is
-  downloaded.
+  `{ "games": [{ "igdb_id", "name", "release_year"?, "game_id"?, "thumbnail"? }] }`.
+  `game_id` is set when the catalog already holds that IGDB entry.
+  `thumbnail` is `{ "content_type", "data" }`, IGDB's small (90×128) cover
+  with the bytes base64-encoded like `GET /games/:id/cover`. It is downloaded
+  for every search, including a cached one, and is absent when IGDB has no
+  cover or the download fails; a failed thumbnail never fails the search.
+  Nothing is stored.
 - `POST /game-imports` takes `{ "igdb_id", "reason" }`. The API reads the name,
   slug, and cover from IGDB, creates the game inactive with `igdb_id` and
   `last_synced_at` set, stores the cover, and writes a `game.imported` audit

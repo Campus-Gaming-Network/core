@@ -19,6 +19,27 @@ decisions replace them:
 | Domain audit entry | Purge after 24 months unless it is needed for an active case or hold | Normally `created_at`; define the associated-case rule before automation                                       |
 | Database backup    | Expire within 90 days                                                | Backup creation date; verify the actual provider schedule and deletion behavior before launch                  |
 
+### Automated purges in force
+
+The API runs an hourly maintenance sweeper (`apps/api/internal/maintenance`)
+that deletes in batches of 1,000 and is safe to rerun. It enforces these
+operational (non-legal-hold) windows:
+
+| Table                                                                 | Deleted when                                                                                                                 |
+| --------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `auth_sessions`, `email_verification_tokens`, `password_reset_tokens` | Expired, revoked, consumed, or soft-deleted more than 24 hours ago                                                           |
+| `event_private_unlocks`                                               | Expired or soft-deleted more than 24 hours ago                                                                               |
+| `admin_sessions`                                                      | Idle- or absolute-expired, or revoked, more than 24 hours ago, and not referenced by `audit_logs` or `admin_security_events` |
+| `email_outbox`                                                        | Delivered or permanently failed more than 30 days ago (pending and retrying rows are never deleted)                          |
+
+`audit_logs` and `admin_security_events` are never purged by this job, and
+`admin_sessions` rows they reference are kept so the append-only history keeps
+its session link. The 12-month support ticket, 24-month report, and 24-month
+audit targets above are not automated: they need the legal-hold model below
+first, and the sweeper does not touch those tables. Rate-limit state is held
+in API process memory with a bounded size, so it has no table to purge. Create
+idempotency keys are columns on their records and live and die with them.
+
 No eligible record should be purged until a legal-hold check has run. An active
 investigation, appeal, dispute, preservation request, or applicable legal duty
 may suspend the ordinary clock for the minimum necessary records. Access and use
