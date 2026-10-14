@@ -12,10 +12,13 @@ import (
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/db"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/games"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/igdb"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/redact"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/seed"
 )
 
 func main() {
+	slog.SetDefault(redact.NewLogger(os.Stderr))
+
 	path := flag.String("csv", "../../data/schools_seed.csv", "school seed CSV path")
 	demo := flag.Bool("demo", false, "also fill a local database with demo users, events, teams, and moderation records")
 	demoReset := flag.Bool("demo-reset", false, "delete existing demo data before seeding it again (requires -demo)")
@@ -45,7 +48,7 @@ func main() {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancel()
-	database, err := db.Open(ctx, cfg.DatabaseURL, cfg.DBMaxConns)
+	database, err := db.Open(ctx, cfg.DatabaseURL, db.Options{MaxConns: cfg.DBMaxConns})
 	if err != nil {
 		slog.Error("open database", "error", err)
 		os.Exit(1)

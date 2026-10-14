@@ -16,6 +16,7 @@ import (
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminaccess"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminaudit"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminsecurity"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/apperror"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/operations"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/pagecursor"
 )
@@ -489,5 +490,20 @@ func TestOperationsReportTargetUserFilter(t *testing.T) {
 	}
 	if code := serve("/admin/v1/support-tickets?target_user=" + userID); code != http.StatusBadRequest {
 		t.Fatalf("support ticket target user status = %d, want 400", code)
+	}
+}
+
+func TestDecodeAdminJSONReportsOversizedBodyAsTooLarge(t *testing.T) {
+	body := `{"reason":"` + strings.Repeat("a", maximumPatchBodyBytes) + `"}`
+	request := httptest.NewRequest(http.MethodPatch, "/x", strings.NewReader(body))
+	var target struct {
+		Reason string `json:"reason"`
+	}
+
+	err := decodeAdminJSON(httptest.NewRecorder(), request, &target)
+
+	kind, code, ok := apperror.Details(err)
+	if !ok || kind != apperror.KindTooLarge || code != "request_too_large" {
+		t.Fatalf("Details() = %v, %q, %v, want KindTooLarge request_too_large", kind, code, ok)
 	}
 }

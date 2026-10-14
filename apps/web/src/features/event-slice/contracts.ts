@@ -58,6 +58,11 @@ export const gameSummaryDtoSchema = z.object({
   slug: identifierSchema,
 });
 
+// An event's game also says whether the site serves its cover.
+const eventGameDtoSchema = gameSummaryDtoSchema.extend({
+  has_cover: z.boolean(),
+});
+
 const eventOrganizerSchema = z.object({
   id: identifierSchema,
   name: z.string(),
@@ -98,7 +103,7 @@ export const eventDtoSchema = z.object({
   payment_note: z.string().optional(),
   payment_url: z.string().optional(),
   host_school: schoolSummarySchema,
-  games: z.array(gameSummaryDtoSchema),
+  games: z.array(eventGameDtoSchema),
   organizers: z.array(eventOrganizerSchema).optional(),
   viewer_rsvp: eventRSVPSchema.optional(),
   viewer_interested: z.boolean().optional(),

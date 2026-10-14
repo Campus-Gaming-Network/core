@@ -181,14 +181,19 @@ let schools: Map<string, School>;
 let schoolsWithHistory: Set<string>;
 let schoolGrants: SchoolGrant[];
 let games: Map<string, Game>;
-// What the fake IGDB knows. Searching for "outage" answers as an IGDB outage.
-const igdbGames = [
-  { igdb_id: 11198, name: "Rocket League", release_year: 2015 },
-  { igdb_id: 133236, name: "Rocket Arena", release_year: 2020 },
-];
 // A one-pixel PNG, base64-encoded as the cover endpoint sends it.
 const coverPNG =
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+// What the fake IGDB knows. Searching for "outage" answers as an IGDB outage.
+const igdbGames = [
+  {
+    igdb_id: 11198,
+    name: "Rocket League",
+    release_year: 2015,
+    thumbnail: { content_type: "image/png", data: coverPNG },
+  },
+  { igdb_id: 133236, name: "Rocket Arena", release_year: 2020 },
+];
 let users: Map<string, User>;
 let siteGrants: SiteGrant[];
 let catalogAudit: Map<string, AuditEntry[]>;

@@ -11,6 +11,7 @@ import {
   Check,
   CircleHelp,
   Flag,
+  Gamepad2,
   Mail,
   MapPin,
   Star,
@@ -509,9 +510,34 @@ function VisibleEventView({
               {
                 term: "Games",
                 value:
-                  event.games.length > 0
-                    ? event.games.map((game) => game.name).join(", ")
-                    : "To be announced",
+                  event.games.length > 0 ? (
+                    <ul aria-label="Games" className="event-game-list">
+                      {event.games.map((game) => (
+                        <li key={game.id}>
+                          {game.has_cover ? (
+                            <img
+                              alt=""
+                              className="event-game-cover"
+                              height={64}
+                              loading="lazy"
+                              src={`/api/games/${encodeURIComponent(game.slug)}/cover`}
+                              width={48}
+                            />
+                          ) : (
+                            <span
+                              className="event-game-cover"
+                              aria-hidden="true"
+                            >
+                              <Gamepad2 size={18} strokeWidth={2} />
+                            </span>
+                          )}
+                          <strong>{game.name}</strong>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    "To be announced"
+                  ),
               },
               ...(event.event_type
                 ? [{ term: "Type", value: eventTypeLabels[event.event_type] }]
@@ -811,6 +837,9 @@ function RsvpEventForm({ event }: { event: EventDTO }) {
 
   async function submit(formEvent: FormEvent<HTMLFormElement>) {
     formEvent.preventDefault();
+    // The buttons stay enabled while a save is pending, so ignore a second
+    // press instead of disabling them.
+    if (mutation.pending) return;
     const submitter = (formEvent.nativeEvent as SubmitEvent)
       .submitter as HTMLButtonElement | null;
     const response = submitter?.value;
@@ -873,11 +902,10 @@ function RsvpEventForm({ event }: { event: EventDTO }) {
             <button
               aria-pressed={event.viewer_rsvp === response}
               {...fieldErrorProps(responseErrors, "event-rsvp-error")}
-              disabled={
-                mutation.pending ||
-                isEnded ||
-                (response === "yes" && isFullForViewer)
-              }
+              // A disabled button drops keyboard focus to the page body, so a
+              // pending save marks the buttons aria-disabled instead.
+              aria-disabled={mutation.pending || undefined}
+              disabled={isEnded || (response === "yes" && isFullForViewer)}
               key={response}
               name="response"
               type="submit"

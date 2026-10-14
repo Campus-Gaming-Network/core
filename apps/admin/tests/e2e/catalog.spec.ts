@@ -144,6 +144,10 @@ test("a game is imported from IGDB, reviewed, and refreshed", async ({
 
   const matches = panel(page, "Choose a game");
   await expect(matches.getByRole("radio")).toHaveCount(2);
+  // Only the match IGDB has a cover for shows one, from the page itself.
+  const thumbnails = matches.locator("img");
+  await expect(thumbnails).toHaveCount(1);
+  await expect(thumbnails).toHaveAttribute("src", /^data:image\/png;base64,/);
   await matches.getByLabel("Rocket League (2015)").check();
   await matches.getByLabel("Reason").fill("Requested by schools");
   await matches.getByRole("button", { name: "Import game" }).click();

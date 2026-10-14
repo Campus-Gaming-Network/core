@@ -27,7 +27,9 @@ const (
 	MaxCoverBytes = 100 << 10
 
 	// coverSize is about twice the largest size a cover is displayed at.
-	coverSize       = "t_cover_big"
+	coverSize = "t_cover_big"
+	// thumbnailSize is the 90x128 cover shown beside an admin search result.
+	thumbnailSize   = "t_cover_small"
 	searchLimit     = 20
 	maxResponseSize = 1 << 20
 	requestTimeout  = 10 * time.Second
@@ -152,10 +154,19 @@ func (c *Client) GameBySlug(ctx context.Context, slug string) (Game, error) {
 // Cover downloads a cover image. The type is read from the bytes, not from
 // the response header.
 func (c *Client) Cover(ctx context.Context, imageID string) (Cover, error) {
+	return c.image(ctx, coverSize, imageID)
+}
+
+// Thumbnail downloads a small cover image, checked like Cover.
+func (c *Client) Thumbnail(ctx context.Context, imageID string) (Cover, error) {
+	return c.image(ctx, thumbnailSize, imageID)
+}
+
+func (c *Client) image(ctx context.Context, size, imageID string) (Cover, error) {
 	if !imageIDPattern.MatchString(imageID) {
 		return Cover{}, ErrCoverUnsupported
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.config.ImageURL+"/"+coverSize+"/"+imageID+".jpg", nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.config.ImageURL+"/"+size+"/"+imageID+".jpg", nil)
 	if err != nil {
 		return Cover{}, err
 	}

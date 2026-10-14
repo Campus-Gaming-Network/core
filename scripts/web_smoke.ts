@@ -129,6 +129,7 @@ try {
     overallController.signal,
   );
   await verifyHomePage(webOrigin, fakeAPI.calls, overallController.signal);
+  await verifySecurityHeaders(webOrigin, overallController.signal);
   await verifyAccountRoute(webOrigin, fakeAPI.calls, overallController.signal);
   await verifyPhase4RouteBoundaries(
     webOrigin,
@@ -232,6 +233,9 @@ try {
   );
   process.stdout.write(`  GET /: 200 SSR catalog parity shell and metadata\n`);
   process.stdout.write(
+    `  Security headers: nonce-based CSP, COOP, framing, sniffing, and referrer\n`,
+  );
+  process.stdout.write(
     `  Account: auth redirect and private composed dashboard SSR\n`,
   );
   process.stdout.write(
@@ -283,6 +287,77 @@ try {
   await closeServer(fakeAPIServer);
 }
 
+async function verifySecurityHeaders(
+  origin: string,
+  overallSignal: AbortSignal,
+) {
+  const pages = await Promise.all(
+    [0, 1].map(async () => {
+      const response = await fetch(`${origin}/`, { signal: overallSignal });
+      return { headers: response.headers, html: await response.text() };
+    }),
+  );
+
+  const nonces = pages.map(({ headers, html }) => {
+    const policy = headers.get("content-security-policy") ?? "";
+    const nonce = /script-src 'self' 'nonce-([^']+)'/.exec(policy)?.[1];
+    assert.ok(nonce, `CSP must name a script nonce: ${policy}`);
+    assert.deepEqual(
+      policy
+        .split("; ")
+        .filter((directive) => !directive.startsWith("script-src")),
+      [
+        "default-src 'self'",
+        "base-uri 'self'",
+        "object-src 'none'",
+        "frame-ancestors 'none'",
+        "form-action 'self'",
+        "img-src 'self' data:",
+        "font-src 'self'",
+        "connect-src 'self'",
+        "style-src 'self' 'unsafe-inline'",
+      ],
+      "CSP must stay strict",
+    );
+
+    const scripts = [...html.matchAll(/<script\b[^>]*>/g)].map(
+      (match) => match[0],
+    );
+    assert.ok(scripts.length > 0, "The page must render inline scripts");
+    for (const script of scripts) {
+      assert.ok(
+        script.includes(`nonce="${nonce}"`),
+        `Every script must carry the request nonce: ${script}`,
+      );
+    }
+
+    assert.deepEqual(
+      Object.fromEntries(
+        [
+          "cross-origin-opener-policy",
+          "permissions-policy",
+          "referrer-policy",
+          "x-content-type-options",
+          "x-frame-options",
+          "strict-transport-security",
+        ].map((name) => [name, headers.get(name)]),
+      ),
+      {
+        "cross-origin-opener-policy": "same-origin",
+        "permissions-policy":
+          "camera=(), microphone=(), geolocation=(), payment=()",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+        // Only an HTTPS production deployment sends HSTS.
+        "strict-transport-security": null,
+      },
+    );
+    return nonce;
+  });
+  assert.notEqual(nonces[0], nonces[1], "Each request needs a fresh nonce");
+}
+
 async function verifyHomePage(
   origin: string,
   upstreamCalls: UpstreamCall[],
@@ -329,7 +404,7 @@ async function verifyHomePage(
       `<meta\\s+property="og:url"\\s+content="${escapeRegularExpression(origin)}"\\s*\\/?>`,
       "i",
     ),
-    "GET / must emit an absolute Open Graph URL from SITE_URL",
+    `GET / must emit an absolute Open Graph URL from SITE_URL`,
   );
 
   const calls = upstreamCalls.slice(callsBefore);
@@ -1835,7 +1910,15 @@ async function smokeFetch(
   ]);
 
   try {
-    return await fetch(url, { ...options, signal: requestSignal });
+    const response = await fetch(url, { ...options, signal: requestSignal });
+    // The router stamps each request's CSP nonce on the tags it renders. The
+    // page assertions below compare markup, not the per-request nonce, so
+    // they read the body without it. verifySecurityHeaders reads it raw.
+    const readText = response.text.bind(response);
+    Object.defineProperty(response, "text", {
+      value: async () => (await readText()).replaceAll(/ nonce="[^"]*"/g, ""),
+    });
+    return response;
   } catch (error) {
     if (overallSignal.aborted) {
       throw overallSignal.reason;
@@ -2156,7 +2239,14 @@ function visibleEvent({
       city: "Irvine",
       state: "CA",
     },
-    games: [{ id: "game-smoke", name: "Smoke Arena", slug: "smoke-arena" }],
+    games: [
+      {
+        id: "game-smoke",
+        name: "Smoke Arena",
+        slug: "smoke-arena",
+        has_cover: false,
+      },
+    ],
     organizers: [
       {
         id: "user-smoke",

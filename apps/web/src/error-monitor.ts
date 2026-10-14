@@ -1,4 +1,5 @@
 import * as Sentry from "@sentry/browser";
+import { scrubEvent } from "./error-scrub";
 import type { ErrorMonitoringConfig } from "./server/error-monitor.server";
 
 // Loaded on demand by the root route, so a deployment without a DSN never
@@ -21,13 +22,7 @@ export function startBrowserErrorMonitoring(
       ),
     initialScope: { tags: { runtime: "browser" } },
     // Query strings carry verification and password-reset tokens.
-    beforeSend(event) {
-      const url = event.request?.url?.split(/[?#]/)[0];
-      event.request = url ? { url } : undefined;
-      delete event.user;
-      delete event.breadcrumbs;
-      return event;
-    },
+    beforeSend: (event) => scrubEvent(event, { keepUrl: true }),
   });
 }
 
