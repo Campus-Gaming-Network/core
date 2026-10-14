@@ -237,27 +237,6 @@ func (f catalogFixture) domainDigest(t *testing.T) map[string]string {
 }
 
 func TestEveryMutationRouteAuditsOnceAndRollsBackWithoutAnAuditRow(t *testing.T) {
-	// The table must name every mutation route, so none escapes the check.
-	for _, route := range routes {
-		if !route.Mutation || route.Control != controlCapability {
-			continue
-		}
-		_, tested := mutationCases[route.Operation]
-		_, elsewhere := mutationsCoveredByLogoTests[route.Operation]
-		if tested == elsewhere {
-			t.Errorf("mutation route %s %s (%s) must be in exactly one of the mutation table and the logo-test list", route.Method, route.Path, route.Operation)
-		}
-	}
-	for operation := range mutationCases {
-		found := false
-		for _, route := range routes {
-			found = found || route.Operation == operation
-		}
-		if !found {
-			t.Errorf("mutation table names %s, which is not a registered route", operation)
-		}
-	}
-
 	for operation, test := range mutationCases {
 		t.Run(string(operation), func(t *testing.T) {
 			f := newCatalogFixture(t)

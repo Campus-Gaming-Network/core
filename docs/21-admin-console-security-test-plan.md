@@ -169,6 +169,24 @@ The test must enumerate the runtime route registry and fail if a new
 Expected status semantics are `401` for no currently valid admin identity and
 `403` for a valid admin identity lacking permission/recent authentication.
 
+### Route invariants
+
+Every route in the registry must have a session, a named capability (except
+exchange, step-up, and logout, which act on the session itself), exact-origin
+and CSRF checks on every `POST`, `PUT`, `PATCH`, and `DELETE`, and an audit row
+(catalog and queue mutations) or security event (step-up and logout) for each
+mutation. `route_invariants_test.go` walks the registry, with no database, and
+fails when a route:
+
+- uses a state-changing method without `Mutation: true`, which would skip CSRF;
+- has no handler behind it;
+- leaves no denial record when its CSRF check fails;
+- is a capability mutation with no case in the audit table in
+  `mutation_audit_db_test.go`, or a session mutation with no security event.
+
+The database test then proves one audit row, and a full rollback without it,
+for each case in that table.
+
 ## Coverage status
 
 Every case below has an owner in the repository. As of 2026-09-30, 67 are fully
