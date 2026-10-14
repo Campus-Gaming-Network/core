@@ -815,6 +815,9 @@ function RsvpEventForm({ event }: { event: EventDTO }) {
 
   async function submit(formEvent: FormEvent<HTMLFormElement>) {
     formEvent.preventDefault();
+    // The buttons stay enabled while a save is pending, so ignore a second
+    // press instead of disabling them.
+    if (mutation.pending) return;
     const submitter = (formEvent.nativeEvent as SubmitEvent)
       .submitter as HTMLButtonElement | null;
     const response = submitter?.value;
@@ -877,11 +880,10 @@ function RsvpEventForm({ event }: { event: EventDTO }) {
             <button
               aria-pressed={event.viewer_rsvp === response}
               {...fieldErrorProps(responseErrors, "event-rsvp-error")}
-              disabled={
-                mutation.pending ||
-                isEnded ||
-                (response === "yes" && isFullForViewer)
-              }
+              // A disabled button drops keyboard focus to the page body, so a
+              // pending save marks the buttons aria-disabled instead.
+              aria-disabled={mutation.pending || undefined}
+              disabled={isEnded || (response === "yes" && isFullForViewer)}
               key={response}
               name="response"
               type="submit"
