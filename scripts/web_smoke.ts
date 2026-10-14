@@ -2156,7 +2156,14 @@ function visibleEvent({
       city: "Irvine",
       state: "CA",
     },
-    games: [{ id: "game-smoke", name: "Smoke Arena", slug: "smoke-arena" }],
+    games: [
+      {
+        id: "game-smoke",
+        name: "Smoke Arena",
+        slug: "smoke-arena",
+        has_cover: false,
+      },
+    ],
     organizers: [
       {
         id: "user-smoke",
