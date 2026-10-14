@@ -951,8 +951,13 @@ async function verifyPublicProfileRoutes(
   const html = await response.text();
   assert.match(
     html,
-    /<title>Public Smoke Player \| Campus Gaming Network<\/title>/i,
-    "Public profile must render dynamic metadata",
+    /<title>Player profile \| Campus Gaming Network<\/title>/i,
+    "Public profile must render generic metadata that does not name the person",
+  );
+  assert.match(
+    html,
+    /<meta[^>]+name="robots"[^>]+content="noindex/i,
+    "Public profile must not be indexed",
   );
   assert.match(
     html,
