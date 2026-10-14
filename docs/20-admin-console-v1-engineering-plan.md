@@ -409,17 +409,20 @@ applicable.
 
 ### Reports, support, and history
 
-| Method | Path                              | Capability       | Purpose                             |
-| ------ | --------------------------------- | ---------------- | ----------------------------------- |
-| GET    | `/admin/v1/reports`               | `reports.read`   | Filtered, paginated queue           |
-| GET    | `/admin/v1/report-counts`         | `reports.read`   | Open, in-review, unassigned totals  |
-| GET    | `/admin/v1/reports/:id`           | `reports.read`   | Report detail and target summary    |
-| PATCH  | `/admin/v1/reports/:id`           | `reports.manage` | Assign, transition, resolution note |
-| GET    | `/admin/v1/support-tickets`       | `support.read`   | Filtered, paginated queue           |
-| GET    | `/admin/v1/support-ticket-counts` | `support.read`   | Open, in-review, unassigned totals  |
-| GET    | `/admin/v1/support-tickets/:id`   | `support.read`   | Ticket detail                       |
-| PATCH  | `/admin/v1/support-tickets/:id`   | `support.manage` | Assign, transition, resolution note |
-| GET    | `/admin/v1/audit`                 | `audit.read`     | Every audited change, newest first  |
+| Method | Path                                  | Capability       | Purpose                                    |
+| ------ | ------------------------------------- | ---------------- | ------------------------------------------ |
+| GET    | `/admin/v1/reports`                   | `reports.read`   | Filtered, paginated queue                  |
+| GET    | `/admin/v1/report-counts`             | `reports.read`   | Open, in-review, unassigned totals         |
+| GET    | `/admin/v1/reports/:id`               | `reports.read`   | Report detail and target summary           |
+| PATCH  | `/admin/v1/reports/:id`               | `reports.manage` | Assign, transition, resolution note        |
+| GET    | `/admin/v1/reports/:id/audit`         | `audit.read`     | Report change history                      |
+| GET    | `/admin/v1/support-tickets`           | `support.read`   | Filtered, paginated queue                  |
+| GET    | `/admin/v1/support-ticket-counts`     | `support.read`   | Open, in-review, unassigned totals         |
+| GET    | `/admin/v1/support-tickets/:id`       | `support.read`   | Ticket detail                              |
+| PATCH  | `/admin/v1/support-tickets/:id`       | `support.manage` | Assign, transition, resolution note        |
+| GET    | `/admin/v1/support-tickets/:id/audit` | `audit.read`     | Ticket change history                      |
+| GET    | `/admin/v1/audit`                     | `audit.read`     | Every audited change, newest first         |
+| GET    | `/admin/v1/system`                    | `system.read`    | Dependency checks and email outbox backlog |
 
 ### Schools and school grants
 
@@ -429,6 +432,7 @@ applicable.
 | POST   | `/admin/v1/schools`                                   | `schools.manage`       | Create school; `unitid` optional      |
 | GET    | `/admin/v1/schools/:id`                               | `schools.read`         | Admin detail and version              |
 | PATCH  | `/admin/v1/schools/:id`                               | `schools.manage`       | Edit allowed fields                   |
+| GET    | `/admin/v1/schools/:id/audit`                         | `audit.read`           | School change history                 |
 | POST   | `/admin/v1/schools/:id/deactivate`                    | `schools.manage`       | Deactivate with reason                |
 | POST   | `/admin/v1/schools/:id/reactivate`                    | `schools.manage`       | Reactivate with reason                |
 | DELETE | `/admin/v1/schools/:id`                               | `schools.manage`       | Soft-delete with dependency checks    |
@@ -437,6 +441,7 @@ applicable.
 | GET    | `/admin/v1/schools/:id/admin-grants`                  | `school_grants.manage` | Active and revoked grant history      |
 | POST   | `/admin/v1/schools/:id/admin-grants`                  | `school_grants.manage` | Grant by user id with reason          |
 | POST   | `/admin/v1/schools/:id/admin-grants/:grant_id/revoke` | `school_grants.manage` | Soft-revoke with reason               |
+| GET    | `/admin/v1/schools/:id/admin-grants/:grant_id/audit`  | `audit.read`           | School-admin grant history            |
 
 ### Games, users, and site grants
 
@@ -444,7 +449,9 @@ applicable.
 | ------ | ---------------------------------------- | ------------------------------- | ------------------------------------ |
 | GET    | `/admin/v1/games`                        | `games.manage`                  | List active/deleted catalog entries  |
 | POST   | `/admin/v1/games`                        | `games.manage`                  | Create curated entry                 |
+| GET    | `/admin/v1/games/:id`                    | `games.manage`                  | Catalog entry detail and version     |
 | PATCH  | `/admin/v1/games/:id`                    | `games.manage`                  | Edit/version-check entry             |
+| GET    | `/admin/v1/games/:id/audit`              | `audit.read`                    | Catalog entry change history         |
 | DELETE | `/admin/v1/games/:id`                    | `games.manage`                  | Soft-delete with dependency checks   |
 | GET    | `/admin/v1/igdb-games`                   | `games.manage`                  | Search IGDB by name                  |
 | POST   | `/admin/v1/game-imports`                 | `games.manage`                  | Import one IGDB game, inactive       |
@@ -452,12 +459,14 @@ applicable.
 | GET    | `/admin/v1/games/:id/cover`              | `games.manage`                  | Stored cover for review              |
 | GET    | `/admin/v1/users`                        | `users.read`                    | Name anywhere, email prefix          |
 | GET    | `/admin/v1/users/:id`                    | `users.read`                    | Safe account/grant summary           |
+| GET    | `/admin/v1/users/:id/audit`              | `audit.read`                    | Account change history               |
 | POST   | `/admin/v1/users/:id/suspend`            | `users.manage_status` + step-up | Suspend with reason, revoke sessions |
 | POST   | `/admin/v1/users/:id/reactivate`         | `users.manage_status` + step-up | Reactivate with reason               |
 | PATCH  | `/admin/v1/users/:id/trust-grants`       | `trust_grants.manage`           | Supported named trust change         |
 | GET    | `/admin/v1/site-admin-grants`            | `site_grants.manage`            | Active/revoked site-admin history    |
 | POST   | `/admin/v1/site-admin-grants`            | `site_grants.manage` + step-up  | Grant with reason                    |
 | POST   | `/admin/v1/site-admin-grants/:id/revoke` | `site_grants.manage` + step-up  | Revoke and end sessions              |
+| GET    | `/admin/v1/site-admin-grants/:id/audit`  | `audit.read`                    | Site-admin grant history             |
 
 Queue and record responses carry the display names of the users, schools, and
 events they reference. The console shows those names and offers a copy button
