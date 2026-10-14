@@ -53,6 +53,10 @@ type Config struct {
 	AuthRateLimit              int
 	AuthRateWindow             time.Duration
 	DBMaxConns                 int32
+	DBMaxConnLifetime          time.Duration
+	DBMaxConnIdleTime          time.Duration
+	DBStatementTimeout         time.Duration
+	ShutdownTimeout            time.Duration
 	CatalogRefresh             time.Duration
 	MaintenanceToken           string
 	ProxySharedSecret          string
@@ -175,6 +179,23 @@ func Load() (Config, error) {
 		return Config{}, fmt.Errorf("parse API_DB_MAX_CONNS: must be a non-negative integer")
 	}
 
+	dbMaxConnLifetime, err := parsePositiveDuration("API_DB_MAX_CONN_LIFETIME", "30m")
+	if err != nil {
+		return Config{}, err
+	}
+	dbMaxConnIdleTime, err := parsePositiveDuration("API_DB_MAX_CONN_IDLE_TIME", "5m")
+	if err != nil {
+		return Config{}, err
+	}
+	dbStatementTimeout, err := parsePositiveDuration("API_DB_STATEMENT_TIMEOUT", "15s")
+	if err != nil {
+		return Config{}, err
+	}
+	shutdownTimeout, err := parsePositiveDuration("API_SHUTDOWN_TIMEOUT", "10s")
+	if err != nil {
+		return Config{}, err
+	}
+
 	cfg := Config{
 		DeploymentEnvironment:      deploymentEnvironment,
 		HTTPAddr:                   httpAddr(),
@@ -195,6 +216,10 @@ func Load() (Config, error) {
 		AuthRateLimit:              authRateLimit,
 		AuthRateWindow:             authRateWindow,
 		DBMaxConns:                 int32(dbMaxConns),
+		DBMaxConnLifetime:          dbMaxConnLifetime,
+		DBMaxConnIdleTime:          dbMaxConnIdleTime,
+		DBStatementTimeout:         dbStatementTimeout,
+		ShutdownTimeout:            shutdownTimeout,
 		CatalogRefresh:             catalogRefresh,
 		MaintenanceToken:           os.Getenv("API_MAINTENANCE_TOKEN"),
 		ProxySharedSecret:          os.Getenv("API_PROXY_SHARED_SECRET"),
