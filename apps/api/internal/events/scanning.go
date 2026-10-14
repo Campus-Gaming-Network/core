@@ -31,6 +31,7 @@ func scanEvent(scanner eventScanner, now time.Time) (Event, error) {
 	var gameIDs []string
 	var gameNames []string
 	var gameSlugs []string
+	var gameCovers []bool
 
 	err := scanner.Scan(
 		&event.ID,
@@ -63,6 +64,7 @@ func scanEvent(scanner eventScanner, now time.Time) (Event, error) {
 		&gameIDs,
 		&gameNames,
 		&gameSlugs,
+		&gameCovers,
 	)
 	if err != nil {
 		return Event{}, err
@@ -104,9 +106,10 @@ func scanEvent(scanner eventScanner, now time.Time) (Event, error) {
 	event.Games = make([]GameSummary, 0, len(gameIDs))
 	for index := range gameIDs {
 		event.Games = append(event.Games, GameSummary{
-			ID:   gameIDs[index],
-			Name: gameNames[index],
-			Slug: gameSlugs[index],
+			ID:       gameIDs[index],
+			Name:     gameNames[index],
+			Slug:     gameSlugs[index],
+			HasCover: gameCovers[index],
 		})
 	}
 	event.Lifecycle = Lifecycle(now, event.StartsAt, event.EndsAt, event.Capacity, event.RSVPYesCount)
@@ -130,6 +133,7 @@ func scanEventForUser(scanner eventScanner, now time.Time) (Event, error) {
 	var gameIDs []string
 	var gameNames []string
 	var gameSlugs []string
+	var gameCovers []bool
 
 	err := scanner.Scan(
 		&event.ID,
@@ -162,6 +166,7 @@ func scanEventForUser(scanner eventScanner, now time.Time) (Event, error) {
 		&gameIDs,
 		&gameNames,
 		&gameSlugs,
+		&gameCovers,
 		&viewerRSVP,
 		&event.ViewerInterested,
 	)
@@ -208,9 +213,10 @@ func scanEventForUser(scanner eventScanner, now time.Time) (Event, error) {
 	event.Games = make([]GameSummary, 0, len(gameIDs))
 	for index := range gameIDs {
 		event.Games = append(event.Games, GameSummary{
-			ID:   gameIDs[index],
-			Name: gameNames[index],
-			Slug: gameSlugs[index],
+			ID:       gameIDs[index],
+			Name:     gameNames[index],
+			Slug:     gameSlugs[index],
+			HasCover: gameCovers[index],
 		})
 	}
 	event.Lifecycle = Lifecycle(now, event.StartsAt, event.EndsAt, event.Capacity, event.RSVPYesCount)
@@ -239,6 +245,11 @@ func eventSelectSQL(whereClause string, tailClause string) string {
 		       COALESCE(
 		           array_agg(g.slug ORDER BY g.name, g.id::text) FILTER (WHERE g.id IS NOT NULL),
 		           ARRAY[]::text[]
+		       ),
+		       COALESCE(
+		           array_agg(g.is_active AND EXISTS(SELECT 1 FROM game_covers gc WHERE gc.game_id = g.id)
+		                     ORDER BY g.name, g.id::text) FILTER (WHERE g.id IS NOT NULL),
+		           ARRAY[]::boolean[]
 		       )
 		FROM events e
 		JOIN schools s ON s.id = e.host_school_id
@@ -289,6 +300,11 @@ func eventSelectForUserSQL(whereClause string, tailClause string) string {
 		       COALESCE(
 		           array_agg(g.slug ORDER BY g.name, g.id::text) FILTER (WHERE g.id IS NOT NULL),
 		           ARRAY[]::text[]
+		       ),
+		       COALESCE(
+		           array_agg(g.is_active AND EXISTS(SELECT 1 FROM game_covers gc WHERE gc.game_id = g.id)
+		                     ORDER BY g.name, g.id::text) FILTER (WHERE g.id IS NOT NULL),
+		           ARRAY[]::boolean[]
 		       ),
 		       viewer_rsvp.response,
 		       (viewer_interest.user_id IS NOT NULL)

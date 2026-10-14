@@ -2,11 +2,12 @@ package main
 
 import (
 	"context"
-	"errors"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
@@ -26,11 +27,16 @@ import (
 
 func main() {
 	slog.SetDefault(redact.NewLogger(os.Stderr))
+	os.Exit(run())
+}
 
+// run returns the exit code so deferred cleanup (pool close, error flush)
+// still runs before the process exits.
+func run() int {
 	cfg, err := config.Load()
 	if err != nil {
 		slog.Error("load config", "error", err)
-		os.Exit(1)
+		return 1
 	}
 
 	if err := errormonitor.Init(errormonitor.Options{
@@ -39,17 +45,22 @@ func main() {
 		Release:     cfg.SentryRelease,
 	}); err != nil {
 		slog.Error("start error monitoring", "error", err)
-		os.Exit(1)
+		return 1
 	}
 	defer errormonitor.Flush()
 	if cfg.SentryDSN == "" && cfg.DeploymentEnvironment.Strict() {
 		slog.Warn("error monitoring is disabled; set SENTRY_DSN to enable it")
 	}
 
-	database, err := db.Open(context.Background(), cfg.DatabaseURL, cfg.DBMaxConns)
+	database, err := db.Open(context.Background(), cfg.DatabaseURL, db.Options{
+		MaxConns:         cfg.DBMaxConns,
+		MaxConnLifetime:  cfg.DBMaxConnLifetime,
+		MaxConnIdleTime:  cfg.DBMaxConnIdleTime,
+		StatementTimeout: cfg.DBStatementTimeout,
+	})
 	if err != nil {
 		slog.Error("open database", "error", err)
-		os.Exit(1)
+		return 1
 	}
 	defer database.Close()
 	if cfg.AdminEnabled && cfg.DeploymentEnvironment.Strict() {
@@ -57,7 +68,7 @@ func main() {
 		if err := adminsecurity.VerifyRuntimePrivileges(privilegeContext, database); err != nil {
 			cancelPrivilegeCheck()
 			slog.Error("unsafe Admin Console database privileges", "error", err)
-			os.Exit(1)
+			return 1
 		}
 		cancelPrivilegeCheck()
 	}
@@ -81,8 +92,10 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	go maintenance.NewSweeper(database, slog.Default()).
-		Start(ctx, maintenance.DefaultInterval)
+	var workers sync.WaitGroup
+	workers.Go(func() {
+		maintenance.NewSweeper(database, slog.Default()).Start(ctx, maintenance.DefaultInterval)
+	})
 
 	mailClient := mailhttp.NewClient()
 	emailWorker := emailoutbox.NewWorker(
@@ -101,23 +114,19 @@ func main() {
 		},
 		slog.Default(),
 	)
-	go emailWorker.Start(ctx)
+	workers.Go(func() { emailWorker.Start(ctx) })
 
-	go func() {
-		slog.Info("api listening", "addr", cfg.HTTPAddr)
-		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			slog.Error("api server failed", "error", err)
-			stop()
-		}
-	}()
-
-	<-ctx.Done()
-
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	if err := server.Shutdown(shutdownCtx); err != nil {
-		slog.Error("api shutdown failed", "error", err)
-		os.Exit(1)
+	listener, err := net.Listen("tcp", cfg.HTTPAddr)
+	if err != nil {
+		slog.Error("api listen failed", "error", err)
+		stop()
+		workers.Wait()
+		return 1
 	}
+	slog.Info("api listening", "addr", listener.Addr().String())
+	if err := serve(ctx, server, listener, &workers, cfg.ShutdownTimeout); err != nil {
+		slog.Error("api stopped with error", "error", err)
+		return 1
+	}
+	return 0
 }

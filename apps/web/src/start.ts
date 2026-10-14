@@ -3,7 +3,10 @@ import {
   createMiddleware,
   createStart,
 } from "@tanstack/react-start";
-import { reportServerError } from "./server/error-monitor.server.js";
+import {
+  errorMonitoringConnectSource,
+  reportServerError,
+} from "./server/error-monitor.server.js";
 import { sessionEndedFetch } from "./session-ended.js";
 
 const localSiteOrigin = "http://localhost:3000";
@@ -43,39 +46,47 @@ const sessionEndedMiddleware = createMiddleware({ type: "function" }).client(
 
 const securityHeadersMiddleware = createMiddleware().server(
   async ({ next, request }) => {
-    const result = await next();
-    const response = result.response;
-    const headers = new Headers(response.headers);
-    const defaults = {
-      "content-security-policy": `frame-ancestors 'none'; base-uri 'self'; object-src 'none'; img-src ${imageSources()}`,
-      "permissions-policy":
-        "camera=(), microphone=(), geolocation=(), payment=()",
-      "referrer-policy": "strict-origin-when-cross-origin",
-      "x-content-type-options": "nosniff",
-      "x-frame-options": "DENY",
-    } as const;
+    const { withRequestNonce } =
+      await import("./server/request-nonce.server.js");
+    return withRequestNonce(async (nonce) => {
+      const result = await next();
+      const response = result.response;
+      const headers = new Headers(response.headers);
+      const defaults = {
+        // Inline scripts run only with this request's nonce, so injected
+        // markup cannot execute. There is no `unsafe-eval`. Game covers are
+        // proxied through the site, so images need no IGDB origin.
+        "content-security-policy": `default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src ${imageSources()}; font-src 'self'; connect-src ${connectSources()}; style-src 'self' 'unsafe-inline'; script-src 'self' 'nonce-${nonce}'`,
+        "cross-origin-opener-policy": "same-origin",
+        "permissions-policy":
+          "camera=(), microphone=(), geolocation=(), payment=()",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+      } as const;
 
-    for (const [name, value] of Object.entries(defaults)) {
-      if (!headers.has(name)) headers.set(name, value);
-    }
-    if (
-      process.env.DEPLOYMENT_ENV === "production" &&
-      new URL(request.url).protocol === "https:"
-    ) {
-      headers.set(
-        "strict-transport-security",
-        "max-age=31536000; includeSubDomains",
-      );
-    }
+      for (const [name, value] of Object.entries(defaults)) {
+        if (!headers.has(name)) headers.set(name, value);
+      }
+      if (
+        process.env.DEPLOYMENT_ENV === "production" &&
+        new URL(request.url).protocol === "https:"
+      ) {
+        headers.set(
+          "strict-transport-security",
+          "max-age=31536000; includeSubDomains",
+        );
+      }
 
-    return {
-      ...result,
-      response: new Response(response.body, {
-        headers,
-        status: response.status,
-        statusText: response.statusText,
-      }),
-    };
+      return {
+        ...result,
+        response: new Response(response.body, {
+          headers,
+          status: response.status,
+          statusText: response.statusText,
+        }),
+      };
+    });
   },
 );
 
@@ -103,6 +114,11 @@ function imageSources(): string {
   } catch {
     return "'self' data:";
   }
+}
+
+function connectSources(): string {
+  const errorMonitoring = errorMonitoringConnectSource();
+  return errorMonitoring ? `'self' ${errorMonitoring}` : "'self'";
 }
 
 function publicOrigin(): string {

@@ -31,6 +31,13 @@ func TestMapApplicationError(t *testing.T) {
 			wantCode:   "invalid_request",
 		},
 		{
+			name:       "oversized request",
+			err:        apperror.New(apperror.KindTooLarge, "request_too_large", "too large"),
+			fallback:   "event_create_failed",
+			wantStatus: http.StatusRequestEntityTooLarge,
+			wantCode:   "request_too_large",
+		},
+		{
 			name:       "unprocessable reference",
 			err:        apperror.New(apperror.KindUnprocessable, "game_not_found", "game not found"),
 			fallback:   "event_create_failed",

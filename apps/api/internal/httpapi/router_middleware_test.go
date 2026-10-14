@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -43,6 +44,29 @@ func TestRouterPassesThroughSuccessfulHandlers(t *testing.T) {
 
 	if response.Code != http.StatusTeapot {
 		t.Fatalf("status = %d, want %d", response.Code, http.StatusTeapot)
+	}
+}
+
+func TestSecurityHeadersAreDefaultsHandlersMayReplace(t *testing.T) {
+	handler := withSecurityHeaders(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Cache-Control", "public, max-age=300")
+		w.Header().Set("Content-Security-Policy", "default-src 'none'; sandbox")
+		writeJSON(w, http.StatusOK, map[string]string{"status": "fine"})
+	}))
+	response := httptest.NewRecorder()
+
+	handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/events", nil))
+
+	want := http.Header{
+		"Cache-Control":           {"public, max-age=300"},
+		"Content-Security-Policy": {"default-src 'none'; sandbox"},
+		"Content-Type":            {"application/json"},
+		"Referrer-Policy":         {"no-referrer"},
+		"X-Content-Type-Options":  {"nosniff"},
+		"X-Frame-Options":         {"DENY"},
+	}
+	if got := response.Header(); !reflect.DeepEqual(got, want) {
+		t.Fatalf("headers = %v, want %v", got, want)
 	}
 }
 
