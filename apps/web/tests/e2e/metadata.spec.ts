@@ -159,6 +159,13 @@ test("authenticated pages keep complete private metadata", async ({ page }) => {
     openGraphPath: "/account",
   });
   await visitAndAssertMetadata(page, {
+    path: "/settings/profile",
+    title: "Edit profile | Campus Gaming Network",
+    cache: privateCache,
+    noIndex: true,
+    openGraphPath: "/settings/profile",
+  });
+  await visitAndAssertMetadata(page, {
     path: "/events/new",
     title: "Create event | Campus Gaming Network",
     cache: privateCache,

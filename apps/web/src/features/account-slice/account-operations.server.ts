@@ -64,7 +64,11 @@ export async function accountProfileOperation({
 export async function accountDashboardOperation(
   dependencies: ReadDependencies,
 ): Promise<AccountDashboardResult> {
-  const { api, cookieHeader, reportError = defaultErrorReporter } = dependencies;
+  const {
+    api,
+    cookieHeader,
+    reportError = defaultErrorReporter,
+  } = dependencies;
   const loaded = await accountProfileOperation(dependencies);
   if (loaded.status !== "found") return loaded;
   const { profile } = loaded;

@@ -56,8 +56,11 @@
   font-weight: 750;
 }
 
-.account-public-link {
+.account-header-links {
+  display: flex;
   flex: none;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
   font-size: 0.875rem;
   font-weight: 750;
 }
@@ -184,7 +187,7 @@
     font-size: 1.25rem;
   }
 
-  .account-public-link {
+  .account-header-links {
     flex-basis: 100%;
   }
 

@@ -98,14 +98,19 @@ function AccountPage() {
             </span>
           </p>
         </div>
-        <Link
-          className="link account-public-link with-arrow"
-          to="/users/$id"
-          params={{ id: data.profile.id }}
-        >
-          View public profile
-          <ArrowRight aria-hidden="true" size={14} strokeWidth={2.25} />
-        </Link>
+        <div className="account-header-links">
+          <Link className="link" to="/settings/profile">
+            Edit profile
+          </Link>
+          <Link
+            className="link with-arrow"
+            to="/users/$id"
+            params={{ id: data.profile.id }}
+          >
+            View public profile
+            <ArrowRight aria-hidden="true" size={14} strokeWidth={2.25} />
+          </Link>
+        </div>
       </header>
 
       <PageNoticeView
@@ -122,7 +127,6 @@ function AccountPage() {
         <a href="#events">Events</a>
         <a href="#following">Following</a>
         <a href="#teams">Teams</a>
-        <Link to="/settings/profile">Edit profile</Link>
         <a href="#delete">Delete</a>
       </nav>
 

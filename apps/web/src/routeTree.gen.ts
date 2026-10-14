@@ -19,6 +19,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SchoolsRouteImport } from './routes/schools'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as StyleguideRouteImport } from './routes/styleguide'
 import { Route as SupportRouteImport } from './routes/support'
@@ -34,6 +35,8 @@ import { Route as EventsSlugRouteImport } from './routes/events.$slug'
 import { Route as EventsNewRouteImport } from './routes/events.new'
 import { Route as SchoolsIndexRouteImport } from './routes/schools.index'
 import { Route as SchoolsSlugRouteImport } from './routes/schools.$slug'
+import { Route as SettingsIndexRouteImport } from './routes/settings.index'
+import { Route as SettingsProfileRouteImport } from './routes/settings.profile'
 import { Route as TeamsIndexRouteImport } from './routes/teams.index'
 import { Route as TeamsSlugRouteImport } from './routes/teams.$slug'
 import { Route as TeamsNewRouteImport } from './routes/teams.new'
@@ -95,6 +98,11 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
 const SchoolsRoute = SchoolsRouteImport.update({
   id: '/schools',
   path: '/schools',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SignupRoute = SignupRouteImport.update({
@@ -172,6 +180,16 @@ const SchoolsSlugRoute = SchoolsSlugRouteImport.update({
   path: '/$slug',
   getParentRoute: () => SchoolsRoute,
 } as any)
+const SettingsIndexRoute = SettingsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const SettingsProfileRoute = SettingsProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => SettingsRoute,
+} as any)
 const TeamsIndexRoute = TeamsIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -245,6 +263,7 @@ export interface FileRoutesByFullPath {
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
   '/schools': typeof SchoolsRouteWithChildren
+  '/settings': typeof SettingsRouteWithChildren
   '/signup': typeof SignupRoute
   '/styleguide': typeof StyleguideRoute
   '/support': typeof SupportRoute
@@ -258,11 +277,13 @@ export interface FileRoutesByFullPath {
   '/events/$slug': typeof EventsSlugRoute
   '/events/new': typeof EventsNewRoute
   '/schools/$slug': typeof SchoolsSlugRoute
+  '/settings/profile': typeof SettingsProfileRoute
   '/teams/$slug': typeof TeamsSlugRoute
   '/teams/new': typeof TeamsNewRoute
   '/users/$id': typeof UsersIdRoute
   '/events/': typeof EventsIndexRoute
   '/schools/': typeof SchoolsIndexRoute
+  '/settings/': typeof SettingsIndexRoute
   '/teams/': typeof TeamsIndexRoute
   '/api/avatars/$id': typeof ApiAvatarsIdRoute
   '/api/games/igdb-search': typeof ApiGamesIgdbSearchRoute
@@ -294,11 +315,13 @@ export interface FileRoutesByTo {
   '/events/$slug': typeof EventsSlugRoute
   '/events/new': typeof EventsNewRoute
   '/schools/$slug': typeof SchoolsSlugRoute
+  '/settings/profile': typeof SettingsProfileRoute
   '/teams/$slug': typeof TeamsSlugRoute
   '/teams/new': typeof TeamsNewRoute
   '/users/$id': typeof UsersIdRoute
   '/events': typeof EventsIndexRoute
   '/schools': typeof SchoolsIndexRoute
+  '/settings': typeof SettingsIndexRoute
   '/teams': typeof TeamsIndexRoute
   '/api/avatars/$id': typeof ApiAvatarsIdRoute
   '/api/games/igdb-search': typeof ApiGamesIgdbSearchRoute
@@ -321,6 +344,7 @@ export interface FileRoutesById {
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
   '/schools': typeof SchoolsRouteWithChildren
+  '/settings': typeof SettingsRouteWithChildren
   '/signup': typeof SignupRoute
   '/styleguide': typeof StyleguideRoute
   '/support': typeof SupportRoute
@@ -334,11 +358,13 @@ export interface FileRoutesById {
   '/events/$slug': typeof EventsSlugRoute
   '/events/new': typeof EventsNewRoute
   '/schools/$slug': typeof SchoolsSlugRoute
+  '/settings/profile': typeof SettingsProfileRoute
   '/teams/$slug': typeof TeamsSlugRoute
   '/teams/new': typeof TeamsNewRoute
   '/users/$id': typeof UsersIdRoute
   '/events/': typeof EventsIndexRoute
   '/schools/': typeof SchoolsIndexRoute
+  '/settings/': typeof SettingsIndexRoute
   '/teams/': typeof TeamsIndexRoute
   '/api/avatars/$id': typeof ApiAvatarsIdRoute
   '/api/games/igdb-search': typeof ApiGamesIgdbSearchRoute
@@ -362,6 +388,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/reset-password'
     | '/schools'
+    | '/settings'
     | '/signup'
     | '/styleguide'
     | '/support'
@@ -375,11 +402,13 @@ export interface FileRouteTypes {
     | '/events/$slug'
     | '/events/new'
     | '/schools/$slug'
+    | '/settings/profile'
     | '/teams/$slug'
     | '/teams/new'
     | '/users/$id'
     | '/events/'
     | '/schools/'
+    | '/settings/'
     | '/teams/'
     | '/api/avatars/$id'
     | '/api/games/igdb-search'
@@ -411,11 +440,13 @@ export interface FileRouteTypes {
     | '/events/$slug'
     | '/events/new'
     | '/schools/$slug'
+    | '/settings/profile'
     | '/teams/$slug'
     | '/teams/new'
     | '/users/$id'
     | '/events'
     | '/schools'
+    | '/settings'
     | '/teams'
     | '/api/avatars/$id'
     | '/api/games/igdb-search'
@@ -437,6 +468,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/reset-password'
     | '/schools'
+    | '/settings'
     | '/signup'
     | '/styleguide'
     | '/support'
@@ -450,11 +482,13 @@ export interface FileRouteTypes {
     | '/events/$slug'
     | '/events/new'
     | '/schools/$slug'
+    | '/settings/profile'
     | '/teams/$slug'
     | '/teams/new'
     | '/users/$id'
     | '/events/'
     | '/schools/'
+    | '/settings/'
     | '/teams/'
     | '/api/avatars/$id'
     | '/api/games/igdb-search'
@@ -477,6 +511,7 @@ export interface RootRouteChildren {
   PrivacyRoute: typeof PrivacyRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SchoolsRoute: typeof SchoolsRouteWithChildren
+  SettingsRoute: typeof SettingsRouteWithChildren
   SignupRoute: typeof SignupRoute
   StyleguideRoute: typeof StyleguideRoute
   SupportRoute: typeof SupportRoute
@@ -564,6 +599,13 @@ declare module '@tanstack/react-router' {
       path: '/schools'
       fullPath: '/schools'
       preLoaderRoute: typeof SchoolsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/signup': {
@@ -670,6 +712,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/schools/$slug'
       preLoaderRoute: typeof SchoolsSlugRouteImport
       parentRoute: typeof SchoolsRoute
+    }
+    '/settings/': {
+      id: '/settings/'
+      path: '/'
+      fullPath: '/settings/'
+      preLoaderRoute: typeof SettingsIndexRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/profile': {
+      id: '/settings/profile'
+      path: '/profile'
+      fullPath: '/settings/profile'
+      preLoaderRoute: typeof SettingsProfileRouteImport
+      parentRoute: typeof SettingsRoute
     }
     '/teams/': {
       id: '/teams/'
@@ -792,6 +848,20 @@ const SchoolsRouteChildren: SchoolsRouteChildren = {
 const SchoolsRouteWithChildren =
   SchoolsRoute._addFileChildren(SchoolsRouteChildren)
 
+interface SettingsRouteChildren {
+  SettingsProfileRoute: typeof SettingsProfileRoute
+  SettingsIndexRoute: typeof SettingsIndexRoute
+}
+
+const SettingsRouteChildren: SettingsRouteChildren = {
+  SettingsProfileRoute: SettingsProfileRoute,
+  SettingsIndexRoute: SettingsIndexRoute,
+}
+
+const SettingsRouteWithChildren = SettingsRoute._addFileChildren(
+  SettingsRouteChildren,
+)
+
 interface TeamsRouteChildren {
   TeamsSlugRoute: typeof TeamsSlugRoute
   TeamsNewRoute: typeof TeamsNewRoute
@@ -819,6 +889,7 @@ const rootRouteChildren: RootRouteChildren = {
   PrivacyRoute: PrivacyRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SchoolsRoute: SchoolsRouteWithChildren,
+  SettingsRoute: SettingsRouteWithChildren,
   SignupRoute: SignupRoute,
   StyleguideRoute: StyleguideRoute,
   SupportRoute: SupportRoute,

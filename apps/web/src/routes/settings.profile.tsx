@@ -62,11 +62,7 @@ function SettingsProfilePage() {
     <>
       <header className="section-heading">
         <h1>Edit profile</h1>
-        <Link
-          className="link"
-          to="/users/$id"
-          params={{ id: profile.id }}
-        >
+        <Link className="link" to="/users/$id" params={{ id: profile.id }}>
           View public profile
         </Link>
       </header>
@@ -216,10 +212,7 @@ function ProfileForm({ profile }: { profile: AccountProfileDTO }) {
       >
         {socialRows.slice(0, shownSocialRows)}
         {shownSocialRows < socialRows.length ? (
-          <details
-            className="more-social-links"
-            open={hiddenSocialRowHasError}
-          >
+          <details className="more-social-links" open={hiddenSocialRowHasError}>
             <summary>Add another link</summary>
             <div className="more-social-links-fields">
               {socialRows.slice(shownSocialRows)}

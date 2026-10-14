@@ -45,7 +45,7 @@ export const getAccountProfile = createServerFn({ method: "GET" }).handler(
   },
 );
 
-export const updateAccountProfile =createServerFn({
+export const updateAccountProfile = createServerFn({
   method: "POST",
   strict: { input: false },
 })

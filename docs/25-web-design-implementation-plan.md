@@ -229,7 +229,8 @@ These screens can be implemented against existing routes and contracts:
 | Team page             | `/teams/:slug`                       | Public, member, joinable, management controls             |
 | Authentication        | `/login`, `/signup`, password routes | Default, validation, pending, recovery, verification      |
 | Public profile        | `/users/:id`                         | Populated, minimal, unavailable, not found                |
-| Account               | `/account`                           | Profile, validation, deletion confirmation                |
+| Account               | `/account`                           | Dashboard sections, deletion confirmation                 |
+| Edit profile          | `/settings/profile`                  | Default, validation, saved, unavailable                   |
 | Support and reporting | `/support`, event report forms       | Default, validation, submitted, unavailable               |
 | Information pages     | Static routes                        | Normal, not found                                         |
 
@@ -282,7 +283,7 @@ documents are updated and their contracts are implemented:
   prompt, and the full pages send them to `/login`. The pages are `noindex`,
   `private, no-store`, and paginated with native Previous and Next links, and a
   list that cannot load leaves the entity page up. Anyone who turned off "Show
-  me in member lists" on the account page is left out.
+  me in member lists" on the Edit profile page is left out.
 
 ### Forms
 

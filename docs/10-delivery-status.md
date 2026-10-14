@@ -96,6 +96,7 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 - [x] Profile: single **name** field, bio, socials, timezone
 - [x] Boring Avatars Beam avatars drawn by the web app, with initials fallback
 - [x] Public profile at `/users/:id` (database id)
+- [x] Edit profile page at `/settings/profile`, linked from the owner's public profile, the account menu, and the account page
 - [x] `show_in_lists` account setting (on by default) that opts a person out of every people list; returned by `GET /me` and changed with `PATCH /me`
 
 ### Schools
@@ -163,7 +164,7 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 - [x] Cold-start plan (demo seed and/or “create first event” CTA)
 - [x] FAQ and About; Terms and Privacy routes exist pending reviewed copy
 - [x] Support ticket form — **anyone** can submit (logged out OK)
-- [x] Web pages and previews for the event, school, and team people lists, and the opt-out control in account settings
+- [x] Web pages and previews for the event, school, and team people lists, and the opt-out control on the Edit profile page
 
 ### Safety (baseline)
 

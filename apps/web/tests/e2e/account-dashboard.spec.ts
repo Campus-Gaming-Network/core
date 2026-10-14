@@ -69,7 +69,6 @@ test("every section link on the dashboard points at a section on the page", asyn
     { label: "Events", target: "SECTION" },
     { label: "Following", target: "SECTION" },
     { label: "Teams", target: "SECTION" },
-    { label: "Profile", target: "SECTION" },
     { label: "Delete", target: "SECTION" },
   ]);
 });

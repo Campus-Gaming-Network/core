@@ -388,7 +388,7 @@ test("the Show me in member lists setting round trips and hides the viewer from 
   await logIn(page, viewerEmail, "/schools/browser-test-university/people");
   await expect(listed).toHaveCount(1);
 
-  await gotoApp(page, "/account");
+  await gotoApp(page, "/settings/profile");
   await expect(setting).toBeChecked();
   await expect(
     page.getByText(
@@ -397,7 +397,7 @@ test("the Show me in member lists setting round trips and hides the viewer from 
   ).toBeVisible();
   await setting.uncheck();
   await page.getByRole("button", { name: "Save profile" }).click();
-  await expect(page).toHaveURL("/account?account=profile-updated");
+  await expect(page).toHaveURL("/settings/profile?settings=profile-updated");
   await waitForAppReady(page);
   await page.reload();
   await waitForAppReady(page);
@@ -409,10 +409,10 @@ test("the Show me in member lists setting round trips and hides the viewer from 
     names("School Member", 1, 24),
   );
 
-  await gotoApp(page, "/account");
+  await gotoApp(page, "/settings/profile");
   await setting.check();
   await page.getByRole("button", { name: "Save profile" }).click();
-  await expect(page).toHaveURL("/account?account=profile-updated");
+  await expect(page).toHaveURL("/settings/profile?settings=profile-updated");
   await waitForAppReady(page);
   await page.reload();
   await waitForAppReady(page);

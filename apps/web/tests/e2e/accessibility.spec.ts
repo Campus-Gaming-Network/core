@@ -291,6 +291,7 @@ for (const path of [
 
 const authenticatedJourneyPaths = [
   "/account",
+  "/settings/profile",
   "/events/new",
   "/teams/new",
   "/events/public-browser-event",
@@ -354,7 +355,12 @@ for (const path of authenticatedJourneyPaths) {
   });
 }
 
-for (const path of ["/account", "/events/new", "/teams/new"]) {
+for (const path of [
+  "/account",
+  "/settings/profile",
+  "/events/new",
+  "/teams/new",
+]) {
   test(`${path} keeps accessible authenticated forms and layouts`, async ({
     page,
   }) => {
