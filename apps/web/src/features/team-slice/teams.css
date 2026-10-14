@@ -160,15 +160,14 @@
   font-size: 0.8125rem;
 }
 
-/* The facts card's last row has no rule of its own: the card edge closes it. */
-.team-detail-layout .detail-card .detail-row:last-child {
-  border-block-end: 0;
+.team-detail-main {
+  min-width: 0;
 }
 
 /* The membership panel is one standard card whose top lines up with the
-   details card beside it. A form inside it is plain fields on that card, not
-   a card of its own, and its help text sits right under the field it
-   explains. */
+   key information card beside it. A form inside it is plain fields on that
+   card, not a card of its own, and its help text sits right under the field
+   it explains. */
 .team-detail-layout .team-action-panel {
   margin-top: 0;
   box-shadow: none;

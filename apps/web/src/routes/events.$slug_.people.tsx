@@ -7,6 +7,7 @@ import {
 } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
 import { RouteErrorView, RoutePending } from "../components/route-boundaries";
+import { TabLink, Tabs } from "../components/tabs";
 import { getEventDetail } from "../features/event-slice/event.functions";
 import {
   eventPeopleInput,
@@ -122,22 +123,21 @@ function EventPeoplePage() {
         </p>
       </header>
 
-      <nav
-        className="school-community-tabs people-tabs"
-        aria-label="RSVP responses"
-      >
-        {responseTabs.map((tab) => (
-          <Link
-            aria-current={tab.response === response ? "page" : undefined}
-            key={tab.response}
-            to="/events/$slug/people"
-            params={{ slug: event.slug }}
-            search={{ response: tab.response }}
-          >
-            {tab.label}
-          </Link>
-        ))}
-      </nav>
+      <div className="people-tabs">
+        <Tabs label="RSVP responses">
+          {responseTabs.map((tab) => (
+            <TabLink
+              current={tab.response === response}
+              key={tab.response}
+              to="/events/$slug/people"
+              params={{ slug: event.slug }}
+              search={{ response: tab.response }}
+            >
+              {tab.label}
+            </TabLink>
+          ))}
+        </Tabs>
+      </div>
 
       <PeopleResults
         emptyHeading={

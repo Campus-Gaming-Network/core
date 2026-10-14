@@ -1,14 +1,23 @@
 import { expect, test } from "@playwright/test";
 import { gotoApp } from "./fixtures/app-navigation.js";
 
-test("the school header joins the alias, location, and campus type beside Follow and the website", async ({
+test("the school header joins the alias and location beside Follow and the website, and key information gives the campus type", async ({
   page,
 }) => {
   await gotoApp(page, "/schools/summit-ridge-university");
-  const actions = page.locator("main > header .school-community-actions");
-  await expect(
-    page.locator("main > header .school-community-facts"),
-  ).toHaveText("SRU · Denver, CO · Main campus");
+  const actions = page.locator("main .detail-heading__actions");
+  const keyInformation = page
+    .getByRole("region", { name: "Key information" })
+    .locator("dt, dd");
+  await expect(page.locator("main .detail-heading__supporting")).toHaveText(
+    "SRU · Denver, CO",
+  );
+  await expect(keyInformation).toHaveText([
+    "Location",
+    "Denver, CO",
+    "Campus type",
+    "Main campus",
+  ]);
   await expect(
     actions.getByRole("link", { name: "Follow school" }),
   ).toBeVisible();
@@ -17,9 +26,15 @@ test("the school header joins the alias, location, and campus type beside Follow
   ).toHaveAttribute("href", "https://browser.example.test/gaming");
 
   await gotoApp(page, "/schools/quiet-valley-college");
-  await expect(
-    page.locator("main > header .school-community-facts"),
-  ).toHaveText("QVC · Boise, ID · Branch campus");
+  await expect(page.locator("main .detail-heading__supporting")).toHaveText(
+    "QVC · Boise, ID",
+  );
+  await expect(keyInformation).toHaveText([
+    "Location",
+    "Boise, ID",
+    "Campus type",
+    "Branch campus",
+  ]);
 });
 
 test("each school tab changes the sections shown", async ({ page }) => {

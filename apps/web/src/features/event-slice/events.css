@@ -209,28 +209,6 @@
   display: none;
 }
 
-.event-detail-header {
-  display: grid;
-  grid-template-columns: 4.5rem minmax(0, 1fr);
-  gap: 1.35rem;
-  align-items: start;
-  padding-bottom: 2rem;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.event-detail-header h1 {
-  max-width: 50rem;
-  margin-block: 0.65rem 0.35rem;
-  font-size: clamp(2.25rem, 5vw, 4rem);
-  line-height: 1;
-  letter-spacing: -0.035em;
-}
-
-.event-hostline {
-  margin: 0;
-  color: var(--color-muted);
-}
-
 .event-detail-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(17rem, 21rem);
@@ -247,21 +225,6 @@
 .event-detail-main .section h2 {
   margin-block: 0.35rem 0.75rem;
   letter-spacing: -0.025em;
-}
-
-/* Event facts sit in the main column, directly under the description. The
-   label column is narrower than the card default so labels stay next to their
-   values at this width, and the last row has no rule above the card edge. */
-.event-facts {
-  margin-top: 2rem;
-}
-
-.detail-card.event-facts .detail-row {
-  grid-template-columns: 9rem minmax(0, 1fr);
-}
-
-.detail-card.event-facts .detail-row:last-child {
-  border-bottom: 0;
 }
 
 /* RSVP is the first card in the sidebar, and so the first block on phones. */
@@ -407,9 +370,9 @@
   box-shadow: 0 4px 0 var(--color-danger-dark);
 }
 
+/* The sidebar scrolls with the page: with key information added it can be
+   taller than the window, and a sticky column would hide its last cards. */
 .event-detail-sidebar {
-  position: sticky;
-  top: 1.5rem;
   display: grid;
   gap: 1rem;
 }
@@ -454,22 +417,12 @@
     grid-template-columns: 1fr;
   }
 
-  .event-detail-header {
-    grid-template-columns: 3.5rem minmax(0, 1fr);
-    gap: 0.75rem;
-  }
-
   .event-detail-layout {
     grid-template-columns: 1fr;
   }
 
   /* One column: the sidebar comes first, with RSVP at the top of it. */
   .event-detail-sidebar {
-    position: static;
     order: -1;
-  }
-
-  .detail-card.event-facts .detail-row {
-    grid-template-columns: 1fr;
   }
 }

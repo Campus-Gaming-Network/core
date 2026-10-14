@@ -6,9 +6,12 @@ import {
   type ErrorComponentProps,
 } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { type FormEvent, useRef, useState } from "react";
+import { BreadcrumbLink, Breadcrumbs } from "../components/breadcrumbs";
 import { ButtonLink } from "../components/button-link";
+import { KeyInformation } from "../components/key-information";
+import { PageHeading } from "../components/page-heading";
 import { ConfirmDialog } from "../components/confirm-dialog";
 import {
   FormErrorSummary,
@@ -115,99 +118,103 @@ function TeamPage() {
 
   return (
     <main className="detail-page">
-      <Link className="back-link with-arrow" to="/teams">
-        <ArrowLeft aria-hidden="true" size={14} strokeWidth={2.25} />
-        Back to teams
-      </Link>
-      <header className="team-profile-header">
-        <span aria-hidden="true" className="team-mark team-mark--large">
-          {team.name.slice(0, 1).toUpperCase()}
-        </span>
-        <div>
-          <p className="eyebrow">Team</p>
-          <h1>{team.name}</h1>
-          <p className="lede">
-            {team.description || "Team details are coming soon."}
-          </p>
-        </div>
-      </header>
+      <Breadcrumbs current={team.name}>
+        <BreadcrumbLink to="/teams">Teams</BreadcrumbLink>
+      </Breadcrumbs>
+      <PageHeading
+        identity={
+          <span aria-hidden="true" className="team-mark team-mark--large">
+            {team.name.slice(0, 1).toUpperCase()}
+          </span>
+        }
+        title={team.name}
+        supporting={team.description || "Team details are coming soon."}
+      />
 
       <PageNoticeView
         notice={search.team ? teamDetailNotices[search.team] : undefined}
       />
 
       <div className="team-detail-layout">
-        <section className="detail-card" aria-labelledby="team-about">
-          <h2 id="team-about">Team details</h2>
-          <div className="detail-row">
-            <span>Games</span>
-            <strong>{team.games.map((game) => game.name).join(", ")}</strong>
-          </div>
-          <div className="detail-row">
-            <span>School</span>
-            <strong>
-              {team.school ? (
-                <Link
-                  className="link"
-                  to="/schools/$slug"
-                  params={{ slug: team.school.slug }}
-                >
-                  <SchoolLogo inline logoURL={team.school.logo_url} size={20} />
-                  {team.school.name}
-                </Link>
-              ) : (
-                "Independent team"
-              )}
-            </strong>
-          </div>
-          <div className="detail-row">
-            <span>Members</span>
-            <strong>{team.member_count}</strong>
-          </div>
-        </section>
+        <div className="team-detail-main">
+          <section
+            className="action-panel team-action-panel"
+            aria-labelledby="team-actions"
+          >
+            <p className="eyebrow">Membership</p>
+            <h2 id="team-actions">Join and manage</h2>
+            <TeamActions
+              ownerRoster={ownerRoster}
+              slug={team.slug}
+              viewer={viewer}
+            />
+          </section>
 
-        <section
-          className="action-panel team-action-panel"
-          aria-labelledby="team-actions"
-        >
-          <p className="eyebrow">Membership</p>
-          <h2 id="team-actions">Join and manage</h2>
-          <TeamActions
-            ownerRoster={ownerRoster}
-            slug={team.slug}
-            viewer={viewer}
-          />
-        </section>
-      </div>
-
-      {viewer === "anonymous" ? (
-        <div className="people-card">
-          <PeopleSignedOut
-            message="Log in to see the members of this team."
-            next={`/teams/${team.slug}`}
-          />
-        </div>
-      ) : (
-        <section
-          className="detail-card people-card"
-          aria-labelledby="team-people-title"
-        >
-          <h2 id="team-people-title">Members</h2>
-          <PeoplePreview empty="No members yet." result={members} />
-          {members.status === "found" && members.list.people.length > 0 ? (
-            <div className="detail-card-body">
-              <Link
-                className="link with-arrow"
-                to="/teams/$slug/people"
-                params={{ slug: team.slug }}
-              >
-                See everyone
-                <ArrowRight aria-hidden="true" size={14} strokeWidth={2.25} />
-              </Link>
+          {viewer === "anonymous" ? (
+            <div className="people-card">
+              <PeopleSignedOut
+                message="Log in to see the members of this team."
+                next={`/teams/${team.slug}`}
+              />
             </div>
-          ) : null}
-        </section>
-      )}
+          ) : (
+            <section
+              className="detail-card people-card"
+              aria-labelledby="team-people-title"
+            >
+              <h2 id="team-people-title">Members</h2>
+              <PeoplePreview empty="No members yet." result={members} />
+              {members.status === "found" && members.list.people.length > 0 ? (
+                <div className="detail-card-body">
+                  <Link
+                    className="link with-arrow"
+                    to="/teams/$slug/people"
+                    params={{ slug: team.slug }}
+                  >
+                    See everyone
+                    <ArrowRight
+                      aria-hidden="true"
+                      size={14}
+                      strokeWidth={2.25}
+                    />
+                  </Link>
+                </div>
+              ) : null}
+            </section>
+          )}
+        </div>
+
+        <aside className="team-detail-aside" aria-label="About this team">
+          <KeyInformation
+            facts={[
+              {
+                term: "Games",
+                value: team.games.map((game) => game.name).join(", "),
+              },
+              {
+                term: "School",
+                value: team.school ? (
+                  <Link
+                    className="link"
+                    to="/schools/$slug"
+                    params={{ slug: team.school.slug }}
+                  >
+                    <SchoolLogo
+                      inline
+                      logoURL={team.school.logo_url}
+                      size={20}
+                    />
+                    {team.school.name}
+                  </Link>
+                ) : (
+                  "Independent team"
+                ),
+              },
+              { term: "Members", value: team.member_count },
+            ]}
+          />
+        </aside>
+      </div>
     </main>
   );
 }

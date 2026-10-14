@@ -172,14 +172,22 @@
   font-weight: 850;
 }
 
+/* The same size as the large school mark, so detail-page headers line up. */
 .team-mark--large {
-  width: 5.5rem;
-  height: 5.5rem;
-  border-radius: 1.15rem;
-  font-size: 2rem;
+  width: 4rem;
+  height: 4rem;
+  border-radius: 1rem;
+  font-size: 1.5rem;
 }
 
 @media (max-width: 42rem) {
+  .team-mark--large {
+    width: 3.5rem;
+    height: 3.5rem;
+    border-radius: 0.875rem;
+    font-size: 1.25rem;
+  }
+
   .event-card-heading {
     align-items: flex-start;
     flex-direction: column;
@@ -598,4 +606,231 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
+}
+
+/* Detail-page header: Breadcrumbs, then PageHeading (identity mark, title,
+   supporting line, tags, and actions), then the page's Tabs. The event,
+   school, and team pages share it. */
+.breadcrumbs {
+  margin-bottom: 1.25rem;
+}
+
+.breadcrumbs ol {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.4rem;
+  margin: 0;
+  padding: 0;
+  color: var(--color-muted);
+  font-size: 0.875rem;
+  font-weight: 650;
+  list-style: none;
+}
+
+.breadcrumbs li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.breadcrumbs a {
+  color: var(--color-muted);
+  text-decoration: none;
+}
+
+.breadcrumbs a:focus-visible {
+  color: var(--color-text);
+  text-decoration: underline;
+}
+
+@media (hover: hover) {
+  .breadcrumbs a:hover {
+    color: var(--color-text);
+    text-decoration: underline;
+  }
+}
+
+.breadcrumbs [aria-current="page"] {
+  overflow: hidden;
+  color: var(--color-text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.breadcrumbs__separator {
+  flex: none;
+}
+
+.detail-heading {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1.25rem 1.5rem;
+  padding-bottom: 1.5rem;
+}
+
+.detail-heading:not(:has(.detail-heading__identity)) {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.detail-heading__identity {
+  display: flex;
+  align-self: start;
+}
+
+.detail-heading__identity .calendar-date {
+  width: 4.5rem;
+}
+
+.detail-heading__body {
+  display: grid;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.detail-heading__title {
+  max-width: 50rem;
+  margin: 0;
+  font-size: clamp(1.875rem, 4.5vw, 2.75rem);
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+}
+
+.detail-heading__supporting {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.9375rem;
+}
+
+.detail-heading__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.detail-heading__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem 1.25rem;
+}
+
+.detail-heading__actions form {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.detail-heading__actions .link {
+  font-size: 0.9375rem;
+  font-weight: 750;
+}
+
+@media (max-width: 42rem) {
+  .detail-heading {
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 1rem;
+  }
+
+  .detail-heading:not(:has(.detail-heading__identity)) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .detail-heading__identity .calendar-date {
+    width: 3.5rem;
+  }
+
+  /* On a phone the actions drop below the heading, aligned to its start. */
+  .detail-heading__actions {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+}
+
+@media (pointer: coarse), (max-width: 42rem) {
+  .breadcrumbs a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
+  }
+}
+
+/* Tabs (Tabs and TabLink): underline section links. Near-black text; the
+   current tab carries aria-current and a 3px primary-blue underline. The
+   school sections and the event attendee lists use it, and any later set of
+   section tabs (such as scope tabs on /events) should reuse it. */
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 1.75rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.tabs__link {
+  position: relative;
+  display: inline-flex;
+  min-height: 3rem;
+  align-items: center;
+  color: var(--color-text);
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.tabs__link[aria-current] {
+  font-weight: 800;
+}
+
+.tabs__link[aria-current]::after {
+  position: absolute;
+  right: 0;
+  bottom: -1px;
+  left: 0;
+  height: 3px;
+  background: var(--color-primary);
+  content: "";
+}
+
+@media (hover: hover) {
+  .tabs__link:not([aria-current]):hover {
+    color: var(--color-primary);
+  }
+}
+
+/* Key information (KeyInformation): a detail card whose facts are a
+   description list, each term beside its value, stacked on a phone. */
+.key-information dl {
+  margin: 0;
+  padding-block: 0.25rem;
+}
+
+.key-information dl > div {
+  display: grid;
+  grid-template-columns: minmax(6rem, 0.45fr) minmax(0, 1fr);
+  gap: 0.25rem 1rem;
+  padding: 0.75rem 1.1rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.key-information dl > div:last-child {
+  border-bottom: 0;
+}
+
+.key-information dt {
+  color: var(--color-muted);
+}
+
+.key-information dd {
+  margin: 0;
+  font-weight: 750;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 42rem) {
+  .key-information dl > div {
+    grid-template-columns: 1fr;
+  }
 }

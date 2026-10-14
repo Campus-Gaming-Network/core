@@ -52,6 +52,6 @@ test("format, type, audience, and cost each have their own icon and color", asyn
   await expect(page).toHaveURL(/\/events\/distinct-facts-lan-[^?]+$/);
   await waitForAppReady(page);
   await expectDistinctFacts(
-    page.locator(".event-detail-header .event-pill:has(svg)"),
+    page.locator(".detail-heading .event-pill:has(svg)"),
   );
 });
