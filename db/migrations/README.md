@@ -96,3 +96,9 @@ Migration `000027_social_link_kind.up.sql` adds `user_social_links.kind`
 (`url`, `discord`) and the nullable `username`, and makes `url` nullable: a
 Discord link stores a username and no URL. Existing rows become `url` links.
 Apply it before deploying the API that reads or writes the columns.
+Migration `000028_foreign_key_indexes.up.sql` indexes the six foreign keys that
+no index led with: `events.creator_user_id`, `teams.owner_user_id`,
+`site_role_grants.granted_by_user_id` and `revoked_by_user_id`,
+`admin_sessions (grant_id, user_id)`, and
+`user_policy_acceptances.policy_document_id`. `TestSchemaInvariants` keeps new
+migrations to the same rule.
