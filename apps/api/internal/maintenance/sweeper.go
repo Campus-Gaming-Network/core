@@ -1,9 +1,9 @@
 // Package maintenance removes rows that have aged out of usefulness.
 //
-// Sessions, verification tokens, reset tokens, and private event unlocks are
-// all written on ordinary user activity and were never deleted, so each table
-// grew without bound. Sessions in particular get a row per login and a
-// multi-week TTL. Every query here is covered by an existing index.
+// Sessions, verification and reset tokens, private event unlocks, Admin
+// Console sessions, and finished email outbox rows are written on ordinary
+// activity and would otherwise grow without bound. Deletes run in bounded
+// batches and never touch audit history.
 package maintenance
 
 import (
@@ -18,6 +18,14 @@ import (
 // retentionGrace keeps rows around briefly after they stop being valid, so a
 // clock skew or an in-flight request cannot race the delete.
 const retentionGrace = 24 * time.Hour
+
+// outboxRetention is how long a delivered or permanently failed email_outbox
+// row is kept for support lookups before its recipient address and payload are
+// deleted. Pending and retrying rows are never touched.
+const outboxRetention = 30 * 24 * time.Hour
+
+// batchSize bounds each DELETE so a large backlog never holds long locks.
+const batchSize = 1000
 
 // DefaultInterval is how often the background sweeper runs.
 const DefaultInterval = time.Hour
@@ -40,55 +48,106 @@ type Result struct {
 	VerificationTokens int64
 	ResetTokens        int64
 	EventUnlocks       int64
+	AdminSessions      int64
+	EmailOutbox        int64
 }
 
 func (r Result) Total() int64 {
-	return r.Sessions + r.VerificationTokens + r.ResetTokens + r.EventUnlocks
+	return r.Sessions + r.VerificationTokens + r.ResetTokens + r.EventUnlocks +
+		r.AdminSessions + r.EmailOutbox
+}
+
+// purge is one table's cleanup. Its where clause takes the cutoff as $1 and
+// may reference the table by its own name.
+type purge struct {
+	table  string
+	where  string
+	cutoff func(now time.Time) time.Time
+	count  func(*Result) *int64
+}
+
+func graceCutoff(now time.Time) time.Time { return now.Add(-retentionGrace) }
+
+// purges lists every automated cleanup. Audit logs, admin security events,
+// support tickets, and reports are deliberately absent: the audit tables are
+// append-only, and the ticket and report clocks wait on a legal-hold check
+// (docs/16-legal-and-data-lifecycle-plan.md).
+var purges = []purge{
+	{
+		table:  "auth_sessions",
+		where:  "expires_at < $1 OR revoked_at < $1 OR deleted_at < $1",
+		cutoff: graceCutoff,
+		count:  func(r *Result) *int64 { return &r.Sessions },
+	},
+	{
+		table:  "email_verification_tokens",
+		where:  "expires_at < $1 OR consumed_at < $1 OR deleted_at < $1",
+		cutoff: graceCutoff,
+		count:  func(r *Result) *int64 { return &r.VerificationTokens },
+	},
+	{
+		table:  "password_reset_tokens",
+		where:  "expires_at < $1 OR consumed_at < $1 OR deleted_at < $1",
+		cutoff: graceCutoff,
+		count:  func(r *Result) *int64 { return &r.ResetTokens },
+	},
+	{
+		table:  "event_private_unlocks",
+		where:  "expires_at < $1 OR deleted_at < $1",
+		cutoff: graceCutoff,
+		count:  func(r *Result) *int64 { return &r.EventUnlocks },
+	},
+	{
+		// Sessions that audit_logs or admin_security_events still reference are
+		// kept: deleting them would null the session link on append-only audit
+		// history.
+		table: "admin_sessions",
+		where: `(LEAST(idle_expires_at, absolute_expires_at) < $1 OR revoked_at < $1)
+			AND NOT EXISTS (SELECT 1 FROM audit_logs a WHERE a.admin_session_id = admin_sessions.id)
+			AND NOT EXISTS (SELECT 1 FROM admin_security_events e WHERE e.admin_session_id = admin_sessions.id)`,
+		cutoff: graceCutoff,
+		count:  func(r *Result) *int64 { return &r.AdminSessions },
+	},
+	{
+		table:  "email_outbox",
+		where:  "delivered_at < $1 OR failed_at < $1",
+		cutoff: func(now time.Time) time.Time { return now.Add(-outboxRetention) },
+		count:  func(r *Result) *int64 { return &r.EmailOutbox },
+	},
 }
 
 // Run performs one pass. Deletes are independent, so a failure on one table
-// still lets the others through; the first error is returned.
+// still lets the others through; the first error is returned. Each table is
+// deleted in batches until a batch comes back short, so reruns are idempotent.
 func (s *Sweeper) Run(ctx context.Context) (Result, error) {
-	cutoff := s.now().Add(-retentionGrace)
+	now := s.now()
 
 	var result Result
 	var firstErr error
 
-	record := func(target *int64, label, statement string) {
-		tag, err := s.pool.Exec(ctx, statement, cutoff)
-		if err != nil {
-			s.logger.Error("maintenance sweep failed", "error", err, "table", label)
-			if firstErr == nil {
-				firstErr = fmt.Errorf("sweep %s: %w", label, err)
+	for _, p := range purges {
+		statement := fmt.Sprintf(
+			"DELETE FROM %[1]s WHERE id IN (SELECT id FROM %[1]s WHERE %[2]s ORDER BY id LIMIT %[3]d)",
+			p.table, p.where, batchSize,
+		)
+		cutoff := p.cutoff(now)
+		var deleted int64
+		for {
+			tag, err := s.pool.Exec(ctx, statement, cutoff)
+			if err != nil {
+				s.logger.Error("maintenance sweep failed", "error", err, "table", p.table)
+				if firstErr == nil {
+					firstErr = fmt.Errorf("sweep %s: %w", p.table, err)
+				}
+				break
 			}
-			return
+			deleted += tag.RowsAffected()
+			if tag.RowsAffected() < batchSize {
+				break
+			}
 		}
-		*target = tag.RowsAffected()
+		*p.count(&result) = deleted
 	}
-
-	record(&result.Sessions, "auth_sessions", `
-		DELETE FROM auth_sessions
-		WHERE expires_at < $1
-		   OR revoked_at < $1
-		   OR deleted_at < $1
-	`)
-	record(&result.VerificationTokens, "email_verification_tokens", `
-		DELETE FROM email_verification_tokens
-		WHERE expires_at < $1
-		   OR consumed_at < $1
-		   OR deleted_at < $1
-	`)
-	record(&result.ResetTokens, "password_reset_tokens", `
-		DELETE FROM password_reset_tokens
-		WHERE expires_at < $1
-		   OR consumed_at < $1
-		   OR deleted_at < $1
-	`)
-	record(&result.EventUnlocks, "event_private_unlocks", `
-		DELETE FROM event_private_unlocks
-		WHERE expires_at < $1
-		   OR deleted_at < $1
-	`)
 
 	return result, firstErr
 }
@@ -110,6 +169,8 @@ func (s *Sweeper) Start(ctx context.Context, interval time.Duration) {
 				"verification_tokens", result.VerificationTokens,
 				"reset_tokens", result.ResetTokens,
 				"event_unlocks", result.EventUnlocks,
+				"admin_sessions", result.AdminSessions,
+				"email_outbox", result.EmailOutbox,
 			)
 		}
 
