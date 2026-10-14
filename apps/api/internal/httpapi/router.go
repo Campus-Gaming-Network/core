@@ -231,7 +231,7 @@ func NewRouter(cfg config.Config, pools ...*pgxpool.Pool) http.Handler {
 		})
 	}
 
-	return withRequestLogging(withPanicRecovery(handler))
+	return withRequestLogging(withSecurityHeaders(withPanicRecovery(handler)))
 }
 
 // registerPublicRoutes registers every public route on the router mux. The
@@ -896,6 +896,22 @@ func withRequestLogging(next http.Handler) http.Handler {
 			return
 		}
 		slog.Info("request", attributes...)
+	})
+}
+
+// withSecurityHeaders sets restrictive defaults on every response. The API
+// serves JSON and images to the web apps, never documents, so nothing here may
+// be framed, sniffed, or script-bearing, and a response is not cached unless
+// its handler opts in. Handlers replace any of these with Header().Set.
+func withSecurityHeaders(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		header := w.Header()
+		header.Set("Cache-Control", "no-store")
+		header.Set("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'")
+		header.Set("Referrer-Policy", "no-referrer")
+		header.Set("X-Content-Type-Options", "nosniff")
+		header.Set("X-Frame-Options", "DENY")
+		next.ServeHTTP(w, req)
 	})
 }
 

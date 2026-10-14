@@ -113,6 +113,35 @@ See [14 — Architecture diagrams](./14-architecture-diagrams.md) for Mermaid vi
   headers. TanStack Router client caching is not treated as cross-request or
   CDN caching.
 
+### Response security headers
+
+Each layer sets its headers once, as defaults a route can replace.
+
+- **Web and Admin Console** (request middleware in each `src/start.ts`):
+  `Content-Security-Policy` with `default-src 'self'`, `object-src 'none'`,
+  `frame-ancestors 'none'`, `form-action 'self'`, `font-src 'self'`, and
+  `script-src 'self' 'nonce-…'`. Each request gets a fresh nonce, and the router
+  stamps it on the inline hydration scripts it renders; there is no
+  `unsafe-eval`. `connect-src` is `'self'` plus the Sentry ingest origin from
+  `SENTRY_DSN` when error monitoring is on. `img-src` is `'self' data:` plus
+  the `R2_PUBLIC_ASSET_ORIGIN` origin for school logos. IGDB covers are proxied
+  through the site, so no IGDB origin is allowed. Also sent:
+  `Cross-Origin-Opener-Policy: same-origin`, `X-Content-Type-Options: nosniff`,
+  `X-Frame-Options: DENY`, a `Permissions-Policy` that denies camera,
+  microphone, geolocation, and payment, and
+  `Strict-Transport-Security` (HTTPS requests when `DEPLOYMENT_ENV` is
+  `production`). The web app uses `Referrer-Policy: strict-origin-when-cross-origin`.
+  The Admin Console uses `no-referrer`, `Cache-Control: private, no-store`, and
+  `X-Robots-Tag: noindex`, and never allows framing.
+- **Go API** (`withSecurityHeaders`): `Cache-Control: no-store`,
+  `Content-Security-Policy: default-src 'none'; frame-ancestors 'none'`,
+  `X-Content-Type-Options`, `X-Frame-Options`, and `Referrer-Policy:
+no-referrer` on every response. A handler that serves cacheable public data
+  or an image replaces `Cache-Control` or the policy itself.
+- `pnpm run smoke:web` asserts the web headers and the nonce on every script
+  against the production build. The Admin Console's `security-headers`
+  Playwright spec does the same against its build.
+
 ### Runtime validation
 
 - Feature-local `apps/web/src/features/*/contracts.ts` files are the source of
