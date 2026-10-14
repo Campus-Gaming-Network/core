@@ -7,6 +7,9 @@ export const accountNotices = {
     message: "We could not delete your account. Please try again.",
     severity: "danger",
   },
+} as const satisfies Record<string, PageNotice>;
+
+export const settingsNotices = {
   "profile-failed": {
     message: "We could not update your profile. Please try again.",
     severity: "danger",
@@ -20,6 +23,27 @@ export const homeAccountNotices = {
 } as const satisfies Record<string, PageNotice>;
 const accountDescription =
   "Manage your Campus Gaming Network profile, home school, and followed schools.";
+
+export function settingsProfileHead(publicOrigin = "http://localhost:3000") {
+  const title = `Edit profile | ${siteName}`;
+  const description = "Edit your public Campus Gaming Network profile.";
+
+  return {
+    meta: [
+      { title },
+      { name: "description", content: description },
+      { name: "robots", content: "noindex,nofollow" },
+      { property: "og:type", content: "website" },
+      { property: "og:site_name", content: siteName },
+      { property: "og:title", content: title },
+      { property: "og:description", content: description },
+      { property: "og:url", content: `${publicOrigin}/settings/profile` },
+      { name: "twitter:card", content: "summary" },
+      { name: "twitter:title", content: title },
+      { name: "twitter:description", content: description },
+    ],
+  };
+}
 
 export function accountHead(publicOrigin = "http://localhost:3000") {
   const title = `Account | ${siteName}`;

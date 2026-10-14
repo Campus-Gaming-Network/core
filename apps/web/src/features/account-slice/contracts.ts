@@ -176,6 +176,11 @@ export type AccountDashboardResult =
   | { status: "unauthenticated" }
   | { status: "error"; message: "Account details are unavailable." };
 
+export type AccountProfileResult =
+  | { status: "found"; profile: AccountProfileDTO }
+  | { status: "unauthenticated" }
+  | { status: "error"; message: "Account details are unavailable." };
+
 export type AccountMutationResult =
   | { status: "success"; message: string; redirectTo: string }
   | { status: "error"; message: string; fieldErrors?: AccountFormErrors };

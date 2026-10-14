@@ -118,13 +118,29 @@ test("account, safety, and school forms complete without JavaScript", async ({
   context,
   page,
 }) => {
-  await logIn(page, "no-js-account@example.test", "/account");
+  const email = "no-js-account@example.test";
+  await logIn(page, email, "/account");
+
+  // The owner reaches the form from their own public profile.
+  await page.goto(`/users/user-${Buffer.from(email).toString("base64url")}`);
+  await page
+    .getByRole("main")
+    .getByRole("link", { name: "Edit profile" })
+    .click();
+  await expect(page).toHaveURL(/\/settings\/profile$/);
+  await expect(
+    page.getByRole("heading", { name: "Edit profile", level: 1 }),
+  ).toBeVisible();
 
   await page
     .getByLabel("Name", { exact: true })
     .fill("Updated No JavaScript Player");
   await page.getByRole("button", { name: "Save profile" }).click();
-  await expect(page).toHaveURL(/\/account\?account=profile-updated$/);
+  await expect(page).toHaveURL(
+    /\/settings\/profile\?settings=profile-updated$/,
+  );
+  await expect(page.getByRole("status")).toContainText("Profile updated.");
+  await page.goto("/account");
   await expect(
     page.getByRole("heading", {
       name: "Updated No JavaScript Player",
@@ -133,6 +149,9 @@ test("account, safety, and school forms complete without JavaScript", async ({
   ).toBeVisible();
 
   await page.goto("/users/reportable-player");
+  await expect(
+    page.getByRole("main").getByRole("link", { name: "Edit profile" }),
+  ).toHaveCount(0);
   await page.getByText("Report this user").click();
   await page
     .getByLabel("Reason")
@@ -158,7 +177,7 @@ test("account, safety, and school forms complete without JavaScript", async ({
 test("account social links reveal extra rows without JavaScript", async ({
   page,
 }) => {
-  await logIn(page, "no-js-social-links@example.test", "/account");
+  await logIn(page, "no-js-social-links@example.test", "/settings/profile");
 
   await expect(page.getByLabel("Social link 1 label")).toBeVisible();
   await expect(page.getByLabel("Social link 2 label")).toBeHidden();
@@ -174,7 +193,9 @@ test("account social links reveal extra rows without JavaScript", async ({
     .fill("https://discord.example.test/player");
   await page.getByLabel("Discord username").fill("@Player.One");
   await page.getByRole("button", { name: "Save profile" }).click();
-  await expect(page).toHaveURL(/\/account\?account=profile-updated$/);
+  await expect(page).toHaveURL(
+    /\/settings\/profile\?settings=profile-updated$/,
+  );
   await expect(page.getByLabel("Discord username")).toHaveValue("player.one");
 
   await expect(page.getByLabel("Social link 3 label")).toBeVisible();
@@ -492,19 +513,23 @@ test("people lists page with native links and the member-list setting saves with
   await page.goto("/schools/browser-test-university/people");
   await expect(listed).toHaveCount(1);
 
-  await page.goto("/account");
+  await page.goto("/settings/profile");
   await expect(setting).toBeChecked();
   await setting.uncheck();
   await page.getByRole("button", { name: "Save profile" }).click();
-  await expect(page).toHaveURL(/\/account\?account=profile-updated$/);
+  await expect(page).toHaveURL(
+    /\/settings\/profile\?settings=profile-updated$/,
+  );
   await expect(setting).not.toBeChecked();
   await page.goto("/schools/browser-test-university/people");
   await expect(listed).toHaveCount(0);
 
-  await page.goto("/account");
+  await page.goto("/settings/profile");
   await setting.check();
   await page.getByRole("button", { name: "Save profile" }).click();
-  await expect(page).toHaveURL(/\/account\?account=profile-updated$/);
+  await expect(page).toHaveURL(
+    /\/settings\/profile\?settings=profile-updated$/,
+  );
   await expect(setting).toBeChecked();
   await page.goto("/schools/browser-test-university/people");
   await expect(listed).toHaveCount(1);

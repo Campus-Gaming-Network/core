@@ -34,7 +34,7 @@ test("forms say which fields are optional in the field's label", async ({
   // A select's options are part of its label's text, so this is not exact.
   await expect(page.getByLabel("School link (optional)")).toBeVisible();
 
-  await gotoApp(page, "/account");
+  await gotoApp(page, "/settings/profile");
   await expect(page.getByText(note)).toBeVisible();
   // The saved bio is part of the label's text, so this is not exact either.
   await expect(page.getByLabel("Bio (optional)")).toBeVisible();

@@ -38,6 +38,7 @@ test("the account menu shows the viewer, opens, and closes from the keyboard and
   ).toEqual([
     { text: "Account", href: "/account" },
     { text: "Public profile", href: `/users/${viewerId}` },
+    { text: "Edit profile", href: "/settings/profile" },
     { text: "Log out", href: null },
   ]);
 
@@ -54,6 +55,8 @@ test("the account menu shows the viewer, opens, and closes from the keyboard and
   await expect(
     menu.getByRole("link", { name: "Public profile" }),
   ).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(menu.getByRole("link", { name: "Edit profile" })).toBeFocused();
   await page.keyboard.press("Tab");
   await expect(menu.getByRole("button", { name: "Log out" })).toBeFocused();
   await page.keyboard.press("Tab");
@@ -190,7 +193,7 @@ test("on phones the menu takes the primary-action slot and the nav keeps three c
     .evaluateAll((items) =>
       items.map((item) => item.getBoundingClientRect().height),
     );
-  expect(itemHeights).toHaveLength(3);
+  expect(itemHeights).toHaveLength(4);
   for (const height of itemHeights) {
     expect(height).toBeGreaterThanOrEqual(43.5);
   }

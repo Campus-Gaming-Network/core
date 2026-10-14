@@ -13,7 +13,12 @@ const fillPaths = [
   "/login",
   "/signup",
 ];
-const signedInFillPaths = ["/account", "/events/new", "/teams/new"];
+const signedInFillPaths = [
+  "/account",
+  "/settings/profile",
+  "/events/new",
+  "/teams/new",
+];
 // Running text keeps a readable measure, so only its left edge is compared.
 const prosePaths = ["/about", "/faq", "/support", "/terms", "/privacy"];
 

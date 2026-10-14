@@ -1,5 +1,5 @@
 import { expect, test, type BrowserContext } from "@playwright/test";
-import { gotoApp, logIn } from "./fixtures/app-navigation.js";
+import { gotoApp, logIn, waitForAppReady } from "./fixtures/app-navigation.js";
 
 const apiURL = "http://127.0.0.1:18081";
 const password = "E2EPassword123!";
@@ -47,6 +47,26 @@ test("login started from a protected page returns to that page", async ({
   await expect(page).toHaveURL(
     (url) => url.pathname === "/account" && url.search === "",
   );
+});
+
+test("settings sends a signed-out visitor to login and back to Edit profile", async ({
+  page,
+}) => {
+  await gotoApp(page, "/settings");
+  await expect(page).toHaveURL(
+    (url) =>
+      url.pathname === "/login" && url.search === "?next=%2Fsettings%2Fprofile",
+  );
+  await page.getByLabel("Email").fill("settings-return@example.test");
+  await page.getByLabel("Password").fill(password);
+  await page.getByRole("button", { name: "Log in" }).click();
+  await expect(page).toHaveURL("/settings/profile");
+  await expect(
+    page.getByRole("heading", { name: "Edit profile", level: 1 }),
+  ).toBeVisible();
+
+  await gotoApp(page, "/settings");
+  await expect(page).toHaveURL("/settings/profile");
 });
 
 test("public auth recovery and private account mutations work through the runtime", async ({
@@ -102,9 +122,18 @@ test("public auth recovery and private account mutations work through the runtim
 
   await logIn(page, `account-${device}@example.test`, "/account");
   await expect(page.getByText("Browser Dashboard RSVP")).toBeVisible();
+  await page.getByRole("link", { name: "Edit profile" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Edit profile", level: 1 }),
+  ).toBeVisible();
+  await waitForAppReady(page);
   await page.getByLabel("Name", { exact: true }).fill("Updated Browser Player");
   await page.getByRole("button", { name: "Save profile" }).click();
-  await expect(page).toHaveURL(/\/account\?account=profile-updated$/);
+  await expect(page).toHaveURL(
+    /\/settings\/profile\?settings=profile-updated$/,
+  );
+  await expect(page.getByRole("status")).toContainText("Profile updated.");
+  await gotoApp(page, "/account");
   await expect(
     page.getByRole("heading", { name: "Updated Browser Player", level: 1 }),
   ).toBeVisible();
@@ -124,7 +153,7 @@ test("account social links reveal extra rows and save through the runtime", asyn
   page,
 }, testInfo) => {
   const device = deviceName(testInfo.project.name);
-  await logIn(page, `social-links-${device}@example.test`, "/account");
+  await logIn(page, `social-links-${device}@example.test`, "/settings/profile");
 
   await expect(page.getByLabel("Social link 1 label")).toBeVisible();
   await expect(page.getByLabel("Social link 2 label")).toBeHidden();
@@ -140,7 +169,9 @@ test("account social links reveal extra rows and save through the runtime", asyn
     .fill("https://discord.example.test/player");
   await page.getByLabel("Discord username").fill("@Player.One");
   await page.getByRole("button", { name: "Save profile" }).click();
-  await expect(page).toHaveURL(/\/account\?account=profile-updated$/);
+  await expect(page).toHaveURL(
+    /\/settings\/profile\?settings=profile-updated$/,
+  );
   // The field keeps what was typed; its saved value is the normalized name.
   await expect(page.getByLabel("Discord username")).toHaveAttribute(
     "value",

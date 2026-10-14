@@ -8,6 +8,7 @@ import {
 } from "../../server/request-boundary.server.js";
 import {
   accountDashboardOperation,
+  accountProfileOperation,
   deleteAccountOperation,
   updateProfileOperation,
 } from "./account-operations.server.js";
@@ -31,6 +32,19 @@ export const getAccountDashboard = createServerFn({ method: "GET" }).handler(
   },
 );
 
+export const getAccountProfile = createServerFn({ method: "GET" }).handler(
+  async () => {
+    const request = currentSessionRequest();
+    setPrivateNoStoreResponse();
+    if (!request.sessionCookieValue)
+      return { status: "unauthenticated" as const };
+    return accountProfileOperation({
+      api: request.api,
+      cookieHeader: request.cookieHeader,
+    });
+  },
+);
+
 export const updateAccountProfile = createServerFn({
   method: "POST",
   strict: { input: false },
@@ -44,7 +58,7 @@ export const updateAccountProfile = createServerFn({
     if (!data.valid) {
       if (nativeForm) {
         throw redirect({
-          href: "/account?account=profile-failed",
+          href: "/settings/profile?settings=profile-failed",
           statusCode: 303,
         });
       }
@@ -65,7 +79,7 @@ export const updateAccountProfile = createServerFn({
         href:
           result.status === "success"
             ? result.redirectTo
-            : "/account?account=profile-failed",
+            : "/settings/profile?settings=profile-failed",
         statusCode: 303,
       });
     }

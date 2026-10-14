@@ -105,12 +105,9 @@ const groups: FAQGroup[] = [
         question: "How do I change my name, bio, or time zone?",
         answer: (
           <>
-            Open{" "}
-            <Link to="/account" hash="profile">
-              Profile settings
-            </Link>{" "}
-            on your account page. You can also add social links there. Event
-            times are shown in the time zone you choose.
+            Open <Link to="/settings/profile">Edit profile</Link> from your
+            account menu. You can also add social links there. Event times are
+            shown in the time zone you choose.
           </>
         ),
       },
@@ -122,10 +119,7 @@ const groups: FAQGroup[] = [
             Signed-in people can see who is going to an event, who belongs to a
             school, and who is on a team. Visitors who are not signed in see
             only the counts. To hide yourself from every list, turn off “Show me
-            in member lists” in{" "}
-            <Link to="/account" hash="profile">
-              Profile settings
-            </Link>
+            in member lists” in <Link to="/settings/profile">Edit profile</Link>
             . Your RSVPs and memberships stay as they are.
           </>
         ),
