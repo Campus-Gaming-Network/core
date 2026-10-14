@@ -24,12 +24,20 @@ export function eventsHead(publicOrigin = "http://localhost:3000") {
   };
 }
 
+// Renders in the event's own zone, never the server's or the browser's, so SSR
+// and hydration agree. Both ends carry the zone abbreviation (for example CDT)
+// so viewers in another zone can tell which clock the event uses, and so a
+// repeated fall-back hour stays unambiguous.
 export function eventTimeRange(
   event: Pick<EventDTO, "starts_at" | "ends_at" | "timezone">,
 ): string {
   const formatter = new Intl.DateTimeFormat("en-US", {
-    dateStyle: "medium",
-    timeStyle: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZoneName: "short",
     timeZone: event.timezone,
   });
 

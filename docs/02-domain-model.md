@@ -183,13 +183,13 @@ unchanged.
 
 **Lifecycle display**
 
-| State             | UI                                      |
-| ----------------- | --------------------------------------- |
-| Upcoming          | Show date and time (user timezone)      |
-| Happening now     | “Happening now”                         |
-| Ended             | “Ended”; no further signups             |
-| Full              | At capacity; no further RSVP yes        |
-| Missing / deleted | Dedicated “event no longer exists” page |
+| State             | UI                                         |
+| ----------------- | ------------------------------------------ |
+| Upcoming          | Show date, time, and zone (event timezone) |
+| Happening now     | “Happening now”                            |
+| Ended             | “Ended”; no further signups                |
+| Full              | At capacity; no further RSVP yes           |
+| Missing / deleted | Dedicated “event no longer exists” page    |
 
 **RSVP vs interested**
 
@@ -296,7 +296,7 @@ Used for: browse/filter events (and later tournaments) by game; popular games by
 | XSS / SQLi        | Prevent via parameterized queries + output encoding / sanitization                                                                                                                                                        |
 | Rate limits       | Signups, event creation, reports (and general API rate limiting)                                                                                                                                                          |
 | Content filtering | Basic blocked-term list with word boundaries; reject disallowed user-authored text before persistence                                                                                                                     |
-| Timezones         | Store events in absolute time; display in user timezone                                                                                                                                                                   |
+| Timezones         | Store events as UTC instants plus an IANA timezone; display and email in the event timezone, labeled with its abbreviation (for example CDT). Upcoming and ended compare instants, never wall-clock text                  |
 | US scope          | No international school handling at launch                                                                                                                                                                                |
 
 ## Relationship cardinality (summary)
