@@ -46,7 +46,7 @@ test("format, type, audience, and cost each have their own icon and color", asyn
 
   await gotoApp(page, "/events");
   const card = page.getByRole("link", { name: /Distinct Facts LAN/ });
-  await expectDistinctFacts(card.locator(".event-pill"));
+  await expectDistinctFacts(card.locator(".event-pill:has(svg)"));
 
   await card.click();
   await expect(page).toHaveURL(/\/events\/distinct-facts-lan-[^?]+$/);

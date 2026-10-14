@@ -1,9 +1,11 @@
 import { Link } from "@tanstack/react-router";
 import { StatusLabel } from "../../components/status-label";
-import { ArrowRight } from "lucide-react";
 import { CalendarDate } from "../../components/calendar-date";
+import {
+  DirectoryRow,
+  directoryRowClassName,
+} from "../../components/directory-row";
 import { EventCounts } from "../../components/event-counts";
-import { SchoolLogo } from "../../components/school-logo";
 import type { EventBrowseItemDTO } from "./contracts.js";
 import { EventFacts } from "./event-facts";
 import {
@@ -16,43 +18,38 @@ import {
 export function EventCard({ event }: { event: EventBrowseItemDTO }) {
   return (
     <Link
-      className="card card--default list-item event-list-item"
+      className={directoryRowClassName}
       to="/events/$slug"
       params={{ slug: event.slug }}
     >
-      <CalendarDate
-        decorative
-        startsAt={event.starts_at}
-        timezone={event.timezone}
+      <DirectoryRow
+        action="View event"
+        counts={
+          <EventCounts
+            going={event.rsvp_yes_count}
+            interested={event.interest_count}
+          />
+        }
+        detail={eventTimeRange(event)}
+        identity={
+          <CalendarDate
+            decorative
+            startsAt={event.starts_at}
+            timezone={event.timezone}
+          />
+        }
+        meta={[event.host_school.name, eventLocation(event)]}
+        name={event.title}
+        status={
+          event.lifecycle !== "upcoming" ? (
+            <StatusLabel status={event.lifecycle}>
+              {eventLifecycleLabel(event.lifecycle)}
+            </StatusLabel>
+          ) : undefined
+        }
+        facts={<EventFacts event={event} />}
+        tags={event.games.map((game) => game.name)}
       />
-      <span className="event-card-copy">
-        {event.lifecycle !== "upcoming" ? (
-          <StatusLabel status={event.lifecycle}>
-            {eventLifecycleLabel(event.lifecycle)}
-          </StatusLabel>
-        ) : null}
-        <span className="event-card-heading">
-          <strong>{event.title}</strong>
-        </span>
-        <small>{eventTimeRange(event)}</small>
-        <small>
-          <SchoolLogo inline logoURL={event.host_school.logo_url} size={16} />
-          {event.host_school.name} ·{" "}
-          {event.games.map((game) => game.name).join(", ")}
-        </small>
-        <small>{eventLocation(event)}</small>
-        <span className="event-pill-list event-pill-list--compact">
-          <EventFacts event={event} />
-        </span>
-        <EventCounts
-          going={event.rsvp_yes_count}
-          interested={event.interest_count}
-        />
-      </span>
-      <span className="event-card-action with-arrow">
-        View event
-        <ArrowRight aria-hidden="true" size={14} strokeWidth={2.25} />
-      </span>
     </Link>
   );
 }

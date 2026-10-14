@@ -6,6 +6,7 @@ import {
   CircleHelp,
   MapPin,
   Star,
+  Users,
   X,
 } from "lucide-react";
 import { useRef, useState, type FormEvent } from "react";
@@ -17,6 +18,10 @@ import { CalendarDate } from "../components/calendar-date";
 import { Callout } from "../components/callout";
 import { ConfirmDialog } from "../components/confirm-dialog";
 import { CopyLink } from "../components/copy-link";
+import {
+  DirectoryRow,
+  directoryRowClassName,
+} from "../components/directory-row";
 import { FormErrorSummary } from "../components/enhanced-mutation";
 import { FormField, RequiredFieldsNote } from "../components/form-field";
 import { FormSection } from "../components/form-section";
@@ -509,6 +514,14 @@ function StyleguidePage() {
           for things that stand alone: a campus tile, a step, a facts panel.
         </p>
 
+        <p className="styleguide-intro">
+          Event, school, and team directories share one row: an identity tile,
+          the name, a muted line with the host or school and then the location,
+          a group of labels (an event's colored facts, then games as neutral
+          labels), counts, and one action. On a phone the action drops under the
+          rest.
+        </p>
+
         <h3 className="styleguide-sub">Event rows</h3>
         <div className="list">
           {exampleEvents.map((event) => (
@@ -534,52 +547,55 @@ function StyleguidePage() {
           ))}
         </div>
 
-        <h3 className="styleguide-sub">Directory rows</h3>
-        <div className="school-directory-grid">
+        <h3 className="styleguide-sub">School rows</h3>
+        <div className="list">
           {exampleSchools.slice(0, 2).map((school) => (
             <Link
-              className="card card--default school-directory-card"
+              className={directoryRowClassName}
               key={school.slug}
               params={{ slug: school.slug }}
               to="/schools/$slug"
             >
-              <span aria-hidden="true" className="school-directory-mark">
-                {school.name.slice(0, 1)}
-              </span>
-              <span className="school-directory-copy">
-                <strong>{school.name}</strong>
-                <small>{school.location}</small>
-              </span>
-              <span className="school-directory-action with-arrow">
-                View school
-                <ArrowRight aria-hidden="true" size={14} strokeWidth={2.25} />
-              </span>
+              <DirectoryRow
+                action="View school"
+                identity={
+                  <span aria-hidden="true" className="school-directory-mark">
+                    {school.name.slice(0, 1)}
+                  </span>
+                }
+                meta={[school.shortName, school.location]}
+                name={school.name}
+              />
             </Link>
           ))}
         </div>
 
         <h3 className="styleguide-sub">Team rows</h3>
-        <div className="list discovery-list">
+        <div className="list">
           {exampleTeams.map((team) => (
             <Link
-              className="card card--default list-item team-discovery-row"
+              className={directoryRowClassName}
               key={team.slug}
               params={{ slug: team.slug }}
               to="/teams/$slug"
             >
-              <span aria-hidden="true" className="team-mark">
-                {team.name.slice(0, 1)}
-              </span>
-              <span className="team-discovery-copy">
-                <strong>{team.name}</strong>
-                <small>{team.games}</small>
-                <small>{team.school}</small>
-              </span>
-              <span className="team-member-count">{team.members} members</span>
-              <span className="discovery-row__action with-arrow">
-                View team
-                <ArrowRight aria-hidden="true" size={14} strokeWidth={2.25} />
-              </span>
+              <DirectoryRow
+                action="View team"
+                counts={
+                  <small className="directory-row__count">
+                    <Users aria-hidden="true" size={14} strokeWidth={1.75} />
+                    {team.members} members
+                  </small>
+                }
+                identity={
+                  <span aria-hidden="true" className="team-mark">
+                    {team.name.slice(0, 1)}
+                  </span>
+                }
+                meta={[team.school, team.location]}
+                name={team.name}
+                tags={team.games}
+              />
             </Link>
           ))}
         </div>

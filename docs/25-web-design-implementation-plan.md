@@ -19,6 +19,16 @@ the source-of-truth product, API, database, permission, or roadmap documents.
 - No gradients, purple accents, large decorative color fields, yellow date
   backgrounds, or decorative yellow borders on event rows.
 - Event discovery favors compact rows and a single `View event` action.
+- The event, team, and school directories share one compact row
+  (`DirectoryRow`): an identity tile (calendar date, team mark, or school
+  logo), the name, a muted meta line that is always host or school, then
+  location (or "Online"), a label group, the counts (going and interested on
+  events, members on teams), and one action (`View event`, `View team`,
+  `View school`). On events the label group is the icon-led `EventFacts`
+  (format, type, audience, Free, each with its own color) followed by the games
+  as neutral outlined labels; on teams it is the games as neutral labels. The
+  whole row is one link. On a phone the action drops under the rest, and
+  nothing scrolls sideways at 320px.
 - Event detail keeps directions in the location panel and keeps the current
   RSVP editable.
 - Event rows show how many people are going and how many are interested
@@ -176,7 +186,8 @@ status column says which already exist and where.
 | `ButtonLink`     | Primary and secondary router links drawn as buttons                 | Built: `apps/web/src/components/button-link.tsx`                                                                                                                       |
 | `Button`         | Primary, secondary, quiet, destructive, loading, disabled           | Planned; native `<button>` elements use the `button--secondary` and `button--destructive` classes from `styles.css`                                                    |
 | `Surface`        | White bounded panel on the warm canvas                              | Planned; the `.card`, `.action-panel`, and `.empty-state` classes in `styles.css` cover it, and each use needs a different element                                     |
-| `EventRow`       | Calendar-tile date, lifecycle label, event facts, `View event`      | Built as `EventCard`: `apps/web/src/features/event-slice/event-card.tsx`; the account dashboard renders the same classes in its own row                                |
+| `DirectoryRow`   | Identity tile, name, meta line, neutral labels, counts, one action  | Built: `apps/web/src/components/directory-row.tsx`; used by `EventCard` and the team and school directories                                                            |
+| `EventRow`       | Calendar-tile date, lifecycle label, event facts, `View event`      | Built as `EventCard` on `DirectoryRow`: `apps/web/src/features/event-slice/event-card.tsx`; the account dashboard keeps its own `.event-list-item` row                 |
 | `StatusLabel`    | Text plus color for event, account, invitation, and request state   | Built: `apps/web/src/components/status-label.tsx`, with the event lifecycle colors and a neutral outlined variant; account, invitation, and request states are planned |
 | `Avatar`         | Deterministic generated identity with accessible fallback initials  | Built: `apps/web/src/components/avatar.tsx`                                                                                                                            |
 | `Tabs`           | Keyboard-accessible local navigation and selected state             | Built: `apps/web/src/components/tabs.tsx` (`Tabs` and `TabLink`); used on the school page and the event attendee page                                                  |
@@ -203,8 +214,8 @@ darker than the canvas, and has no border.
 
 ### Where shared styles live
 
-Styles for a component that renders in more than one route area (the event
-row, status labels, and team mark today) live in `apps/web/src/components.css`.
+Styles for a component that renders in more than one route area (the
+directory row, the event row, status labels, and team mark today) live in `apps/web/src/components.css`.
 The root route loads it after `styles.css`, so the component looks the same on
 every page. A route area's own stylesheet (`events.css`, `teams.css`,
 `account.css`) holds only rules for that area's markup and is linked from that
@@ -223,9 +234,10 @@ token appears there without an edit.
 The page is reachable in every environment, is marked `noindex`, and is not
 linked from the header or footer. When a shared component is added or gains a
 variant, add it to `apps/web/src/routes/styleguide.tsx`. A few pieces are still
-route-local markup rather than components (the RSVP control and the school,
-team, and account rows), so the page repeats their markup and must be updated
-by hand when they change.
+route-local markup rather than components (the RSVP control and the account
+rows), so the page repeats their markup and must be updated by hand when they
+change. The school and team rows are `DirectoryRow`, but each route passes its
+own fields, so the page repeats those calls.
 
 ## Route and state matrix
 
