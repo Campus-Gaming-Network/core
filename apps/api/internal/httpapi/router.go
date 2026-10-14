@@ -202,35 +202,7 @@ func NewRouter(cfg config.Config, pools ...*pgxpool.Pool) http.Handler {
 		}
 	}
 
-	router.mux.HandleFunc("/", requireMethod(http.MethodGet, router.handleRoot))
-	router.mux.HandleFunc("/health", requireMethod(http.MethodGet, router.handleHealth))
-	router.mux.HandleFunc("/ready", requireMethod(http.MethodGet, router.handleReady))
-	router.mux.HandleFunc("/schools", router.handleSchools)
-	router.mux.HandleFunc("/schools/", router.handleSchoolPath)
-	router.mux.HandleFunc("/games", requireMethod(http.MethodGet, router.handleGames))
-	router.mux.HandleFunc("/games/{slug}/cover", requireMethod(http.MethodGet, router.handleGameCover))
-	router.mux.HandleFunc("/games/igdb-search", requireMethod(http.MethodGet, router.handleGameSearch))
-	router.mux.HandleFunc("/internal/schools/refresh", requireMethod(http.MethodPost, router.handleRefreshCatalog))
-	router.mux.HandleFunc("/internal/error-monitoring/test", requireMethod(http.MethodPost, router.handleErrorMonitoringTest))
-	router.mux.HandleFunc("/events", router.handleEvents)
-	router.mux.HandleFunc("/events/", router.handleEventPath)
-	router.mux.HandleFunc("/teams", router.handleTeams)
-	router.mux.HandleFunc("/teams/", router.handleTeamPath)
-	router.mux.HandleFunc("/support-tickets", router.handleSupportTickets)
-	router.mux.HandleFunc("/auth/signup", router.handleSignup)
-	router.mux.HandleFunc("/auth/login", router.handleLogin)
-	router.mux.HandleFunc("/auth/logout", router.handleLogout)
-	router.mux.HandleFunc("/auth/verify-email", router.handleVerifyEmail)
-	router.mux.HandleFunc("/auth/resend-verification", router.handleResendVerification)
-	router.mux.HandleFunc("/auth/forgot-password", router.handleForgotPassword)
-	router.mux.HandleFunc("/auth/reset-password", router.handleResetPassword)
-	router.mux.HandleFunc("/policies/current", requireMethod(http.MethodGet, router.handleCurrentPolicies))
-	router.mux.HandleFunc("/me/policy-acceptances", requireMethod(http.MethodGet, router.handleMyPolicyAcceptances))
-	router.mux.HandleFunc("/me/events", router.handleMyEvents)
-	router.mux.HandleFunc("/me/schools", router.handleMySchools)
-	router.mux.HandleFunc("/me/teams", router.handleMyTeams)
-	router.mux.HandleFunc("/me", router.handleMe)
-	router.mux.HandleFunc("/users/", router.handleUserPath)
+	router.registerPublicRoutes()
 	router.mux.Handle("/admin/", adminhttp.NewHandler(adminhttp.Config{
 		Enabled: cfg.AdminEnabled, SiteOrigin: cfg.AdminSiteURL,
 		ProxySecret: cfg.AdminProxySharedSecret,
@@ -260,6 +232,40 @@ func NewRouter(cfg config.Config, pools ...*pgxpool.Pool) http.Handler {
 	}
 
 	return withRequestLogging(withPanicRecovery(handler))
+}
+
+// registerPublicRoutes registers every public route on the router mux. The
+// admin routes are mounted separately under /admin/.
+func (r *Router) registerPublicRoutes() {
+	r.mux.HandleFunc("/", requireMethod(http.MethodGet, r.handleRoot))
+	r.mux.HandleFunc("/health", requireMethod(http.MethodGet, r.handleHealth))
+	r.mux.HandleFunc("/ready", requireMethod(http.MethodGet, r.handleReady))
+	r.mux.HandleFunc("/schools", r.handleSchools)
+	r.mux.HandleFunc("/schools/", r.handleSchoolPath)
+	r.mux.HandleFunc("/games", requireMethod(http.MethodGet, r.handleGames))
+	r.mux.HandleFunc("/games/{slug}/cover", requireMethod(http.MethodGet, r.handleGameCover))
+	r.mux.HandleFunc("/games/igdb-search", requireMethod(http.MethodGet, r.handleGameSearch))
+	r.mux.HandleFunc("/internal/schools/refresh", requireMethod(http.MethodPost, r.handleRefreshCatalog))
+	r.mux.HandleFunc("/internal/error-monitoring/test", requireMethod(http.MethodPost, r.handleErrorMonitoringTest))
+	r.mux.HandleFunc("/events", r.handleEvents)
+	r.mux.HandleFunc("/events/", r.handleEventPath)
+	r.mux.HandleFunc("/teams", r.handleTeams)
+	r.mux.HandleFunc("/teams/", r.handleTeamPath)
+	r.mux.HandleFunc("/support-tickets", r.handleSupportTickets)
+	r.mux.HandleFunc("/auth/signup", r.handleSignup)
+	r.mux.HandleFunc("/auth/login", r.handleLogin)
+	r.mux.HandleFunc("/auth/logout", r.handleLogout)
+	r.mux.HandleFunc("/auth/verify-email", r.handleVerifyEmail)
+	r.mux.HandleFunc("/auth/resend-verification", r.handleResendVerification)
+	r.mux.HandleFunc("/auth/forgot-password", r.handleForgotPassword)
+	r.mux.HandleFunc("/auth/reset-password", r.handleResetPassword)
+	r.mux.HandleFunc("/policies/current", requireMethod(http.MethodGet, r.handleCurrentPolicies))
+	r.mux.HandleFunc("/me/policy-acceptances", requireMethod(http.MethodGet, r.handleMyPolicyAcceptances))
+	r.mux.HandleFunc("/me/events", r.handleMyEvents)
+	r.mux.HandleFunc("/me/schools", r.handleMySchools)
+	r.mux.HandleFunc("/me/teams", r.handleMyTeams)
+	r.mux.HandleFunc("/me", r.handleMe)
+	r.mux.HandleFunc("/users/", r.handleUserPath)
 }
 
 func (r *Router) handleRoot(w http.ResponseWriter, req *http.Request) {

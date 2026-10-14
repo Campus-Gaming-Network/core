@@ -712,3 +712,19 @@ func csrfCookieName(config adminsession.CookieConfig) string {
 	}
 	return adminsession.ProductionCSRFCookieName
 }
+
+// Route is one registered Admin API route: an HTTP method and its path
+// pattern, with named parameters in braces.
+type Route struct {
+	Method string
+	Path   string
+}
+
+// Routes lists every route the Admin API registers.
+func Routes() []Route {
+	result := make([]Route, 0, len(routes))
+	for _, route := range routes {
+		result = append(result, Route{Method: route.Method, Path: route.Path})
+	}
+	return result
+}
