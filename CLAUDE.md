@@ -44,20 +44,24 @@ leaves its admin settings unset and the console refuses access.
 
 Run the checks for the area you changed.
 
-| Area                   | Commands                                                                   |
-| ---------------------- | -------------------------------------------------------------------------- |
-| Everything             | `pnpm run fmt` (then `pnpm run fmt:check`)                                 |
-| Go API                 | `pnpm run fmt:api`, `pnpm run vet:api`, `pnpm run test:api`                |
-| Web                    | `pnpm run typecheck:web`, `pnpm run lint:web`, `pnpm run test:web`         |
-| Web, browser-visible   | `pnpm run test:e2e:web:dev`, `pnpm run build:web`, `pnpm run test:e2e:web` |
-| Admin                  | `pnpm run typecheck:admin`, `pnpm run lint:admin`, `pnpm run test:admin`   |
-| Admin, browser-visible | `pnpm run build:admin`, `pnpm run test:e2e:admin`                          |
-| Docs                   | `pnpm run check:docs-links`                                                |
-| Apps or Compose        | `pnpm run check:apps-compose`                                              |
-| Scripts (`scripts/`)   | `pnpm run typecheck:scripts`                                               |
+| Area                   | Commands                                                                 |
+| ---------------------- | ------------------------------------------------------------------------ |
+| Everything             | `pnpm run fmt` (then `pnpm run fmt:check`)                               |
+| Go API                 | `pnpm run fmt:api`, `pnpm run vet:api`, `pnpm run test:api`              |
+| Web                    | `pnpm run typecheck:web`, `pnpm run lint:web`, `pnpm run test:web`       |
+| Web, browser-visible   | `pnpm run build:web`                                                     |
+| Admin                  | `pnpm run typecheck:admin`, `pnpm run lint:admin`, `pnpm run test:admin` |
+| Admin, browser-visible | `pnpm run build:admin`                                                   |
+| Docs                   | `pnpm run check:docs-links`                                              |
+| Apps or Compose        | `pnpm run check:apps-compose`                                            |
+| Scripts (`scripts/`)   | `pnpm run typecheck:scripts`                                             |
 
-- The Playwright suites for web and admin serve the existing `.output` build.
-  Always rebuild immediately before running them.
+- The Playwright suites for web and admin (`test:e2e:*`) are paused while the
+  UI changes quickly before release. Do not run them, add to them, or update
+  their specs or visual baselines; cover changes with unit tests instead. CI
+  runs them only when the workflow is started by hand. When they come back,
+  rebuild immediately before running them, because they serve the existing
+  `.output` build.
 - Database-backed Go tests are skipped unless `API_DATABASE_URL` is set. With
   the Compose stack up, use
   `postgres://cgn:cgn@localhost:5432/cgn?sslmode=disable`.
@@ -84,8 +88,7 @@ Run the checks for the area you changed.
 
 - The pull request targets `next` and names the issue it closes.
 - The issue's "Done when" line is met, with a test that proves it.
-- The checks for each changed area pass, including a fresh build before any
-  Playwright run.
+- The checks for each changed area pass.
 - New tests are deterministic: no sleeps, wall-clock timing, or dependence on
   execution order.
 - A changed endpoint, field, permission, or rule is updated in the doc that

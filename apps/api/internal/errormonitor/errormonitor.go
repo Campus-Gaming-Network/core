@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/redact"
 	"github.com/getsentry/sentry-go"
 )
 
@@ -44,10 +45,7 @@ func clientOptions(options Options) sentry.ClientOptions {
 		// Nothing below sets request or user data. Clearing it here keeps that
 		// true if a later change or an SDK integration attaches some.
 		BeforeSend: func(event *sentry.Event, _ *sentry.EventHint) *sentry.Event {
-			event.Request = nil
-			event.User = sentry.User{}
-			event.Breadcrumbs = nil
-			return event
+			return redact.Event(event)
 		},
 	}
 }

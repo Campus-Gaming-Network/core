@@ -333,6 +333,7 @@ If activity and audit can share one table with a clear `kind` discriminator, pre
 - School member list: `users (home_school_id, lower(name), id)`, partial to active, email-verified, listed accounts (`users_home_school_listing_idx`)
 - Common filters: `events.starts_at`, `events.visibility`, `events.deleted_at`, game FKs, geo later if needed
 - Audit history: `(entity_type, entity_id, created_at DESC)`
+- Foreign keys: every foreign key's referencing columns lead some index, because Postgres does not create one and a cascade or restrict check would otherwise scan the referencing table. A new foreign key ships with its index in the same migration; `TestSchemaInvariants` fails otherwise. Do not recreate indexes dropped on purpose (for example the school trigram indexes removed in `000007`).
 
 ## Search (Postgres first)
 
@@ -365,4 +366,6 @@ Do not list `unlisted` or `private` events in discovery search. Unlisted is reac
 - First migrations stay scoped to shipped features; defer schema for clubs, tournaments, feature flags, site announcements, on-site payments, IGDB sync, and Admin Console-only workflows.
 - In Railway production, run the Go migrator as a pre-deploy command or dedicated migration service/job before the API serves traffic
 - Never rely on manual prod SQL for schema changes
+- The migrator runs each file in one transaction, so `CREATE INDEX CONCURRENTLY` is not available; indexes build under a write lock, which is acceptable at current table sizes
+- `TestSchemaInvariants` (needs `API_DATABASE_URL`) fails on any foreign key without a leading index, any table without a primary key, and any `timestamp without time zone` column unless allowlisted in the test with a reason
 - The Admin Console exists so operators are not editing rows by hand for routine ACL/school work
