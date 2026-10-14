@@ -162,6 +162,10 @@ pnpm install --frozen-lockfile
 pnpm exec playwright install chromium
 ```
 
+The browser suites below (`test:e2e:*`) are paused while the UI changes
+quickly before release. CI runs them only when the workflow is started by hand
+from the Actions tab.
+
 The fast browser suite starts an isolated API fixture and the built Nitro production
 server, then runs the primary journeys in desktop, mobile, and JavaScript-disabled
 Chromium. Use `pnpm run test:e2e:web:dev` to run the same suite
