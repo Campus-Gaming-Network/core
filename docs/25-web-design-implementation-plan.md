@@ -136,6 +136,19 @@ The initial implementation tokens live in `apps/web/src/styles.css`.
   attendee page's Going and Maybe tabs use them too, and later section tabs
   should reuse the `.tabs` rules in `components.css` rather than add their
   own.
+- The events directory has scope tabs between the filter bar and the results
+  (`EventScopeTabs`, drawn with `Tabs`): All events, My school (`school` set
+  to the viewer's home school), Online (`format=online`), and Tournaments
+  (`type=tournament`). Each tab is a plain link to `/events` that keeps the
+  game, audience, and cost filters, replaces the `school`, `format`, and
+  `type` filters with its own, and drops the page cursors. The current tab
+  follows the URL: a query whose only scope filter equals a tab's selects
+  that tab, and no scope filter, more than one, or a value no tab stands for
+  selects All events. The filter form's selects show the same query, so
+  Tournaments sets the type select to Tournament. My school is hidden from
+  signed-out visitors and from a signed-in viewer whose home school the web
+  cannot read; the page reads the home school's name and slug from `/me`
+  along with the session check.
 - The server HTML already knows the viewer, so the header's authentication
   slot is correct on first paint: logged-out links for a visitor, the account
   menu for a signed-in viewer. Nothing appears late. Without JavaScript the
@@ -190,7 +203,7 @@ status column says which already exist and where.
 | `EventRow`       | Calendar-tile date, lifecycle label, event facts, `View event`      | Built as `EventCard` on `DirectoryRow`: `apps/web/src/features/event-slice/event-card.tsx`; the account dashboard keeps its own `.event-list-item` row                 |
 | `StatusLabel`    | Text plus color for event, account, invitation, and request state   | Built: `apps/web/src/components/status-label.tsx`, with the event lifecycle colors and a neutral outlined variant; account, invitation, and request states are planned |
 | `Avatar`         | Deterministic generated identity with accessible fallback initials  | Built: `apps/web/src/components/avatar.tsx`                                                                                                                            |
-| `Tabs`           | Keyboard-accessible local navigation and selected state             | Built: `apps/web/src/components/tabs.tsx` (`Tabs` and `TabLink`); used on the school page and the event attendee page                                                  |
+| `Tabs`           | Keyboard-accessible local navigation and selected state             | Built: `apps/web/src/components/tabs.tsx` (`Tabs` and `TabLink`); used on the school page, the event attendee page, and the events directory's scope tabs              |
 | `FormField`      | Label, help text, control, validation text, described-by wiring     | Built: `apps/web/src/components/form-field.tsx` wires the label, control, and validation text; help text stays in the form as a `.form-help` paragraph                 |
 | `ErrorSummary`   | Page-level failure summary with links to invalid controls           | Built as `FormErrorSummary`: `apps/web/src/components/enhanced-mutation.tsx`                                                                                           |
 | `RSVPControl`    | Current RSVP plus Going, Maybe, and Can't attend choices            | Planned as a shared component; today `RsvpEventForm` is inline in `apps/web/src/routes/events.$slug.tsx`                                                               |
@@ -245,26 +258,26 @@ own fields, so the page repeats those calls.
 
 These screens can be implemented against existing routes and contracts:
 
-| Experience            | Existing route                       | Required states                                           |
-| --------------------- | ------------------------------------ | --------------------------------------------------------- |
-| Public homepage       | `/`                                  | Events/schools available, empty, unavailable              |
-| School directory      | `/schools`                           | Search, filtered, empty, unavailable, pagination          |
-| School page           | `/schools/:slug`                     | Active, empty, followed/unfollowed, unavailable           |
-| Event discovery       | `/events`                            | Filters, empty, unavailable, lifecycle labels, pagination |
-| Event detail          | `/events/:slug`                      | Upcoming, live, full, ended, private/locked, unavailable  |
-| Create event          | `/events/new`                        | Default, validation errors, submitting, success           |
-| Edit event            | `/events/:slug/edit`                 | Editable, forbidden, validation errors, cancelled         |
-| Event attendees       | `/events/:slug/people`               | Going and Maybe tabs, empty, unavailable, pagination      |
-| School people         | `/schools/:slug/people`              | Members, empty, unavailable, pagination                   |
-| Team people           | `/teams/:slug/people`                | Members with roles, empty, unavailable, pagination        |
-| Team directory        | `/teams`                             | Search/filter, empty, unavailable, pagination             |
-| Team page             | `/teams/:slug`                       | Public, member, joinable, management controls             |
-| Authentication        | `/login`, `/signup`, password routes | Default, validation, pending, recovery, verification      |
-| Public profile        | `/users/:id`                         | Populated, minimal, unavailable, not found                |
-| Account               | `/account`                           | Dashboard sections, deletion confirmation                 |
-| Edit profile          | `/settings/profile`                  | Default, validation, saved, unavailable                   |
-| Support and reporting | `/support`, event report forms       | Default, validation, submitted, unavailable               |
-| Information pages     | Static routes                        | Normal, not found                                         |
+| Experience            | Existing route                       | Required states                                                       |
+| --------------------- | ------------------------------------ | --------------------------------------------------------------------- |
+| Public homepage       | `/`                                  | Events/schools available, empty, unavailable                          |
+| School directory      | `/schools`                           | Search, filtered, empty, unavailable, pagination                      |
+| School page           | `/schools/:slug`                     | Active, empty, followed/unfollowed, unavailable                       |
+| Event discovery       | `/events`                            | Scope tabs, filters, empty, unavailable, lifecycle labels, pagination |
+| Event detail          | `/events/:slug`                      | Upcoming, live, full, ended, private/locked, unavailable              |
+| Create event          | `/events/new`                        | Default, validation errors, submitting, success                       |
+| Edit event            | `/events/:slug/edit`                 | Editable, forbidden, validation errors, cancelled                     |
+| Event attendees       | `/events/:slug/people`               | Going and Maybe tabs, empty, unavailable, pagination                  |
+| School people         | `/schools/:slug/people`              | Members, empty, unavailable, pagination                               |
+| Team people           | `/teams/:slug/people`                | Members with roles, empty, unavailable, pagination                    |
+| Team directory        | `/teams`                             | Search/filter, empty, unavailable, pagination                         |
+| Team page             | `/teams/:slug`                       | Public, member, joinable, management controls                         |
+| Authentication        | `/login`, `/signup`, password routes | Default, validation, pending, recovery, verification                  |
+| Public profile        | `/users/:id`                         | Populated, minimal, unavailable, not found                            |
+| Account               | `/account`                           | Dashboard sections, deletion confirmation                             |
+| Edit profile          | `/settings/profile`                  | Default, validation, saved, unavailable                               |
+| Support and reporting | `/support`, event report forms       | Default, validation, submitted, unavailable                           |
+| Information pages     | Static routes                        | Normal, not found                                                     |
 
 ### Existing data that needs a new web surface
 

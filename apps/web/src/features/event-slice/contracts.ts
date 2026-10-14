@@ -382,6 +382,21 @@ export type EventViewerSessionResult =
       message: "We could not verify your session. Please try again.";
     };
 
+/** The viewer's home school, as the events directory's My school tab needs it. */
+export type EventsViewerHomeSchool = { name: string; slug: string };
+
+/**
+ * The strict session result plus the signed-in viewer's home school. The
+ * school is absent when the profile does not name one the web can read.
+ */
+export type EventsViewerResult =
+  | {
+      status: "authenticated";
+      authenticated: true;
+      homeSchool?: EventsViewerHomeSchool;
+    }
+  | Exclude<EventViewerSessionResult, { status: "authenticated" }>;
+
 export type LoginResult =
   | { status: "success"; authenticated: true; redirectTo: string }
   | OperationFailure;

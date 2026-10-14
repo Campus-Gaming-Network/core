@@ -4,6 +4,7 @@ import { createApiClient, type Fetcher } from "../src/server/api.server.js";
 import type { CookieMutation } from "../src/server/cookies.server.js";
 import {
   getEventViewerSessionOperation,
+  getEventsViewerOperation,
   getNavigationSessionOperation,
   loginOperation,
   logoutOperation,
@@ -120,6 +121,40 @@ test("strict event viewer session distinguishes logged out, authenticated, and 4
     authenticated: false,
   });
   assert.equal(calls, 1);
+});
+
+test("events viewer carries only the home school's name and slug, and omits one it cannot read", async () => {
+  const read = (body: unknown) =>
+    getEventsViewerOperation({
+      api: client(async () => Response.json(body)),
+      cookieHeader: "cgn_session=session-value",
+      sessionCookieValue: "session-value",
+    });
+  const withSchool = await read({
+    ...profile,
+    home_school: {
+      id: "school-1",
+      name: "Summit Ridge University",
+      slug: "summit-ridge",
+      city: "Denver",
+    },
+  });
+  const withoutSchool = await read(profile);
+  const malformedSchool = await read({
+    ...profile,
+    home_school: { name: "Summit Ridge University" },
+  });
+
+  assert.deepEqual(withSchool, {
+    status: "authenticated",
+    authenticated: true,
+    homeSchool: { name: "Summit Ridge University", slug: "summit-ridge" },
+  });
+  assert.deepEqual(withoutSchool, {
+    status: "authenticated",
+    authenticated: true,
+  });
+  assert.deepEqual(malformedSchool, withoutSchool);
 });
 
 test("strict event viewer session never masks upstream unavailability as logged out", async () => {

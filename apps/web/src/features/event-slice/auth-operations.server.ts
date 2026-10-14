@@ -17,6 +17,7 @@ import {
 } from "../../server/viewer.server.js";
 import type {
   EventViewerSessionResult,
+  EventsViewerResult,
   LoginInput,
   LoginResult,
   NavigationSessionDTO,
@@ -66,7 +67,24 @@ export async function getNavigationSessionOperation({
   }
 }
 
-export async function getEventViewerSessionOperation({
+export async function getEventViewerSessionOperation(
+  dependencies: Pick<
+    Dependencies,
+    "api" | "cookieHeader" | "sessionCookieValue" | "reportError"
+  >,
+): Promise<EventViewerSessionResult> {
+  const viewer = await getEventsViewerOperation(dependencies);
+  return viewer.status === "authenticated"
+    ? { status: "authenticated", authenticated: true }
+    : viewer;
+}
+
+/**
+ * The strict viewer session for the events directory, with the signed-in
+ * viewer's home school name and slug for the My school tab. Nothing else from
+ * the profile leaves the server.
+ */
+export async function getEventsViewerOperation({
   api,
   cookieHeader,
   sessionCookieValue,
@@ -74,7 +92,7 @@ export async function getEventViewerSessionOperation({
 }: Pick<
   Dependencies,
   "api" | "cookieHeader" | "sessionCookieValue" | "reportError"
->): Promise<EventViewerSessionResult> {
+>): Promise<EventsViewerResult> {
   if (!sessionCookieValue) {
     return { status: "unauthenticated", authenticated: false };
   }
@@ -85,9 +103,21 @@ export async function getEventViewerSessionOperation({
       cookieHeader,
       sessionCookieValue,
     });
-    return profile
-      ? { status: "authenticated", authenticated: true }
-      : { status: "unauthenticated", authenticated: false };
+    if (!profile) {
+      return { status: "unauthenticated", authenticated: false };
+    }
+    return {
+      status: "authenticated",
+      authenticated: true,
+      ...(profile.home_school
+        ? {
+            homeSchool: {
+              name: profile.home_school.name,
+              slug: profile.home_school.slug,
+            },
+          }
+        : {}),
+    };
   } catch (error) {
     reportError(error);
     return {

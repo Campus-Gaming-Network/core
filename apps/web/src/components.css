@@ -827,8 +827,8 @@
 
 /* Tabs (Tabs and TabLink): underline section links. Near-black text; the
    current tab carries aria-current and a 3px primary-blue underline. The
-   school sections and the event attendee lists use it, and any later set of
-   section tabs (such as scope tabs on /events) should reuse it. */
+   school sections, the event attendee lists, and the events directory's
+   scope tabs use it, and any later set of section tabs should reuse it. */
 .tabs {
   display: flex;
   flex-wrap: wrap;
@@ -865,6 +865,12 @@
   .tabs__link:not([aria-current]):hover {
     color: var(--color-primary);
   }
+}
+
+/* The events directory's scope tabs (EventScopeTabs) sit between the filter
+   bar and the results. */
+.event-scope-tabs {
+  margin-bottom: 1rem;
 }
 
 /* Key information (KeyInformation): a detail card whose facts are a
