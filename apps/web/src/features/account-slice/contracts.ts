@@ -176,6 +176,27 @@ export type AccountDashboardResult =
   | { status: "unauthenticated" }
   | { status: "error"; message: "Account details are unavailable." };
 
+/** How many followed schools the directory sidebar lists before "See all". */
+export const sidebarFollowedSchoolLimit = 5;
+
+type SidebarSchool = WithSchoolLogo<z.output<typeof schoolSummarySchema>>;
+
+/**
+ * The viewer's school context for the directory sidebar. A visitor, and a
+ * viewer whose school data could not load, get the section links only.
+ */
+export type DirectorySidebarResult =
+  | { status: "visitor" }
+  | { status: "unavailable" }
+  | {
+      status: "found";
+      homeSchool?: SidebarSchool;
+      /** The first followed schools, up to `sidebarFollowedSchoolLimit`. */
+      followedSchools: SidebarSchool[];
+      /** The viewer follows more schools than the sidebar lists. */
+      moreFollowedSchools: boolean;
+    };
+
 export type AccountProfileResult =
   | { status: "found"; profile: AccountProfileDTO }
   | { status: "unauthenticated" }

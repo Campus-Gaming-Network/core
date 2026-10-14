@@ -16,7 +16,9 @@ import {
   dashboardEventsDtoSchema,
   followedSchoolsDtoSchema,
   myTeamsDtoSchema,
+  sidebarFollowedSchoolLimit,
   type AccountDashboardResult,
+  type DirectorySidebarResult,
   type AccountMutationResult,
   type AccountProfileResult,
   type DeleteAccountInput,
@@ -124,6 +126,54 @@ export async function accountDashboardOperation(
       followedSchools: followedSchools.unavailable,
       teams: teams.unavailable,
     },
+  };
+}
+
+/**
+ * The viewer's home school and first followed schools for the directory
+ * sidebar, from the same `/me` and `/me/schools` reads as the account page.
+ * Any failure leaves the sidebar with its section links only.
+ */
+export async function directorySidebarOperation(
+  dependencies: ReadDependencies,
+): Promise<DirectorySidebarResult> {
+  const {
+    api,
+    cookieHeader,
+    reportError = defaultErrorReporter,
+  } = dependencies;
+  const [loaded, followed] = await Promise.all([
+    accountProfileOperation(dependencies),
+    safeSecondaryRead(
+      () =>
+        api({
+          path: "/me/schools",
+          cookieHeader,
+          cache: "no-store",
+          responseSchema: followedSchoolsDtoSchema,
+        }).then(({ data }) => data.schools),
+      [],
+      // A visitor's 401 is not a failure worth reporting.
+      (error) => {
+        if (!(error instanceof ApiError && error.status === 401)) {
+          reportError(error);
+        }
+      },
+    ),
+  ]);
+  if (loaded.status === "unauthenticated") return { status: "visitor" };
+  if (loaded.status !== "found" || followed.unavailable) {
+    return { status: "unavailable" };
+  }
+
+  const { home_school: homeSchool } = loaded.profile;
+  return {
+    status: "found",
+    ...(homeSchool ? { homeSchool: withBundledSchoolLogo(homeSchool) } : {}),
+    followedSchools: followed.data
+      .slice(0, sidebarFollowedSchoolLimit)
+      .map(withBundledSchoolLogo),
+    moreFollowedSchools: followed.data.length > sidebarFollowedSchoolLimit,
   };
 }
 

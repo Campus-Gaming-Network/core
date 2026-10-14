@@ -29,6 +29,21 @@ the source-of-truth product, API, database, permission, or roadmap documents.
   as neutral outlined labels; on teams it is the games as neutral labels. The
   whole row is one link. On a phone the action drops under the rest, and
   nothing scrolls sideways at 320px.
+- From the tablet width (48rem) up, the event, team, and school directories
+  have a light left sidebar (`DirectorySidebar`): links to the three
+  directories with the current one marked (`aria-current="page"`), then, for a
+  signed-in viewer, "Your school" (the home school's logo or initial and name,
+  linking to its page) and "Schools you follow" (the first five, with "See all
+  followed schools" linking to the account page when there are more). A
+  visitor sees "Log in to see your school" instead of the school blocks. The
+  data comes from the `/me` and `/me/schools` reads the account page already
+  makes; if either fails, the sidebar shows the section links only and the
+  page renders as usual. A home school is chosen at signup and cannot be
+  changed in the web app or the API yet, so the block has no "Change" link.
+  Below 48rem the sidebar is hidden, the header stays the navigation, and the
+  page is one column. The sidebar floats beside the page's other children, so
+  a directory route adds it as the first child of `main.directory-page`
+  without wrapping its content.
 - Event detail keeps directions in the location panel and keeps the current
   RSVP editable.
 - Event rows show how many people are going and how many are interested
@@ -190,29 +205,30 @@ The initial implementation tokens live in `apps/web/src/styles.css`.
 The routes should converge on these reusable pieces as they are migrated. The
 status column says which already exist and where.
 
-| Component        | Responsibilities                                                    | Status                                                                                                                                                                 |
-| ---------------- | ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `SiteShell`      | Header, navigation, authentication actions, footer, skip link       | Planned as its own component; today it is inline in `apps/web/src/routes/__root.tsx`                                                                                   |
-| `Breadcrumbs`    | Trail of parent pages ending in the current page                    | Built: `apps/web/src/components/breadcrumbs.tsx`; used on event, school, and team pages                                                                                |
-| `PageHeading`    | Identity mark, heading, supporting line, tags, optional actions     | Built for detail pages: `apps/web/src/components/page-heading.tsx`; browse, form, and static routes still repeat the `.page-heading` and `.browse-heading` markup      |
-| `KeyInformation` | Description list of an entity's facts in the side panel             | Built: `apps/web/src/components/key-information.tsx`; used on event, school, and team pages                                                                            |
-| `ButtonLink`     | Primary and secondary router links drawn as buttons                 | Built: `apps/web/src/components/button-link.tsx`                                                                                                                       |
-| `Button`         | Primary, secondary, quiet, destructive, loading, disabled           | Planned; native `<button>` elements use the `button--secondary` and `button--destructive` classes from `styles.css`                                                    |
-| `Surface`        | White bounded panel on the warm canvas                              | Planned; the `.card`, `.action-panel`, and `.empty-state` classes in `styles.css` cover it, and each use needs a different element                                     |
-| `DirectoryRow`   | Identity tile, name, meta line, neutral labels, counts, one action  | Built: `apps/web/src/components/directory-row.tsx`; used by `EventCard` and the team and school directories                                                            |
-| `EventRow`       | Calendar-tile date, lifecycle label, event facts, `View event`      | Built as `EventCard` on `DirectoryRow`: `apps/web/src/features/event-slice/event-card.tsx`; the account dashboard keeps its own `.event-list-item` row                 |
-| `StatusLabel`    | Text plus color for event, account, invitation, and request state   | Built: `apps/web/src/components/status-label.tsx`, with the event lifecycle colors and a neutral outlined variant; account, invitation, and request states are planned |
-| `Avatar`         | Deterministic generated identity with accessible fallback initials  | Built: `apps/web/src/components/avatar.tsx`                                                                                                                            |
-| `Tabs`           | Keyboard-accessible local navigation and selected state             | Built: `apps/web/src/components/tabs.tsx` (`Tabs` and `TabLink`); used on the school page, the event attendee page, and the events directory's scope tabs              |
-| `FormField`      | Label, help text, control, validation text, described-by wiring     | Built: `apps/web/src/components/form-field.tsx` wires the label, control, and validation text; help text stays in the form as a `.form-help` paragraph                 |
-| `ErrorSummary`   | Page-level failure summary with links to invalid controls           | Built as `FormErrorSummary`: `apps/web/src/components/enhanced-mutation.tsx`                                                                                           |
-| `RSVPControl`    | Current RSVP plus Going, Maybe, and Can't attend choices            | Planned as a shared component; today `RsvpEventForm` is inline in `apps/web/src/routes/events.$slug.tsx`                                                               |
-| `Notice`         | Page-level success, information, warning, and error feedback        | Built as `PageNoticeView`: `apps/web/src/components/page-notice-view.tsx`, covering success and error                                                                  |
-| `Callout`        | Filled, icon-led note for reassurance or a heads-up (not an alert)  | Built: `apps/web/src/components/callout.tsx` (`info`, `lock`, and `shield` icons, and an optional action beside the note)                                              |
-| `CalendarDate`   | Calendar-page tile for an event start date (month band, day number) | Built: `apps/web/src/components/calendar-date.tsx`; used by event rows, the account dashboard, and the event page header                                               |
-| `Toast`          | Short live-region confirmation for enhanced interactions            | Planned                                                                                                                                                                |
-| `Dialog`         | Focus-managed confirmation for destructive or high-impact actions   | Built as `ConfirmDialog`: `apps/web/src/components/confirm-dialog.tsx`                                                                                                 |
-| `RouteState`     | Loading, empty, unavailable, forbidden, and not-found states        | Built: `apps/web/src/components/route-boundaries.tsx` (`RoutePending`, `RouteErrorView`, `ListUnavailable`, and the default boundaries)                                |
+| Component          | Responsibilities                                                    | Status                                                                                                                                                                                                       |
+| ------------------ | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `SiteShell`        | Header, navigation, authentication actions, footer, skip link       | Planned as its own component; today it is inline in `apps/web/src/routes/__root.tsx`                                                                                                                         |
+| `Breadcrumbs`      | Trail of parent pages ending in the current page                    | Built: `apps/web/src/components/breadcrumbs.tsx`; used on event, school, and team pages                                                                                                                      |
+| `PageHeading`      | Identity mark, heading, supporting line, tags, optional actions     | Built for detail pages: `apps/web/src/components/page-heading.tsx`; browse, form, and static routes still repeat the `.page-heading` and `.browse-heading` markup                                            |
+| `KeyInformation`   | Description list of an entity's facts in the side panel             | Built: `apps/web/src/components/key-information.tsx`; used on event, school, and team pages                                                                                                                  |
+| `ButtonLink`       | Primary and secondary router links drawn as buttons                 | Built: `apps/web/src/components/button-link.tsx`                                                                                                                                                             |
+| `Button`           | Primary, secondary, quiet, destructive, loading, disabled           | Planned; native `<button>` elements use the `button--secondary` and `button--destructive` classes from `styles.css`                                                                                          |
+| `Surface`          | White bounded panel on the warm canvas                              | Planned; the `.card`, `.action-panel`, and `.empty-state` classes in `styles.css` cover it, and each use needs a different element                                                                           |
+| `DirectoryRow`     | Identity tile, name, meta line, neutral labels, counts, one action  | Built: `apps/web/src/components/directory-row.tsx`; used by `EventCard` and the team and school directories                                                                                                  |
+| `DirectorySidebar` | Directory section links, the viewer's home school and follows       | Built: `apps/web/src/components/directory-sidebar.tsx`; used by `/events`, `/teams`, and `/schools`, with its data from `loadDirectorySidebar` in `apps/web/src/features/account-slice/account.functions.ts` |
+| `EventRow`         | Calendar-tile date, lifecycle label, event facts, `View event`      | Built as `EventCard` on `DirectoryRow`: `apps/web/src/features/event-slice/event-card.tsx`; the account dashboard keeps its own `.event-list-item` row                                                       |
+| `StatusLabel`      | Text plus color for event, account, invitation, and request state   | Built: `apps/web/src/components/status-label.tsx`, with the event lifecycle colors and a neutral outlined variant; account, invitation, and request states are planned                                       |
+| `Avatar`           | Deterministic generated identity with accessible fallback initials  | Built: `apps/web/src/components/avatar.tsx`                                                                                                                                                                  |
+| `Tabs`             | Keyboard-accessible local navigation and selected state             | Built: `apps/web/src/components/tabs.tsx` (`Tabs` and `TabLink`); used on the school page, the event attendee page, and the events directory's scope tabs                                                    |
+| `FormField`        | Label, help text, control, validation text, described-by wiring     | Built: `apps/web/src/components/form-field.tsx` wires the label, control, and validation text; help text stays in the form as a `.form-help` paragraph                                                       |
+| `ErrorSummary`     | Page-level failure summary with links to invalid controls           | Built as `FormErrorSummary`: `apps/web/src/components/enhanced-mutation.tsx`                                                                                                                                 |
+| `RSVPControl`      | Current RSVP plus Going, Maybe, and Can't attend choices            | Planned as a shared component; today `RsvpEventForm` is inline in `apps/web/src/routes/events.$slug.tsx`                                                                                                     |
+| `Notice`           | Page-level success, information, warning, and error feedback        | Built as `PageNoticeView`: `apps/web/src/components/page-notice-view.tsx`, covering success and error                                                                                                        |
+| `Callout`          | Filled, icon-led note for reassurance or a heads-up (not an alert)  | Built: `apps/web/src/components/callout.tsx` (`info`, `lock`, and `shield` icons, and an optional action beside the note)                                                                                    |
+| `CalendarDate`     | Calendar-page tile for an event start date (month band, day number) | Built: `apps/web/src/components/calendar-date.tsx`; used by event rows, the account dashboard, and the event page header                                                                                     |
+| `Toast`            | Short live-region confirmation for enhanced interactions            | Planned                                                                                                                                                                                                      |
+| `Dialog`           | Focus-managed confirmation for destructive or high-impact actions   | Built as `ConfirmDialog`: `apps/web/src/components/confirm-dialog.tsx`                                                                                                                                       |
+| `RouteState`       | Loading, empty, unavailable, forbidden, and not-found states        | Built: `apps/web/src/components/route-boundaries.tsx` (`RoutePending`, `RouteErrorView`, `ListUnavailable`, and the default boundaries)                                                                      |
 
 Components must render useful server HTML before hydration. Enhanced controls
 must preserve the existing native form fallback.

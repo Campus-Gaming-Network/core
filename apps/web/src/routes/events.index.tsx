@@ -4,12 +4,14 @@ import {
   type ErrorComponentProps,
 } from "@tanstack/react-router";
 import { ButtonLink } from "../components/button-link";
+import { DirectorySidebar } from "../components/directory-sidebar";
 import {
   ListUnavailable,
   RouteErrorView,
   RoutePending,
 } from "../components/route-boundaries";
 import { PageNoticeView } from "../components/page-notice-view";
+import { loadDirectorySidebar } from "../features/account-slice/account.functions";
 import { getEventsViewer } from "../features/event-slice/auth.functions";
 import { EventCard } from "../features/event-slice/event-card";
 import { EventScopeTabs } from "../features/event-slice/event-scope-tabs";
@@ -30,9 +32,10 @@ export const Route = createFileRoute("/events/")({
   validateSearch: validateEventsSearch,
   loaderDeps: ({ search }) => eventsBrowseInput(search),
   loader: async ({ context, deps }) => {
-    const [browse, session] = await Promise.all([
+    const [browse, session, sidebar] = await Promise.all([
       getEventsBrowse({ data: deps }),
       getEventsViewer(),
+      loadDirectorySidebar(),
     ]);
     if (session.status === "unavailable") {
       throw new Error("Event viewer session is unavailable");
@@ -40,6 +43,7 @@ export const Route = createFileRoute("/events/")({
 
     return {
       browse,
+      sidebar,
       authenticated: session.status === "authenticated",
       homeSchool:
         session.status === "authenticated" ? session.homeSchool : undefined,
@@ -61,7 +65,7 @@ export const Route = createFileRoute("/events/")({
 });
 
 function EventsPage() {
-  const { authenticated, browse, homeSchool } = Route.useLoaderData();
+  const { authenticated, browse, homeSchool, sidebar } = Route.useLoaderData();
   const search = Route.useSearch();
   const previousSearch =
     browse.has_previous && browse.previous_cursor
@@ -73,7 +77,8 @@ function EventsPage() {
       : undefined;
 
   return (
-    <main className="browse-page">
+    <main className="browse-page directory-page">
+      <DirectorySidebar current="events" sidebar={sidebar} />
       <section className="page-heading">
         <p className="eyebrow">Events</p>
         <h1>Browse campus gaming events</h1>

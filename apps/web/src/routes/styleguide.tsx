@@ -22,6 +22,7 @@ import {
   DirectoryRow,
   directoryRowClassName,
 } from "../components/directory-row";
+import { DirectorySidebar } from "../components/directory-sidebar";
 import { FormErrorSummary } from "../components/enhanced-mutation";
 import { FormField, RequiredFieldsNote } from "../components/form-field";
 import { FormSection } from "../components/form-section";
@@ -44,6 +45,7 @@ import {
   eventRSVPLabel,
 } from "../features/event-slice/presentation";
 import {
+  exampleDirectorySidebar,
   exampleEvents,
   examplePeople,
   exampleSchools,
@@ -928,6 +930,27 @@ function NavigationSection() {
         homeSchool={{ name: "Summit Ridge University", slug: "summit-ridge" }}
         search={{ type: "tournament" }}
       />
+
+      <h3 className="styleguide-sub">Directory sidebar</h3>
+      <p className="styleguide-intro">
+        The event, team, and school directories open with this column from the
+        tablet width up; on a phone it is hidden and the header is the
+        navigation. A visitor, or a viewer whose school data could not load,
+        sees the section links only, with a log-in link for the visitor.
+      </p>
+      <div className="styleguide-two">
+        <div className="styleguide-stack">
+          <p className="styleguide-label">Signed in</p>
+          <DirectorySidebar
+            current="events"
+            sidebar={exampleDirectorySidebar}
+          />
+        </div>
+        <div className="styleguide-stack">
+          <p className="styleguide-label">Visitor</p>
+          <DirectorySidebar current="schools" sidebar={{ status: "visitor" }} />
+        </div>
+      </div>
 
       <h3 className="styleguide-sub">Account rows</h3>
       <ul className="account-rows">

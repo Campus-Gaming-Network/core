@@ -5,6 +5,8 @@ import {
   DirectoryRow,
   directoryRowClassName,
 } from "../components/directory-row";
+import { DirectorySidebar } from "../components/directory-sidebar";
+import { loadDirectorySidebar } from "../features/account-slice/account.functions";
 import { PageNoticeView } from "../components/page-notice-view";
 import { ListUnavailable, RoutePending } from "../components/route-boundaries";
 import {
@@ -29,15 +31,17 @@ export const Route = createFileRoute("/teams/")({
   validateSearch: validateTeamsSearch,
   loaderDeps: ({ search }) => teamsBrowsePageInput(search),
   loader: async ({ context, deps }) => {
-    const [catalog, session] = await Promise.all([
+    const [catalog, session, sidebar] = await Promise.all([
       getTeamsBrowsePage({ data: deps }),
       getEventViewerSession(),
+      loadDirectorySidebar(),
     ]);
     if (session.status === "unavailable") {
       throw new Error("Team viewer session is unavailable");
     }
     return {
       catalog,
+      sidebar,
       authenticated: session.status === "authenticated",
       hasSessionCookie: session.hasSessionCookie,
       publicOrigin: context.publicOrigin,
@@ -59,7 +63,7 @@ export const Route = createFileRoute("/teams/")({
 });
 
 function TeamsPage() {
-  const { authenticated, catalog } = Route.useLoaderData();
+  const { authenticated, catalog, sidebar } = Route.useLoaderData();
   const search = Route.useSearch();
   const previousSearch =
     catalog.has_previous && catalog.previous_cursor
@@ -79,7 +83,8 @@ function TeamsPage() {
     : undefined;
 
   return (
-    <main className="browse-page">
+    <main className="browse-page directory-page">
+      <DirectorySidebar current="teams" sidebar={sidebar} />
       <section className="page-heading browse-heading">
         <p className="eyebrow">Teams</p>
         <h1>Find campus gaming teams</h1>
