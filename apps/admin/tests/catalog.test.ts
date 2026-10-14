@@ -5,6 +5,7 @@ import {
   approvedLogoURL,
   catalogAuditPageSchema,
   hasRecentStepUp,
+  igdbSearchSchema,
   maximumLogoBytes,
   safeReturnPath,
   validateCatalogCommandInput,
@@ -821,6 +822,31 @@ test("an IGDB search skips short queries and reports an outage as a message", as
           method: undefined,
           body: undefined,
         },
+      ],
+    },
+  );
+});
+
+test("an IGDB match thumbnail reaches the page as a data URL", () => {
+  assert.deepEqual(
+    igdbSearchSchema.parse({
+      games: [
+        {
+          igdb_id: 11198,
+          name: "Rocket League",
+          thumbnail: { content_type: "image/jpeg", data: "/9j/4A==" },
+        },
+        { igdb_id: 7, name: "Rocket Arena" },
+      ],
+    }),
+    {
+      games: [
+        {
+          igdb_id: 11198,
+          name: "Rocket League",
+          thumbnail: "data:image/jpeg;base64,/9j/4A==",
+        },
+        { igdb_id: 7, name: "Rocket Arena" },
       ],
     },
   );
