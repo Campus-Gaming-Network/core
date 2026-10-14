@@ -30,7 +30,14 @@ const event = {
   lifecycle: "upcoming",
   cost: "unspecified",
   host_school: { id: "school-1", name: "Example University", slug: "example" },
-  games: [{ id: "game-1", name: "Example Game", slug: "example-game" }],
+  games: [
+    {
+      id: "game-1",
+      name: "Example Game",
+      slug: "example-game",
+      has_cover: true,
+    },
+  ],
 };
 
 function client(fetcher: Fetcher) {

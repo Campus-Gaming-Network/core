@@ -113,6 +113,35 @@ See [14 — Architecture diagrams](./14-architecture-diagrams.md) for Mermaid vi
   headers. TanStack Router client caching is not treated as cross-request or
   CDN caching.
 
+### Response security headers
+
+Each layer sets its headers once, as defaults a route can replace.
+
+- **Web and Admin Console** (request middleware in each `src/start.ts`):
+  `Content-Security-Policy` with `default-src 'self'`, `object-src 'none'`,
+  `frame-ancestors 'none'`, `form-action 'self'`, `font-src 'self'`, and
+  `script-src 'self' 'nonce-…'`. Each request gets a fresh nonce, and the router
+  stamps it on the inline hydration scripts it renders; there is no
+  `unsafe-eval`. `connect-src` is `'self'` plus the Sentry ingest origin from
+  `SENTRY_DSN` when error monitoring is on. `img-src` is `'self' data:` plus
+  the `R2_PUBLIC_ASSET_ORIGIN` origin for school logos. IGDB covers are proxied
+  through the site, so no IGDB origin is allowed. Also sent:
+  `Cross-Origin-Opener-Policy: same-origin`, `X-Content-Type-Options: nosniff`,
+  `X-Frame-Options: DENY`, a `Permissions-Policy` that denies camera,
+  microphone, geolocation, and payment, and
+  `Strict-Transport-Security` (HTTPS requests when `DEPLOYMENT_ENV` is
+  `production`). The web app uses `Referrer-Policy: strict-origin-when-cross-origin`.
+  The Admin Console uses `no-referrer`, `Cache-Control: private, no-store`, and
+  `X-Robots-Tag: noindex`, and never allows framing.
+- **Go API** (`withSecurityHeaders`): `Cache-Control: no-store`,
+  `Content-Security-Policy: default-src 'none'; frame-ancestors 'none'`,
+  `X-Content-Type-Options`, `X-Frame-Options`, and `Referrer-Policy:
+no-referrer` on every response. A handler that serves cacheable public data
+  or an image replaces `Cache-Control` or the policy itself.
+- `pnpm run smoke:web` asserts the web headers and the nonce on every script
+  against the production build. The Admin Console's `security-headers`
+  Playwright spec does the same against its build.
+
 ### Runtime validation
 
 - Feature-local `apps/web/src/features/*/contracts.ts` files are the source of
@@ -142,6 +171,14 @@ See [14 — Architecture diagrams](./14-architecture-diagrams.md) for Mermaid vi
 - Rate limiting (global + signups/resend by IP and email, event creation, reports, private-event unlock, support tickets)
 - Profanity filter on user-generated text fields
 - **Search in Postgres first** (`pg_trgm` / `tsvector`) for schools, events, tournaments — no Elasticsearch until Postgres is proven insufficient
+
+### Process and HTTP hardening
+
+- `http.Server` sets `ReadHeaderTimeout` 5s, `ReadTimeout` 15s, `WriteTimeout` 30s, `IdleTimeout` 60s, and `MaxHeaderBytes` 64 KiB.
+- Every request body is size limited. Public JSON bodies are capped at 1 MiB, Admin JSON bodies at 16 KiB, and school logo uploads at the logo limit plus multipart overhead. An oversized body returns `413` (`request_too_large`; `logo_too_large` for logos) through `apperror.KindTooLarge`, not `400`.
+- On `SIGTERM` or interrupt the API stops accepting connections, drains in-flight requests for `API_SHUTDOWN_TIMEOUT` (default `10s`, matching Railway's `drainingSeconds`), waits for the maintenance sweeper and email outbox worker to stop, and only then closes the database pool. Requests still running at the deadline are cut off and the process exits nonzero.
+- `/health` is liveness and does not touch the database. `/ready` pings Postgres and is the Railway health check.
+- The pgx pool is configured through `API_DB_MAX_CONNS` (default 10), `API_DB_MAX_CONN_LIFETIME` (`30m`), `API_DB_MAX_CONN_IDLE_TIME` (`5m`), and `API_DB_STATEMENT_TIMEOUT` (`15s`, applied as the Postgres `statement_timeout` on API connections only; the migrator and seeders do not set it).
 
 ### Catalog caching
 
@@ -179,6 +216,17 @@ The school and game catalogs are effectively static — roughly 6,200 schools gr
 | System logs    | App/ops logging (distinct from audit)                                                                                                                                      |
 | User activity  | Later user-visible activity history                                                                                                                                        |
 | Entity history | Later school, team, and event change history                                                                                                                               |
+
+### Logging and redaction policy
+
+Logs and error reports never carry personal data or credentials.
+
+- Request logs hold the method, a route template or bounded path, status, request ID, verified actor ID, and duration. Never log headers, cookies, query strings, request or response bodies, email addresses, names, tokens, or passwords.
+- The API installs `internal/redact` as the default `slog` logger in every command. Attributes under a key containing `password`, `secret`, `token`, `authorization`, `cookie`, `api_key`, `email`, `recipient`, `dsn`, or `csrf` are replaced with `[redacted]`. Other string and error values have email addresses, `token=`-style query parameters, and bearer credentials masked. Do not rely on this alone: leave sensitive values out of log calls.
+- Error wrapping can embed an email or token (a database constraint detail, a provider response). The scrubber masks it in logs and in Sentry, but the email outbox also keeps provider messages out of logs.
+- Sentry events from the API (`errormonitor`, through `redact.Event`) and from both TanStack Start apps (`src/error-scrub.ts`, through `beforeSend`) drop request, user, breadcrumb, and stack-frame variable data. They mask the message, exception text, transaction, tags, extra data, and contexts. A browser event keeps its page URL without the query string.
+- Server-side `console` logging in `*.server.ts` files names an operation or a response path and never a request body, header, or identifier supplied by a visitor.
+- Add a test that captures log output or the Sentry event whenever a new log call or event field could carry visitor-supplied text.
 
 ## Feature flags (later)
 

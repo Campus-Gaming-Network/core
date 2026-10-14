@@ -54,11 +54,10 @@
 - Use Node.js 24.x for all JavaScript and TypeScript commands.
 - After changing `apps/web`, run `pnpm run typecheck:web`, `pnpm run lint:web`,
   and `pnpm run test:web`.
-- For browser-visible or navigation changes, also run
-  `pnpm run test:e2e:web:dev`, `pnpm run build:web`, and
-  `pnpm run test:e2e:web`.
-- The production Playwright suite serves the existing `apps/web/.output`
-  bundle, so always rebuild immediately before running it.
+- For browser-visible or navigation changes, also run `pnpm run build:web`.
+- The Playwright suites (`test:e2e:*`) are paused while the UI changes quickly
+  before release. Do not run them, add to them, or update their specs or
+  visual baselines. The rules below apply again when they come back.
 
 ## Browser test reliability
 

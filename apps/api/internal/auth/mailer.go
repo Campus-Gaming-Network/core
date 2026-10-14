@@ -57,7 +57,7 @@ func (m *ResendMailer) send(ctx context.Context, recipient, subject, link, kind,
 	if m.APIKey == "" {
 		if m.Logger != nil {
 			// Tokens live in links, so local delivery logs only safe metadata.
-			m.Logger.Info("local account email", "kind", kind, "recipient", recipient)
+			m.Logger.Info("local account email", "kind", kind)
 		}
 		return "local-" + idempotencyKey, nil
 	}

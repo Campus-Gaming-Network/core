@@ -10,9 +10,12 @@ import (
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/config"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/db"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/migrate"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/redact"
 )
 
 func main() {
+	slog.SetDefault(redact.NewLogger(os.Stderr))
+
 	directory := flag.String("dir", "../../db/migrations", "directory containing versioned *.up.sql migrations")
 	flag.Parse()
 
@@ -25,7 +28,7 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	database, err := db.Open(ctx, cfg.DatabaseURL, cfg.DBMaxConns)
+	database, err := db.Open(ctx, cfg.DatabaseURL, db.Options{MaxConns: cfg.DBMaxConns})
 	if err != nil {
 		slog.Error("open database", "error", err)
 		os.Exit(1)

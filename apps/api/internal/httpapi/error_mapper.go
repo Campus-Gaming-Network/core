@@ -37,6 +37,8 @@ func mapApplicationError(err error, fallbackCode string) mappedApplicationError 
 		status = http.StatusUnauthorized
 	case apperror.KindAuthorization:
 		status = http.StatusForbidden
+	case apperror.KindTooLarge:
+		status = http.StatusRequestEntityTooLarge
 	default:
 		if fallbackCode == "" {
 			fallbackCode = "internal_error"
