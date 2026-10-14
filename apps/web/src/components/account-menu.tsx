@@ -112,6 +112,13 @@ export function AccountMenu({
         >
           Public profile
         </Link>
+        <Link
+          className="account-menu__item"
+          onClick={closeAfterLink}
+          to="/settings/profile"
+        >
+          Edit profile
+        </Link>
         <form
           action={logout.url}
           className="logout-form"

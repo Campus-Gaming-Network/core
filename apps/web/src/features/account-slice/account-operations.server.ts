@@ -18,6 +18,7 @@ import {
   myTeamsDtoSchema,
   type AccountDashboardResult,
   type AccountMutationResult,
+  type AccountProfileResult,
   type DeleteAccountInput,
   type UpdateProfileInput,
 } from "./contracts.js";
@@ -38,19 +39,19 @@ const emptyDashboard = {
   followed_school_events: [],
 };
 
-export async function accountDashboardOperation({
+export async function accountProfileOperation({
   api,
   cookieHeader,
   reportError = defaultErrorReporter,
-}: ReadDependencies): Promise<AccountDashboardResult> {
-  let profile;
+}: ReadDependencies): Promise<AccountProfileResult> {
   try {
-    ({ data: profile } = await api({
+    const { data: profile } = await api({
       path: "/me",
       cookieHeader,
       cache: "no-store",
       responseSchema: accountProfileDtoSchema,
-    }));
+    });
+    return { status: "found", profile };
   } catch (error) {
     if (error instanceof ApiError && error.status === 401) {
       return { status: "unauthenticated" };
@@ -58,6 +59,15 @@ export async function accountDashboardOperation({
     reportError(error);
     return { status: "error", message: "Account details are unavailable." };
   }
+}
+
+export async function accountDashboardOperation(
+  dependencies: ReadDependencies,
+): Promise<AccountDashboardResult> {
+  const { api, cookieHeader, reportError = defaultErrorReporter } = dependencies;
+  const loaded = await accountProfileOperation(dependencies);
+  if (loaded.status !== "found") return loaded;
+  const { profile } = loaded;
 
   const [dashboardEvents, followedSchools, teams] = await Promise.all([
     safeSecondaryRead(
@@ -142,7 +152,7 @@ export async function updateProfileOperation(
     return {
       status: "success",
       message: "Profile updated.",
-      redirectTo: "/account?account=profile-updated",
+      redirectTo: "/settings/profile?settings=profile-updated",
     };
   } catch (error) {
     reportError(error);

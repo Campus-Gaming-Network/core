@@ -10,6 +10,7 @@ import { PageNoticeView } from "../src/components/page-notice-view.js";
 import {
   accountNotices,
   homeAccountNotices,
+  settingsNotices,
 } from "../src/features/account-slice/presentation.js";
 import { validateEventsSearch } from "../src/features/event-slice/contracts.js";
 import {
@@ -43,6 +44,7 @@ const pages: Array<{ page: string; notices: Record<string, PageNotice> }> = [
   { page: "/schools", notices: schoolBrowseNotices },
   { page: "/schools/$slug", notices: schoolDetailNotices },
   { page: "/account", notices: accountNotices },
+  { page: "/settings/profile", notices: settingsNotices },
   { page: "/", notices: homeAccountNotices },
   { page: "/users/$id", notices: reportUserNotices },
 ];

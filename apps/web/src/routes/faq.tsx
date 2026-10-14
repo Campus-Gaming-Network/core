@@ -106,10 +106,8 @@ const groups: FAQGroup[] = [
         answer: (
           <>
             Open{" "}
-            <Link to="/account" hash="profile">
-              Profile settings
-            </Link>{" "}
-            on your account page. You can also add social links there. Event
+            <Link to="/settings/profile">Edit profile</Link> from your account
+            menu. You can also add social links there. Event
             times are shown in the time zone you choose.
           </>
         ),
@@ -123,10 +121,7 @@ const groups: FAQGroup[] = [
             school, and who is on a team. Visitors who are not signed in see
             only the counts. To hide yourself from every list, turn off “Show me
             in member lists” in{" "}
-            <Link to="/account" hash="profile">
-              Profile settings
-            </Link>
-            . Your RSVPs and memberships stay as they are.
+            <Link to="/settings/profile">Edit profile</Link>. Your RSVPs and memberships stay as they are.
           </>
         ),
       },

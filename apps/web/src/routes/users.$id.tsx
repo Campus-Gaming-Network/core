@@ -140,6 +140,13 @@ function PublicProfilePage() {
               <span key={role}>{roleIndicatorLabel(role)}</span>
             ))}
           </div>
+          {viewer === "self" ? (
+            <p>
+              <Link className="button" to="/settings/profile">
+                Edit profile
+              </Link>
+            </p>
+          ) : null}
         </div>
       </section>
 
