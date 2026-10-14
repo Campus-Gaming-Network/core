@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"sync"
 
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminaudit"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminmutation"
@@ -44,6 +45,7 @@ type IGDBSource interface {
 	Game(ctx context.Context, id int64) (igdb.Game, error)
 	GameBySlug(ctx context.Context, slug string) (igdb.Game, error)
 	Cover(ctx context.Context, imageID string) (igdb.Cover, error)
+	Thumbnail(ctx context.Context, imageID string) (igdb.Cover, error)
 }
 
 // IGDBService runs the named commands that bring IGDB games into the catalog.
@@ -63,7 +65,28 @@ type IGDBResult struct {
 	ReleaseYear int    `json:"release_year,omitempty"`
 	// GameID is the catalog game already imported from this match, if any.
 	GameID string `json:"game_id,omitempty"`
+	// Thumbnail is a small cover, set only on admin search results.
+	Thumbnail *Thumbnail `json:"thumbnail,omitempty"`
 }
+
+// searchMatch is a search result with what only the search knows about it.
+type searchMatch struct {
+	result       IGDBResult
+	coverImageID string
+	// hidden reports a catalog game a site admin has hidden or deleted.
+	hidden bool
+}
+
+// Thumbnail is a small cover image. The bytes travel base64-encoded in JSON,
+// so the Admin Console shows it from its own page and loads no image from
+// another origin.
+type Thumbnail struct {
+	ContentType string `json:"content_type"`
+	Data        []byte `json:"data"`
+}
+
+// thumbnailDownloads bounds the IGDB image requests one search makes at once.
+const thumbnailDownloads = 5
 
 type IGDBImport struct {
 	adminmutation.Command
@@ -79,30 +102,57 @@ type Cover struct {
 }
 
 // SearchIGDB returns IGDB's matches for a name and marks the ones the catalog
-// already holds. No cover is downloaded.
+// already holds. Each match with a cover carries a thumbnail; one that cannot
+// be downloaded is left out, so a slow or broken image never fails the search.
 func (s *IGDBService) SearchIGDB(ctx context.Context, query string) ([]IGDBResult, error) {
-	results, _, err := s.search(ctx, query)
-	return results, err
-}
-
-// SearchForPicker is SearchIGDB for signed-in users. It leaves out matches
-// whose catalog game a site admin has hidden or deleted.
-func (s *IGDBService) SearchForPicker(ctx context.Context, query string) ([]IGDBResult, error) {
-	results, unavailable, err := s.search(ctx, query)
+	matches, err := s.search(ctx, query)
 	if err != nil {
 		return nil, err
 	}
-	return slices.DeleteFunc(results, func(result IGDBResult) bool {
-		return slices.Contains(unavailable, result.IGDBID)
-	}), nil
+	results := make([]IGDBResult, len(matches))
+	var wg sync.WaitGroup
+	slots := make(chan struct{}, thumbnailDownloads)
+	for index, match := range matches {
+		results[index] = match.result
+		if match.coverImageID == "" {
+			continue
+		}
+		wg.Add(1)
+		go func(result *IGDBResult, imageID string) {
+			defer wg.Done()
+			slots <- struct{}{}
+			defer func() { <-slots }()
+			thumbnail, err := s.source.Thumbnail(ctx, imageID)
+			if err != nil {
+				return
+			}
+			result.Thumbnail = &Thumbnail{ContentType: thumbnail.ContentType, Data: thumbnail.Bytes}
+		}(&results[index], match.coverImageID)
+	}
+	wg.Wait()
+	return results, nil
 }
 
-// search returns the matches and the IGDB IDs of those whose catalog game is
-// hidden or deleted.
-func (s *IGDBService) search(ctx context.Context, query string) ([]IGDBResult, []int64, error) {
+// SearchForPicker is SearchIGDB for signed-in users, without thumbnails. It
+// leaves out matches whose catalog game a site admin has hidden or deleted.
+func (s *IGDBService) SearchForPicker(ctx context.Context, query string) ([]IGDBResult, error) {
+	matches, err := s.search(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	results := make([]IGDBResult, 0, len(matches))
+	for _, match := range matches {
+		if !match.hidden {
+			results = append(results, match.result)
+		}
+	}
+	return results, nil
+}
+
+func (s *IGDBService) search(ctx context.Context, query string) ([]searchMatch, error) {
 	query = strings.ToLower(strings.Join(strings.Fields(query), " "))
 	if !adminmutation.Text(query, 100, true) || len(query) < 2 {
-		return nil, nil, apperror.Validation("search requires two to 100 characters")
+		return nil, apperror.Validation("search requires two to 100 characters")
 	}
 	pool := s.repository.pool
 	var matches []igdb.Game
@@ -110,7 +160,7 @@ func (s *IGDBService) search(ctx context.Context, query string) ([]IGDBResult, [
 	 WHERE query=$1 AND fetched_at > NOW() - $2::interval`, query, searchCacheTTL).Scan(&matches)
 	if errors.Is(err, pgx.ErrNoRows) {
 		if matches, err = s.source.Search(ctx, query); err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 		// Expired rows are cleared here, so the table holds one day of searches.
 		_, err = pool.Exec(ctx, `WITH expired AS (DELETE FROM igdb_search_cache WHERE fetched_at <= NOW() - $3::interval)
@@ -118,7 +168,7 @@ func (s *IGDBService) search(ctx context.Context, query string) ([]IGDBResult, [
 		 ON CONFLICT (query) DO UPDATE SET results=EXCLUDED.results, fetched_at=NOW()`, query, matches, searchCacheTTL)
 	}
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	ids := make([]int64, 0, len(matches))
@@ -127,27 +177,29 @@ func (s *IGDBService) search(ctx context.Context, query string) ([]IGDBResult, [
 	}
 	rows, err := pool.Query(ctx, `SELECT igdb_id, id::text, is_active AND deleted_at IS NULL FROM games WHERE igdb_id = ANY($1)`, ids)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	catalog := map[int64]string{}
-	var unavailable []int64
+	hidden := map[int64]bool{}
 	var igdbID int64
 	var gameID string
 	var usable bool
 	if _, err := pgx.ForEachRow(rows, []any{&igdbID, &gameID, &usable}, func() error {
 		catalog[igdbID] = gameID
-		if !usable {
-			unavailable = append(unavailable, igdbID)
-		}
+		hidden[igdbID] = !usable
 		return nil
 	}); err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	results := make([]IGDBResult, 0, len(matches))
+	results := make([]searchMatch, 0, len(matches))
 	for _, match := range matches {
-		results = append(results, IGDBResult{IGDBID: match.ID, Name: match.Name, ReleaseYear: match.ReleaseYear, GameID: catalog[match.ID]})
+		results = append(results, searchMatch{
+			result:       IGDBResult{IGDBID: match.ID, Name: match.Name, ReleaseYear: match.ReleaseYear, GameID: catalog[match.ID]},
+			coverImageID: match.CoverImageID,
+			hidden:       hidden[match.ID],
+		})
 	}
-	return results, unavailable, nil
+	return results, nil
 }
 
 // ImportFromIGDB creates an inactive game from an IGDB entry and stores its

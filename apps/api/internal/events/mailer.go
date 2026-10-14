@@ -38,7 +38,6 @@ func (m *ResendMailer) SendRSVPConfirmation(ctx context.Context, recipient strin
 	if m.APIKey == "" {
 		if m.Logger != nil {
 			m.Logger.Info("local event rsvp confirmation",
-				"recipient", recipient,
 				"event_id", event.ID,
 			)
 		}
@@ -102,7 +101,6 @@ func (m *ResendMailer) SendCancellationNotification(ctx context.Context, recipie
 	if m.APIKey == "" {
 		if m.Logger != nil {
 			m.Logger.Info("local event cancellation notification",
-				"recipient", recipient,
 				"event_id", event.ID,
 			)
 		}

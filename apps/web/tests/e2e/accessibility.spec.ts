@@ -1,6 +1,6 @@
 import { AxeBuilder } from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
-import { gotoApp, logIn } from "./fixtures/app-navigation.js";
+import { gotoApp, logIn, waitForAppReady } from "./fixtures/app-navigation.js";
 
 const apiURL = "http://127.0.0.1:18081";
 
@@ -8,6 +8,10 @@ test.beforeEach(async ({ request }) => {
   const response = await request.post(`${apiURL}/__test/reset`);
   expect(response.ok()).toBe(true);
 });
+
+// WCAG 2.0 and 2.1 levels A and AA; serious and critical findings fail,
+// and so do moderate and minor ones.
+const wcagTags = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
 
 test("keyboard users can skip navigation and receive route-change focus", async ({
   page,
@@ -190,6 +194,49 @@ test("private event validation links to the highlighted password field", async (
     "aria-describedby",
     "event-private-password-error",
   );
+  await expectAccessible(page);
+});
+
+test("a keyboard user can RSVP and keeps a visible, sensible focus", async ({
+  page,
+}) => {
+  // The fake API accepts RSVPs only for an unlocked event, so unlock the
+  // private fixture first.
+  await logIn(
+    page,
+    "keyboard-rsvp@example.test",
+    "/events/private-browser-event",
+  );
+  await page.getByLabel("Event password").fill("E2EEventPassword123!");
+  await page.getByRole("button", { name: "Unlock event" }).click();
+  await waitForAppReady(page);
+  const yes = page.getByRole("button", { name: "Yes", exact: true });
+  await expect(yes).toBeVisible();
+
+  // Tab from the top of the page until the Yes button has focus. The bound
+  // fails the test if the control cannot be reached by keyboard.
+  await page.locator("body").click({ position: { x: 0, y: 0 } });
+  for (let presses = 0; presses < 80; presses++) {
+    if (await yes.evaluate((el) => el === document.activeElement)) break;
+    await page.keyboard.press("Tab");
+  }
+  await expect(yes).toBeFocused();
+  await expect(yes).toHaveCSS("outline-style", "solid");
+  expect(
+    parseFloat(await yes.evaluate((el) => getComputedStyle(el).outlineWidth)),
+  ).toBeGreaterThanOrEqual(2);
+
+  await page.keyboard.press("Enter");
+  await expect(
+    page.getByRole("status").filter({ hasText: "RSVP saved." }),
+  ).toHaveCount(1);
+  await waitForAppReady(page);
+  await expect(yes).toHaveAttribute("aria-pressed", "true");
+
+  // Focus stays on the pressed button instead of dropping to the page body,
+  // and the focus ring is still drawn.
+  await expect(yes).toBeFocused();
+  await expect(yes).toHaveCSS("outline-style", "solid");
   await expectAccessible(page);
 });
 
@@ -380,9 +427,7 @@ for (const path of [
 }
 
 async function expectAccessible(page: Page): Promise<void> {
-  const results = await new AxeBuilder({ page })
-    .withTags(["wcag2a", "wcag2aa"])
-    .analyze();
+  const results = await new AxeBuilder({ page }).withTags(wcagTags).analyze();
 
   expect(
     results.violations.map((violation) => ({

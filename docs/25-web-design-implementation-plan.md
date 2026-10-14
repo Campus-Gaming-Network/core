@@ -376,7 +376,12 @@ documents are updated and their contracts are implemented:
   hidden from assistive technology.
 - Reduced-motion preferences remove nonessential transitions.
 - Automated axe checks and manual keyboard review pass at desktop and mobile
-  widths.
+  widths. The standard is WCAG 2.1 level AA: the browser suites for web and
+  admin scan with `@axe-core/playwright` using the `wcag2a`, `wcag2aa`,
+  `wcag21a`, and `wcag21aa` tags, and any violation of any impact fails.
+- A control a keyboard user just pressed is not disabled while its request is
+  pending, because that drops focus to the page body. Use `aria-disabled` and
+  ignore repeat submits.
 
 ## Deterministic design fixtures
 
