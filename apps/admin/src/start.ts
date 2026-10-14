@@ -51,6 +51,7 @@ const securityHeadersMiddleware = createMiddleware().server(
         // The browser connects to the console and, when error monitoring is
         // on, to its ingest origin.
         "content-security-policy": `default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src ${imageSources()}; font-src 'self'; connect-src ${connectSources()}; style-src 'self' 'unsafe-inline'; script-src 'self' 'nonce-${nonce}'`,
+        "cross-origin-opener-policy": "same-origin",
         "permissions-policy":
           "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
         "referrer-policy": "no-referrer",

@@ -31,6 +31,24 @@ export function errorMonitoringConfig(
   };
 }
 
+/**
+ * The one origin the browser may connect to besides the site itself: the
+ * ingest host named by the DSN. Empty when reporting is off or the DSN is not
+ * an HTTP(S) URL, so the content security policy then allows only the site.
+ */
+export function errorMonitoringConnectSource(
+  environment: Environment = process.env,
+): string {
+  const dsn = environment.SENTRY_DSN?.trim();
+  if (!dsn) return "";
+  try {
+    const { origin, protocol } = new URL(dsn);
+    return protocol === "https:" || protocol === "http:" ? origin : "";
+  } catch {
+    return "";
+  }
+}
+
 // Reporting is explicit: no default integration runs, so an event holds the
 // error and its stack trace and never a request, cookie, header, or user.
 export function startErrorMonitoring(
