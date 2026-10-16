@@ -1573,6 +1573,11 @@ input[type="radio"] {
     color: CanvasText;
   }
 
+  .calendar-date--soon .calendar-date__weekday {
+    color: HighlightText;
+    background: Highlight;
+  }
+
   /* Detail hero: its navy field is a background. */
   .detail-hero {
     border: 2px solid CanvasText;
@@ -2495,6 +2500,28 @@ form .form-help {
 
 .calendar-date--large .calendar-date__weekday {
   font-size: var(--text-xs);
+}
+
+/* An event starting today or tomorrow: the weekday becomes a solid blue
+   label across the bottom of the tile, so the nearest events stand out. It
+   spans the tile's width, which "Tomorrow" needs at this size. */
+.calendar-date--soon .calendar-date__weekday {
+  justify-self: stretch;
+  margin-bottom: -0.3125rem;
+  border-radius: 0 0 var(--radius-small) var(--radius-small);
+  padding: 0.1875rem 0 0.25rem;
+  color: var(--color-identity-text);
+  background: var(--color-primary);
+  font-size: 0.5625rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* An event happening now: the same label in green, the in-progress color. */
+.calendar-date--now .calendar-date__weekday {
+  background: var(--color-success);
 }
 
 /* ==== Pickers (game picker, school search) ==== */

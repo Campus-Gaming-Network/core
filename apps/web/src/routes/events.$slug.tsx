@@ -59,6 +59,7 @@ import {
   unlockEvent,
 } from "../features/event-slice/event.functions";
 import { getEventViewerSession } from "../features/event-slice/auth.functions";
+import { EventTypeTag } from "../features/event-slice/event-facts";
 import { EventGameCover } from "../features/event-slice/event-game-cover";
 import { EventFacts } from "../features/event-slice/event-facts";
 import { EventTimeText } from "../features/event-slice/event-time-text";
@@ -72,7 +73,6 @@ import {
   eventLifecycleLabel,
   eventRSVPLabel,
   eventTimeRange,
-  eventTypeLabels,
   eventVisibilityLabel,
   formatEventDate,
   recurrenceRuleLabel,
@@ -288,9 +288,7 @@ function VisibleEventView({
           </Link>
         </p>
         <div className="tag-list">
-          {event.event_type ? (
-            <StatusLabel>{eventTypeLabels[event.event_type]}</StatusLabel>
-          ) : null}
+          {event.event_type ? <EventTypeTag type={event.event_type} /> : null}
           {event.lifecycle !== "upcoming" ? (
             <StatusLabel status={event.lifecycle}>
               {eventLifecycleLabel(event.lifecycle)}

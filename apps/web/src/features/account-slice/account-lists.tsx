@@ -9,7 +9,6 @@ import {
 } from "../../components/directory-row";
 import { EventCounts } from "../../components/event-counts";
 import { StatusLabel } from "../../components/status-label";
-import { EventRelativeDay } from "../event-slice/event-relative-day";
 import {
   eventLifecycleLabel,
   eventRSVPLabel,
@@ -82,10 +81,14 @@ export function AccountEventSection({
                       interested={event.interest_count}
                     />
                   }
-                  detail={eventTimeRange(event)}
+                  // The calendar tile shows the date, so the text gives the time.
+                  detail={eventTimeRange(event, undefined, {
+                    startDate: false,
+                  })}
                   identity={
                     <CalendarDate
-                      decorative
+                      inProgress={event.lifecycle === "happening_now"}
+                      relativeDay
                       startsAt={event.starts_at}
                       timezone={event.timezone}
                     />
@@ -94,12 +97,14 @@ export function AccountEventSection({
                   name={event.title}
                   status={
                     <>
-                      {event.lifecycle === "upcoming" ? null : (
+                      {/* Happening now shows on the calendar tile. */}
+                      {event.lifecycle === "upcoming" ||
+                      event.lifecycle === "happening_now" ? null : (
                         <StatusLabel status={event.lifecycle}>
                           {eventLifecycleLabel(event.lifecycle)}
                         </StatusLabel>
                       )}
-                      <EventRelativeDay event={event} />
+
                       {variant === "rsvp" && event.viewer_rsvp ? (
                         <StatusLabel tone={eventRSVPTone(event.viewer_rsvp)}>
                           {eventRSVPLabel(event.viewer_rsvp)}

@@ -33,6 +33,10 @@ export const Route = createRootRoute({
     errorMonitoring: context.errorMonitoring,
     hasSessionCookie: context.hasSessionCookie,
     publicOrigin: context.publicOrigin,
+    // The moment this page was rendered. The browser hydrates with the same
+    // value, so clock-dependent labels (an event's "Today") match the server
+    // HTML instead of appearing late.
+    renderedAt: Date.now(),
   }),
   // A document rendered for a session names its viewer in the header, so it
   // is private. Everyone else gets the same public document.

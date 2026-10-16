@@ -494,17 +494,31 @@ function StyleguidePage() {
           </div>
         </Specimen>
         <Specimen
-          file="src/features/event-slice/event-relative-day.tsx"
-          name="EventRelativeDay"
+          file="src/components/calendar-date.tsx"
+          name="CalendarDate, now, today, and tomorrow"
         >
           <div className="tag-list">
-            <StatusLabel tone="info">Today</StatusLabel>
-            <StatusLabel tone="info">Tomorrow</StatusLabel>
+            {["Now", "Today", "Tomorrow"].map((label) => (
+              <span
+                aria-hidden="true"
+                className={
+                  label === "Now"
+                    ? "calendar-date calendar-date--soon calendar-date--now"
+                    : "calendar-date calendar-date--soon"
+                }
+                key={label}
+              >
+                <span className="calendar-date__month">Oct</span>
+                <span className="calendar-date__day">17</span>
+                <span className="calendar-date__weekday">{label}</span>
+              </span>
+            ))}
           </div>
           <SpecimenNote>
-            The real component reads the viewer&apos;s clock after hydration and
-            shows nothing for an event more than a day away, so these are the
-            same tag drawn with fixed text. The rule is in eventRelativeDay
+            On event rows the tile swaps its weekday for Now (an event in
+            progress, from the API), Today, or Tomorrow. Today and Tomorrow use
+            the moment the page was rendered (useEventRelativeDay), so these are
+            drawn with fixed text. The rule is in eventRelativeDay
             (presentation.ts).
           </SpecimenNote>
         </Specimen>

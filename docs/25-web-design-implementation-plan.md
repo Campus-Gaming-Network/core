@@ -63,7 +63,8 @@ drawn as placeholders: see #61, #62, #246-#272, and #215-#216.
 - **Directory row** (`DirectoryRow`): an identity tile (calendar date, team
   initial, or school logo; the calendar date is a white tile with a red top
   edge), on event rows the first game's portrait cover at a
-  fixed 3:4 size or a controller tile, the name as a blue underlined link, a
+  fixed 3:4 size or a controller tile (it stands for the games, so event rows
+  list no game names as tags; its alt text names them), the name as a blue underlined link, a
   time line, a muted line with the host and the place's name (the street address is left to the detail page; a school's own page leaves out the host), tags, counts ("0 interested" is left out), and a small blue
   action link with an arrow ("View event →"). The whole row is one link. Event times give the date once for a
   one-day event, the year only outside the current year, and the time zone
@@ -210,9 +211,19 @@ drawn as placeholders: see #61, #62, #246-#272, and #215-#216.
   the link to no one else); others see that the link is shared with people
   who are going. Place text never depends on whether the link is present.
 - **Dates**: the calendar tile shows the month, day, and weekday in the
-  event's zone. Event rows show "Today" or "Tomorrow" for an upcoming event,
-  computed in the event's zone and filled in after hydration so server and
-  client markup match. Counts use thousands separators.
+  event's zone, so an event row's text gives only the time ("3:45 PM – 6:45
+  PM CDT"), naming the end date only when the event ends on a later day. The
+  event page keeps the full date and time. On event rows the tile is the only
+  place the date appears, so screen readers read it. An event in progress
+  shows a green "Now" there instead of a "Happening now" tag. For an upcoming
+  event starting today or tomorrow, the tile's weekday becomes a solid blue
+  "Today" or "Tomorrow" label, computed in the event's zone from the moment the
+  page was rendered (the root loader's `renderedAt`), which the browser
+  hydrates with, so it is in the server HTML and never swaps in late. Counts use thousands
+  separators.
+- **Event type tags**: Tournament carries a trophy icon, Meeting a
+  presentation icon, and Workshop a cog, before the word, on event rows and
+  the event page. The word always carries the meaning.
 
 ### Second pass (pickers, feedback, flows)
 

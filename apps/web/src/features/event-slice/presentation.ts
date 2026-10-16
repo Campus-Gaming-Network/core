@@ -21,10 +21,15 @@ export function eventsHead(publicOrigin?: string) {
  * daylight-saving switch), e.g. "Aug 12, 1:45 PM – 5:45 PM MST" or
  * "Dec 31, 2027, 9:00 PM – Jan 1, 2028, 1:00 AM EST". `now` is the moment
  * the current year is read from.
+ *
+ * `startDate: false` leaves the start date out, for a row whose calendar tile
+ * already shows it: "1:45 PM – 5:45 PM MST", or "9:00 PM – Jan 1, 1:00 AM EST"
+ * for an event that ends on a later day.
  */
 export function eventTimeRange(
   event: Pick<EventDTO, "starts_at" | "ends_at" | "timezone">,
   now: Date = new Date(),
+  { startDate = true }: { startDate?: boolean } = {},
 ): string {
   const timeZone = event.timezone;
   const start = new Date(event.starts_at);
@@ -53,14 +58,17 @@ export function eventTimeRange(
       : `${time.format(start)} ${startZone}`;
   const endTime = `${time.format(end)} ${endZone}`;
 
+  const startText = startDate
+    ? `${date.format(start)}, ${startTime}`
+    : startTime;
   if (
     startDay.year === endDay.year &&
     startDay.month === endDay.month &&
     startDay.day === endDay.day
   ) {
-    return `${date.format(start)}, ${startTime} – ${endTime}`;
+    return `${startText} – ${endTime}`;
   }
-  return `${date.format(start)}, ${startTime} – ${date.format(end)}, ${endTime}`;
+  return `${startText} – ${date.format(end)}, ${endTime}`;
 }
 
 /**

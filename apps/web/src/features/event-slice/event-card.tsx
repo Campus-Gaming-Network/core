@@ -9,7 +9,6 @@ import { EventCounts } from "../../components/event-counts";
 import type { EventBrowseItemDTO } from "./contracts.js";
 import { EventFacts } from "./event-facts";
 import { EventGameThumb } from "./event-game-thumb";
-import { EventRelativeDay } from "./event-relative-day";
 import {
   eventLifecycleLabel,
   eventPlace,
@@ -17,8 +16,9 @@ import {
 } from "./presentation";
 
 /**
- * One public event in a list, linking to its page. `showHost` is off on the
- * host school's own page, where every event's host is that school.
+ * One public event in a list, linking to its page. The first game's cover
+ * stands for the games, so the row lists no game names. `showHost` is off on
+ * the host school's own page, where every event's host is that school.
  */
 export function EventCard({
   event,
@@ -41,10 +41,12 @@ export function EventCard({
             interested={event.interest_count}
           />
         }
-        detail={eventTimeRange(event)}
+        // The calendar tile shows the date, so the text gives the time.
+        detail={eventTimeRange(event, undefined, { startDate: false })}
         identity={
           <CalendarDate
-            decorative
+            inProgress={event.lifecycle === "happening_now"}
+            relativeDay
             startsAt={event.starts_at}
             timezone={event.timezone}
           />
@@ -57,16 +59,15 @@ export function EventCard({
         name={event.title}
         status={
           <>
-            {event.lifecycle !== "upcoming" ? (
+            {/* Upcoming and happening now show on the calendar tile. */}
+            {event.lifecycle === "full" || event.lifecycle === "ended" ? (
               <StatusLabel status={event.lifecycle}>
                 {eventLifecycleLabel(event.lifecycle)}
               </StatusLabel>
             ) : null}
-            <EventRelativeDay event={event} />
           </>
         }
         facts={<EventFacts event={event} />}
-        tags={event.games.map((game) => game.name)}
       />
     </Link>
   );

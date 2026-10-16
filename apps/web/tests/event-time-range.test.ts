@@ -69,3 +69,17 @@ for (const { name, event, want } of cases) {
     assert.equal(eventTimeRange(event, now), want);
   });
 }
+
+// A directory row's calendar tile shows the start date, so its text leaves
+// the start date out and keeps a later end date.
+test("eventTimeRange leaves the start date out for a row with a calendar tile", () => {
+  const rows = [cases[0], cases[2], cases[3], cases[5]].map(({ event }) =>
+    eventTimeRange(event, now, { startDate: false }),
+  );
+  assert.deepEqual(rows, [
+    "7:00 PM – 9:00 PM CDT",
+    "8:00 PM – Sep 5, 12:00 AM PDT",
+    "1:30 AM EDT – 2:30 AM EST",
+    "9:00 PM – Jan 1, 2027, 1:00 AM EST",
+  ]);
+});
