@@ -2,25 +2,16 @@ package maintenance
 
 import (
 	"context"
-	"os"
 	"testing"
 
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/dbtest"
 )
 
 // Runs only when API_DATABASE_URL points at a migrated database. The sweeper is
 // pure SQL, so unit tests with fakes would assert nothing about the statements.
 func TestSweeperDeletesOnlyAgedRows(t *testing.T) {
-	url := os.Getenv("API_DATABASE_URL")
-	if url == "" {
-		t.Skip("API_DATABASE_URL not set")
-	}
+	pool := dbtest.NewMigratedSchemaPool(t, "sweeper")
 	ctx := context.Background()
-	pool, err := pgxpool.New(ctx, url)
-	if err != nil {
-		t.Fatalf("connect: %v", err)
-	}
-	t.Cleanup(pool.Close)
 
 	var schoolID, userID string
 	if err := pool.QueryRow(ctx, `
@@ -28,21 +19,12 @@ func TestSweeperDeletesOnlyAgedRows(t *testing.T) {
 		RETURNING id::text`).Scan(&schoolID); err != nil {
 		t.Fatalf("insert school: %v", err)
 	}
-	t.Cleanup(func() {
-		_, _ = pool.Exec(context.Background(), `DELETE FROM schools WHERE id = $1::uuid`, schoolID)
-	})
 	if err := pool.QueryRow(ctx, `
 		INSERT INTO users (email, password_hash, name, home_school_id, age_confirmed_at)
 		VALUES ('sweeper@example.test', 'x', 'Sweeper', $1::uuid, NOW())
 		RETURNING id::text`, schoolID).Scan(&userID); err != nil {
 		t.Fatalf("insert user: %v", err)
 	}
-	t.Cleanup(func() {
-		cleanupCtx := context.Background()
-		_, _ = pool.Exec(cleanupCtx, `DELETE FROM auth_sessions WHERE user_id = $1::uuid`, userID)
-		_, _ = pool.Exec(cleanupCtx, `DELETE FROM email_verification_tokens WHERE user_id = $1::uuid`, userID)
-		_, _ = pool.Exec(cleanupCtx, `DELETE FROM users WHERE id = $1::uuid`, userID)
-	})
 
 	// One session expired well past the grace window, one still valid.
 	if _, err := pool.Exec(ctx, `

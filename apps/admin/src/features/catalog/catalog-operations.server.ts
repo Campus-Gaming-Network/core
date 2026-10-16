@@ -16,7 +16,6 @@ import {
   gamesPageSchema,
   igdbErrorMessages,
   igdbErrorNotices,
-  igdbSearchSchema,
   logoErrorMessages,
   logoErrorNotices,
   schoolGrantSchema,
@@ -29,8 +28,6 @@ import {
   type CatalogMutationResult,
   type CatalogSearch,
   type GameFormInput,
-  type GameImportInput,
-  type IGDBMatch,
   type LogoUploadInput,
   type SchoolFormInput,
 } from "./contracts.js";
@@ -141,54 +138,6 @@ export async function getGameDetailOperation(
   };
 }
 
-/**
- * Searches IGDB through the Go API. An IGDB failure is returned as a message
- * for the page to show, since the operator can act on it.
- */
-export async function searchIGDBOperation(
-  query: string | undefined,
-  { api, cookieHeader }: ReadDependencies,
-): Promise<{ query: string; games: IGDBMatch[]; error?: string }> {
-  if (!query || query.length < 2) return { query: query ?? "", games: [] };
-  try {
-    const { data } = await api({
-      path: `/admin/v1/igdb-games?${new URLSearchParams({ q: query })}`,
-      cookieHeader,
-      responseSchema: igdbSearchSchema,
-    });
-    return { query, games: data.games };
-  } catch (error) {
-    if (
-      error instanceof AdminApiError &&
-      Object.hasOwn(igdbErrorMessages, error.code)
-    ) {
-      return {
-        query,
-        games: [],
-        error: igdbErrorMessages[error.code as keyof typeof igdbErrorMessages],
-      };
-    }
-    throw error;
-  }
-}
-
-export async function importGameOperation(
-  input: GameImportInput,
-  dependencies: MutationDependencies,
-): Promise<CatalogMutationResult> {
-  return mutate(dependencies, {
-    request: {
-      path: "/admin/v1/game-imports",
-      method: "POST",
-      body: input,
-      responseSchema: adminGameSchema,
-    },
-    destination: (game) =>
-      `/games/${encodeURIComponent(game.id)}?notice=imported`,
-    returnPath: "/games/import",
-  });
-}
-
 export async function listUsersOperation(
   search: CatalogSearch,
   { api, cookieHeader }: ReadDependencies,
@@ -211,7 +160,9 @@ export async function getUserDetailOperation(
   includeReports: boolean,
 ) {
   const id = encodeURIComponent(input.id);
-  const [user, audit, reports] = await Promise.all([
+  // The reads run together, but the user's own failure is reported first, so
+  // a missing user is a 404 even when the report filter rejects the same ID.
+  const [user, audit, reports] = await Promise.allSettled([
     api({
       path: `/admin/v1/users/${id}`,
       cookieHeader,
@@ -226,7 +177,14 @@ export async function getUserDetailOperation(
       ? reportsAgainstUser(input.id, { api, cookieHeader })
       : undefined,
   ]);
-  return { user: user.data, audit: audit.data, reports };
+  if (user.status === "rejected") throw user.reason;
+  if (audit.status === "rejected") throw audit.reason;
+  if (reports.status === "rejected") throw reports.reason;
+  return {
+    user: user.value.data,
+    audit: audit.value.data,
+    reports: reports.value,
+  };
 }
 
 // The API pages reports newest first. A user page lists them all, so this
@@ -292,22 +250,17 @@ export async function saveGameOperation(
   { id, expected_updated_at, ...fields }: GameFormInput,
   dependencies: MutationDependencies,
 ): Promise<CatalogMutationResult> {
-  const editing = id !== "";
+  const path = `/admin/v1/games/${encodeURIComponent(id)}`;
   return mutate(dependencies, {
     request: {
-      path: editing
-        ? `/admin/v1/games/${encodeURIComponent(id)}`
-        : "/admin/v1/games",
-      method: editing ? "PATCH" : "POST",
-      body: editing ? { ...fields, expected_updated_at } : fields,
+      path,
+      method: "PATCH",
+      body: { ...fields, expected_updated_at },
       responseSchema: adminGameSchema,
     },
-    destination: (game) =>
-      `/games/${encodeURIComponent(game.id)}?notice=${editing ? "saved" : "created"}`,
-    returnPath: editing ? `/games/${encodeURIComponent(id)}` : "/games",
-    reload: editing
-      ? { path: `/admin/v1/games/${encodeURIComponent(id)}` }
-      : undefined,
+    destination: (game) => `/games/${encodeURIComponent(game.id)}?notice=saved`,
+    returnPath: `/games/${encodeURIComponent(id)}`,
+    reload: { path },
   });
 }
 

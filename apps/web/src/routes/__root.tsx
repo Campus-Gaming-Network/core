@@ -5,10 +5,14 @@ import {
   Scripts,
   useRouter,
   createRootRoute,
+  type ErrorComponentProps,
 } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
+import { Gamepad2 } from "lucide-react";
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { AccountMenu } from "../components/account-menu";
+import { RouteAnnouncer } from "../components/route-announcer";
+import { SiteNavigation } from "../components/site-navigation";
 import { ViewerContext, type ViewerState } from "../components/viewer";
 import {
   DefaultError,
@@ -43,15 +47,26 @@ export const Route = createRootRoute({
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { name: "application-name", content: siteName },
+      // The navy of the site header, so a phone's browser chrome matches it.
+      { name: "theme-color", content: "#0b1622" },
     ],
     links: [
+      { rel: "icon", href: "/favicon.svg", type: "image/svg+xml" },
+      {
+        rel: "icon",
+        href: "/favicon-32.png",
+        type: "image/png",
+        sizes: "32x32",
+      },
+      { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
+      { rel: "manifest", href: "/site.webmanifest" },
       { rel: "stylesheet", href: appCSS },
       { rel: "stylesheet", href: componentsCSS },
     ],
   }),
   component: RootComponent,
   pendingComponent: DefaultPending,
-  errorComponent: DefaultError,
+  errorComponent: RootError,
   notFoundComponent: DefaultNotFound,
   shellComponent: RootDocument,
 });
@@ -84,59 +99,94 @@ function RootComponent() {
 
   return (
     <ViewerContext value={viewer}>
+      <SiteShell account={<AuthNavigation viewer={viewer} />}>
+        <MainContent />
+      </SiteShell>
+    </ViewerContext>
+  );
+}
+
+/**
+ * The header, the main content area, and the footer around every page. The
+ * root's error view uses it too, so a failure at the root keeps the site's
+ * navigation; there the viewer is unknown, so `account` is left out.
+ */
+function SiteShell({
+  account,
+  children,
+}: {
+  account?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <>
       <a className="skip-link" href="#main-content">
         Skip to main content
       </a>
       <header className="site-header">
         <Link aria-label="Campus Gaming Network" className="brand" to="/">
           <span aria-hidden="true" className="brand-mark">
-            C
+            <Gamepad2 size={18} strokeWidth={2.25} />
           </span>
-          <span>Campus Gaming</span>
+          <span className="brand-name">CGN</span>
+          <span className="brand-full">Campus Gaming Network</span>
         </Link>
         <nav aria-label="Main navigation">
-          <Link to="/schools">Schools</Link>
-          <Link to="/events">Events</Link>
-          <Link to="/teams">Teams</Link>
-          <AuthNavigation viewer={viewer} />
+          <SiteNavigation />
+          {account}
         </nav>
       </header>
-      <MainContent />
+      <div id="main-content" tabIndex={-1}>
+        {children}
+      </div>
       <footer className="site-footer">
-        <strong>Campus Gaming Network</strong>
-        <Link to="/about">About</Link>
-        <Link to="/faq">FAQ</Link>
-        <Link to="/support">Support</Link>
-        <Link to="/terms">Terms</Link>
-        <Link to="/privacy">Privacy</Link>
+        <div className="site-footer__inner">
+          <span className="site-footer__brand">
+            <span aria-hidden="true" className="brand-mark">
+              <Gamepad2 size={16} strokeWidth={2.25} />
+            </span>
+            Campus Gaming Network
+          </span>
+          <nav aria-label="Footer">
+            <ul>
+              <li>
+                <Link to="/about">About</Link>
+              </li>
+              <li>
+                <Link to="/faq">FAQ</Link>
+              </li>
+              <li>
+                <Link to="/support">Support</Link>
+              </li>
+              <li>
+                <Link to="/terms">Terms</Link>
+              </li>
+              <li>
+                <Link to="/privacy">Privacy</Link>
+              </li>
+            </ul>
+          </nav>
+        </div>
       </footer>
-    </ViewerContext>
+    </>
+  );
+}
+
+/** The root's error view inside the site shell. */
+function RootError(props: ErrorComponentProps) {
+  return (
+    <SiteShell>
+      <DefaultError {...props} />
+    </SiteShell>
   );
 }
 
 function MainContent() {
-  const router = useRouter();
-
-  useEffect(
-    () =>
-      router.subscribe("onRendered", ({ pathChanged }) => {
-        if (!pathChanged) return;
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            const heading =
-              document.querySelector<HTMLElement>("#main-content h1");
-            heading?.setAttribute("tabindex", "-1");
-            heading?.focus();
-          });
-        });
-      }),
-    [router],
-  );
-
   return (
-    <div id="main-content" tabIndex={-1}>
+    <>
+      <RouteAnnouncer />
       <Outlet />
-    </div>
+    </>
   );
 }
 
@@ -164,12 +214,12 @@ function AuthNavigation({ viewer }: { viewer: ViewerState }) {
 
   if (viewer === null) {
     return (
-      <>
+      <div className="auth-links">
         <Link to="/login">Log in</Link>
         <Link className="button button--primary" to="/signup">
           Sign up
         </Link>
-      </>
+      </div>
     );
   }
 
@@ -189,11 +239,14 @@ function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
       <head>
         <HeadContent />
         <noscript>
-          {/* The account menu opens with script. Without it, its links and
-              logout form sit in the header in place of the trigger. */}
+          {/* The account and site menus open with script. Without it, the
+              account links and logout form sit in the header in place of the
+              trigger, and the site links always show. Controls that need
+              script (live-only) hide, and a filter toolbar's Apply button
+              shows, so a page never swaps controls while it hydrates. */}
           <style>
             {
-              ".account-menu__trigger{display:none!important}.site-header nav .account-menu__panel[hidden]{display:flex!important;position:static;width:auto;min-width:0;flex-wrap:wrap;align-items:center;border:0;padding:0;background:none;box-shadow:none}.site-header nav .account-menu__panel .logout-form{margin:0;padding:0;border:0}"
+              ".live-only{display:none!important}.filter-toolbar__apply{display:inline-flex!important}.site-nav__toggle{display:none!important}.site-nav__links{display:flex!important;position:static!important;flex-direction:row!important}@media(max-width:42rem){.site-header{flex-wrap:wrap!important}.site-header nav{flex-wrap:wrap!important}.site-nav{order:3!important;flex:0 0 100%}.site-nav__links{flex-wrap:wrap!important;border:0!important;box-shadow:none!important;padding:0!important}.site-header nav .site-nav__links a{min-height:2.75rem!important;padding:0 .625rem!important}}.account-menu__trigger{display:none!important}.site-header nav .account-menu__panel[hidden]{display:flex!important;position:static;width:auto;min-width:0;flex-wrap:wrap;align-items:center;border:0;padding:0;background:none;box-shadow:none}.site-header nav .account-menu__panel .account-menu__item{color:#fff!important;width:auto!important}.site-header nav .account-menu__panel .logout-form{margin:0;padding:0;border:0}"
             }
           </style>
         </noscript>

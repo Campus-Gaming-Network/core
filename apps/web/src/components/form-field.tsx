@@ -1,4 +1,5 @@
 import { cloneElement, useId, type ReactElement } from "react";
+import { CharacterCount } from "./character-count";
 import { FieldError, fieldErrorProps } from "./enhanced-mutation";
 
 /**
@@ -6,9 +7,11 @@ import { FieldError, fieldErrorProps } from "./enhanced-mutation";
  * only child; it gains `aria-invalid` and `aria-describedby` when `errors` is
  * not empty. `errorId` is the id the error renders under, which the form's
  * error summary links back to. `optional` adds "(optional)" to the label;
- * a form with optional fields also shows RequiredFieldsNote.
+ * a form with optional fields also shows RequiredFieldsNote. `characterCount`
+ * adds a CharacterCount under the control for the control's `maxLength`.
  */
 export function FormField({
+  characterCount = false,
   children,
   errorId,
   errors,
@@ -20,13 +23,21 @@ export function FormField({
     "aria-label"?: string;
     "aria-labelledby"?: string;
     "aria-invalid"?: boolean;
+    maxLength?: number;
   }>;
+  characterCount?: boolean;
   errorId: string;
   errors?: string[];
   label: string;
   optional?: boolean;
 }) {
   const labelID = useId();
+  const hintId = `${useId()}-count`;
+  const limit = characterCount ? children.props.maxLength : undefined;
+  const errorProps = fieldErrorProps(errors, errorId);
+  const describedBy = [errorProps["aria-describedby"], limit ? hintId : null]
+    .filter(Boolean)
+    .join(" ");
   return (
     <label>
       {/* Labels are grids, so the marker shares a cell with the label text.
@@ -38,9 +49,11 @@ export function FormField({
       </span>
       {cloneElement(children, {
         ...(children.props["aria-label"] ? {} : { "aria-labelledby": labelID }),
-        ...fieldErrorProps(errors, errorId),
+        ...errorProps,
+        "aria-describedby": describedBy || undefined,
       })}
       <FieldError id={errorId} messages={errors} />
+      {limit ? <CharacterCount hintId={hintId} limit={limit} /> : null}
     </label>
   );
 }

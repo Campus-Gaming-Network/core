@@ -27,10 +27,8 @@ import {
   type CatalogMutationResult,
   type CatalogNotice,
   type CatalogSearch,
-  type IGDBMatch,
 } from "./contracts";
 import {
-  importGame,
   runCatalogCommand,
   saveGame,
   saveSchool,
@@ -348,11 +346,15 @@ export function SchoolForm({ school }: { school?: AdminSchool }) {
   );
 }
 
-export function GameForm({ game }: { game?: AdminGame }) {
+/**
+ * Corrects a stored game. Admins never create games: users add them from
+ * IGDB in the event and team forms.
+ */
+export function GameForm({ game }: { game: AdminGame }) {
   const runSave = useServerFn(saveGame);
   const { submit, pending, version, feedback } = useCatalogSubmit(
     runSave,
-    game?.updated_at ?? "",
+    game.updated_at,
   );
   const errors = feedback.fieldErrors;
 
@@ -364,7 +366,7 @@ export function GameForm({ game }: { game?: AdminGame }) {
       onSubmit={submit}
     >
       <FormFeedback message={feedback.message} />
-      <input name="id" type="hidden" value={game?.id ?? ""} />
+      <input name="id" type="hidden" value={game.id} />
       <input name="expected_updated_at" type="hidden" value={version} />
       <div className="form-grid">
         <TextField
@@ -372,7 +374,7 @@ export function GameForm({ game }: { game?: AdminGame }) {
           label="Name"
           name="name"
           required
-          value={game?.name}
+          value={game.name}
           maxLength={200}
         />
         <TextField
@@ -381,7 +383,7 @@ export function GameForm({ game }: { game?: AdminGame }) {
           label="Slug"
           name="slug"
           required
-          value={game?.slug}
+          value={game.slug}
           maxLength={120}
         />
         <TextField
@@ -389,21 +391,22 @@ export function GameForm({ game }: { game?: AdminGame }) {
           label="Cover image URL"
           name="cover_url"
           type="url"
-          value={game?.cover_url}
+          value={game.cover_url}
           maxLength={2048}
         />
         <label className="checkbox-field">
           <input
-            defaultChecked={game?.is_active ?? true}
+            defaultChecked={game.is_active}
             name="is_active"
             type="checkbox"
           />
-          Shown in the public game picker
+          Shown on the site: users can find it in game search and add it to
+          events and teams
         </label>
       </div>
       <ReasonField errors={errors.reason} />
       <button type="submit" disabled={pending}>
-        {pending ? "Saving…" : game ? "Save game" : "Create game"}
+        {pending ? "Saving…" : "Save game"}
       </button>
     </form>
   );
@@ -511,84 +514,6 @@ export function LogoUploadForm({ school }: { school: AdminSchool }) {
  * explicit confirmation; step-up commands send the operator to confirm their
  * identity first when their last step-up is no longer recent.
  */
-function matchTitle(match: IGDBMatch): string {
-  return match.release_year
-    ? `${match.name} (${match.release_year})`
-    : match.name;
-}
-
-/**
- * Lists IGDB matches and imports the chosen one. A match already in the
- * catalog links to its record instead.
- */
-export function GameImportForm({ matches }: { matches: IGDBMatch[] }) {
-  const runImport = useServerFn(importGame);
-  const { submit, pending, feedback } = useCatalogSubmit(runImport, "");
-
-  return (
-    <form
-      action={importGame.url}
-      className="moderation-form"
-      method="post"
-      onSubmit={submit}
-    >
-      <FormFeedback message={feedback.message} />
-      <fieldset>
-        <legend>IGDB matches</legend>
-        {matches.map((match) => {
-          const thumbnail = match.thumbnail ? (
-            <img
-              alt=""
-              className="igdb-thumbnail"
-              height={64}
-              src={match.thumbnail}
-              width={45}
-            />
-          ) : (
-            <span aria-hidden="true" className="igdb-thumbnail" />
-          );
-          return match.game_id ? (
-            <p className="igdb-match" key={match.igdb_id}>
-              {thumbnail}
-              <span>
-                <a href={`/games/${encodeURIComponent(match.game_id)}`}>
-                  {matchTitle(match)}
-                </a>{" "}
-                is already in the catalog.
-              </span>
-            </p>
-          ) : (
-            <label className="checkbox-field igdb-match" key={match.igdb_id}>
-              <input
-                name="igdb_id"
-                required
-                type="radio"
-                value={match.igdb_id}
-              />
-              {thumbnail}
-              {matchTitle(match)}
-            </label>
-          );
-        })}
-        <FieldError
-          id="igdb-id-error"
-          messages={feedback.fieldErrors.igdb_id}
-        />
-      </fieldset>
-      <ReasonField
-        errors={feedback.fieldErrors.reason}
-        idPrefix="game-import"
-      />
-      <button
-        type="submit"
-        disabled={pending || matches.every((match) => match.game_id)}
-      >
-        {pending ? "Importing…" : "Import game"}
-      </button>
-    </form>
-  );
-}
-
 export function CommandForm({
   command,
   id,

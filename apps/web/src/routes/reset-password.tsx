@@ -3,6 +3,7 @@ import { ResetPasswordForm } from "../features/auth-flow-slice/auth-forms";
 import { validateResetPasswordSearch } from "../features/auth-flow-slice/contracts";
 import { establishPrivateAuthPage } from "../features/auth-flow-slice/auth-flow.functions";
 import { authPageHead } from "../features/auth-flow-slice/presentation";
+import "../features/auth-flow-slice/auth-flow.css";
 
 const description =
   "Choose a new password for your Campus Gaming Network account.";
@@ -31,20 +32,28 @@ function ResetPasswordPage() {
   const search = Route.useSearch();
   return (
     <main className="auth-page">
-      <section className="page-heading">
-        <p className="eyebrow">Password reset</p>
-        <h1>Choose a new password.</h1>
-      </section>
+      <header className="auth-heading">
+        <h1>Choose a new password</h1>
+        {search.token ? (
+          <p className="lede">
+            You will log in with it next. Pick one you do not use anywhere else.
+          </p>
+        ) : null}
+      </header>
       {search.token ? (
         <ResetPasswordForm token={search.token} />
       ) : (
-        <p role="alert">
-          {search.reset === "failed"
-            ? "That reset link is invalid or has expired. "
-            : "This reset link is missing its token. "}
-          Request a new link from{" "}
-          <Link to="/forgot-password">forgot password</Link>.
-        </p>
+        <>
+          <p role="alert">
+            {search.reset === "failed"
+              ? "That reset link is invalid or has expired. "
+              : "This reset link is incomplete. "}
+            Reset links work once and expire, so you need a new one.
+          </p>
+          <Link className="button button--primary" to="/forgot-password">
+            Request a new link
+          </Link>
+        </>
       )}
     </main>
   );

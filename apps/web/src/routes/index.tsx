@@ -1,4 +1,5 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
+import { ChevronRight, Globe, MapPinned, School } from "lucide-react";
 import { ButtonLink } from "../components/button-link";
 import { useViewer } from "../components/viewer";
 import { pageNoticeKey } from "../components/page-notice";
@@ -6,6 +7,10 @@ import { PageNoticeView } from "../components/page-notice-view";
 import { homeAccountNotices } from "../features/account-slice/presentation";
 import { SchoolLogo } from "../components/school-logo";
 import { EventCard } from "../features/event-slice/event-card";
+import type { EventBrowseItemDTO } from "../features/event-slice/contracts";
+import { loadDirectorySidebar } from "../features/account-slice/account.functions";
+import { DirectorySidebar } from "../components/directory-sidebar";
+import homeCSS from "../features/home-slice/home.css?url";
 import { getHomeEvents } from "../features/event-slice/event.functions";
 import { getHomeCatalog } from "../features/school-slice/catalog.functions";
 import { catalogClientStaleTime } from "../features/school-slice/contracts";
@@ -20,167 +25,261 @@ export const Route = createFileRoute("/")({
     return account ? { account } : {};
   },
   loader: async ({ context }) => {
-    const [catalog, events] = await Promise.all([
+    const [catalog, events, sidebar] = await Promise.all([
       getHomeCatalog(),
       getHomeEvents(),
+      loadDirectorySidebar(),
     ]);
-    return { catalog, events, publicOrigin: context.publicOrigin };
+    return { catalog, events, sidebar, publicOrigin: context.publicOrigin };
   },
   staleTime: catalogClientStaleTime,
-  head: ({ loaderData }) => homeHead(loaderData?.publicOrigin),
+  head: ({ loaderData }) => ({
+    ...homeHead(loaderData?.publicOrigin),
+    links: [{ rel: "stylesheet", href: homeCSS }],
+  }),
   component: HomePage,
 });
 
 function HomePage() {
-  const { catalog, events } = Route.useLoaderData();
+  const { catalog, events, sidebar } = Route.useLoaderData();
   const viewer = useViewer();
   const search = Route.useSearch();
+  const firstName = viewer?.name.trim().split(/\s+/)[0];
+  const homeSchool =
+    sidebar.status === "found" ? sidebar.homeSchool : undefined;
+  const followedCount =
+    sidebar.status === "found" && !sidebar.moreFollowedSchools
+      ? sidebar.followedSchools.length
+      : 0;
 
   return (
-    <main className="home-page">
-      <PageNoticeView
-        notice={search.account ? homeAccountNotices[search.account] : undefined}
-      />
-      <section className="hero" aria-labelledby="page-title">
-        <div className="hero-copy">
-          <p className="eyebrow">Your campus is playing</p>
-          <h1 id="page-title">Find your next game night.</h1>
-          <p className="lede">
-            Discover tournaments, casual meetups, and teams at schools near you.
-            Everything you need to show up and play is in one place.
-          </p>
-          <div className="actions">
-            <ButtonLink variant="primary" to="/events">
-              Explore events
-            </ButtonLink>
-            <ButtonLink variant="secondary" to="/schools">
-              Find your school
-            </ButtonLink>
-          </div>
-          {viewer === null ? (
-            <p className="hero-note">
-              New here? <Link to="/signup">Create a free account</Link> to RSVP
-              and follow your campus.
-            </p>
-          ) : null}
-        </div>
-      </section>
-
-      <section className="section" aria-labelledby="events-title">
-        <div className="section-heading">
-          <h2 id="events-title">Events around campus</h2>
-          <Link to="/events">Browse all events</Link>
-        </div>
-        {events.unavailable ? (
-          <p className="empty-state">
-            Events are unavailable right now. The API may still be starting.
-          </p>
-        ) : events.events.length > 0 ? (
-          <div className="list">
-            {events.events.map((event) => (
-              <EventCard event={event} key={event.id} />
-            ))}
-          </div>
-        ) : (
-          <p className="empty-state">
-            No public events yet.{" "}
-            <Link to="/events/new">Create the first one.</Link>
-          </p>
-        )}
-      </section>
-
-      <section className="section" aria-labelledby="schools-title">
-        <div className="section-heading">
-          <h2 id="schools-title">
-            {catalog.schoolsPopular
-              ? "Popular campuses"
-              : "Start with a campus."}
-          </h2>
-          <Link to="/schools">Search all schools</Link>
-        </div>
-        {catalog.schoolsUnavailable ? (
-          <p className="empty-state">
-            School results are unavailable right now. The API may still be
-            starting.
-          </p>
-        ) : catalog.schools.length > 0 ? (
-          <div className="card-grid">
-            {catalog.schools.map((school) => (
+    <main
+      className={
+        sidebar.status === "found"
+          ? "home-page layout-with-sidebar"
+          : "home-page"
+      }
+    >
+      <div className="home-main">
+        <PageNoticeView
+          notice={
+            search.account ? homeAccountNotices[search.account] : undefined
+          }
+        />
+        <section className="home-welcome" aria-labelledby="page-title">
+          <p className="eyebrow">Campus Gaming Network</p>
+          {viewer ? (
+            <>
+              <h1 id="page-title">Welcome back, {firstName}</h1>
+              <p className="lede">
+                {homeSchool
+                  ? followedCount > 0
+                    ? `Discover gaming events and teams at ${homeSchool.name} and the ${followedCount === 1 ? "school" : `${followedCount} schools`} you follow.`
+                    : `Discover gaming events and teams at ${homeSchool.name}, or follow other schools from their pages.`
+                  : "Discover gaming events and teams at your school and beyond."}
+              </p>
+            </>
+          ) : (
+            <>
+              <h1 id="page-title">Find gaming events at your school</h1>
+              <p className="lede">
+                Tournaments, game nights, LAN parties, and teams at colleges
+                across the United States, in one place.
+              </p>
+              <div className="actions">
+                <ButtonLink variant="primary" to="/signup">
+                  Create a free account
+                </ButtonLink>
+                <ButtonLink variant="secondary" to="/login">
+                  Log in
+                </ButtonLink>
+              </div>
+            </>
+          )}
+          <ul className="home-scopes" aria-label="Browse events">
+            <li>
+              {homeSchool ? (
+                <Link
+                  className="home-scope home-scope--current"
+                  to="/events"
+                  search={{ school: homeSchool.slug }}
+                >
+                  <School aria-hidden="true" size={20} strokeWidth={2} />
+                  <span>
+                    <strong>My school</strong>
+                    <small>{homeSchool.name}</small>
+                  </span>
+                </Link>
+              ) : (
+                <Link className="home-scope" to="/schools">
+                  <School aria-hidden="true" size={20} strokeWidth={2} />
+                  <span>
+                    <strong>Find your school</strong>
+                    <small>Search every campus</small>
+                  </span>
+                </Link>
+              )}
+            </li>
+            <li>
               <Link
-                className="card card--default school-card"
-                key={school.id}
-                to="/schools/$slug"
-                params={{ slug: school.slug }}
+                className="home-scope"
+                to="/events"
+                search={{ format: "online" }}
               >
-                <span aria-hidden="true" className="school-directory-mark">
-                  {school.name.slice(0, 1).toUpperCase()}
-                  <SchoolLogo
-                    logoURL={school.logo_wordmark ? undefined : school.logo_url}
-                    size={44}
-                  />
+                <Globe aria-hidden="true" size={20} strokeWidth={2} />
+                <span>
+                  <strong>Online</strong>
+                  <small>Play from anywhere</small>
                 </span>
-                <span>{school.name}</span>
-                <small>{schoolLocation(school)}</small>
               </Link>
-            ))}
+            </li>
+            <li>
+              <Link className="home-scope" to="/events">
+                <MapPinned aria-hidden="true" size={20} strokeWidth={2} />
+                <span>
+                  <strong>Nationwide</strong>
+                  <small>All public events</small>
+                </span>
+              </Link>
+            </li>
+          </ul>
+        </section>
+
+        <div className="home-columns">
+          <div className="home-events-column">
+            <HomeEventsSection
+              events={events.thisWeek}
+              empty="Nothing is happening this week."
+              heading="Events this week"
+              id="events-this-week"
+              unavailable={events.unavailable}
+            />
+            <HomeEventsSection
+              events={events.later}
+              empty="No events are planned after this week yet."
+              heading="More events"
+              id="more-events"
+              unavailable={events.unavailable}
+            />
           </div>
-        ) : (
-          <p className="empty-state">No schools are listed yet.</p>
-        )}
-      </section>
 
-      <section className="section" aria-labelledby="how-it-works-title">
-        <div className="section-heading">
-          <h2 id="how-it-works-title">How it works</h2>
-        </div>
-        <ol className="steps">
-          <li className="card step">
-            <h3>Find your school</h3>
-            <p>
-              Search the directory and follow your campus to see its events and
-              teams.
-            </p>
-          </li>
-          <li className="card step">
-            <h3>Browse events</h3>
-            <p>
-              Filter by game or format. Public events are open to everyone;
-              private ones unlock with a password.
-            </p>
-          </li>
-          <li className="card step">
-            <h3>RSVP</h3>
-            <p>
-              Say yes, maybe, or no. A yes RSVP gets a confirmation email with a
-              calendar file.
-            </p>
-          </li>
-          <li className="card step">
-            <h3>Start a team</h3>
-            <p>
-              Create a team for your school, pick your games, and share a join
-              password with members.
-            </p>
-          </li>
-        </ol>
-      </section>
+          <div className="home-aside">
+            <section
+              className="panel panel--flush"
+              aria-labelledby="schools-title"
+            >
+              <div className="panel__header">
+                <h2 id="schools-title">
+                  {catalog.schoolsPopular
+                    ? "Popular schools"
+                    : "Start with a school"}
+                </h2>
+                <Link aria-label="View all schools" to="/schools">
+                  View all
+                </Link>
+              </div>
+              {catalog.schoolsUnavailable ? (
+                <p className="panel__body muted">
+                  School results are unavailable right now. Please try again in
+                  a moment.
+                </p>
+              ) : catalog.schools.length > 0 ? (
+                <ul className="home-schools">
+                  {catalog.schools.map((school) => (
+                    <li key={school.id}>
+                      <Link
+                        className="home-school"
+                        to="/schools/$slug"
+                        params={{ slug: school.slug }}
+                      >
+                        <span
+                          aria-hidden="true"
+                          className="school-directory-mark"
+                        >
+                          {school.name.slice(0, 1).toUpperCase()}
+                          <SchoolLogo
+                            logoURL={
+                              school.logo_wordmark ? undefined : school.logo_url
+                            }
+                            size={40}
+                          />
+                        </span>
+                        <span className="home-school__copy">
+                          <strong>{school.name}</strong>
+                          <small>{schoolLocation(school)}</small>
+                        </span>
+                        <ChevronRight aria-hidden="true" size={16} />
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="panel__body muted">No schools are listed yet.</p>
+              )}
+            </section>
 
-      <section className="action-panel" aria-labelledby="cold-start-title">
-        <p className="eyebrow">Start the scene</p>
-        <h2 id="cold-start-title">Not seeing activity for your campus yet?</h2>
-        <p>
-          The calendar fills up when someone hosts the first event. Create one
-          for your campus, or start a team to organize players around it.
-        </p>
-        <div className="actions">
-          <ButtonLink variant="primary" to="/events/new">
-            Create an event
-          </ButtonLink>
-          <Link className="link" to="/teams/new">
-            Or start a team
-          </Link>
+            <section className="panel" aria-labelledby="host-title">
+              <h2 id="host-title">Host something</h2>
+              <p className="muted">
+                {homeSchool
+                  ? `Not seeing activity at ${homeSchool.name} yet? Create an event, or start a team to organize players around it.`
+                  : "Not seeing activity for your campus yet? Create an event, or start a team to organize players around it."}
+              </p>
+              <div className="actions">
+                <ButtonLink variant="primary" to="/events/new">
+                  Create event
+                </ButtonLink>
+                <ButtonLink variant="secondary" to="/teams/new">
+                  Create team
+                </ButtonLink>
+              </div>
+            </section>
+          </div>
         </div>
-      </section>
+      </div>
+      <DirectorySidebar sidebar={sidebar} />
     </main>
+  );
+}
+
+// One of the home page's event previews: a panel of event rows with a link to
+// the full list, which shows the same events in the same order.
+function HomeEventsSection({
+  empty,
+  events,
+  heading,
+  id,
+  unavailable,
+}: {
+  empty: string;
+  events: EventBrowseItemDTO[];
+  heading: string;
+  id: string;
+  unavailable: boolean;
+}) {
+  return (
+    <section className="panel panel--flush" aria-labelledby={id}>
+      <div className="panel__header">
+        <h2 id={id}>{heading}</h2>
+        <Link aria-label="View all events" to="/events">
+          View all
+        </Link>
+      </div>
+      {unavailable ? (
+        <p className="panel__body muted">
+          Events are unavailable right now. Please try again in a moment.
+        </p>
+      ) : events.length > 0 ? (
+        <div className="list directory-list home-events">
+          {events.map((event) => (
+            <EventCard event={event} key={event.id} />
+          ))}
+        </div>
+      ) : (
+        <p className="panel__body muted">
+          {empty} <Link to="/events/new">Create an event.</Link>
+        </p>
+      )}
+    </section>
   );
 }

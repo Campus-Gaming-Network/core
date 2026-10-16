@@ -3,36 +3,25 @@ package schools
 import (
 	"context"
 	"fmt"
-	"os"
 	"slices"
 	"testing"
-	"time"
 
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/dbtest"
 )
 
 // Popularity is a school's active member accounts plus the public events it
-// hosts. The shared test database may hold other schools' activity, so the
-// test checks the order of its own schools relative to one another.
+// hosts. It runs in a migrated schema of its own so that no other school's
+// activity can outrank or crowd out the fixtures under MaximumPopularLimit.
 func TestListPopularRanksByMembersPlusPublicEvents(t *testing.T) {
-	databaseURL := os.Getenv("API_DATABASE_URL")
-	if databaseURL == "" {
-		t.Skip("API_DATABASE_URL not set")
-	}
+	pool := dbtest.NewMigratedSchemaPool(t, "popular")
 	ctx := context.Background()
-	pool, err := pgxpool.New(ctx, databaseURL)
-	if err != nil {
-		t.Fatalf("connect: %v", err)
-	}
-	t.Cleanup(pool.Close)
-	suffix := fmt.Sprint(time.Now().UnixNano())
 
 	school := func(label string, active bool) string {
 		t.Helper()
 		var id string
 		if err := pool.QueryRow(ctx, `
 			INSERT INTO schools (name, slug, is_active) VALUES ($1, $2, $3) RETURNING id::text
-		`, "Popularity "+label, "popularity-"+label+"-"+suffix, active).Scan(&id); err != nil {
+		`, "Popularity "+label, "popularity-"+label, active).Scan(&id); err != nil {
 			t.Fatalf("insert school %s: %v", label, err)
 		}
 		return id
@@ -56,7 +45,7 @@ func TestListPopularRanksByMembersPlusPublicEvents(t *testing.T) {
 			INSERT INTO users (email, password_hash, name, home_school_id, age_confirmed_at, account_status, deleted_at)
 			VALUES ($1, 'hash', 'Member', $2::uuid, NOW(), $3, CASE WHEN $4 THEN NOW() END)
 			RETURNING id::text
-		`, fmt.Sprintf("popularity-%s-%d@example.test", suffix, sequence), schoolID, status, deleted).Scan(&id); err != nil {
+		`, fmt.Sprintf("popularity-%d@example.test", sequence), schoolID, status, deleted).Scan(&id); err != nil {
 			t.Fatalf("insert user: %v", err)
 		}
 		return id
@@ -64,7 +53,7 @@ func TestListPopularRanksByMembersPlusPublicEvents(t *testing.T) {
 	event := func(schoolID, visibility string, deleted bool) {
 		t.Helper()
 		sequence++
-		slug := fmt.Sprintf("popularity-event-%s-%d", suffix, sequence)
+		slug := fmt.Sprintf("popularity-event-%d", sequence)
 		var password any
 		if visibility == "private" {
 			password = "hash"
@@ -76,12 +65,6 @@ func TestListPopularRanksByMembersPlusPublicEvents(t *testing.T) {
 			t.Fatalf("insert event: %v", err)
 		}
 	}
-	t.Cleanup(func() {
-		bg := context.Background()
-		_, _ = pool.Exec(bg, `DELETE FROM events WHERE slug LIKE 'popularity-event-%'`)
-		_, _ = pool.Exec(bg, `DELETE FROM users WHERE email LIKE 'popularity-%@example.test'`)
-		_, _ = pool.Exec(bg, `DELETE FROM schools WHERE slug LIKE '%-'||$1`, suffix)
-	})
 
 	creator = user(events, "active", false)
 	event(events, "public", false)

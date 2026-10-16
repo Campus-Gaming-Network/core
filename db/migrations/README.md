@@ -102,3 +102,7 @@ no index led with: `events.creator_user_id`, `teams.owner_user_id`,
 `admin_sessions (grant_id, user_id)`, and
 `user_policy_acceptances.policy_document_id`. `TestSchemaInvariants` keeps new
 migrations to the same rule.
+Migration `000029_igdb_search_cache_covers.up.sql` adds a GIN index on
+`igdb_search_cache.results`, so the API can check that a search returned a
+cover image ID before it proxies that image. Apply it before deploying the API
+that serves `/igdb-covers/{image_id}`.

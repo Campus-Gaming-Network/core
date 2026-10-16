@@ -18,6 +18,7 @@ import (
 	"time"
 )
 
+// Default service URLs, used when a Config leaves them empty.
 const (
 	DefaultAPIURL   = "https://api.igdb.com/v4"
 	DefaultTokenURL = "https://id.twitch.tv/oauth2/token"
@@ -28,7 +29,7 @@ const (
 
 	// coverSize is about twice the largest size a cover is displayed at.
 	coverSize = "t_cover_big"
-	// thumbnailSize is the 90x128 cover shown beside an admin search result.
+	// thumbnailSize is the 90x128 cover shown beside a game search result.
 	thumbnailSize   = "t_cover_small"
 	searchLimit     = 20
 	maxResponseSize = 1 << 20
@@ -37,6 +38,7 @@ const (
 	tokenRefreshMargin = 5 * time.Minute
 )
 
+// Errors a Client returns. Wrapped errors keep these as their cause.
 var (
 	ErrNotFound         = errors.New("igdb: game not found")
 	ErrRateLimited      = errors.New("igdb: rate limited")
@@ -56,6 +58,9 @@ const adultThemeSlug = "erotic"
 type theme struct {
 	Slug string `json:"slug"`
 }
+
+// quoteEscaper makes a value safe inside an Apicalypse double-quoted string.
+var quoteEscaper = strings.NewReplacer(`\`, `\\`, `"`, `\"`)
 
 var imageIDPattern = regexp.MustCompile(`^[a-z0-9_]{1,64}$`)
 
@@ -122,33 +127,19 @@ func NewClient(config Config) *Client {
 
 // Search returns the games IGDB matches to a name, best match first.
 func (c *Client) Search(ctx context.Context, query string) ([]Game, error) {
-	escaped := strings.NewReplacer(`\`, `\\`, `"`, `\"`).Replace(strings.TrimSpace(query))
+	escaped := quoteEscaper.Replace(strings.TrimSpace(query))
 	return c.games(ctx, fmt.Sprintf(`search "%s"; fields `+gameFields+`; limit %d;`, escaped, searchLimit))
 }
 
 // Game returns one game by its IGDB ID, or ErrNotFound.
 func (c *Client) Game(ctx context.Context, id int64) (Game, error) {
-	games, err := c.games(ctx, fmt.Sprintf(`fields `+gameFields+`; where id = %d; limit 1;`, id))
-	if err != nil {
-		return Game{}, err
-	}
-	if len(games) == 0 {
-		return Game{}, ErrNotFound
-	}
-	return games[0], nil
+	return c.first(ctx, fmt.Sprintf(`fields `+gameFields+`; where id = %d; limit 1;`, id))
 }
 
 // GameBySlug returns one game by its IGDB slug, or ErrNotFound.
 func (c *Client) GameBySlug(ctx context.Context, slug string) (Game, error) {
-	escaped := strings.NewReplacer(`\`, `\\`, `"`, `\"`).Replace(slug)
-	games, err := c.games(ctx, fmt.Sprintf(`fields `+gameFields+`; where slug = "%s"; limit 1;`, escaped))
-	if err != nil {
-		return Game{}, err
-	}
-	if len(games) == 0 {
-		return Game{}, ErrNotFound
-	}
-	return games[0], nil
+	escaped := quoteEscaper.Replace(slug)
+	return c.first(ctx, fmt.Sprintf(`fields `+gameFields+`; where slug = "%s"; limit 1;`, escaped))
 }
 
 // Cover downloads a cover image. The type is read from the bytes, not from
@@ -157,7 +148,8 @@ func (c *Client) Cover(ctx context.Context, imageID string) (Cover, error) {
 	return c.image(ctx, coverSize, imageID)
 }
 
-// Thumbnail downloads a small cover image, checked like Cover.
+// Thumbnail downloads the small cover shown beside a search result, checked
+// like Cover.
 func (c *Client) Thumbnail(ctx context.Context, imageID string) (Cover, error) {
 	return c.image(ctx, thumbnailSize, imageID)
 }
@@ -197,6 +189,18 @@ func (c *Client) image(ctx context.Context, size, imageID string) (Cover, error)
 func (c *Client) Check(ctx context.Context) error {
 	_, err := c.query(ctx, "fields id; limit 1;", false)
 	return err
+}
+
+// first returns the first game a query matches, or ErrNotFound.
+func (c *Client) first(ctx context.Context, query string) (Game, error) {
+	games, err := c.games(ctx, query)
+	if err != nil {
+		return Game{}, err
+	}
+	if len(games) == 0 {
+		return Game{}, ErrNotFound
+	}
+	return games[0], nil
 }
 
 func (c *Client) games(ctx context.Context, query string) ([]Game, error) {

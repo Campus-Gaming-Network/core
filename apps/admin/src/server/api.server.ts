@@ -1,3 +1,4 @@
+import { notFound } from "@tanstack/react-router";
 import type * as z from "zod";
 
 export type Fetcher = (
@@ -97,6 +98,22 @@ export function createAdminApiClient({
     if (!parsed.success) throw new AdminApiContractError(path);
     return { data: parsed.data, response };
   };
+}
+
+/**
+ * Runs a record read and turns the Admin API's 404 into the router's
+ * not-found result, so a missing or malformed record ID renders the not-found
+ * page with a 404 status instead of a failure.
+ */
+export async function orNotFound<T>(read: Promise<T>): Promise<T> {
+  try {
+    return await read;
+  } catch (error) {
+    if (error instanceof AdminApiError && error.status === 404) {
+      throw notFound();
+    }
+    throw error;
+  }
 }
 
 /**

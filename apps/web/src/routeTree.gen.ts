@@ -38,13 +38,16 @@ import { Route as EventsNewRouteImport } from './routes/events.new'
 import { Route as SchoolsIndexRouteImport } from './routes/schools.index'
 import { Route as SchoolsSlugRouteImport } from './routes/schools.$slug'
 import { Route as SettingsIndexRouteImport } from './routes/settings.index'
+import { Route as SettingsDeleteAccountRouteImport } from './routes/settings.delete-account'
 import { Route as SettingsProfileRouteImport } from './routes/settings.profile'
 import { Route as TeamsIndexRouteImport } from './routes/teams.index'
 import { Route as TeamsSlugRouteImport } from './routes/teams.$slug'
 import { Route as TeamsNewRouteImport } from './routes/teams.new'
 import { Route as UsersIdRouteImport } from './routes/users.$id'
 import { Route as ApiAvatarsIdRouteImport } from './routes/api.avatars.$id'
+import { Route as ApiGamesCatalogSearchRouteImport } from './routes/api.games.catalog-search'
 import { Route as ApiGamesIgdbSearchRouteImport } from './routes/api.games.igdb-search'
+import { Route as ApiIgdbCoversImageIdRouteImport } from './routes/api.igdb-covers.$imageId'
 import { Route as EventsSlugEditRouteImport } from './routes/events.$slug_.edit'
 import { Route as EventsSlugPeopleRouteImport } from './routes/events.$slug_.people'
 import { Route as SchoolsSlugPeopleRouteImport } from './routes/schools.$slug_.people'
@@ -197,6 +200,11 @@ const SettingsIndexRoute = SettingsIndexRouteImport.update({
   path: '/',
   getParentRoute: () => SettingsRoute,
 } as any)
+const SettingsDeleteAccountRoute = SettingsDeleteAccountRouteImport.update({
+  id: '/delete-account',
+  path: '/delete-account',
+  getParentRoute: () => SettingsRoute,
+} as any)
 const SettingsProfileRoute = SettingsProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
@@ -227,9 +235,19 @@ const ApiAvatarsIdRoute = ApiAvatarsIdRouteImport.update({
   path: '/api/avatars/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiGamesCatalogSearchRoute = ApiGamesCatalogSearchRouteImport.update({
+  id: '/api/games/catalog-search',
+  path: '/api/games/catalog-search',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiGamesIgdbSearchRoute = ApiGamesIgdbSearchRouteImport.update({
   id: '/api/games/igdb-search',
   path: '/api/games/igdb-search',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiIgdbCoversImageIdRoute = ApiIgdbCoversImageIdRouteImport.update({
+  id: '/api/igdb-covers/$imageId',
+  path: '/api/igdb-covers/$imageId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EventsSlugEditRoute = EventsSlugEditRouteImport.update({
@@ -291,6 +309,7 @@ export interface FileRoutesByFullPath {
   '/events/$slug': typeof EventsSlugRoute
   '/events/new': typeof EventsNewRoute
   '/schools/$slug': typeof SchoolsSlugRoute
+  '/settings/delete-account': typeof SettingsDeleteAccountRoute
   '/settings/profile': typeof SettingsProfileRoute
   '/teams/$slug': typeof TeamsSlugRoute
   '/teams/new': typeof TeamsNewRoute
@@ -300,7 +319,9 @@ export interface FileRoutesByFullPath {
   '/settings/': typeof SettingsIndexRoute
   '/teams/': typeof TeamsIndexRoute
   '/api/avatars/$id': typeof ApiAvatarsIdRoute
+  '/api/games/catalog-search': typeof ApiGamesCatalogSearchRoute
   '/api/games/igdb-search': typeof ApiGamesIgdbSearchRoute
+  '/api/igdb-covers/$imageId': typeof ApiIgdbCoversImageIdRoute
   '/events/$slug/edit': typeof EventsSlugEditRoute
   '/events/$slug/people': typeof EventsSlugPeopleRoute
   '/schools/$slug/people': typeof SchoolsSlugPeopleRoute
@@ -331,6 +352,7 @@ export interface FileRoutesByTo {
   '/events/$slug': typeof EventsSlugRoute
   '/events/new': typeof EventsNewRoute
   '/schools/$slug': typeof SchoolsSlugRoute
+  '/settings/delete-account': typeof SettingsDeleteAccountRoute
   '/settings/profile': typeof SettingsProfileRoute
   '/teams/$slug': typeof TeamsSlugRoute
   '/teams/new': typeof TeamsNewRoute
@@ -340,7 +362,9 @@ export interface FileRoutesByTo {
   '/settings': typeof SettingsIndexRoute
   '/teams': typeof TeamsIndexRoute
   '/api/avatars/$id': typeof ApiAvatarsIdRoute
+  '/api/games/catalog-search': typeof ApiGamesCatalogSearchRoute
   '/api/games/igdb-search': typeof ApiGamesIgdbSearchRoute
+  '/api/igdb-covers/$imageId': typeof ApiIgdbCoversImageIdRoute
   '/events/$slug/edit': typeof EventsSlugEditRoute
   '/events/$slug/people': typeof EventsSlugPeopleRoute
   '/schools/$slug/people': typeof SchoolsSlugPeopleRoute
@@ -376,6 +400,7 @@ export interface FileRoutesById {
   '/events/$slug': typeof EventsSlugRoute
   '/events/new': typeof EventsNewRoute
   '/schools/$slug': typeof SchoolsSlugRoute
+  '/settings/delete-account': typeof SettingsDeleteAccountRoute
   '/settings/profile': typeof SettingsProfileRoute
   '/teams/$slug': typeof TeamsSlugRoute
   '/teams/new': typeof TeamsNewRoute
@@ -385,7 +410,9 @@ export interface FileRoutesById {
   '/settings/': typeof SettingsIndexRoute
   '/teams/': typeof TeamsIndexRoute
   '/api/avatars/$id': typeof ApiAvatarsIdRoute
+  '/api/games/catalog-search': typeof ApiGamesCatalogSearchRoute
   '/api/games/igdb-search': typeof ApiGamesIgdbSearchRoute
+  '/api/igdb-covers/$imageId': typeof ApiIgdbCoversImageIdRoute
   '/events/$slug_/edit': typeof EventsSlugEditRoute
   '/events/$slug_/people': typeof EventsSlugPeopleRoute
   '/schools/$slug_/people': typeof SchoolsSlugPeopleRoute
@@ -422,6 +449,7 @@ export interface FileRouteTypes {
     | '/events/$slug'
     | '/events/new'
     | '/schools/$slug'
+    | '/settings/delete-account'
     | '/settings/profile'
     | '/teams/$slug'
     | '/teams/new'
@@ -431,7 +459,9 @@ export interface FileRouteTypes {
     | '/settings/'
     | '/teams/'
     | '/api/avatars/$id'
+    | '/api/games/catalog-search'
     | '/api/games/igdb-search'
+    | '/api/igdb-covers/$imageId'
     | '/events/$slug/edit'
     | '/events/$slug/people'
     | '/schools/$slug/people'
@@ -462,6 +492,7 @@ export interface FileRouteTypes {
     | '/events/$slug'
     | '/events/new'
     | '/schools/$slug'
+    | '/settings/delete-account'
     | '/settings/profile'
     | '/teams/$slug'
     | '/teams/new'
@@ -471,7 +502,9 @@ export interface FileRouteTypes {
     | '/settings'
     | '/teams'
     | '/api/avatars/$id'
+    | '/api/games/catalog-search'
     | '/api/games/igdb-search'
+    | '/api/igdb-covers/$imageId'
     | '/events/$slug/edit'
     | '/events/$slug/people'
     | '/schools/$slug/people'
@@ -506,6 +539,7 @@ export interface FileRouteTypes {
     | '/events/$slug'
     | '/events/new'
     | '/schools/$slug'
+    | '/settings/delete-account'
     | '/settings/profile'
     | '/teams/$slug'
     | '/teams/new'
@@ -515,7 +549,9 @@ export interface FileRouteTypes {
     | '/settings/'
     | '/teams/'
     | '/api/avatars/$id'
+    | '/api/games/catalog-search'
     | '/api/games/igdb-search'
+    | '/api/igdb-covers/$imageId'
     | '/events/$slug_/edit'
     | '/events/$slug_/people'
     | '/schools/$slug_/people'
@@ -550,7 +586,9 @@ export interface RootRouteChildren {
   AuthVerifyEmailRoute: typeof AuthVerifyEmailRoute
   UsersIdRoute: typeof UsersIdRoute
   ApiAvatarsIdRoute: typeof ApiAvatarsIdRoute
+  ApiGamesCatalogSearchRoute: typeof ApiGamesCatalogSearchRoute
   ApiGamesIgdbSearchRoute: typeof ApiGamesIgdbSearchRoute
+  ApiIgdbCoversImageIdRoute: typeof ApiIgdbCoversImageIdRoute
   ApiEventsSlugCalendarDoticsRoute: typeof ApiEventsSlugCalendarDoticsRoute
   ApiGamesSlugCoverRoute: typeof ApiGamesSlugCoverRoute
 }
@@ -760,6 +798,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsIndexRouteImport
       parentRoute: typeof SettingsRoute
     }
+    '/settings/delete-account': {
+      id: '/settings/delete-account'
+      path: '/delete-account'
+      fullPath: '/settings/delete-account'
+      preLoaderRoute: typeof SettingsDeleteAccountRouteImport
+      parentRoute: typeof SettingsRoute
+    }
     '/settings/profile': {
       id: '/settings/profile'
       path: '/profile'
@@ -802,11 +847,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAvatarsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/games/catalog-search': {
+      id: '/api/games/catalog-search'
+      path: '/api/games/catalog-search'
+      fullPath: '/api/games/catalog-search'
+      preLoaderRoute: typeof ApiGamesCatalogSearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/games/igdb-search': {
       id: '/api/games/igdb-search'
       path: '/api/games/igdb-search'
       fullPath: '/api/games/igdb-search'
       preLoaderRoute: typeof ApiGamesIgdbSearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/igdb-covers/$imageId': {
+      id: '/api/igdb-covers/$imageId'
+      path: '/api/igdb-covers/$imageId'
+      fullPath: '/api/igdb-covers/$imageId'
+      preLoaderRoute: typeof ApiIgdbCoversImageIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/events/$slug_/edit': {
@@ -889,11 +948,13 @@ const SchoolsRouteWithChildren =
   SchoolsRoute._addFileChildren(SchoolsRouteChildren)
 
 interface SettingsRouteChildren {
+  SettingsDeleteAccountRoute: typeof SettingsDeleteAccountRoute
   SettingsProfileRoute: typeof SettingsProfileRoute
   SettingsIndexRoute: typeof SettingsIndexRoute
 }
 
 const SettingsRouteChildren: SettingsRouteChildren = {
+  SettingsDeleteAccountRoute: SettingsDeleteAccountRoute,
   SettingsProfileRoute: SettingsProfileRoute,
   SettingsIndexRoute: SettingsIndexRoute,
 }
@@ -944,7 +1005,9 @@ const rootRouteChildren: RootRouteChildren = {
   AuthVerifyEmailRoute: AuthVerifyEmailRoute,
   UsersIdRoute: UsersIdRoute,
   ApiAvatarsIdRoute: ApiAvatarsIdRoute,
+  ApiGamesCatalogSearchRoute: ApiGamesCatalogSearchRoute,
   ApiGamesIgdbSearchRoute: ApiGamesIgdbSearchRoute,
+  ApiIgdbCoversImageIdRoute: ApiIgdbCoversImageIdRoute,
   ApiEventsSlugCalendarDoticsRoute: ApiEventsSlugCalendarDoticsRoute,
   ApiGamesSlugCoverRoute: ApiGamesSlugCoverRoute,
 }

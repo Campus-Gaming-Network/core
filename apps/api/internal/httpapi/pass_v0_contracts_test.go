@@ -177,7 +177,7 @@ func TestPassV0SuccessResponseContracts(t *testing.T) {
 			authenticatedEventRequest(http.MethodGet, "/me/events?limit=5", ""),
 		)
 
-		payload := requireJSONContract(t, response, http.StatusOK, []string{"followed_school_events", "upcoming_rsvps"})
+		payload := requireJSONContract(t, response, http.StatusOK, []string{"followed_school_events", "interested_events", "upcoming_rsvps"})
 		upcomingEvents := requireJSONArrayContract(t, payload, "upcoming_rsvps", 1)
 		followedEvents := requireJSONArrayContract(t, payload, "followed_school_events", 1)
 		requireEventContract(t, upcomingEvents[0], appendContractKeys(eventContractKeys, "viewer_rsvp"))

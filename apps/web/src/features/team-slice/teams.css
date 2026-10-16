@@ -1,62 +1,124 @@
-.team-create-form {
-  margin-block-start: 1.5rem;
+/* The team page (header, membership panel,
+   owner controls), and the create-team form's games list. Shared layouts
+   (directory rows, detail columns, form pages) live in styles.css and
+   components.css. */
+
+/* ==== Team header ====
+   The membership panel beside the team's name and facts (reference sheets
+   06 and 11). The panel holds log in, the join form, or the viewer's role. */
+.team-header__actions {
+  display: grid;
+  gap: var(--space-3);
+  border: 1px solid var(--color-card-border);
+  border-radius: var(--radius-panel);
+  padding: var(--space-4);
+  background: var(--color-surface);
 }
 
-/* The game select, the school search and select, and the Filter button share
-   one row where they fit and wrap into a stack where they do not. The school
-   control's wrapper dissolves so its fields lay out with the others. */
-.search-bar.team-filter-bar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: end;
-  gap: 0.75rem;
+.team-header__actions > .button {
+  width: 100%;
 }
 
-.team-school-filter {
-  display: contents;
-}
-
-.team-filter-bar > label,
-.team-school-filter > label {
-  flex: 1 1 10rem;
-}
-
-.team-filter-bar > button {
-  flex: 0 0 auto;
-  min-width: 9rem;
-}
-
-.team-filter-bar .form-help,
-.team-filter-bar .form-error {
-  font-weight: 400;
-}
-
-/* The school search status and the active filter take a row of their own. */
-.team-school-filter > p,
-.team-active-filter {
-  flex: 1 0 100%;
+.team-header__actions .form-help,
+.team-role {
   margin: 0;
-  font-size: 0.8125rem;
 }
 
-.team-school-filter > p {
-  order: 2;
+.team-header__actions .form-help {
+  font-size: var(--text-sm);
 }
 
-.team-active-filter {
+.team-join-form {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.team-join-form > .form-help {
+  margin-top: calc(var(--space-2) * -1);
+}
+
+.team-join-form > button {
+  width: 100%;
+}
+
+/* ==== Team body ==== */
+.team-about h2 {
+  margin: 0 0 var(--space-3);
+}
+
+.team-about p {
+  max-width: var(--measure-width);
+  margin: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-line;
+}
+
+/* Owner controls: captains, then ownership transfer, divided by rules. */
+.team-manage h2 {
+  margin: 0 0 var(--space-4);
+}
+
+.team-management-section + .team-management-section {
+  margin-top: var(--space-5);
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--space-5);
+}
+
+.team-management-section h3 {
+  margin: 0 0 var(--space-1);
+  font-size: var(--text-md);
+}
+
+.team-management-section > .form-help {
+  margin: 0 0 var(--space-3);
+}
+
+.team-management-list {
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--color-border);
+  list-style: none;
+}
+
+.team-management-row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 0.25rem 1rem;
-  order: 3;
-  border-block-start: 1px solid var(--color-border);
-  padding-block-start: 0.75rem;
-  font-size: 0.875rem;
+  gap: var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  padding-block: var(--space-3);
 }
 
-.team-active-filter a {
-  font-weight: 750;
+.team-management-row form {
+  margin: 0;
+}
+
+.team-transfer-form {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-3);
+  max-width: 28rem;
+}
+
+.team-transfer-form > label {
+  justify-self: stretch;
+}
+
+.team-transfer-form > .form-help {
+  margin: 0;
+}
+
+/* ==== Create team ====
+   The school search, its status line, and the school select. */
+.team-school-field {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.team-school-field > p {
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-sm);
 }
 
 /* The games checkbox group sits inside a form section, so it only needs its
@@ -69,109 +131,17 @@
 }
 
 .team-game-group > legend {
+  margin-bottom: var(--space-2);
   padding: 0;
-  font-size: 0.875rem;
-  font-weight: 750;
+  font-weight: 600;
 }
 
 .team-game-group .form-error {
-  margin: 0.5rem 0 0;
+  margin: var(--space-2) 0 0;
 }
 
 .team-option-list {
   display: grid;
-  gap: 0.65rem;
-  margin-block-start: 0.65rem;
-}
-
-/* Owner controls: captains, then ownership transfer. One thin divider sits
-   above each group, and nothing inside is boxed. */
-.team-management-panel {
-  margin-block-start: 1.25rem;
-  border-block-start: 1px solid var(--color-border);
-  padding-block-start: 1.25rem;
-}
-
-.team-management-section + .team-management-section {
-  border-block-start: 1px solid var(--color-border);
-  margin-block-start: 1.25rem;
-  padding-block-start: 1.25rem;
-}
-
-.team-management-section h3 {
-  margin-block: 0 0.25rem;
-  font-size: 1rem;
-}
-
-.team-management-section > .form-help,
-.team-management-section > .empty-state {
-  margin-block: 0 0.75rem;
-}
-
-.team-management-row {
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  justify-content: space-between;
-}
-
-.team-management-row form {
-  margin: 0;
-}
-
-/* Member rows are plain lines on the panel: a divider between rows only. */
-.team-action-panel .team-management-row {
-  padding-block: 0.65rem;
-  padding-inline: 0;
-}
-
-.team-action-panel .team-management-row:first-child {
-  border-block-start: 0;
-}
-
-.team-action-panel .team-management-row:last-child {
-  border-block-end: 0;
-}
-
-.team-action-panel .empty-state {
-  border: 0;
-  padding: 0;
-  background: transparent;
-}
-
-.team-detail-main {
-  min-width: 0;
-}
-
-/* The membership panel is one standard card whose top lines up with the
-   key information card beside it. A form inside it is plain fields on that
-   card, not a card of its own, and its help text sits right under the field
-   it explains. */
-.team-detail-layout .team-action-panel {
-  margin-top: 0;
-  box-shadow: none;
-}
-
-.team-action-panel .form-stack {
-  gap: 0.5rem;
-  border: 0;
-  border-radius: 0;
-  padding: 0;
-  background: transparent;
-  box-shadow: none;
-}
-
-.team-action-panel .form-stack .form-help {
-  margin: 0;
-}
-
-.team-action-panel .form-stack > button {
-  margin-block-start: 0.5rem;
-}
-
-@media (max-width: 52rem) {
-  .team-filter-bar > button {
-    flex-basis: 100%;
-  }
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 13rem), 1fr));
+  gap: var(--space-2) var(--space-4);
 }

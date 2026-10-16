@@ -80,8 +80,9 @@ notifications.
 - Feature flags and site-wide announcements.
 - Arbitrary SQL, database browsers, shell access, or user-defined queries.
 - Bulk mutations, bulk messaging, or unrestricted exports.
-- Bulk or scheduled IGDB synchronization. Single-game search, import, and
-  refresh were added after v1 scope was set; see [04 — API](./04-api.md#admin-api).
+- Bulk or scheduled IGDB synchronization. Single-game refresh was added
+  after v1 scope was set. Admins do not add games; users do. See
+  [04 — API](./04-api.md#admin-api).
 - User data export/deletion tooling; those need a separate privacy workflow.
 - Editing passwords, primary emails, MFA methods, or recovery credentials.
 - Rich HTML notes or messages.
@@ -448,13 +449,10 @@ applicable.
 | Method | Path                                     | Capability/control              | Purpose                              |
 | ------ | ---------------------------------------- | ------------------------------- | ------------------------------------ |
 | GET    | `/admin/v1/games`                        | `games.manage`                  | List active/deleted catalog entries  |
-| POST   | `/admin/v1/games`                        | `games.manage`                  | Create curated entry                 |
 | GET    | `/admin/v1/games/:id`                    | `games.manage`                  | Catalog entry detail and version     |
 | PATCH  | `/admin/v1/games/:id`                    | `games.manage`                  | Edit/version-check entry             |
 | GET    | `/admin/v1/games/:id/audit`              | `audit.read`                    | Catalog entry change history         |
 | DELETE | `/admin/v1/games/:id`                    | `games.manage`                  | Soft-delete with dependency checks   |
-| GET    | `/admin/v1/igdb-games`                   | `games.manage`                  | Search IGDB by name                  |
-| POST   | `/admin/v1/game-imports`                 | `games.manage`                  | Import one IGDB game, inactive       |
 | POST   | `/admin/v1/games/:id/refresh`            | `games.manage`                  | Re-sync an imported game from IGDB   |
 | GET    | `/admin/v1/games/:id/cover`              | `games.manage`                  | Stored cover for review              |
 | GET    | `/admin/v1/users`                        | `users.read`                    | Name anywhere, email prefix          |
@@ -997,9 +995,9 @@ schools with user/event/team history or active follows/grants, and games with
 event/team references. Reference insertion and deletion coordinate through row
 locks, including inserts that started before a soft delete. School mutations
 invalidate and refresh the serving API process's catalog after commit; a failed
-refresh falls back to database reads. Inactive games leave the public picker
-while existing event/team associations remain readable, and editing an event
-keeps its inactive games.
+refresh falls back to database reads. Inactive games leave game search and the
+directory filters while existing event/team associations remain readable, and
+editing an event keeps its inactive games.
 
 API contracts for AC-013:
 

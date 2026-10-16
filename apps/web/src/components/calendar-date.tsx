@@ -1,6 +1,8 @@
+import { eventWeekday } from "../features/event-slice/presentation";
+
 /**
  * A calendar-page tile for an event's start date: the month on a colored band
- * above a large day number, in the event's own time zone. Pass `decorative`
+ * above a large day number and the weekday, in the event's own time zone. Pass `decorative`
  * where the full date is already written out beside it (event rows), so
  * assistive technology does not read it twice.
  */
@@ -20,6 +22,7 @@ export function CalendarDate({
     month: "short",
     timeZone: timezone,
   }).format(start);
+  const weekday = eventWeekday({ starts_at: startsAt, timezone });
   const day = new Intl.DateTimeFormat("en-US", {
     day: "numeric",
     timeZone: timezone,
@@ -37,6 +40,7 @@ export function CalendarDate({
     >
       <span className="calendar-date__month">{month}</span>
       <span className="calendar-date__day">{day}</span>
+      <span className="calendar-date__weekday">{weekday}</span>
     </time>
   );
 }

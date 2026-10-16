@@ -1,4 +1,6 @@
 import { useServerFn } from "@tanstack/react-start";
+import { Link } from "@tanstack/react-router";
+import { CircleCheck } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Callout } from "../../components/callout";
 import { FormErrorSummary } from "../../components/enhanced-mutation";
@@ -20,6 +22,7 @@ export function SupportTicketForm({
   const idempotency = useIdempotencyKey(idempotencyKey);
   const runSubmission = useServerFn(submitSupportTicket);
   const errorSummaryRef = useRef<HTMLDivElement>(null);
+  const successRef = useRef<HTMLDivElement>(null);
   const [pending, setPending] = useState(false);
   const [result, setResult] = useState<{
     status: "idle" | "success" | "error";
@@ -31,15 +34,17 @@ export function SupportTicketForm({
     if (result.status === "error" && result.message) {
       errorSummaryRef.current?.focus();
     }
+    if (result.status === "success") successRef.current?.focus();
   }, [result]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const form = event.currentTarget;
     setPending(true);
     setResult({ status: "idle", message: "", fieldErrors: emptyErrors });
     try {
       const next = await runSubmission({
-        data: new FormData(event.currentTarget),
+        data: new FormData(form),
       });
       setResult({
         status: next.status,
@@ -49,7 +54,11 @@ export function SupportTicketForm({
             ? (next.fieldErrors ?? emptyErrors)
             : emptyErrors,
       });
-      if (next.status === "success") idempotency.rotate();
+      if (next.status === "success") {
+        // The ticket is sent: start the next one empty with a fresh key.
+        form.reset();
+        idempotency.rotate();
+      }
     } catch {
       setResult({
         status: "error",
@@ -78,7 +87,7 @@ export function SupportTicketForm({
   return (
     <form
       action={submitSupportTicket.url}
-      className="form-stack sectioned-form"
+      className="form-stack sectioned-form support-form"
       method="post"
       onSubmit={submit}
     >
@@ -95,10 +104,23 @@ export function SupportTicketForm({
           message={result.message || initialMessage}
           summaryRef={errorSummaryRef}
         />
-      ) : result.message || initialMessage ? (
-        <p aria-live="polite" role="status">
-          {result.message || initialMessage}
-        </p>
+      ) : status === "success" ? (
+        <div
+          className="support-success"
+          ref={successRef}
+          role="status"
+          tabIndex={-1}
+        >
+          <CircleCheck aria-hidden="true" size={24} strokeWidth={1.75} />
+          <div>
+            <strong>{result.message || initialMessage}</strong>
+            <p>
+              If we need more detail, we will use the email address you gave.
+              The <Link to="/faq">FAQ</Link> may answer related questions
+              meanwhile.
+            </p>
+          </div>
+        </div>
       ) : null}
 
       <RequiredFieldsNote />
@@ -116,6 +138,8 @@ export function SupportTicketForm({
               name="contact_email"
               type="email"
               autoComplete="email"
+              autoCapitalize="none"
+              spellCheck={false}
               required
             />
           </FormField>
@@ -124,6 +148,7 @@ export function SupportTicketForm({
             errors={result.fieldErrors.name}
             label="Name"
             optional
+            characterCount
           >
             <input name="name" autoComplete="name" maxLength={120} />
           </FormField>
@@ -137,13 +162,15 @@ export function SupportTicketForm({
           errorId="subject-error"
           errors={result.fieldErrors.subject}
           label="Subject"
+          characterCount
         >
-          <input name="subject" required maxLength={160} />
+          <input autoComplete="off" name="subject" required maxLength={160} />
         </FormField>
         <FormField
           errorId="message-error"
           errors={result.fieldErrors.message}
           label="Message"
+          characterCount
         >
           <textarea name="message" required maxLength={5000} rows={7} />
         </FormField>

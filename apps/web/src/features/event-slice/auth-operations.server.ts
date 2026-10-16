@@ -32,7 +32,7 @@ type Dependencies = {
   reportError?: (error: unknown) => void;
 };
 
-export type LogoutResult = {
+type LogoutResult = {
   status: "success";
   redirectTo: "/";
 };

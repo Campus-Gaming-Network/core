@@ -6,10 +6,19 @@ import { ListUnavailable } from "../../components/route-boundaries";
 import type { PeopleListResult, PersonDTO } from "./contracts";
 import { personDetail } from "./presentation";
 
-/** Everyone on a page of a list, each name linked to their public profile. */
-export function PersonList({ people }: { people: PersonDTO[] }) {
+/**
+ * Everyone on a page of a list, each name linked to their public profile.
+ * `rows` lays them out as one dense row each instead of a grid of tiles.
+ */
+export function PersonList({
+  people,
+  rows = false,
+}: {
+  people: PersonDTO[];
+  rows?: boolean;
+}) {
   return (
-    <ul className="people-list">
+    <ul className={rows ? "people-list people-list--rows" : "people-list"}>
       {people.map((person) => (
         <li key={person.id}>
           <Person
@@ -78,11 +87,13 @@ export function PeopleResults({
   emptyHeading,
   emptyMessage,
   result,
+  rows = false,
   unavailableHeading,
 }: {
   emptyHeading: string;
   emptyMessage: string;
   result: PeopleListResult;
+  rows?: boolean;
   unavailableHeading: string;
 }) {
   if (result.status !== "found") {
@@ -96,7 +107,7 @@ export function PeopleResults({
       </section>
     );
   }
-  return <PersonList people={result.list.people} />;
+  return <PersonList people={result.list.people} rows={rows} />;
 }
 
 /** Previous and Next links, each present only when there is a page that way. */

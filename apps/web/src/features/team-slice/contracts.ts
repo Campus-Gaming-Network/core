@@ -5,7 +5,11 @@ import {
   pickedIGDBGameIDsSchema,
 } from "../game-picker/contracts.js";
 import { pageNoticeKey } from "../../components/page-notice.js";
-import type { WithSchoolLogo } from "../school-slice/contracts.js";
+import type { GameFilterChoices } from "../game-picker/contracts.js";
+import type {
+  SchoolFilterChoices,
+  WithSchoolLogo,
+} from "../school-slice/contracts.js";
 import {
   teamDetailNotices,
   teamBrowseNotices,
@@ -24,7 +28,7 @@ export const teamsPageSize = 25;
 
 export const teamRoleSchema = z.enum(["owner", "captain", "member"]);
 
-export const schoolSummaryDtoSchema = z.object({
+const schoolSummaryDtoSchema = z.object({
   id: identifierSchema,
   name: z.string(),
   slug: identifierSchema,
@@ -38,6 +42,12 @@ export const gameSummaryDtoSchema = z.object({
   slug: identifierSchema,
 });
 
+// The catalog list for the team form's game field: a game also says, through
+// `cover_url`, whether the site serves its cover.
+const catalogGameDtoSchema = gameSummaryDtoSchema.extend({
+  cover_url: z.string().optional(),
+});
+
 /** Public team fields allowed to cross the Start loader boundary. */
 export const teamDtoSchema = z.object({
   id: identifierSchema,
@@ -49,7 +59,7 @@ export const teamDtoSchema = z.object({
   games: z.array(gameSummaryDtoSchema),
 });
 
-export const teamMemberDtoSchema = z.object({
+const teamMemberDtoSchema = z.object({
   user_id: identifierSchema,
   name: z.string(),
   role: teamRoleSchema,
@@ -78,6 +88,11 @@ export const gamesResponseDtoSchema = z.object({
   games: z.array(gameSummaryDtoSchema),
 });
 
+/** The team form's game list, which also carries each game's cover flag. */
+export const catalogGamesResponseDtoSchema = z.object({
+  games: z.array(catalogGameDtoSchema),
+});
+
 export const schoolsResponseDtoSchema = z.object({
   schools: z.array(schoolSummaryDtoSchema),
   limit: nonNegativeIntegerSchema,
@@ -95,6 +110,7 @@ export const teamsBrowseInputSchema = z.object({
 /** The teams browse page also names the filtered school and searches schools. */
 export const teamsBrowsePageInputSchema = teamsBrowseInputSchema.extend({
   schoolQuery: schoolQuerySchema,
+  gameQuery: z.string().trim().max(100),
 });
 
 export const teamSlugInputSchema = z.object({ slug: identifierSchema });
@@ -114,7 +130,7 @@ const teamPasswordSchema = z
   .min(8, "Password must be at least 8 characters.")
   .max(200, "Password must be 200 characters or fewer.");
 
-export const createTeamInputSchema = z
+const createTeamInputSchema = z
   .object({
     name: teamNameSchema,
     description: teamDescriptionSchema,
@@ -138,16 +154,16 @@ export const createTeamInputSchema = z
     }
   });
 
-export const joinTeamInputSchema = teamSlugInputSchema.extend({
+const joinTeamInputSchema = teamSlugInputSchema.extend({
   password: teamPasswordSchema,
 });
 
-export const setTeamCaptainInputSchema = teamSlugInputSchema.extend({
+const setTeamCaptainInputSchema = teamSlugInputSchema.extend({
   user_id: identifierSchema,
   captain: z.boolean(),
 });
 
-export const transferTeamOwnershipInputSchema = teamSlugInputSchema.extend({
+const transferTeamOwnershipInputSchema = teamSlugInputSchema.extend({
   new_owner_user_id: identifierSchema,
 });
 
@@ -183,31 +199,27 @@ export type TeamsSearch = {
   school?: string;
   /** Searches schools for the no-JavaScript school selector. */
   school_q?: string;
+  /** Searches games for the no-JavaScript game filter. */
+  game_q?: string;
   after?: string;
   before?: string;
   team?: TeamBrowseNotice;
 };
 
-export type TeamDetailSearch = { team?: TeamDetailNotice };
+type TeamDetailSearch = { team?: TeamDetailNotice };
 
-export type NewTeamSearch = {
+type NewTeamSearch = {
   school_q?: string;
   team?: "create-failed";
 };
 
 export type TeamsBrowseResult = z.output<typeof teamsResponseDtoSchema> & {
-  games: GameSummaryDTO[];
-  gamesUnavailable: boolean;
   teamsUnavailable: boolean;
 };
 
-export type TeamsBrowsePageResult = TeamsBrowseResult & {
-  /** The school named by the `school` filter; absent when it cannot be found. */
-  selectedSchool?: SchoolSummaryDTO;
-  /** Matches for the `school_q` search. */
-  schools: SchoolSummaryDTO[];
-  schoolSearchFailed: boolean;
-};
+export type TeamsBrowsePageResult = TeamsBrowseResult &
+  SchoolFilterChoices &
+  GameFilterChoices;
 
 export type TeamDetailResult =
   | {
@@ -236,9 +248,9 @@ export type TeamMutationResult =
   | { status: "success"; redirectTo: string }
   | { status: "error"; message: string; fieldErrors?: TeamFieldErrors };
 
-export type TeamFieldErrors = Record<string, string[] | undefined>;
+type TeamFieldErrors = Record<string, string[] | undefined>;
 
-export type ValidatedTeamInput<T> =
+type ValidatedTeamInput<T> =
   | { valid: true; value: T }
   | {
       valid: false;
@@ -253,6 +265,7 @@ export function validateTeamsSearch(
   const game = tolerantSearchValue(search.game, 200);
   const school = tolerantSearchValue(search.school, 200);
   const schoolQuery = tolerantSearchValue(search.school_q, 120);
+  const gameQuery = tolerantSearchValue(search.game_q, 100);
   const after = tolerantSearchValue(search.after, 2048);
   const before = tolerantSearchValue(search.before, 2048);
   const team = pageNoticeKey(teamBrowseNotices, search.team);
@@ -261,6 +274,7 @@ export function validateTeamsSearch(
     ...(game ? { game } : {}),
     ...(school ? { school } : {}),
     ...(schoolQuery ? { school_q: schoolQuery } : {}),
+    ...(gameQuery ? { game_q: gameQuery } : {}),
     ...(after ? { after } : {}),
     ...(before ? { before } : {}),
     ...(team ? { team } : {}),
@@ -279,7 +293,11 @@ export function teamsBrowseInput(search: TeamsSearch): TeamsBrowseInput {
 export function teamsBrowsePageInput(
   search: TeamsSearch,
 ): TeamsBrowsePageInput {
-  return { ...teamsBrowseInput(search), schoolQuery: search.school_q ?? "" };
+  return {
+    ...teamsBrowseInput(search),
+    schoolQuery: search.school_q ?? "",
+    gameQuery: search.game_q ?? "",
+  };
 }
 
 export function validateTeamDetailSearch(

@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+// Game is a catalog game as the public API shows it.
 type Game struct {
 	ID       string `json:"id"`
 	Name     string `json:"name"`
@@ -19,11 +21,23 @@ type Game struct {
 	HasCover bool `json:"-"`
 }
 
+// Repository is the public, read-only view of the game catalog.
 type Repository interface {
 	List(ctx context.Context) ([]Game, error)
+	Search(ctx context.Context, query string, limit int) ([]Game, error)
 	GetBySlug(ctx context.Context, slug string) (Game, error)
 }
 
+// MaximumSearchQueryLength is the longest name a search accepts, in characters.
+const MaximumSearchQueryLength = 100
+
+// DefaultSearchLimit and MaximumSearchLimit bound how many matches a search returns.
+const (
+	DefaultSearchLimit = 20
+	MaximumSearchLimit = 50
+)
+
+// PostgresRepository stores the game catalog in Postgres.
 type PostgresRepository struct {
 	pool *pgxpool.Pool
 }
@@ -35,10 +49,12 @@ type gameScanner interface {
 	Scan(dest ...any) error
 }
 
+// NewPostgresRepository returns a repository backed by pool.
 func NewPostgresRepository(pool *pgxpool.Pool) *PostgresRepository {
 	return &PostgresRepository{pool: pool}
 }
 
+// List returns every active game by name.
 func (r *PostgresRepository) List(ctx context.Context) ([]Game, error) {
 	rows, err := r.pool.Query(ctx, `
 		SELECT `+gameColumns+`
@@ -49,6 +65,35 @@ func (r *PostgresRepository) List(ctx context.Context) ([]Game, error) {
 	if err != nil {
 		return nil, fmt.Errorf("list games: %w", err)
 	}
+	return collectGames(rows)
+}
+
+// Search lists up to limit active games whose name contains query, ignoring
+// case: an exact name first, then names that start with the query, then the
+// rest, each by name. The query matches literally; % and _ are not wildcards.
+func (r *PostgresRepository) Search(ctx context.Context, query string, limit int) ([]Game, error) {
+	query = strings.TrimSpace(query)
+	escaped := likeEscaper.Replace(query)
+	rows, err := r.pool.Query(ctx, `
+		SELECT `+gameColumns+`
+		FROM games
+		WHERE deleted_at IS NULL AND is_active = TRUE
+			AND name ILIKE '%' || $1 || '%' ESCAPE '\'
+		ORDER BY lower(name) = lower($2) DESC,
+			name ILIKE $1 || '%' ESCAPE '\' DESC,
+			name, id
+		LIMIT $3
+	`, escaped, query, limit)
+	if err != nil {
+		return nil, fmt.Errorf("search games: %w", err)
+	}
+	return collectGames(rows)
+}
+
+// likeEscaper makes a search query match literally inside an ILIKE pattern.
+var likeEscaper = strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`)
+
+func collectGames(rows pgx.Rows) ([]Game, error) {
 	defer rows.Close()
 
 	result := make([]Game, 0)
@@ -65,6 +110,8 @@ func (r *PostgresRepository) List(ctx context.Context) ([]Game, error) {
 	return result, nil
 }
 
+// GetBySlug returns an active game by slug. A hidden or deleted game is not
+// found.
 func (r *PostgresRepository) GetBySlug(ctx context.Context, slug string) (Game, error) {
 	return scanGame(r.pool.QueryRow(ctx, `
 		SELECT `+gameColumns+`
@@ -75,8 +122,7 @@ func (r *PostgresRepository) GetBySlug(ctx context.Context, slug string) (Game, 
 
 func scanGame(scanner gameScanner) (Game, error) {
 	var game Game
-	err := scanner.Scan(&game.ID, &game.Name, &game.Slug, &game.CoverURL, &game.HasCover)
-	if err != nil {
+	if err := scanner.Scan(&game.ID, &game.Name, &game.Slug, &game.CoverURL, &game.HasCover); err != nil {
 		return Game{}, err
 	}
 	return game, nil

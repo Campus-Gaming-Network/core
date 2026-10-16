@@ -34,6 +34,19 @@ func (picker *fakeGamePicker) EnsureFromIGDB(_ context.Context, igdbID int64) (g
 	return games.AdminGame{Game: games.Game{ID: "igdb-" + string(rune('0'+igdbID))}}, nil
 }
 
+// SearchResultCover knows one image, co1, and fails on "igdb-down".
+func (*fakeGamePicker) SearchResultCover(_ context.Context, imageID, knownETag string) (games.Cover, error) {
+	switch {
+	case imageID == "igdb-down":
+		return games.Cover{}, igdb.ErrUnavailable
+	case imageID != "co1":
+		return games.Cover{}, games.ErrCoverNotFound
+	case knownETag == "co1":
+		return games.Cover{ETag: "co1"}, nil
+	}
+	return games.Cover{ContentType: "image/jpeg", ETag: "co1", Bytes: []byte{0xFF, 0xD8, 0xFF}}, nil
+}
+
 func (picker *fakeGamePicker) EnsureCustom(_ context.Context, name string) (games.AdminGame, error) {
 	picker.typed = append(picker.typed, name)
 	return games.AdminGame{Game: games.Game{ID: "typed-game"}}, nil
@@ -74,6 +87,45 @@ func TestGameSearchNeedsASessionAndIGDBAndIsRateLimited(t *testing.T) {
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("responses = %+v, want %+v", got, want)
+	}
+}
+
+func TestSearchResultCoversAreServedWithoutASessionAndCachedForAWeek(t *testing.T) {
+	type result struct {
+		Status       int
+		ContentType  string
+		CacheControl string
+		ETag         string
+		Body         string
+	}
+	serve := func(router *Router, imageID, knownETag string) result {
+		request := httptest.NewRequest(http.MethodGet, "/igdb-covers/"+imageID, nil)
+		request.SetPathValue("imageID", imageID)
+		if knownETag != "" {
+			request.Header.Set("If-None-Match", `"`+knownETag+`"`)
+		}
+		response := httptest.NewRecorder()
+		router.handleSearchResultCover(response, request)
+		return result{response.Code, response.Header().Get("Content-Type"), response.Header().Get("Cache-Control"), response.Header().Get("ETag"), response.Body.String()}
+	}
+	router := &Router{picker: &fakeGamePicker{}}
+	cached := "public, max-age=604800, immutable"
+	got := []result{
+		serve(router, "co1", ""),
+		serve(router, "co1", "co1"),
+		serve(router, "unlisted", ""),
+		serve(router, "igdb-down", ""),
+		serve(&Router{}, "co1", ""),
+	}
+	want := []result{
+		{Status: 200, ContentType: "image/jpeg", CacheControl: cached, ETag: `"co1"`, Body: "\xff\xd8\xff"},
+		{Status: 304, CacheControl: cached, ETag: `"co1"`},
+		{Status: 404, ContentType: "application/json", Body: `{"error":"game_cover_not_found"}` + "\n"},
+		{Status: 503, ContentType: "application/json", Body: `{"error":"igdb_unavailable"}` + "\n"},
+		{Status: 503, ContentType: "application/json", Body: `{"error":"igdb_not_configured"}` + "\n"},
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("covers = %+v, want %+v", got, want)
 	}
 }
 

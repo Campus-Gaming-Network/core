@@ -169,6 +169,7 @@ func scanEventForUser(scanner eventScanner, now time.Time) (Event, error) {
 		&gameCovers,
 		&viewerRSVP,
 		&event.ViewerInterested,
+		&event.ViewerCanEdit,
 	)
 	if err != nil {
 		return Event{}, err
@@ -307,7 +308,14 @@ func eventSelectForUserSQL(whereClause string, tailClause string) string {
 		           ARRAY[]::boolean[]
 		       ),
 		       viewer_rsvp.response,
-		       (viewer_interest.user_id IS NOT NULL)
+		       (viewer_interest.user_id IS NOT NULL),
+		       EXISTS (
+		           SELECT 1
+		           FROM event_organizers viewer_organizer
+		           WHERE viewer_organizer.event_id = e.id
+		             AND viewer_organizer.user_id = $1::uuid
+		             AND viewer_organizer.deleted_at IS NULL
+		       )
 		FROM events e
 		JOIN schools s ON s.id = e.host_school_id
 		LEFT JOIN event_games eg ON eg.event_id = e.id

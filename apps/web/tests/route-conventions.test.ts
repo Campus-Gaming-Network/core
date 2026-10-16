@@ -28,8 +28,11 @@ test("shared route defaults preserve safe pending, error, and not-found conventi
     "Error retry must invalidate stale loader data before resetting the boundary",
   );
   assert.doesNotMatch(boundaries, /error\.message/);
-  assert.match(boundaries, /Page not found \| Campus Gaming Network/);
-  assert.match(boundaries, /That page does not exist on Campus Gaming Network/);
+  // Not-found titles read "<what> | Campus Gaming Network", "Page not found"
+  // by default.
+  assert.match(boundaries, /title: pageTitle = "Page not found"/);
+  assert.match(boundaries, /`\$\{pageTitle\} \| \$\{siteName\}`/);
+  assert.match(boundaries, /The link may be broken or out of date/);
   assert.match(boundaries, /property="og:description"/);
   assert.match(boundaries, /name="twitter:description"/);
   assert.match(boundaries, /name="robots" content="noindex,nofollow"/);
@@ -38,7 +41,13 @@ test("shared route defaults preserve safe pending, error, and not-found conventi
   assert.match(router, /defaultErrorComponent: DefaultError/);
   assert.match(router, /defaultNotFoundComponent: DefaultNotFound/);
   assert.match(root, /pendingComponent: DefaultPending/);
-  assert.match(root, /errorComponent: DefaultError/);
+  // The root's error view is the shared one inside the site shell, so a
+  // failure at the root keeps the header and footer.
+  assert.match(root, /errorComponent: RootError/);
+  assert.match(
+    root,
+    /<SiteShell>\s*<DefaultError \{\.\.\.props\} \/>\s*<\/SiteShell>/,
+  );
   assert.match(root, /notFoundComponent: DefaultNotFound/);
   assert.match(root, /shellComponent: RootDocument/);
   assert.match(event, /<RoutePending message="Loading event…"/);

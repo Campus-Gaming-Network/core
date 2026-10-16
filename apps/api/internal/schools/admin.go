@@ -31,6 +31,8 @@ type AdminFields struct {
 	NumBranches  int      `json:"num_branches"`
 }
 
+// AdminSchool is a school as the Admin Console sees it, including inactive and
+// deleted records.
 type AdminSchool struct {
 	AdminFields
 	ID        string     `json:"id"`
@@ -41,6 +43,7 @@ type AdminSchool struct {
 	DeletedAt *time.Time `json:"deleted_at"`
 }
 
+// AdminEdit is a create or update command: the mutation metadata plus the form.
 type AdminEdit struct {
 	adminmutation.Command
 	AdminFields
@@ -59,6 +62,7 @@ func scanAdminSchool(row pgx.Row) (AdminSchool, error) {
 	return s, adminmutation.Error(err)
 }
 
+// Validate checks the form fields without touching the database.
 func (fields AdminFields) Validate() error {
 	if !adminmutation.Text(fields.Name, 300, true) || !adminmutation.Text(fields.Alias, 1000, false) ||
 		!adminmutation.Text(fields.ShortName, 40, false) ||
@@ -116,6 +120,7 @@ func (r *PostgresRepository) ListAdmin(ctx context.Context, filter adminmutation
 	return items, rows.Err()
 }
 
+// GetAdmin returns a school in any state, or adminmutation.ErrNotFound.
 func (r *PostgresRepository) GetAdmin(ctx context.Context, id string) (AdminSchool, error) {
 	if !adminmutation.UUID(id) {
 		return AdminSchool{}, adminmutation.ErrNotFound
@@ -123,6 +128,7 @@ func (r *PostgresRepository) GetAdmin(ctx context.Context, id string) (AdminScho
 	return scanAdminSchool(r.pool.QueryRow(ctx, `SELECT `+adminSchoolColumns+` FROM schools WHERE id=$1::uuid`, id))
 }
 
+// CreateAdmin inserts a school and audits it in one transaction.
 func (r *PostgresRepository) CreateAdmin(ctx context.Context, input AdminEdit) (AdminSchool, error) {
 	if err := input.Command.Validate(false); err != nil {
 		return AdminSchool{}, err
@@ -149,6 +155,8 @@ func (r *PostgresRepository) CreateAdmin(ctx context.Context, input AdminEdit) (
 	return s, tx.Commit(ctx)
 }
 
+// UpdateAdmin replaces a school's editable fields if the caller saw the latest
+// version.
 func (r *PostgresRepository) UpdateAdmin(ctx context.Context, id string, input AdminEdit) (AdminSchool, error) {
 	if err := input.AdminFields.Validate(); err != nil {
 		return AdminSchool{}, err
@@ -156,16 +164,24 @@ func (r *PostgresRepository) UpdateAdmin(ctx context.Context, id string, input A
 	return r.changeAdmin(ctx, id, input.Command, adminaudit.ActionSchoolUpdated, &input.AdminFields)
 }
 
+// DeactivateAdmin hides an active school from the public catalog.
 func (r *PostgresRepository) DeactivateAdmin(ctx context.Context, id string, command adminmutation.Command) (AdminSchool, error) {
 	return r.changeAdmin(ctx, id, command, adminaudit.ActionSchoolDeactivated, nil)
 }
+
+// ReactivateAdmin returns an inactive school to the public catalog.
 func (r *PostgresRepository) ReactivateAdmin(ctx context.Context, id string, command adminmutation.Command) (AdminSchool, error) {
 	return r.changeAdmin(ctx, id, command, adminaudit.ActionSchoolReactivated, nil)
 }
+
+// DeleteAdmin soft-deletes a school that nothing references.
 func (r *PostgresRepository) DeleteAdmin(ctx context.Context, id string, command adminmutation.Command) (AdminSchool, error) {
 	return r.changeAdmin(ctx, id, command, adminaudit.ActionSchoolDeleted, nil)
 }
 
+// changeAdmin applies one named lifecycle action under a row lock. It rejects a
+// stale version, a deleted school, and a transition the school is already in,
+// then audits the before and after states in the same transaction.
 func (r *PostgresRepository) changeAdmin(ctx context.Context, id string, command adminmutation.Command, action adminaudit.Action, fields *AdminFields) (AdminSchool, error) {
 	if !adminmutation.UUID(id) {
 		return AdminSchool{}, adminmutation.ErrNotFound

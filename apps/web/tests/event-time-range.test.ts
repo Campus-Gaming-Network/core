@@ -3,48 +3,69 @@ import test from "node:test";
 import { eventTimeRange } from "../src/features/event-slice/presentation.js";
 
 // The expected strings are independent of the process time zone because the
-// formatter always uses the event's own zone.
+// formatter always uses the event's own zone. `now` is fixed so the year rule
+// does not depend on when the tests run.
+const now = new Date("2026-06-15T12:00:00Z");
+
 const cases = [
   {
-    name: "Chicago evening in daylight time",
+    name: "a one-day event this year with its date once and no year",
     event: {
       starts_at: "2026-09-05T00:00:00Z",
       ends_at: "2026-09-05T02:00:00Z",
       timezone: "America/Chicago",
     },
-    want: "Sep 4, 2026, 7:00 PM CDT – Sep 4, 2026, 9:00 PM CDT",
+    want: "Sep 4, 7:00 PM – 9:00 PM CDT",
   },
   {
-    name: "Chicago evening in standard time",
+    name: "a one-day event in standard time",
     event: {
       starts_at: "2026-12-04T01:00:00Z",
       ends_at: "2026-12-04T03:00:00Z",
       timezone: "America/Chicago",
     },
-    want: "Dec 3, 2026, 7:00 PM CST – Dec 3, 2026, 9:00 PM CST",
+    want: "Dec 3, 7:00 PM – 9:00 PM CST",
   },
   {
-    name: "event crossing local midnight",
+    name: "an event crossing local midnight with both dates",
     event: {
       starts_at: "2026-09-05T03:00:00Z",
       ends_at: "2026-09-05T07:00:00Z",
       timezone: "America/Los_Angeles",
     },
-    want: "Sep 4, 2026, 8:00 PM PDT – Sep 5, 2026, 12:00 AM PDT",
+    want: "Sep 4, 8:00 PM – Sep 5, 12:00 AM PDT",
   },
   {
-    name: "fall-back night labeling the repeated hour",
+    name: "a fall-back night labeling both zones",
     event: {
       starts_at: "2026-11-01T05:30:00Z",
       ends_at: "2026-11-01T07:30:00Z",
       timezone: "America/New_York",
     },
-    want: "Nov 1, 2026, 1:30 AM EDT – Nov 1, 2026, 2:30 AM EST",
+    want: "Nov 1, 1:30 AM EDT – 2:30 AM EST",
+  },
+  {
+    name: "a one-day event next year with the year",
+    event: {
+      starts_at: "2027-08-12T20:45:00Z",
+      ends_at: "2027-08-13T00:45:00Z",
+      timezone: "America/Phoenix",
+    },
+    want: "Aug 12, 2027, 1:45 PM – 5:45 PM MST",
+  },
+  {
+    name: "an event ending in the next year with the year on both dates",
+    event: {
+      starts_at: "2027-01-01T02:00:00Z",
+      ends_at: "2027-01-01T06:00:00Z",
+      timezone: "America/New_York",
+    },
+    want: "Dec 31, 2026, 9:00 PM – Jan 1, 2027, 1:00 AM EST",
   },
 ];
 
 for (const { name, event, want } of cases) {
-  test(`eventTimeRange renders ${name} with the zone abbreviation`, () => {
-    assert.equal(eventTimeRange(event), want);
+  test(`eventTimeRange renders ${name}`, () => {
+    assert.equal(eventTimeRange(event, now), want);
   });
 }

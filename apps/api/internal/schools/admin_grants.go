@@ -12,6 +12,8 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
+// AdminGrant is a user's grant to administer a school. RevokedAt is set once
+// the grant is revoked; a revoked grant can be granted again.
 type AdminGrant struct {
 	ID        string     `json:"id"`
 	SchoolID  string     `json:"school_id"`
@@ -21,6 +23,8 @@ type AdminGrant struct {
 	UpdatedAt time.Time  `json:"updated_at"`
 	RevokedAt *time.Time `json:"revoked_at"`
 }
+
+// GrantAdminInput is the command to grant a user school admin access.
 type GrantAdminInput struct {
 	adminmutation.Command
 	UserID string `json:"user_id"`
@@ -28,6 +32,7 @@ type GrantAdminInput struct {
 
 const adminGrantColumns = `id::text,school_id::text,user_id::text,created_at,updated_at,deleted_at,COALESCE((SELECT name FROM users WHERE users.id=school_admins.user_id),'')`
 
+// GetAdminGrant returns one grant of the school, or adminmutation.ErrNotFound.
 func (r *PostgresRepository) GetAdminGrant(ctx context.Context, schoolID, grantID string) (AdminGrant, error) {
 	if !adminmutation.UUID(schoolID) || !adminmutation.UUID(grantID) {
 		return AdminGrant{}, adminmutation.ErrNotFound
@@ -42,6 +47,7 @@ func scanAdminGrant(row pgx.Row) (AdminGrant, error) {
 	return g, err
 }
 
+// ListAdminGrants pages through a school's grants, newest first.
 func (r *PostgresRepository) ListAdminGrants(ctx context.Context, schoolID string, filter adminmutation.Filter) ([]AdminGrant, error) {
 	if _, err := r.GetAdmin(ctx, schoolID); err != nil {
 		return nil, err
@@ -79,12 +85,16 @@ func (r *PostgresRepository) ListAdminGrants(ctx context.Context, schoolID strin
 	return items, rows.Err()
 }
 
+// GrantAdmin grants an eligible user access to an active school, restoring a
+// revoked grant if one exists.
 func (r *PostgresRepository) GrantAdmin(ctx context.Context, schoolID string, input GrantAdminInput) (AdminGrant, error) {
 	if !adminmutation.UUID(input.UserID) {
 		return AdminGrant{}, apperror.Validation("invalid grant user")
 	}
 	return r.changeAdminGrant(ctx, schoolID, "", input.UserID, input.Command)
 }
+
+// RevokeAdmin revokes a grant and ends the grantee's admin sessions.
 func (r *PostgresRepository) RevokeAdmin(ctx context.Context, schoolID, grantID string, command adminmutation.Command) (AdminGrant, error) {
 	if !adminmutation.UUID(grantID) {
 		return AdminGrant{}, adminmutation.ErrNotFound
@@ -92,6 +102,8 @@ func (r *PostgresRepository) RevokeAdmin(ctx context.Context, schoolID, grantID 
 	return r.changeAdminGrant(ctx, schoolID, grantID, "", command)
 }
 
+// changeAdminGrant grants (grantID empty) or revokes (userID empty) under row
+// locks on the school, the user or grant, and audits the change.
 func (r *PostgresRepository) changeAdminGrant(ctx context.Context, schoolID, grantID, userID string, command adminmutation.Command) (AdminGrant, error) {
 	if !adminmutation.UUID(schoolID) {
 		return AdminGrant{}, adminmutation.ErrNotFound

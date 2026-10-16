@@ -1,10 +1,25 @@
+import {
+  DirectoryResults,
+  useDirectoryResults,
+} from "../components/directory-results";
 import { Link, createFileRoute } from "@tanstack/react-router";
+import { ArrowLeft, ArrowRight, Search } from "lucide-react";
+import { ButtonLink } from "../components/button-link";
 import {
   DirectoryRow,
   directoryRowClassName,
 } from "../components/directory-row";
-import { DirectorySidebar } from "../components/directory-sidebar";
-import { loadDirectorySidebar } from "../features/account-slice/account.functions";
+import {
+  ClearFiltersLink,
+  FilterForm,
+  FilterSelect,
+  FilterToolbar,
+  ResultsAnnouncement,
+} from "../components/filter-toolbar";
+import {
+  activeFilterChips,
+  resultsAnnouncement,
+} from "../components/directory-filters";
 import { PageNoticeView } from "../components/page-notice-view";
 import { ListUnavailable, RoutePending } from "../components/route-boundaries";
 import { SchoolLogo } from "../components/school-logo";
@@ -21,16 +36,14 @@ import {
   schoolShortName,
   schoolsHead,
 } from "../features/school-slice/presentation";
+import { usStates } from "../features/school-slice/us-states";
 
 export const Route = createFileRoute("/schools/")({
   validateSearch: validateSchoolsSearch,
   loaderDeps: ({ search }) => schoolsBrowseInput(search),
   loader: async ({ context, deps }) => {
-    const [catalog, sidebar] = await Promise.all([
-      getSchoolsCatalog({ data: deps }),
-      loadDirectorySidebar(),
-    ]);
-    return { catalog, sidebar, publicOrigin: context.publicOrigin };
+    const catalog = await getSchoolsCatalog({ data: deps });
+    return { catalog, publicOrigin: context.publicOrigin };
   },
   staleTime: catalogClientStaleTime,
   head: ({ loaderData }) => schoolsHead(loaderData?.publicOrigin),
@@ -39,7 +52,8 @@ export const Route = createFileRoute("/schools/")({
 });
 
 function SchoolsPage() {
-  const { catalog, sidebar } = Route.useLoaderData();
+  const { busy, onPaginate, resultsRef } = useDirectoryResults();
+  const { catalog } = Route.useLoaderData();
   const search = Route.useSearch();
   const page = search.page ?? 1;
   const previousSearch =
@@ -50,89 +64,168 @@ function SchoolsPage() {
     ? catalogSearch(search, page + 1)
     : undefined;
 
+  const chips = activeFilterChips([
+    ...(search.q
+      ? [{ key: "q", name: "Search", value: search.q, label: search.q }]
+      : []),
+    ...(search.state
+      ? [
+          {
+            key: "state",
+            name: "State",
+            value: search.state,
+            label:
+              usStates.find((state) => state.value === search.state)?.label ??
+              search.state,
+          },
+        ]
+      : []),
+  ]);
+
   return (
-    <main className="browse-page directory-page school-directory-page">
-      <DirectorySidebar current="schools" sidebar={sidebar} />
-      <section className="page-heading browse-heading">
-        <p className="eyebrow">Schools</p>
-        <h1>Browse schools</h1>
-        <p className="lede">
-          Find your campus, see what is happening there, and follow it for
-          updates.
-        </p>
+    <main className="directory-page">
+      <section className="directory-heading">
+        <div>
+          <h1>Schools</h1>
+          <p className="lede">
+            Find your campus, see what is happening there, and follow it for
+            updates.
+          </p>
+        </div>
       </section>
 
       <PageNoticeView
         notice={search.follow ? schoolBrowseNotices[search.follow] : undefined}
       />
 
-      <form
+      <FilterForm
         action="/schools"
-        className="search-bar filter-bar school-filter-bar"
-        method="get"
+        formKey={JSON.stringify(catalogSearch(search))}
       >
-        <label>
-          Search
-          <input
-            name="q"
-            defaultValue={search.q}
-            placeholder="University, college, campus"
-          />
-        </label>
-        <button type="submit">Find schools</button>
-      </form>
-
-      {catalog.unavailable ? (
-        <ListUnavailable heading="Schools are unavailable right now" />
-      ) : catalog.schools.length > 0 ? (
-        <section aria-labelledby="school-results-heading">
-          <div className="results-heading">
-            <div>
-              <h2 id="school-results-heading">Schools</h2>
+        <FilterToolbar
+          clear={
+            chips.length > 0 ? <ClearFiltersLink to="/schools" /> : undefined
+          }
+          label="School filters"
+          search={
+            <div className="filter-search">
+              <label className="visually-hidden" htmlFor="schools-search">
+                Search schools
+              </label>
+              <Search
+                aria-hidden="true"
+                className="filter-search__icon"
+                size={18}
+                strokeWidth={2}
+              />
+              <input
+                defaultValue={search.q}
+                id="schools-search"
+                name="q"
+                placeholder="Search by school name"
+                type="search"
+              />
+              <button className="filter-search__submit" type="submit">
+                Search
+              </button>
             </div>
-            <span>
-              Showing {catalog.schools.length} · Page {page}
-            </span>
-          </div>
-          <div className="list">
-            {catalog.schools.map((school) => (
-              <Link
-                className={directoryRowClassName}
-                key={school.id}
-                to="/schools/$slug"
-                params={{ slug: school.slug }}
-              >
-                <DirectoryRow
-                  action="View school"
-                  identity={
-                    <span aria-hidden="true" className="school-directory-mark">
-                      {school.name.slice(0, 1).toUpperCase()}
-                      <SchoolLogo
-                        logoURL={
-                          school.logo_wordmark ? undefined : school.logo_url
-                        }
-                        size={44}
-                      />
-                    </span>
-                  }
-                  meta={[schoolShortName(school), schoolLocation(school)]}
-                  name={school.name}
-                />
-              </Link>
-            ))}
-          </div>
-        </section>
-      ) : (
-        <section className="empty-state">
-          <h2>No schools found</h2>
-          <p>Try a broader school name or check the spelling.</p>
-        </section>
-      )}
+          }
+        >
+          <FilterSelect
+            label="State"
+            name="state"
+            options={usStates}
+            value={search.state}
+          />
+        </FilterToolbar>
+      </FilterForm>
+
+      <ResultsAnnouncement
+        message={
+          catalog.unavailable
+            ? "Schools are unavailable right now."
+            : resultsAnnouncement(
+                catalog.schools.length,
+                "school",
+                chips.length,
+              )
+        }
+      />
+
+      <DirectoryResults
+        busy={busy}
+        label="School results"
+        resultsRef={resultsRef}
+      >
+        {catalog.unavailable ? (
+          <ListUnavailable heading="Schools are unavailable right now" />
+        ) : catalog.schools.length > 0 ? (
+          <section aria-labelledby="school-results-heading">
+            <div className="results-heading">
+              <h2 id="school-results-heading">Results</h2>
+              <span>
+                Showing {catalog.schools.length} · Page {page}
+              </span>
+            </div>
+            <div className="list">
+              {catalog.schools.map((school) => (
+                <Link
+                  className={directoryRowClassName}
+                  key={school.id}
+                  to="/schools/$slug"
+                  params={{ slug: school.slug }}
+                >
+                  <DirectoryRow
+                    action="View school"
+                    identity={
+                      <span
+                        aria-hidden="true"
+                        className="school-directory-mark"
+                      >
+                        {school.name.slice(0, 1).toUpperCase()}
+                        <SchoolLogo
+                          logoURL={
+                            school.logo_wordmark ? undefined : school.logo_url
+                          }
+                          size={44}
+                        />
+                      </span>
+                    }
+                    meta={[schoolShortName(school), schoolLocation(school)]}
+                    name={school.name}
+                  />
+                </Link>
+              ))}
+            </div>
+          </section>
+        ) : (
+          <section className="empty-state">
+            <h2>No schools found</h2>
+            <p>
+              {chips.length > 0
+                ? `Nothing matches ${chips.map((chip) => chip.text).join(", ")}. Try a broader school name or check the spelling.`
+                : "Schools will appear here once they are added."}
+            </p>
+            {chips.length > 0 ? (
+              <div className="actions">
+                <ButtonLink variant="secondary" to="/schools">
+                  Clear all filters
+                </ButtonLink>
+              </div>
+            ) : null}
+          </section>
+        )}
+      </DirectoryResults>
 
       {previousSearch || nextSearch ? (
-        <nav className="pagination" aria-label="School pages">
+        <nav
+          className="pagination"
+          onClick={onPaginate}
+          aria-label="School pages"
+        >
           {previousSearch ? (
             <Link to="/schools" search={previousSearch}>
+              <ArrowLeft aria-hidden="true" size={16} strokeWidth={2} />
               Previous
             </Link>
           ) : (
@@ -142,6 +235,7 @@ function SchoolsPage() {
           {nextSearch ? (
             <Link to="/schools" search={nextSearch}>
               Next
+              <ArrowRight aria-hidden="true" size={16} strokeWidth={2} />
             </Link>
           ) : (
             <span />

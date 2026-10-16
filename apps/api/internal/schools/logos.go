@@ -36,6 +36,8 @@ type LogoRepository struct {
 	logger  *slog.Logger
 }
 
+// NewLogoRepository returns a LogoRepository that serves objects under
+// publicOrigin.
 func NewLogoRepository(pool *pgxpool.Pool, objects ObjectStore, publicOrigin string, logger *slog.Logger) *LogoRepository {
 	return &LogoRepository{pool: pool, objects: objects, origin: strings.TrimRight(publicOrigin, "/"), logger: logger}
 }
@@ -97,6 +99,9 @@ func (r *LogoRepository) RemoveLogo(ctx context.Context, id string, command admi
 	return next, nil
 }
 
+// changeLogo retires the current logo object and, when key is set, promotes the
+// pending object at key, all under a lock on the school. An empty key removes
+// the logo.
 func (r *LogoRepository) changeLogo(ctx context.Context, id string, command adminmutation.Command, action adminaudit.Action, key string) (AdminSchool, error) {
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
@@ -179,6 +184,8 @@ func (r *LogoRepository) Start(ctx context.Context, interval time.Duration) {
 	}
 }
 
+// sweep deletes up to 100 logo objects matching condition, oldest first, and
+// returns how many it removed. It reports the first failure but keeps going.
 func (r *LogoRepository) sweep(ctx context.Context, condition string, argument any) (int, error) {
 	rows, err := r.pool.Query(ctx, `SELECT object_key FROM school_logo_objects WHERE `+condition+` ORDER BY updated_at LIMIT 100`, argument)
 	if err != nil {

@@ -215,10 +215,10 @@ tournament_registrations
 games
   id, igdb_id nullable unique, name, slug, cover_url, is_active, user_submitted, last_synced_at nullable, ...
   -- end users cannot edit a game; they can add one by picking it from IGDB search or typing its name
-  -- an admin import starts inactive; a game a user picks from IGDB search is imported active
+  -- a game a user picks from IGDB search is imported active; site admins can hide it later
   -- user_submitted marks a typed name: inactive (not in the picker) but attachable to events and teams
   -- events and teams accept a game that is active or user_submitted, and never a deleted one
-  -- igdb_id is null for a typed game or one a site admin added by hand
+  -- igdb_id is null for a typed game or one added by hand before admins stopped adding games
   -- last_synced_at is set by import and refresh; refresh never overwrites name or slug
   -- inactive games leave the public picker but stay on events/teams that already use them
   -- cover_url is an admin-entered URL; a stored cover in game_covers takes its place in API responses
@@ -231,15 +231,16 @@ game_covers
 
 igdb_search_cache
   query pk (lowercased, single-spaced), results jsonb, fetched_at
-  -- IGDB search results, reused for 24 hours by the admin and user searches
+  -- IGDB search results, reused for 24 hours by the user search
   -- expired rows are deleted when a new search is stored
+  -- a GIN index on results (migration 000029) lets GET /igdb-covers/:image_id check that a cached search returned an image ID
 ```
 
 **Catalog source:** migration `000020` removed the six hand-made launch games
 that `000003` seeded, along with their event and team links. The seed command
 imports a starter set from IGDB when credentials are set (`StarterGameSlugs` in
-`apps/api/internal/games/igdb.go`); after that the catalog grows as admins and
-users import games. Slugs come from IGDB, with a numeric suffix when one is
+`apps/api/internal/games/igdb.go`); after that the catalog grows as users pick
+games. Slugs come from IGDB, with a numeric suffix when one is
 taken. A typed game's slug is made from its name, and typing a name whose slug
 exists reuses that game.
 

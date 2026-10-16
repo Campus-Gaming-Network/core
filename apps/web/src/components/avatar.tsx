@@ -6,7 +6,9 @@ const avatarVersion = 3;
 
 /**
  * A user's avatar, drawn by this site. The initials sit underneath the picture,
- * so a picture that cannot load leaves them showing.
+ * so a picture that cannot load leaves them showing. The picture is vector,
+ * so it stays sharp at any density; the header and profile avatars are above
+ * the fold and load at once, while list avatars wait until they are near.
  */
 export function Avatar({
   id,
@@ -22,8 +24,9 @@ export function Avatar({
       {userInitials(name)}
       <img
         alt=""
+        decoding="async"
         height={80}
-        loading="lazy"
+        loading={size === "medium" ? "lazy" : "eager"}
         src={`/api/avatars/${encodeURIComponent(id)}?v=${avatarVersion}`}
         width={80}
       />

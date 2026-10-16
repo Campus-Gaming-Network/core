@@ -19,6 +19,7 @@ const maxPickedIGDBGames = 5
 type gamePicker interface {
 	SearchForPicker(ctx context.Context, query string) ([]games.IGDBResult, error)
 	EnsureFromIGDB(ctx context.Context, igdbID int64) (games.AdminGame, error)
+	SearchResultCover(ctx context.Context, imageID, knownETag string) (games.Cover, error)
 }
 
 // customGames stores games users type in.
@@ -60,6 +61,44 @@ func (r *Router) handleGameSearch(w http.ResponseWriter, req *http.Request) {
 	}
 	w.Header().Set("Cache-Control", "private, no-store")
 	writeJSON(w, http.StatusOK, map[string]any{"games": matches})
+}
+
+// searchCoverCacheControl lets browsers and shared caches keep a search
+// result's cover for a week. IGDB never changes the image behind an ID.
+const searchCoverCacheControl = "public, max-age=604800, immutable"
+
+// handleSearchResultCover serves the small IGDB cover of a game search
+// result, so the picker can show it without a page loading an image from
+// IGDB. It needs no session: the image is public, and only images a recent
+// search returned are served.
+func (r *Router) handleSearchResultCover(w http.ResponseWriter, req *http.Request) {
+	if r.picker == nil {
+		writeError(w, http.StatusServiceUnavailable, "igdb_not_configured")
+		return
+	}
+	imageID := req.PathValue("imageID")
+	cover, err := r.picker.SearchResultCover(req.Context(), imageID, strings.Trim(req.Header.Get("If-None-Match"), `"`))
+	switch {
+	case errors.Is(err, games.ErrCoverNotFound):
+		writeError(w, http.StatusNotFound, "game_cover_not_found")
+		return
+	case errors.Is(err, igdb.ErrRateLimited), errors.Is(err, igdb.ErrUnavailable):
+		writeError(w, http.StatusServiceUnavailable, "igdb_unavailable")
+		return
+	case err != nil:
+		writeError(w, http.StatusInternalServerError, "game_cover_unavailable")
+		return
+	}
+	w.Header().Set("Cache-Control", searchCoverCacheControl)
+	w.Header().Set("ETag", `"`+cover.ETag+`"`)
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	if cover.Bytes == nil {
+		w.WriteHeader(http.StatusNotModified)
+		return
+	}
+	w.Header().Set("Content-Type", cover.ContentType)
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(cover.Bytes)
 }
 
 // pendingGameID stands in for picked games while the rest of a request is

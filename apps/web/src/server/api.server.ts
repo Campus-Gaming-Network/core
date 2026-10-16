@@ -159,7 +159,7 @@ export function safeApiErrorMessage(error: unknown): string {
     invalid_private_password: "That event password did not match.",
     invalid_request: "Check the form fields and try again.",
     private_event_locked: "Unlock that private event before RSVPing.",
-    rate_limited: "Too many attempts. Give it a minute, then try again.",
+    rate_limited: "Too many attempts. Please try again later.",
   };
 
   return messages[error.code] ?? "Something went wrong. Please try again.";

@@ -4,12 +4,14 @@ import {
   redirect,
   type ErrorComponentProps,
 } from "@tanstack/react-router";
+import { allTimeZones, TimeZoneSelect } from "../components/time-zone-select";
 import { useServerFn } from "@tanstack/react-start";
 import type { FormEvent } from "react";
 import {
   FormErrorSummary,
   useEnhancedMutation,
 } from "../components/enhanced-mutation";
+import { useUnsavedChangesGuard } from "../components/unsaved-changes";
 import { FormField, RequiredFieldsNote } from "../components/form-field";
 import { FormSection } from "../components/form-section";
 import { pageNoticeKey } from "../components/page-notice";
@@ -44,7 +46,11 @@ export const Route = createFileRoute("/settings/profile")({
     if (result.status !== "found") {
       throw new Error("Account details are unavailable");
     }
-    return { profile: result.profile, publicOrigin: context.publicOrigin };
+    return {
+      profile: result.profile,
+      publicOrigin: context.publicOrigin,
+      timeZones: allTimeZones(),
+    };
   },
   staleTime: 0,
   headers: () => ({ "cache-control": "private, no-store", vary: "Cookie" }),
@@ -55,27 +61,39 @@ export const Route = createFileRoute("/settings/profile")({
 });
 
 function SettingsProfilePage() {
-  const { profile } = Route.useLoaderData();
+  const { profile, timeZones } = Route.useLoaderData();
   const search = Route.useSearch();
 
   return (
     <>
-      <header className="section-heading">
-        <h1>Edit profile</h1>
+      <section className="page-heading">
+        <div>
+          <h1>Edit profile</h1>
+          <p className="lede">
+            Update the information other players see on your public profile.
+          </p>
+        </div>
         <Link className="link" to="/users/$id" params={{ id: profile.id }}>
           View public profile
         </Link>
-      </header>
+      </section>
       <PageNoticeView
         notice={search.settings ? settingsNotices[search.settings] : undefined}
       />
-      <ProfileForm profile={profile} />
+      <ProfileForm profile={profile} timeZones={timeZones} />
     </>
   );
 }
 
-function ProfileForm({ profile }: { profile: AccountProfileDTO }) {
+function ProfileForm({
+  profile,
+  timeZones,
+}: {
+  profile: AccountProfileDTO;
+  timeZones: string[];
+}) {
   const runUpdate = useServerFn(updateAccountProfile);
+  const { formRef, dialog: leaveDialog } = useUnsavedChangesGuard();
   const mutation = useEnhancedMutation(
     "We could not update your profile. Please try again.",
   );
@@ -118,6 +136,7 @@ function ProfileForm({ profile }: { profile: AccountProfileDTO }) {
         <input
           aria-label={`Social link ${index + 1} label`}
           defaultValue={socialLinks[index]?.label ?? ""}
+          autoComplete="off"
           maxLength={40}
           name={`social_label_${index}`}
         />
@@ -130,8 +149,13 @@ function ProfileForm({ profile }: { profile: AccountProfileDTO }) {
         <input
           aria-label={`Social link ${index + 1} URL`}
           defaultValue={socialLinks[index]?.url ?? ""}
+          autoCapitalize="none"
+          autoComplete="off"
+          inputMode="url"
           maxLength={500}
           name={`social_url_${index}`}
+          placeholder="https://..."
+          spellCheck={false}
           type="url"
         />
       </FormField>
@@ -150,117 +174,130 @@ function ProfileForm({ profile }: { profile: AccountProfileDTO }) {
     );
 
   return (
-    <form
-      action={updateAccountProfile.url}
-      className="form-stack sectioned-form"
-      method="post"
-      onSubmit={submit}
-    >
-      <FormErrorSummary
-        fieldErrors={mutation.fieldErrors}
-        fieldIds={Object.fromEntries(
-          Object.keys(mutation.fieldErrors).map((field) => [
-            field,
-            `profile-${field}-error`,
-          ]),
-        )}
-        message={mutation.message}
-        summaryRef={mutation.errorSummaryRef}
-      />
-      <RequiredFieldsNote />
-      <FormSection
-        title="About you"
-        description="How other players see you on your public profile."
+    <>
+      <form
+        action={updateAccountProfile.url}
+        className="form-stack sectioned-form"
+        method="post"
+        ref={formRef}
+        onSubmit={submit}
       >
-        <FormField
-          errorId="profile-name-error"
-          errors={mutation.fieldErrors.name}
-          label="Name"
+        <FormErrorSummary
+          fieldErrors={mutation.fieldErrors}
+          fieldIds={Object.fromEntries(
+            Object.keys(mutation.fieldErrors).map((field) => [
+              field,
+              `profile-${field}-error`,
+            ]),
+          )}
+          message={mutation.message}
+          summaryRef={mutation.errorSummaryRef}
+        />
+        <RequiredFieldsNote />
+        <FormSection
+          title="About you"
+          description="How other players see you on your public profile."
         >
-          <input
-            name="name"
-            autoComplete="name"
-            defaultValue={profile.name}
-            required
-            maxLength={120}
-          />
-        </FormField>
-        <FormField
-          errorId="profile-bio-error"
-          errors={mutation.fieldErrors.bio}
-          label="Bio"
-          optional
+          <FormField
+            errorId="profile-name-error"
+            errors={mutation.fieldErrors.name}
+            label="Name"
+            characterCount
+          >
+            <input
+              name="name"
+              autoComplete="name"
+              defaultValue={profile.name}
+              required
+              maxLength={120}
+            />
+          </FormField>
+          <FormField
+            errorId="profile-bio-error"
+            errors={mutation.fieldErrors.bio}
+            label="Bio"
+            optional
+            characterCount
+          >
+            <textarea
+              name="bio"
+              defaultValue={profile.bio ?? ""}
+              maxLength={2000}
+              rows={5}
+            />
+          </FormField>
+          <FormField
+            errorId="profile-timezone-error"
+            errors={mutation.fieldErrors.timezone}
+            label="Time zone"
+          >
+            <TimeZoneSelect
+              defaultValue={profile.timezone}
+              name="timezone"
+              zones={timeZones}
+            />
+          </FormField>
+        </FormSection>
+        <FormSection
+          title="Social links"
+          description="Optional. Link to your profiles elsewhere. You can add up to three, and a Discord username."
         >
-          <textarea
-            name="bio"
-            defaultValue={profile.bio ?? ""}
-            maxLength={2000}
-            rows={5}
-          />
-        </FormField>
-        <FormField
-          errorId="profile-timezone-error"
-          errors={mutation.fieldErrors.timezone}
-          label="Time zone"
+          {socialRows.slice(0, shownSocialRows)}
+          {shownSocialRows < socialRows.length ? (
+            <details
+              className="more-social-links"
+              open={hiddenSocialRowHasError}
+            >
+              <summary>Add another link</summary>
+              <div className="more-social-links-fields">
+                {socialRows.slice(shownSocialRows)}
+              </div>
+            </details>
+          ) : null}
+          <FormField
+            errorId="profile-discord_username-error"
+            errors={mutation.fieldErrors.discord_username}
+            label="Discord username"
+            optional
+          >
+            <input
+              autoCapitalize="none"
+              autoComplete="off"
+              defaultValue={discordLink?.username ?? ""}
+              maxLength={33}
+              name="discord_username"
+              spellCheck={false}
+            />
+          </FormField>
+        </FormSection>
+        <FormSection
+          title="Privacy"
+          description="Choose how other signed-in people can find you."
         >
-          <input name="timezone" defaultValue={profile.timezone} required />
-        </FormField>
-      </FormSection>
-      <FormSection
-        title="Social links"
-        description="Optional. Link to your profiles elsewhere. You can add up to three, and a Discord username."
-      >
-        {socialRows.slice(0, shownSocialRows)}
-        {shownSocialRows < socialRows.length ? (
-          <details className="more-social-links" open={hiddenSocialRowHasError}>
-            <summary>Add another link</summary>
-            <div className="more-social-links-fields">
-              {socialRows.slice(shownSocialRows)}
-            </div>
-          </details>
-        ) : null}
-        <FormField
-          errorId="profile-discord_username-error"
-          errors={mutation.fieldErrors.discord_username}
-          label="Discord username"
-          optional
-        >
-          <input
-            autoCapitalize="none"
-            autoComplete="off"
-            defaultValue={discordLink?.username ?? ""}
-            maxLength={33}
-            name="discord_username"
-            spellCheck={false}
-          />
-        </FormField>
-      </FormSection>
-      <FormSection
-        title="Privacy"
-        description="Choose how other signed-in people can find you."
-      >
-        <input name="show_in_lists" type="hidden" value="false" />
-        <label className="checkbox-field">
-          <input
-            aria-describedby="profile-show-in-lists-help"
-            defaultChecked={profile.show_in_lists}
-            name="show_in_lists"
-            type="checkbox"
-            value="true"
-          />
-          <span>Show me in member lists</span>
-        </label>
-        <p className="form-help" id="profile-show-in-lists-help">
-          Signed-in people can see you in lists of event attendees, school
-          members, and team members. Turn this off to hide yourself.
-        </p>
-      </FormSection>
-      <div className="form-actions">
-        <button type="submit" disabled={mutation.pending}>
-          {mutation.pending ? "Saving…" : "Save profile"}
-        </button>
-      </div>
-    </form>
+          <input name="show_in_lists" type="hidden" value="false" />
+          <label className="checkbox-field">
+            <input
+              aria-describedby="profile-show-in-lists-help"
+              defaultChecked={profile.show_in_lists}
+              name="show_in_lists"
+              type="checkbox"
+              value="true"
+            />
+            <span>Show me in member lists</span>
+          </label>
+          <p className="form-help" id="profile-show-in-lists-help">
+            Signed-in people can see you in lists of event attendees, school
+            members, and team members. Turn this off to hide yourself.
+          </p>
+        </FormSection>
+        <div className="form-actions">
+          <button type="submit" disabled={mutation.pending}>
+            {mutation.pending ? "Saving…" : "Save profile"}
+          </button>
+        </div>
+      </form>
+      {leaveDialog}
+    </>
   );
 }
 

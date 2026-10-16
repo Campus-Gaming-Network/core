@@ -5,7 +5,8 @@ import {
   redirect,
   type ErrorComponentProps,
 } from "@tanstack/react-router";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ArrowRight } from "lucide-react";
+import { BreadcrumbLink, Breadcrumbs } from "../components/breadcrumbs";
 import { RouteErrorView, RoutePending } from "../components/route-boundaries";
 import {
   validatePeopleSearch,
@@ -17,6 +18,7 @@ import {
   PeoplePagination,
   PeopleResults,
 } from "../features/people-slice/people-views";
+import peopleCSS from "../features/people-slice/people.css?url";
 import {
   peopleHead,
   unavailablePeopleHead,
@@ -66,15 +68,19 @@ export const Route = createFileRoute("/teams/$slug_/people")({
   },
   staleTime: 0,
   headers: () => ({ "cache-control": "private, no-store", vary: "Cookie" }),
-  head: ({ loaderData }) =>
-    loaderData
-      ? peopleHead({
-          title: `People on ${loaderData.team.name}`,
-          description: `The people on ${loaderData.team.name} on Campus Gaming Network.`,
-          path: `/teams/${encodeURIComponent(loaderData.team.slug)}/people`,
-          publicOrigin: loaderData.publicOrigin,
-        })
-      : unavailablePeopleHead(),
+  head: ({ loaderData }) => {
+    if (!loaderData) return unavailablePeopleHead();
+    const head = peopleHead({
+      title: `People on ${loaderData.team.name}`,
+      description: `The people on ${loaderData.team.name} on Campus Gaming Network.`,
+      path: `/teams/${encodeURIComponent(loaderData.team.slug)}/people`,
+      publicOrigin: loaderData.publicOrigin,
+    });
+    return {
+      ...head,
+      links: [...head.links, { rel: "stylesheet", href: peopleCSS }],
+    };
+  },
   pendingComponent: TeamPeoplePending,
   errorComponent: TeamPeopleError,
   component: TeamPeoplePage,
@@ -93,26 +99,30 @@ function TeamPeoplePage() {
       : undefined;
 
   return (
-    <main className="browse-page">
-      <Link
-        className="back-link with-arrow"
-        to="/teams/$slug"
-        params={{ slug: team.slug }}
-      >
-        <ArrowLeft aria-hidden="true" size={14} strokeWidth={2.25} />
-        Back to team
-      </Link>
-      <header className="people-heading">
-        <h1>{`People on ${team.name}`}</h1>
-        <p className="lede">
-          People who chose to hide themselves are not shown.
-        </p>
+    <main className="people-page">
+      <Breadcrumbs current="Members">
+        <BreadcrumbLink to="/teams">Teams</BreadcrumbLink>
+        <BreadcrumbLink to="/teams/$slug" params={{ slug: team.slug }}>
+          {team.name}
+        </BreadcrumbLink>
+      </Breadcrumbs>
+      <header className="people-heading people-page__heading">
+        <span aria-hidden="true" className="team-mark">
+          {team.name.slice(0, 1).toUpperCase()}
+        </span>
+        <div>
+          <h1>{`People on ${team.name}`}</h1>
+          <p className="lede">
+            People who chose to hide themselves are not shown.
+          </p>
+        </div>
       </header>
 
       <PeopleResults
         emptyHeading="No members yet"
         emptyMessage="People who join this team will show up here."
         result={people}
+        rows
         unavailableHeading="Members are unavailable right now"
       />
 
@@ -126,6 +136,7 @@ function TeamPeoplePage() {
               search={nextSearch}
             >
               Next
+              <ArrowRight aria-hidden="true" size={16} strokeWidth={2} />
             </Link>
           ) : undefined
         }
@@ -136,6 +147,7 @@ function TeamPeoplePage() {
               params={{ slug: team.slug }}
               search={previousSearch}
             >
+              <ArrowLeft aria-hidden="true" size={16} strokeWidth={2} />
               Previous
             </Link>
           ) : undefined

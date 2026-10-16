@@ -215,7 +215,7 @@ SENTRY_DSN=REPLACE-WITH-CGN-API-SENTRY-DSN
 
 `SENTRY_DSN` is the DSN of the `cgn-api` Sentry project. Staging and production share the project and are told apart by `DEPLOYMENT_ENV`, which the API sends as the Sentry environment. Without it the API starts, logs a warning, and reports nothing. Events carry the error, a stack trace, and the request method and path; they carry no headers, cookies, query strings, bodies, or user, and Admin API failures are not reported. To confirm reporting, set `API_MAINTENANCE_TOKEN` temporarily and send `POST /internal/error-monitoring/test` with it as a bearer token from inside the private network, for example from a shell in the `api` service, because `api` has no public domain. The request answers 500 and the panic appears in Sentry. Unset the token afterwards.
 
-To import games from IGDB, also set `IGDB_CLIENT_ID` and `IGDB_CLIENT_SECRET` to a Twitch developer application's client ID and secret. They are optional and must be set together; without them the import routes answer `igdb_not_configured`. Leave `IGDB_API_URL`, `IGDB_TOKEN_URL`, and `IGDB_IMAGE_URL` unset outside local development. IGDB asks for the attribution on the FAQ page; the partnership itself is tracked in [issue #93](https://github.com/Campus-Gaming-Network/core/issues/93).
+To let users add games from IGDB, also set `IGDB_CLIENT_ID` and `IGDB_CLIENT_SECRET` to a Twitch developer application's client ID and secret. They are optional and must be set together; without them the game search and refresh routes answer `igdb_not_configured`. Leave `IGDB_API_URL`, `IGDB_TOKEN_URL`, and `IGDB_IMAGE_URL` unset outside local development. IGDB asks for the attribution on the FAQ page; the partnership itself is tracked in [issue #93](https://github.com/Campus-Gaming-Network/core/issues/93).
 
 Do not deploy yet because the staging web domain does not exist. Keep `ADMIN_ENABLED=false`; the additive Admin Console migrations may be present while its privileged routes remain disabled. Do not add any `API_DEV_SEED_USER_*` variables outside local development. `API_MAINTENANCE_TOKEN` is optional and should remain unset until the immediate catalog-refresh endpoint is operationally needed.
 
@@ -352,7 +352,7 @@ Do not create the production deployment until all checks pass.
 
 - [ ] `/api/health` returns HTTP 200 and reports both services healthy.
 - [ ] School search returns the imported catalog.
-- [ ] Games imported from IGDB and shown in the Admin Console appear in event filters.
+- [ ] A game picked from IGDB search in the event form appears in event filters and in the Admin Console.
 - [ ] Signup requires the 18+ confirmation and a home school.
 - [ ] Signup sends a verification email to a controlled tester.
 - [ ] Verification requires explicit confirmation; login and logout work.

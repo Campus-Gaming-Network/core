@@ -26,9 +26,9 @@ export const schoolDetailNotices = {
 export type SchoolBrowseNotice = keyof typeof schoolBrowseNotices;
 export type SchoolDetailNotice = keyof typeof schoolDetailNotices;
 
-export const homeDescription =
+const homeDescription =
   "Discover collegiate gaming events, teams, and campus activity. Follow your school and find the scene around you.";
-export const schoolsDescription =
+const schoolsDescription =
   "Search and follow colleges and universities to see their gaming events and teams.";
 
 export function schoolLocation(

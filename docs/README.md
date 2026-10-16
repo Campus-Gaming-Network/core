@@ -99,7 +99,7 @@ would add a second description of each endpoint to maintain.
 ## Conventions
 
 - **US launch only** — international schools are out of scope at launch.
-- **Not yet scheduled** — clubs, tournaments, on-site payments, usernames, waitlists, invite links, feature flags, near-you, custom event banners. Admin Console v1 is in progress but remains release-gated and undeployed.
+- **Not yet scheduled** — clubs, tournaments, on-site payments, usernames, waitlists, invite links, feature flags, near-you, custom event banners. Admin Console v1 is in progress and release-gated: it runs on staging and is not deployed to production.
 - **Events ≠ tournaments** — events are things you attend; tournaments (later) are competitions you enter. An event's `tournament` type is a label for browse only: it adds no brackets, entries, or standings and is not the Tournaments entity.
 - **Clubs ≠ teams** — clubs (later) belong to schools; teams are supported now (public pages; password to join).
 - **Event visibility** — `public` · `unlisted` · `private` (blurred/gated + password modal).
@@ -108,7 +108,7 @@ would add a second description of each endpoint to maintain.
 - **Names** — single `name` field; profile at `/users/:id`.
 - **Schools** — user selects one home school on signup, may follow more schools later; import all 6,243 seed rows (1,300 branches) as active; branch campuses use the same UI/UX as other schools; `unitid` optional.
 - **Paid events** — allowed as informational/off-site payment only; organizers handle payment outside the product.
-- **Games** — imported from IGDB by site admins; there is no hand-made launch list. Covers are stored in Postgres and the FAQ page credits IGDB.com.
+- **Games** — imported from IGDB when users pick them; site admins only correct, hide, and delete them. There is no hand-made launch list. Covers are stored in Postgres and the FAQ page credits IGDB.com.
 - **Images** — event banners use the default placeholder; school logos use approved uploads, bundled institutional assets, or an initial. See [School data](./09-school-data.md#institutional-logos).
 - **Event slugs** — `slugify(title)-` + 8-char Base64URL(SHA-256(…)).
 - **Recurring events** — weekly, biweekly, or monthly; max one year; occurrences are independent event rows with independent RSVPs and cancellation.
@@ -117,7 +117,7 @@ would add a second description of each endpoint to maintain.
 - **Content filtering** — reject a small word-boundary blocked-term list in user-authored names, bios, event/team text, reports, and support messages before persistence.
 - **Page metadata** — every route sets its own title/description/Open Graph tags; authenticated, auth, token, profile, private, and unlisted routes are `noindex`. A locked private event, and an event for one campus or group, expose only a generic title.
 - **Not-found routes** — missing entities must return HTTP 404, never a soft 404.
-- **Infra** — Railway hosts TanStack Start, the Go API, and production Postgres for the main site; Cloudflare manages DNS/protection; Resend handles email. The separate TanStack Start Admin Console and Cloudflare R2 remain undeployed until their security and release gates pass.
+- **Infra** — Railway hosts TanStack Start, the Go API, and production Postgres for the main site; Cloudflare manages DNS/protection; Resend handles email. The separate TanStack Start Admin Console and Cloudflare R2 are not deployed to production until their security and release gates pass.
 - **Search** — Postgres full-text / trigram first; no Elasticsearch until proven necessary.
 - **Soft deletes** — use `deleted_at`; never hard-delete user-facing content without an explicit policy.
 - **Audit vs system logs** — audit = entity change history; system = operational/app logs.

@@ -6,9 +6,12 @@ import {
   useEnhancedMutation,
 } from "../components/enhanced-mutation";
 import { FormField } from "../components/form-field";
+import { emailInputProps } from "../features/auth-flow-slice/field-props";
+import { loginProblem } from "../features/auth-flow-slice/login-help";
 import { authPageHead } from "../features/auth-flow-slice/presentation";
 import { login } from "../features/event-slice/auth.functions";
 import { safeLocalPath } from "../safe-local-path";
+import "../features/auth-flow-slice/auth-flow.css";
 
 type LoginSearch = {
   error?: "login-failed";
@@ -30,9 +33,7 @@ export const Route = createFileRoute("/login")({
   component: LoginPage,
 });
 
-export function validateLoginSearch(
-  search: Record<string, unknown>,
-): LoginSearch {
+function validateLoginSearch(search: Record<string, unknown>): LoginSearch {
   const nextValue = firstString(search.next);
   const errorValue = firstString(search.error);
   const resetValue = firstString(search.reset);
@@ -62,24 +63,26 @@ function LoginPage() {
 
   return (
     <main className="auth-page">
-      <section className="page-heading">
-        <p className="eyebrow">Log in</p>
-        <h1>Welcome back.</h1>
+      <header className="auth-heading">
+        <h1>Log in</h1>
         <p className="lede">
-          Use the account you verified to manage your profile and follow
-          schools.
+          Use the email and password you signed up with. Your email must be
+          verified first.
         </p>
-      </section>
+      </header>
       <LoginForm
         next={search.next}
         notice={notice}
         initialFailure={search.error === "login-failed"}
       />
-      <p className="form-footer">
-        Need an account? <Link to="/signup">Sign up</Link>
-        {" · "}
-        <Link to="/forgot-password">Forgot password?</Link>
-      </p>
+      <ul className="auth-footer">
+        <li>
+          <Link to="/forgot-password">Forgot password?</Link>
+        </li>
+        <li>
+          Need an account? <Link to="/signup">Sign up</Link>
+        </li>
+      </ul>
     </main>
   );
 }
@@ -113,6 +116,12 @@ function LoginForm({
     );
   }
 
+  const failure =
+    mutation.message ||
+    (initialFailure
+      ? "We could not log you in. Check your details and try again."
+      : "");
+  const problem = loginProblem(failure);
   const emailErrors = mutation.fieldErrors.email;
   const passwordErrors = mutation.fieldErrors.password;
 
@@ -135,22 +144,27 @@ function LoginForm({
           email: "login-email-error",
           password: "login-password-error",
         }}
-        message={
-          mutation.message ||
-          (initialFailure
-            ? "We could not log you in. Check your details and try again."
-            : "")
-        }
+        message={failure}
         summaryRef={mutation.errorSummaryRef}
       />
+      {problem === "mismatch" ? (
+        <p className="auth-help">
+          Check for typos, or{" "}
+          <Link to="/forgot-password">reset your password</Link>.
+        </p>
+      ) : problem === "unverified" ? (
+        <p className="auth-help">
+          We sent a link when you signed up.{" "}
+          <Link to="/auth/verify-email">Send a new verification email</Link>.
+        </p>
+      ) : problem === "rate-limited" ? (
+        <p className="auth-help">
+          Wait several minutes before the next try. If you forgot your password,{" "}
+          <Link to="/forgot-password">reset it</Link> instead.
+        </p>
+      ) : null}
       <FormField errorId="login-email-error" errors={emailErrors} label="Email">
-        <input
-          name="email"
-          type="email"
-          autoComplete="email"
-          maxLength={320}
-          required
-        />
+        <input name="email" {...emailInputProps} enterKeyHint="next" required />
       </FormField>
       <FormField
         errorId="login-password-error"
@@ -161,6 +175,7 @@ function LoginForm({
           name="password"
           type="password"
           autoComplete="current-password"
+          enterKeyHint="go"
           maxLength={256}
           required
         />

@@ -9,7 +9,6 @@ import (
 	"regexp"
 	"slices"
 	"strings"
-	"sync"
 
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminaudit"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminmutation"
@@ -18,14 +17,17 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
+// Errors the game commands return. Each maps to an API error code.
 var (
-	// ErrAlreadyImported is returned with the existing game.
-	ErrAlreadyImported = apperror.New(apperror.KindConflict, "game_already_imported", "a game with this IGDB ID already exists")
-	ErrNotLinked       = apperror.New(apperror.KindUnprocessable, "game_not_from_igdb", "game was not imported from IGDB")
+	// ErrNotLinked refuses a refresh of a game that has no IGDB entry.
+	ErrNotLinked = apperror.New(apperror.KindUnprocessable, "game_not_from_igdb", "game was not imported from IGDB")
+	// ErrIGDBGameInvalid refuses an IGDB entry whose name cannot be stored.
 	ErrIGDBGameInvalid = apperror.New(apperror.KindUnprocessable, "igdb_game_invalid", "IGDB game has no usable name")
-	ErrCoverNotFound   = apperror.New(apperror.KindNotFound, "game_cover_not_found", "game has no stored cover")
+	// ErrCoverNotFound reports a game with no stored cover.
+	ErrCoverNotFound = apperror.New(apperror.KindNotFound, "game_cover_not_found", "game has no stored cover")
 	// ErrGameUnavailable refuses a game a site admin has hidden or deleted.
 	ErrGameUnavailable = apperror.New(apperror.KindUnprocessable, "game_unavailable", "game is not available")
+	// ErrGameNameInvalid refuses a typed game name that has no usable slug.
 	ErrGameNameInvalid = apperror.New(apperror.KindValidation, "invalid_game_name", "game name is not usable")
 )
 
@@ -48,12 +50,16 @@ type IGDBSource interface {
 	Thumbnail(ctx context.Context, imageID string) (igdb.Cover, error)
 }
 
-// IGDBService runs the named commands that bring IGDB games into the catalog.
+// IGDBService brings the IGDB games users pick into the catalog and keeps
+// them in sync. Admins never add games: they edit, hide, delete, and refresh
+// the ones users brought in.
 type IGDBService struct {
 	repository *PostgresRepository
 	source     IGDBSource
 }
 
+// NewIGDBService returns a service that reads IGDB through source and stores
+// games in repository.
 func NewIGDBService(repository *PostgresRepository, source IGDBSource) *IGDBService {
 	return &IGDBService{repository: repository, source: source}
 }
@@ -65,32 +71,20 @@ type IGDBResult struct {
 	ReleaseYear int    `json:"release_year,omitempty"`
 	// GameID is the catalog game already imported from this match, if any.
 	GameID string `json:"game_id,omitempty"`
-	// Thumbnail is a small cover, set only on admin search results.
-	Thumbnail *Thumbnail `json:"thumbnail,omitempty"`
+	// Slug and HasCover describe that catalog game, so a picker can show the
+	// cover the site serves at /api/games/{slug}/cover.
+	Slug     string `json:"slug,omitempty"`
+	HasCover bool   `json:"has_cover,omitempty"`
+	// CoverImageID names IGDB's cover, which the site serves small at
+	// /api/igdb-covers/{id} for a result the catalog has no cover for.
+	CoverImageID string `json:"cover_image_id,omitempty"`
 }
 
 // searchMatch is a search result with what only the search knows about it.
 type searchMatch struct {
-	result       IGDBResult
-	coverImageID string
+	result IGDBResult
 	// hidden reports a catalog game a site admin has hidden or deleted.
 	hidden bool
-}
-
-// Thumbnail is a small cover image. The bytes travel base64-encoded in JSON,
-// so the Admin Console shows it from its own page and loads no image from
-// another origin.
-type Thumbnail struct {
-	ContentType string `json:"content_type"`
-	Data        []byte `json:"data"`
-}
-
-// thumbnailDownloads bounds the IGDB image requests one search makes at once.
-const thumbnailDownloads = 5
-
-type IGDBImport struct {
-	adminmutation.Command
-	IGDBID int64 `json:"igdb_id"`
 }
 
 // Cover is a stored cover image. Bytes is nil when the caller already holds
@@ -101,40 +95,9 @@ type Cover struct {
 	Bytes       []byte
 }
 
-// SearchIGDB returns IGDB's matches for a name and marks the ones the catalog
-// already holds. Each match with a cover carries a thumbnail; one that cannot
-// be downloaded is left out, so a slow or broken image never fails the search.
-func (s *IGDBService) SearchIGDB(ctx context.Context, query string) ([]IGDBResult, error) {
-	matches, err := s.search(ctx, query)
-	if err != nil {
-		return nil, err
-	}
-	results := make([]IGDBResult, len(matches))
-	var wg sync.WaitGroup
-	slots := make(chan struct{}, thumbnailDownloads)
-	for index, match := range matches {
-		results[index] = match.result
-		if match.coverImageID == "" {
-			continue
-		}
-		wg.Add(1)
-		go func(result *IGDBResult, imageID string) {
-			defer wg.Done()
-			slots <- struct{}{}
-			defer func() { <-slots }()
-			thumbnail, err := s.source.Thumbnail(ctx, imageID)
-			if err != nil {
-				return
-			}
-			result.Thumbnail = &Thumbnail{ContentType: thumbnail.ContentType, Data: thumbnail.Bytes}
-		}(&results[index], match.coverImageID)
-	}
-	wg.Wait()
-	return results, nil
-}
-
-// SearchForPicker is SearchIGDB for signed-in users, without thumbnails. It
-// leaves out matches whose catalog game a site admin has hidden or deleted.
+// SearchForPicker returns IGDB's matches for a name, for signed-in users, and
+// marks the ones the catalog already holds. It leaves out matches whose
+// catalog game a site admin has hidden or deleted.
 func (s *IGDBService) SearchForPicker(ctx context.Context, query string) ([]IGDBResult, error) {
 	matches, err := s.search(ctx, query)
 	if err != nil {
@@ -175,17 +138,24 @@ func (s *IGDBService) search(ctx context.Context, query string) ([]searchMatch, 
 	for _, match := range matches {
 		ids = append(ids, match.ID)
 	}
-	rows, err := pool.Query(ctx, `SELECT igdb_id, id::text, is_active AND deleted_at IS NULL FROM games WHERE igdb_id = ANY($1)`, ids)
+	rows, err := pool.Query(ctx, `SELECT g.igdb_id, g.id::text, g.slug,
+	 EXISTS(SELECT 1 FROM game_covers c WHERE c.game_id = g.id),
+	 g.is_active AND g.deleted_at IS NULL
+	 FROM games g WHERE g.igdb_id = ANY($1)`, ids)
 	if err != nil {
 		return nil, err
 	}
-	catalog := map[int64]string{}
+	type catalogGame struct {
+		id, slug string
+		hasCover bool
+	}
+	catalog := map[int64]catalogGame{}
 	hidden := map[int64]bool{}
 	var igdbID int64
-	var gameID string
+	var game catalogGame
 	var usable bool
-	if _, err := pgx.ForEachRow(rows, []any{&igdbID, &gameID, &usable}, func() error {
-		catalog[igdbID] = gameID
+	if _, err := pgx.ForEachRow(rows, []any{&igdbID, &game.id, &game.slug, &game.hasCover, &usable}, func() error {
+		catalog[igdbID] = game
 		hidden[igdbID] = !usable
 		return nil
 	}); err != nil {
@@ -193,42 +163,54 @@ func (s *IGDBService) search(ctx context.Context, query string) ([]searchMatch, 
 	}
 	results := make([]searchMatch, 0, len(matches))
 	for _, match := range matches {
+		known := catalog[match.ID]
 		results = append(results, searchMatch{
-			result:       IGDBResult{IGDBID: match.ID, Name: match.Name, ReleaseYear: match.ReleaseYear, GameID: catalog[match.ID]},
-			coverImageID: match.CoverImageID,
-			hidden:       hidden[match.ID],
+			result: IGDBResult{
+				IGDBID: match.ID, Name: match.Name, ReleaseYear: match.ReleaseYear,
+				GameID: known.id, Slug: known.slug, HasCover: known.hasCover,
+				CoverImageID: match.CoverImageID,
+			},
+			hidden: hidden[match.ID],
 		})
 	}
 	return results, nil
 }
 
-// ImportFromIGDB creates an inactive game from an IGDB entry and stores its
-// cover. The name, slug, and cover come from IGDB, never from the caller. A
-// second import of the same entry returns the existing game with
-// ErrAlreadyImported.
-func (s *IGDBService) ImportFromIGDB(ctx context.Context, input IGDBImport) (AdminGame, error) {
-	if err := input.Command.Validate(false); err != nil {
-		return AdminGame{}, err
+// SearchResultCover returns the small IGDB cover of a game search result, so
+// the site can serve it without a page loading an image from IGDB. Only an
+// image a search returned in the last day is served, and never one of a game
+// a site admin hid or deleted, so the route is not an open IGDB proxy. The
+// image ID is the ETag: IGDB never changes the image behind an ID, so a
+// caller that already holds it gets a Cover without Bytes and IGDB is not
+// called.
+func (s *IGDBService) SearchResultCover(ctx context.Context, imageID, knownETag string) (Cover, error) {
+	if imageID == "" || len(imageID) > 64 {
+		return Cover{}, ErrCoverNotFound
 	}
-	if input.IGDBID < 1 {
-		return AdminGame{}, apperror.Validation("igdb_id is required")
+	var listed bool
+	if err := s.repository.pool.QueryRow(ctx, `SELECT EXISTS (
+	 SELECT 1 FROM igdb_search_cache c, jsonb_array_elements(c.results) r
+	 WHERE c.results @> jsonb_build_array(jsonb_build_object('cover_image_id', $1::text))
+	 AND c.fetched_at > NOW() - $2::interval
+	 AND r->>'cover_image_id' = $1
+	 AND NOT EXISTS (SELECT 1 FROM games g WHERE g.igdb_id = (r->>'id')::bigint
+	  AND NOT (g.is_active AND g.deleted_at IS NULL)))`, imageID, searchCacheTTL).Scan(&listed); err != nil {
+		return Cover{}, err
 	}
-	r := s.repository
-	existing, err := scanAdminGame(r.pool.QueryRow(ctx, `SELECT `+adminGameColumns+` FROM games WHERE igdb_id=$1`, input.IGDBID))
-	if err == nil {
-		return existing, ErrAlreadyImported
+	if !listed {
+		return Cover{}, ErrCoverNotFound
 	}
-	if !errors.Is(err, adminmutation.ErrNotFound) {
-		return AdminGame{}, err
+	if knownETag == imageID {
+		return Cover{ETag: imageID}, nil
 	}
-
-	source, err := s.source.Game(ctx, input.IGDBID)
+	thumbnail, err := s.source.Thumbnail(ctx, imageID)
+	if errors.Is(err, igdb.ErrNotFound) || errors.Is(err, igdb.ErrCoverUnsupported) || errors.Is(err, igdb.ErrCoverTooLarge) {
+		return Cover{}, ErrCoverNotFound
+	}
 	if err != nil {
-		return AdminGame{}, err
+		return Cover{}, err
 	}
-	return s.create(ctx, source, false, func(tx pgx.Tx, next AdminGame) error {
-		return input.Audit(ctx, tx, adminaudit.ActionGameImported, adminaudit.EntityGame, next.ID, adminaudit.EmptyState{}, next.auditState())
-	})
+	return Cover{ContentType: thumbnail.ContentType, ETag: imageID, Bytes: thumbnail.Bytes}, nil
 }
 
 // EnsureFromIGDB returns the catalog game for an IGDB entry a user picked,
@@ -244,7 +226,7 @@ func (s *IGDBService) EnsureFromIGDB(ctx context.Context, igdbID int64) (AdminGa
 		if source, err = s.source.Game(ctx, igdbID); err != nil {
 			return AdminGame{}, err
 		}
-		existing, err = s.create(ctx, source, true, nil)
+		existing, err = s.create(ctx, source)
 		// Two people can pick the same new game at once. The one that loses
 		// the unique igdb_id uses the row the other just created.
 		if _, code, ok := apperror.Details(err); ok && code == "admin_record_already_exists" {
@@ -262,8 +244,10 @@ func (s *IGDBService) EnsureFromIGDB(ctx context.Context, igdbID int64) (AdminGa
 	return existing, nil
 }
 
-// EnsureStarterGames imports the starter games the catalog does not hold yet
-// and returns how many it added. A slug IGDB does not know is skipped.
+// EnsureStarterGames imports the starter games the catalog does not hold yet,
+// linking a game already stored under the same slug without IGDB (such as a
+// demo seed game) instead of copying it, and returns how many it added or
+// linked. A slug IGDB does not know is skipped.
 func (s *IGDBService) EnsureStarterGames(ctx context.Context) (int, error) {
 	added := 0
 	for _, slug := range StarterGameSlugs {
@@ -281,7 +265,7 @@ func (s *IGDBService) EnsureStarterGames(ctx context.Context) (int, error) {
 		if exists {
 			continue
 		}
-		if _, err := s.create(ctx, source, true, nil); err != nil {
+		if _, err := s.create(ctx, source); err != nil {
 			return added, err
 		}
 		added++
@@ -289,11 +273,17 @@ func (s *IGDBService) EnsureStarterGames(ctx context.Context) (int, error) {
 	return added, nil
 }
 
-// create stores an IGDB entry and its cover as a new game. IGDB is called
-// before the transaction opens, so no transaction waits on the network. A
-// failed cover download fails the import. audit, set for admin imports, runs
-// in the same transaction.
-func (s *IGDBService) create(ctx context.Context, source igdb.Game, active bool, audit func(pgx.Tx, AdminGame) error) (AdminGame, error) {
+// create stores an IGDB entry and its cover as an active game. When the
+// catalog already holds a game under the entry's slug that no IGDB entry is
+// linked to (a demo seed game or one a user typed), that game is linked to
+// the entry instead of a second copy being made, so its events and teams
+// keep pointing at the one game. A linked game keeps its own name and slug,
+// as a refresh does; a game a user typed becomes a regular active catalog
+// game, while any other keeps its own visibility. A slug held by a
+// different IGDB entry or a deleted game still gets a numeric suffix. IGDB is
+// called before the transaction opens, so no transaction waits on the
+// network.
+func (s *IGDBService) create(ctx context.Context, source igdb.Game) (AdminGame, error) {
 	r := s.repository
 	name := strings.TrimSpace(source.Name)
 	if !adminmutation.Text(name, 200, true) {
@@ -301,14 +291,10 @@ func (s *IGDBService) create(ctx context.Context, source igdb.Game, active bool,
 	}
 	var cover *igdb.Cover
 	if source.CoverImageID != "" {
-		downloaded, err := s.source.Cover(ctx, source.CoverImageID)
-		// An admin import reports any cover failure. A user's pick or a starter
-		// game is imported without its cover, so a missing, unreachable, or
-		// unusable image cannot block an event or team. A refresh can add it.
-		if err != nil && audit != nil {
-			return AdminGame{}, err
-		}
-		if err == nil {
+		// A game is stored without a cover that is missing, unreachable, or
+		// unusable, so an image cannot block an event or team. A refresh can
+		// add it later.
+		if downloaded, err := s.source.Cover(ctx, source.CoverImageID); err == nil {
 			cover = &downloaded
 		}
 	}
@@ -318,15 +304,35 @@ func (s *IGDBService) create(ctx context.Context, source igdb.Game, active bool,
 		return AdminGame{}, err
 	}
 	defer tx.Rollback(ctx)
-	slug, err := availableSlug(ctx, tx, source)
-	if err != nil {
+	base := baseSlug(source)
+	var adopted *AdminGame
+	unlinked, err := scanAdminGame(tx.QueryRow(ctx, `SELECT `+adminGameColumns+` FROM games
+	 WHERE slug=$1 AND igdb_id IS NULL AND deleted_at IS NULL FOR UPDATE`, base))
+	switch {
+	case err == nil:
+		adopted = &unlinked
+	case !errors.Is(err, adminmutation.ErrNotFound):
 		return AdminGame{}, err
 	}
 	var id string
-	// A concurrent import of the same entry loses on the unique igdb_id.
-	if err := tx.QueryRow(ctx, `INSERT INTO games(igdb_id,name,slug,is_active,last_synced_at)
-	 VALUES($1,$2,$3,$4,clock_timestamp()) RETURNING id::text`, source.ID, name, slug, active).Scan(&id); err != nil {
-		return AdminGame{}, adminmutation.Error(err)
+	if adopted != nil {
+		id = adopted.ID
+		// A concurrent import of the same entry loses on the unique igdb_id.
+		if _, err := tx.Exec(ctx, `UPDATE games SET igdb_id=$2, last_synced_at=clock_timestamp(),
+		 is_active=is_active OR user_submitted, user_submitted=false
+		 WHERE id=$1::uuid`, id, source.ID); err != nil {
+			return AdminGame{}, adminmutation.Error(err)
+		}
+	} else {
+		slug, err := availableSlug(ctx, tx, base)
+		if err != nil {
+			return AdminGame{}, err
+		}
+		// A concurrent import of the same entry loses on the unique igdb_id.
+		if err := tx.QueryRow(ctx, `INSERT INTO games(igdb_id,name,slug,is_active,last_synced_at)
+		 VALUES($1,$2,$3,TRUE,clock_timestamp()) RETURNING id::text`, source.ID, name, slug).Scan(&id); err != nil {
+			return AdminGame{}, adminmutation.Error(err)
+		}
 	}
 	if cover != nil {
 		if err := storeCover(ctx, tx, id, *cover); err != nil {
@@ -336,11 +342,6 @@ func (s *IGDBService) create(ctx context.Context, source igdb.Game, active bool,
 	next, err := scanAdminGame(tx.QueryRow(ctx, `SELECT `+adminGameColumns+` FROM games WHERE id=$1::uuid`, id))
 	if err != nil {
 		return AdminGame{}, err
-	}
-	if audit != nil {
-		if err := audit(tx, next); err != nil {
-			return AdminGame{}, err
-		}
 	}
 	return next, tx.Commit(ctx)
 }
@@ -446,9 +447,9 @@ func refreshable(game AdminGame, command adminmutation.Command) error {
 
 var slugSeparators = regexp.MustCompile(`[^a-z0-9]+`)
 
-// availableSlug prefers IGDB's slug, falls back to one made from the name,
-// and adds a numeric suffix when another game holds it.
-func availableSlug(ctx context.Context, tx pgx.Tx, source igdb.Game) (string, error) {
+// baseSlug is the slug an IGDB entry is stored under: IGDB's own, or one made
+// from the name when IGDB's is unusable.
+func baseSlug(source igdb.Game) string {
 	base := source.Slug
 	if len(base) > 100 || !adminmutation.Slug(base) {
 		base = strings.Trim(slugSeparators.ReplaceAllString(strings.ToLower(source.Name), "-"), "-")
@@ -459,6 +460,12 @@ func availableSlug(ctx context.Context, tx pgx.Tx, source igdb.Game) (string, er
 	if base == "" {
 		base = fmt.Sprintf("igdb-%d", source.ID)
 	}
+	return base
+}
+
+// availableSlug returns base, or base with a numeric suffix when another game
+// holds it.
+func availableSlug(ctx context.Context, tx pgx.Tx, base string) (string, error) {
 	// Slugs hold no LIKE wildcards. Soft-deleted games keep their slugs.
 	rows, err := tx.Query(ctx, `SELECT slug FROM games WHERE slug=$1 OR slug LIKE $1 || '-%'`, base)
 	if err != nil {

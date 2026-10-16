@@ -67,6 +67,7 @@ type rsvpEventRequest struct {
 type myEventsResponse struct {
 	UpcomingRSVPs        []eventstore.Event `json:"upcoming_rsvps"`
 	FollowedSchoolEvents []eventstore.Event `json:"followed_school_events"`
+	InterestedEvents     []eventstore.Event `json:"interested_events"`
 }
 
 func (r *Router) handleMyEvents(w http.ResponseWriter, req *http.Request) {
@@ -107,9 +108,24 @@ func (r *Router) handleMyEvents(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	interestedEvents, err := r.events.ListInterestedEvents(req.Context(), userID, limit)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "events_unavailable")
+		return
+	}
+
+	// Each list marks the events the viewer organizes, so organizers keep the
+	// meeting link as they do on the event page; everyone else needs a going
+	// RSVP.
+	for _, list := range [][]eventstore.Event{upcomingRSVPs, followedSchoolEvents, interestedEvents} {
+		for index := range list {
+			list[index].HideOnlineURLUnlessGoing()
+		}
+	}
 	writeJSON(w, http.StatusOK, myEventsResponse{
 		UpcomingRSVPs:        upcomingRSVPs,
 		FollowedSchoolEvents: followedSchoolEvents,
+		InterestedEvents:     interestedEvents,
 	})
 }
 
@@ -334,6 +350,10 @@ func (r *Router) handleUnlockEvent(w http.ResponseWriter, req *http.Request, slu
 		writeError(w, http.StatusInternalServerError, "event_unlock_failed")
 		return
 	}
+	if err := r.hideOnlineURLUnlessGoing(req, slug, &event); err != nil {
+		writeError(w, http.StatusInternalServerError, "event_unlock_failed")
+		return
+	}
 
 	writeJSON(w, http.StatusOK, unlockPrivateEventResponse{
 		Event:       event,
@@ -387,6 +407,10 @@ func (r *Router) handleRSVPEvent(w http.ResponseWriter, req *http.Request, slug 
 		writeApplicationError(w, err, "event_rsvp_failed")
 		return
 	}
+	if err := r.hideOnlineURLUnlessGoing(req, slug, &event); err != nil {
+		writeError(w, http.StatusInternalServerError, "event_unavailable")
+		return
+	}
 	writeJSON(w, http.StatusOK, event)
 }
 
@@ -424,6 +448,10 @@ func (r *Router) handleEventInterest(w http.ResponseWriter, req *http.Request, s
 	event, err = r.events.SetInterest(req.Context(), slug, userID, req.Method == http.MethodPost)
 	if err != nil {
 		writeApplicationError(w, err, "event_interest_failed")
+		return
+	}
+	if err := r.hideOnlineURLUnlessGoing(req, slug, &event); err != nil {
+		writeError(w, http.StatusInternalServerError, "event_unavailable")
 		return
 	}
 	writeJSON(w, http.StatusOK, event)
@@ -479,4 +507,38 @@ func updateEventInputFromRequest(request createEventRequest, slug string, userID
 		PaymentNote:     request.PaymentNote,
 		PaymentURL:      request.PaymentURL,
 	}
+}
+
+// hideOnlineURLUnlessGoing removes the meeting link from an event a handler
+// is about to return unless the requester RSVP'd yes or organizes it. It reads
+// only what it needs and leaves the event's viewer fields as the handler set
+// them.
+func (r *Router) hideOnlineURLUnlessGoing(req *http.Request, slug string, event *eventstore.Event) error {
+	if event.OnlineURL == "" {
+		return nil
+	}
+	userID, ok := auth.UserID(req.Context())
+	if !ok || !looksLikeUUID(userID) {
+		event.OnlineURL = ""
+		return nil
+	}
+	going := event.ViewerRSVP != nil && *event.ViewerRSVP == eventstore.RSVPYes
+	if !going && event.ViewerRSVP == nil {
+		response, err := r.events.GetRSVP(req.Context(), slug, userID)
+		if err != nil {
+			return err
+		}
+		going = response == eventstore.RSVPYes
+	}
+	if going {
+		return nil
+	}
+	organizer, err := r.events.IsOrganizer(req.Context(), slug, userID)
+	if err != nil {
+		return err
+	}
+	if !organizer {
+		event.OnlineURL = ""
+	}
+	return nil
 }

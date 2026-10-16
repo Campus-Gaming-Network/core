@@ -35,12 +35,15 @@ var (
 // request already created a team with the same idempotency key.
 var errIdempotencyKeyTaken = errors.New("team idempotency key taken")
 
+// Team member roles.
 const (
 	RoleOwner   = "owner"
 	RoleCaptain = "captain"
 	RoleMember  = "member"
 )
 
+// Team is a team as the public API reports it. ViewerRole and Members are set
+// only for a signed-in viewer who belongs to the team.
 type Team struct {
 	ID          string          `json:"id"`
 	CreatedAt   time.Time       `json:"-"`
@@ -55,12 +58,14 @@ type Team struct {
 	Members     []MemberSummary `json:"members,omitempty"`
 }
 
+// MemberSummary is one active member of a team.
 type MemberSummary struct {
 	UserID string `json:"user_id"`
 	Name   string `json:"name"`
 	Role   string `json:"role"`
 }
 
+// SchoolSummary identifies the school a team belongs to.
 type SchoolSummary struct {
 	ID    string `json:"id"`
 	Name  string `json:"name"`
@@ -69,12 +74,15 @@ type SchoolSummary struct {
 	State string `json:"state,omitempty"`
 }
 
+// GameSummary identifies a game a team plays.
 type GameSummary struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
 	Slug string `json:"slug"`
 }
 
+// ListParams filters and pages the public team list. After and Before are
+// mutually exclusive keyset cursors.
 type ListParams struct {
 	GameSlug   string
 	SchoolSlug string
@@ -83,6 +91,7 @@ type ListParams struct {
 	Before     *pagecursor.Cursor
 }
 
+// CreateInput is the validated request to create a team.
 type CreateInput struct {
 	Name        string
 	Description string
@@ -95,11 +104,13 @@ type CreateInput struct {
 	IdempotencyKey string
 }
 
+// CreateParams is CreateInput plus the hash of the join password.
 type CreateParams struct {
 	CreateInput
 	PasswordHash string
 }
 
+// Repository is the team store the HTTP layer depends on.
 type Repository interface {
 	Create(ctx context.Context, params CreateParams) (Team, error)
 	PasswordHash(ctx context.Context, slug string) (string, error)
@@ -113,11 +124,13 @@ type Repository interface {
 	GetBySlug(ctx context.Context, slug string) (Team, error)
 }
 
+// PostgresRepository is the PostgreSQL-backed team store.
 type PostgresRepository struct {
 	pool *pgxpool.Pool
 	now  func() time.Time
 }
 
+// NewPostgresRepository returns a repository that reads and writes through pool.
 func NewPostgresRepository(pool *pgxpool.Pool) *PostgresRepository {
 	return &PostgresRepository{
 		pool: pool,
@@ -135,6 +148,7 @@ func NormalizeListParams(params ListParams) ListParams {
 	return params
 }
 
+// ValidateCreateInput checks a create request without touching the database.
 func ValidateCreateInput(input CreateInput) error {
 	if name := strings.TrimSpace(input.Name); name == "" || len(name) > 120 {
 		return apperror.Validation("team name is required and must be 120 characters or fewer")
@@ -165,6 +179,8 @@ func ValidateCreateInput(input CreateInput) error {
 	return nil
 }
 
+// GenerateSlug returns the slugified name plus a short hash of the owner, the
+// creation time, and the name, so equal names get distinct slugs.
 func GenerateSlug(name string, ownerUserID string, createdAt time.Time) string {
 	base := Slugify(name)
 	hash := sha256.Sum256([]byte(strings.Join([]string{
@@ -177,6 +193,8 @@ func GenerateSlug(name string, ownerUserID string, createdAt time.Time) string {
 	return base + "-" + suffix
 }
 
+// Slugify lowercases value, keeps letters and digits, and joins words with
+// single hyphens. It returns "team" when nothing remains.
 func Slugify(value string) string {
 	var builder strings.Builder
 	previousHyphen := false
@@ -202,6 +220,8 @@ func Slugify(value string) string {
 	return result
 }
 
+// Create inserts a team, its owner membership, and its games in one
+// transaction. A repeated idempotency key returns the original team.
 func (r *PostgresRepository) Create(ctx context.Context, params CreateParams) (Team, error) {
 	if err := ValidateCreateInput(params.CreateInput); err != nil {
 		return Team{}, err
@@ -234,6 +254,8 @@ func (r *PostgresRepository) Create(ctx context.Context, params CreateParams) (T
 	return Team{}, ErrSlugUnavailable
 }
 
+// ListPublic returns teams newest first, filtered by game or school, using
+// keyset pagination.
 func (r *PostgresRepository) ListPublic(ctx context.Context, params ListParams) ([]Team, error) {
 	params = NormalizeListParams(params)
 	if params.After != nil && params.Before != nil {
@@ -295,6 +317,7 @@ func reverseTeams(teams []Team) {
 	}
 }
 
+// GetBySlug returns the team with the given slug, or ErrTeamNotFound.
 func (r *PostgresRepository) GetBySlug(ctx context.Context, slug string) (Team, error) {
 	row := r.pool.QueryRow(ctx, teamSelectSQL(`
 		t.deleted_at IS NULL
@@ -303,6 +326,7 @@ func (r *PostgresRepository) GetBySlug(ctx context.Context, slug string) (Team, 
 	return scanTeam(row)
 }
 
+// PasswordHash returns the team's join password hash, or ErrTeamNotFound.
 func (r *PostgresRepository) PasswordHash(ctx context.Context, slug string) (string, error) {
 	var hash string
 	err := r.pool.QueryRow(ctx, `
@@ -320,6 +344,8 @@ func (r *PostgresRepository) PasswordHash(ctx context.Context, slug string) (str
 	return hash, nil
 }
 
+// Join adds the user to the team as a member. Joining a team the user already
+// belongs to is not an error.
 func (r *PostgresRepository) Join(ctx context.Context, slug string, userID string) (Team, error) {
 	slug = strings.TrimSpace(slug)
 	userID = strings.TrimSpace(userID)
@@ -347,6 +373,8 @@ func (r *PostgresRepository) Join(ctx context.Context, slug string, userID strin
 	return r.teamForViewer(ctx, slug, userID)
 }
 
+// MembershipRole returns the user's role on the team, or "" when the user is
+// not a member or the team does not exist.
 func (r *PostgresRepository) MembershipRole(ctx context.Context, slug string, userID string) (string, error) {
 	var role string
 	err := r.pool.QueryRow(ctx, `
@@ -361,9 +389,13 @@ func (r *PostgresRepository) MembershipRole(ctx context.Context, slug string, us
 	if errors.Is(err, pgx.ErrNoRows) {
 		return "", nil
 	}
-	return role, err
+	if err != nil {
+		return "", fmt.Errorf("get team membership role: %w", err)
+	}
+	return role, nil
 }
 
+// ListMembers returns the team's active members.
 func (r *PostgresRepository) ListMembers(ctx context.Context, slug string) ([]MemberSummary, error) {
 	teamID, err := r.teamIDBySlug(ctx, slug)
 	if err != nil {
@@ -403,6 +435,8 @@ func (r *PostgresRepository) ListMembers(ctx context.Context, slug string) ([]Me
 	return members, nil
 }
 
+// ListForUser returns up to limit teams the user belongs to, with the user's
+// role on each.
 func (r *PostgresRepository) ListForUser(ctx context.Context, userID string, limit int) ([]Team, error) {
 	userID = strings.TrimSpace(userID)
 	if userID == "" {
@@ -446,6 +480,8 @@ func (r *PostgresRepository) ListForUser(ctx context.Context, userID string, lim
 	return result, nil
 }
 
+// SetCaptain promotes or demotes a non-owner member. Only the team's owner may
+// call it.
 func (r *PostgresRepository) SetCaptain(ctx context.Context, slug string, ownerUserID string, memberUserID string, captain bool) (Team, error) {
 	slug = strings.TrimSpace(slug)
 	ownerUserID = strings.TrimSpace(ownerUserID)
@@ -492,6 +528,8 @@ func (r *PostgresRepository) SetCaptain(ctx context.Context, slug string, ownerU
 	return r.teamForViewer(ctx, slug, ownerUserID)
 }
 
+// TransferOwnership makes an active member the owner and demotes the previous
+// owner to member. Only the team's owner may call it.
 func (r *PostgresRepository) TransferOwnership(ctx context.Context, slug string, ownerUserID string, newOwnerUserID string) (Team, error) {
 	slug = strings.TrimSpace(slug)
 	ownerUserID = strings.TrimSpace(ownerUserID)

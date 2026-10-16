@@ -219,7 +219,7 @@ test("an unlisted event keeps its preview but is noindex and has no structured d
   );
 });
 
-test("private, locked, and restricted-audience events never put details in the head", () => {
+test("locked and restricted-audience events never put details in the head", () => {
   const cases = [
     {
       name: "locked",
@@ -279,6 +279,34 @@ test("private, locked, and restricted-audience events never put details in the h
       );
     }
   }
+});
+
+test("someone who can see a private event gets its name in the tab, and nothing else", () => {
+  const head = eventDetailHead({
+    event: { ...baseEvent, visibility: "private" } as EventDTO,
+    publicOrigin: origin,
+  });
+  const { title } = head.meta.find((tag) => "title" in tag) as {
+    title: string;
+  };
+  const rest = JSON.stringify(head.meta.filter((tag) => !("title" in tag)));
+
+  assert.deepEqual(
+    {
+      title,
+      ogTitle: metaContent(head, "og:title"),
+      robots: metaContent(head, "robots"),
+      leaks: ["Open Night", "Bring a controller", "ld+json"].filter((text) =>
+        rest.includes(text),
+      ),
+    },
+    {
+      title: "Open Night | Campus Gaming Network",
+      ogTitle: "Private event | Campus Gaming Network",
+      robots: "noindex,nofollow",
+      leaks: [],
+    },
+  );
 });
 
 test("team and school heads carry SportsTeam and school structured data, not people", () => {

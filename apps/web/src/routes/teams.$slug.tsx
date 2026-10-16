@@ -10,8 +10,9 @@ import { ArrowRight } from "lucide-react";
 import { type FormEvent, useRef, useState } from "react";
 import { BreadcrumbLink, Breadcrumbs } from "../components/breadcrumbs";
 import { ButtonLink } from "../components/button-link";
-import { KeyInformation } from "../components/key-information";
-import { PageHeading } from "../components/page-heading";
+import { DetailHero } from "../components/detail-hero";
+import { StatusLabel } from "../components/status-label";
+import { TabLink, Tabs } from "../components/tabs";
 import { ConfirmDialog } from "../components/confirm-dialog";
 import {
   FormErrorSummary,
@@ -21,7 +22,11 @@ import { FormField } from "../components/form-field";
 import { PasswordInput } from "../components/password-input";
 import { PageNoticeView } from "../components/page-notice-view";
 import { Person } from "../components/person";
-import { RouteErrorView, RoutePending } from "../components/route-boundaries";
+import {
+  RecordNotFound,
+  RouteErrorView,
+  RoutePending,
+} from "../components/route-boundaries";
 import { getEventViewerSession } from "../features/event-slice/auth.functions";
 import {
   peoplePreviewSize,
@@ -50,10 +55,10 @@ import {
   teamHead,
   teamRoleLabel,
 } from "../features/team-slice/presentation";
-import { SchoolLogo } from "../components/school-logo";
+import { schoolLocation } from "../features/school-slice/presentation";
 import teamCSS from "../features/team-slice/teams.css?url";
 
-export type TeamRouteData = {
+type TeamRouteData = {
   team: TeamDTO;
   viewer: TeamViewerState;
   ownerRoster?: TeamMemberDTO[];
@@ -104,7 +109,10 @@ export const Route = createFileRoute("/teams/$slug")({
     vary: "Cookie",
   }),
   head: ({ loaderData }) => {
-    const head = teamHead(loaderData?.team, loaderData?.publicOrigin);
+    // Without loader data the page is a not-found or error view, which sets
+    // its own title and robots.
+    if (!loaderData) return { links: [{ rel: "stylesheet", href: teamCSS }] };
+    const head = teamHead(loaderData.team, loaderData.publicOrigin);
     return {
       ...head,
       links: [...head.links, { rel: "stylesheet", href: teamCSS }],
@@ -112,57 +120,75 @@ export const Route = createFileRoute("/teams/$slug")({
   },
   pendingComponent: TeamPending,
   errorComponent: TeamError,
+  notFoundComponent: () => <RecordNotFound kind="team" />,
   component: TeamPage,
 });
 
 function TeamPage() {
   const { members, ownerRoster, team, viewer } = Route.useLoaderData();
   const search = Route.useSearch();
+  const location = team.school ? schoolLocation(team.school, "") : "";
 
   return (
-    <main className="detail-page">
+    <main className="team-page">
       <Breadcrumbs current={team.name}>
         <BreadcrumbLink to="/teams">Teams</BreadcrumbLink>
       </Breadcrumbs>
-      <PageHeading
-        identity={
-          <span aria-hidden="true" className="team-mark team-mark--large">
-            {team.name.slice(0, 1).toUpperCase()}
-          </span>
-        }
-        title={team.name}
-        supporting={team.description || "Team details are coming soon."}
-      />
+      <DetailHero initial={team.name}>
+        <h1>{team.name}</h1>
+        <p className="detail-hero__meta">
+          {team.school ? (
+            <>
+              <Link to="/schools/$slug" params={{ slug: team.school.slug }}>
+                {team.school.name}
+              </Link>
+              {location ? ` · ${location}` : null}
+            </>
+          ) : (
+            "Independent team"
+          )}
+        </p>
+        {team.games.length > 0 ? (
+          <div className="tag-list" aria-label="Games">
+            {team.games.map((game) => (
+              <StatusLabel key={game.id}>{game.name}</StatusLabel>
+            ))}
+          </div>
+        ) : null}
+      </DetailHero>
+
+      <Tabs label="Team sections">
+        <TabLink current to="/teams/$slug" params={{ slug: team.slug }}>
+          Overview
+        </TabLink>
+        <TabLink
+          current={false}
+          to="/teams/$slug/people"
+          params={{ slug: team.slug }}
+        >
+          {`Members (${team.member_count})`}
+        </TabLink>
+      </Tabs>
 
       <PageNoticeView
         notice={search.team ? teamDetailNotices[search.team] : undefined}
       />
 
-      <div className="team-detail-layout">
-        <div className="team-detail-main">
-          <section
-            className="action-panel team-action-panel"
-            aria-labelledby="team-actions"
-          >
-            <p className="eyebrow">Membership</p>
-            <h2 id="team-actions">Join and manage</h2>
-            <TeamActions
-              ownerRoster={ownerRoster}
-              slug={team.slug}
-              viewer={viewer}
-            />
+      <div className="layout-detail">
+        <div className="layout-detail__main">
+          <section className="team-about" aria-labelledby="team-about-title">
+            <h2 id="team-about-title">About</h2>
+            <p>{team.description || "Team details are coming soon."}</p>
           </section>
 
           {viewer === "anonymous" ? (
-            <div className="people-card">
-              <PeopleSignedOut
-                message="Log in to see the members of this team."
-                next={`/teams/${team.slug}`}
-              />
-            </div>
+            <PeopleSignedOut
+              message="Log in to see the members of this team."
+              next={`/teams/${team.slug}`}
+            />
           ) : (
             <section
-              className="detail-card people-card"
+              className="detail-card"
               aria-labelledby="team-people-title"
             >
               <h2 id="team-people-title">Members</h2>
@@ -170,6 +196,7 @@ function TeamPage() {
               {members.status === "found" && members.list.people.length > 0 ? (
                 <div className="detail-card-body">
                   <Link
+                    aria-label={`See everyone on ${team.name}`}
                     className="link with-arrow"
                     to="/teams/$slug/people"
                     params={{ slug: team.slug }}
@@ -185,58 +212,45 @@ function TeamPage() {
               ) : null}
             </section>
           )}
+
+          {viewer === "owner" ? (
+            <section
+              className="panel team-manage"
+              aria-labelledby="team-actions"
+            >
+              <h2 id="team-actions">Manage team</h2>
+              <TeamManagementPanel
+                members={ownerRoster ?? []}
+                slug={team.slug}
+              />
+            </section>
+          ) : null}
         </div>
 
-        <aside className="team-detail-aside" aria-label="About this team">
-          <KeyInformation
-            facts={[
-              {
-                term: "Games",
-                value: team.games.map((game) => game.name).join(", "),
-              },
-              {
-                term: "School",
-                value: team.school ? (
-                  <Link
-                    className="link"
-                    to="/schools/$slug"
-                    params={{ slug: team.school.slug }}
-                  >
-                    <SchoolLogo
-                      inline
-                      logoURL={team.school.logo_url}
-                      size={20}
-                    />
-                    {team.school.name}
-                  </Link>
-                ) : (
-                  "Independent team"
-                ),
-              },
-              { term: "Members", value: team.member_count },
-            ]}
-          />
+        <aside className="layout-detail__aside" aria-label="Membership">
+          <section className="team-header__actions panel">
+            <TeamActions slug={team.slug} viewer={viewer} />
+          </section>
         </aside>
       </div>
     </main>
   );
 }
 
+/** The page header's primary action: join, log in to join, or your role. */
 function TeamActions({
-  ownerRoster,
   slug,
   viewer,
 }: {
-  ownerRoster?: TeamMemberDTO[];
   slug: string;
   viewer: TeamViewerState;
 }) {
   if (viewer === "anonymous") {
     return (
       <>
-        <p>
-          Team pages are public, but joining requires logging in and entering
-          the team password.
+        <h2 className="team-panel__title">Join this team</h2>
+        <p className="form-help">
+          Joining requires logging in and entering the team password.
         </p>
         <ButtonLink
           variant="primary"
@@ -255,14 +269,16 @@ function TeamActions({
 
   return (
     <>
-      <p role="status">Your role: {teamRoleLabel(viewer)}.</p>
-      {viewer === "owner" ? (
-        <TeamManagementPanel members={ownerRoster ?? []} slug={slug} />
-      ) : (
-        <p>
-          Member interaction is enabled. Captains and owners manage team roles.
-        </p>
-      )}
+      <h2 className="team-panel__title">Your membership</h2>
+      <p className="team-role">
+        <span>Your role</span>
+        <StatusLabel tone="info">{teamRoleLabel(viewer)}</StatusLabel>
+      </p>
+      <p className="form-help">
+        {viewer === "owner"
+          ? "You can manage captains and ownership below."
+          : "Captains and owners manage team roles."}
+      </p>
     </>
   );
 }
@@ -291,11 +307,15 @@ function TeamJoinForm({ slug }: { slug: string }) {
   return (
     <form
       action={joinTeam.url}
-      className="form-stack"
+      className="team-join-form"
       method="post"
       onSubmit={submit}
     >
       <input name="slug" type="hidden" value={slug} />
+      <h2 className="team-panel__title">Join this team</h2>
+      <p className="form-help">
+        Team pages are public. The password is checked only when you join.
+      </p>
       <FormErrorSummary
         fieldErrors={mutation.fieldErrors}
         fieldIds={{ password: "team-join-password-error" }}
@@ -315,9 +335,6 @@ function TeamJoinForm({ slug }: { slug: string }) {
           required
         />
       </FormField>
-      <p className="form-help">
-        Team pages are public. The password is checked only when you join.
-      </p>
       <button disabled={mutation.pending} type="submit">
         {mutation.pending ? "Joining…" : "Join team"}
       </button>
@@ -345,7 +362,7 @@ function TeamManagementPanel({
           Owners can add or remove captain status at any time.
         </p>
         {manageableMembers.length > 0 ? (
-          <div className="list">
+          <ul className="team-management-list">
             {manageableMembers.map((member) => (
               <CaptainManagementRow
                 key={member.user_id}
@@ -353,23 +370,23 @@ function TeamManagementPanel({
                 slug={slug}
               />
             ))}
-          </div>
+          </ul>
         ) : (
-          <p className="empty-state">
+          <p className="form-help">
             Members will appear here after they join with the team password.
           </p>
         )}
       </section>
 
       <section
-        className="team-management-section"
+        className="team-management-section team-management-section--danger"
         aria-labelledby="ownership-transfer"
       >
         <h3 id="ownership-transfer">Transfer ownership</h3>
         {manageableMembers.length > 0 ? (
           <TransferOwnershipForm members={manageableMembers} slug={slug} />
         ) : (
-          <p className="empty-state">
+          <p className="form-help">
             Add another member before transferring ownership.
           </p>
         )}
@@ -416,7 +433,7 @@ function CaptainManagementRow({
   }
 
   return (
-    <div className="card list-item team-management-row">
+    <li className="team-management-row">
       <Person
         detail={teamRoleLabel(member.role)}
         id={member.user_id}
@@ -432,6 +449,7 @@ function CaptainManagementRow({
         />
         <button
           aria-label={`${isCaptain ? "Remove captain" : "Make captain"} ${member.name}`}
+          className="button--secondary button--small"
           disabled={pending}
           ref={triggerRef}
           type="submit"
@@ -456,7 +474,7 @@ function CaptainManagementRow({
           </p>
         </ConfirmDialog>
       </form>
-    </div>
+    </li>
   );
 }
 
@@ -505,7 +523,7 @@ function TransferOwnershipForm({
   return (
     <form
       action={transferTeamOwnership.url}
-      className="form-stack"
+      className="team-transfer-form"
       method="post"
       onSubmit={submit}
     >

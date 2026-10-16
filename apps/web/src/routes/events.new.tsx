@@ -3,13 +3,18 @@ import {
   redirect,
   type ErrorComponentProps,
 } from "@tanstack/react-router";
+import { Breadcrumbs, BreadcrumbLink } from "../components/breadcrumbs";
+import { FormSectionNav } from "../components/form-section-nav";
 import { newIdempotencyKey } from "../components/idempotency-key";
 import { RouteErrorView, RoutePending } from "../components/route-boundaries";
 import {
   validateNewEventSearch,
   type NewEventPageResult,
 } from "../features/event-slice/contracts";
-import { EventForm } from "../features/event-slice/event-form";
+import {
+  EventForm,
+  eventFormSections,
+} from "../features/event-slice/event-form";
 import { getNewEventPage } from "../features/event-slice/event.functions";
 import { NoScriptSchoolSearch } from "../features/event-slice/event-school-picker";
 import eventCSS from "../features/event-slice/events.css?url";
@@ -82,30 +87,41 @@ function NewEventPage() {
   const schoolQuery = search.school_q ?? "";
 
   return (
-    <main>
-      <section className="page-heading">
-        <p className="eyebrow">Create event</p>
-        <h1>Create a campus gaming event</h1>
-        <p className="lede">
-          Start with the event basics. Private events can be password-unlocked,
-          and yes RSVPs receive confirmation emails with calendar files.
-        </p>
-      </section>
-      {search.event === "failed" ? (
-        <p role="alert">We could not create that event. Please try again.</p>
-      ) : null}
-      <NoScriptSchoolSearch action="/events/new" query={schoolQuery} />
-      <EventForm
-        defaultSchool={data.defaultSchool}
-        defaultSchoolID={data.defaultSchoolID}
-        defaultTimeZone={data.defaultTimeZone}
-        games={data.games}
-        idempotencyKey={data.idempotencyKey}
-        initialSchoolQuery={schoolQuery}
-        initialSchoolSearchFailed={data.schoolSearchFailed}
-        mode="create"
-        schools={data.schools}
-      />
+    <main className="form-page">
+      <Breadcrumbs current="Create event">
+        <BreadcrumbLink to="/events">Events</BreadcrumbLink>
+      </Breadcrumbs>
+      <div className="form-page__layout">
+        <FormSectionNav heading="Create event" sections={eventFormSections} />
+        <div className="form-page__body">
+          <section className="page-heading">
+            <div>
+              <h1>Create event</h1>
+              <p className="lede">
+                Host a gaming event for your campus. Add the basics now; you can
+                edit the details after you create it.
+              </p>
+            </div>
+          </section>
+          {search.event === "failed" ? (
+            <p role="alert">
+              We could not create that event. Please try again.
+            </p>
+          ) : null}
+          <NoScriptSchoolSearch action="/events/new" query={schoolQuery} />
+          <EventForm
+            defaultSchool={data.defaultSchool}
+            defaultSchoolID={data.defaultSchoolID}
+            defaultTimeZone={data.defaultTimeZone}
+            games={data.games}
+            idempotencyKey={data.idempotencyKey}
+            initialSchoolQuery={schoolQuery}
+            initialSchoolSearchFailed={data.schoolSearchFailed}
+            mode="create"
+            schools={data.schools}
+          />
+        </div>
+      </div>
     </main>
   );
 }

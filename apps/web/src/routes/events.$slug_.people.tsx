@@ -5,7 +5,8 @@ import {
   redirect,
   type ErrorComponentProps,
 } from "@tanstack/react-router";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ArrowRight } from "lucide-react";
+import { BreadcrumbLink, Breadcrumbs } from "../components/breadcrumbs";
 import { RouteErrorView, RoutePending } from "../components/route-boundaries";
 import { TabLink, Tabs } from "../components/tabs";
 import { getEventDetail } from "../features/event-slice/event.functions";
@@ -25,6 +26,7 @@ import {
   peopleHead,
   unavailablePeopleHead,
 } from "../features/people-slice/presentation";
+import peopleCSS from "../features/people-slice/people.css?url";
 
 type EventPeopleRouteData = {
   event: { slug: string; title: string };
@@ -80,15 +82,19 @@ export const Route = createFileRoute("/events/$slug_/people")({
   },
   staleTime: 0,
   headers: () => ({ "cache-control": "private, no-store", vary: "Cookie" }),
-  head: ({ loaderData }) =>
-    loaderData
-      ? peopleHead({
-          title: `Who's going to ${loaderData.event.title}`,
-          description: `The people going to ${loaderData.event.title} on Campus Gaming Network.`,
-          path: `/events/${encodeURIComponent(loaderData.event.slug)}/people`,
-          publicOrigin: loaderData.publicOrigin,
-        })
-      : unavailablePeopleHead(),
+  head: ({ loaderData }) => {
+    if (!loaderData) return unavailablePeopleHead();
+    const head = peopleHead({
+      title: `Who's going to ${loaderData.event.title}`,
+      description: `The people going to ${loaderData.event.title} on Campus Gaming Network.`,
+      path: `/events/${encodeURIComponent(loaderData.event.slug)}/people`,
+      publicOrigin: loaderData.publicOrigin,
+    });
+    return {
+      ...head,
+      links: [...head.links, { rel: "stylesheet", href: peopleCSS }],
+    };
+  },
   pendingComponent: EventPeoplePending,
   errorComponent: EventPeopleError,
   component: EventPeoplePage,
@@ -107,15 +113,18 @@ function EventPeoplePage() {
       : undefined;
 
   return (
-    <main className="browse-page">
-      <Link
-        className="back-link with-arrow"
-        to="/events/$slug"
-        params={{ slug: event.slug }}
+    <main className="people-page">
+      <Breadcrumbs
+        current={
+          responseTabs.find((tab) => tab.response === response)?.label ??
+          "Who's going"
+        }
       >
-        <ArrowLeft aria-hidden="true" size={14} strokeWidth={2.25} />
-        Back to event
-      </Link>
+        <BreadcrumbLink to="/events">Events</BreadcrumbLink>
+        <BreadcrumbLink to="/events/$slug" params={{ slug: event.slug }}>
+          {event.title}
+        </BreadcrumbLink>
+      </Breadcrumbs>
       <header className="people-heading">
         <h1>{`Who's going to ${event.title}`}</h1>
         <p className="lede">
@@ -162,6 +171,7 @@ function EventPeoplePage() {
               search={nextSearch}
             >
               Next
+              <ArrowRight aria-hidden="true" size={16} strokeWidth={2} />
             </Link>
           ) : undefined
         }
@@ -172,6 +182,7 @@ function EventPeoplePage() {
               params={{ slug: event.slug }}
               search={previousSearch}
             >
+              <ArrowLeft aria-hidden="true" size={16} strokeWidth={2} />
               Previous
             </Link>
           ) : undefined

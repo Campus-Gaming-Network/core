@@ -15,15 +15,16 @@ const nonNegativeIntegerSchema = z.number().int().nonnegative();
 const eventFilterSchema = z.string().trim().min(1).max(200);
 const eventCursorSchema = z.string().trim().min(1).max(1024);
 const eventSchoolQuerySchema = z.string().trim().min(1).max(120);
+const eventGameQuerySchema = z.string().trim().min(1).max(100);
 const idempotencyKeySchema = z.uuid("Reload the page and try again.");
 
-export const eventRSVPSchema = z.enum(["yes", "maybe", "no"]);
-export const eventFormatSchema = z.enum(["online", "in_person", "hybrid"]);
-export const eventAudienceSchema = z.enum(
+const eventRSVPSchema = z.enum(["yes", "maybe", "no"]);
+const eventFormatSchema = z.enum(["online", "in_person", "hybrid"]);
+const eventAudienceSchema = z.enum(
   ["open", "collegiate", "campus", "members"],
   "Choose who this event is for.",
 );
-export const eventTypeSchema = z.enum(
+const eventTypeSchema = z.enum(
   [
     "game_night",
     "lan",
@@ -37,12 +38,12 @@ export const eventTypeSchema = z.enum(
   "Choose an event type.",
 );
 // "unspecified" means the organizer did not say; it is not the same as free.
-export const eventCostSchema = z.enum(
+const eventCostSchema = z.enum(
   ["free", "paid", "unspecified"],
   "Choose whether the event is free, paid, or not specified.",
 );
-export const eventVisibilitySchema = z.enum(["public", "unlisted", "private"]);
-export const recurrenceRuleSchema = z.enum(["weekly", "biweekly", "monthly"]);
+const eventVisibilitySchema = z.enum(["public", "unlisted", "private"]);
+const recurrenceRuleSchema = z.enum(["weekly", "biweekly", "monthly"]);
 
 export const schoolSummarySchema = z.object({
   id: identifierSchema,
@@ -56,6 +57,8 @@ export const gameSummaryDtoSchema = z.object({
   id: identifierSchema,
   name: z.string(),
   slug: identifierSchema,
+  // Set when the site serves the game's cover; the game field shows it.
+  cover_url: z.string().optional(),
 });
 
 // An event's game also says whether the site serves its cover.
@@ -110,7 +113,7 @@ export const eventDtoSchema = z.object({
   viewer_can_edit: z.boolean().optional(),
 });
 
-export const lockedEventDtoSchema = z.object({
+const lockedEventDtoSchema = z.object({
   slug: identifierSchema,
   visibility: z.literal("private"),
   locked: z.literal(true),
@@ -121,7 +124,7 @@ export const eventDetailDtoSchema = z.union([
   lockedEventDtoSchema,
 ]);
 
-export const eventBrowseItemDtoSchema = z.object({
+const eventBrowseItemDtoSchema = z.object({
   id: identifierSchema,
   title: z.string(),
   slug: identifierSchema,
@@ -139,7 +142,15 @@ export const eventBrowseItemDtoSchema = z.object({
   lifecycle: z.enum(["upcoming", "happening_now", "ended", "full"]),
   cost: eventCostSchema,
   host_school: z.object({ name: z.string(), slug: identifierSchema }),
-  games: z.array(z.object({ name: z.string() })),
+  // The API sends each game's slug and whether the site serves its cover;
+  // rows show the first game's cover when it has one.
+  games: z.array(
+    z.object({
+      name: z.string(),
+      slug: identifierSchema.optional(),
+      has_cover: z.boolean().optional(),
+    }),
+  ),
   rsvp_yes_count: nonNegativeIntegerSchema,
   interest_count: nonNegativeIntegerSchema,
 });
@@ -172,7 +183,7 @@ export const eventSlugInputSchema = z.object({
   slug: identifierSchema,
 });
 
-export const loginInputSchema = z.object({
+const loginInputSchema = z.object({
   email: z
     .string()
     .trim()
@@ -186,7 +197,7 @@ export const loginInputSchema = z.object({
   next: z.string().trim().max(2048).optional(),
 });
 
-export const unlockEventInputSchema = eventSlugInputSchema.extend({
+const unlockEventInputSchema = eventSlugInputSchema.extend({
   password: z
     .string()
     .trim()
@@ -194,7 +205,7 @@ export const unlockEventInputSchema = eventSlugInputSchema.extend({
     .max(256, "Password must be 256 characters or fewer."),
 });
 
-export const rsvpEventInputSchema = eventSlugInputSchema.extend({
+const rsvpEventInputSchema = eventSlugInputSchema.extend({
   response: z.string().trim().pipe(eventRSVPSchema),
 });
 
@@ -284,22 +295,22 @@ const updateEventInputSchema = eventMutableInputSchema.extend({
     .optional(),
 });
 
-export const createEventMutationInputSchema = createEventInputSchema
+const createEventMutationInputSchema = createEventInputSchema
   .superRefine((event, context) => validateEventForm(event, context, "create"))
   .transform(convertEventTimes);
 
-export const updateEventMutationInputSchema = updateEventInputSchema
+const updateEventMutationInputSchema = updateEventInputSchema
   .superRefine((event, context) => validateEventForm(event, context, "update"))
   .transform((event) =>
     convertEventTimes(eventMutableInputSchema.parse(event)),
   );
 
-export const reportEventInputSchema = eventSlugInputSchema.extend({
+const reportEventInputSchema = eventSlugInputSchema.extend({
   reason: requiredText("Reason", 2000),
   idempotency_key: idempotencyKeySchema,
 });
 
-export const eventInterestInputSchema = eventSlugInputSchema.extend({
+const eventInterestInputSchema = eventSlugInputSchema.extend({
   interested: z.boolean(),
 });
 
@@ -358,7 +369,7 @@ export type EventFormSchoolDTO = z.output<typeof schoolSummarySchema>;
 
 export type FormFieldErrors = Record<string, string[] | undefined>;
 
-export type OperationFailure = {
+type OperationFailure = {
   status: "error";
   message: string;
   fieldErrors?: FormFieldErrors;
@@ -450,7 +461,7 @@ export type EditEventPageResult =
   | { status: "denied"; reason: "locked" | "forbidden" }
   | { status: "error"; message: "Event editing is unavailable." };
 
-export type NewEventSearch = {
+type NewEventSearch = {
   school_q?: string;
   event?: "failed";
 };
@@ -471,18 +482,20 @@ export function validateNewEventSearch(
 
 export type EventsBrowseResult = {
   events: EventBrowseItemDTO[];
-  games: EventGameDTO[];
   limit: number;
   has_more: boolean;
   has_previous: boolean;
   next_cursor?: string;
   previous_cursor?: string;
   eventsUnavailable: boolean;
-  gamesUnavailable: boolean;
 };
 
 export type EventsSearch = EventsBrowseInput & {
   event?: EventBrowseNotice;
+  /** Searches schools for the no-JavaScript school filter. */
+  school_q?: string;
+  /** Searches games for the no-JavaScript game filter. */
+  game_q?: string;
 };
 
 export function validateEventsSearch(
@@ -501,10 +514,17 @@ export function validateEventsSearch(
   const after = boundedSearchValue(search.after, eventCursorSchema);
   const before = boundedSearchValue(search.before, eventCursorSchema);
   const event = pageNoticeKey(eventBrowseNotices, search.event);
+  const schoolQuery = boundedSearchValue(
+    search.school_q,
+    eventSchoolQuerySchema,
+  );
+  const gameQuery = boundedSearchValue(search.game_q, eventGameQuerySchema);
 
   return {
     ...(game ? { game } : {}),
     ...(school ? { school } : {}),
+    ...(schoolQuery ? { school_q: schoolQuery } : {}),
+    ...(gameQuery ? { game_q: gameQuery } : {}),
     ...(format.success ? { format: format.data } : {}),
     ...(audience.success ? { audience: audience.data } : {}),
     ...(type.success ? { type: type.data } : {}),

@@ -7,7 +7,9 @@ const nonNegativeIntegerSchema = z.number().int().nonnegative();
 
 // How many events each dashboard list asks the API for. A list this long may
 // have been cut off, so the page cannot treat its length as a total.
-export const dashboardEventLimit = 5;
+// The most events the dashboard reads per list (the API's maximum). Most
+// lists preview a few; the interested list shows them all.
+export const dashboardEventLimit = 25;
 
 const schoolSummarySchema = z.object({
   id: identifierSchema,
@@ -56,7 +58,7 @@ export const accountProfileDtoSchema = z.object({
   show_in_lists: z.boolean().default(true),
 });
 
-export const dashboardEventDtoSchema = z.object({
+const dashboardEventDtoSchema = z.object({
   id: identifierSchema,
   title: z.string(),
   slug: identifierSchema,
@@ -74,13 +76,14 @@ export const dashboardEventDtoSchema = z.object({
 export const dashboardEventsDtoSchema = z.object({
   upcoming_rsvps: z.array(dashboardEventDtoSchema),
   followed_school_events: z.array(dashboardEventDtoSchema),
+  interested_events: z.array(dashboardEventDtoSchema).default([]),
 });
 
 export const followedSchoolsDtoSchema = z.object({
   schools: z.array(schoolSummarySchema),
 });
 
-export const accountTeamDtoSchema = z.object({
+const accountTeamDtoSchema = z.object({
   id: identifierSchema,
   name: z.string(),
   slug: identifierSchema,
@@ -115,7 +118,7 @@ const profileSocialLinkInputSchema = z.object({
     .refine(isHTTPURL, "Social link URL must use HTTP or HTTPS."),
 });
 
-export const updateProfileInputSchema = z.object({
+const updateProfileInputSchema = z.object({
   name: z
     .string()
     .trim()
@@ -138,7 +141,7 @@ export const updateProfileInputSchema = z.object({
   show_in_lists: z.boolean().optional(),
 });
 
-export const deleteAccountInputSchema = z.object({
+const deleteAccountInputSchema = z.object({
   confirm: z
     .string()
     .trim()
@@ -150,10 +153,10 @@ export type AccountProfileDTO = z.output<typeof accountProfileDtoSchema>;
 export type DashboardEventDTO = z.output<typeof dashboardEventDtoSchema> & {
   host_school: WithSchoolLogo<{ name: string; slug: string }>;
 };
-export type AccountTeamDTO = z.output<typeof accountTeamDtoSchema>;
+type AccountTeamDTO = z.output<typeof accountTeamDtoSchema>;
 export type UpdateProfileInput = z.input<typeof updateProfileInputSchema>;
 export type DeleteAccountInput = z.input<typeof deleteAccountInputSchema>;
-export type AccountFormErrors = Record<string, string[] | undefined>;
+type AccountFormErrors = Record<string, string[] | undefined>;
 
 export type AccountDashboardResult =
   | {
@@ -162,6 +165,7 @@ export type AccountDashboardResult =
       dashboardEvents: {
         upcoming_rsvps: DashboardEventDTO[];
         followed_school_events: DashboardEventDTO[];
+        interested_events: DashboardEventDTO[];
       };
       followedSchools: WithSchoolLogo<
         z.output<typeof followedSchoolsDtoSchema>["schools"][number]
@@ -206,7 +210,7 @@ export type AccountMutationResult =
   | { status: "success"; message: string; redirectTo: string }
   | { status: "error"; message: string; fieldErrors?: AccountFormErrors };
 
-export type ValidatedAccountInput<T> =
+type ValidatedAccountInput<T> =
   | { valid: true; value: T }
   | {
       valid: false;

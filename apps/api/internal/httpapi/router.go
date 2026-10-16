@@ -15,6 +15,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminaccess"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminaudit"
@@ -52,6 +53,8 @@ const targetRateLimitMultiplier = 4
 // can remain stored after its row became eligible for deletion.
 const logoReconcileInterval = 15 * time.Minute
 
+// Router holds the public API's dependencies and route table. A dependency is
+// nil when the router was built without a database.
 type Router struct {
 	cfg     config.Config
 	mux     *http.ServeMux
@@ -89,6 +92,9 @@ type gameCovers interface {
 	Cover(ctx context.Context, slug, knownETag string) (games.Cover, error)
 }
 
+// NewRouter builds the API handler. With a pool it wires the repositories and,
+// when configured, the Admin API under /admin/; without one, database-backed
+// routes answer 503.
 func NewRouter(cfg config.Config, pools ...*pgxpool.Pool) http.Handler {
 	router := &Router{
 		cfg: cfg,
@@ -247,8 +253,10 @@ func (r *Router) registerPublicRoutes() {
 	r.mux.HandleFunc("/schools/", r.handleSchoolPath)
 	r.mux.HandleFunc("/sitemap", requireMethod(http.MethodGet, r.handleSitemap))
 	r.mux.HandleFunc("/games", requireMethod(http.MethodGet, r.handleGames))
+	r.mux.HandleFunc("/games/{slug}", requireMethod(http.MethodGet, r.handleGame))
 	r.mux.HandleFunc("/games/{slug}/cover", requireMethod(http.MethodGet, r.handleGameCover))
 	r.mux.HandleFunc("/games/igdb-search", requireMethod(http.MethodGet, r.handleGameSearch))
+	r.mux.HandleFunc("/igdb-covers/{imageID}", requireMethod(http.MethodGet, r.handleSearchResultCover))
 	r.mux.HandleFunc("/internal/schools/refresh", requireMethod(http.MethodPost, r.handleRefreshCatalog))
 	r.mux.HandleFunc("/internal/error-monitoring/test", requireMethod(http.MethodPost, r.handleErrorMonitoringTest))
 	r.mux.HandleFunc("/events", r.handleEvents)
@@ -272,6 +280,7 @@ func (r *Router) registerPublicRoutes() {
 	r.mux.HandleFunc("/users/", r.handleUserPath)
 }
 
+// handleRoot answers GET / with the service banner and 404s any other path.
 func (r *Router) handleRoot(w http.ResponseWriter, req *http.Request) {
 	if req.URL.Path != "/" {
 		http.NotFound(w, req)
@@ -284,6 +293,7 @@ func (r *Router) handleRoot(w http.ResponseWriter, req *http.Request) {
 	})
 }
 
+// handleHealth reports that the process is up, without checking dependencies.
 func (r *Router) handleHealth(w http.ResponseWriter, req *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{
 		"service": "campus-gaming-network-api",
@@ -291,6 +301,8 @@ func (r *Router) handleHealth(w http.ResponseWriter, req *http.Request) {
 	})
 }
 
+// handleReady reports whether Postgres is reachable, pinging the pool when
+// there is one and dialing the configured address otherwise.
 func (r *Router) handleReady(w http.ResponseWriter, req *http.Request) {
 	if r.db != nil {
 		ctx, cancel := context.WithTimeout(req.Context(), r.cfg.DBConnectTimeout)
@@ -331,6 +343,8 @@ func (r *Router) handleReady(w http.ResponseWriter, req *http.Request) {
 	})
 }
 
+// handleSchools answers GET /schools: the catalog list or, with sort, the
+// popular ranking.
 func (r *Router) handleSchools(w http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodGet {
 		methodNotAllowed(w, http.MethodGet)
@@ -422,6 +436,8 @@ func (r *Router) handlePopularSchools(w http.ResponseWriter, req *http.Request) 
 	})
 }
 
+// handleSchoolPath routes /schools/{slug}, /schools/{id}/members, and
+// /schools/{id}/follow.
 func (r *Router) handleSchoolPath(w http.ResponseWriter, req *http.Request) {
 	path := strings.TrimPrefix(req.URL.Path, "/schools/")
 	path = strings.TrimSuffix(path, "/")
@@ -435,9 +451,8 @@ func (r *Router) handleSchoolPath(w http.ResponseWriter, req *http.Request) {
 			writeError(w, http.StatusServiceUnavailable, "database_unavailable")
 			return
 		}
-		slug, err := url.PathUnescape(parts[0])
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid_school_slug")
+		slug, ok := pathSlug(w, parts[0], "invalid_school_slug")
+		if !ok {
 			return
 		}
 		school, err := r.schools.GetBySlug(req.Context(), slug)
@@ -457,9 +472,8 @@ func (r *Router) handleSchoolPath(w http.ResponseWriter, req *http.Request) {
 	}
 
 	if len(parts) == 2 && parts[1] == "members" {
-		slug, err := url.PathUnescape(parts[0])
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid_school_slug")
+		slug, ok := pathSlug(w, parts[0], "invalid_school_slug")
+		if !ok {
 			return
 		}
 		r.handleSchoolMembers(w, req, slug)
@@ -510,6 +524,8 @@ func (r *Router) handleSchoolPath(w http.ResponseWriter, req *http.Request) {
 	http.NotFound(w, req)
 }
 
+// handleMySchools answers GET /me/schools with the schools the signed-in
+// user follows.
 func (r *Router) handleMySchools(w http.ResponseWriter, req *http.Request) {
 	if req.URL.Path != "/me/schools" {
 		http.NotFound(w, req)
@@ -541,24 +557,72 @@ func (r *Router) handleMySchools(w http.ResponseWriter, req *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"schools": result})
 }
 
+// handleGames answers GET /games: the active catalog, or a search when q is
+// given.
 func (r *Router) handleGames(w http.ResponseWriter, req *http.Request) {
 	if r.games == nil {
 		writeError(w, http.StatusServiceUnavailable, "database_unavailable")
 		return
 	}
-	result, err := r.games.List(req.Context())
+	values := req.URL.Query()
+	var result []games.Game
+	var err error
+	if values.Has("q") {
+		query := strings.TrimSpace(values.Get("q"))
+		if query == "" || utf8.RuneCountInString(query) > games.MaximumSearchQueryLength {
+			writeError(w, http.StatusBadRequest, "invalid_game_query")
+			return
+		}
+		limit := games.DefaultSearchLimit
+		if values.Has("limit") {
+			limit, err = strconv.Atoi(values.Get("limit"))
+			if err != nil || limit < 1 || limit > games.MaximumSearchLimit {
+				writeError(w, http.StatusBadRequest, "invalid_limit")
+				return
+			}
+		}
+		result, err = r.games.Search(req.Context(), query, limit)
+	} else {
+		result, err = r.games.List(req.Context())
+	}
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "games_unavailable")
 		return
 	}
-	// A stored cover is served by the site, through the web app's cover route.
-	for index, game := range result {
-		if game.HasCover {
-			result[index].CoverURL = strings.TrimSuffix(r.cfg.SiteURL, "/") + "/api/games/" + url.PathEscape(game.Slug) + "/cover"
-		}
+	for index := range result {
+		result[index] = r.withSiteCoverURL(result[index])
 	}
 	setPublicCatalogCache(w)
 	writeJSON(w, http.StatusOK, map[string]any{"games": result})
+}
+
+// handleGame answers GET /games/{slug}: one active game, so a page filtered by
+// a game can name it without loading the whole catalog.
+func (r *Router) handleGame(w http.ResponseWriter, req *http.Request) {
+	if r.games == nil {
+		writeError(w, http.StatusServiceUnavailable, "database_unavailable")
+		return
+	}
+	game, err := r.games.GetBySlug(req.Context(), req.PathValue("slug"))
+	if errors.Is(err, pgx.ErrNoRows) {
+		writeError(w, http.StatusNotFound, "game_not_found")
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "games_unavailable")
+		return
+	}
+	setPublicCatalogCache(w)
+	writeJSON(w, http.StatusOK, r.withSiteCoverURL(game))
+}
+
+// withSiteCoverURL points a game with a stored cover at the site's cover
+// route, which serves it in place of the IGDB address.
+func (r *Router) withSiteCoverURL(game games.Game) games.Game {
+	if game.HasCover {
+		game.CoverURL = strings.TrimSuffix(r.cfg.SiteURL, "/") + "/api/games/" + url.PathEscape(game.Slug) + "/cover"
+	}
+	return game
 }
 
 // handleSitemap lists the slugs of the public pages a crawler may index. It
@@ -609,6 +673,8 @@ func (r *Router) handleGameCover(w http.ResponseWriter, req *http.Request) {
 	_, _ = w.Write(cover.Bytes)
 }
 
+// handleEvents answers GET /events with a cursor page of public events and
+// routes POST /events to event creation.
 func (r *Router) handleEvents(w http.ResponseWriter, req *http.Request) {
 	if req.URL.Path != "/events" {
 		http.NotFound(w, req)
@@ -637,16 +703,23 @@ func (r *Router) handleEvents(w http.ResponseWriter, req *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid_cursor")
 		return
 	}
+	startsAfter, startsBefore, err := parseStartRange(req.URL.Query())
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_time_range")
+		return
+	}
 	params := eventstore.ListParams{
-		GameSlug:   req.URL.Query().Get("game"),
-		SchoolSlug: req.URL.Query().Get("school"),
-		Format:     req.URL.Query().Get("format"),
-		Audience:   req.URL.Query().Get("audience"),
-		EventType:  req.URL.Query().Get("type"),
-		Cost:       req.URL.Query().Get("cost"),
-		Limit:      limit + 1,
-		After:      after,
-		Before:     before,
+		GameSlug:     req.URL.Query().Get("game"),
+		SchoolSlug:   req.URL.Query().Get("school"),
+		Format:       req.URL.Query().Get("format"),
+		Audience:     req.URL.Query().Get("audience"),
+		EventType:    req.URL.Query().Get("type"),
+		Cost:         req.URL.Query().Get("cost"),
+		StartsAfter:  startsAfter,
+		StartsBefore: startsBefore,
+		Limit:        limit + 1,
+		After:        after,
+		Before:       before,
 	}
 	params = eventstore.NormalizeListParams(params)
 	result, err := r.events.ListPublic(req.Context(), params)
@@ -657,6 +730,10 @@ func (r *Router) handleEvents(w http.ResponseWriter, req *http.Request) {
 	page := makeCursorPage(result, limit, after, before, func(event eventstore.Event) (time.Time, string) {
 		return event.StartsAt, event.ID
 	})
+	// A public list has no viewer, so it never carries a meeting link.
+	for index := range page.Items {
+		page.Items[index].HideOnlineURLUnlessGoing()
+	}
 
 	payload := map[string]any{
 		"events":       page.Items,
@@ -673,6 +750,37 @@ func (r *Router) handleEvents(w http.ResponseWriter, req *http.Request) {
 	writeJSON(w, http.StatusOK, payload)
 }
 
+// parseStartRange reads the optional starts_after and starts_before RFC 3339
+// times of an event list. It is an error when both are set and starts_after is
+// not earlier than starts_before, which would select nothing.
+func parseStartRange(values url.Values) (*time.Time, *time.Time, error) {
+	parse := func(name string) (*time.Time, error) {
+		value := values.Get(name)
+		if value == "" {
+			return nil, nil
+		}
+		parsed, err := time.Parse(time.RFC3339, value)
+		if err != nil {
+			return nil, fmt.Errorf("parse %s: %w", name, err)
+		}
+		return &parsed, nil
+	}
+	after, err := parse("starts_after")
+	if err != nil {
+		return nil, nil, err
+	}
+	before, err := parse("starts_before")
+	if err != nil {
+		return nil, nil, err
+	}
+	if after != nil && before != nil && !after.Before(*before) {
+		return nil, nil, errors.New("starts_after must be before starts_before")
+	}
+	return after, before, nil
+}
+
+// handleEventPath routes /events/{slug} and its unlock, rsvp, interest,
+// report, and attendees sub-resources.
 func (r *Router) handleEventPath(w http.ResponseWriter, req *http.Request) {
 	if r.events == nil {
 		writeError(w, http.StatusServiceUnavailable, "database_unavailable")
@@ -686,9 +794,8 @@ func (r *Router) handleEventPath(w http.ResponseWriter, req *http.Request) {
 			methodNotAllowed(w, http.MethodPost)
 			return
 		}
-		slug, err := url.PathUnescape(parts[0])
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid_event_slug")
+		slug, ok := pathSlug(w, parts[0], "invalid_event_slug")
+		if !ok {
 			return
 		}
 		r.handleUnlockEvent(w, req, slug)
@@ -699,9 +806,8 @@ func (r *Router) handleEventPath(w http.ResponseWriter, req *http.Request) {
 			methodNotAllowed(w, http.MethodPost)
 			return
 		}
-		slug, err := url.PathUnescape(parts[0])
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid_event_slug")
+		slug, ok := pathSlug(w, parts[0], "invalid_event_slug")
+		if !ok {
 			return
 		}
 		r.handleRSVPEvent(w, req, slug)
@@ -712,9 +818,8 @@ func (r *Router) handleEventPath(w http.ResponseWriter, req *http.Request) {
 			methodNotAllowed(w, http.MethodPost+", "+http.MethodDelete)
 			return
 		}
-		slug, err := url.PathUnescape(parts[0])
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid_event_slug")
+		slug, ok := pathSlug(w, parts[0], "invalid_event_slug")
+		if !ok {
 			return
 		}
 		r.handleEventInterest(w, req, slug)
@@ -725,18 +830,16 @@ func (r *Router) handleEventPath(w http.ResponseWriter, req *http.Request) {
 			methodNotAllowed(w, http.MethodPost)
 			return
 		}
-		slug, err := url.PathUnescape(parts[0])
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid_event_slug")
+		slug, ok := pathSlug(w, parts[0], "invalid_event_slug")
+		if !ok {
 			return
 		}
 		r.handleReportEvent(w, req, slug)
 		return
 	}
 	if len(parts) == 2 && parts[1] == "attendees" {
-		slug, err := url.PathUnescape(parts[0])
-		if err != nil {
-			writeError(w, http.StatusBadRequest, "invalid_event_slug")
+		slug, ok := pathSlug(w, parts[0], "invalid_event_slug")
+		if !ok {
 			return
 		}
 		r.handleEventAttendees(w, req, slug)
@@ -746,9 +849,8 @@ func (r *Router) handleEventPath(w http.ResponseWriter, req *http.Request) {
 		http.NotFound(w, req)
 		return
 	}
-	slug, err := url.PathUnescape(parts[0])
-	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid_event_slug")
+	slug, ok := pathSlug(w, parts[0], "invalid_event_slug")
+	if !ok {
 		return
 	}
 	if req.Method == http.MethodPatch {
@@ -783,6 +885,7 @@ func (r *Router) handleEventPath(w http.ResponseWriter, req *http.Request) {
 				writeError(w, http.StatusInternalServerError, "event_unavailable")
 				return
 			}
+			event.HideOnlineURLUnlessGoing()
 			writeJSON(w, http.StatusOK, event)
 			return
 		}
@@ -793,9 +896,12 @@ func (r *Router) handleEventPath(w http.ResponseWriter, req *http.Request) {
 		writeError(w, http.StatusInternalServerError, "event_unavailable")
 		return
 	}
+	event.HideOnlineURLUnlessGoing()
 	writeJSON(w, http.StatusOK, event)
 }
 
+// canAccessPrivateEvent reports whether the viewer is an organizer of the
+// private event or holds a valid unlock token for it.
 func (r *Router) canAccessPrivateEvent(req *http.Request, slug string) (bool, error) {
 	if userID, ok := auth.UserID(req.Context()); ok && looksLikeUUID(userID) {
 		organizer, err := r.events.IsOrganizer(req.Context(), slug, userID)
@@ -812,6 +918,8 @@ func (r *Router) canAccessPrivateEvent(req *http.Request, slug string) (bool, er
 	return false, nil
 }
 
+// decorateEventForViewer fills the viewer-specific fields of an event for a
+// signed-in user. An anonymous request leaves the event unchanged.
 func (r *Router) decorateEventForViewer(req *http.Request, slug string, event *eventstore.Event) error {
 	userID, ok := auth.UserID(req.Context())
 	if !ok || !looksLikeUUID(userID) {
@@ -837,6 +945,7 @@ func (r *Router) decorateEventForViewer(req *http.Request, slug string, event *e
 	return nil
 }
 
+// writeJSON writes payload as a JSON response with the given status.
 func writeJSON(w http.ResponseWriter, status int, payload any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
@@ -856,6 +965,7 @@ type statusRecorder struct {
 	status int
 }
 
+// WriteHeader records the first status written, then passes it on.
 func (recorder *statusRecorder) WriteHeader(status int) {
 	if recorder.status == 0 {
 		recorder.status = status
@@ -863,6 +973,7 @@ func (recorder *statusRecorder) WriteHeader(status int) {
 	recorder.ResponseWriter.WriteHeader(status)
 }
 
+// Write records an implicit 200 when no status was written first.
 func (recorder *statusRecorder) Write(body []byte) (int, error) {
 	if recorder.status == 0 {
 		recorder.status = http.StatusOK
@@ -980,8 +1091,7 @@ func (r *Router) handleErrorMonitoringTest(w http.ResponseWriter, req *http.Requ
 		return
 	}
 
-	provided := strings.TrimPrefix(req.Header.Get("Authorization"), "Bearer ")
-	if subtle.ConstantTimeCompare([]byte(provided), []byte(r.cfg.MaintenanceToken)) != 1 {
+	if !r.maintenanceTokenValid(req) {
 		writeError(w, http.StatusUnauthorized, "authentication_required")
 		return
 	}
@@ -1004,6 +1114,26 @@ func setPublicCatalogCache(w http.ResponseWriter) {
 	w.Header().Set("Cache-Control", catalogCacheControl)
 }
 
+// pathSlug unescapes one path segment. It writes a 400 response with the given
+// error code and reports false when the segment is not valid percent-encoding.
+func pathSlug(w http.ResponseWriter, segment, code string) (string, bool) {
+	slug, err := url.PathUnescape(segment)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, code)
+		return "", false
+	}
+	return slug, true
+}
+
+// maintenanceTokenValid reports whether the request carries the configured
+// maintenance token as a bearer token, comparing in constant time.
+func (r *Router) maintenanceTokenValid(req *http.Request) bool {
+	provided := strings.TrimPrefix(req.Header.Get("Authorization"), "Bearer ")
+	return subtle.ConstantTimeCompare([]byte(provided), []byte(r.cfg.MaintenanceToken)) == 1
+}
+
+// requireMethod rejects any request whose method is not the given one with a
+// 405 and an Allow header.
 func requireMethod(method string, handler http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		if req.Method != method {
@@ -1018,11 +1148,13 @@ func requireMethod(method string, handler http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
+// methodNotAllowed writes a 405 whose Allow header lists the permitted methods.
 func methodNotAllowed(w http.ResponseWriter, methods string) {
 	w.Header().Set("Allow", methods)
 	writeError(w, http.StatusMethodNotAllowed, "method_not_allowed")
 }
 
+// writeError writes a JSON error body with a stable machine-readable code.
 func writeError(w http.ResponseWriter, status int, code string) {
 	writeJSON(w, status, map[string]string{"error": code})
 }
@@ -1040,6 +1172,8 @@ func idempotencyKey(w http.ResponseWriter, req *http.Request) (string, bool) {
 	return key, true
 }
 
+// looksLikeUUID reports whether value has the 8-4-4-4-12 hexadecimal layout of a
+// UUID. It does not check the version or variant.
 func looksLikeUUID(value string) bool {
 	if len(value) != 36 {
 		return false
@@ -1072,8 +1206,7 @@ func (r *Router) handleRefreshCatalog(w http.ResponseWriter, req *http.Request) 
 		return
 	}
 
-	provided := strings.TrimPrefix(req.Header.Get("Authorization"), "Bearer ")
-	if subtle.ConstantTimeCompare([]byte(provided), []byte(r.cfg.MaintenanceToken)) != 1 {
+	if !r.maintenanceTokenValid(req) {
 		writeError(w, http.StatusUnauthorized, "authentication_required")
 		return
 	}

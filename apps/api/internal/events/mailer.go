@@ -32,6 +32,8 @@ type ResendMailer struct {
 	Now      func() time.Time
 }
 
+// SendRSVPConfirmation emails recipient a confirmation with a calendar
+// invite and returns the provider message ID.
 func (m *ResendMailer) SendRSVPConfirmation(ctx context.Context, recipient string, event Event, idempotencyKey string) (string, error) {
 	eventLink := eventURL(m.SiteURL, event.Slug)
 	ics := EventICS(event, eventLink, m.now())
@@ -96,6 +98,8 @@ func (m *ResendMailer) SendRSVPConfirmation(ctx context.Context, recipient strin
 	return decodeProviderID(response.Body)
 }
 
+// SendCancellationNotification emails recipient that the event was cancelled
+// and returns the provider message ID.
 func (m *ResendMailer) SendCancellationNotification(ctx context.Context, recipient string, event Event, idempotencyKey string) (string, error) {
 	eventLink := eventURL(m.SiteURL, event.Slug)
 	if m.APIKey == "" {
@@ -175,6 +179,7 @@ type attachment struct {
 	ContentType string `json:"content_type,omitempty"`
 }
 
+// EventICS renders event as an iCalendar document linking to eventURL.
 func EventICS(event Event, eventURL string, now time.Time) string {
 	lines := []string{
 		"BEGIN:VCALENDAR",

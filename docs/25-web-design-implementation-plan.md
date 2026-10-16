@@ -8,243 +8,319 @@ the source-of-truth product, API, database, permission, or roadmap documents.
 
 ## Approved direction
 
-- Light mode only.
-- Warm off-white page canvas with distinct white navigation, panels, forms,
-  and secondary controls.
-- Near-black text, muted gray supporting text, royal-blue actions, restrained
-  golden-yellow accents, green positive states, and red error/destructive
-  states.
-- Primary buttons use the approved raised treatment with a darker blue lower
-  edge and a pressed state.
-- No gradients, purple accents, large decorative color fields, yellow date
-  backgrounds, or decorative yellow borders on event rows.
-- Event discovery favors compact rows and a single `View event` action.
-- The event, team, and school directories share one compact row
-  (`DirectoryRow`): an identity tile (calendar date, team mark, or school
-  logo), the name, a muted meta line that is always host or school, then
-  location (or "Online"), a label group, the counts (going and interested on
-  events, members on teams), and one action (`View event`, `View team`,
-  `View school`). On events the label group is the icon-led `EventFacts`
-  (format, type, audience, Free, each with its own color) followed by the games
-  as neutral outlined labels; on teams it is the games as neutral labels. The
-  whole row is one link. On a phone the action drops under the rest, and
-  nothing scrolls sideways at 320px.
-- From the tablet width (48rem) up, the event, team, and school directories
-  have a light left sidebar (`DirectorySidebar`): links to the three
-  directories with the current one marked (`aria-current="page"`), then, for a
-  signed-in viewer, "Your school" (the home school's logo or initial and name,
-  linking to its page) and "Schools you follow" (the first five, with "See all
-  followed schools" linking to the account page when there are more). A
-  visitor sees "Log in to see your school" instead of the school blocks. The
-  data comes from the `/me` and `/me/schools` reads the account page already
-  makes; if either fails, the sidebar shows the section links only and the
-  page renders as usual. A home school is chosen at signup and cannot be
-  changed in the web app or the API yet, so the block has no "Change" link.
-  Below 48rem the sidebar is hidden, the header stays the navigation, and the
-  page is one column. The sidebar floats beside the page's other children, so
-  a directory route adds it as the first child of `main.directory-page`
-  without wrapping its content.
-- Event detail keeps directions in the location panel and keeps the current
-  RSVP editable.
-- Event rows show how many people are going and how many are interested
-  (`EventCounts`), from the counts the API already sends for every listed
-  event. Arrows in links are Lucide icons (`ArrowRight`, `ArrowLeft`,
-  `ArrowUpRight`), not text characters.
-- Reporting an event is a closed, quiet "Report this event" line at the end of
-  the page that opens the form on demand. A public profile does the same with
-  "Report this user" (a signed-out visitor sees a quiet "Log in to report this
-  user" link, and your own profile shows nothing). The shared `.safety-details`
-  rules live in `components.css`.
-- Icons come from `lucide-react` (see the implementation decisions): the
-  callout, copy button, RSVP control, interest toggle, event detail rows, the
-  account menu chevron, and verified/home-school checks. Icons are sized at
-  14-20px with a 1.75 to 2.25 stroke and are always decorative.
-- The RSVP block on the event page is the first card in the sidebar, above
-  "When and where", and the first block on phones: the response is a connected
-  three-way control (Yes selected in a green tint, Maybe in blue, No in neutral
-  gray, each with a 1px border and a check-style icon), "I'm interested" is a
-  separate quiet toggle with a filled star when on, and the confirmation-email
-  note is a short muted line with a mail icon. A signed-out visitor sees a "Log
-  in to RSVP" button in the same card. The "Key information" card (games,
-  type, audience, cost, attending or going, interested, repeats) sits in the
-  sidebar under "When and where", and the sidebar scrolls with the page.
-  Free-form
-  content in a `.detail-card` goes in a `.detail-card-body` so every card keeps
-  the same inset below its last element.
-- Event lifecycle labels appear only when they say something: "Upcoming" is the
-  default and is not shown; Happening now, Full, and Ended are. Profile
-  verification and roles are shown once, in the header, and a team's school
-  and member count only in its key information card.
-- Content meant for visitors (the home page's "New here?" line) waits on the
-  same viewer lookup as the header and is hidden once someone is signed in.
-- Avatars are the page's main splash of color: a bright five-color palette
-  (amber, royal blue, emerald, coral, sky; never black), shown beside every
-  person in a list through `Person` (event organizers, team captain rows) as
-  well as on profiles and in the account menu.
-- The message a page shows after an action ("RSVP saved.", a failure) is a
-  banner (`PageNoticeView`): a tinted bar with an icon, green for success and
-  red for a failure, so the result is hard to miss. Failures stay alerts.
-- Eyebrow labels start with a short rule (`.eyebrow::before`), and the home
-  page has a numbered "How it works" row of four steps (an ordered list; the
-  numbers are generated by CSS).
-- Event dates render as a calendar tile (`CalendarDate`): the month on a
-  primary-blue band (`--color-calendar-band`) over a large day number. The band
-  is the one place a date gets a colored container; yellow date backgrounds stay
-  out.
-- Layouts remain useful when data is empty, unavailable, private, cancelled,
-  ended, or full.
+The October 2026 redesign rebuilt every public page on the CGN design handoff
+v3 (`CGN_Design_Handoff/STYLE_GUIDE.md` and its reference sheets; sheets 11,
+10, and 09 take precedence, then 08 and 12, then 05-07). It changed
+presentation only: routes, loaders, server functions, form fields, native
+form fallbacks, and permissions are unchanged. Mockup features the product
+does not have (clubs, tournament brackets and registration, recruiting,
+header search, counts the API does not return) are tracked as issues, not
+drawn as placeholders: see #61, #62, #246-#272, and #215-#216.
 
-The initial implementation tokens live in `apps/web/src/styles.css`.
+### Foundation
 
-## Implementation progress
+- Light mode only. Tokens are the first `:root` block of
+  `apps/web/src/styles.css` and are listed on `/styleguide`: a `#f8f8f8`
+  canvas, white panels, near-black text (`#0b0c0c`), muted text (`#505a5f`),
+  hairline borders (`#d8dadb`), control edges at 3:1 or better against white
+  (`#6f777b`, and `#767f84` for pills and tags), blue actions (`#0057d9`, `#0046b5` on hover),
+  blue underlined links (`#1a68ac`), a yellow focus ring with a near-black
+  outer edge, green for success states only, and red for errors and
+  destructive actions. A flat navy (`--color-identity`) is the generated
+  identity color for banners and initial tiles.
+- Spacing is a 4px scale (`--space-1` to `--space-7`); type is 16px body,
+  14px secondary, 19px section headings, and 26-32px page titles
+  (`--text-*`). Controls, panels, and tags use 4px corners; identity tiles
+  use 6px. There are no gradients, and shadows only on menus and dialogs.
+- A colored edge accent (a current item's left bar, a notice's left edge, the
+  calendar tile's red top) always sits on square corners, so it is a straight
+  line rather than a curve: the element has no radius on that side.
+- Every page's `main` shares one 80rem column and gutter (16px on a phone).
 
-- Foundation and the light-only shell are implemented.
-- Homepage, event, school, and team discovery surfaces are implemented.
-- Event, school, and team detail layouts are implemented against the current
-  backend contracts.
-- Signup, account profile and deletion, event creation and editing, team
-  creation, and the support form use the shared sectioned-form treatment
-  (`FormSection` and the `sectioned-form` classes). Short forms (login,
-  password recovery, email verification, and single-action team controls) stay
-  as compact cards.
-- The teams filter selects a school by name with a searchable picker shared with
-  the event form; the `school` query parameter still carries the slug.
-- RSVP, follow, join, management, validation, loading, empty, unavailable,
-  private, full, live, and ended states retain their existing native and
-  enhanced behavior.
-- Enhanced forms now use focusable error summaries with links back to their
-  invalid fields, while preserving adjacent field messages and native form
-  submission.
-- Event cancellation, account deletion, captain revocation, and ownership
-  transfer now include focus-managed confirmation dialogs without removing
-  their no-JavaScript fallback.
-- A deterministic visual-regression matrix covers the homepage, event detail,
-  school directory, team directory, and login at desktop and mobile sizes.
-  Baselines are checked in for macOS development and the Linux CI browser.
-- Shared route states, mobile action ordering, neutral status labels, and
-  destructive button styling now follow the approved visual system.
-- The header and footer bands span the full viewport while their content stays
-  in the centered column. Event metadata pills are neutral outlined labels;
-  yellow is reserved for the logo mark and the active navigation underline.
-- Every button variant has a hover state (a slight dim, skipped when
-  disabled), and keyboard focus uses a 3px primary-blue ring.
-- Event, school, and team pages share one detail-page header: `Breadcrumbs`
-  (Events, Schools, or Teams, then the page itself), then `PageHeading` with
-  the identity mark (`CalendarDate`, the school logo or initial, or the team
-  mark), the page's one `h1`, a supporting line (the host school, the school's
-  alias and location, or the team description), tags (the event's lifecycle,
-  visibility, and facts), and actions (Follow and the website link on a
-  school). Actions sit right on a wide screen and below the heading on a
-  phone. The breadcrumb trail replaces the "Back to events" and "Back to
-  teams" links; the attendee and member pages keep their back links. Facts
-  live in a `KeyInformation` card in the side panel: games, type, audience,
-  cost, and attendance on an event; location and campus type on a school;
-  games, school, and members on a team.
-- The school page's Overview, Events, and Teams tabs are `Tabs` links (the
-  `tab` query parameter), shown only when there is activity to switch
-  between. The events and teams sit one under the other in the main column,
-  with key information beside them. A school with no activity shows one panel
-  with a primary "Create the first event" action and a "Start a team" text
-  link, and no decorative mark.
-- `Tabs` are underline tabs: near-black text, and the current tab carries
-  `aria-current="page"` and a 3px `--color-primary` underline. The event
-  attendee page's Going and Maybe tabs use them too, and later section tabs
-  should reuse the `.tabs` rules in `components.css` rather than add their
-  own.
-- The events directory has scope tabs between the filter bar and the results
-  (`EventScopeTabs`, drawn with `Tabs`): All events, My school (`school` set
-  to the viewer's home school), Online (`format=online`), and Tournaments
-  (`type=tournament`). Each tab is a plain link to `/events` that keeps the
-  game, audience, and cost filters, replaces the `school`, `format`, and
-  `type` filters with its own, and drops the page cursors. The current tab
-  follows the URL: a query whose only scope filter equals a tab's selects
-  that tab, and no scope filter, more than one, or a value no tab stands for
-  selects All events. The filter form's selects show the same query, so
-  Tournaments sets the type select to Tournament. My school is hidden from
-  signed-out visitors and from a signed-in viewer whose home school the web
-  cannot read; the page reads the home school's name and slug from `/me`
-  along with the session check.
-- The server HTML already knows the viewer, so the header's authentication
-  slot is correct on first paint: logged-out links for a visitor, the account
-  menu for a signed-in viewer. Nothing appears late. Without JavaScript the
-  menu cannot open, so its links and logout form sit in the header in place
-  of the trigger.
-- A signed-in viewer's slot is an account menu: a trigger with a small avatar
-  (drawn by this site) and the first name, which discloses Account, Public
-  profile, and Log out. The root route carries only the viewer's id and name,
-  and asks again on every navigation so a rename or an expired session shows
-  up. The menu is a
-  disclosure of plain links and the logout form, not an ARIA menu: Tab walks
-  through it, and Escape (focus returns to the trigger), a press or focus
-  outside it, choosing a link, and any navigation close it. The header paints
-  its full-bleed band on a `::before` layer so the menu can hang below it
-  without being clipped.
-- The event form uses open numbered sections (title and description on the
-  left, fields on the right) instead of nested cards. Visibility is a native
-  radio-card group, the private-event password sits beneath it and is
-  emphasized when Private is selected, and the submit row sits at the end of
-  the form (it is not pinned to the window).
-- The team join, team creation, event unlock, and event form password fields
-  use `PasswordInput`, which adds a "Show password" / "Hide password" button
-  beside the field. The button renders only after hydration; without
-  JavaScript the field is a plain password input that submits as before. The
-  account login and reset passwords do not have it.
-- At 42rem and narrower the header is two rows without JavaScript: the brand
-  and the primary action (Sign up, or the account menu once signed in) on top,
-  and the navigation links as equal 44px cells below: four for a visitor, three
-  (Schools, Events, Teams) for a signed-in viewer.
-- Event pages link to a plain `.ics` file for the event (see the product
-  document); the link follows the same access rules as the page itself.
-- Placeholder text meets 4.5:1 contrast on white inputs.
-- `StatusLabel`, `FormField`, and `ButtonLink` replace the markup that routes and
-  forms repeated, and the event row and team mark styles load for every page
-  from `components.css` instead of per-route stylesheet links.
+### Shell
+
+- A dark navy header: a blue controller tile, the "CGN" wordmark and
+  "Campus Gaming Network" (hidden below 64rem), the global links
+  (`SiteNavigation`: Home, Events, Teams, Schools; the current one has a 3px
+  light-blue underline), and Log in and Sign up or the account menu at the
+  right. Below 42rem the links collapse behind a Menu button. Clubs and People
+  join the list only when those pages exist (#261, #216). The label stays
+  "Schools", matching the routes and data, rather than the mockups'
+  "Universities".
+- A white footer with the brand and a footer navigation list.
+
+### Patterns
+
+- **Directory pages** (`/events`, `/teams`, `/schools`): `.directory-heading`
+  with the h1, a lede, and the page's one action at the right; on events the
+  scope tabs; a `FilterToolbar` directly over the results; the results as one
+  white panel of `DirectoryRow`s; Previous and Next as small
+  secondary buttons. The directories have no left column. The results sit in a
+  labelled `DirectoryResults` region: while a filter or page change loads for
+  more than 200 ms it is `aria-busy`, softened, with a thin sweep (static under
+  reduced motion). After Previous or Next the region scrolls into view and takes
+  focus, and "/" outside a text field focuses the first search field.
+- **Directory row** (`DirectoryRow`): an identity tile (calendar date, team
+  initial, or school logo; the calendar date is a white tile with a red top
+  edge), on event rows the first game's portrait cover at a
+  fixed 3:4 size or a controller tile, the name as a blue underlined link, a
+  time line, a muted line with the host and the place's name (the street address is left to the detail page; a school's own page leaves out the host), tags, counts ("0 interested" is left out), and a small blue
+  action link with an arrow ("View event →"). The whole row is one link. Event times give the date once for a
+  one-day event, the year only outside the current year, and the time zone
+  once unless it changes during the event. It lays out by the width of its list: in
+  columns from 60rem, the action beside the name from 30rem, and the action
+  under the rest below that.
+- **Tags** (`StatusLabel`): small tinted labels with no icons. An event's type
+  is blue, Free and "Happening now" green, Full red, and audience, games, and
+  plain facts neutral gray. The event format is said in the location line.
+- **Detail pages** (event, school, team): breadcrumbs, then `DetailHero`
+  (a navy band with the logo or initial, the page's one h1 and its supporting
+  lines, and at the right either the primary game's portrait cover at its own
+  size or the page's actions). Each fact is said once. The event hero holds
+  the host and tags; below it a facts block (date with "Add to calendar",
+  place with "Get directions", the online link or a note that it is shared
+  with people who are going, and going and interested counts) sits beside
+  the RSVP panel, and the side card is "Details" (games, repeats). The team
+  hero holds the school, location, and games, with the membership panel in
+  the side column. The school hero holds the location, website, and Follow. Section `Tabs` link
+  to existing pages only (Overview and Going on events; Overview and Members
+  on teams; Overview, Events, and Teams on schools). The body is
+  `.layout-detail`: a main column of sections and `.panel`s, and a 20rem side
+  column of `.detail-card`s led by `KeyInformation`. Below 64rem it is one
+  column.
+- **Home**: for a signed-in viewer, a left column (`DirectorySidebar`: "Your
+  school" and "Schools you follow", long names ending in an ellipsis; no
+  section links, since the header is the one global navigation), then a
+  welcome panel with three event shortcuts (My school or Find your school,
+  Online, Nationwide), then "Events this week" and "More events" beside popular schools and a
+  "Host something" panel. A visitor gets no left column. There is no
+  marketing hero or "How it works" row.
+- **Create and edit forms** (events, teams): breadcrumbs, a sticky numbered
+  section nav at the left from 64rem (plain in-page links, not a stepper), and
+  one 48rem column with the heading and a sectioned white form whose sections
+  are divided by rules. The form ends in an action bar: Cancel at the left and
+  the primary action at the right. There is no live preview (#256).
+- **Settings and account**: a left "Account settings" nav (Profile, Account,
+  Delete account) beside the page, a row of links above it on a phone. Only
+  existing sections are listed (#249-#251 track the rest). Deleting the
+  account has its own page (`/settings/delete-account`) under a "Danger zone"
+  heading: a red-edged panel, a typed DELETE confirmation, and a final dialog;
+  a failed native submission returns there.
+- **Authentication**: one centered column: h1, lede, a white form panel,
+  a full-width blue submit, and secondary links below.
+- **Text pages** (About, FAQ, Support, Terms, Privacy): `main.prose` at a
+  46rem measure.
+- **States**: notices are tinted bars with a colored left edge and an icon;
+  `Callout` is a light-blue note with a blue left edge; error summaries are
+  red-framed white boxes that link to each invalid field; empty and
+  unavailable states are white panels with a heading and actions.
+
+### Images
+
+- Game covers are portrait and are shown only at portrait sizes (row
+  thumbnails, the banner, and key information); they are never stretched or
+  cropped into a landscape banner.
+- School logos show on white tiles when the bundle has one; otherwise the
+  tile is the school's initial on navy. Teams always show an initial tile
+  (#271).
+- Essential text and controls are never inside an image.
+
+### States, resilience, and accessibility
+
+- **Route states**: the pending state is a generic skeleton (a heading, a
+  filter row, and four directory-row placeholders; the shimmer runs only when
+  motion is allowed, and the message stays available to screen readers).
+  Error, list-unavailable, and not-found views are `.empty-state` panels with
+  a primary and a secondary action. A failure at the root keeps the site
+  header and footer (`SiteShell` in the root route).
+  A missing event, team, or school slug answers 404 with its own title,
+  `noindex`, and next steps (a missing school links to `/schools?q=` with words
+  taken from the slug); error views say so when the browser is offline.
+- **Images fail soft**: game covers and school logos share
+  `useImageFailure`, which also catches failures before hydration, and fall
+  back to the controller tile or the initial in a box of the same size. The
+  banner cover loads eagerly with a high fetch priority.
+- **Accessibility baseline**: axe reports no WCAG 2.1 AA violations on any
+  route at 1440 and 390 wide. Standalone links, summaries, checkboxes, and
+  radios are at least 24px tall. Forced-colors rules keep tags, the chosen
+  RSVP, current tabs and nav items, focus rings, the calendar tile edge, and
+  the banner distinguishable, and reduced motion stops animations as well as
+  transitions. Running prose is capped at 68ch.
+- **Print**: pages print without the header, footer, navigation, forms, and
+  buttons; the banner becomes an outlined white box; external links print
+  their URL; people lists print in columns; FAQ answers print open (CSS in
+  Chromium, a `beforeprint` handler elsewhere).
+- **Icons**: a favicon (SVG and PNG), an Apple touch icon, a web manifest, and
+  a navy `theme-color` live in `apps/web/public` and are linked from the root
+  route.
+
+### Interaction details
+
+- **Directory filters** (`FilterToolbar` in `FilterForm`): search fields,
+  then a row of compact filter buttons, each a native select showing the
+  filter's name and value ("Format Any"), or a checkbox ("Free only"). An
+  applied filter turns blue, and "Clear filters" appears while any is
+  applied, so the toolbar is its own summary of what is applied. Schools and
+  games are lists that grow into the thousands, so they are never a select:
+  events and teams search them (`SearchFilter`), with results under the field
+  (each school's logo, each game's cover) and the chosen one shown as a blue
+  applied filter with a clear button. The game search asks the catalog by
+  name (`GET /games?q=`), and the page names a chosen game with
+  `GET /games/:slug`; the whole catalog is never loaded. Schools search by
+  name and filter by State. With JavaScript every change applies at once (a
+  select or checkbox as it changes, a school or game when chosen or cleared,
+  a name search on Enter), focus returns to the control that made it, and
+  the results are announced politely. Without JavaScript the toolbar is a
+  GET form with an Apply filters button, each search filter is a select of
+  the chosen item and search matches, and a "Search schools / Search games"
+  form above it loads matches (`school_q`, `game_q`). An empty filtered
+  result names the filters and offers to remove the most restrictive one. A
+  scope tab fixes its own filter (Online the format, Tournaments the type, My
+  school the school): that filter shows as a dashed button with a lock, its
+  value is kept in a hidden input, and Clear filters keeps the tab.
+- **Page changes**: after an in-app navigation to a different page,
+  `RouteAnnouncer` moves focus to the new page's h1 (without scrolling, so
+  scroll restoration still decides) and announces its title politely. The
+  first load, search-only changes such as filters, and hash links are left
+  alone.
+- **Touch targets**: on coarse pointers, header and settings links,
+  pagination, text actions, form controls, and checkbox labels are at least
+  44px tall, and small icon buttons (a search filter's clear, the notice
+  dismiss) get an invisible 44px hit area, so the look does not change. Hover
+  effects sit inside `@media (hover: hover)`.
+- **No swap on hydration**: a control that needs JavaScript (the search
+  filters, the school and game fields on forms) renders its live markup from
+  the first paint, and its no-JavaScript fallback sits in `<noscript>`. The
+  document head's noscript style hides `.live-only` and shows the toolbar's
+  Apply filters button, and a live control's hidden field takes its name only
+  after hydration, so exactly one control submits either way. Nothing
+  appears and then disappears while a page loads.
+- **Long forms**: fields with a length limit show a character count
+  (`CharacterCount` through `FormField characterCount`) that counts bytes the
+  way the API does, reads "You can enter up to N characters" without
+  JavaScript, and announces politely after typing pauses. The section nav
+  marks the section in view with `aria-current="location"` (JavaScript only).
+  The start and end labels name the chosen time zone.
+- **Event page actions**: on devices with the Web Share API, Share opens the
+  native sheet; Copy link stays as the fallback with a visible, announced
+  confirmation. "Add to calendar (.ics)" is a secondary button under the
+  time. Times break only between whole pieces (date, each time, zone). An
+  online or hybrid event's "When and where" card shows the meeting link and
+  a "Join online" button to people going and to organizers (the API sends
+  the link to no one else); others see that the link is shared with people
+  who are going. Place text never depends on whether the link is present.
+- **Dates**: the calendar tile shows the month, day, and weekday in the
+  event's zone. Event rows show "Today" or "Tomorrow" for an upcoming event,
+  computed in the event's zone and filled in after hydration so server and
+  client markup match. Counts use thousands separators.
+
+### Second pass (pickers, feedback, flows)
+
+- **Interaction states**: every control uses one 120ms ease transition (none
+  under reduced motion). Hover, on pointer devices only, tints neutral
+  surfaces `--color-subtle`, and pressed is one step darker; every button
+  presses down 1px. Elements whose parent clips them (directory rows, tabs,
+  nav items) draw the yellow and black focus ring inside their own box.
+  Disabled is `not-allowed` with muted text and a dashed edge, not faded;
+  pending (`aria-busy`) shows the wait cursor; an invalid field keeps its 1px
+  border plus an inset red ring, so nothing shifts.
+- **Pickers**: the game field (`GameSelect`) and the school field
+  (`SchoolSearchSelect`) are comboboxes with a listbox (arrow keys, Enter to
+  add or choose, Escape to clear). Enter in the search box never submits the
+  form. The game field is one search: games already on Campus Gaming Network
+  show at once and IGDB results follow after a pause, under group headings,
+  each with its portrait cover or the controller tile. Any number of catalog
+  games and up to five IGDB games can be added; chosen games are listed with
+  their covers and a Remove button. School results and the chosen-school card
+  show the school's logo or initial; the card has a Change button. Signup,
+  settings, and the team form use the same school field. Submitted field
+  names and the no-JavaScript fallbacks are unchanged.
+- **Feedback**: a success notice can be dismissed once the page is
+  interactive and is announced through a polite status region filled after
+  hydration; a failure notice is `role="alert"` and stays. A submitting form
+  gets `aria-busy` and a small spinner in its submit button. The error
+  summary is the GOV.UK pattern ("There is a problem" and links to fields).
+  `ConfirmDialog` starts on the safe action, traps focus, closes on Escape or
+  the backdrop (not while saving), locks page scroll, and stacks its buttons
+  on phones.
+- **Event form**: sections run basics, when, where, games and capacity,
+  cost, then visibility. With JavaScript it mirrors the server's rules (end
+  after start, the repeat rules, the private password) in
+  `event-form-validation.ts`, fills the end time two hours after the start
+  until the organizer changes it, and shows payment fields only for Paid;
+  without JavaScript the server is the only check.
+- **Sign up and log in**: email fields use the email keyboard and no
+  autocorrect; password rules are stated up front; signup has no time zone
+  field and sends the device's zone in a hidden input (Pacific without
+  JavaScript), and settings offers a pick list of time zones; login errors add a next step (reset the
+  password, resend verification, wait); expired verification and reset links
+  offer a new one.
+- **Team page**: the membership panel is titled for the viewer ("Join this
+  team" or "Your membership"), and Transfer ownership sits in its own
+  red-edged block apart from the captain list.
+- **Profiles and account**: profiles never show a filler bio or a raw ID; an
+  empty bio is a prompt on your own profile and absent for others, and a
+  missing school reads "No home school listed". The account page lists
+  upcoming RSVPs, then upcoming events marked "I'm interested", then
+  followed-school events, followed schools, and teams. Account empty states
+  pair the message with one secondary action.
+- **Home and school pages**: the event list rules and the home page's two
+  sections are in [01 — Product](./01-product.md#discover). A wordmark logo stays out of square tiles and shows wide in the
+  school page's About card.
+- **Text pages**: Terms and Privacy show an "On this page" list when a policy
+  version defines three or more sections; FAQ links open and scroll to their
+  question, and each answer has a copy-link button.
 
 ## Shared component inventory
 
 The routes should converge on these reusable pieces as they are migrated. The
 status column says which already exist and where.
 
-| Component          | Responsibilities                                                    | Status                                                                                                                                                                                                       |
-| ------------------ | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `SiteShell`        | Header, navigation, authentication actions, footer, skip link       | Planned as its own component; today it is inline in `apps/web/src/routes/__root.tsx`                                                                                                                         |
-| `Breadcrumbs`      | Trail of parent pages ending in the current page                    | Built: `apps/web/src/components/breadcrumbs.tsx`; used on event, school, and team pages                                                                                                                      |
-| `PageHeading`      | Identity mark, heading, supporting line, tags, optional actions     | Built for detail pages: `apps/web/src/components/page-heading.tsx`; browse, form, and static routes still repeat the `.page-heading` and `.browse-heading` markup                                            |
-| `KeyInformation`   | Description list of an entity's facts in the side panel             | Built: `apps/web/src/components/key-information.tsx`; used on event, school, and team pages                                                                                                                  |
-| `ButtonLink`       | Primary and secondary router links drawn as buttons                 | Built: `apps/web/src/components/button-link.tsx`                                                                                                                                                             |
-| `Button`           | Primary, secondary, quiet, destructive, loading, disabled           | Planned; native `<button>` elements use the `button--secondary` and `button--destructive` classes from `styles.css`                                                                                          |
-| `Surface`          | White bounded panel on the warm canvas                              | Planned; the `.card`, `.action-panel`, and `.empty-state` classes in `styles.css` cover it, and each use needs a different element                                                                           |
-| `DirectoryRow`     | Identity tile, name, meta line, neutral labels, counts, one action  | Built: `apps/web/src/components/directory-row.tsx`; used by `EventCard` and the team and school directories                                                                                                  |
-| `DirectorySidebar` | Directory section links, the viewer's home school and follows       | Built: `apps/web/src/components/directory-sidebar.tsx`; used by `/events`, `/teams`, and `/schools`, with its data from `loadDirectorySidebar` in `apps/web/src/features/account-slice/account.functions.ts` |
-| `EventRow`         | Calendar-tile date, lifecycle label, event facts, `View event`      | Built as `EventCard` on `DirectoryRow`: `apps/web/src/features/event-slice/event-card.tsx`; the account dashboard keeps its own `.event-list-item` row                                                       |
-| `StatusLabel`      | Text plus color for event, account, invitation, and request state   | Built: `apps/web/src/components/status-label.tsx`, with the event lifecycle colors and a neutral outlined variant; account, invitation, and request states are planned                                       |
-| `Avatar`           | Deterministic generated identity with accessible fallback initials  | Built: `apps/web/src/components/avatar.tsx`                                                                                                                                                                  |
-| `Tabs`             | Keyboard-accessible local navigation and selected state             | Built: `apps/web/src/components/tabs.tsx` (`Tabs` and `TabLink`); used on the school page, the event attendee page, and the events directory's scope tabs                                                    |
-| `FormField`        | Label, help text, control, validation text, described-by wiring     | Built: `apps/web/src/components/form-field.tsx` wires the label, control, and validation text; help text stays in the form as a `.form-help` paragraph                                                       |
-| `ErrorSummary`     | Page-level failure summary with links to invalid controls           | Built as `FormErrorSummary`: `apps/web/src/components/enhanced-mutation.tsx`                                                                                                                                 |
-| `RSVPControl`      | Current RSVP plus Going, Maybe, and Can't attend choices            | Planned as a shared component; today `RsvpEventForm` is inline in `apps/web/src/routes/events.$slug.tsx`                                                                                                     |
-| `Notice`           | Page-level success, information, warning, and error feedback        | Built as `PageNoticeView`: `apps/web/src/components/page-notice-view.tsx`, covering success and error                                                                                                        |
-| `Callout`          | Filled, icon-led note for reassurance or a heads-up (not an alert)  | Built: `apps/web/src/components/callout.tsx` (`info`, `lock`, and `shield` icons, and an optional action beside the note)                                                                                    |
-| `CalendarDate`     | Calendar-page tile for an event start date (month band, day number) | Built: `apps/web/src/components/calendar-date.tsx`; used by event rows, the account dashboard, and the event page header                                                                                     |
-| `Toast`            | Short live-region confirmation for enhanced interactions            | Planned                                                                                                                                                                                                      |
-| `Dialog`           | Focus-managed confirmation for destructive or high-impact actions   | Built as `ConfirmDialog`: `apps/web/src/components/confirm-dialog.tsx`                                                                                                                                       |
-| `RouteState`       | Loading, empty, unavailable, forbidden, and not-found states        | Built: `apps/web/src/components/route-boundaries.tsx` (`RoutePending`, `RouteErrorView`, `ListUnavailable`, and the default boundaries)                                                                      |
+| Component          | Responsibilities                                                    | Status                                                                                                                                                                                                                                                   |
+| ------------------ | ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SiteShell`        | Header, navigation, authentication actions, footer, skip link       | Planned as its own component; today it is inline in `apps/web/src/routes/__root.tsx`                                                                                                                                                                     |
+| `Breadcrumbs`      | Trail of parent pages ending in the current page                    | Built: `apps/web/src/components/breadcrumbs.tsx`; used on event, school, and team pages                                                                                                                                                                  |
+| `PageHeading`      | Identity mark, heading, supporting line, tags, optional actions     | Built for detail pages: `apps/web/src/components/page-heading.tsx`; browse, form, and static routes still repeat the `.page-heading` and `.browse-heading` markup                                                                                        |
+| `KeyInformation`   | Description list of an entity's facts in the side panel             | Built: `apps/web/src/components/key-information.tsx`; used on event, school, and team pages                                                                                                                                                              |
+| `ButtonLink`       | Primary and secondary router links drawn as buttons                 | Built: `apps/web/src/components/button-link.tsx`                                                                                                                                                                                                         |
+| `Button`           | Primary, secondary, quiet, destructive, loading, disabled           | Planned; native `<button>` elements use the `button--secondary` and `button--destructive` classes from `styles.css`                                                                                                                                      |
+| `Surface`          | White bounded panel on the canvas                                   | The `.panel` (with `.panel--flush`, `.panel__header`, and `.panel__body`), `.action-panel`, `.empty-state`, and `.detail-card` classes in `styles.css`                                                                                                   |
+| `DirectoryRow`     | Identity tile, name, meta line, neutral labels, counts, one action  | Built: `apps/web/src/components/directory-row.tsx`; used by `EventCard` and the team and school directories                                                                                                                                              |
+| `FilterToolbar`    | Search fields, filter buttons that show their value, Clear filters  | Built: `apps/web/src/components/filter-toolbar.tsx` (`FilterForm`, `FilterSelect`, `FilterToggle`, `LockedFilter`, `ClearFiltersLink`, `NoScriptFilterSearch`) and `search-filter.tsx` (`SearchFilter`); used on the event, team, and school directories |
+| `DirectorySidebar` | Section links, the viewer's home school, and followed schools       | Built: `apps/web/src/components/directory-sidebar.tsx`; used by `/` only, with its data from `loadDirectorySidebar` in `apps/web/src/features/account-slice/account.functions.ts`                                                                        |
+| `EventRow`         | Calendar-tile date, lifecycle label, event facts, `View event`      | Built as `EventCard` on `DirectoryRow`: `apps/web/src/features/event-slice/event-card.tsx`; the account dashboard uses `DirectoryRow` too                                                                                                                |
+| `DetailHero`       | Navy band with logo or initial, the h1, and a game cover or actions | Built: `apps/web/src/components/detail-hero.tsx`; used on event, school, and team pages                                                                                                                                                                  |
+| `FormSectionNav`   | Numbered, sticky in-page links to a long form's sections            | Built: `apps/web/src/components/form-section-nav.tsx`; used on the event and team forms                                                                                                                                                                  |
+| `StatusLabel`      | Text plus color for event, account, invitation, and request state   | Built: `apps/web/src/components/status-label.tsx` as `.tag`: neutral, or `tone` info, success, warning, or danger, with lifecycle tones from `status`                                                                                                    |
+| `Avatar`           | Deterministic generated identity with accessible fallback initials  | Built: `apps/web/src/components/avatar.tsx`                                                                                                                                                                                                              |
+| `Tabs`             | Keyboard-accessible local navigation and selected state             | Built: `apps/web/src/components/tabs.tsx` (`Tabs` and `TabLink`); used on the school page, the event attendee page, and the events directory's scope tabs                                                                                                |
+| `FormField`        | Label, help text, control, validation text, described-by wiring     | Built: `apps/web/src/components/form-field.tsx` wires the label, control, and validation text; help text stays in the form as a `.form-help` paragraph                                                                                                   |
+| `ErrorSummary`     | Page-level failure summary with links to invalid controls           | Built as `FormErrorSummary`: `apps/web/src/components/enhanced-mutation.tsx`                                                                                                                                                                             |
+| `RSVPControl`      | Current RSVP plus Going, Maybe, and Can't go choices                | Planned as a shared component; today `RsvpEventForm` is inline in `apps/web/src/routes/events.$slug.tsx`                                                                                                                                                 |
+| `Notice`           | Page-level success, information, warning, and error feedback        | Built as `PageNoticeView`: `apps/web/src/components/page-notice-view.tsx`, covering success and error                                                                                                                                                    |
+| `Callout`          | Filled, icon-led note for reassurance or a heads-up (not an alert)  | Built: `apps/web/src/components/callout.tsx` (`info`, `lock`, and `shield` icons, and an optional action beside the note)                                                                                                                                |
+| `CalendarDate`     | Calendar-page tile for an event start date (month, day number)      | Built: `apps/web/src/components/calendar-date.tsx`; used by event rows, the account dashboard, and the event page header                                                                                                                                 |
+| `Toast`            | Short live-region confirmation for enhanced interactions            | Planned                                                                                                                                                                                                                                                  |
+| `Dialog`           | Focus-managed confirmation for destructive or high-impact actions   | Built as `ConfirmDialog`: `apps/web/src/components/confirm-dialog.tsx`                                                                                                                                                                                   |
+| `RouteState`       | Loading, empty, unavailable, forbidden, and not-found states        | Built: `apps/web/src/components/route-boundaries.tsx` (`RoutePending`, `RouteErrorView`, `ListUnavailable`, and the default boundaries)                                                                                                                  |
 
 Components must render useful server HTML before hydration. Enhanced controls
 must preserve the existing native form fallback.
 
 ### Surfaces
 
-Cards, panels, filter bars, and detail cards use `--color-card` (a shade
-lighter than the canvas) with a `--color-card-border` hairline (a shade darker
-than it), so edges read without a hard white-on-beige contrast. The header,
-footer, and form controls stay white. A `Callout` fills with `--color-callout`,
-darker than the canvas, and has no border.
+Panels and detail cards use `--color-card` (white) with a
+`--color-card-border` hairline on the light-gray canvas. The footer and form
+controls are white, and the header is navy. Form control edges use
+`--color-control-border` (`#6f777b`), because the handoff's `#b1b4b6`
+separator gray is below 3:1 against white. A `Callout` is light blue with a
+blue left edge.
 
 ### Where shared styles live
 
 Styles for a component that renders in more than one route area (the
-directory row, the event row, status labels, and team mark today) live in `apps/web/src/components.css`.
+directory row, identity banner, tabs, breadcrumbs, sidebar, people lists, the
+form-page layout, and choice cards) live in `apps/web/src/components.css`.
 The root route loads it after `styles.css`, so the component looks the same on
 every page. A route area's own stylesheet (`events.css`, `teams.css`,
 `account.css`) holds only rules for that area's markup and is linked from that
@@ -254,18 +330,17 @@ route.
 
 ### Style guide page
 
-`/styleguide` shows the tokens, type, buttons, forms, and shared components on
-one page, rendered by the real components against made-up fixtures in
+`/styleguide` shows the tokens, type, buttons, forms, and every shared
+component and state on one page, each labelled with its component and file, rendered by the real components against made-up fixtures in
 `apps/web/src/features/styleguide/fixtures.ts`. It makes no API calls. The
 token lists are read from the first `:root` block of `styles.css`, so a new
 token appears there without an edit.
 
 The page is reachable in every environment, is marked `noindex`, and is not
 linked from the header or footer. When a shared component is added or gains a
-variant, add it to `apps/web/src/routes/styleguide.tsx`. A few pieces are still
-route-local markup rather than components (the RSVP control and the account
-rows), so the page repeats their markup and must be updated by hand when they
-change. The school and team rows are `DirectoryRow`, but each route passes its
+variant, add it to `apps/web/src/routes/styleguide.tsx`. The RSVP control is
+still route-local markup rather than a component, so the page repeats it and
+must be updated by hand when it changes. The school and team rows are `DirectoryRow`, but each route passes its
 own fields, so the page repeats those calls.
 
 ## Route and state matrix
@@ -324,15 +399,18 @@ documents are updated and their contracts are implemented:
 
 ### RSVP
 
-- The visible value is the viewer's current RSVP.
-- Choices are Going (`yes`), Maybe (`maybe`), and Can't attend (`no`).
-- Going counts toward capacity; Maybe and Can't attend do not.
+- The event header's panel asks "Are you going?" above the choices.
+- Choices are one row of three submit buttons: Going (`yes`), Maybe
+  (`maybe`), and Can't go (`no`). The chosen one carries `aria-pressed` and is
+  filled: Going green, Maybe blue, Can't go gray.
+- Going counts toward capacity; Maybe and Can't go do not.
 - A full event blocks a new Going response but does not prevent an existing
-  Going attendee from changing their response.
-- Enhanced submission may update optimistically only when it can restore the
-  prior value and announce a failure. Native form submission remains valid.
-- Focus returns to the RSVP trigger after the menu closes. Escape and outside
-  activation close the menu.
+  Going attendee from changing their response. An ended event disables every
+  choice and says RSVPs are closed; the chosen one keeps its fill.
+- While a save is pending the buttons are `aria-disabled` rather than
+  disabled, so keyboard focus stays on the pressed button. Native form
+  submission remains valid.
+- "I'm interested" is a separate toggle under the choices.
 
 ### People lists
 
@@ -385,7 +463,8 @@ documents are updated and their contracts are implemented:
 
 - One `main` landmark and one visible `h1` per route.
 - Route changes focus the new page heading.
-- Visible focus remains at least as prominent as the approved blue focus ring.
+- Visible focus remains at least as prominent as the yellow and near-black
+  focus ring.
 - Menus, tabs, dialogs, and form errors are keyboard accessible.
 - Status is never expressed by color alone.
 - All informative images have useful alternative text; decorative imagery is
@@ -440,9 +519,9 @@ Run, in order:
 2. `pnpm run typecheck:web`
 3. `pnpm run lint:web`
 4. `pnpm run test:web`
-5. `pnpm run test:e2e:web:dev`
-6. `pnpm run build:web`
-7. `pnpm run test:e2e:web`
+5. `pnpm run build:web`
 
-The production browser suite must always run immediately after the production
-build because it serves the existing `apps/web/.output` bundle.
+The Playwright suites (`pnpm run test:e2e:web:dev` and `test:e2e:web`) are
+paused while the UI changes quickly; see `CLAUDE.md`. When they resume, the
+production suite must run immediately after the production build because it
+serves the existing `apps/web/.output` bundle.

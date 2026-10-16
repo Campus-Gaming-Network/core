@@ -38,11 +38,41 @@ export const schoolsResponseDtoSchema = z.object({
   has_more: z.boolean(),
 });
 
+/** A school as a directory's school filter shows it: name, place, logo. */
+export const schoolFilterOptionSchema = z.object({
+  id: identifierSchema,
+  name: z.string(),
+  slug: identifierSchema,
+  city: z.string().optional(),
+  state: z.string().optional(),
+  logo_url: z.string().optional(),
+});
+
+export const schoolFilterOptionsResponseSchema = z.object({
+  schools: z.array(schoolFilterOptionSchema),
+});
+
+export const schoolFilterInputSchema = z.object({
+  school: identifierSchema.optional(),
+  schoolQuery: z.string().trim().max(120).optional(),
+});
+
+export type SchoolFilterOption = z.output<typeof schoolFilterOptionSchema>;
+
+/** What a directory needs for its school filter. */
+export type SchoolFilterChoices = {
+  /** The school named by the `school` filter; absent when it cannot be found. */
+  selectedSchool?: SchoolFilterOption;
+  /** Matches for the no-JavaScript `school_q` search. */
+  schools: SchoolFilterOption[];
+  schoolSearchFailed: boolean;
+};
+
 export const followedSchoolsResponseDtoSchema = z.object({
   schools: z.array(schoolDtoSchema),
 });
 
-export const gameDtoSchema = z.object({
+const gameDtoSchema = z.object({
   id: identifierSchema,
   name: z.string(),
   slug: identifierSchema,
@@ -85,11 +115,10 @@ export type SchoolDTO = z.output<typeof schoolDtoSchema> & {
 };
 /** A school summary once the BFF has added its bundled logo, if it has one. */
 export type WithSchoolLogo<T> = T & { logo_url?: string };
-export type SchoolsResponseDTO = Omit<
+type SchoolsResponseDTO = Omit<
   z.output<typeof schoolsResponseDtoSchema>,
   "schools"
 > & { schools: SchoolDTO[] };
-export type GameDTO = z.output<typeof gameDtoSchema>;
 export type SchoolsBrowseInput = z.output<typeof schoolsBrowseInputSchema>;
 export type SchoolSlugInput = z.output<typeof schoolSlugInputSchema>;
 export type SchoolViewerInput = z.output<typeof schoolViewerInputSchema>;
@@ -99,9 +128,7 @@ export type HomeCatalogResult = {
   schools: SchoolDTO[];
   /** True when `schools` is a ranking by popularity, not an alphabetical list. */
   schoolsPopular: boolean;
-  games: GameDTO[];
   schoolsUnavailable: boolean;
-  gamesUnavailable: boolean;
 };
 
 export type SchoolsCatalogResult = SchoolsResponseDTO & {
@@ -122,7 +149,7 @@ export type SchoolFollowRedirectResult = {
   redirectTo: string;
 };
 
-export type ValidatedSchoolFollowInput =
+type ValidatedSchoolFollowInput =
   | { valid: true; value: SchoolFollowInput }
   | { valid: false; slug?: string };
 
@@ -149,9 +176,9 @@ export function validateSchoolsSearch(
   };
 }
 
-export type SchoolTab = "events" | "teams";
+type SchoolTab = "events" | "teams";
 
-export type SchoolSearch = { follow?: SchoolDetailNotice; tab?: SchoolTab };
+type SchoolSearch = { follow?: SchoolDetailNotice; tab?: SchoolTab };
 
 export function validateSchoolSearch(
   search: Record<string, unknown>,
@@ -189,7 +216,7 @@ export function validateSchoolFollowServerInput(
   };
 }
 
-export function pageNumber(value: string): number {
+function pageNumber(value: string): number {
   if (!/^\d+$/.test(value)) {
     return 1;
   }

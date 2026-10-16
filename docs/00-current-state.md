@@ -6,7 +6,7 @@ Quick re-entry point for Campus Gaming Network. Read this first after time away;
 the detailed product and engineering context remains in the other documents in
 this folder.
 
-**Last updated:** 2026-09-29
+**Last updated:** 2026-10-16
 
 ## Where we are
 
@@ -16,15 +16,15 @@ intake are in place. TanStack Start is now the canonical main frontend in
 `apps/web`; the temporary parity application has been folded into that path and
 the Next.js source has been removed.
 
-Repository deployment configuration is implemented, but Railway has not been
-provisioned. Staging, Cloudflare-path validation, and production deployment are
-therefore intentionally deferred while product work continues.
+A Railway staging environment is running, with the Admin Console as a separate
+service ([13 — Deployment plan](./13-deployment-plan.md)). Production is not
+deployed and has no real accounts. Cloudflare-path validation and production
+deployment are intentionally deferred while product work continues.
 
 ## Current milestone
 
 Make the existing events-and-teams product polished and reliable enough for
-real users. Deployment planning and external environment setup will be
-revisited later.
+real users. Production deployment will be revisited later.
 
 Every item in [17 — Codebase review action plan](./17-codebase-review-action-plan.md)
 is done. Engineering work now comes from the open items in
@@ -35,7 +35,7 @@ is done. Engineering work now comes from the open items in
 
 1. Finish what `AC-014` still owes, none of which needs code: the independent
    security review, then the staging penetration pass, drills, and deployment
-   smoke checks once staging exists
+   smoke checks on staging
    ([24](./24-admin-console-security-review.md#still-owed-before-production-is-enabled)).
 2. Clear the P1 launch gates that need outside input: legal copy and the
    external launch rehearsal.
@@ -45,7 +45,7 @@ Admin Console work continues under
 
 ## Blockers and decisions
 
-- Deployment work is intentionally deferred and is not currently a blocker.
+- Production deployment is intentionally deferred and is not currently a blocker.
 - Production legal copy is waiting on operator identity/address, governing law,
   launch geography, provider, and sale/share decisions. Engineering retention
   targets are recorded in [16 — Legal and data-lifecycle plan](./16-legal-and-data-lifecycle-plan.md)

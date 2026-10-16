@@ -23,7 +23,7 @@ orders the 2026-09-05 review findings and records each item's status.
 
 **School seed:** 6,243 operating schools (4,943 main · **1,300 branch**). Import all, `is_active=true`; branch campuses use the same UI/UX; review later in the Admin Console.
 
-**Games:** imported from IGDB by site admins in the Admin Console. The catalog starts empty; the six hand-made launch games were removed.
+**Games:** imported from IGDB when users pick them in the event and team forms; site admins correct, hide, and delete them in the Admin Console. The catalog starts with the seed's starter set; the six hand-made launch games were removed.
 
 ---
 
@@ -111,7 +111,7 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 
 ### Games (IGDB import)
 
-- [x] Site admins search IGDB and import one game at a time; an import starts inactive
+- [x] Site admins edit, hide, and delete stored games; they do not add or import games
 - [x] Covers stored in Postgres and served by the API (`GET /games/:slug/cover`)
 - [x] Refresh an imported game from IGDB without changing its name or slug
 - [x] IGDB attribution on the FAQ page
@@ -160,7 +160,7 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 ### Dashboard & content
 
 - [x] Simple dashboard: upcoming RSVPs + followed-school events + team activity
-- [x] Homepage (works with little/no UGC), with a six-event preview of recent public events in the events page order and the six most popular schools (active members plus public events hosted), falling back to the alphabetical list until any school has activity
+- [x] Homepage (works with little/no UGC), with six-event previews of public events this week (under way or starting in the next seven days) and after it, in the events page order and the six most popular schools (active members plus public events hosted), falling back to the alphabetical list until any school has activity
 - [x] Cold-start plan (demo seed and/or “create first event” CTA)
 - [x] FAQ and About; Terms and Privacy routes exist pending reviewed copy
 - [x] Support ticket form — **anyone** can submit (logged out OK)
@@ -211,7 +211,7 @@ Tracked ticket by ticket in [20 — Admin Console v1 engineering plan](./20-admi
 - [ ] User-visible activity history and notification inbox
 - [ ] Site-wide announcements
 - [ ] Impersonation
-- [ ] Bulk or scheduled IGDB sync (single-game import and refresh are implemented)
+- [ ] Bulk or scheduled IGDB sync (single-game refresh is implemented)
 
 ### Larger feature areas
 

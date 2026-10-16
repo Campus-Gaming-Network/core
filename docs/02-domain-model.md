@@ -17,7 +17,7 @@ Club   ── games
 Team   ── games, members (URL + password), owner, captains; optional club_id
 Event ── games, organizers, RSVPs, interests, location, capacity, visibility, slug
 Tournament ── games, optional Event, individual | team, capacity, slug
-Game ── imported from IGDB through the Admin Console (not editable by end users)
+Game ── added from IGDB when a user picks it (corrected and hidden by site admins, not editable by end users)
 
 Report ── target: Event | User | …
 Notification ── User                                      (later)
@@ -246,14 +246,15 @@ slug    = slugify(eventTitle) + "-" + short
 
 ### Game
 
-| Field / concept       | Notes                                                                                                       |
-| --------------------- | ----------------------------------------------------------------------------------------------------------- |
-| Source                | Imported from IGDB by a site admin, by a user's pick in a game picker, or by the seed command's starter set |
-| New imports           | An admin import starts inactive; a user's pick and the starter set are active                               |
-| Typed games           | A name a user types is unlisted: usable on events and teams, absent from the picker                         |
-| Blocking              | A hidden or deleted game cannot be added by users                                                           |
-| Refresh               | Updates the sync time and cover; never the name or slug                                                     |
-| Editable by end users | **No**. Site admins manage games in the Admin Console                                                       |
+| Field / concept       | Notes                                                                                                                                                                                                                                                                                                                       |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Source                | Imported from IGDB by a user's pick in a game picker or by the seed command's starter set. Admins never add games                                                                                                                                                                                                           |
+| New imports           | Active: a user's pick and the starter set both import active; an admin can hide the game later                                                                                                                                                                                                                              |
+| Typed games           | A name a user types is unlisted: usable on events and teams, absent from the picker                                                                                                                                                                                                                                         |
+| Blocking              | A hidden or deleted game cannot be added by users                                                                                                                                                                                                                                                                           |
+| Refresh               | Updates the sync time and cover; never the name or slug                                                                                                                                                                                                                                                                     |
+| One game per title    | An import links a game already stored under the entry's slug with no IGDB link (a demo seed game, an older hand-made game, or a typed game) instead of copying it: the game keeps its name, slug, events, and teams. A typed game becomes listed. A slug held by another IGDB entry or a deleted game gets a numeric suffix |
+| Editable by end users | **No**. Site admins manage games in the Admin Console                                                                                                                                                                                                                                                                       |
 
 Used for: browse/filter events (and later tournaments) by game; popular games by school; associations on events/teams/clubs/tournaments.
 

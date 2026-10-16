@@ -98,7 +98,7 @@ the same transaction as the account.
 | PATCH  | `/me`               | Name, bio, [social links](#social-links), timezone, and `show_in_lists` (boolean opt-out from the [people lists](#people-lists)); an absent field is left unchanged and a non-boolean `show_in_lists` returns `400 invalid_json`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | DELETE | `/me`               | Anonymize the account in place and return 204. Scrubs email, name, bio, and timezone; marks `account_status = 'deleted'`; hard-deletes social links, school follows, RSVPs, interests, notifications, and team/event roles; revokes sessions and drops outstanding tokens and queued email; revokes school-admin and site-admin grants while keeping their history. Teams they own pass to the longest-tenured captain, else the longest-tenured member, else are soft-deleted. Events they created that have not ended pass to the longest-tenured active co-organizer; the rest are archived, and active yes/maybe RSVPs to those that have not ended get a best-effort cancellation email. Returns `409 last_site_admin` when the account is the last active site admin. The scrubbed email releases the original address for re-registration. See [16 — Legal and data-lifecycle plan](./16-legal-and-data-lifecycle-plan.md). |
 | GET    | `/me/schools`       | Followed schools                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| GET    | `/me/events`        | Dashboard event sections: upcoming RSVPs + followed-school public events                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| GET    | `/me/events`        | Dashboard event sections: upcoming RSVPs, upcoming events the caller marked "interested" (`interested_events`, soonest first), and followed-school public events                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | GET    | `/me/teams`         | Dashboard team activity                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | GET    | `/me/activity`      | **(planned)** Full user activity log                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | GET    | `/users/:id`        | Public profile (database id), including `home_school_id`, display-ready `home_school`, [social links](#social-links), verification level, and role indicators when available                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
@@ -158,26 +158,28 @@ a Discord link as text because a username has no page to link to.
 
 ### Events
 
-| Method | Path                      | Notes                                                                                                                                                                                                                                                                         |
-| ------ | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| GET    | `/events`                 | Search/browse **public only**, newest start time first; `game`, `school`, `format`, `type`, `audience`, `cost`, `limit`, and opaque `after`/`before` cursors; response includes `has_more` and `has_previous`                                                                 |
-| GET    | `/events/:slug`           | Public & unlisted return full page; private returns gated shell until unlocked                                                                                                                                                                                                |
-| GET    | `/events/:slug/attendees` | Auth required; the [people list](#people-lists) of RSVPs, `response=yes` (default) or `maybe`; follows the event page's access rules and answers `404 event_not_found` for a missing, cancelled, or still-locked private event                                                |
-| POST   | `/events/:slug/unlock`    | Password for private events; unlock session required before details/RSVP                                                                                                                                                                                                      |
-| POST   | `/events`                 | Auth; no approval; rate limited; 8-char slug hash; required `event_type` and `audience`; optional capacity; optional off-site payment fields; default banner only; optional `recurrence_rule` (`weekly`, `biweekly`, `monthly`) and `recurrence_until` (`YYYY-MM-DD`)         |
-| PATCH  | `/events/:slug`           | Organizers; every field stays editable after the event ends (past-event limits in [07](./07-permissions.md) are planned). Recurrence is set at creation and occurrences are edited independently. Supplying either recurrence field returns `400 event_recurrence_immutable`. |
-| DELETE | `/events/:slug`           | Soft-cancel; best-effort email to active yes/maybe RSVPs after cancellation                                                                                                                                                                                                   |
-| POST   | `/events/:slug/rsvp`      | yes/no/maybe; capacity counts **yes only**; reject yes if full; email+ICS on yes, with the start time shown in the event's time zone                                                                                                                                          |
-| POST   | `/events/:slug/interest`  | Favorite/bookmark; independent of RSVP                                                                                                                                                                                                                                        |
-| DELETE | `/events/:slug/interest`  | Remove favorite                                                                                                                                                                                                                                                               |
-| POST   | `/events/:slug/report`    | Rate limited                                                                                                                                                                                                                                                                  |
-| GET    | `/events/:slug/audit`     | **(planned)** Event change history                                                                                                                                                                                                                                            |
+| Method | Path                      | Notes                                                                                                                                                                                                                                                                                                                                                                                                 |
+| ------ | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/events`                 | Search/browse **public only**, events under way or upcoming, soonest start time first (ended events are left out); `game`, `school`, `format`, `type`, `audience`, `cost`, `starts_after` and `starts_before` (RFC 3339; at or after, and before; an empty or malformed range is `invalid_time_range`), `limit`, and opaque `after`/`before` cursors; response includes `has_more` and `has_previous` |
+| GET    | `/events/:slug`           | Public & unlisted return full page; private returns gated shell until unlocked                                                                                                                                                                                                                                                                                                                        |
+| GET    | `/events/:slug/attendees` | Auth required; the [people list](#people-lists) of RSVPs, `response=yes` (default) or `maybe`; follows the event page's access rules and answers `404 event_not_found` for a missing, cancelled, or still-locked private event                                                                                                                                                                        |
+| POST   | `/events/:slug/unlock`    | Password for private events; unlock session required before details/RSVP                                                                                                                                                                                                                                                                                                                              |
+| POST   | `/events`                 | Auth; no approval; rate limited; 8-char slug hash; required `event_type` and `audience`; optional capacity; optional off-site payment fields; default banner only; optional `recurrence_rule` (`weekly`, `biweekly`, `monthly`) and `recurrence_until` (`YYYY-MM-DD`)                                                                                                                                 |
+| PATCH  | `/events/:slug`           | Organizers; every field stays editable after the event ends (past-event limits in [07](./07-permissions.md) are planned). Recurrence is set at creation and occurrences are edited independently. Supplying either recurrence field returns `400 event_recurrence_immutable`.                                                                                                                         |
+| DELETE | `/events/:slug`           | Soft-cancel; best-effort email to active yes/maybe RSVPs after cancellation                                                                                                                                                                                                                                                                                                                           |
+| POST   | `/events/:slug/rsvp`      | yes/no/maybe; capacity counts **yes only**; reject yes if full; email+ICS on yes, with the start time shown in the event's time zone                                                                                                                                                                                                                                                                  |
+| POST   | `/events/:slug/interest`  | Favorite/bookmark; independent of RSVP                                                                                                                                                                                                                                                                                                                                                                |
+| DELETE | `/events/:slug/interest`  | Remove favorite                                                                                                                                                                                                                                                                                                                                                                                       |
+| POST   | `/events/:slug/report`    | Rate limited                                                                                                                                                                                                                                                                                                                                                                                          |
+| GET    | `/events/:slug/audit`     | **(planned)** Event change history                                                                                                                                                                                                                                                                                                                                                                    |
 
 An event's `event_type` (`game_night`, `lan`, `tournament`, `watch_party`, `tryout`, `meeting`, `workshop`, or `other`) says what kind of event it is. It is required on `POST /events` and `PATCH /events/:slug`; a missing or unknown value returns `400 invalid_request`. Responses include it when set, and events created before the field omit it. `GET /events` filters on it with the `type` query parameter and ignores an unknown value. The `tournament` type is a label only and creates no tournament.
 
 An event's `audience` (`open`, `collegiate`, `campus`, or `members`) says who it is for. It is required on `POST /events` and `PATCH /events/:slug`; a missing or unknown value returns `400 invalid_request`. Responses include it when set, and events created before the field omit it. An unknown `audience` filter on `GET /events` is ignored. Audience is informational: it does not gate the page, RSVPs, or interest. The RSVP confirmation email and its `.ics` description include it.
 
 An event's `cost` is `free`, `paid`, or `unspecified`; it replaces the former `is_paid` boolean. Every event response includes it. `POST /events` and `PATCH /events/:slug` accept it, store a missing value as `unspecified`, and return `400 invalid_request` for an unknown value. `unspecified` means the organizer did not say and is never treated as free. `GET /events?cost=free` returns only events declared free; an unknown `cost` filter is ignored. `payment_note` and `payment_url` are unchanged and describe paid events.
+
+An event's `online_url` is sent only to a requester whose RSVP is `yes` or who organizes the event; everyone else receives the event without it, and `GET /events` never includes it. See [07 — Permissions](./07-permissions.md#event-rules).
 
 Each entry in an event's `games` is `{ "id", "name", "slug", "has_cover" }`. `has_cover` is true when the site serves the game's cover at `/api/games/:slug/cover`, so it is false for a game with no stored cover and for one a site admin has hidden since the event chose it.
 
@@ -276,21 +278,35 @@ Response:
 
 ### Games
 
-| Method | Path                       | Notes                                          |
-| ------ | -------------------------- | ---------------------------------------------- |
-| GET    | `/games`                   | Browse (public); active games only             |
-| GET    | `/games/:slug/cover`       | Stored cover image of an active game           |
-| GET    | `/games/igdb-search?q=`    | Auth; search IGDB from a game picker           |
-| GET    | `/games/:slug/events`      | **(planned)** Public events for game + filters |
-| GET    | `/games/:slug/tournaments` | **(planned)** Tournaments for game + filters   |
+| Method | Path                       | Notes                                                    |
+| ------ | -------------------------- | -------------------------------------------------------- |
+| GET    | `/games`                   | Browse (public); active games only; `q` searches by name |
+| GET    | `/games/:slug`             | One active game (public); `404 game_not_found` otherwise |
+| GET    | `/games/:slug/cover`       | Stored cover image of an active game                     |
+| GET    | `/games/igdb-search?q=`    | Auth; search IGDB from a game picker                     |
+| GET    | `/igdb-covers/:image_id`   | Small IGDB cover of a recent search result (public)      |
+| GET    | `/games/:slug/events`      | **(planned)** Public events for game + filters           |
+| GET    | `/games/:slug/tournaments` | **(planned)** Tournaments for game + filters             |
 
-End users cannot edit games. Site admins import and manage them through the
-[Admin API](#admin-api), and a signed-in user can add one while creating an
-event or team.
+End users cannot edit games. A signed-in user can add one while creating an
+event or team, and site admins correct, hide, delete, and refresh games through
+the [Admin API](#admin-api); admins do not add games.
+
+`GET /games` with no `q` returns every active game by name, as
+`{ "games": [{ "id", "name", "slug", "cover_url"? }] }`. With `q` (1 to 100
+characters after trimming, else `400 invalid_game_query`) it returns at most
+`limit` (default 20, 1 to 50, else `400 invalid_limit`) active games whose
+name contains `q`, ignoring case and matching `%` and `_` literally: an exact
+name first, then names that start with `q`, then the rest, each by name. The
+directories' game filters use the search and `GET /games/:slug`, which returns
+one game in the same shape, so they never load the whole catalog. The web app
+serves the filter's search to browsers at `/api/games/catalog-search?q=`.
 
 `GET /games/igdb-search?q=` (2 to 100 characters) returns
-`{ "games": [{ "igdb_id", "name", "release_year"?, "game_id"? }] }`; `game_id`
-is set when the catalog already holds the game. Matches whose catalog game a
+`{ "games": [{ "igdb_id", "name", "release_year"?, "game_id"?, "slug"?, "has_cover"?, "cover_image_id"? }] }`; `game_id`
+is set when the catalog already holds the game, with its `slug` and `has_cover`
+so a picker can show `/api/games/{slug}/cover`. `cover_image_id` names IGDB's
+cover when IGDB has one. Matches whose catalog game a
 site admin has hidden or deleted are left out. Results are cached for 24 hours,
 so a repeated search does not call IGDB. The route allows 30 searches a minute
 per user (`429` `rate_limited`) and answers `503` `igdb_not_configured` without
@@ -298,6 +314,18 @@ IGDB credentials and `503` `igdb_unavailable` when IGDB fails. The web app
 serves it to the picker at `/api/games/igdb-search`, where a successful result
 is cacheable by that browser for five minutes (`private, max-age=300`) and
 errors are not cached.
+
+`GET /igdb-covers/:image_id` serves IGDB's small (90×128) cover for a
+`cover_image_id`, so the picker can show a result the catalog has no cover for
+without a page loading an image from IGDB. It needs no session. Only an image
+that a cached search returned in the last 24 hours is served, and never one of
+a game a site admin hid or deleted; anything else is `404`
+`game_cover_not_found`. The image ID is the `ETag`, and the response is
+`public, max-age=604800, immutable`, since IGDB never changes the image behind
+an ID; a matching `If-None-Match` gets `304` without calling IGDB. It answers
+`503` `igdb_not_configured` without IGDB credentials and `503`
+`igdb_unavailable` when IGDB fails. Nothing is stored. The web app serves it at
+`/api/igdb-covers/{image_id}`.
 
 `POST /events`, `PATCH /events/:slug`, and `POST /teams` take two fields beside
 `game_ids`. At least one game is required across the three.
@@ -310,8 +338,8 @@ errors are not cached.
   goes through the blocked-language check.
 
 Games IGDB tags with its "Erotic" theme are treated as if IGDB did not list
-them: every search leaves them out, and an import or refresh by ID answers
-`igdb_game_not_found`. This applies to the admin routes too.
+them: every search leaves them out, and a pick or refresh by ID answers
+`igdb_game_not_found`.
 
 Nothing is imported until the rest of the request is valid and, for an edit,
 the caller is an organizer of the event. A request that names picked or typed
@@ -365,8 +393,8 @@ capabilities, and step-up rules live in
 | Schools             | List, create, get, update, `deactivate`, `reactivate`, and delete under `/schools`, plus `GET /schools/:id/audit` |
 | School logos        | `POST /schools/:id/logo` (multipart upload) and `DELETE /schools/:id/logo`                                        |
 | School admins       | `GET`/`POST /schools/:id/admin-grants`, `POST …/:grant_id/revoke`, and `GET …/:grant_id/audit`                    |
-| Games               | List, create, get, update, and delete under `/games`, plus `GET /games/:id/audit`                                 |
-| IGDB import         | `GET /igdb-games?q=`, `POST /game-imports`, `POST /games/:id/refresh`, and `GET /games/:id/cover`                 |
+| Games               | List, get, update, and delete under `/games`, plus `GET /games/:id/audit`; admins never add games                 |
+| IGDB                | `POST /games/:id/refresh` and `GET /games/:id/cover`                                                              |
 | Users               | List, get, `suspend`, `reactivate`, `PATCH /users/:id/trust-grants`, and `GET /users/:id/audit`                   |
 | Site admins         | `GET`/`POST /site-admin-grants`, `POST /site-admin-grants/:id/revoke`, and `GET /site-admin-grants/:id/audit`     |
 | System              | `GET /system`                                                                                                     |
@@ -393,21 +421,9 @@ history plus the record to open for it: `target_type` (`report`,
 `target_name`. A school-admin grant points at its school and a site-admin
 grant at its user. Reports and support tickets have no `target_name`.
 
-The IGDB routes need `games.manage`:
+The IGDB routes need `games.manage`. Admins do not search IGDB or import games;
+users add them from the event and team forms.
 
-- `GET /igdb-games?q=` searches IGDB by name (2 to 100 characters) and returns
-  `{ "games": [{ "igdb_id", "name", "release_year"?, "game_id"?, "thumbnail"? }] }`.
-  `game_id` is set when the catalog already holds that IGDB entry.
-  `thumbnail` is `{ "content_type", "data" }`, IGDB's small (90×128) cover
-  with the bytes base64-encoded like `GET /games/:id/cover`. It is downloaded
-  for every search, including a cached one, and is absent when IGDB has no
-  cover or the download fails; a failed thumbnail never fails the search.
-  Nothing is stored.
-- `POST /game-imports` takes `{ "igdb_id", "reason" }`. The API reads the name,
-  slug, and cover from IGDB, creates the game inactive with `igdb_id` and
-  `last_synced_at` set, stores the cover, and writes a `game.imported` audit
-  row. It returns `201` with the game. A repeat import of the same `igdb_id`
-  returns `409` `game_already_imported` with the existing game in `current`.
 - `POST /games/:id/refresh` takes `{ "expected_updated_at", "reason" }`. It
   sets `last_synced_at`, replaces the cover only when IGDB's image changed,
   never changes the name or slug, and writes a `game.refreshed` audit row. A
@@ -417,11 +433,11 @@ The IGDB routes need `games.manage`:
   without loading an image from another origin.
 
 Games in admin responses also carry `igdb_id`, `last_synced_at`, `has_cover`,
-and `user_submitted`. The admin search shares the 24-hour search cache. IGDB failures use their own codes: `503` `igdb_not_configured`
+and `user_submitted`. A refresh that fails uses these codes: `503` `igdb_not_configured`
 (no `IGDB_CLIENT_ID` and `IGDB_CLIENT_SECRET` on the API), `503`
 `igdb_rate_limited`, `502` `igdb_unavailable`, `404` `igdb_game_not_found`,
 `422` `igdb_game_invalid`, and `422` `igdb_cover_unusable` (larger than 100 KB
-or not a JPEG, PNG, or WebP). A failed import creates nothing.
+or not a JPEG, PNG, or WebP). A failed refresh changes nothing.
 
 Bulk IGDB sync, impersonation, feature flags, and site announcements are later.
 
@@ -466,7 +482,7 @@ Bulk IGDB sync, impersonation, feature flags, and site announcements are later.
   support messages; reject matches before persistence
 - Reject unexpected HTML; store plain text or tightly sanitized markdown (decision TBD)
 - Payment fields are display/off-site only; validate any `payment_url` as a safe external URL and make clear users are leaving CGN
-- Pagination on every unbounded list endpoint; `GET /games` returns the whole active list
+- Pagination on every unbounded list endpoint; `GET /games` without `q` returns the whole active list
 
 ## TanStack usage
 

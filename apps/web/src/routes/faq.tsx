@@ -1,5 +1,11 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import type { ReactNode } from "react";
+import {
+  createFileRoute,
+  Link,
+  useHydrated,
+  useLocation,
+} from "@tanstack/react-router";
+import { Check, Link2 } from "lucide-react";
+import { useEffect, useState, type ReactNode } from "react";
 import { publicPageHead } from "../components/public-page-head";
 
 const description =
@@ -129,11 +135,8 @@ const groups: FAQGroup[] = [
         question: "How do I delete my account?",
         answer: (
           <>
-            Use{" "}
-            <Link to="/account" hash="delete">
-              Delete your account
-            </Link>{" "}
-            on your account page. Deleting is permanent. Your personal
+            Use <Link to="/settings/delete-account">Delete account</Link> in
+            your account settings. Deleting is permanent. Your personal
             information is removed, and anything that stays on the site, such as
             a past event, shows “Deleted User” in place of your name.
           </>
@@ -345,12 +348,24 @@ export const Route = createFileRoute("/faq")({
 });
 
 function FAQPage() {
+  usePrintOpensAnswers();
+  useOpenLinkedQuestion();
   return (
-    <main className="prose">
+    <main className="prose faq-page">
       <section className="page-heading">
-        <p className="eyebrow">FAQ</p>
-        <h1>Frequently asked questions.</h1>
+        <h1>Frequently asked questions</h1>
       </section>
+      <nav aria-label="Question topics" className="faq-topics">
+        <ul>
+          {groups.map((group) => (
+            <li key={group.id}>
+              <a className="faq-topics__link" href={`#${group.id}-questions`}>
+                {group.heading}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </nav>
       {groups.map((group) => (
         <section
           aria-labelledby={`${group.id}-questions`}
@@ -362,6 +377,7 @@ function FAQPage() {
             <details id={item.id} key={item.id}>
               <summary>{item.question}</summary>
               <p>{item.answer}</p>
+              <CopyQuestionLink id={item.id} />
             </details>
           ))}
         </section>
@@ -375,4 +391,100 @@ function FAQPage() {
       </p>
     </main>
   );
+}
+
+/**
+ * A link to the question that opened it, so a reply can point at one answer.
+ * It needs JavaScript (the clipboard), so it appears once the page is
+ * interactive; the question's own address is still in the URL after a click
+ * on its summary or a topic link.
+ */
+function CopyQuestionLink({ id }: { id: string }) {
+  const interactive = useHydrated();
+  const [status, setStatus] = useState<"idle" | "copied" | "failed">("idle");
+
+  useEffect(() => {
+    if (status === "idle") return;
+    const reset = setTimeout(() => setStatus("idle"), 4000);
+    return () => clearTimeout(reset);
+  }, [status]);
+
+  if (!interactive) return null;
+  async function copy() {
+    const url = `${window.location.origin}${window.location.pathname}#${id}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setStatus("copied");
+    } catch {
+      setStatus("failed");
+    }
+  }
+  return (
+    <p className="faq-copy">
+      <button className="faq-copy__button" onClick={copy} type="button">
+        {status === "copied" ? (
+          <Check aria-hidden="true" size={16} strokeWidth={1.75} />
+        ) : (
+          <Link2 aria-hidden="true" size={16} strokeWidth={1.75} />
+        )}
+        {status === "copied" ? "Link copied" : "Copy link to this question"}
+      </button>
+      <span className="faq-copy__status" role="status">
+        {status === "failed"
+          ? "Could not copy. Copy the address bar instead."
+          : ""}
+      </span>
+    </p>
+  );
+}
+
+/**
+ * Opens the question the address names (`/faq#delete-account`) and scrolls it
+ * into view. The browser has already jumped to a closed answer by then, so
+ * opening it moves the text; scrolling again keeps the question at the top.
+ * Re-runs when the hash changes, such as a topic link or a pasted link.
+ */
+function useOpenLinkedQuestion() {
+  const hash = useLocation({ select: (location) => location.hash });
+  useEffect(() => {
+    if (!hash) return;
+    const element = document.getElementById(hash);
+    if (!(element instanceof HTMLDetailsElement)) return;
+    element.open = true;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
+    element.scrollIntoView({
+      behavior: reduced.matches ? "auto" : "smooth",
+      block: "start",
+    });
+  }, [hash]);
+}
+
+/**
+ * Opens every answer for printing and closes the ones the reader had closed
+ * afterwards. Chromium prints closed answers open through the print
+ * stylesheet's `::details-content` rule; Firefox and Safari need the `open`
+ * attribute.
+ */
+function usePrintOpensAnswers() {
+  useEffect(() => {
+    let opened: HTMLDetailsElement[] = [];
+    function openAll() {
+      opened = [
+        ...document.querySelectorAll<HTMLDetailsElement>(
+          "main details:not([open])",
+        ),
+      ];
+      for (const details of opened) details.open = true;
+    }
+    function restore() {
+      for (const details of opened) details.open = false;
+      opened = [];
+    }
+    window.addEventListener("beforeprint", openAll);
+    window.addEventListener("afterprint", restore);
+    return () => {
+      window.removeEventListener("beforeprint", openAll);
+      window.removeEventListener("afterprint", restore);
+    };
+  }, []);
 }

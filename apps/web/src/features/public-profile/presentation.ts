@@ -53,7 +53,8 @@ export function publicProfileHomeSchool(profile: PublicProfileDTO): {
   href?: string;
 } {
   if (!profile.home_school) {
-    return { name: profile.home_school_id, location: "" };
+    // Never show the raw ID when the summary is missing.
+    return { name: "No home school listed", location: "" };
   }
 
   return {

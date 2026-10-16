@@ -8,7 +8,7 @@ import {
 } from "../src/components/page-notice.js";
 import { PageNoticeView } from "../src/components/page-notice-view.js";
 import {
-  accountNotices,
+  deleteAccountNotices,
   homeAccountNotices,
   settingsNotices,
 } from "../src/features/account-slice/presentation.js";
@@ -43,7 +43,7 @@ const pages: Array<{ page: string; notices: Record<string, PageNotice> }> = [
   { page: "/teams/$slug", notices: teamDetailNotices },
   { page: "/schools", notices: schoolBrowseNotices },
   { page: "/schools/$slug", notices: schoolDetailNotices },
-  { page: "/account", notices: accountNotices },
+  { page: "/settings/delete-account", notices: deleteAccountNotices },
   { page: "/settings/profile", notices: settingsNotices },
   { page: "/", notices: homeAccountNotices },
   { page: "/users/$id", notices: reportUserNotices },
@@ -61,7 +61,7 @@ const unknownValues: unknown[] = [
   ["bogus", "failed"],
 ];
 
-test("every failure notice renders as an alert and every other notice as a status", () => {
+test("every failure notice renders as an alert and every other notice as an announced status", () => {
   for (const { page, notices } of pages) {
     for (const [key, notice] of Object.entries(notices)) {
       const failure = key === "failed" || key.endsWith("-failed");
@@ -72,13 +72,20 @@ test("every failure notice renders as an alert and every other notice as a statu
       const message = renderToStaticMarkup(
         createElement("p", null, notice.message),
       );
-      assert.ok(
-        markup.startsWith(
-          `<div class="page-notice page-notice--${notice.severity}" role="${failure ? "alert" : "status"}" aria-live="polite">`,
-        ),
-        `${page} ${key}`,
-      );
-      assert.ok(markup.endsWith(`${message}</div>`), `${page} ${key}`);
+      // A failure is an alert. A success is a plain banner plus a polite
+      // status region the browser fills after hydration, so the message is
+      // announced (a region that arrives already filled is not).
+      const [opening, closing] = failure
+        ? [
+            '<div class="page-notice page-notice--danger" role="alert">',
+            `${message}</div>`,
+          ]
+        : [
+            '<div class="page-notice page-notice--success">',
+            `${message}</div><p aria-live="polite" class="visually-hidden" role="status"></p>`,
+          ];
+      assert.ok(markup.startsWith(opening), `${page} ${key}`);
+      assert.ok(markup.endsWith(closing), `${page} ${key}`);
     }
   }
 });

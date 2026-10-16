@@ -4,7 +4,6 @@ import {
   CatalogFilters,
   CatalogNoticeView,
   CursorPagination,
-  GameForm,
   StateBadge,
   recordState,
 } from "../features/catalog/catalog-components";
@@ -73,13 +72,12 @@ function GamesPage() {
           <p className="eyebrow">Catalog</p>
           <h1>Games</h1>
           <p>
-            The game catalog, imported from IGDB. Inactive games leave the
-            public picker, but events and teams that already use them keep them.
+            Games users added from IGDB, or typed in, for their events and
+            teams. Open one to correct its name, slug, or cover, or to hide it.
+            A hidden game leaves game search, but events and teams that already
+            use it keep it.
           </p>
         </div>
-        <Link className="primary-button" to="/games/import">
-          Import from IGDB
-        </Link>
       </header>
 
       <CatalogNoticeView notice={search.notice} />
@@ -112,16 +110,6 @@ function GamesPage() {
         previousCursor={page.previous_cursor}
         nextCursor={page.next_cursor}
       />
-
-      <section className="detail-panel" aria-labelledby="new-game">
-        <div className="panel-heading">
-          <div>
-            <p className="eyebrow">Catalog record</p>
-            <h2 id="new-game">Add a game</h2>
-          </div>
-        </div>
-        <GameForm />
-      </section>
     </div>
   );
 }

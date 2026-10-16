@@ -10,6 +10,7 @@ import {
   validateQueueMutationServerInput,
   type QueueMutationInput,
 } from "./contracts.js";
+import { orNotFound } from "../../server/api.server.js";
 import { adminEnvironment } from "../../server/environment.server.js";
 import { adminSessionSchema } from "../../server/contracts.server.js";
 import {
@@ -63,7 +64,7 @@ export const getReportDetail = createServerFn({ method: "GET" })
   .handler(async ({ data }) => {
     const request = currentAdminRequest(false);
     const [detail, operators] = await Promise.all([
-      getReportDetailOperation(data, request),
+      orNotFound(getReportDetailOperation(data, request)),
       getOperatorsOperation(request),
     ]);
     const { publicSiteOrigin } = adminEnvironment();
@@ -84,7 +85,7 @@ export const getSupportDetail = createServerFn({ method: "GET" })
   .handler(async ({ data }) => {
     const request = currentAdminRequest(false);
     const [detail, operators] = await Promise.all([
-      getSupportDetailOperation(data, request),
+      orNotFound(getSupportDetailOperation(data, request)),
       getOperatorsOperation(request),
     ]);
     return { ...detail, operators };

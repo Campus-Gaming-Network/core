@@ -14,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminmutation"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/events"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/games"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/igdb"
@@ -45,6 +46,8 @@ type fakeIGDB struct {
 	images map[string][]byte
 	// downloads counts cover requests by image ID.
 	downloads map[string]int
+	// thumbnails counts search result thumbnail requests by image ID.
+	thumbnails map[string]int
 	// status overrides the game endpoint's status when set.
 	status int
 	// searches counts name searches that reached IGDB.
@@ -61,9 +64,10 @@ var (
 func newFakeIGDB(t *testing.T) *fakeIGDB {
 	t.Helper()
 	fake := &fakeIGDB{
-		games:     []fakeIGDBGame{{ID: fakeRocketLeagueID, Name: "Rocket League", Slug: "rocket-league"}, {ID: 7, Name: "Coverless: The Game!", Slug: "Not A Slug"}},
-		images:    map[string][]byte{"co1": fakeJPEG, "co2": fakePNG},
-		downloads: map[string]int{},
+		games:      []fakeIGDBGame{{ID: fakeRocketLeagueID, Name: "Rocket League", Slug: "rocket-league"}, {ID: 7, Name: "Coverless: The Game!", Slug: "Not A Slug"}},
+		images:     map[string][]byte{"co1": fakeJPEG, "co2": fakePNG},
+		downloads:  map[string]int{},
+		thumbnails: map[string]int{},
 	}
 	fake.setCover(fakeRocketLeagueID, "co1")
 	mux := http.NewServeMux()
@@ -105,9 +109,10 @@ func newFakeIGDB(t *testing.T) *fakeIGDB {
 		}
 		w.Write(fake.images[imageID])
 	})
-	// Admin search thumbnails come from the same images, uncounted.
+	// Search result thumbnails come from the same images, counted apart.
 	mux.HandleFunc("GET /images/t_cover_small/{file}", func(w http.ResponseWriter, req *http.Request) {
 		imageID := strings.TrimSuffix(req.PathValue("file"), ".jpg")
+		fake.thumbnails[imageID]++
 		if status := fake.imageStatus[imageID]; status != 0 {
 			w.WriteHeader(status)
 			return
@@ -133,9 +138,21 @@ func (fake *fakeIGDB) setCover(gameID int64, imageID string) {
 	}
 }
 
-func (f catalogFixture) importGame(t *testing.T, igdbID int64) games.AdminGame {
+// pickGame adds an IGDB game the way a user's event or team form does.
+func (f catalogFixture) pickGame(t *testing.T, igdbID int64) games.AdminGame {
 	t.Helper()
-	return decodeCatalog[games.AdminGame](t, f.request(t, "POST", "/admin/v1/game-imports", games.IGDBImport{Command: f.command, IGDBID: igdbID}, 201))
+	game, err := games.NewIGDBService(f.game, f.igdb.client).EnsureFromIGDB(t.Context(), igdbID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return game
+}
+
+// hideGame hides a game from users the way an admin does.
+func (f catalogFixture) hideGame(t *testing.T, game games.AdminGame) games.AdminGame {
+	t.Helper()
+	return decodeCatalog[games.AdminGame](t, f.request(t, "PATCH", "/admin/v1/games/"+game.ID,
+		games.AdminEdit{Command: f.versioned(game.UpdatedAt), Name: game.Name, Slug: game.Slug}, 200))
 }
 
 func (f catalogFixture) errorCode(t *testing.T, method, path string, input any, status int) string {
@@ -145,44 +162,22 @@ func (f catalogFixture) errorCode(t *testing.T, method, path string, input any, 
 	}](t, f.request(t, method, path, input, status)).Error
 }
 
-func TestIGDBImportCreatesAnInactiveGameWithItsCover(t *testing.T) {
+func TestAPickedGameIsStoredWithItsCoverUntilAnAdminHidesIt(t *testing.T) {
 	f := newCatalogFixture(t)
 	ctx := t.Context()
 
-	type searchPage struct {
-		Games []games.IGDBResult `json:"games"`
-	}
-	thumbnail := &games.Thumbnail{ContentType: "image/jpeg", Data: fakeJPEG}
-	found := decodeCatalog[searchPage](t, f.request(t, "GET", "/admin/v1/igdb-games?q=rocket", nil, 200))
-	if want := (searchPage{Games: []games.IGDBResult{{IGDBID: fakeRocketLeagueID, Name: "Rocket League", Thumbnail: thumbnail}}}); !reflect.DeepEqual(found, want) {
-		t.Fatalf("search = %+v, want %+v", found, want)
-	}
-
-	game := f.importGame(t, fakeRocketLeagueID)
+	game := f.pickGame(t, fakeRocketLeagueID)
 	igdbID := int64(fakeRocketLeagueID)
 	want := games.AdminGame{
-		Game:      games.Game{ID: game.ID, Name: "Rocket League", Slug: "rocket-league"},
-		CreatedAt: game.CreatedAt, UpdatedAt: game.UpdatedAt,
+		Game:     games.Game{ID: game.ID, Name: "Rocket League", Slug: "rocket-league"},
+		IsActive: true, CreatedAt: game.CreatedAt, UpdatedAt: game.UpdatedAt,
 		IGDBID: &igdbID, LastSyncedAt: game.LastSyncedAt, HasCover: true,
 	}
 	if !reflect.DeepEqual(game, want) || game.LastSyncedAt == nil {
-		t.Fatalf("imported game = %+v, want %+v with a sync time", game, want)
+		t.Fatalf("picked game = %+v, want %+v with a sync time", game, want)
 	}
 
-	// A second import returns the existing game and creates nothing.
-	repeat := decodeCatalog[struct {
-		Error   string          `json:"error"`
-		Current games.AdminGame `json:"current"`
-	}](t, f.request(t, "POST", "/admin/v1/game-imports", games.IGDBImport{Command: f.command, IGDBID: fakeRocketLeagueID}, 409))
-	if repeat.Error != "game_already_imported" || !reflect.DeepEqual(repeat.Current, game) {
-		t.Fatalf("repeat import = %+v, want the existing game", repeat)
-	}
-	found = decodeCatalog[searchPage](t, f.request(t, "GET", "/admin/v1/igdb-games?q=rocket", nil, 200))
-	if want := (searchPage{Games: []games.IGDBResult{{IGDBID: fakeRocketLeagueID, Name: "Rocket League", GameID: game.ID, Thumbnail: thumbnail}}}); !reflect.DeepEqual(found, want) {
-		t.Fatalf("search after import = %+v, want %+v", found, want)
-	}
-
-	// An admin can review the cover before the game is public.
+	// The Admin Console shows the stored cover from its own page.
 	type adminCover struct {
 		ContentType string `json:"content_type"`
 		Data        []byte `json:"data"`
@@ -191,10 +186,6 @@ func TestIGDBImportCreatesAnInactiveGameWithItsCover(t *testing.T) {
 	if want := (adminCover{ContentType: "image/jpeg", Data: fakeJPEG}); !reflect.DeepEqual(reviewed, want) {
 		t.Fatalf("admin cover = %+v, want %+v", reviewed, want)
 	}
-	if _, err := f.game.Cover(ctx, game.Slug, ""); !errors.Is(err, games.ErrCoverNotFound) {
-		t.Fatalf("public cover of an inactive game: error = %v, want %v", err, games.ErrCoverNotFound)
-	}
-	f.request(t, "PATCH", "/admin/v1/games/"+game.ID, games.AdminEdit{Command: f.versioned(game.UpdatedAt), Name: game.Name, Slug: game.Slug, IsActive: true}, 200)
 	cover, err := f.game.Cover(ctx, game.Slug, "")
 	if err != nil {
 		t.Fatal(err)
@@ -209,72 +200,111 @@ func TestIGDBImportCreatesAnInactiveGameWithItsCover(t *testing.T) {
 	if want := (games.Cover{ContentType: "image/jpeg", ETag: cover.ETag}); !reflect.DeepEqual(revalidated, want) {
 		t.Fatalf("revalidated cover = %+v, want %+v", revalidated, want)
 	}
+
+	// A hidden game's cover is no longer served.
+	f.hideGame(t, game)
+	if _, err := f.game.Cover(ctx, game.Slug, ""); !errors.Is(err, games.ErrCoverNotFound) {
+		t.Fatalf("public cover of a hidden game: error = %v, want %v", err, games.ErrCoverNotFound)
+	}
 }
 
-func TestIGDBImportDerivesAFreeSlugAndAllowsNoCover(t *testing.T) {
+func TestAPickLinksAnUnlinkedGameInsteadOfCopyingIt(t *testing.T) {
 	f := newCatalogFixture(t)
-	if _, err := f.game.CreateAdmin(t.Context(), games.AdminEdit{Command: f.command, Name: "Rocket League (manual)", Slug: "rocket-league", IsActive: true}); err != nil {
+	manual := f.insertGame(t, "Rocket League (manual)", "rocket-league")
+	game := f.pickGame(t, fakeRocketLeagueID)
+	igdbID := int64(fakeRocketLeagueID)
+	// The stored game keeps its id, name, slug, and visibility and gains the
+	// IGDB link and cover.
+	want := games.AdminGame{
+		Game:     games.Game{ID: manual.ID, Name: "Rocket League (manual)", Slug: "rocket-league"},
+		IsActive: true, CreatedAt: manual.CreatedAt, UpdatedAt: game.UpdatedAt,
+		IGDBID: &igdbID, LastSyncedAt: game.LastSyncedAt, HasCover: true,
+	}
+	if !reflect.DeepEqual(game, want) || game.LastSyncedAt == nil {
+		t.Fatalf("picked game = %+v, want %+v with a sync time", game, want)
+	}
+	listed, err := f.game.ListAdmin(t.Context(), adminmutation.Filter{Limit: 10})
+	if err != nil {
 		t.Fatal(err)
 	}
-	if game := f.importGame(t, fakeRocketLeagueID); game.Slug != "rocket-league-2" {
-		t.Fatalf("slug beside a taken one = %q, want rocket-league-2", game.Slug)
-	}
-	// IGDB's slug is unusable here, so one is made from the name.
-	coverless := f.importGame(t, 7)
-	if coverless.Slug != "coverless-the-game" || coverless.HasCover {
-		t.Fatalf("coverless import = slug %q, has cover %t", coverless.Slug, coverless.HasCover)
+	if len(listed) != 1 {
+		t.Fatalf("catalog holds %d games after the pick, want 1", len(listed))
 	}
 }
 
-func TestIGDBFailuresImportNothing(t *testing.T) {
+func TestAPickDerivesAFreeSlugAndAllowsNoCover(t *testing.T) {
 	f := newCatalogFixture(t)
-	importInput := games.IGDBImport{Command: f.command, IGDBID: fakeRocketLeagueID}
+	ctx := t.Context()
+	// A deleted game keeps its slug, so a pick beside it takes the next one.
+	deleted := f.insertGame(t, "Rocket League (old)", "rocket-league")
+	if _, err := f.game.DeleteAdmin(ctx, deleted.ID, f.versioned(deleted.UpdatedAt)); err != nil {
+		t.Fatal(err)
+	}
+	if game := f.pickGame(t, fakeRocketLeagueID); game.Slug != "rocket-league-2" {
+		t.Fatalf("slug beside a deleted game's = %q, want rocket-league-2", game.Slug)
+	}
+	// IGDB's slug is unusable here, so one is made from the name.
+	coverless := f.pickGame(t, 7)
+	if coverless.Slug != "coverless-the-game" || coverless.HasCover {
+		t.Fatalf("coverless pick = slug %q, has cover %t", coverless.Slug, coverless.HasCover)
+	}
+}
 
-	f.igdb.images["co1"] = []byte("<html>not an image</html>")
-	if code := f.errorCode(t, "POST", "/admin/v1/game-imports", importInput, 422); code != "igdb_cover_unusable" {
-		t.Fatalf("unusable cover: error = %q", code)
+func TestAUserPickLinksAGameAUserTypedEarlier(t *testing.T) {
+	f := newCatalogFixture(t)
+	ctx := t.Context()
+	typed, err := f.game.EnsureCustom(ctx, "Rocket League")
+	if err != nil {
+		t.Fatal(err)
 	}
-	if code := f.errorCode(t, "POST", "/admin/v1/game-imports", games.IGDBImport{Command: f.command, IGDBID: 404}, 404); code != "igdb_game_not_found" {
-		t.Fatalf("unknown IGDB game: error = %q", code)
+	picked, err := games.NewIGDBService(f.game, f.igdb.client).EnsureFromIGDB(ctx, fakeRocketLeagueID)
+	if err != nil {
+		t.Fatal(err)
 	}
-	for status, want := range map[int]struct {
-		status int
-		code   string
-	}{
-		http.StatusTooManyRequests:     {503, "igdb_rate_limited"},
-		http.StatusInternalServerError: {502, "igdb_unavailable"},
+	// The typed game becomes the regular, listed catalog game.
+	if picked.ID != typed.ID || !picked.IsActive || picked.UserSubmitted || picked.IGDBID == nil {
+		t.Fatalf("picked game = %+v, want the typed game %s linked and listed", picked, typed.ID)
+	}
+}
+
+func TestIGDBFailuresStoreNothing(t *testing.T) {
+	f := newCatalogFixture(t)
+	ctx := t.Context()
+	service := games.NewIGDBService(f.game, f.igdb.client)
+
+	if _, err := service.EnsureFromIGDB(ctx, 404); !errors.Is(err, igdb.ErrNotFound) {
+		t.Fatalf("pick of an unknown IGDB game: error = %v, want %v", err, igdb.ErrNotFound)
+	}
+	for status, want := range map[int]error{
+		http.StatusTooManyRequests:     igdb.ErrRateLimited,
+		http.StatusInternalServerError: igdb.ErrUnavailable,
 	} {
 		f.igdb.status = status
-		if code := f.errorCode(t, "POST", "/admin/v1/game-imports", importInput, want.status); code != want.code {
-			t.Fatalf("IGDB status %d on import: error = %q, want %q", status, code, want.code)
+		if _, err := service.EnsureFromIGDB(ctx, fakeRocketLeagueID); !errors.Is(err, want) {
+			t.Fatalf("IGDB status %d on a pick: error = %v, want %v", status, err, want)
 		}
-		if code := f.errorCode(t, "GET", "/admin/v1/igdb-games?q=rocket", nil, want.status); code != want.code {
-			t.Fatalf("IGDB status %d on search: error = %q, want %q", status, code, want.code)
+		if _, err := service.SearchForPicker(ctx, "rocket"); !errors.Is(err, want) {
+			t.Fatalf("IGDB status %d on a search: error = %v, want %v", status, err, want)
 		}
 	}
 	f.handler.dependencies.Catalog.IGDB = nil
-	for _, request := range []mutationRequest{
-		{"GET", "/admin/v1/igdb-games?q=rocket", nil},
-		{"POST", "/admin/v1/game-imports", importInput},
-	} {
-		if code := f.errorCode(t, request.method, request.path, request.body, 503); code != "igdb_not_configured" {
-			t.Fatalf("%s without credentials: error = %q", request.path, code)
-		}
+	if code := f.errorCode(t, "POST", "/admin/v1/games/10000000-0000-4000-8000-000000000099/refresh", f.command, 503); code != "igdb_not_configured" {
+		t.Fatalf("refresh without credentials: error = %q", code)
 	}
 
 	var stored int
-	if err := f.pool.QueryRow(t.Context(), `SELECT (SELECT COUNT(*) FROM games) + (SELECT COUNT(*) FROM game_covers)`).Scan(&stored); err != nil {
+	if err := f.pool.QueryRow(ctx, `SELECT (SELECT COUNT(*) FROM games) + (SELECT COUNT(*) FROM game_covers)`).Scan(&stored); err != nil {
 		t.Fatal(err)
 	}
 	if stored != 0 {
-		t.Fatalf("failed imports left %d rows behind", stored)
+		t.Fatalf("failed picks left %d rows behind", stored)
 	}
 }
 
 func TestIGDBRefreshKeepsAdminEditsAndReplacesAChangedCover(t *testing.T) {
 	f := newCatalogFixture(t)
 	ctx := t.Context()
-	imported := f.importGame(t, fakeRocketLeagueID)
+	imported := f.pickGame(t, fakeRocketLeagueID)
 	edited := decodeCatalog[games.AdminGame](t, f.request(t, "PATCH", "/admin/v1/games/"+imported.ID,
 		games.AdminEdit{Command: f.versioned(imported.UpdatedAt), Name: "RL (campus rules)", Slug: "rl-campus", IsActive: true}, 200))
 	path := "/admin/v1/games/" + imported.ID + "/refresh"
@@ -311,10 +341,7 @@ func TestIGDBRefreshKeepsAdminEditsAndReplacesAChangedCover(t *testing.T) {
 		t.Fatalf("stale refresh = %+v, want a conflict with %+v", stale, refreshed)
 	}
 
-	manual, err := f.game.CreateAdmin(ctx, games.AdminEdit{Command: f.command, Name: "Manual", Slug: "manual", IsActive: true})
-	if err != nil {
-		t.Fatal(err)
-	}
+	manual := f.insertGame(t, "Manual", "manual")
 	if code := f.errorCode(t, "POST", fmt.Sprintf("/admin/v1/games/%s/refresh", manual.ID), f.versioned(manual.UpdatedAt), 422); code != "game_not_from_igdb" {
 		t.Fatalf("refresh of a manual game: error = %q", code)
 	}
@@ -324,7 +351,7 @@ func TestIGDBSearchIsCachedForADay(t *testing.T) {
 	f := newCatalogFixture(t)
 	ctx := t.Context()
 	service := games.NewIGDBService(f.game, f.igdb.client)
-	want := []games.IGDBResult{{IGDBID: fakeRocketLeagueID, Name: "Rocket League"}}
+	want := []games.IGDBResult{{IGDBID: fakeRocketLeagueID, Name: "Rocket League", CoverImageID: "co1"}}
 
 	// The same search in another case and spacing is one IGDB call.
 	for _, query := range []string{"rocket", "  ROCKET ", "Rocket"} {
@@ -351,31 +378,84 @@ func TestIGDBSearchIsCachedForADay(t *testing.T) {
 		t.Fatalf("IGDB searches after the cache expired = %d, want 2", f.igdb.searches)
 	}
 
-	// A cached match still reflects the catalog: a game an admin imported and
-	// has not shown yet is left out of the picker and kept in the admin search.
-	hidden := f.importGame(t, fakeRocketLeagueID)
+	// A cached match still reflects the catalog: a game an admin hid is left
+	// out, and once shown again it carries the slug and cover the site
+	// serves, so the result can show its cover.
+	hidden := f.hideGame(t, f.pickGame(t, fakeRocketLeagueID))
 	picker, err := service.SearchForPicker(ctx, "rocket")
 	if err != nil {
 		t.Fatal(err)
 	}
-	admin, err := service.SearchIGDB(ctx, "rocket")
+	if len(picker) != 0 || f.igdb.searches != 2 {
+		t.Fatalf("picker = %+v after %d searches, want none after 2", picker, f.igdb.searches)
+	}
+	f.request(t, "PATCH", "/admin/v1/games/"+hidden.ID, games.AdminEdit{Command: f.versioned(hidden.UpdatedAt), Name: hidden.Name, Slug: hidden.Slug, IsActive: true}, 200)
+	picker, err = service.SearchForPicker(ctx, "rocket")
 	if err != nil {
 		t.Fatal(err)
 	}
-	wantAdmin := []games.IGDBResult{{IGDBID: fakeRocketLeagueID, Name: "Rocket League", GameID: hidden.ID, Thumbnail: &games.Thumbnail{ContentType: "image/jpeg", Data: fakeJPEG}}}
-	if len(picker) != 0 || !reflect.DeepEqual(admin, wantAdmin) || f.igdb.searches != 2 {
-		t.Fatalf("picker = %+v, admin = %+v, searches = %d; want none, %+v, 2", picker, admin, f.igdb.searches, wantAdmin)
+	wantPicker := []games.IGDBResult{{IGDBID: fakeRocketLeagueID, Name: "Rocket League", GameID: hidden.ID, Slug: "rocket-league", HasCover: true, CoverImageID: "co1"}}
+	if !reflect.DeepEqual(picker, wantPicker) {
+		t.Fatalf("picker after showing = %+v, want %+v", picker, wantPicker)
+	}
+}
+
+func TestSearchResultCoversAreServedOnlyForRecentVisibleResults(t *testing.T) {
+	f := newCatalogFixture(t)
+	ctx := t.Context()
+	service := games.NewIGDBService(f.game, f.igdb.client)
+
+	// Nothing is served before a search returns the image.
+	if _, err := service.SearchResultCover(ctx, "co1", ""); !errors.Is(err, games.ErrCoverNotFound) {
+		t.Fatalf("cover before any search: error = %v, want %v", err, games.ErrCoverNotFound)
+	}
+	if _, err := service.SearchForPicker(ctx, "rocket"); err != nil {
+		t.Fatal(err)
+	}
+	cover, err := service.SearchResultCover(ctx, "co1", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := (games.Cover{ContentType: "image/jpeg", ETag: "co1", Bytes: fakeJPEG}); !reflect.DeepEqual(cover, want) {
+		t.Fatalf("cover = %+v, want %+v", cover, want)
+	}
+	// A caller holding the image revalidates without a trip to IGDB.
+	revalidated, err := service.SearchResultCover(ctx, "co1", "co1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := (games.Cover{ETag: "co1"}); !reflect.DeepEqual(revalidated, want) || f.igdb.thumbnails["co1"] != 1 {
+		t.Fatalf("revalidated = %+v after %d downloads, want %+v after 1", revalidated, f.igdb.thumbnails["co1"], want)
 	}
 
-	// A thumbnail IGDB cannot serve is left out; the search still succeeds.
+	// An image no search returned, or one IGDB cannot serve, is not found.
+	if _, err := service.SearchResultCover(ctx, "co2", ""); !errors.Is(err, games.ErrCoverNotFound) {
+		t.Fatalf("cover no search returned: error = %v, want %v", err, games.ErrCoverNotFound)
+	}
 	f.igdb.imageStatus = map[string]int{"co1": http.StatusNotFound}
-	admin, err = service.SearchIGDB(ctx, "rocket")
-	if err != nil {
+	if _, err := service.SearchResultCover(ctx, "co1", ""); !errors.Is(err, games.ErrCoverNotFound) {
+		t.Fatalf("cover IGDB lost: error = %v, want %v", err, games.ErrCoverNotFound)
+	}
+	f.igdb.imageStatus = map[string]int{"co1": http.StatusBadGateway}
+	if _, err := service.SearchResultCover(ctx, "co1", ""); !errors.Is(err, igdb.ErrUnavailable) {
+		t.Fatalf("cover while IGDB fails: error = %v, want %v", err, igdb.ErrUnavailable)
+	}
+	f.igdb.imageStatus = nil
+
+	// A game an admin hid loses its cover, and so does a day-old search.
+	hidden := f.hideGame(t, f.pickGame(t, fakeRocketLeagueID))
+	if _, err := service.SearchResultCover(ctx, "co1", ""); !errors.Is(err, games.ErrCoverNotFound) {
+		t.Fatalf("cover of a hidden game: error = %v, want %v", err, games.ErrCoverNotFound)
+	}
+	f.request(t, "PATCH", "/admin/v1/games/"+hidden.ID, games.AdminEdit{Command: f.versioned(hidden.UpdatedAt), Name: hidden.Name, Slug: hidden.Slug, IsActive: true}, 200)
+	if _, err := service.SearchResultCover(ctx, "co1", ""); err != nil {
+		t.Fatalf("cover once shown again: %v", err)
+	}
+	if _, err := f.pool.Exec(ctx, `UPDATE igdb_search_cache SET fetched_at = NOW() - INTERVAL '25 hours'`); err != nil {
 		t.Fatal(err)
 	}
-	wantAdmin[0].Thumbnail = nil
-	if !reflect.DeepEqual(admin, wantAdmin) {
-		t.Fatalf("admin search without a thumbnail = %+v, want %+v", admin, wantAdmin)
+	if _, err := service.SearchResultCover(ctx, "co1", ""); !errors.Is(err, games.ErrCoverNotFound) {
+		t.Fatalf("cover from an expired search: error = %v, want %v", err, games.ErrCoverNotFound)
 	}
 }
 
@@ -467,8 +547,8 @@ func TestHiddenAndDeletedGamesCannotBeAddedByUsers(t *testing.T) {
 	ctx := t.Context()
 	service := games.NewIGDBService(f.game, f.igdb.client)
 
-	// An admin import stays hidden until an admin shows it.
-	f.importGame(t, fakeRocketLeagueID)
+	// A game an admin hid cannot be added again, picked or typed.
+	f.hideGame(t, f.pickGame(t, fakeRocketLeagueID))
 	if _, err := service.EnsureFromIGDB(ctx, fakeRocketLeagueID); !errors.Is(err, games.ErrGameUnavailable) {
 		t.Fatalf("pick of a hidden game: error = %v, want %v", err, games.ErrGameUnavailable)
 	}
@@ -517,6 +597,9 @@ func TestStarterGamesAreImportedOnce(t *testing.T) {
 	f := newCatalogFixture(t)
 	ctx := t.Context()
 	service := games.NewIGDBService(f.game, f.igdb.client)
+	// The demo seed may have added the game first, without IGDB. The starter
+	// import links that game rather than adding a second Rocket League.
+	seeded := f.insertGame(t, "Rocket League", "rocket-league")
 
 	// The fake IGDB knows one of the starter slugs.
 	for _, want := range []int{1, 0} {
@@ -532,7 +615,7 @@ func TestStarterGamesAreImportedOnce(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if want := []games.Game{{ID: listed[0].ID, Name: "Rocket League", Slug: "rocket-league", HasCover: true}}; !reflect.DeepEqual(listed, want) {
+	if want := []games.Game{{ID: seeded.ID, Name: "Rocket League", Slug: "rocket-league", HasCover: true}}; !reflect.DeepEqual(listed, want) {
 		t.Fatalf("public picker = %+v, want %+v", listed, want)
 	}
 }

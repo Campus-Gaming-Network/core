@@ -32,12 +32,13 @@ function SupportPage() {
   return (
     <main className="prose">
       <section className="page-heading">
-        <p className="eyebrow">Support</p>
-        <h1>Need help?</h1>
-        <p className="lede">
-          Send a support ticket and include enough detail for the team to
-          investigate. Never send passwords or payment information.
-        </p>
+        <div>
+          <h1>Get support</h1>
+          <p className="lede">
+            Send a support ticket and include enough detail for the team to
+            investigate. Never send passwords or payment information.
+          </p>
+        </div>
       </section>
       <SupportTicketForm
         idempotencyKey={idempotencyKey}

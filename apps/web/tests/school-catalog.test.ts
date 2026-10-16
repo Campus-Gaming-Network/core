@@ -8,6 +8,7 @@ import {
   schoolsCatalogOperation,
   schoolViewerStateOperation,
 } from "../src/features/school-slice/catalog-operations.server.js";
+import { loadSchoolFilterChoices } from "../src/features/school-slice/school-filter.server.js";
 import {
   catalogClientStaleTime,
   schoolsBrowseInput,
@@ -79,7 +80,7 @@ test("school search normalization is tolerant and keeps notices out of catalog k
   assert.equal(catalogClientStaleTime, 300_000);
 });
 
-test("home catalog loads public schools and games independently with safe fallbacks", async () => {
+test("home catalog loads the popular schools without the game catalog", async () => {
   const requests: Array<{ path: string; cache?: RequestCache }> = [];
   const api = client(async (input, init) => {
     const path =
@@ -93,7 +94,7 @@ test("home catalog loads public schools and games independently with safe fallba
         has_more: false,
       });
     }
-    throw new Error("games unavailable with private connection details");
+    throw new Error(`unexpected request ${path}`);
   });
 
   const result = await homeCatalogOperation({
@@ -101,15 +102,13 @@ test("home catalog loads public schools and games independently with safe fallba
     reportError: () => undefined,
   });
 
-  assert.deepEqual(result.schools, [school]);
-  assert.deepEqual(result.games, []);
-  assert.equal(result.schoolsPopular, true);
-  assert.equal(result.schoolsUnavailable, false);
-  assert.equal(result.gamesUnavailable, true);
-  assert.equal(JSON.stringify(result).includes("internal_note"), false);
+  assert.deepEqual(result, {
+    schools: [school],
+    schoolsPopular: true,
+    schoolsUnavailable: false,
+  });
   assert.deepEqual(requests, [
     { path: "/schools?sort=popular&limit=6", cache: "no-store" },
-    { path: "/games", cache: "no-store" },
   ]);
 });
 
@@ -557,4 +556,59 @@ test("school summaries get a bundled logo by seed slug, except a wordmark", () =
       summary("not-a-seeded-school"),
     ],
   );
+});
+
+test("school filter choices name the chosen school and search by query", async () => {
+  const requested: string[] = [];
+  const api = client(async (input) => {
+    const url = String(input);
+    requested.push(url);
+    return url.includes("?q=")
+      ? Response.json({ schools: [school] })
+      : Response.json(school);
+  });
+
+  const choices = await loadSchoolFilterChoices(
+    api,
+    { school: school.slug, schoolQuery: "Exam" },
+    () => assert.fail("no report expected"),
+  );
+
+  assert.deepEqual(requested.sort(), [
+    "http://api:8080/schools/example-university",
+    "http://api:8080/schools?q=Exam&limit=50",
+  ]);
+  const option = {
+    id: school.id,
+    name: school.name,
+    slug: school.slug,
+    city: school.city,
+    state: school.state,
+  };
+  assert.deepEqual(choices, {
+    selectedSchool: withBundledSchoolLogo(option),
+    schools: [withBundledSchoolLogo(option)],
+    schoolSearchFailed: false,
+  });
+});
+
+test("school filter choices skip short queries, ignore a missing school, and report a failed search", async () => {
+  const reported: unknown[] = [];
+  const missing = await loadSchoolFilterChoices(
+    client(async () =>
+      Response.json({ error: "school_not_found" }, { status: 404 }),
+    ),
+    { school: "gone", schoolQuery: "a" },
+    (error) => reported.push(error),
+  );
+  assert.deepEqual(missing, { schools: [], schoolSearchFailed: false });
+  assert.equal(reported.length, 0);
+
+  const failed = await loadSchoolFilterChoices(
+    client(async () => Response.json({ error: "boom" }, { status: 500 })),
+    { schoolQuery: "state" },
+    (error) => reported.push(error),
+  );
+  assert.deepEqual(failed, { schools: [], schoolSearchFailed: true });
+  assert.equal(reported.length, 1);
 });

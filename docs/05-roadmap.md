@@ -6,7 +6,7 @@ Phased delivery for a single developer. Each phase should be shippable. Do not p
 
 **Infra:** Railway (TanStack Start web, Go API, PostgreSQL) · Cloudflare DNS/protection · Resend email (`events@` / `account@`) · game catalog imported from IGDB. `notifications@` and `support@` workflows, plus Cloudflare R2 for Admin Console logo uploads, are later.
 
-**Not yet scheduled:** clubs, tournaments, on-site payments, usernames, waitlists, team invite links, feature flags, near-you, custom event banner uploads. Admin Console v1 is in progress but remains release-gated and undeployed.
+**Not yet scheduled:** clubs, tournaments, on-site payments, usernames, waitlists, team invite links, feature flags, near-you, custom event banner uploads. Admin Console v1 is in progress and release-gated: it runs on staging and is not deployed to production.
 
 **School seed:** import all 6,243 operating schools (4,943 main · 1,300 branch) as `is_active=true`; branch campuses use the same UI/UX; review later in the Admin Console.
 
@@ -45,7 +45,7 @@ service, and PostgreSQL database, with Cloudflare for DNS/protection.
 - One-time import of **all** `data/schools_seed.csv` rows as `is_active=true` (`unitid` optional on Admin Console creates)
 - Public search/browse schools (Postgres `pg_trgm`); school detail by slug (no clubs list until later)
 - Rate limit signups + resend verification (Resend)
-- Game catalog: imported from IGDB by site admins (the six seeded launch games were removed)
+- Game catalog: games users pick from IGDB search (the six seeded launch games were removed)
 - Support email + FAQ + About + Terms + Privacy stubs
 - Simple homepage
 
@@ -117,7 +117,7 @@ feeling unfinished.
 
 - **TanStack Start** Admin Console in `apps/admin` (not shipped in the first release)
 - Schools: create/edit/soft-delete, logos (**Admin Console-only** R2 PNG/JPG ≤5 MB), activation, school admins
-- Games: import from IGDB and refresh; Admin Console-only edits
+- Games: edit, hide, delete, and refresh from IGDB; users add games, admins do not
 - Users / ACL grants (school admin, staff/faculty)
 - **Reports** queue
 - **Support tickets** queue
@@ -129,7 +129,7 @@ feeling unfinished.
 
 **Goal:** Grow the game catalog without one-at-a-time imports.
 
-- Bulk or scheduled IGDB sync (single-game import via the Admin Console is implemented)
+- Bulk or scheduled IGDB sync (single-game refresh via the Admin Console is implemented)
 - Popular games by school
 - Events/teams keep game associations
 

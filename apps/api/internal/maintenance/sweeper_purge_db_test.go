@@ -3,27 +3,18 @@ package maintenance
 import (
 	"bytes"
 	"context"
-	"os"
 	"reflect"
 	"testing"
 	"time"
 
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/dbtest"
 )
 
 // Fixed-clock coverage for the admin session and email outbox purges, checked
 // at the exact cutoffs and including the rows that must survive.
 func TestSweeperPurgesAdminSessionsAndEmailOutbox(t *testing.T) {
-	url := os.Getenv("API_DATABASE_URL")
-	if url == "" {
-		t.Skip("API_DATABASE_URL not set")
-	}
+	pool := dbtest.NewMigratedSchemaPool(t, "purge")
 	ctx := context.Background()
-	pool, err := pgxpool.New(ctx, url)
-	if err != nil {
-		t.Fatalf("connect: %v", err)
-	}
-	t.Cleanup(pool.Close)
 
 	now := time.Date(2030, 1, 15, 12, 0, 0, 0, time.UTC)
 	var schoolID, userID, grantID string
@@ -44,15 +35,6 @@ func TestSweeperPurgesAdminSessionsAndEmailOutbox(t *testing.T) {
 		RETURNING id::text`, userID).Scan(&grantID); err != nil {
 		t.Fatalf("insert grant: %v", err)
 	}
-	t.Cleanup(func() {
-		c := context.Background()
-		_, _ = pool.Exec(c, `DELETE FROM admin_security_events WHERE actor_user_id = $1::uuid`, userID)
-		_, _ = pool.Exec(c, `DELETE FROM admin_sessions WHERE user_id = $1::uuid`, userID)
-		_, _ = pool.Exec(c, `DELETE FROM email_outbox WHERE idempotency_key LIKE 'purge-test-%'`)
-		_, _ = pool.Exec(c, `DELETE FROM site_role_grants WHERE id = $1::uuid`, grantID)
-		_, _ = pool.Exec(c, `DELETE FROM users WHERE id = $1::uuid`, userID)
-		_, _ = pool.Exec(c, `DELETE FROM schools WHERE id = $1::uuid`, schoolID)
-	})
 
 	hour := time.Hour
 	sessions := []struct {

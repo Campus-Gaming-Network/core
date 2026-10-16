@@ -15,12 +15,13 @@ function AboutPage() {
   return (
     <main className="prose">
       <section className="page-heading">
-        <p className="eyebrow">About</p>
-        <h1>Campus Gaming Network connects collegiate gaming communities.</h1>
-        <p className="lede">
-          One place for college gamers in the United States to find events,
-          teams, and other players at their own school and at other campuses.
-        </p>
+        <div>
+          <h1>About Campus Gaming Network</h1>
+          <p className="lede">
+            One place for college gamers in the United States to find events,
+            teams, and other players at their own school and at other campuses.
+          </p>
+        </div>
       </section>
       <section aria-labelledby="about-why" className="about-section">
         <h2 id="about-why">Why it exists</h2>

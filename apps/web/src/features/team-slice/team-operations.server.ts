@@ -5,11 +5,12 @@ import {
 } from "../../server/api.server.js";
 import { optionalViewerProfile } from "../../server/viewer.server.js";
 import { gamePickerErrorMessages } from "../game-picker/contracts.js";
+import { loadGameFilterChoices } from "../game-picker/game-filter.server.js";
+import { loadSchoolFilterChoices } from "../school-slice/school-filter.server.js";
 import { withBundledSchoolLogo } from "../school-slice/school-logos.server.js";
 import {
-  gamesResponseDtoSchema,
+  catalogGamesResponseDtoSchema,
   schoolsResponseDtoSchema,
-  schoolSummaryDtoSchema,
   teamMutationResponseDtoSchema,
   teamDetailResponseDtoSchema,
   teamDtoSchema,
@@ -51,71 +52,30 @@ export async function teamsBrowseOperation(
   input: TeamsBrowseInput,
   { api, reportError = defaultErrorReporter }: Dependencies,
 ): Promise<TeamsBrowseResult> {
-  const [teamsResult, gamesResult] = await Promise.all([
-    readTeams(api, input)
-      .then((data) => ({ data, unavailable: false }))
-      .catch((error: unknown) => {
-        reportError(error);
-        return { data: emptyTeams, unavailable: true };
-      }),
-    api({
-      path: "/games",
-      cache: "no-store",
-      responseSchema: gamesResponseDtoSchema,
-    })
-      .then(({ data }) => ({ data: data.games, unavailable: false }))
-      .catch((error: unknown) => {
-        reportError(error);
-        return { data: [], unavailable: true };
-      }),
-  ]);
-
-  return {
-    ...teamsResult.data,
-    games: gamesResult.data,
-    gamesUnavailable: gamesResult.unavailable,
-    teamsUnavailable: teamsResult.unavailable,
-  };
+  try {
+    return { ...(await readTeams(api, input)), teamsUnavailable: false };
+  } catch (error) {
+    reportError(error);
+    return { ...emptyTeams, teamsUnavailable: true };
+  }
 }
 
 export async function teamsBrowsePageOperation(
-  { schoolQuery, ...input }: TeamsBrowsePageInput,
+  { schoolQuery, gameQuery, ...input }: TeamsBrowsePageInput,
   dependencies: Dependencies,
 ): Promise<TeamsBrowsePageResult> {
   const { api, reportError = defaultErrorReporter } = dependencies;
-  const [browse, selectedSchool, schoolSearch] = await Promise.all([
+  const [browse, schoolFilter, gameFilter] = await Promise.all([
     teamsBrowseOperation(input, dependencies),
-    // The filter holds a slug; the page shows the school's name instead.
-    input.school
-      ? api({
-          path: `/schools/${encodeURIComponent(input.school)}`,
-          cache: "no-store",
-          responseSchema: schoolSummaryDtoSchema,
-        })
-          .then(({ data }) => data)
-          .catch((error: unknown) => {
-            if (!(error instanceof ApiError && error.status === 404)) {
-              reportError(error);
-            }
-            return undefined;
-          })
-      : Promise.resolve(undefined),
-    schoolQuery.length >= 2
-      ? readSchools(api, schoolQuery)
-          .then((schools) => ({ schools, failed: false }))
-          .catch((error: unknown) => {
-            reportError(error);
-            return { schools: [], failed: true };
-          })
-      : Promise.resolve({ schools: [], failed: false }),
+    loadSchoolFilterChoices(
+      api,
+      { school: input.school, schoolQuery },
+      reportError,
+    ),
+    loadGameFilterChoices(api, { game: input.game, gameQuery }, reportError),
   ]);
 
-  return {
-    ...browse,
-    ...(selectedSchool ? { selectedSchool } : {}),
-    schools: schoolSearch.schools,
-    schoolSearchFailed: schoolSearch.failed,
-  };
+  return { ...browse, ...schoolFilter, ...gameFilter };
 }
 
 export async function teamDetailOperation(
@@ -179,7 +139,7 @@ export async function newTeamPageOperation(
       api({
         path: "/games",
         cache: "no-store",
-        responseSchema: gamesResponseDtoSchema,
+        responseSchema: catalogGamesResponseDtoSchema,
       }),
       schoolsPromise,
     ]);
@@ -302,7 +262,7 @@ async function authorizedTeamMutation(
   }
 }
 
-export async function readTeams(api: ApiClient, input: TeamsBrowseInput) {
+async function readTeams(api: ApiClient, input: TeamsBrowseInput) {
   const search = new URLSearchParams();
   if (input.game) search.set("game", input.game);
   if (input.school) search.set("school", input.school);
@@ -343,7 +303,7 @@ export function safeTeamMutationMessage(error: unknown): string {
     invalid_team_password: "That team password did not match.",
     invalid_team_role: "Choose a valid team member and role.",
     not_team_owner: "Only the team owner can manage members.",
-    rate_limited: "Too many attempts. Give it a minute, then try again.",
+    rate_limited: "Too many attempts. Please try again later.",
     team_captain_failed:
       "We could not update that captain role. Please try again.",
     team_create_failed: "We could not create that team. Please try again.",

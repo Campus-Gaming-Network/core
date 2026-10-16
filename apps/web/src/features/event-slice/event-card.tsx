@@ -8,14 +8,25 @@ import {
 import { EventCounts } from "../../components/event-counts";
 import type { EventBrowseItemDTO } from "./contracts.js";
 import { EventFacts } from "./event-facts";
+import { EventGameThumb } from "./event-game-thumb";
+import { EventRelativeDay } from "./event-relative-day";
 import {
   eventLifecycleLabel,
-  eventLocation,
+  eventPlace,
   eventTimeRange,
 } from "./presentation";
 
-/** One public event in a list, linking to its page. */
-export function EventCard({ event }: { event: EventBrowseItemDTO }) {
+/**
+ * One public event in a list, linking to its page. `showHost` is off on the
+ * host school's own page, where every event's host is that school.
+ */
+export function EventCard({
+  event,
+  showHost = true,
+}: {
+  event: EventBrowseItemDTO;
+  showHost?: boolean;
+}) {
   return (
     <Link
       className={directoryRowClassName}
@@ -38,14 +49,21 @@ export function EventCard({ event }: { event: EventBrowseItemDTO }) {
             timezone={event.timezone}
           />
         }
-        meta={[event.host_school.name, eventLocation(event)]}
+        media={<EventGameThumb games={event.games} />}
+        meta={[
+          showHost ? event.host_school.name : undefined,
+          eventPlace(event),
+        ]}
         name={event.title}
         status={
-          event.lifecycle !== "upcoming" ? (
-            <StatusLabel status={event.lifecycle}>
-              {eventLifecycleLabel(event.lifecycle)}
-            </StatusLabel>
-          ) : undefined
+          <>
+            {event.lifecycle !== "upcoming" ? (
+              <StatusLabel status={event.lifecycle}>
+                {eventLifecycleLabel(event.lifecycle)}
+              </StatusLabel>
+            ) : null}
+            <EventRelativeDay event={event} />
+          </>
         }
         facts={<EventFacts event={event} />}
         tags={event.games.map((game) => game.name)}

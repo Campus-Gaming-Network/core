@@ -5,7 +5,8 @@ import {
   redirect,
   type ErrorComponentProps,
 } from "@tanstack/react-router";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ArrowRight } from "lucide-react";
+import { BreadcrumbLink, Breadcrumbs } from "../components/breadcrumbs";
 import { RouteErrorView, RoutePending } from "../components/route-boundaries";
 import {
   validatePeopleSearch,
@@ -22,6 +23,7 @@ import {
   unavailablePeopleHead,
 } from "../features/people-slice/presentation";
 import { SchoolLogo } from "../components/school-logo";
+import peopleCSS from "../features/people-slice/people.css?url";
 import { getSchoolCatalog } from "../features/school-slice/catalog.functions";
 
 type SchoolPeopleRouteData = {
@@ -74,15 +76,19 @@ export const Route = createFileRoute("/schools/$slug_/people")({
   },
   staleTime: 0,
   headers: () => ({ "cache-control": "private, no-store", vary: "Cookie" }),
-  head: ({ loaderData }) =>
-    loaderData
-      ? peopleHead({
-          title: `People at ${loaderData.school.name}`,
-          description: `The people at ${loaderData.school.name} on Campus Gaming Network.`,
-          path: `/schools/${encodeURIComponent(loaderData.school.slug)}/people`,
-          publicOrigin: loaderData.publicOrigin,
-        })
-      : unavailablePeopleHead(),
+  head: ({ loaderData }) => {
+    if (!loaderData) return unavailablePeopleHead();
+    const head = peopleHead({
+      title: `People at ${loaderData.school.name}`,
+      description: `The people at ${loaderData.school.name} on Campus Gaming Network.`,
+      path: `/schools/${encodeURIComponent(loaderData.school.slug)}/people`,
+      publicOrigin: loaderData.publicOrigin,
+    });
+    return {
+      ...head,
+      links: [...head.links, { rel: "stylesheet", href: peopleCSS }],
+    };
+  },
   pendingComponent: SchoolPeoplePending,
   errorComponent: SchoolPeopleError,
   component: SchoolPeoplePage,
@@ -101,30 +107,34 @@ function SchoolPeoplePage() {
       : undefined;
 
   return (
-    <main className="browse-page">
-      <Link
-        className="back-link with-arrow"
-        to="/schools/$slug"
-        params={{ slug: school.slug }}
-      >
-        <ArrowLeft aria-hidden="true" size={14} strokeWidth={2.25} />
-        Back to school
-      </Link>
-      <header className="people-heading">
-        <h1>
-          <SchoolLogo inline logoURL={school.logoURL} size={32} />
-          {`People at ${school.name}`}
-        </h1>
-        <p className="lede">
-          Members who chose this school as their home school. People who chose
-          to hide themselves are not shown.
-        </p>
+    <main className="people-page">
+      <Breadcrumbs current="People">
+        <BreadcrumbLink to="/schools">Schools</BreadcrumbLink>
+        <BreadcrumbLink to="/schools/$slug" params={{ slug: school.slug }}>
+          {school.name}
+        </BreadcrumbLink>
+      </Breadcrumbs>
+      <header className="people-heading people-page__heading">
+        <span className="school-directory-mark">
+          <span aria-hidden="true">
+            {school.name.slice(0, 1).toUpperCase()}
+          </span>
+          <SchoolLogo logoURL={school.logoURL} size={44} />
+        </span>
+        <div>
+          <h1>{`People at ${school.name}`}</h1>
+          <p className="lede">
+            Members who chose this school as their home school. People who chose
+            to hide themselves are not shown.
+          </p>
+        </div>
       </header>
 
       <PeopleResults
         emptyHeading="No members yet"
         emptyMessage="People who pick this school as their home school will show up here."
         result={people}
+        rows
         unavailableHeading="Members are unavailable right now"
       />
 
@@ -138,6 +148,7 @@ function SchoolPeoplePage() {
               search={nextSearch}
             >
               Next
+              <ArrowRight aria-hidden="true" size={16} strokeWidth={2} />
             </Link>
           ) : undefined
         }
@@ -148,6 +159,7 @@ function SchoolPeoplePage() {
               params={{ slug: school.slug }}
               search={previousSearch}
             >
+              <ArrowLeft aria-hidden="true" size={16} strokeWidth={2} />
               Previous
             </Link>
           ) : undefined

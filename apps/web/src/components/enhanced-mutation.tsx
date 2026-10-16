@@ -1,5 +1,5 @@
 import { useRouter } from "@tanstack/react-router";
-import { useEffect, useRef, useState, type RefObject } from "react";
+import { useEffect, useId, useRef, useState, type RefObject } from "react";
 import type { FormFieldErrors } from "../features/event-slice/contracts";
 
 type EnhancedMutationResult =
@@ -25,6 +25,19 @@ export function useEnhancedMutation(fallbackMessage: string) {
   const errorSummaryRef = useRef<HTMLDivElement>(null);
   const [pending, setPending] = useState(false);
   const [feedback, setFeedback] = useState<MutationFeedback>(emptyFeedback);
+  const submittedForm = useRef<HTMLFormElement | null>(null);
+
+  // Safari does not focus a button when it is clicked, so the focused element
+  // cannot be relied on to find the form. The capturing listener runs before
+  // React's submit handler, which is what calls `execute`.
+  useEffect(() => {
+    const remember = (event: Event) => {
+      if (event.target instanceof HTMLFormElement)
+        submittedForm.current = event.target;
+    };
+    document.addEventListener("submit", remember, true);
+    return () => document.removeEventListener("submit", remember, true);
+  }, []);
 
   useEffect(() => {
     if (feedback.message) {
@@ -33,6 +46,11 @@ export function useEnhancedMutation(fallbackMessage: string) {
   }, [feedback]);
 
   async function execute(request: () => Promise<EnhancedMutationResult>) {
+    // The submitted form is the one to mark busy; CSS draws the spinner in
+    // its submit button and the unsaved-changes guard waits for it.
+    const form =
+      submittedForm.current ?? document.activeElement?.closest("form") ?? null;
+    form?.setAttribute("aria-busy", "true");
     setPending(true);
     setFeedback(emptyFeedback);
 
@@ -51,6 +69,7 @@ export function useEnhancedMutation(fallbackMessage: string) {
     } catch {
       setFeedback({ message: fallbackMessage, fieldErrors: {} });
     } finally {
+      form?.removeAttribute("aria-busy");
       setPending(false);
     }
   }
@@ -75,6 +94,7 @@ export function FormErrorSummary({
   message: string;
   summaryRef: RefObject<HTMLDivElement | null>;
 }) {
+  const titleId = useId();
   if (!message) return null;
 
   const errors = Object.entries(fieldErrors).flatMap(([field, messages]) =>
@@ -87,12 +107,14 @@ export function FormErrorSummary({
 
   return (
     <div
+      aria-labelledby={titleId}
       className="form-error-summary"
       ref={summaryRef}
       role="alert"
       tabIndex={-1}
     >
-      <strong>{message}</strong>
+      <h2 id={titleId}>There is a problem</h2>
+      {errors.length === 0 ? <p>{message}</p> : null}
       {errors.length > 0 ? (
         <ul>
           {errors.map(({ field, fieldMessage, target }, index) => (

@@ -1,5 +1,6 @@
-import { Link, Outlet, createFileRoute } from "@tanstack/react-router";
+import { Outlet, createFileRoute } from "@tanstack/react-router";
 import accountCSS from "../features/account-slice/account.css?url";
+import { SettingsNav } from "../features/account-slice/settings-nav";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({ links: [{ rel: "stylesheet", href: accountCSS }] }),
@@ -8,12 +9,13 @@ export const Route = createFileRoute("/settings")({
 
 function SettingsLayout() {
   return (
-    <main className="account-page">
-      <p className="eyebrow">Settings</p>
-      <nav className="account-nav" aria-label="Settings sections">
-        <Link to="/settings/profile">Profile</Link>
-      </nav>
-      <Outlet />
+    <main className="settings-page">
+      <div className="settings-layout">
+        <SettingsNav />
+        <div className="settings-body">
+          <Outlet />
+        </div>
+      </div>
     </main>
   );
 }

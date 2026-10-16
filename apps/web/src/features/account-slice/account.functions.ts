@@ -36,7 +36,7 @@ export const getAccountDashboard = createServerFn({ method: "GET" }).handler(
 
 // A visitor's request makes no upstream call and leaves the page's caching
 // alone; a viewer's makes the page private.
-export const getDirectorySidebar = createServerFn({ method: "GET" }).handler(
+const getDirectorySidebar = createServerFn({ method: "GET" }).handler(
   async (): Promise<DirectorySidebarResult> => {
     const request = currentSessionRequest();
     if (!request.sessionCookieValue) return { status: "visitor" };
@@ -122,7 +122,7 @@ export const deleteAccount = createServerFn({
     if (!data.valid) {
       if (nativeForm) {
         throw redirect({
-          href: "/account?account=delete-failed",
+          href: "/settings/delete-account?account=delete-failed",
           statusCode: 303,
         });
       }
@@ -145,7 +145,7 @@ export const deleteAccount = createServerFn({
         href:
           result.status === "success"
             ? result.redirectTo
-            : "/account?account=delete-failed",
+            : "/settings/delete-account?account=delete-failed",
         statusCode: 303,
       });
     }

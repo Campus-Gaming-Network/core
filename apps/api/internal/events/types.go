@@ -67,6 +67,7 @@ const (
 	RecurrenceMonthly  = "monthly"
 )
 
+// Event is an event as the API returns it.
 type Event struct {
 	ID          string `json:"id"`
 	Title       string `json:"title"`
@@ -103,6 +104,7 @@ type Event struct {
 	ViewerCanEdit    bool          `json:"viewer_can_edit,omitempty"`
 }
 
+// Organizer is a user who manages an event.
 type Organizer struct {
 	ID                string   `json:"id"`
 	Name              string   `json:"name"`
@@ -111,12 +113,14 @@ type Organizer struct {
 	RoleIndicators    []string `json:"role_indicators,omitempty"`
 }
 
+// LockedEvent stands in for a private event the viewer has not unlocked.
 type LockedEvent struct {
 	Slug       string `json:"slug"`
 	Visibility string `json:"visibility"`
 	Locked     bool   `json:"locked"`
 }
 
+// SchoolSummary identifies a school in event responses.
 type SchoolSummary struct {
 	ID    string `json:"id"`
 	Name  string `json:"name"`
@@ -125,6 +129,7 @@ type SchoolSummary struct {
 	State string `json:"state,omitempty"`
 }
 
+// GameSummary identifies a game in event responses.
 type GameSummary struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
@@ -135,6 +140,7 @@ type GameSummary struct {
 	HasCover bool `json:"has_cover"`
 }
 
+// ListParams filters and pages the public event list.
 type ListParams struct {
 	GameSlug   string
 	SchoolSlug string
@@ -142,11 +148,16 @@ type ListParams struct {
 	Audience   string
 	EventType  string
 	Cost       string
-	Limit      int
-	After      *pagecursor.Cursor
-	Before     *pagecursor.Cursor
+	// StartsAfter keeps events starting at or after it; StartsBefore keeps
+	// events starting before it. Either may be nil.
+	StartsAfter  *time.Time
+	StartsBefore *time.Time
+	Limit        int
+	After        *pagecursor.Cursor
+	Before       *pagecursor.Cursor
 }
 
+// CreateInput is the validated request to create an event.
 type CreateInput struct {
 	Title           string
 	Description     string
@@ -176,11 +187,13 @@ type CreateInput struct {
 	IdempotencyKey string
 }
 
+// CreateParams is CreateInput plus the hash of its private password.
 type CreateParams struct {
 	CreateInput
 	PrivatePasswordHash string
 }
 
+// UpdateInput is the request to edit an event.
 type UpdateInput struct {
 	Slug            string
 	EditorUserID    string
@@ -206,17 +219,20 @@ type UpdateInput struct {
 	PaymentURL  string
 }
 
+// UpdateParams is UpdateInput plus the hash of its private password.
 type UpdateParams struct {
 	UpdateInput
 	PrivatePasswordHash string
 }
 
+// RSVPInput sets a user's RSVP response for an event.
 type RSVPInput struct {
 	Slug     string
 	UserID   string
 	Response string
 }
 
+// Repository is the event storage the HTTP layer depends on.
 type Repository interface {
 	Create(ctx context.Context, params CreateParams) (Event, error)
 	Update(ctx context.Context, params UpdateParams) (Event, error)
@@ -230,16 +246,19 @@ type Repository interface {
 	SetInterest(ctx context.Context, slug string, userID string, interested bool) (Event, error)
 	IsInterested(ctx context.Context, slug string, userID string) (bool, error)
 	ListUpcomingRSVPs(ctx context.Context, userID string, limit int) ([]Event, error)
+	ListInterestedEvents(ctx context.Context, userID string, limit int) ([]Event, error)
 	ListFollowedSchoolEvents(ctx context.Context, userID string, limit int) ([]Event, error)
 	ListPublic(ctx context.Context, params ListParams) ([]Event, error)
 	GetBySlug(ctx context.Context, slug string) (Event, error)
 }
 
+// PostgresRepository stores events in Postgres.
 type PostgresRepository struct {
 	pool *pgxpool.Pool
 	now  func() time.Time
 }
 
+// NewPostgresRepository returns a repository backed by pool.
 func NewPostgresRepository(pool *pgxpool.Pool) *PostgresRepository {
 	return &PostgresRepository{
 		pool: pool,

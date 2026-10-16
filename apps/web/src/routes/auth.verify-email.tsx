@@ -6,6 +6,7 @@ import {
 import { validateVerifyEmailSearch } from "../features/auth-flow-slice/contracts";
 import { establishPrivateAuthPage } from "../features/auth-flow-slice/auth-flow.functions";
 import { authPageHead } from "../features/auth-flow-slice/presentation";
+import "../features/auth-flow-slice/auth-flow.css";
 
 const description = "Confirm your email address for Campus Gaming Network.";
 
@@ -33,42 +34,52 @@ function VerifyEmailPage() {
   const search = Route.useSearch();
   const verified = search.verified === "complete";
   const hasUsableToken = Boolean(search.token) && !search.error;
+  const bareVisit = !search.token && !search.error;
 
   return (
     <main className="auth-page">
-      <section className="page-heading">
-        <p className="eyebrow">Email verification</p>
+      <header className="auth-heading">
         <h1>
           {verified
-            ? "Your email is verified."
+            ? "Your email is verified"
             : hasUsableToken
-              ? "Confirm your email."
-              : "We could not verify that link."}
+              ? "Confirm your email"
+              : bareVisit
+                ? "Send a new verification email"
+                : "We could not verify that link"}
         </h1>
-      </section>
-      <div className="form-stack">
-        {verified ? (
-          <p role="status">
-            Your email is verified. <Link to="/login">Log in</Link> to continue.
+      </header>
+      {verified ? (
+        <>
+          <p role="status">Your email is verified. You can log in now.</p>
+          <Link className="button button--primary" to="/login">
+            Log in
+          </Link>
+        </>
+      ) : hasUsableToken && search.token ? (
+        <>
+          <p className="lede">
+            Select Verify email to finish confirming your address.
           </p>
-        ) : hasUsableToken && search.token ? (
-          <>
+          <VerifyEmailForm token={search.token} />
+        </>
+      ) : (
+        <>
+          {bareVisit ? (
             <p className="lede">
-              Select Verify email to finish confirming your address.
+              Enter the email you signed up with and we will send another
+              verification link.
             </p>
-            <VerifyEmailForm token={search.token} />
-          </>
-        ) : (
-          <>
+          ) : (
             <p role="alert">
               {search.error
-                ? "That link is invalid or has expired."
-                : "This verification link is missing its token."}
+                ? "That link is invalid or has expired. Enter your email to get a new one."
+                : "This verification link is incomplete. Enter your email to get a new one."}
             </p>
-            <ResendVerificationForm initialStatus={search.resend} />
-          </>
-        )}
-      </div>
+          )}
+          <ResendVerificationForm initialStatus={search.resend} />
+        </>
+      )}
     </main>
   );
 }

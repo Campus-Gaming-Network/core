@@ -15,7 +15,7 @@ import {
 import {
   eventFormatLabel,
   eventLifecycleLabel,
-  eventLocation,
+  eventPlace,
   eventsHead,
   safeExternalEventUrl,
 } from "../src/features/event-slice/presentation.js";
@@ -58,10 +58,12 @@ const browseEvent = {
   unlock_token: "must-not-cross-the-browse-boundary",
 };
 
-test("event search accepts bounded filters and opaque cursors without loading notices", () => {
+test("event search accepts bounded filters, a school search, and opaque cursors without loading notices", () => {
   const search = validateEventsSearch({
     game: [" example-game ", "ignored"],
     school: " example-school ",
+    school_q: " ohio state ",
+    game_q: " rocket ",
     format: "hybrid",
     audience: "open",
     type: "lan",
@@ -74,6 +76,8 @@ test("event search accepts bounded filters and opaque cursors without loading no
   assert.deepEqual(search, {
     game: "example-game",
     school: "example-school",
+    school_q: "ohio state",
+    game_q: "rocket",
     format: "hybrid",
     audience: "open",
     type: "lan",
@@ -122,18 +126,6 @@ test("event browse reads public no-store DTOs and strips viewer/private fields",
       api: client(async (input, init) => {
         const url = String(input);
         requests.push({ url, init });
-        if (url.endsWith("/games")) {
-          return Response.json({
-            games: [
-              {
-                id: "game-1",
-                name: "Example Game",
-                slug: "example-game",
-                internal_rank: 1,
-              },
-            ],
-          });
-        }
         return Response.json({
           events: [browseEvent],
           limit: 25,
@@ -145,75 +137,49 @@ test("event browse reads public no-store DTOs and strips viewer/private fields",
     },
   );
 
-  assert.ok(
-    requests.some(
-      ({ url }) =>
-        url ===
-        "http://api:8080/events?game=example-game&school=example-school&format=hybrid&audience=open&type=lan&cost=free&limit=25&after=opaque%2Bcursor%3D%3D",
-    ),
+  // One request: the game catalog is never loaded whole for the directory.
+  assert.deepEqual(
+    requests.map(({ url }) => url),
+    [
+      "http://api:8080/events?game=example-game&school=example-school&format=hybrid&audience=open&type=lan&cost=free&limit=25&after=opaque%2Bcursor%3D%3D",
+    ],
   );
-  assert.ok(requests.some(({ url }) => url === "http://api:8080/games"));
   for (const request of requests) {
     assert.equal(request.init?.cache, "no-store");
     assert.equal(new Headers(request.init?.headers).has("cookie"), false);
   }
   assert.equal(result.eventsUnavailable, false);
-  assert.equal(result.gamesUnavailable, false);
   assert.equal(result.events[0]?.title, "Campus tournament");
-  assert.equal(result.games[0]?.name, "Example Game");
   assert.equal(JSON.stringify(result).includes("unlock_token"), false);
   assert.equal(JSON.stringify(result).includes("viewer_interested"), false);
-  assert.equal(JSON.stringify(result).includes("internal_rank"), false);
   assert.deepEqual(result.events[0]?.host_school, {
     name: "Example University",
     slug: "example",
   });
-  assert.deepEqual(result.events[0]?.games, [{ name: "Example Game" }]);
+  assert.deepEqual(result.events[0]?.games, [
+    { name: "Example Game", slug: "example-game", has_cover: true },
+  ]);
 });
 
-test("event and game browse failures independently degrade to empty data", async () => {
+test("event browse failure degrades to an unavailable empty list", async () => {
   const reported: unknown[] = [];
-  const eventFailure = await getEventsBrowseOperation(
+  const result = await getEventsBrowseOperation(
     {},
     {
-      api: client(async (input) =>
-        String(input).endsWith("/games")
-          ? Response.json({
-              games: [
-                { id: "game-1", name: "Example Game", slug: "example-game" },
-              ],
-            })
-          : Response.json({ error: "database_unavailable" }, { status: 503 }),
+      api: client(async () =>
+        Response.json({ error: "database_unavailable" }, { status: 503 }),
       ),
       reportError: (error) => reported.push(error),
     },
   );
-  assert.deepEqual(eventFailure.events, []);
-  assert.equal(eventFailure.eventsUnavailable, true);
-  assert.equal(eventFailure.games.length, 1);
-  assert.equal(eventFailure.gamesUnavailable, false);
-
-  const gameFailure = await getEventsBrowseOperation(
-    {},
-    {
-      api: client(async (input) =>
-        String(input).endsWith("/games")
-          ? Response.json({ error: "database_unavailable" }, { status: 503 })
-          : Response.json({
-              events: [browseEvent],
-              limit: 25,
-              has_more: false,
-              has_previous: false,
-            }),
-      ),
-      reportError: (error) => reported.push(error),
-    },
-  );
-  assert.equal(gameFailure.events.length, 1);
-  assert.equal(gameFailure.eventsUnavailable, false);
-  assert.deepEqual(gameFailure.games, []);
-  assert.equal(gameFailure.gamesUnavailable, true);
-  assert.equal(reported.length, 2);
+  assert.deepEqual(result, {
+    events: [],
+    limit: 25,
+    has_more: false,
+    has_previous: false,
+    eventsUnavailable: true,
+  });
+  assert.equal(reported.length, 1);
 });
 
 test("event read presentation matches labels, notices, indexable head, and safe URLs", () => {
@@ -235,19 +201,20 @@ test("event read presentation matches labels, notices, indexable head, and safe 
   );
   assert.equal(eventLifecycleLabel("happening_now"), "Happening now");
   assert.equal(eventFormatLabel("in_person"), "In person");
-  assert.equal(
-    eventLocation(browseEvent),
-    "Student Union · 100 Campus Drive + online",
-  );
   const unlocated = {
     ...browseEvent,
     format: "in_person" as const,
     location_name: undefined,
     address: undefined,
   };
+  // List rows name the place but leave the street address to the event page.
   assert.deepEqual(
-    [eventLocation(unlocated), eventLocation(unlocated, "N/A")],
-    ["Location pending", "N/A"],
+    [
+      eventPlace(browseEvent),
+      eventPlace({ ...browseEvent, format: "in_person" }),
+      eventPlace(unlocated),
+    ],
+    ["Student Union + online", "Student Union", "Location pending"],
   );
   assert.equal(safeExternalEventUrl("javascript:alert(1)"), undefined);
   assert.equal(
@@ -256,9 +223,10 @@ test("event read presentation matches labels, notices, indexable head, and safe 
   );
 });
 
-test("the home page previews the newest public events and strips private fields", async () => {
+test("the home page previews this week's events and the ones after it, split at the same minute", async () => {
   const requested: string[] = [];
   const result = await homeEventsOperation({
+    now: () => new Date("2031-01-10T12:34:56.789Z"),
     api: client(async (input) => {
       requested.push(String(input));
       return Response.json({
@@ -271,10 +239,17 @@ test("the home page previews the newest public events and strips private fields"
     }),
   });
 
-  assert.deepEqual(requested, ["http://api:8080/events?limit=6"]);
+  assert.deepEqual(requested, [
+    "http://api:8080/events?limit=6&starts_before=2031-01-17T12%3A34%3A00Z",
+    "http://api:8080/events?limit=6&starts_after=2031-01-17T12%3A34%3A00Z",
+  ]);
   assert.equal(result.unavailable, false);
-  assert.equal(result.events.length, 1);
-  assert.equal(result.events[0]?.slug, "campus-tournament");
+  assert.deepEqual(
+    [result.thisWeek, result.later].map((events) =>
+      events.map((event) => event.slug),
+    ),
+    [["campus-tournament"], ["campus-tournament"]],
+  );
   assert.equal(JSON.stringify(result).includes("unlock_token"), false);
 });
 
@@ -294,7 +269,7 @@ test("a failed or malformed events read leaves the home page up and says so", as
       reportError: (error) => reported.push(error),
     });
 
-    assert.deepEqual(result, { events: [], unavailable: true });
+    assert.deepEqual(result, { thisWeek: [], later: [], unavailable: true });
   }
   assert.equal(reported.length, 3);
 });

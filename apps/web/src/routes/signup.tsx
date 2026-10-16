@@ -55,9 +55,9 @@ function SignupPage() {
 
   if (data.created) {
     return (
-      <main>
+      <main className="auth-page">
         <SignupConfirmation email={data.email} />
-        <p className="form-footer">
+        <p className="auth-footer">
           Already verified? <Link to="/login">Log in</Link>
         </p>
       </main>
@@ -66,15 +66,14 @@ function SignupPage() {
   const { schoolSearch, policies } = data;
 
   return (
-    <main>
-      <section className="page-heading">
-        <p className="eyebrow">Create account</p>
-        <h1>Join with your home school.</h1>
+    <main className="auth-page auth-page--wide">
+      <header className="auth-heading">
+        <h1>Create an account</h1>
         <p className="lede">
           You need to be 18 or older, choose an active home school, and verify
           your email before logging in.
         </p>
-      </section>
+      </header>
 
       <noscript>
         <form action="/signup" className="search-bar compact" method="get">
@@ -100,8 +99,8 @@ function SignupPage() {
         initialStatus={search.auth === "failed" ? "failed" : undefined}
         policies={policies}
       />
-      <p className="form-footer">
-        Already verified? <Link to="/login">Log in</Link>
+      <p className="auth-footer">
+        Already have an account? <Link to="/login">Log in</Link>
       </p>
     </main>
   );

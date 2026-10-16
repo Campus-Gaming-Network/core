@@ -5,16 +5,25 @@ import {
   type ErrorComponentProps,
 } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { ArrowRight, ArrowUpRight, Check } from "lucide-react";
+import { ArrowRight, ArrowUpRight } from "lucide-react";
 import type { FormEvent } from "react";
 import { BreadcrumbLink, Breadcrumbs } from "../components/breadcrumbs";
 import { ButtonLink } from "../components/button-link";
+import {
+  DirectoryRow,
+  directoryRowClassName,
+} from "../components/directory-row";
 import { useEnhancedMutation } from "../components/enhanced-mutation";
+import { DetailHero } from "../components/detail-hero";
 import { KeyInformation } from "../components/key-information";
-import { PageHeading } from "../components/page-heading";
 import { PageNoticeView } from "../components/page-notice-view";
-import { RouteErrorView, RoutePending } from "../components/route-boundaries";
+import {
+  RecordNotFound,
+  RouteErrorView,
+  RoutePending,
+} from "../components/route-boundaries";
 import { SchoolLogo } from "../components/school-logo";
+import { StatusLabel } from "../components/status-label";
 import { TabLink, Tabs } from "../components/tabs";
 import { EventCard } from "../features/event-slice/event-card";
 import { getEventsBrowse } from "../features/event-slice/event.functions";
@@ -47,8 +56,9 @@ import {
   safeSchoolWebsite,
 } from "../features/school-slice/presentation";
 import { getTeamsBrowse } from "../features/team-slice/team.functions";
+import schoolPageCSS from "../features/school-slice/school-page.css?url";
 
-export type SchoolRouteData = {
+type SchoolRouteData = {
   school: SchoolDTO;
   viewer: Awaited<ReturnType<typeof getSchoolViewerState>>;
   events: Awaited<ReturnType<typeof getEventsBrowse>>;
@@ -94,10 +104,20 @@ export const Route = createFileRoute("/schools/$slug")({
     "cache-control": "private, no-store",
     vary: "Cookie",
   }),
-  head: ({ loaderData }) =>
-    schoolHead(loaderData?.school, loaderData?.publicOrigin),
+  head: ({ loaderData }) => {
+    // Without loader data the page is a not-found or error view, which sets
+    // its own title and robots.
+    if (!loaderData)
+      return { links: [{ rel: "stylesheet", href: schoolPageCSS }] };
+    const head = schoolHead(loaderData.school, loaderData.publicOrigin);
+    return {
+      ...head,
+      links: [...head.links, { rel: "stylesheet", href: schoolPageCSS }],
+    };
+  },
   pendingComponent: SchoolPending,
   errorComponent: SchoolError,
+  notFoundComponent: () => <RecordNotFound kind="school" />,
   component: SchoolPage,
 });
 
@@ -106,6 +126,7 @@ function SchoolPage() {
   const search = Route.useSearch();
   const website = safeSchoolWebsite(school.website_url);
   const tab = search.tab;
+  const location = schoolLocation(school);
   const activityUnavailable =
     events.eventsUnavailable && teams.teamsUnavailable;
   const hasActivity =
@@ -116,60 +137,48 @@ function SchoolPage() {
       teams.teams.length > 0);
 
   return (
-    <main className="detail-page school-community-page">
+    <main className="school-page">
       <Breadcrumbs current={school.name}>
         <BreadcrumbLink to="/schools">Schools</BreadcrumbLink>
       </Breadcrumbs>
-      <PageHeading
-        identity={
-          <span
-            className={`school-directory-mark school-directory-mark--large${school.logo_wide ? " school-directory-mark--wide" : ""}`}
-          >
-            <span aria-hidden="true">
-              {school.name.slice(0, 1).toUpperCase()}
-            </span>
-            <SchoolLogo
-              alt={`${school.name} logo`}
-              logoURL={school.logo_url}
-              size={64}
-            />
-          </span>
-        }
-        title={school.name}
-        supporting={[schoolShortName(school), schoolLocation(school)]
-          .filter(Boolean)
-          .join(" · ")}
+      <DetailHero
         actions={
-          <>
-            {viewer.authenticated ? (
-              viewer.isHomeSchool ? (
-                <span className="school-follow-status">
-                  <Check aria-hidden="true" size={14} strokeWidth={2.25} />
-                  Your home school
-                </span>
-              ) : viewer.isFollowing ? (
-                <SchoolFollowForm following school={school} />
-              ) : (
-                <SchoolFollowForm following={false} school={school} />
-              )
+          viewer.authenticated ? (
+            viewer.isHomeSchool ? (
+              <StatusLabel tone="success">Your home school</StatusLabel>
+            ) : viewer.isFollowing ? (
+              <SchoolFollowForm following school={school} />
             ) : (
-              <ButtonLink
-                variant="secondary"
-                to="/login"
-                search={{ next: `/schools/${school.slug}` }}
-              >
-                Follow school
-              </ButtonLink>
-            )}
-            {website ? (
-              <a className="link with-arrow" href={website}>
-                Visit school website
+              <SchoolFollowForm following={false} school={school} />
+            )
+          ) : (
+            <ButtonLink
+              variant="primary"
+              to="/login"
+              search={{ next: `/schools/${school.slug}` }}
+            >
+              Follow school
+            </ButtonLink>
+          )
+        }
+        initial={school.name}
+        // A wordmark is unreadable in the square tile.
+        logoURL={school.logo_wordmark ? undefined : school.logo_url}
+      >
+        <h1>{school.name}</h1>
+        <p className="detail-hero__meta">
+          {location}
+          {website ? (
+            <>
+              {location ? " · " : null}
+              <a className="with-arrow" href={website}>
+                {new URL(website).hostname}
                 <ArrowUpRight aria-hidden="true" size={14} strokeWidth={2.25} />
               </a>
-            ) : null}
-          </>
-        }
-      />
+            </>
+          ) : null}
+        </p>
+      </DetailHero>
 
       <PageNoticeView
         notice={search.follow ? schoolDetailNotices[search.follow] : undefined}
@@ -203,12 +212,12 @@ function SchoolPage() {
         </Tabs>
       ) : null}
 
-      <div className="school-detail-layout">
-        <div className="school-detail-main">
+      <div className="layout-detail">
+        <div className="layout-detail__main">
           {activityUnavailable ? (
             <section
               aria-labelledby="school-unavailable-heading"
-              className="action-panel school-community-empty"
+              className="action-panel"
             >
               <h2 id="school-unavailable-heading">
                 We could not load campus activity
@@ -218,7 +227,7 @@ function SchoolPage() {
           ) : !hasActivity ? (
             <section
               aria-labelledby="school-empty-heading"
-              className="action-panel school-community-empty"
+              className="action-panel"
             >
               <h2 id="school-empty-heading">No activity here yet</h2>
               <p>
@@ -241,35 +250,37 @@ function SchoolPage() {
               ) : null}
             </section>
           ) : (
-            <div className="school-community-content">
+            <>
               {tab !== "teams" ? (
                 <section
-                  id="school-events"
                   aria-labelledby="school-events-heading"
+                  className="panel panel--flush"
+                  id="school-events"
                 >
-                  <div className="section-heading">
-                    <h2 id="school-events-heading">Upcoming events</h2>
+                  <div className="panel__header">
+                    <h2 id="school-events-heading">Events</h2>
                     <Link to="/events" search={{ school: school.slug }}>
                       View all events
                     </Link>
                   </div>
                   {events.eventsUnavailable ? (
-                    <div className="school-inline-empty">
-                      <p>
-                        Events are unavailable right now. Please check back
-                        soon.
-                      </p>
-                    </div>
+                    <p className="panel__body muted">
+                      Events are unavailable right now. Please check back soon.
+                    </p>
                   ) : events.events.length > 0 ? (
-                    <div className="list">
+                    <div className="list directory-list school-page__rows">
                       {events.events.slice(0, 4).map((event) => (
-                        <EventCard event={event} key={event.id} />
+                        <EventCard
+                          event={event}
+                          key={event.id}
+                          showHost={false}
+                        />
                       ))}
                     </div>
                   ) : (
-                    <div className="school-inline-empty">
-                      <p>No upcoming events yet.</p>
-                      <Link className="link with-arrow" to="/events/new">
+                    <div className="panel__body school-page__empty">
+                      <p className="muted">No public events yet.</p>
+                      <Link className="with-arrow" to="/events/new">
                         Create the first event
                         <ArrowRight
                           aria-hidden="true"
@@ -284,46 +295,49 @@ function SchoolPage() {
 
               {tab !== "events" ? (
                 <section
-                  id="school-teams"
                   aria-labelledby="school-teams-heading"
+                  className="panel panel--flush"
+                  id="school-teams"
                 >
-                  <div className="section-heading">
-                    <h2 id="school-teams-heading">Teams</h2>
+                  <div className="panel__header">
+                    <h2 id="school-teams-heading">Teams at {school.name}</h2>
                     <Link to="/teams" search={{ school: school.slug }}>
                       View all teams
                     </Link>
                   </div>
                   {teams.teamsUnavailable ? (
-                    <div className="school-inline-empty">
-                      <p>
-                        Teams are unavailable right now. Please check back soon.
-                      </p>
-                    </div>
+                    <p className="panel__body muted">
+                      Teams are unavailable right now. Please check back soon.
+                    </p>
                   ) : teams.teams.length > 0 ? (
-                    <div className="school-team-list">
+                    <div className="list directory-list school-page__rows">
                       {teams.teams.slice(0, 4).map((team) => (
                         <Link
+                          className={directoryRowClassName}
                           key={team.id}
                           to="/teams/$slug"
                           params={{ slug: team.slug }}
                         >
-                          <span aria-hidden="true" className="team-mark">
-                            {team.name.slice(0, 1).toUpperCase()}
-                          </span>
-                          <span>
-                            <strong>{team.name}</strong>
-                            <small>
-                              {team.member_count} member
-                              {team.member_count === 1 ? "" : "s"}
-                            </small>
-                          </span>
+                          <DirectoryRow
+                            action="View team"
+                            identity={
+                              <span aria-hidden="true" className="team-mark">
+                                {team.name.slice(0, 1).toUpperCase()}
+                              </span>
+                            }
+                            meta={[
+                              `${team.member_count} member${team.member_count === 1 ? "" : "s"}`,
+                            ]}
+                            name={team.name}
+                            tags={team.games.map((game) => game.name)}
+                          />
                         </Link>
                       ))}
                     </div>
                   ) : (
-                    <div className="school-inline-empty">
-                      <p>No teams have formed yet.</p>
-                      <Link className="link with-arrow" to="/teams/new">
+                    <div className="panel__body school-page__empty">
+                      <p className="muted">No teams have formed yet.</p>
+                      <Link className="with-arrow" to="/teams/new">
                         Start a team
                         <ArrowRight
                           aria-hidden="true"
@@ -335,20 +349,24 @@ function SchoolPage() {
                   )}
                 </section>
               ) : null}
-            </div>
+            </>
           )}
 
           <section
             aria-labelledby="school-people-heading"
-            className="school-people"
+            className="panel panel--flush school-page__people"
             id="school-people"
           >
-            <div className="section-heading">
+            <div className="panel__header">
               <h2 id="school-people-heading">People</h2>
               {viewer.authenticated &&
               members.status === "found" &&
               members.list.people.length > 0 ? (
-                <Link to="/schools/$slug/people" params={{ slug: school.slug }}>
+                <Link
+                  aria-label={`See everyone at ${school.name}`}
+                  to="/schools/$slug/people"
+                  params={{ slug: school.slug }}
+                >
                   See everyone
                 </Link>
               ) : null}
@@ -356,18 +374,35 @@ function SchoolPage() {
             {viewer.authenticated ? (
               <PeoplePreview empty="No members yet." result={members} />
             ) : (
-              <PeopleSignedOut
-                message="Log in to see the people at this school."
-                next={`/schools/${school.slug}`}
-              />
+              <div className="panel__body">
+                <PeopleSignedOut
+                  message="Log in to see the people at this school."
+                  next={`/schools/${school.slug}`}
+                />
+              </div>
             )}
           </section>
         </div>
 
-        <aside className="school-detail-aside" aria-label="About this school">
+        <aside className="layout-detail__aside" aria-label="About this school">
+          {school.logo_wordmark && school.logo_url ? (
+            // The square banner tile cannot show a wordmark, so it gets its own
+            // wide frame here, where the logo credit below points to it.
+            <div className="school-wordmark">
+              <SchoolLogo
+                alt={`${school.name} logo`}
+                eager
+                logoURL={school.logo_url}
+                size={240}
+              />
+            </div>
+          ) : null}
           <KeyInformation
+            title="About"
             facts={[
-              { term: "Location", value: schoolLocation(school) },
+              ...(schoolShortName(school)
+                ? [{ term: "Short name", value: schoolShortName(school) }]
+                : []),
               {
                 term: "Campus type",
                 value: school.is_main_campus ? "Main campus" : "Branch campus",

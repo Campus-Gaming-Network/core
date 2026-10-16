@@ -2,7 +2,7 @@ import type { PageNotice } from "../../components/page-notice.js";
 import { pageHead } from "../../components/public-page-head.js";
 import type { EventBrowseItemDTO, EventDTO, EventRSVP } from "./contracts.js";
 
-export const eventsDescription =
+const eventsDescription =
   "Browse upcoming collegiate gaming events and filter them by game or school.";
 
 export function eventsHead(publicOrigin?: string) {
@@ -13,26 +13,111 @@ export function eventsHead(publicOrigin?: string) {
   });
 }
 
-// Renders in the event's own zone, never the server's or the browser's, so SSR
-// and hydration agree. Both ends carry the zone abbreviation (for example CDT)
-// so viewers in another zone can tell which clock the event uses, and so a
-// repeated fall-back hour stays unambiguous.
+/**
+ * When an event happens, in its own time zone (never the server's or the
+ * browser's, so SSR and hydration agree). The year shows only when the
+ * event starts or ends outside the current year, a one-day event names its
+ * date once, and the zone shows once unless it changes during the event (a
+ * daylight-saving switch), e.g. "Aug 12, 1:45 PM – 5:45 PM MST" or
+ * "Dec 31, 2027, 9:00 PM – Jan 1, 2028, 1:00 AM EST". `now` is the moment
+ * the current year is read from.
+ */
 export function eventTimeRange(
   event: Pick<EventDTO, "starts_at" | "ends_at" | "timezone">,
+  now: Date = new Date(),
 ): string {
-  const formatter = new Intl.DateTimeFormat("en-US", {
+  const timeZone = event.timezone;
+  const start = new Date(event.starts_at);
+  const end = new Date(event.ends_at);
+  const startDay = calendarDay(start, timeZone);
+  const endDay = calendarDay(end, timeZone);
+  const currentYear = calendarDay(now, timeZone).year;
+  const showYear = startDay.year !== currentYear || endDay.year !== currentYear;
+
+  const date = new Intl.DateTimeFormat("en-US", {
     month: "short",
     day: "numeric",
-    year: "numeric",
+    ...(showYear ? { year: "numeric" } : {}),
+    timeZone,
+  });
+  const time = new Intl.DateTimeFormat("en-US", {
     hour: "numeric",
     minute: "2-digit",
-    timeZoneName: "short",
-    timeZone: event.timezone,
+    timeZone,
   });
+  const startZone = zoneName(start, timeZone);
+  const endZone = zoneName(end, timeZone);
+  const startTime =
+    startZone === endZone
+      ? time.format(start)
+      : `${time.format(start)} ${startZone}`;
+  const endTime = `${time.format(end)} ${endZone}`;
 
-  return `${formatter.format(new Date(event.starts_at))} – ${formatter.format(
-    new Date(event.ends_at),
-  )}`;
+  if (
+    startDay.year === endDay.year &&
+    startDay.month === endDay.month &&
+    startDay.day === endDay.day
+  ) {
+    return `${date.format(start)}, ${startTime} – ${endTime}`;
+  }
+  return `${date.format(start)}, ${startTime} – ${date.format(end)}, ${endTime}`;
+}
+
+/**
+ * "Today" or "Tomorrow" for an event that has not started yet, judged by the
+ * calendar day in the event's own time zone (the zone its times are shown in),
+ * so "Today" always matches the date printed beside it. Days are compared as
+ * calendar dates, never as 24-hour spans, so a daylight-saving day of 23 or 25
+ * hours still counts as one day. A running or finished event gets no label
+ * (the lifecycle tag already says so), and neither does anything further out.
+ */
+export function eventRelativeDay(
+  event: Pick<EventDTO, "starts_at" | "timezone">,
+  now: Date,
+): "Today" | "Tomorrow" | undefined {
+  const start = new Date(event.starts_at);
+  if (now.getTime() >= start.getTime()) return undefined;
+  const dayNumber = (value: Date) => {
+    const { year, month, day } = calendarDay(value, event.timezone);
+    return Date.UTC(Number(year), Number(month) - 1, Number(day)) / 86_400_000;
+  };
+  const days = dayNumber(start) - dayNumber(now);
+  if (days === 0) return "Today";
+  if (days === 1) return "Tomorrow";
+  return undefined;
+}
+
+/** The short weekday of an event's start in its own time zone, e.g. "Fri". */
+export function eventWeekday(
+  event: Pick<EventDTO, "starts_at" | "timezone">,
+): string {
+  return new Intl.DateTimeFormat("en-US", {
+    weekday: "short",
+    timeZone: event.timezone,
+  }).format(new Date(event.starts_at));
+}
+
+function calendarDay(
+  value: Date,
+  timeZone: string,
+): { year: string; month: string; day: string } {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+    timeZone,
+  }).formatToParts(value);
+  const part = (type: string) =>
+    parts.find((item) => item.type === type)?.value ?? "";
+  return { year: part("year"), month: part("month"), day: part("day") };
+}
+
+function zoneName(value: Date, timeZone: string): string {
+  return (
+    new Intl.DateTimeFormat("en-US", { timeZoneName: "short", timeZone })
+      .formatToParts(value)
+      .find((part) => part.type === "timeZoneName")?.value ?? ""
+  );
 }
 
 export function formatEventDate(value: string, timeZone: string): string {
@@ -42,25 +127,24 @@ export function formatEventDate(value: string, timeZone: string): string {
   }).format(new Date(value));
 }
 
-export function eventLocation(
-  event: Pick<EventDTO, "format" | "location_name" | "address" | "online_url">,
-  fallback = "Location pending",
+/**
+ * Where an event happens, for a list row: the place's name without its street
+ * address, which the event page shows. A hybrid event adds "+ online".
+ */
+export function eventPlace(
+  event: Pick<EventDTO, "format" | "location_name">,
 ): string {
   if (event.format === "online") {
-    return event.online_url ? "Online" : "Online details pending";
+    // The meeting link reaches only people going, so whether it is set says
+    // nothing to everyone else.
+    return "Online";
   }
-
-  const inPersonLocation = [event.location_name, event.address]
-    .filter(Boolean)
-    .join(" · ");
-
   if (event.format === "hybrid") {
-    return inPersonLocation
-      ? `${inPersonLocation} + online`
+    return event.location_name
+      ? `${event.location_name} + online`
       : "Hybrid details pending";
   }
-
-  return inPersonLocation || fallback;
+  return event.location_name || "Location pending";
 }
 
 export function eventLifecycleLabel(
@@ -114,8 +198,9 @@ export const eventTypeLabels = {
   other: "Other",
 } as const satisfies Record<NonNullable<EventDTO["event_type"]>, string>;
 
+/** An RSVP answer in words: the choice buttons and the account's RSVP tags. */
 export function eventRSVPLabel(response: EventRSVP): string {
-  const labels = { maybe: "Maybe", no: "No", yes: "Yes" } as const;
+  const labels = { maybe: "Maybe", no: "Can't go", yes: "Going" } as const;
   return labels[response];
 }
 

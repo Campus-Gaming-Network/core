@@ -1,3 +1,7 @@
+import {
+  activeFilterChips,
+  type AppliedFilter,
+} from "../../components/directory-filters";
 import type { DirectorySidebarResult } from "../account-slice/contracts";
 import type {
   EventBrowseItemDTO,
@@ -190,4 +194,37 @@ export const exampleEvents: EventBrowseItemDTO[] = [
     rsvp_yes_count: 16,
     interest_count: 4,
   },
+];
+
+const svgImage = (body: string, width: number, height: number) =>
+  `data:image/svg+xml,${encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">${body}</svg>`,
+  )}`;
+
+/** Inline images, so no specimen requests an image or calls the API. */
+export const exampleLogoURL = svgImage(
+  '<rect width="88" height="88" fill="#1d3a6e"/><text x="44" y="58" font-size="40" font-weight="700" text-anchor="middle" fill="#fff" font-family="sans-serif">S</text>',
+  88,
+  88,
+);
+export const exampleCoverURL = svgImage(
+  '<rect width="84" height="112" fill="#e8a317"/><circle cx="42" cy="46" r="22" fill="#1d3a6e"/><rect x="14" y="82" width="56" height="8" fill="#1d3a6e"/>',
+  84,
+  112,
+);
+/** Decodes as nothing, so the image fires its error event and fails soft. */
+export const brokenImageURL = "data:image/png;base64,AAAA";
+
+/** Filters as a directory holds them when two are applied. */
+export const exampleFilters: AppliedFilter[] = [
+  { key: "game", name: "Game", value: "valorant", label: "Valorant" },
+  { key: "type", name: "Type", value: "tournament", label: "Tournament" },
+];
+export const exampleFilterChips = activeFilterChips(exampleFilters);
+
+/** The sections of the long-form nav specimen. */
+export const exampleFormSections = [
+  { id: "styleguide-form-basics", label: "Event basics" },
+  { id: "styleguide-form-visibility", label: "Who can see it" },
+  { id: "styleguide-form-limits", label: "Limits" },
 ];

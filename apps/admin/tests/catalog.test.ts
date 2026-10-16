@@ -2,15 +2,15 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   approvedBundledLogoURL,
+  catalogDetailInputSchema,
   approvedLogoURL,
   catalogAuditPageSchema,
   hasRecentStepUp,
-  igdbSearchSchema,
   maximumLogoBytes,
   safeReturnPath,
   validateCatalogCommandInput,
   validateCatalogSearch,
-  validateGameImportInput,
+  validateGameFormInput,
   validateLogoUploadInput,
   validateSchoolFormInput,
   type CatalogCommandInput,
@@ -18,13 +18,17 @@ import {
 import {
   getGameDetailOperation,
   getUserDetailOperation,
-  importGameOperation,
   runCatalogCommandOperation,
-  searchIGDBOperation,
+  saveGameOperation,
   saveSchoolOperation,
   uploadSchoolLogoOperation,
 } from "../src/features/catalog/catalog-operations.server.js";
-import { AdminApiError, type ApiClient } from "../src/server/api.server.js";
+import { isNotFound } from "@tanstack/react-router";
+import {
+  AdminApiError,
+  orNotFound,
+  type ApiClient,
+} from "../src/server/api.server.js";
 
 const schoolID = "11111111-1111-4111-8111-111111111111";
 const userID = "22222222-2222-4222-8222-222222222222";
@@ -709,68 +713,78 @@ const importedGame = {
   user_submitted: false,
 };
 
-test("an import names only the IGDB entry and a reason", async () => {
-  const form = new FormData();
-  form.set("igdb_id", "11198");
-  form.set("reason", " Requested by schools ");
-  form.set("name", "Ignored: the API reads the name from IGDB");
-  assert.deepEqual(validateGameImportInput(form), {
-    valid: true,
-    value: { igdb_id: 11198, reason: "Requested by schools" },
-  });
-  assert.deepEqual(validateGameImportInput({ igdb_id: "", reason: "" }), {
-    valid: false,
+test("the game form only corrects a stored game", async () => {
+  const fields = {
+    name: "Rocket League",
+    slug: "rocket-league",
+    cover_url: "",
+    is_active: "on",
+    reason: "Fix the title",
+  };
+  const created = validateGameFormInput({
+    ...fields,
     id: "",
-    message: "Check the highlighted fields and try again.",
-    fieldErrors: {
-      igdb_id: ["Choose a game to import."],
-      reason: ["Give a reason for the audit log."],
-    },
+    expected_updated_at: "",
   });
+  const edited = validateGameFormInput({
+    ...fields,
+    id: schoolID,
+    expected_updated_at: version,
+  });
+  assert.equal(created.valid, false);
+  assert.ok(edited.valid);
 
   const { api, calls } = recordingApi(() => importedGame);
-  const result = await importGameOperation(
-    { igdb_id: 11198, reason: "Requested by schools" },
-    { api, ...mutation },
-  );
+  const result = await saveGameOperation(edited.value, { api, ...mutation });
   assert.deepEqual(
     { result, calls },
     {
       result: {
         status: "success",
-        redirectTo: `/games/${schoolID}?notice=imported`,
+        redirectTo: `/games/${schoolID}?notice=saved`,
       },
       calls: [
         {
-          path: "/admin/v1/game-imports",
-          method: "POST",
-          body: { igdb_id: 11198, reason: "Requested by schools" },
+          path: `/admin/v1/games/${schoolID}`,
+          method: "PATCH",
+          body: {
+            name: "Rocket League",
+            slug: "rocket-league",
+            cover_url: "",
+            is_active: true,
+            reason: "Fix the title",
+            expected_updated_at: version,
+          },
         },
       ],
     },
   );
 });
 
-test("IGDB failures explain themselves and name a no-JavaScript notice", async () => {
+test("IGDB failures during a refresh explain themselves and name a no-JavaScript notice", async () => {
   const outcomes = await Promise.all(
     [
-      new AdminApiError(409, "game_already_imported"),
       new AdminApiError(503, "igdb_not_configured"),
       new AdminApiError(503, "igdb_rate_limited"),
       new AdminApiError(502, "igdb_unavailable"),
     ].map((error) =>
-      importGameOperation(
-        { igdb_id: 11198, reason: "Requested by schools" },
+      runCatalogCommandOperation(
+        {
+          command: "game.refresh",
+          id: schoolID,
+          grant_id: "",
+          user_id: "",
+          user_email: "",
+          expected_updated_at: version,
+          staff_faculty: "",
+          confirmed: false,
+          reason: "Cover changed",
+        },
         { api: recordingApi(() => error).api, ...mutation },
       ),
     ),
   );
   assert.deepEqual(outcomes, [
-    {
-      status: "error",
-      message: "That game is already in the catalog.",
-      notice: "already-imported",
-    },
     {
       status: "error",
       message:
@@ -788,68 +802,6 @@ test("IGDB failures explain themselves and name a no-JavaScript notice", async (
       notice: "igdb-unavailable",
     },
   ]);
-});
-
-test("an IGDB search skips short queries and reports an outage as a message", async () => {
-  const matches = [
-    { igdb_id: 11198, name: "Rocket League", release_year: 2015 },
-    { igdb_id: 7, name: "Rocket Arena", game_id: schoolID },
-  ];
-  const found = recordingApi(() => ({ games: matches }));
-  const down = recordingApi(() => new AdminApiError(502, "igdb_unavailable"));
-  const read = { cookieHeader: "admin" };
-  assert.deepEqual(
-    {
-      short: await searchIGDBOperation("r", { api: found.api, ...read }),
-      found: await searchIGDBOperation("rocket & co", {
-        api: found.api,
-        ...read,
-      }),
-      down: await searchIGDBOperation("rocket", { api: down.api, ...read }),
-      calls: found.calls,
-    },
-    {
-      short: { query: "r", games: [] },
-      found: { query: "rocket & co", games: matches },
-      down: {
-        query: "rocket",
-        games: [],
-        error: "IGDB could not be reached. Try again later.",
-      },
-      calls: [
-        {
-          path: "/admin/v1/igdb-games?q=rocket+%26+co",
-          method: undefined,
-          body: undefined,
-        },
-      ],
-    },
-  );
-});
-
-test("an IGDB match thumbnail reaches the page as a data URL", () => {
-  assert.deepEqual(
-    igdbSearchSchema.parse({
-      games: [
-        {
-          igdb_id: 11198,
-          name: "Rocket League",
-          thumbnail: { content_type: "image/jpeg", data: "/9j/4A==" },
-        },
-        { igdb_id: 7, name: "Rocket Arena" },
-      ],
-    }),
-    {
-      games: [
-        {
-          igdb_id: 11198,
-          name: "Rocket League",
-          thumbnail: "data:image/jpeg;base64,/9j/4A==",
-        },
-        { igdb_id: 7, name: "Rocket Arena" },
-      ],
-    },
-  );
 });
 
 test("a stored cover reaches the page as a data URL", async () => {
@@ -937,4 +889,49 @@ test("a user page reads every report against the user, and none without the capa
       ],
     },
   );
+});
+
+test("a missing user is reported as missing even when the report filter rejects the ID first", async () => {
+  const missing = new AdminApiError(404, "admin_record_not_found");
+  const gate: { open?: () => void } = {};
+  const afterReports = new Promise<void>((resolve) => {
+    gate.open = resolve;
+  });
+  const api = (async ({ path }: { path: string }) => {
+    if (path.startsWith("/admin/v1/reports")) {
+      gate.open?.();
+      throw new AdminApiError(400, "invalid_report_filter");
+    }
+    if (path === "/admin/v1/users/abc") {
+      await afterReports;
+      throw missing;
+    }
+    return {
+      data: { audit_entries: [], next_cursor: "", previous_cursor: "" },
+      response: new Response(),
+    };
+  }) as ApiClient;
+
+  await assert.rejects(
+    getUserDetailOperation({ id: "abc" }, { api, cookieHeader: "admin" }, true),
+    (error) => error === missing,
+  );
+});
+
+test("a record the API cannot find becomes the router's not-found result", async () => {
+  const missing = new AdminApiError(404, "admin_unavailable");
+  const { api } = recordingApi(() => missing);
+
+  await assert.rejects(
+    orNotFound(
+      getGameDetailOperation({ id: "abc" }, { api, cookieHeader: "" }),
+    ),
+    isNotFound,
+  );
+  assert.deepEqual(catalogDetailInputSchema.parse({ id: "abc" }), {
+    id: "abc",
+  });
+
+  const unavailable = new AdminApiError(503, "admin_unavailable");
+  await assert.rejects(orNotFound(Promise.reject(unavailable)), unavailable);
 });

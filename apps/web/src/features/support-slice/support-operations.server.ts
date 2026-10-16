@@ -48,7 +48,7 @@ export function supportErrorMessage(error: unknown): string {
     idempotency_key_reused:
       "This form was already submitted. Reload the page and try again.",
     invalid_request: "Check the form fields and try again.",
-    rate_limited: "Too many attempts. Give it a minute, then try again.",
+    rate_limited: "Too many attempts. Please try again later.",
     support_ticket_failed:
       "We could not submit that support ticket. Please try again.",
   };

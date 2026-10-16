@@ -24,5 +24,5 @@ export const Route = createFileRoute("/terms")({
 
 function TermsPage() {
   const document = policyDocument("terms", Route.useSearch().version);
-  return document ? <PolicyPage document={document} eyebrow="Terms" /> : null;
+  return document ? <PolicyPage document={document} /> : null;
 }

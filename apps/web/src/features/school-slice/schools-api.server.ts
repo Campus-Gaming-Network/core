@@ -4,6 +4,7 @@ import {
   type ApiClient,
 } from "../../server/api.server.js";
 import { readSchools } from "./catalog-operations.server.js";
+import { withBundledSchoolLogo } from "./school-logos.server.js";
 
 const minimumQueryLength = 2;
 const maximumQueryLength = 120;
@@ -34,7 +35,12 @@ export async function schoolsApiResponse(
   }
 
   try {
-    const schools = await readSchools(api, { query, limit });
+    const result = await readSchools(api, { query, limit });
+    // Results carry the bundled logo, so the school field can show it.
+    const schools = {
+      ...result,
+      schools: result.schools.map(withBundledSchoolLogo),
+    };
     return jsonResponse(request, schools, 200, {
       "cache-control": "private, max-age=60",
     });

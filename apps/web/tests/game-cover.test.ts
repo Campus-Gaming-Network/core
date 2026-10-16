@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { gameCoverResponse } from "../src/server/game-cover.server.js";
+import {
+  gameCoverResponse,
+  searchResultCoverResponse,
+} from "../src/server/game-cover.server.js";
 
 const coverURL = "https://cgn.example/api/games/rocket-league/cover";
 
@@ -124,6 +127,58 @@ test("a missing cover is a 404, an API failure a 502, and a bad slug never reach
       unreachable: 502,
       badSlug: 404,
       missingCalls: 1,
+    },
+  );
+});
+
+test("a search result's IGDB cover is served from the site for a week, and a bad ID never reaches the API", async () => {
+  const { calls, dependencies } = coverAPI((request) =>
+    request.url.endsWith("/igdb-covers/co5w0w")
+      ? new Response("thumbnail", {
+          headers: { "content-type": "image/jpeg", etag: '"co5w0w"' },
+        })
+      : new Response(null, { status: 503 }),
+  );
+  const serve = async (imageID: string) => {
+    const response = await searchResultCoverResponse(
+      new Request(`https://cgn.example/api/igdb-covers/${imageID}`, {
+        headers: { cookie: "cgn_session=secret" },
+      }),
+      imageID,
+      dependencies,
+    );
+    return {
+      status: response.status,
+      headers: Object.fromEntries(response.headers),
+      body: await response.text(),
+    };
+  };
+
+  assert.deepEqual(
+    {
+      found: await serve("co5w0w"),
+      down: await serve("co1"),
+      invalid: await serve("../games/rocket-league/cover"),
+      calls,
+    },
+    {
+      found: {
+        status: 200,
+        headers: {
+          "cache-control": "public, max-age=604800, immutable",
+          "content-security-policy": "default-src 'none'; sandbox",
+          "content-type": "image/jpeg",
+          etag: '"co5w0w"',
+          "x-content-type-options": "nosniff",
+        },
+        body: "thumbnail",
+      },
+      down: { status: 502, headers: {}, body: "" },
+      invalid: { status: 404, headers: {}, body: "" },
+      calls: [
+        { url: "http://api:8080/igdb-covers/co5w0w", headers: {} },
+        { url: "http://api:8080/igdb-covers/co1", headers: {} },
+      ],
     },
   );
 });

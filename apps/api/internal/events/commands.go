@@ -13,6 +13,7 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
+// Create inserts an event and its organizer, games, and recurrence.
 func (r *PostgresRepository) Create(ctx context.Context, params CreateParams) (Event, error) {
 	if err := ValidateCreateInput(params.CreateInput); err != nil {
 		return Event{}, err
@@ -51,6 +52,7 @@ func (r *PostgresRepository) Create(ctx context.Context, params CreateParams) (E
 	return Event{}, ErrSlugUnavailable
 }
 
+// Update edits an event the user may edit and returns the stored event.
 func (r *PostgresRepository) Update(ctx context.Context, params UpdateParams) (Event, error) {
 	if err := ValidateUpdateInput(params.UpdateInput); err != nil {
 		return Event{}, err
@@ -155,6 +157,7 @@ func (r *PostgresRepository) Update(ctx context.Context, params UpdateParams) (E
 	return r.GetBySlug(ctx, slug)
 }
 
+// Delete soft-deletes an event the user may edit.
 func (r *PostgresRepository) Delete(ctx context.Context, slug string, userID string) error {
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
@@ -227,6 +230,7 @@ func (r *PostgresRepository) Delete(ctx context.Context, slug string, userID str
 	return nil
 }
 
+// CreatePrivateUnlock records an unlock token hash for a private event.
 func (r *PostgresRepository) CreatePrivateUnlock(ctx context.Context, slug string, tokenHash []byte, expiresAt time.Time) error {
 	commandTag, err := r.pool.Exec(ctx, `
 		INSERT INTO event_private_unlocks (event_id, token_hash, expires_at)
@@ -245,6 +249,7 @@ func (r *PostgresRepository) CreatePrivateUnlock(ctx context.Context, slug strin
 	return nil
 }
 
+// SetRSVP records the user's RSVP response and returns the updated event.
 func (r *PostgresRepository) SetRSVP(ctx context.Context, input RSVPInput) (Event, error) {
 	input = normalizeRSVPInput(input)
 	if err := ValidateRSVPInput(input); err != nil {
@@ -377,6 +382,8 @@ func cancellationRecipients(ctx context.Context, tx pgx.Tx, eventID string) ([]c
 	return recipients, nil
 }
 
+// SetInterest marks or unmarks the user's interest in an event and returns
+// the updated event.
 func (r *PostgresRepository) SetInterest(ctx context.Context, slug string, userID string, interested bool) (Event, error) {
 	slug = strings.TrimSpace(slug)
 	userID = strings.TrimSpace(userID)

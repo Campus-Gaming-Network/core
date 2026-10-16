@@ -72,7 +72,10 @@ Signup also requires confirming **age 18+**. Alumni can participate. Faculty who
 ### Discover
 
 - Search or browse schools (works **logged out**); each school has a logo and slug URL
-- Browse/filter events by game (and other filters) — no near-you yet
+- Browse/filter events by game (and other filters) — no near-you yet. Event lists
+  leave out events that have ended and show the soonest first. The home page
+  shows "Events this week" (under way or starting in the next seven days) and
+  "More events" (everything after)
 - The event directory has scope tabs: All events, My school (events hosted at
   the viewer's home school; shown only when signed in), Online, and
   Tournaments. A tab keeps the game, audience, and cost filters, and its URL
@@ -212,7 +215,7 @@ Signup also requires confirming **age 18+**. Alumni can participate. Faculty who
 
 ### Games
 
-- Not editable by end users. Site admins import and manage games from IGDB through the Admin Console
+- Users bring games in: there is no admin import step. Site admins only correct stored games (name, slug, cover), hide them, delete unused ones, or refresh them from IGDB in the Admin Console
 - A user creating an event or team whose game is not listed can search IGDB and add it, or type the game's name. No admin approval is needed
 - A game added from IGDB search joins the list for everyone. A typed name stays on that event or team and is not listed
 - A site admin blocks a game by hiding or deleting it

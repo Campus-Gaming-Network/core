@@ -337,6 +337,7 @@ type fakeEventRepository struct {
 	listFollowedSchoolEventsUserID string
 	listFollowedSchoolEventsLimit  int
 	followedSchoolEvents           []eventstore.Event
+	interestedEvents               []eventstore.Event
 	detail                         eventstore.Event
 	createCalled                   bool
 	createParams                   eventstore.CreateParams
@@ -850,4 +851,8 @@ const testIdempotencyKey = "5b0e7f5c-3f4d-4d8e-9a71-6c2b1e0f9d34"
 func withIdempotencyKey(request *http.Request) *http.Request {
 	request.Header.Set("Idempotency-Key", testIdempotencyKey)
 	return request
+}
+
+func (r *fakeEventRepository) ListInterestedEvents(_ context.Context, _ string, _ int) ([]eventstore.Event, error) {
+	return r.interestedEvents, r.err
 }

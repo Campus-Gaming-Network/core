@@ -12,9 +12,7 @@ import {
   validateCatalogCommandInput,
   approvedBundledLogoURL,
   approvedLogoURL,
-  igdbSearchInputSchema,
   validateGameFormInput,
-  validateGameImportInput,
   validateLogoUploadInput,
   validateSchoolFormInput,
   type CatalogMutationResult,
@@ -24,7 +22,6 @@ import {
   getGameDetailOperation,
   getSchoolDetailOperation,
   getUserDetailOperation,
-  importGameOperation,
   listGamesOperation,
   listSchoolsOperation,
   listSiteGrantsOperation,
@@ -32,9 +29,9 @@ import {
   runCatalogCommandOperation,
   saveGameOperation,
   saveSchoolOperation,
-  searchIGDBOperation,
   uploadSchoolLogoOperation,
 } from "./catalog-operations.server.js";
+import { orNotFound } from "../../server/api.server.js";
 import { adminEnvironment } from "../../server/environment.server.js";
 
 export const getSchools = createServerFn({ method: "GET" })
@@ -46,10 +43,12 @@ export const getSchools = createServerFn({ method: "GET" })
 export const getSchoolDetail = createServerFn({ method: "GET" })
   .validator(catalogDetailInputSchema.extend({ include_grants: z.boolean() }))
   .handler(async ({ data }) => {
-    const detail = await getSchoolDetailOperation(
-      data,
-      currentAdminRequest(false),
-      data.include_grants,
+    const detail = await orNotFound(
+      getSchoolDetailOperation(
+        data,
+        currentAdminRequest(false),
+        data.include_grants,
+      ),
     );
     return {
       ...detail,
@@ -71,26 +70,7 @@ export const getGames = createServerFn({ method: "GET" })
 export const getGameDetail = createServerFn({ method: "GET" })
   .validator(catalogDetailInputSchema)
   .handler(({ data }) =>
-    getGameDetailOperation(data, currentAdminRequest(false)),
-  );
-
-export const searchIGDBGames = createServerFn({ method: "GET" })
-  .validator(igdbSearchInputSchema)
-  .handler(({ data }) =>
-    searchIGDBOperation(data.q, currentAdminRequest(false)),
-  );
-
-export const importGame = createServerFn({
-  method: "POST",
-  strict: { input: false },
-})
-  .validator((input: FormData | object) => validateGameImportInput(input))
-  .handler(({ data }) =>
-    respond(
-      data,
-      () => "/games/import",
-      (value) => importGameOperation(value, currentAdminRequest(true)),
-    ),
+    orNotFound(getGameDetailOperation(data, currentAdminRequest(false))),
   );
 
 export const getUsers = createServerFn({ method: "GET" })
@@ -100,10 +80,12 @@ export const getUsers = createServerFn({ method: "GET" })
 export const getUserDetail = createServerFn({ method: "GET" })
   .validator(catalogDetailInputSchema.extend({ include_reports: z.boolean() }))
   .handler(({ data }) =>
-    getUserDetailOperation(
-      data,
-      currentAdminRequest(false),
-      data.include_reports,
+    orNotFound(
+      getUserDetailOperation(
+        data,
+        currentAdminRequest(false),
+        data.include_reports,
+      ),
     ),
   );
 

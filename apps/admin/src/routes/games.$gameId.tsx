@@ -64,12 +64,12 @@ function GameDetailPage() {
           <DetailFact label="Slug">
             <code>{game.slug}</code>
           </DetailFact>
-          <DetailFact label="Public picker">
-            {game.is_active ? "Shown" : "Hidden"}
+          <DetailFact label="On the site">
+            {game.is_active ? "Shown" : "Hidden from game search"}
           </DetailFact>
           <DetailFact label="Source">
             {game.igdb_id !== null
-              ? "IGDB"
+              ? "Added from IGDB"
               : game.user_submitted
                 ? "Typed in by a user. Events and teams can use it while it is hidden; delete it to block the name."
                 : "Added by hand"}

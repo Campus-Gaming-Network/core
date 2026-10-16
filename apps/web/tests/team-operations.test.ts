@@ -78,46 +78,29 @@ test("team browse preserves encoded filters/cursors, uses no-store, and strips p
       api: client(async (input, init) => {
         const url = String(input);
         calls.push({ init, url });
-        return url.endsWith("/games")
-          ? Response.json({
-              games: [
-                {
-                  id: "game-1",
-                  name: "Rocket League",
-                  slug: "rocket-league",
-                  cover_url: "private-addition",
-                },
-              ],
-            })
-          : Response.json({
-              teams: [team],
-              limit: 25,
-              has_more: true,
-              has_previous: true,
-              next_cursor: "next",
-              previous_cursor: "previous",
-              internal: "must-not-serialize",
-            });
+        return Response.json({
+          teams: [team],
+          limit: 25,
+          has_more: true,
+          has_previous: true,
+          next_cursor: "next",
+          previous_cursor: "previous",
+          internal: "must-not-serialize",
+        });
       }),
     },
   );
 
-  const teamCall = calls.find(({ url }) => url.includes("/teams?"));
-  assert.equal(
-    teamCall?.url,
-    "http://api:8080/teams?game=rocket+league&school=example%2Funiversity&limit=25&after=next%2Bcursor&before=previous%2Fcursor",
+  // One request: the game catalog is never loaded whole for the directory.
+  assert.deepEqual(
+    calls.map(({ url }) => url),
+    [
+      "http://api:8080/teams?game=rocket+league&school=example%2Funiversity&limit=25&after=next%2Bcursor&before=previous%2Fcursor",
+    ],
   );
-  assert.equal(teamCall?.init?.cache, "no-store");
-  assert.equal(
-    calls.find(({ url }) => url.endsWith("/games"))?.init?.cache,
-    "no-store",
-  );
+  assert.equal(calls[0]?.init?.cache, "no-store");
   assert.equal(result.teamsUnavailable, false);
-  assert.equal(result.gamesUnavailable, false);
   assert.equal(result.teams[0]?.name, "Varsity Rocket League");
-  assert.deepEqual(result.games, [
-    { id: "game-1", name: "Rocket League", slug: "rocket-league" },
-  ]);
   const serialized = JSON.stringify(result);
   assert.equal(serialized.includes("owner-private-id"), false);
   assert.equal(serialized.includes("member-private-id"), false);
@@ -125,7 +108,7 @@ test("team browse preserves encoded filters/cursors, uses no-store, and strips p
   assert.equal(serialized.includes("must-not-serialize"), false);
 });
 
-test("team and game browse failures independently degrade to bounded empty results", async () => {
+test("team browse failure degrades to a bounded empty result", async () => {
   const reported: unknown[] = [];
   const result = await teamsBrowseOperation(
     { game: "", school: "", after: "", before: "" },
@@ -142,18 +125,16 @@ test("team and game browse failures independently degrade to bounded empty resul
     limit: 25,
     has_more: false,
     has_previous: false,
-    games: [],
-    gamesUnavailable: true,
     teamsUnavailable: true,
   });
-  assert.equal(reported.length, 2);
+  assert.equal(reported.length, 1);
   assert.equal(
     JSON.stringify(result).includes("sensitive_upstream_detail"),
     false,
   );
 });
 
-test("team browse page names the filtered school and loads school search matches", async () => {
+test("team browse page names the filtered school and game and loads their search matches", async () => {
   const calls: string[] = [];
   const exampleSchool = {
     id: "school-1",
@@ -162,11 +143,18 @@ test("team browse page names the filtered school and loads school search matches
     city: "Irvine",
     state: "CA",
   };
+  const rocketLeague = {
+    id: "game-1",
+    name: "Rocket League",
+    slug: "rocket-league",
+    cover_url: "https://cgn.example/api/games/rocket-league/cover",
+  };
   const result = await teamsBrowsePageOperation(
     {
-      game: "",
+      game: "rocket-league",
       school: "example-university",
       schoolQuery: "exam",
+      gameQuery: "rock",
       after: "",
       before: "",
     },
@@ -189,14 +177,18 @@ test("team browse page names the filtered school and loads school search matches
             has_more: false,
           });
         }
-        return url.endsWith("/games")
-          ? Response.json({ games: [] })
-          : Response.json({
-              teams: [],
-              limit: 25,
-              has_more: false,
-              has_previous: false,
-            });
+        if (url === "http://api:8080/games/rocket-league") {
+          return Response.json({ ...rocketLeague, internal_rank: 1 });
+        }
+        if (url === "http://api:8080/games?q=rock&limit=20") {
+          return Response.json({ games: [rocketLeague] });
+        }
+        return Response.json({
+          teams: [],
+          limit: 25,
+          has_more: false,
+          has_previous: false,
+        });
       }),
     },
   );
@@ -206,31 +198,34 @@ test("team browse page names the filtered school and loads school search matches
     limit: 25,
     has_more: false,
     has_previous: false,
-    games: [],
-    gamesUnavailable: false,
     teamsUnavailable: false,
     selectedSchool: exampleSchool,
     schools: [exampleSchool],
     schoolSearchFailed: false,
+    selectedGame: rocketLeague,
+    games: [rocketLeague],
+    gameSearchFailed: false,
   });
   assert.deepEqual(
     new Set(calls),
     new Set([
-      "http://api:8080/games",
+      "http://api:8080/games/rocket-league",
+      "http://api:8080/games?q=rock&limit=20",
       "http://api:8080/schools/example-university",
       "http://api:8080/schools?q=exam&limit=50",
-      "http://api:8080/teams?school=example-university&limit=25",
+      "http://api:8080/teams?game=rocket-league&school=example-university&limit=25",
     ]),
   );
 });
 
-test("team browse page treats an unknown school as unnamed and reports a failed school search", async () => {
+test("team browse page treats an unknown school or game as unnamed and reports failed searches", async () => {
   const reported: unknown[] = [];
   const result = await teamsBrowsePageOperation(
     {
-      game: "",
+      game: "missing-game",
       school: "missing-university",
       schoolQuery: "exam",
+      gameQuery: "rock",
       after: "",
       before: "",
     },
@@ -240,20 +235,21 @@ test("team browse page treats an unknown school as unnamed and reports a failed 
         if (url.includes("/schools/")) {
           return Response.json({ error: "school_not_found" }, { status: 404 });
         }
-        if (url.includes("/schools?")) {
+        if (url.includes("/games/")) {
+          return Response.json({ error: "game_not_found" }, { status: 404 });
+        }
+        if (url.includes("/schools?") || url.includes("/games?")) {
           return Response.json(
             { error: "database_unavailable" },
             { status: 503 },
           );
         }
-        return url.endsWith("/games")
-          ? Response.json({ games: [] })
-          : Response.json({
-              teams: [],
-              limit: 25,
-              has_more: false,
-              has_previous: false,
-            });
+        return Response.json({
+          teams: [],
+          limit: 25,
+          has_more: false,
+          has_previous: false,
+        });
       }),
       reportError: (error) => reported.push(error),
     },
@@ -264,13 +260,14 @@ test("team browse page treats an unknown school as unnamed and reports a failed 
     limit: 25,
     has_more: false,
     has_previous: false,
-    games: [],
-    gamesUnavailable: false,
     teamsUnavailable: false,
     schools: [],
     schoolSearchFailed: true,
+    games: [],
+    gameSearchFailed: true,
   });
-  assert.equal(reported.length, 1);
+  // The two failed searches; a missing school or game is not reported.
+  assert.equal(reported.length, 2);
 });
 
 test("team detail forwards viewer cookies and returns only the minimal owner roster", async () => {
@@ -365,6 +362,7 @@ test("team search normalization is tolerant, bounded, and preserves opaque curso
       game: [" rocket-league ", "ignored"],
       school: " example-university ",
       school_q: [" exam ", "ignored"],
+      game_q: " rock ",
       after: " cursor-a ",
       before: " cursor-b ",
       ignored: { nested: true },
@@ -373,6 +371,7 @@ test("team search normalization is tolerant, bounded, and preserves opaque curso
       game: "rocket-league",
       school: "example-university",
       school_q: "exam",
+      game_q: "rock",
       after: "cursor-a",
       before: "cursor-b",
     },
@@ -381,6 +380,7 @@ test("team search normalization is tolerant, bounded, and preserves opaque curso
     validateTeamsSearch({
       game: "x".repeat(201),
       school_q: "x".repeat(121),
+      game_q: "x".repeat(101),
       after: 7,
     }),
     {},
@@ -398,6 +398,7 @@ test("team search normalization is tolerant, bounded, and preserves opaque curso
     teamsBrowsePageInput({
       game: "rocket-league",
       school_q: "exam",
+      game_q: "rock",
       after: "opaque",
     }),
     {
@@ -406,6 +407,7 @@ test("team search normalization is tolerant, bounded, and preserves opaque curso
       after: "opaque",
       before: "",
       schoolQuery: "exam",
+      gameQuery: "rock",
     },
   );
   assert.deepEqual(validateTeamDetailSearch({ team: " joined " }), {

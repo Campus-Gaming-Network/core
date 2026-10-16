@@ -1,289 +1,1004 @@
-/* Styles for pieces that render in more than one route area (directory rows,
-   event rows, status labels, team marks). The root route loads this sheet after
-   styles.css, so these pieces look the same on every page. A rule that only
-   one route area uses belongs in that feature's own stylesheet. */
-
-/* Account dashboard event row. Directory lists use `.directory-row` below. */
-.event-list-item {
-  display: grid;
-  grid-template-columns: 3.5rem minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 1rem;
-  padding-block: 1.1rem;
-}
-
-.event-card-heading {
-  display: block;
-  margin-block: 0.2rem;
-  font-size: 1rem;
-}
-
-.event-card-copy {
-  display: grid;
-  min-width: 0;
-  gap: 0.15rem;
-}
+/* Styles for pieces that render in more than one route area: directory rows,
+   identity tiles, calendar dates, tabs, breadcrumbs, detail headers, banners,
+   notices, people lists, and the sidebar. The root route loads this sheet after
+   styles.css, so these pieces look the same on every page. A rule that only one
+   route area uses belongs in that feature's own stylesheet. */
 
 /* ==== Directory row (DirectoryRow) ====
-   One compact row for the event, team, and school directories: identity tile,
-   name, a muted meta line (host or school, then location), neutral labels,
-   counts, and one action. The whole row is one link. */
+   One compact row for the event, team, and school directories (reference
+   sheets 11 and 12). In a list 60rem or wider the parts sit in columns: the
+   identity tile, an optional picture, the name block, the tags, the counts,
+   and a small blue action. Narrower, the tags and counts stack under the name
+   and the action drops below it. The whole row is one link. */
 .directory-row {
   display: grid;
-  grid-template-columns: 3.5rem minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 1rem;
-  padding-block: 1.1rem;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: var(--space-1) var(--space-4);
+  padding: var(--space-4);
+  color: var(--color-text);
+  text-decoration: none;
 }
 
-/* The calendar tile fills the column; a team or school mark sits centered. */
-.directory-row > .directory-row__identity {
-  display: grid;
-  align-self: start;
-  justify-items: center;
+.list:has(> .directory-row),
+.directory-list {
+  container-type: inline-size;
+}
+
+.directory-row__identity {
+  grid-row: 1 / span 4;
+}
+
+.directory-row__media {
+  display: none;
 }
 
 .directory-row__copy {
   display: grid;
   min-width: 0;
-  gap: 0.15rem;
-  overflow-wrap: anywhere;
-}
-
-.directory-row__copy > .event-status {
-  margin-bottom: 0.15rem;
+  gap: 0.125rem;
 }
 
 .directory-row__name {
-  font-size: 1rem;
+  color: var(--color-link);
+  font-size: var(--text-md);
+  font-weight: 700;
+  line-height: 1.35;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
 }
 
 .directory-row__detail,
-.directory-row__meta,
-.directory-row__count {
-  font-size: 0.8125rem;
+.directory-row__meta {
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+  line-height: 1.45;
+}
+
+.directory-row__detail {
+  color: var(--color-text);
 }
 
 .directory-row__tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.35rem;
-  margin-block: 0.3rem 0.1rem;
+  gap: var(--space-1) var(--space-2);
+  margin-top: var(--space-1);
 }
 
-.directory-row__tags .event-pill {
-  padding: 0.1rem 0.4rem;
-  font-size: 0.6875rem;
+.directory-row__counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  color: var(--color-muted);
+  font-size: var(--text-sm);
 }
 
+/* A single count with its icon (a team's members). An event's going and
+   interested counts (`.event-counts`) stay separate items in the column. */
+.directory-row__counts > small:not(.event-counts),
 .directory-row__count {
   display: inline-flex;
   align-items: center;
-  gap: 0.3rem;
-  margin-top: 0.15rem;
-}
-
-.directory-row__action {
-  color: var(--color-primary);
-  font-size: 0.8125rem;
-  font-weight: 800;
+  gap: 0.3125rem;
+  font-size: inherit;
   white-space: nowrap;
 }
 
-/* On a phone the action drops under the copy, so the row reads identity,
-   name, meta, labels, counts, then the action. */
-@media (max-width: 42rem) {
+/* The action is drawn as a small blue button; it is part of the row's link. */
+/* The action reads as a text link with an arrow, not a button; the whole row
+   is the link it names. */
+.directory-row__action {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  gap: var(--space-1);
+  justify-self: start;
+  margin-top: var(--space-2);
+  color: var(--color-link);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+  white-space: nowrap;
+}
+
+.directory-row__action svg {
+  flex: none;
+  transition: transform 120ms ease;
+}
+
+.directory-row:focus-visible {
+  outline-offset: -3px;
+  box-shadow: none;
+}
+
+@media (hover: hover) {
+  .directory-row:hover {
+    background: #fbfbfb;
+  }
+
+  .directory-row:hover .directory-row__name {
+    color: var(--color-link-hover);
+    text-decoration-thickness: 2px;
+  }
+
+  .directory-row:hover .directory-row__action {
+    color: var(--color-link-hover);
+    text-decoration-thickness: 2px;
+  }
+
+  .directory-row:hover .directory-row__action svg {
+    transform: translateX(2px);
+  }
+}
+
+.directory-row:active .directory-row__action {
+  color: var(--color-text);
+}
+
+/* A medium list (the home page's events column, a detail page's main column): the action sits at the
+   right of the name, and the tags and counts share one line under it. */
+@container (min-width: 30rem) and (max-width: 59.99rem) {
   .directory-row {
-    grid-template-columns: 3rem minmax(0, 1fr);
-    gap: 0.4rem 0.85rem;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .directory-row__identity {
+    grid-row: 1 / span 3;
+  }
+
+  .directory-row__copy,
+  .directory-row__tags,
+  .directory-row__counts {
+    grid-column: 2;
   }
 
   .directory-row__action {
-    grid-column: 2;
+    grid-column: 3;
+    grid-row: 1;
+    align-self: start;
+    margin-top: 0;
   }
 }
-/* ==== End directory row ==== */
 
-/* Calendar tile (CalendarDate): the month on a colored band over a large day
-   number. It fills its grid column, so the column width sets its size. */
+@container (min-width: 60rem) {
+  .directory-row {
+    grid-template-columns:
+      auto auto minmax(0, 1fr) minmax(9rem, 13rem)
+      minmax(6.5rem, 8rem) auto;
+    align-items: center;
+    padding-block: var(--space-3);
+  }
+
+  .directory-row:not(:has(.directory-row__media)) {
+    grid-template-columns:
+      auto minmax(0, 1fr) minmax(9rem, 13rem)
+      minmax(6.5rem, 8rem) auto;
+  }
+
+  .directory-row__identity {
+    grid-row: auto;
+  }
+
+  .directory-row__media {
+    display: block;
+  }
+
+  .directory-row__tags {
+    margin-top: 0;
+  }
+
+  .directory-row__counts {
+    flex-direction: column;
+    gap: 0.125rem;
+  }
+
+  .directory-row__action {
+    justify-self: end;
+    margin-top: 0;
+  }
+
+  /* A column the row leaves out keeps its track, so rows line up. */
+  .directory-row:not(:has(.directory-row__tags)) .directory-row__counts {
+    grid-column: -3;
+  }
+
+  .directory-row:not(:has(.directory-row__counts)) .directory-row__action {
+    grid-column: -2;
+  }
+}
+
+/* The event row's picture: the first game's portrait cover at a fixed 3:4
+   size, or a flat tile with a controller. */
+.event-game-thumb {
+  display: grid;
+  width: 3rem;
+  height: 4rem;
+  place-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-small);
+  background: var(--color-subtle);
+  object-fit: cover;
+}
+
+.event-game-thumb--fallback {
+  border-color: transparent;
+  color: var(--color-tag-text);
+  background: var(--color-tag);
+}
+
+/* ==== Calendar date (CalendarDate) ====
+   A white bordered tile with a red top edge, like a desk calendar: the month
+   in small muted capitals over a large day. */
 .calendar-date {
   display: grid;
-  grid-template-rows: auto 1fr;
-  width: 100%;
-  overflow: hidden;
-  border: 1px solid var(--color-card-border);
-  border-radius: 0.75rem;
-  background: #fff;
-  box-shadow: 0 1px 2px rgba(41, 35, 24, 0.08);
-  text-align: center;
+  width: 3.25rem;
+  justify-items: center;
+  border: 1px solid var(--color-border-strong);
+  border-top: 4px solid var(--color-danger);
+  /* The red top edge stays straight: only the bottom corners round. */
+  border-radius: 0 0 var(--radius-small) var(--radius-small);
+  padding: 0.25rem 0 0.3125rem;
+  color: var(--color-text);
+  background: var(--color-surface);
+  line-height: 1;
 }
 
 .calendar-date__month {
-  padding: 0.2rem 0;
-  color: #fff;
-  background: var(--color-calendar-band);
-  font-size: 0.625rem;
-  font-weight: 850;
-  letter-spacing: 0.12em;
-  line-height: 1.3;
+  color: var(--color-muted);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
 .calendar-date__day {
-  padding: 0.3rem 0 0.4rem;
-  color: var(--color-text);
-  font-size: 1.5rem;
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  line-height: 1;
+  margin-top: 0.1875rem;
+  font-size: 1.375rem;
+  font-weight: 700;
+}
+
+.calendar-date--large {
+  width: 4rem;
 }
 
 .calendar-date--large .calendar-date__month {
-  padding: 0.3rem 0;
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
 }
 
 .calendar-date--large .calendar-date__day {
-  padding: 0.45rem 0 0.55rem;
-  font-size: 2.25rem;
+  font-size: 1.75rem;
 }
 
-.event-card-action {
-  color: var(--color-primary);
-  font-size: 0.8125rem;
+/* ==== Team mark ====
+   A team's initial on a flat navy tile, the image-free identity of reference
+   sheets 08 and 12. */
+.team-mark {
+  display: inline-grid;
+  flex: none;
+  width: 2.75rem;
+  height: 2.75rem;
+  place-items: center;
+  border-radius: var(--radius-media);
+  color: var(--color-identity-text);
+  background: var(--color-identity);
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+
+.team-mark--large {
+  width: 4.5rem;
+  height: 4.5rem;
+  font-size: 1.75rem;
+}
+
+/* ==== Detail hero (DetailHero) ====
+   The header of an event, school, or team page (reference sheets 10 and 12):
+   a flat navy band with the identity tile, the page's h1 and supporting lines
+   in white, and a game's cover or the page's actions on the right. */
+.detail-hero {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  margin-bottom: var(--space-5);
+  border-radius: var(--radius-panel);
+  padding: var(--space-5) var(--space-6);
+  color: var(--color-identity-text);
+  background: var(--color-identity);
+}
+
+.detail-hero__tile {
+  position: relative;
+  display: grid;
+  flex: none;
+  width: 5.5rem;
+  height: 5.5rem;
+  place-items: center;
+  overflow: hidden;
+  border: 2px solid rgb(255 255 255 / 85%);
+  border-radius: var(--radius-media);
+  color: var(--color-identity);
+  background: var(--color-surface);
+  font-size: 2.25rem;
   font-weight: 800;
+}
+
+.detail-hero__tile .school-logo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0.375rem;
+}
+
+.detail-hero__body {
+  display: grid;
+  flex: 1;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.detail-hero :is(h1, h2, h3) {
+  margin: 0;
+  color: var(--color-identity-text);
+  font-size: clamp(1.625rem, 3vw, var(--text-2xl));
+  overflow-wrap: anywhere;
+}
+
+.detail-hero__meta {
+  margin: 0;
+  color: rgb(255 255 255 / 85%);
+}
+
+.detail-hero a:not(.button) {
+  color: var(--color-identity-text);
+  text-decoration-color: rgb(255 255 255 / 70%);
+}
+
+.detail-hero a:not(.button):focus-visible {
+  color: var(--color-text);
+  background: var(--color-focus);
+  box-shadow:
+    0 -2px var(--color-focus),
+    0 4px var(--color-text);
+  text-decoration: none;
+}
+
+@media (hover: hover) {
+  .detail-hero a:not(.button):hover {
+    color: var(--color-identity-text);
+    text-decoration-color: var(--color-identity-text);
+  }
+}
+
+/* Tags read as light chips on the navy band; the words carry the meaning. */
+.detail-hero .tag {
+  border-color: rgb(255 255 255 / 30%);
+  color: var(--color-identity-text);
+  background: rgb(255 255 255 / 12%);
+}
+
+.detail-hero__cover {
+  flex: none;
+  width: 5.25rem;
+  height: 7rem;
+  border: 2px solid rgb(255 255 255 / 85%);
+  border-radius: var(--radius-small);
+  background: rgb(255 255 255 / 12%);
+  object-fit: cover;
+}
+
+.detail-hero__actions {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.detail-hero__actions form {
+  margin: 0;
+}
+
+@media (max-width: 42rem) {
+  .detail-hero {
+    flex-wrap: wrap;
+    gap: var(--space-4);
+    padding: var(--space-4);
+  }
+
+  .detail-hero__tile {
+    width: 3.75rem;
+    height: 3.75rem;
+    font-size: var(--text-xl);
+  }
+
+  .detail-hero__cover {
+    display: none;
+  }
+
+  .detail-hero__actions {
+    flex-basis: 100%;
+  }
+}
+
+/* ==== Breadcrumbs ==== */
+.breadcrumbs {
+  margin-bottom: var(--space-4);
+  font-size: var(--text-sm);
+}
+
+.breadcrumbs ol {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.breadcrumbs li {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.breadcrumbs [aria-current="page"] {
+  color: var(--color-muted);
+}
+
+.breadcrumbs__separator {
+  flex: none;
+  color: var(--color-muted);
+}
+
+/* ==== Detail heading (PageHeading) ====
+   The identity mark, the page's h1, a supporting line, tags, and actions at
+   the right (below the heading on a phone). */
+.detail-heading {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: var(--space-4) var(--space-5);
+  margin-bottom: var(--space-5);
+}
+
+.detail-heading:not(:has(.detail-heading__identity)) {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.detail-heading__body {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.detail-heading__title {
+  margin: 0;
+}
+
+.detail-heading__supporting {
+  margin: 0;
+  color: var(--color-muted);
+}
+
+.detail-heading__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.detail-heading__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-3);
+}
+
+.detail-heading__actions form {
+  margin: 0;
+}
+
+@media (max-width: 42rem) {
+  .detail-heading,
+  .detail-heading:not(:has(.detail-heading__identity)) {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .detail-heading:not(:has(.detail-heading__identity)) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .detail-heading__actions {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+}
+
+/* ==== Tabs (Tabs and TabLink) ====
+   Black text with a 4px blue underline on the current tab, over a divider.
+   On a phone the row scrolls sideways rather than wrapping. */
+.tabs {
+  display: flex;
+  gap: var(--space-1);
+  margin-bottom: var(--space-5);
+  overflow-x: auto;
+  border-bottom: 1px solid var(--color-border);
+  scrollbar-width: none;
+}
+
+.tabs__link {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  min-height: 2.75rem;
+  align-items: center;
+  padding: 0 var(--space-3);
+  color: var(--color-text) !important;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  text-decoration: none !important;
   white-space: nowrap;
 }
 
-/* Status labels (StatusLabel): a colored lifecycle label, or the neutral
-   outlined variant for plain facts. */
-.event-status {
-  width: fit-content;
-  border-radius: 0.4rem;
-  padding: 0.2rem 0.45rem;
-  color: var(--color-primary);
-  background: var(--color-primary-soft);
-  font-size: 0.6875rem;
-  font-weight: 800;
+.tabs__link:first-child {
+  padding-left: 0;
 }
 
-.event-status--happening_now {
-  color: var(--color-success);
-  background: var(--color-success-soft);
+.tabs__link[aria-current]::after {
+  position: absolute;
+  right: var(--space-3);
+  bottom: 0;
+  left: var(--space-3);
+  height: 4px;
+  content: "";
+  background: var(--color-link);
 }
 
-.event-status--full {
-  color: var(--color-danger);
-  background: var(--color-danger-soft);
+.tabs__link:first-child[aria-current]::after {
+  left: 0;
 }
 
-.event-status--ended {
+.tabs__link:focus-visible {
+  outline-offset: -3px;
+  box-shadow: none;
+}
+
+@media (hover: hover) {
+  .tabs__link:hover:not([aria-current]) {
+    color: var(--color-link) !important;
+    text-decoration: underline !important;
+  }
+}
+
+.event-scope-tabs .tabs {
+  margin-bottom: var(--space-3);
+}
+
+/* ==== Key information (KeyInformation) ==== */
+.key-information dl {
+  display: grid;
+  margin: 0;
+  padding: 0 var(--space-4);
+}
+
+.key-information dl > div {
+  display: grid;
+  grid-template-columns: minmax(6.5rem, 0.45fr) minmax(0, 1fr);
+  gap: var(--space-3);
+  padding-block: var(--space-2);
+  border-bottom: 1px solid var(--color-border);
+  font-size: var(--text-sm);
+}
+
+.key-information dl > div:last-child {
+  border-bottom: 0;
+}
+
+.key-information dt {
   color: var(--color-muted);
-  background: var(--color-canvas);
 }
 
-.event-pill-list {
+.key-information dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+/* ==== Sidebar (DirectorySidebar on the home page) ====
+   A light column with the viewer's school and the schools they follow
+   (reference sheet 12). It holds no section links; the header is the one
+   global navigation. A school name that does not fit ends in an ellipsis.
+   Every grid here uses a minmax(0, 1fr) column: an auto column grows to fit
+   an unwrapped name, so the ellipsis would never apply. Hidden below the
+   tablet width. */
+.directory-sidebar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-5);
+  align-content: start;
+  min-width: 0;
+  font-size: var(--text-sm);
+}
+
+.directory-sidebar__block {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.directory-sidebar__block + .directory-sidebar__block {
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
+}
+
+.directory-sidebar__block h2 {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.directory-sidebar__followed {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.125rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.directory-sidebar__followed a,
+.directory-sidebar__home {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
+  min-width: 0;
+  min-height: 2.25rem;
+  align-items: center;
+  gap: var(--space-2);
+  border-radius: var(--radius-small);
+  padding: var(--space-1) var(--space-2);
+  color: var(--color-text) !important;
+  font-weight: 500;
+  text-decoration: none !important;
 }
 
-.event-pill {
-  border: 1px solid var(--color-border);
-  border-radius: 0.45rem;
-  padding: 0.2rem 0.55rem;
-  background: var(--color-panel);
-  font-size: 0.8125rem;
-  font-weight: 750;
+@media (hover: hover) {
+  .directory-sidebar__followed a:hover,
+  .directory-sidebar__home:hover {
+    background: var(--color-subtle);
+  }
+
+  .directory-sidebar__followed a:hover > span:last-child,
+  .directory-sidebar__home:hover strong {
+    text-decoration: underline;
+  }
 }
 
-.event-pill svg {
+.directory-sidebar__followed a:focus-visible,
+.directory-sidebar__home:focus-visible {
+  outline-offset: -3px;
+  box-shadow: none;
+}
+
+.directory-sidebar__home {
+  min-height: 3rem;
+}
+
+.directory-sidebar__home .school-directory-mark {
+  width: 2.25rem;
+  height: 2.25rem;
+  font-size: var(--text-sm);
+}
+
+.directory-sidebar__home > span:last-child {
+  display: grid;
+  min-width: 0;
+}
+
+.directory-sidebar__home strong,
+.directory-sidebar__home small,
+.directory-sidebar__followed a > span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.directory-sidebar__home small {
+  color: var(--color-muted);
+  font-size: var(--text-xs);
+}
+
+.directory-sidebar__followed-mark {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: var(--radius-small);
+  font-size: var(--text-xs);
+}
+
+.directory-sidebar__empty {
+  margin: 0;
+  color: var(--color-muted);
+}
+
+@media (max-width: 56rem) {
+  .directory-sidebar {
+    display: none;
+  }
+}
+
+/* ==== Notices ==== */
+
+/* The banner after an action ("RSVP saved."): a tinted bar with an icon and a
+   colored left edge, so the result is hard to miss. */
+.page-notice {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: 0 0 var(--space-5);
+  border: 0;
+  border-left: 5px solid;
+  padding: var(--space-3) var(--space-4);
+  color: var(--color-text);
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.page-notice svg {
   flex: none;
 }
 
-.event-pill:has(svg) {
+.page-notice p {
+  margin: 0;
+}
+
+.page-notice--success {
+  border-color: var(--color-success);
+  background: var(--color-success-soft);
+}
+
+.page-notice--success svg {
+  color: var(--color-success);
+}
+
+.page-notice--danger {
+  border-color: var(--color-danger);
+  background: var(--color-danger-soft);
+}
+
+.page-notice--danger svg {
+  color: var(--color-danger);
+}
+
+/* A filled note with an icon, for reassurance or a heads-up that is not an
+   alert. */
+.callout {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  margin: 0;
+  border-left: 4px solid var(--color-link);
+  padding: var(--space-3) var(--space-4);
+  color: var(--color-text);
+  background: var(--color-primary-soft);
+}
+
+.callout svg {
+  flex: none;
+  margin-top: 0.125rem;
+  color: var(--color-link);
+}
+
+.callout p {
+  margin: 0;
+}
+
+.callout--with-action {
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.callout--with-action p {
+  flex: 1 1 16rem;
+}
+
+.callout__action {
+  flex: none;
+}
+
+/* ==== Small pieces ==== */
+
+/* A link or label that ends (or starts) with a Lucide arrow. */
+.with-arrow {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
 }
 
-/* Event facts (EventFacts): each kind of fact has its own color and icon.
-   Format keeps the neutral pill. */
-.event-pill--type {
-  border-color: #cfd9fa;
-  color: var(--color-primary-dark);
-  background: var(--color-primary-soft);
+.with-arrow svg {
+  flex: none;
 }
 
-.event-pill--audience {
-  border-color: #ecd98a;
-  color: #5c4300;
-  background: var(--color-accent-soft);
+/* Going and interested counts on an event row. */
+.event-counts {
+  display: contents;
 }
 
-.event-pill--cost {
-  border-color: #bfdfc7;
-  color: var(--color-success);
-  background: var(--color-success-soft);
+.event-counts span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3125rem;
+  white-space: nowrap;
 }
 
-/* Team mark: the initial tile shown beside a team name. */
-.team-mark {
-  display: inline-grid;
-  width: 2.75rem;
-  height: 2.75rem;
-  place-items: center;
-  border: 1px solid #cfd9fa;
-  border-radius: 0.75rem;
-  color: var(--color-primary);
-  background: var(--color-primary-soft);
-  font-weight: 850;
+/* A link shown as selectable monospace text with a quiet copy button. */
+.copy-link {
+  display: grid;
+  gap: var(--space-2);
 }
 
-/* The same size as the large school mark, so detail-page headers line up. */
-.team-mark--large {
-  width: 4rem;
-  height: 4rem;
-  border-radius: 1rem;
-  font-size: 1.5rem;
+.copy-link label {
+  font-size: var(--text-sm);
+  font-weight: 600;
 }
 
-@media (max-width: 42rem) {
-  .team-mark--large {
-    width: 3.5rem;
-    height: 3.5rem;
-    border-radius: 0.875rem;
-    font-size: 1.25rem;
+.copy-link__url {
+  display: block;
+  overflow-x: auto;
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-small);
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-subtle);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: var(--text-sm);
+  white-space: nowrap;
+}
+
+.copy-link__button {
+  justify-self: start;
+}
+
+/* A password input with its show/hide button beside it. */
+.password-input {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.password-input input {
+  flex: 1 1 14rem;
+}
+
+.password-input__toggle {
+  min-height: 2.5rem;
+  font-size: var(--text-sm);
+}
+
+/* A person in a list: avatar, then name over a line of detail. */
+.person {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.person__text {
+  display: grid;
+  min-width: 0;
+}
+
+.person__text small {
+  color: var(--color-muted);
+}
+
+/* Help text under a checkbox lines up with the label beside the box. */
+.checkbox-field + .form-help {
+  margin: calc(var(--space-2) * -1) 0 0;
+  padding-left: var(--space-6);
+}
+
+/* ==== People lists ====
+   Everyone on a full page of attendees or members, and the first few in a
+   card on the page of the event, school, or team they belong to. */
+.people-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr));
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--color-card-border);
+  border-radius: var(--radius-panel);
+  background: var(--color-card);
+  list-style: none;
+}
+
+/* Each row draws its divider on top; the first row's sits under the list's
+   own edge and is clipped, so no row doubles the panel border. */
+.people-list {
+  overflow: hidden;
+}
+
+.people-list > li {
+  min-width: 0;
+  margin-top: -1px;
+  padding: var(--space-3) var(--space-4);
+  border-top: 1px solid var(--color-border);
+}
+
+/* In a card, the card is the frame: plain rows, two to a line. */
+.detail-card .people-list {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 13rem), 1fr));
+  gap: 0 var(--space-5);
+  border: 0;
+  border-radius: 0;
+  padding: var(--space-2) var(--space-4);
+}
+
+.detail-card .people-list > li {
+  margin-top: 0;
+  padding: var(--space-2) 0;
+  border-top: 0;
+}
+
+.people-note {
+  margin: 0;
+  color: var(--color-muted);
+}
+
+.detail-card .people-note {
+  padding: var(--space-4);
+}
+
+.people-heading {
+  margin-bottom: var(--space-5);
+}
+
+.people-heading h1 {
+  margin: 0 0 var(--space-2);
+}
+
+.people-heading .lede {
+  margin: 0;
+}
+
+.people-tabs {
+  margin-bottom: var(--space-4);
+}
+
+.school-people {
+  margin-top: var(--space-6);
+}
+
+@media (pointer: coarse), (max-width: 42rem) {
+  .people-pagination a,
+  .people-list .person__text a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
   }
-
-  .event-card-heading {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .event-list-item {
-    grid-template-columns: 3rem minmax(0, 1fr);
-  }
-
-  .event-card-action {
-    grid-column: 2;
-  }
 }
 
-/* Report forms appear on both the event page and public profiles. */
+/* ==== Reporting ====
+   A quiet line at the end of a page that opens the report form on demand. A
+   visitor who is not signed in sees a log-in link in its place. */
 .report-form {
-  margin-top: 0.75rem;
+  margin-top: var(--space-3);
 }
 
-/* Reporting is available but out of the way: a quiet line that opens the
-   form, closed until someone asks for it. The event page and public profiles
-   share it. A visitor who is not signed in sees the same line as a link to log
-   in (`.safety-prompt`). The opened form is plain fields on the page, not a
-   card. */
 .safety-details,
 .safety-prompt {
-  margin: 1.5rem 0 0;
-  padding-top: 0.5rem;
+  margin: var(--space-5) 0 0;
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
 }
 
 .safety-details summary,
@@ -292,11 +1007,12 @@
   align-items: center;
   gap: 0.4rem;
   color: var(--color-muted);
-  font-size: 0.8125rem;
-  font-weight: 650;
+  font-size: var(--text-sm);
+  font-weight: 500;
   cursor: pointer;
   list-style: none;
-  text-decoration: none;
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
 }
 
 .safety-details summary::-webkit-details-marker {
@@ -315,26 +1031,12 @@
   }
 }
 
-.safety-link:focus-visible {
-  text-decoration: underline;
-}
-
-@media (hover: hover) {
-  .safety-link:hover {
-    text-decoration: underline;
-  }
-}
-
 .safety-details[open] summary {
-  margin-bottom: 0.75rem;
+  margin-bottom: var(--space-3);
 }
 
 .safety-details .form-stack {
-  margin: 0;
-  border: 0;
-  border-radius: 0;
-  padding: 0;
-  background: transparent;
+  max-width: 40rem;
 }
 
 .safety-details .form-stack > button {
@@ -348,708 +1050,2853 @@
   }
 }
 
-/* A filled note with an icon: darker than the page, no border. */
-.callout {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.75rem;
-  margin: 0;
-  border-radius: var(--radius-control);
-  padding: 0.85rem 1rem;
-  color: var(--color-text);
-  background: var(--color-callout);
-  font-size: 0.9375rem;
-  line-height: 1.5;
-}
-
-.callout svg {
-  flex: none;
-  width: 1.25rem;
-  height: 1.25rem;
-  margin-top: 0.1rem;
-}
-
-.callout p {
-  margin: 0;
-}
-
-/* A control beside the note, such as a log-in button. It drops below the text
-   when the note is narrow. */
-.callout--with-action {
-  flex-wrap: wrap;
-  align-items: center;
-}
-
-.callout--with-action p {
-  flex: 1 1 14rem;
-}
-
-.callout__action {
-  flex: none;
-}
-
-/* Text for assistive technology only. */
-.visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: -1px;
-  padding: 0;
-  overflow: hidden;
-  border: 0;
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
-
-/* A link shown as selectable monospace text with a quiet copy button. */
-.copy-link {
+/* ==== Game picker ====
+   The picker's own pieces (combobox, results, added games) are under
+   "Pickers" further down. */
+.game-picker {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 0.15rem 0.75rem;
-  padding: 1rem 1.1rem;
+  gap: var(--space-2);
 }
 
-.copy-link label {
-  grid-column: 1;
-  font-size: 0.9375rem;
-  font-weight: 750;
+/* ==== Form pages ====
+   Create and edit pages (events, teams): breadcrumbs, then a numbered,
+   sticky section nav at the left beside the heading and one form column
+   (reference sheet 10). Below the desktop width the nav is hidden and the
+   form fills the column. */
+.form-page__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-6);
+  align-items: start;
 }
 
-.copy-link__url {
-  grid-column: 1;
-  width: 100%;
+.form-page__body {
+  display: grid;
+  gap: var(--space-4);
   min-width: 0;
-  border: 0;
-  border-radius: 0.25rem;
-  padding: 0.15rem 0;
-  color: var(--color-muted);
-  background: transparent;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 0.8125rem;
-  text-overflow: ellipsis;
+  max-width: 48rem;
 }
 
-.copy-link__button {
-  grid-column: 2;
-  grid-row: 1 / span 2;
-  gap: 0.4rem;
-  padding-inline: 0.8rem;
-  font-size: 0.8125rem;
-  white-space: nowrap;
+.form-page__body > .page-heading {
+  margin-bottom: var(--space-2);
 }
 
-/* A password input with its show/hide button beside it. The button drops
-   below the field when the form is narrow. */
-.password-input {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: stretch;
-  gap: 0.5rem;
+.form-section-nav {
+  display: none;
 }
 
-.password-input input {
-  flex: 1 1 8rem;
-}
+@media (min-width: 64rem) {
+  .form-page__layout {
+    grid-template-columns: 15rem minmax(0, 48rem);
+  }
 
-.password-input__toggle {
-  flex: none;
-  gap: 0.4rem;
-  padding-inline: 0.8rem;
-  font-size: 0.8125rem;
-  font-weight: 650;
-  white-space: nowrap;
-}
-
-/* A link or label that ends (or starts) with a Lucide arrow. */
-.with-arrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-}
-
-.with-arrow svg {
-  flex: none;
-  transition: transform 120ms ease;
-}
-
-@media (hover: hover) {
-  .card:hover .event-card-action svg,
-  .card:hover .directory-row__action svg {
-    transform: translateX(2px);
+  .form-section-nav {
+    position: sticky;
+    top: var(--space-5);
+    display: block;
   }
 }
 
-/* Going and interested counts on an event row. */
-.event-counts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.1rem 1rem;
-  margin-top: 0.15rem;
+.form-section-nav__heading {
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-lg);
+  font-weight: 700;
 }
 
-.event-counts span {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-}
-
-/* A person in a list: avatar, then name over a line of detail. */
-.person {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  min-width: 0;
-}
-
-.person__text {
+.form-section-nav ol {
   display: grid;
-  min-width: 0;
-}
-
-.person__text small {
-  color: var(--color-muted);
-}
-
-/* Help text under a checkbox lines up with the label beside the box. */
-.checkbox-field + .form-help {
-  margin: -0.5rem 0 0;
-  padding-left: 2.25rem;
-  font-size: 0.8125rem;
-}
-
-/* People lists: everyone on a full page of attendees or members, and the first
-   few in a card on the page of the event, school, or team they belong to. */
-.people-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr));
-  gap: 0.75rem;
+  gap: var(--space-1);
   margin: 0;
   padding: 0;
   list-style: none;
+  counter-reset: form-section;
 }
 
-.people-list > li {
-  min-width: 0;
-  border: 1px solid var(--color-card-border);
-  border-radius: var(--radius-panel);
-  padding: 0.75rem 1rem;
-  background: var(--color-card);
+.form-section-nav li {
+  counter-increment: form-section;
 }
 
-/* In a card, the card is the frame: plain rows, two to a line. */
-.detail-card .people-list {
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 13rem), 1fr));
-  gap: 0 1.5rem;
-  padding: 0.35rem 1.1rem 0.5rem;
-}
-
-.detail-card .people-list > li {
-  border: 0;
-  border-radius: 0;
-  padding: 0.55rem 0;
-  background: transparent;
-}
-
-.people-note {
-  margin: 0;
-  color: var(--color-muted);
-}
-
-.detail-card .people-note {
-  padding: 1rem 1.1rem;
-}
-
-.people-card {
-  margin-top: 2rem;
-}
-
-.people-card .detail-card-body {
-  padding-top: 0.5rem;
-}
-
-.people-heading {
-  margin-bottom: 1.5rem;
-}
-
-.people-heading h1 {
-  max-width: 50rem;
-  margin-block: 0 0.5rem;
-  font-size: clamp(1.875rem, 4.5vw, 2.75rem);
-  line-height: 1.1;
-  letter-spacing: -0.025em;
-}
-
-.people-heading .lede {
-  margin: 0;
-  font-size: 1rem;
-}
-
-.people-tabs {
-  margin-bottom: 1.5rem;
-}
-
-/* The people section of a school page sits under its events and teams. */
-.school-people {
-  margin-top: 2.5rem;
-}
-
-.school-people .section-heading {
-  margin-bottom: 0.75rem;
-}
-
-.school-people .section-heading h2 {
-  font-size: 1.35rem;
-}
-
-@media (pointer: coarse), (max-width: 42rem) {
-  .people-pagination a,
-  .people-list .person__text a {
-    display: inline-flex;
-    align-items: center;
-    min-height: 2.75rem;
-  }
-
-  .people-list > li {
-    padding-block: 0.4rem;
-  }
-
-  .detail-card .people-list > li {
-    padding-block: 0.25rem;
-  }
-}
-
-/* The banner after an action ("RSVP saved."): a tinted bar with an icon, set
-   apart from the page so the result is hard to miss. */
-.page-notice {
+.form-section-nav a {
   display: flex;
+  min-height: 2.5rem;
   align-items: center;
-  gap: 0.75rem;
-  margin: 0 0 1.5rem;
-  border: 1px solid;
-  border-radius: var(--radius-control);
-  padding: 0.9rem 1.1rem;
-  font-size: 1rem;
+  gap: var(--space-3);
+  border-radius: var(--radius-small);
+  padding: var(--space-1) var(--space-2);
+  color: var(--color-text) !important;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  text-decoration: none !important;
+}
+
+.form-section-nav a::before {
+  display: inline-grid;
+  flex: none;
+  width: 1.5rem;
+  height: 1.5rem;
+  place-items: center;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 999px;
+  color: var(--color-muted);
+  background: var(--color-surface);
+  content: counter(form-section);
+  font-size: var(--text-xs);
   font-weight: 700;
+}
+
+.form-section-nav li:first-child a {
+  color: var(--color-tag-text) !important;
+  background: var(--color-tag);
+  font-weight: 700;
+}
+
+.form-section-nav li:first-child a::before {
+  border-color: var(--color-primary);
+  color: #fff;
+  background: var(--color-primary);
+}
+
+@media (hover: hover) {
+  .form-section-nav a:hover {
+    background: var(--color-subtle);
+  }
+}
+
+.form-section-nav a:focus-visible {
+  outline-offset: -3px;
+  box-shadow: none;
+}
+
+/* Choice cards: a radio group drawn as cards (event visibility). The radios
+   are native inputs inside labels, so the group works without JavaScript;
+   :has() adds the selected and focus treatments. */
+.choice-group {
+  display: block;
+  min-width: 0;
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+
+.choice-group > legend {
+  margin-bottom: var(--space-2);
+  padding: 0;
+  font-weight: 600;
+}
+
+.choice-group .form-error {
+  margin: var(--space-2) 0 0;
+}
+
+.choice-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.choice-card {
+  display: grid !important;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-content: start;
+  align-items: center;
+  gap: var(--space-1) var(--space-2) !important;
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-control);
+  padding: var(--space-3);
+  background: var(--color-panel);
+  cursor: pointer;
+  font-weight: 400 !important;
+}
+
+.choice-card input[type="radio"] {
+  cursor: pointer;
+}
+
+.choice-card-title {
+  font-weight: 700;
+}
+
+.choice-card-hint {
+  grid-column: 1 / -1;
+  color: var(--color-muted);
+  font-size: var(--text-sm);
   line-height: 1.4;
 }
 
-.page-notice svg {
-  flex: none;
-}
-
-.page-notice p {
-  margin: 0;
-}
-
-.page-notice--success {
-  border-color: #bad9c2;
-  color: var(--color-success);
-  background: var(--color-success-soft);
-}
-
-.page-notice--danger {
-  border-color: #e9bdb6;
-  color: var(--color-danger-dark);
-  background: var(--color-danger-soft);
-}
-
-/* Game picker: IGDB search results and the games added from them. */
-.game-picker {
-  display: grid;
-  gap: 0.5rem;
-}
-
-.game-picker__list {
-  display: grid;
-  gap: 0.5rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.game-picker__list li {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-}
-
-/* Detail-page header: Breadcrumbs, then PageHeading (identity mark, title,
-   supporting line, tags, and actions), then the page's Tabs. The event,
-   school, and team pages share it. */
-.breadcrumbs {
-  margin-bottom: 1.25rem;
-}
-
-.breadcrumbs ol {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.25rem 0.4rem;
-  margin: 0;
-  padding: 0;
-  color: var(--color-muted);
-  font-size: 0.875rem;
-  font-weight: 650;
-  list-style: none;
-}
-
-.breadcrumbs li {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  min-width: 0;
-}
-
-.breadcrumbs a {
-  color: var(--color-muted);
-  text-decoration: none;
-}
-
-.breadcrumbs a:focus-visible {
-  color: var(--color-text);
-  text-decoration: underline;
-}
-
 @media (hover: hover) {
-  .breadcrumbs a:hover {
-    color: var(--color-text);
-    text-decoration: underline;
+  .choice-card:hover {
+    border-color: var(--color-primary);
   }
 }
 
-.breadcrumbs [aria-current="page"] {
-  overflow: hidden;
+.choice-card:has(input:checked) {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+  box-shadow: inset 0 0 0 1px var(--color-primary);
+}
+
+.choice-card:has(input:checked) .choice-card-hint {
   color: var(--color-text);
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-.breadcrumbs__separator {
-  flex: none;
-}
+@supports selector(:has(*)) {
+  .choice-card:has(input:focus-visible) {
+    outline: 3px solid var(--color-focus);
+    outline-offset: 0;
+    box-shadow: 0 0 0 6px var(--color-text);
+  }
 
-.detail-heading {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 1.25rem 1.5rem;
-  padding-bottom: 1.5rem;
-}
-
-.detail-heading:not(:has(.detail-heading__identity)) {
-  grid-template-columns: minmax(0, 1fr) auto;
-}
-
-.detail-heading__identity {
-  display: flex;
-  align-self: start;
-}
-
-.detail-heading__identity .calendar-date {
-  width: 4.5rem;
-}
-
-.detail-heading__body {
-  display: grid;
-  gap: 0.5rem;
-  min-width: 0;
-}
-
-.detail-heading__title {
-  max-width: 50rem;
-  margin: 0;
-  font-size: clamp(1.875rem, 4.5vw, 2.75rem);
-  line-height: 1.1;
-  letter-spacing: -0.03em;
-}
-
-.detail-heading__supporting {
-  margin: 0;
-  color: var(--color-muted);
-  font-size: 0.9375rem;
-}
-
-.detail-heading__tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.detail-heading__actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 0.5rem 1.25rem;
-}
-
-.detail-heading__actions form {
-  display: grid;
-  gap: 0.5rem;
-  margin: 0;
-}
-
-.detail-heading__actions .link {
-  font-size: 0.9375rem;
-  font-weight: 750;
+  .choice-card input:focus-visible {
+    outline: none;
+    box-shadow: none;
+  }
 }
 
 @media (max-width: 42rem) {
-  .detail-heading {
-    grid-template-columns: auto minmax(0, 1fr);
-    gap: 1rem;
-  }
-
-  .detail-heading:not(:has(.detail-heading__identity)) {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .detail-heading__identity .calendar-date {
-    width: 3.5rem;
-  }
-
-  /* On a phone the actions drop below the heading, aligned to its start. */
-  .detail-heading__actions {
-    grid-column: 1 / -1;
-    justify-content: flex-start;
-  }
-}
-
-@media (pointer: coarse), (max-width: 42rem) {
-  .breadcrumbs a {
-    display: inline-flex;
-    align-items: center;
-    min-height: 2.75rem;
-  }
-}
-
-/* Tabs (Tabs and TabLink): underline section links. Near-black text; the
-   current tab carries aria-current and a 3px primary-blue underline. The
-   school sections, the event attendee lists, and the events directory's
-   scope tabs use it, and any later set of section tabs should reuse it. */
-.tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0 1.75rem;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.tabs__link {
-  position: relative;
-  display: inline-flex;
-  min-height: 3rem;
-  align-items: center;
-  color: var(--color-text);
-  font-size: 0.875rem;
-  font-weight: 700;
-  text-decoration: none;
-}
-
-.tabs__link[aria-current] {
-  font-weight: 800;
-}
-
-.tabs__link[aria-current]::after {
-  position: absolute;
-  right: 0;
-  bottom: -1px;
-  left: 0;
-  height: 3px;
-  background: var(--color-primary);
-  content: "";
-}
-
-@media (hover: hover) {
-  .tabs__link:not([aria-current]):hover {
-    color: var(--color-primary);
-  }
-}
-
-/* The events directory's scope tabs (EventScopeTabs) sit between the filter
-   bar and the results. */
-.event-scope-tabs {
-  margin-bottom: 1rem;
-}
-
-/* Key information (KeyInformation): a detail card whose facts are a
-   description list, each term beside its value, stacked on a phone. */
-.key-information dl {
-  margin: 0;
-  padding-block: 0.25rem;
-}
-
-.key-information dl > div {
-  display: grid;
-  grid-template-columns: minmax(6rem, 0.45fr) minmax(0, 1fr);
-  gap: 0.25rem 1rem;
-  padding: 0.75rem 1.1rem;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.key-information dl > div:last-child {
-  border-bottom: 0;
-}
-
-.key-information dt {
-  color: var(--color-muted);
-}
-
-.key-information dd {
-  margin: 0;
-  font-weight: 750;
-  overflow-wrap: anywhere;
-}
-
-@media (max-width: 42rem) {
-  .key-information dl > div {
+  .choice-cards {
     grid-template-columns: 1fr;
   }
 }
 
-/* ==== Directory sidebar (DirectorySidebar) ====
-   From the tablet breakpoint up, the event, team, and school directories have
-   a light left column: links to the three directories (the current one
-   marked), then the viewer's school and followed schools. The sidebar is the
-   first child of `main.directory-page` and floats left; every other child
-   keeps clear of it. Below the breakpoint it is hidden and the header is the
-   navigation, so the page is one column and nothing scrolls sideways. */
-.directory-sidebar {
-  display: grid;
-  width: 13rem;
-  max-width: 100%;
-  align-content: start;
-  gap: 1.25rem;
-  font-size: 0.875rem;
+/* ==== Route states (loading skeleton, error, not found) ==== */
+
+/* ==== Error and not-found panels ==== */
+
+.route-state {
+  margin-top: var(--space-6);
 }
 
-.directory-page > .directory-sidebar {
+.route-state__panel {
+  max-width: 40rem;
+  padding: var(--space-6);
+}
+
+.route-state__panel h1 {
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-2xl);
+  line-height: 1.2;
+}
+
+.route-state__panel p {
+  max-width: var(--measure-width);
+}
+
+.route-state__kicker {
+  margin: 0 0 var(--space-2);
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.route-state__panel .actions {
+  margin-top: var(--space-5);
+}
+
+/* ==== Loading placeholders ==== */
+
+.route-pending {
+  margin-top: var(--space-6);
+}
+
+.route-pending__shapes {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.route-pending__bar {
+  border-radius: var(--radius-control);
+  background: var(--color-border);
+}
+
+.route-pending__bar--title {
+  width: min(16rem, 60%);
+  height: 2rem;
+}
+
+.route-pending__bar--lede {
+  width: min(28rem, 85%);
+  height: 1rem;
+}
+
+.route-pending__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-block: var(--space-3);
+  border: 1px solid var(--color-card-border);
+  border-radius: var(--radius-panel);
+  padding: var(--space-4);
+  background: var(--color-surface);
+}
+
+.route-pending__bar--field {
+  flex: 1 1 10rem;
+  height: 2.5rem;
+}
+
+.route-pending__bar--button {
+  flex: 0 0 6rem;
+  height: 2.5rem;
+}
+
+.route-pending__list {
+  overflow: hidden;
+  border: 1px solid var(--color-card-border);
+  border-radius: var(--radius-panel);
+  background: var(--color-surface);
+}
+
+.route-pending__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4);
+}
+
+.route-pending__row + .route-pending__row {
+  border-top: 1px solid var(--color-card-border);
+}
+
+.route-pending__bar--tile {
+  flex: 0 0 3rem;
+  height: 3rem;
+}
+
+.route-pending__lines {
+  display: grid;
+  flex: 1;
+  gap: var(--space-2);
+}
+
+.route-pending__bar--name {
+  width: min(18rem, 70%);
+  height: 1rem;
+}
+
+.route-pending__bar--detail {
+  width: min(12rem, 45%);
+  height: 0.75rem;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .route-pending__bar {
+    background: linear-gradient(
+      90deg,
+      var(--color-border) 25%,
+      var(--color-subtle) 50%,
+      var(--color-border) 75%
+    );
+    background-size: 200% 100%;
+    animation: route-pending-shimmer 1.4s ease-in-out infinite;
+  }
+}
+
+@keyframes route-pending-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+/* ==== Images (fail-soft covers, reserved boxes) ==== */
+
+.event-game-thumb,
+.detail-hero__cover {
+  aspect-ratio: 3 / 4;
+  height: auto;
+}
+
+.event-game-thumb {
+  flex: none;
+}
+
+.avatar {
+  aspect-ratio: 1;
+}
+
+/* ==== Accessibility modes (forced colors, reduced motion, target sizes) ==== */
+
+/* ==== Target size (WCAG 2.5.8) ====
+   Standalone text links and disclosure summaries render 21px tall; grow
+   their hit area to 24px without changing how the text sits. */
+.panel__header a,
+.section-heading a,
+.text-action,
+.with-arrow,
+.safety-link,
+.back-link,
+.safety-details summary,
+.settings-nav a,
+.breadcrumbs a,
+summary,
+.link {
+  min-height: 1.5rem;
+}
+
+.breadcrumbs a,
+.panel__header a,
+.section-heading a,
+.text-action,
+a.link {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Checkboxes and radios were 20px. */
+input[type="checkbox"],
+input[type="radio"] {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+/* ==== Motion ====
+   The shared reset in styles.css stops transitions and smooth scrolling; also
+   stop animations. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
+/* ==== Windows High Contrast / forced colors ====
+   Forced colors drops backgrounds, box-shadows and gradients, so anything
+   that carried meaning through them is redrawn with borders, outlines, or
+   underlines in system colors. */
+@media (forced-colors: active) {
+  :focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible,
+  .site-header nav a:not(.button):focus-visible,
+  .site-header nav button:not(.account-menu__item):focus-visible {
+    outline: 3px solid Highlight;
+    outline-offset: 2px;
+    box-shadow: none;
+  }
+
+  .directory-row:focus-visible,
+  .tabs__link:focus-visible,
+  .form-section-nav a:focus-visible,
+  .directory-sidebar a:focus-visible,
+  .site-header nav a:not(.button):focus-visible {
+    outline-offset: -3px;
+  }
+
+  /* Tags: a transparent border is forced away, so draw it. */
+  .tag {
+    border: 1px solid CanvasText;
+    forced-color-adjust: none;
+    color: CanvasText;
+    background: Canvas;
+  }
+
+  .tag--success,
+  .tag--danger {
+    border-width: 2px;
+  }
+
+  .tag--warning {
+    border-style: dashed;
+  }
+
+  /* The selected RSVP choice keeps its fill and a heavier edge. */
+  .rsvp-form .rsvp-buttons > button {
+    border: 1px solid ButtonText;
+  }
+
+  .rsvp-form.rsvp-form .rsvp-buttons > button[aria-pressed="true"][value] {
+    border: 3px solid Highlight;
+    color: HighlightText;
+    background: Highlight;
+    forced-color-adjust: none;
+  }
+
+  .rsvp-form .rsvp-buttons > button:disabled:not([aria-pressed="true"]) {
+    border-color: GrayText;
+    color: GrayText;
+  }
+
+  /* Current tab: the 4px underline is a background. */
+  .tabs__link[aria-current]::after {
+    background: Highlight;
+    forced-color-adjust: none;
+  }
+
+  .tabs__link[aria-current] {
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 0.35em;
+  }
+
+  /* Current nav item: its accent was an inset box-shadow. */
+  .site-header nav a:not(.button)[aria-current="page"],
+  .site-header nav .account-menu .account-menu__item[aria-current="page"] {
+    text-decoration: underline;
+    text-decoration-thickness: 3px;
+    text-underline-offset: 0.3em;
+    border-bottom: 3px solid Highlight;
+  }
+
+  .settings-nav a[aria-current="page"],
+  .breadcrumbs [aria-current="page"] {
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+  }
+
+  .settings-nav a[aria-current="page"] {
+    border: 2px solid Highlight;
+  }
+
+  /* Calendar tile: the red top edge is a border, but forced colors recolors
+     it to match the others, so keep it heavier and in Highlight. */
+  .calendar-date {
+    border: 1px solid CanvasText;
+    border-top: 6px solid Highlight;
+    forced-color-adjust: none;
+    color: CanvasText;
+    background: Canvas;
+  }
+
+  .calendar-date__month {
+    color: CanvasText;
+  }
+
+  /* Detail hero: its navy field is a background. */
+  .detail-hero {
+    border: 2px solid CanvasText;
+    forced-color-adjust: none;
+    color: CanvasText;
+    background: Canvas;
+  }
+
+  .detail-hero__tile,
+  .detail-hero__cover {
+    border: 2px solid CanvasText;
+    forced-color-adjust: none;
+    color: CanvasText;
+    background: Canvas;
+  }
+
+  .detail-hero__meta {
+    color: CanvasText;
+  }
+
+  /* The hero's white title, links and chips were set for the navy field, so
+     they vanish on Canvas. Restate them in system colors. */
+  .detail-hero :is(h1, h2, h3) {
+    color: CanvasText;
+  }
+
+  .detail-hero a:not(.button) {
+    color: LinkText;
+  }
+
+  .detail-hero .tag {
+    border-color: CanvasText;
+    color: CanvasText;
+    background: Canvas;
+  }
+
+  /* Selected choice cards: the fill and inset ring go away. */
+  .choice-card:has(input:checked) {
+    border: 3px solid Highlight;
+  }
+
+  /* Panels and rows rely on borders, which survive; make sure dividers do. */
+  .panel,
+  .detail-card,
+  .list-item,
+  .directory-row {
+    border-color: CanvasText;
+  }
+}
+
+/* ==== Print ==== */
+
+@media print {
+  @page {
+    size: auto;
+    margin: 16mm 14mm;
+  }
+
+  html,
+  body {
+    background: #fff !important;
+    color: #000 !important;
+    font-size: 11pt;
+    line-height: 1.4;
+  }
+
+  *,
+  *::before,
+  *::after {
+    background-image: none !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  /* Chrome, navigation, and controls that do nothing on paper. */
+  .skip-link,
+  .site-header,
+  .site-footer,
+  .site-nav,
+  .breadcrumbs,
+  [aria-label="Breadcrumb"],
+  .tabs,
+  .people-tabs,
+  .pagination,
+  .search-bar,
+  .filter-toolbar,
+  .button,
+  .results-heading .button,
+  .directory-sidebar,
+  .directory-row__action,
+  .event-header__rsvp,
+  .rsvp-help,
+  .event-manage,
+  .safety-details,
+  .actions,
+  .form-actions,
+  .copy-link,
+  .text-action,
+  .link.with-arrow,
+  .detail-card-body > .link,
+  .detail-hero__cover,
+  .policy-contents,
+  .back-to-top,
+  .faq-topics,
+  .faq-copy,
+  button,
+  form,
+  dialog,
+  [role="dialog"],
+  [aria-label="Event sections"],
+  [aria-label="Share"] {
+    display: none !important;
+  }
+
+  /* Keep the detail hero as text: no navy field, just a bordered title. */
+  .detail-hero {
+    background: #fff !important;
+    color: #000 !important;
+    border: 0.75pt solid #000 !important;
+    border-radius: 0 !important;
+    padding: 6pt 8pt !important;
+    min-height: 0 !important;
+    height: auto !important;
+    break-inside: avoid;
+  }
+
+  .detail-hero__tile {
+    display: none !important;
+  }
+
+  .detail-hero,
+  .detail-hero * {
+    color: #000 !important;
+    background: transparent !important;
+  }
+
+  main,
+  .prose,
+  .event-page,
+  .people-page,
+  .directory-page {
+    display: block !important;
+    width: auto !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  h1 {
+    font-size: 20pt;
+  }
+
+  h2 {
+    font-size: 14pt;
+  }
+
+  h1,
+  h2,
+  h3,
+  summary {
+    color: #000 !important;
+    break-after: avoid;
+  }
+
+  a,
+  a:visited {
+    color: #000 !important;
+    text-decoration: underline;
+  }
+
+  /* Print the destination of external links, never navigation or in-page ones. */
+  main a[href^="http"]:not(.button)::after {
+    content: " (" attr(href) ")";
+    font-size: 9pt;
+    font-weight: 400;
+    overflow-wrap: anywhere;
+  }
+
+  /* Panels and cards lose their fills and keep a hairline. */
+  .panel,
+  .detail-card,
+  .empty-state,
+  .layout-detail__aside > *,
+  .callout {
+    background: #fff !important;
+    border: 0.5pt solid #666 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    break-inside: avoid;
+  }
+
+  .tag,
+  .tag-list > * {
+    background: #fff !important;
+    color: #000 !important;
+    border: 0.5pt solid #000 !important;
+  }
+
+  .lede,
+  .policy-version,
+  .people-note,
+  .detail-hero__meta,
+  .detail-card-row small,
+  .directory-row small {
+    color: #000 !important;
+  }
+
+  .team-mark,
+  .school-directory-mark {
+    display: none !important;
+  }
+
+  svg {
+    display: none !important;
+  }
+
+  /* Event page: one column, details first, aside facts after the description. */
+  .layout-detail,
+  .layout-with-sidebar,
+  .event-header {
+    display: block !important;
+  }
+
+  .layout-detail__main,
+  .layout-detail__aside {
+    width: auto !important;
+    max-width: none !important;
+  }
+
+  .layout-detail__aside {
+    margin-top: 12pt;
+  }
+
+  .event-facts {
+    padding: 0;
+    margin: 8pt 0;
+    border: 0 !important;
+    display: block !important;
+  }
+
+  .event-facts li {
+    display: block !important;
+    margin: 0 0 4pt;
+    break-inside: avoid;
+  }
+
+  .event-facts small {
+    display: block;
+  }
+
+  .event-game-cover {
+    display: none !important;
+  }
+
+  .detail-card-row {
+    display: block !important;
+    padding: 4pt 8pt !important;
+    border-bottom: 0.25pt solid #999 !important;
+  }
+
+  .detail-card-row div,
+  .detail-card-row small {
+    display: block !important;
+  }
+
+  /* The share card holds only the copy control, so nothing is left to print. */
+  .detail-card:has(.copy-link) {
+    display: none !important;
+  }
+
+  .organizer-list,
+  .people-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Attendee and member lists: a compact multi-column roster. */
+  .people-list {
+    display: block !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: #fff !important;
+    columns: 3 12rem;
+    column-gap: 18pt;
+  }
+
+  .people-list > li {
+    display: block !important;
+    padding: 3pt 0 !important;
+    border: 0 !important;
+    border-bottom: 0.25pt solid #999 !important;
+    break-inside: avoid;
+  }
+
+  .avatar,
+  .person .avatar {
+    display: none !important;
+  }
+
+  .person {
+    display: block !important;
+  }
+
+  .person__text small,
+  small {
+    color: #000 !important;
+  }
+
+  /* Directory lists: dense rows without tiles or action buttons. */
+  .list {
+    border: 0 !important;
+  }
+
+  .list > *,
+  .directory-row,
+  .list-item {
+    display: block !important;
+    padding: 4pt 0 !important;
+    border: 0 !important;
+    border-bottom: 0.25pt solid #666 !important;
+    background: #fff !important;
+    break-inside: avoid;
+  }
+
+  .directory-row__identity,
+  .directory-row__media {
+    display: none !important;
+  }
+
+  .directory-row__copy,
+  .directory-row__copy > * {
+    display: block;
+  }
+
+  .directory-row__tags {
+    display: inline !important;
+  }
+
+  .directory-row,
+  .directory-row * {
+    color: #000 !important;
+    text-decoration: none !important;
+  }
+
+  .directory-row__name {
+    font-weight: 700;
+  }
+
+  .directory-row__counts {
+    display: block;
+  }
+
+  .directory-row__counts > * {
+    display: inline !important;
+    margin-right: 10pt;
+  }
+
+  /* "5 going" and "19 interested" are separate spans; keep them apart. */
+  .event-counts span {
+    display: inline !important;
+    margin-right: 10pt;
+  }
+
+  /* Directory rows: keep the title with its details. */
+  .directory-row__name {
+    break-after: avoid;
+  }
+
+  /* Text pages: open every FAQ answer. Chromium exposes the closed content of
+     <details> through ::details-content; other engines need the open attribute. */
+  details::details-content {
+    content-visibility: visible !important;
+    display: block !important;
+    height: auto !important;
+  }
+
+  details > summary {
+    font-weight: 700;
+    list-style: none;
+  }
+
+  details > summary::-webkit-details-marker {
+    display: none;
+  }
+
+  details,
+  .faq-group > *,
+  p,
+  li {
+    orphans: 3;
+    widows: 3;
+  }
+
+  details {
+    break-inside: avoid;
+    margin-bottom: 6pt;
+  }
+
+  .prose p,
+  .prose li {
+    max-width: none;
+  }
+}
+
+/* ==== Directory filters (FilterToolbar) ====
+   A search field, then a row of compact filter buttons that each show their
+   value. An applied filter turns blue; a filter a tab has set shows a lock.
+   Each button is a native select or checkbox, so it works without
+   JavaScript, and Apply filters is hidden once the form applies changes
+   itself. */
+.filter-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-3);
+  margin-block: var(--space-4) var(--space-5);
+}
+
+/* The search fields, side by side: one on schools, two (school and game)
+   on events and teams. */
+.filter-toolbar__search {
+  display: grid;
+  flex: 1 1 32rem;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  gap: var(--space-2);
+  max-width: 44rem;
+  min-width: 0;
+}
+
+/* A school a tab has set needs only its own width. */
+.filter-toolbar__search > .filter-pill--locked {
+  justify-self: start;
+}
+
+.filter-toolbar__filters {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+/* Only for pages without JavaScript; the noscript style in the document
+   head shows it. With script every change applies at once. */
+.filter-toolbar__apply {
+  display: none;
+  min-height: 2.5rem;
+  border-radius: 999px;
+}
+
+.filter-toolbar__clear {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: 2.5rem;
+  padding-inline: var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+/* One filter button: the name in muted text, then the value. */
+.filter-pill {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: 2.5rem;
+  max-width: 100%;
+  padding-left: var(--space-3);
+  border: 1px solid var(--color-border-strong);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  font-weight: 400;
+  cursor: pointer;
+}
+
+.filter-pill:hover {
+  border-color: var(--color-text);
+}
+
+.filter-pill__name {
+  color: var(--color-muted);
+  white-space: nowrap;
+}
+
+/* The select fills the rest of the button and sizes to its value. */
+.filter-pill select:not([multiple]) {
+  width: auto;
+  min-width: 0;
+  max-width: 14rem;
+  min-height: 2.375rem;
+  padding: 0 var(--space-6) 0 0;
+  border: 0;
+  border-radius: 999px;
+  background-color: transparent;
+  background-position: right 0.625rem center;
+  color: inherit;
+  font-size: var(--text-md);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  field-sizing: content;
+}
+
+/* The ring goes round the whole button, not the select inside it. */
+.filter-pill select:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+.filter-pill:has(:focus-visible) {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 0;
+  border-color: var(--color-text);
+  box-shadow: inset 0 0 0 1px var(--color-text);
+}
+
+.filter-pill[data-active] {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+  color: var(--color-primary-pressed);
+}
+
+.filter-pill[data-active] .filter-pill__name {
+  color: var(--color-tag-text);
+}
+
+.filter-pill select:disabled {
+  color: var(--color-muted);
+  cursor: not-allowed;
+}
+
+.filter-pill--toggle {
+  gap: var(--space-2);
+  padding-right: var(--space-3);
+  font-size: var(--text-md);
+  font-weight: 600;
+}
+
+.filter-pill--toggle input[type="checkbox"] {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+.filter-pill--toggle input:focus-visible {
+  outline: none;
+}
+
+/* Set by a tab: not a control, so no hover and no pointer. */
+.filter-pill--locked {
+  gap: var(--space-2);
+  padding-right: var(--space-3);
+  border-style: dashed;
+  border-color: var(--color-border-strong);
+  background: var(--color-subtle);
+  color: var(--color-text);
+  cursor: default;
+}
+
+.filter-pill--locked:hover {
+  border-color: var(--color-border-strong);
+}
+
+.filter-pill--locked > svg {
+  flex: none;
+  color: var(--color-muted);
+}
+
+.filter-pill__value {
+  font-size: var(--text-md);
+  font-weight: 600;
+}
+
+/* A rounded search box with a magnifier: the schools name search and the
+   school and game filters share it. */
+.filter-search,
+.search-filter {
+  position: relative;
+  min-width: 0;
+}
+
+.filter-search {
+  display: flex;
+}
+
+.filter-search__icon,
+.search-filter__icon {
+  position: absolute;
+  top: 50%;
+  left: 0.875rem;
+  color: var(--color-muted);
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+.search-filter__icon {
+  top: 1.25rem;
+}
+
+.filter-search input,
+.search-filter input[role="combobox"] {
+  min-height: 2.5rem;
+  padding-left: 2.5rem;
+  border-color: var(--color-border-strong);
+  border-radius: 999px;
+}
+
+.filter-search input {
+  padding-right: 6rem;
+}
+
+.filter-search__submit {
+  position: absolute;
+  top: 0.25rem;
+  right: 0.25rem;
+  bottom: 0.25rem;
+  min-height: 0;
+  padding-inline: var(--space-4);
+  border-radius: 999px;
+}
+
+/* A search filter's results float over the list instead of pushing it. */
+.search-filter__options,
+.search-filter__note {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + var(--space-1));
+  right: 0;
+  left: 0;
+  min-width: min(22rem, calc(100vw - 2rem));
+  margin: 0;
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-panel);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-window);
+}
+
+.search-filter__options {
+  max-height: 20rem;
+  overflow-y: auto;
+  padding: 0;
+  list-style: none;
+}
+
+.search-filter__options[hidden] {
   display: none;
 }
 
-@media (min-width: 48rem) {
-  .directory-page {
-    display: flow-root;
-  }
+.search-filter__options[aria-busy="true"] {
+  opacity: 0.6;
+}
 
-  .directory-page > .directory-sidebar {
-    display: grid;
-    float: left;
-  }
+.search-filter__option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  cursor: pointer;
+}
 
-  /* The sidebar's width plus the gap beside it. */
-  .directory-page > :not(.directory-sidebar),
-  .directory-page > noscript > * {
-    margin-left: 15.5rem;
+.search-filter__option:last-child {
+  border-bottom: 0;
+}
+
+.search-filter__option[aria-selected="true"] {
+  background: var(--color-primary-soft);
+  box-shadow: inset 4px 0 0 var(--color-primary);
+}
+
+.search-filter__option-text {
+  display: grid;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.search-filter__option-text > span {
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+}
+
+.search-filter__mark {
+  flex: none;
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius-small);
+  font-size: var(--text-sm);
+}
+
+.search-filter__note {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  color: var(--color-text);
+  font-size: var(--text-sm);
+}
+
+.search-filter__retry {
+  min-height: 2rem;
+  padding-inline: var(--space-3);
+  font-size: var(--text-sm);
+}
+
+/* A chosen school or game reads as an applied filter: its mark, its name,
+   and a clear button. */
+.search-filter__chosen {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 2.5rem;
+  padding: 0.1875rem 0.25rem 0.1875rem 0.375rem;
+  border: 1px solid var(--color-primary);
+  border-radius: 999px;
+  background: var(--color-primary-soft);
+  color: var(--color-primary-pressed);
+}
+
+.search-filter__chosen .search-filter__mark {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 999px;
+  font-size: var(--text-xs);
+}
+
+/* A game cover is portrait, so it keeps its shape as a small rounded card. */
+.search-filter__chosen .game-tile {
+  width: 1.5rem;
+  height: 2rem;
+  border-radius: var(--radius-small);
+}
+
+.search-filter__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.search-filter__clear {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+}
+
+.search-filter__clear:hover {
+  background: rgba(0, 48, 120, 0.1);
+}
+
+@media (max-width: 42rem) {
+  .filter-toolbar__search {
+    flex-basis: 100%;
+    grid-auto-flow: row;
+    max-width: none;
   }
 }
 
-.directory-sidebar__sections,
-.directory-sidebar__followed {
+@media (forced-colors: active) {
+  .filter-pill[data-active],
+  .search-filter__chosen {
+    border-width: 2px;
+  }
+}
+
+/* ==== Forms (character counts, section nav tracking) ==== */
+
+/* Character count under a long field. The over-limit state also changes the
+   wording, so it never relies on color alone. */
+.character-count {
+  display: block;
+  margin-top: calc(var(--space-1) * -1);
+}
+
+.character-count__hint {
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+  font-weight: 400;
+}
+
+.character-count__hint--over {
+  color: var(--color-danger);
+  font-weight: 600;
+}
+
+/* Section nav: the section in view. The shared sheet highlights the first
+   item statically; that stays for no-JS and is replaced once the nav marks
+   the current one. */
+.form-section-nav[data-tracking] li:first-child a:not([aria-current]) {
+  color: var(--color-text) !important;
+  background: transparent;
+  font-weight: 500;
+}
+
+.form-section-nav[data-tracking] li:first-child a:not([aria-current])::before {
+  border-color: var(--color-border-strong);
+  color: var(--color-muted);
+  background: var(--color-surface);
+}
+
+.form-section-nav a[aria-current] {
+  color: var(--color-tag-text) !important;
+  background: var(--color-tag);
+  font-weight: 700;
+}
+
+.form-section-nav a[aria-current]::before {
+  border-color: var(--color-primary);
+  color: #fff;
+  background: var(--color-primary);
+}
+
+/* ==== Event page actions (share, calendar, time text) ==== */
+
+.nowrap {
+  white-space: nowrap;
+}
+
+.event-facts .calendar-action {
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
+  width: fit-content;
+  margin-top: var(--space-3);
+  white-space: normal;
+  text-align: left;
+}
+
+.event-facts .calendar-action svg {
+  flex: none;
+}
+
+/* ==== Share ====
+   The link wraps its own box (never the page) at 320px; Share and Copy sit
+   side by side, and the confirmation sits under them in plain sight. */
+.copy-link {
+  min-width: 0;
+}
+
+.copy-link__url {
+  width: 100%;
+  min-width: 0;
+  user-select: all;
+}
+
+.copy-link__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.copy-link__button {
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: center;
+}
+
+.copy-link__status {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.copy-link__status:empty {
+  display: none;
+}
+
+.copy-link__status.is-copied {
+  color: var(--color-success);
+}
+
+.copy-link__status.is-failed {
+  border-left: 4px solid var(--color-danger);
+  padding: var(--space-1) var(--space-3);
+  background: var(--color-subtle);
+}
+
+/* ==== Responsive refinements (tap targets, line length) ==== */
+
+/* `.prose > *` caps only direct children, and its 46rem measure is about 90 characters at body
+   size. Paragraphs and lists (including the ones nested in an event description) stop at 68ch,
+   roughly 75 characters, so tablet and desktop widths keep a readable line. */
+.prose p,
+.prose li,
+.prose dd,
+.prose .lede,
+main .event-about p,
+main .home-welcome .lede,
+main > p.lede,
+.page-heading .lede,
+.directory-heading .lede,
+form .form-help {
+  max-inline-size: 68ch;
+}
+
+/* ==== Dates (weekday on the calendar tile) ==== */
+
+/* The weekday under the day number, so a tile reads "Oct / 17 / Sat". */
+.calendar-date__weekday {
+  margin-top: 0.1875rem;
+  color: var(--color-muted);
+  font-size: 0.6875rem;
+  font-weight: 600;
+}
+
+.calendar-date--large .calendar-date__weekday {
+  font-size: var(--text-xs);
+}
+
+/* ==== Pickers (game picker, school search) ==== */
+
+.picker {
   display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+/* The teams filter's wrapper dissolved into the search bar for the old
+   layout; the picker is now one self-contained field. */
+.picker__label {
+  display: block;
+  font-weight: 600;
+}
+
+/* The form's own rule styles every live region as a green success banner;
+   this one is a plain line under the field. */
+.picker .picker__status[role="status"] {
+  margin: 0;
+  border: 0;
+  padding: 0;
+  color: var(--color-muted);
+  background: transparent;
+  font-size: var(--text-sm);
+}
+
+.picker .picker__status[data-tone="error"],
+.picker .picker__status[data-tone="limited"] {
+  color: var(--color-danger-dark);
+  font-weight: 600;
+}
+
+.picker .picker__status[data-tone="empty"] {
+  color: var(--color-text);
+}
+
+/* Progress shows as a ring; with reduced motion it stays still. */
+.picker__status[data-tone="loading"]::before {
+  display: inline-block;
+  width: 0.75em;
+  height: 0.75em;
+  margin-right: var(--space-2);
+  border: 2px solid var(--color-border-strong);
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  content: "";
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .picker__status[data-tone="loading"]::before {
+    animation: picker-spin 0.8s linear infinite;
+  }
+}
+
+@keyframes picker-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.picker__options,
+.picker__chosen {
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.directory-sidebar__sections {
-  gap: 0.15rem;
-}
-
-.directory-sidebar__sections a {
-  display: flex;
-  min-height: 2.5rem;
-  align-items: center;
-  gap: 0.6rem;
+.picker__options {
+  max-height: 16rem;
+  overflow-y: auto;
+  border: 1px solid var(--color-control-border);
   border-radius: var(--radius-small);
-  padding-inline: 0.75rem;
-  color: var(--color-text);
-  font-weight: 650;
-  text-decoration: none;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-window);
 }
 
-.directory-sidebar__sections svg {
+.picker__options[hidden] {
+  display: none;
+}
+
+.picker__options[aria-busy="true"] {
+  opacity: 0.6;
+}
+
+/* The school tile in the school field's results and chosen card. */
+.school-select__mark {
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius-small);
+  font-size: var(--text-sm);
+}
+
+/* A heading row between the catalog's games and IGDB's in the game field. */
+.picker__group {
+  padding: var(--space-2) var(--space-3) var(--space-1);
+  border-bottom: 1px solid var(--color-border);
   color: var(--color-muted);
-}
-
-.directory-sidebar__sections a[aria-current="page"] {
-  color: var(--color-primary);
-  background: var(--color-primary-soft);
-  font-weight: 800;
-}
-
-.directory-sidebar__sections a[aria-current="page"] svg {
-  color: currentColor;
-}
-
-@media (hover: hover) {
-  .directory-sidebar__sections a:not([aria-current="page"]):hover {
-    background: var(--color-card);
-    box-shadow: inset 0 0 0 1px var(--color-card-border);
-  }
-}
-
-.directory-sidebar__block {
-  display: grid;
-  gap: 0.6rem;
-  margin: 0;
-  border-top: 1px solid var(--color-border);
-  padding: 1.25rem 0.75rem 0;
-}
-
-.directory-sidebar__block h2 {
-  margin: 0;
-  color: var(--color-muted);
-  font-size: 0.75rem;
-  font-weight: 850;
-  letter-spacing: 0.1em;
+  background: var(--color-subtle);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
-.directory-sidebar__home {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+.picker__option {
+  display: flex;
   align-items: center;
-  gap: 0.65rem;
-  color: var(--color-text);
-  text-decoration: none;
+  gap: var(--space-3);
+  min-height: 2.75rem;
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  cursor: pointer;
 }
 
-.directory-sidebar__home .school-directory-mark {
-  width: 2.25rem;
-  height: 2.25rem;
-  border-radius: 0.6rem;
+.picker__option:last-child {
+  border-bottom: 0;
 }
 
-.directory-sidebar__home > span:last-child {
-  display: grid;
-  min-width: 0;
+.picker__option[aria-selected="true"] {
+  background: var(--color-primary-soft);
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
 }
 
-.directory-sidebar__home small,
-.directory-sidebar__empty {
+.picker__option[aria-disabled="true"] {
   color: var(--color-muted);
-  font-size: 0.8125rem;
+  cursor: default;
+}
+
+.picker__option-text {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.picker__option-text > span {
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+}
+
+.picker__option-action {
+  flex: none;
+  color: var(--color-link);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.picker__option[aria-disabled="true"] .picker__option-action {
+  color: var(--color-muted);
+}
+
+/* Added games: removable items. */
+.picker__chosen {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.picker__chosen li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-small);
+  background: var(--color-surface);
+  font-weight: 500;
+}
+
+.picker__remove {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: 2rem;
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius-control);
+  color: var(--color-text);
+  background: var(--color-surface);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.picker__remove:hover {
+  background: var(--color-subtle);
+}
+
+/* Portrait cover at a small fixed 3:4 size, or a flat tile with a controller. */
+.game-tile {
+  display: grid;
+  flex: none;
+  width: 2.25rem;
+  height: 3rem;
+  place-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-small);
+  background: var(--color-subtle);
+  object-fit: cover;
+}
+
+.game-tile--fallback {
+  border-color: transparent;
+  color: var(--color-tag-text);
+  background: var(--color-tag);
+}
+
+/* The chosen school: name and location with a Change button. */
+.school-select__card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-left: 4px solid var(--color-primary);
+  border-radius: 0;
+  background: var(--color-surface);
+  color: var(--color-tag-text);
+}
+
+.school-select__card > svg {
+  flex: none;
+}
+
+.school-select__text {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  color: var(--color-text);
+  overflow-wrap: anywhere;
+}
+
+.school-select__text > span {
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+}
+
+@media (forced-colors: active) {
+  .picker__option[aria-selected="true"] {
+    outline-color: Highlight;
+  }
+}
+
+/* ==== Interaction states (timing, hover, pressed, focus, disabled, pending, invalid) ==== */
+
+/* ==========================================================================
+   Interaction states, one vocabulary for every interactive element.
+   - One duration and easing for every state change (reduced motion removes it).
+   - Hover (pointer devices only) tints neutral surfaces with --color-subtle;
+     pressing tints them one step darker. No hover or focus rule changes an
+     element's size or border width, so nothing shifts.
+   - Keyboard focus: the yellow ring with a black edge. Elements that sit
+     inside an overflow-clipping parent (rows, tabs, header links, menu items)
+     draw it inside their own box so it is never cut off.
+   - Disabled is not-allowed (readable muted text, a dashed edge, never
+     opacity alone); pending (aria-busy) is wait.
+   ========================================================================== */
+
+:root {
+  --ix-duration: 120ms;
+  --ix-ease: ease;
+  --ix-pressed: color-mix(
+    in srgb,
+    var(--color-subtle) 60%,
+    var(--color-border)
+  );
+}
+
+/* ---- Timing ---- */
+.directory-row,
+.tabs__link,
+.form-section-nav a,
+.settings-nav a,
+.pagination a,
+.choice-card,
+.site-header nav a:not(.button),
+.site-header nav button:not(.account-menu__item),
+.site-header nav .account-menu .account-menu__item,
+input,
+select,
+textarea,
+summary {
+  transition:
+    background-color var(--ix-duration) var(--ix-ease),
+    border-color var(--ix-duration) var(--ix-ease),
+    color var(--ix-duration) var(--ix-ease),
+    box-shadow var(--ix-duration) var(--ix-ease),
+    text-decoration-thickness var(--ix-duration) var(--ix-ease);
+}
+
+button,
+.button,
+.rsvp-form .rsvp-buttons > button {
+  transition:
+    background-color var(--ix-duration) var(--ix-ease),
+    border-color var(--ix-duration) var(--ix-ease),
+    color var(--ix-duration) var(--ix-ease),
+    transform var(--ix-duration) var(--ix-ease);
+}
+
+.account-menu__chevron {
+  transition-duration: var(--ix-duration);
+  transition-timing-function: var(--ix-ease);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+  }
+}
+
+/* ---- Keyboard focus ----
+   Outset ring for free-standing controls is the global one. Clipped or
+   edge-to-edge elements get the same colors drawn inside: black at the edge,
+   yellow within it. */
+.directory-row:focus-visible,
+.tabs__link:focus-visible,
+.form-section-nav a:focus-visible,
+.site-header nav a:not(.button):focus-visible,
+.site-header nav button:not(.account-menu__item):focus-visible,
+.site-header nav .account-menu .account-menu__item:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: -6px;
+  box-shadow: inset 0 0 0 3px var(--color-text);
+}
+
+/* ---- Hover and pressed tints for neutral surfaces ---- */
+@media (hover: hover) {
+  .directory-row:hover,
+  .pagination a:hover,
+  .form-section-nav a:hover,
+  .settings-nav a:not([aria-current="page"]):hover,
+  .site-header nav .account-menu .account-menu__item:hover:not(:disabled) {
+    background: var(--color-subtle);
+  }
+
+  .pagination a:hover {
+    border-color: var(--color-control-border);
+  }
+
+  .choice-card:hover:not(:has(input:disabled)) {
+    background: var(--color-subtle);
+  }
+
+  .choice-card:has(input:checked):hover {
+    background: var(--color-primary-soft);
+  }
+
+  summary:where(:not(.safety-details summary)):hover {
+    color: var(--color-link-hover);
+    text-decoration-thickness: 2px;
+  }
+}
+
+.directory-row:active,
+.pagination a:active,
+.form-section-nav a:active,
+.settings-nav a:not([aria-current="page"]):active,
+.site-header nav .account-menu .account-menu__item:active:not(:disabled),
+.choice-card:active:not(:has(input:disabled)):not(:has(input:checked)) {
+  background: var(--ix-pressed);
+}
+
+/* Every button gives the same 1px press. */
+button:active:not(:disabled, .link),
+.button:active:not([aria-disabled="true"]) {
+  transform: translateY(1px);
+}
+
+.site-header nav a:not(.button):active,
+.site-header nav button:not(.account-menu__item):active {
+  background: var(--color-header);
+  transform: none;
+}
+
+/* ---- Disabled and aria-disabled ----
+   Muted text on a flat tint with a dashed edge: readable (about 6:1), and the
+   dashed edge means it does not rely on color. The :not(#_) raises weight
+   above component rules that color their own buttons. */
+button:is(:disabled, [aria-disabled="true"]):not(
+    #_,
+    .link,
+    .account-menu__item,
+    [aria-pressed="true"]
+  ),
+.button[aria-disabled="true"]:not(#_) {
+  border: 1px dashed var(--color-border-strong);
+  color: var(--color-muted);
+  background: var(--color-subtle);
+  opacity: 1;
+  cursor: not-allowed;
+  transform: none;
+}
+
+button.link:is(:disabled, [aria-disabled="true"]):not(#_) {
+  border: 0;
+  color: var(--color-muted);
+  background: transparent;
+  opacity: 1;
+  cursor: not-allowed;
+  text-decoration-style: dashed;
+}
+
+.pagination a[aria-disabled="true"]:not(#_) {
+  border-style: dashed;
+}
+
+a[aria-disabled="true"]:not(.button, #_) {
+  color: var(--color-muted);
+  opacity: 1;
+  cursor: not-allowed;
+  text-decoration-style: dashed;
+}
+
+/* On the dark header the muted gray would vanish; use its muted text color. */
+.site-header nav a[aria-disabled="true"]:not(.button, #_),
+.site-header nav button:disabled:not(.account-menu__item, #_) {
+  color: var(--color-header-muted);
+}
+
+input:disabled,
+select:disabled,
+textarea:disabled,
+input[aria-disabled="true"],
+select[aria-disabled="true"],
+textarea[aria-disabled="true"] {
+  border-style: dashed;
+  color: var(--color-muted);
+  background-color: var(--color-subtle);
+  opacity: 1;
+  cursor: not-allowed;
+}
+
+input[type="checkbox"]:disabled,
+input[type="radio"]:disabled,
+label:has(> input:disabled),
+.checkbox-field:has(input:disabled) {
+  cursor: not-allowed;
+}
+
+label:has(> input:disabled),
+.checkbox-field:has(input:disabled) {
+  color: var(--color-muted);
+}
+
+.choice-card:has(input:disabled) {
+  border-style: dashed;
+  color: var(--color-muted);
+  background: var(--color-subtle);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.choice-card:has(input:disabled) input {
+  cursor: not-allowed;
+}
+
+/* ---- Pending ----
+   A pending control keeps its text ("Saving…") and shows the wait cursor. It
+   is not dashed: it is working, not unavailable. */
+button[aria-busy="true"]:not(#_, .link),
+.button[aria-busy="true"]:not(#_) {
+  border-style: solid;
+  cursor: wait;
+}
+
+[aria-busy="true"]:is(:disabled, [aria-disabled="true"]):not(#_) {
+  cursor: wait;
+}
+
+/* ---- Invalid ----
+   A red edge drawn as an inset ring on the 1px border, so the field does not
+   grow when it becomes invalid. */
+input[aria-invalid="true"],
+select[aria-invalid="true"],
+textarea[aria-invalid="true"] {
+  border-width: 1px;
+  border-color: var(--color-danger);
+  box-shadow: inset 0 0 0 1px var(--color-danger);
+}
+
+input[aria-invalid="true"]:focus-visible,
+select[aria-invalid="true"]:focus-visible,
+textarea[aria-invalid="true"]:focus-visible {
+  border-color: var(--color-text);
+  box-shadow: inset 0 0 0 1px var(--color-text);
+}
+
+/* Checkboxes and radios: a visible hover affordance and an invalid cue. */
+input[type="checkbox"],
+input[type="radio"] {
+  cursor: pointer;
+}
+
+input[type="checkbox"][aria-invalid="true"],
+input[type="radio"][aria-invalid="true"] {
+  outline: 2px solid var(--color-danger);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+input[type="checkbox"][aria-invalid="true"]:focus-visible,
+input[type="radio"][aria-invalid="true"]:focus-visible {
+  outline: 3px solid var(--color-focus);
+  box-shadow: 0 0 0 6px var(--color-text);
+}
+
+/* ==== Feedback (page notices, pending forms, error summary, dialogs) ==== */
+
+/* ==== Page notices ==== */
+
+.page-notice__dismiss {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  min-width: 2rem;
+  min-height: 2rem;
+  margin: calc(var(--space-1) * -1) calc(var(--space-2) * -1)
+    calc(var(--space-1) * -1) auto;
+  border-color: transparent;
+  padding: 0;
+  color: var(--color-text);
+  background: transparent;
 }
 
 @media (hover: hover) {
-  .directory-sidebar__home:hover strong {
-    color: var(--color-primary-dark);
+  .page-notice__dismiss:hover:not(:disabled) {
+    border-color: var(--color-border-strong);
+    background: var(--color-surface);
+  }
+}
+
+/* A notice fades in so a redirect does not feel like a pop. */
+@media (prefers-reduced-motion: no-preference) {
+  .page-notice {
+    animation: page-notice-in 180ms ease-out;
+  }
+
+  @keyframes page-notice-in {
+    from {
+      opacity: 0;
+      transform: translateY(-4px);
+    }
+  }
+}
+
+/* ==== Pending forms ==== */
+
+/* The form being submitted is aria-busy (set by useEnhancedMutation). Its
+   submit button, disabled while the request runs, gets a small spinner before
+   the "Saving…" label. Under reduced motion the ring is static, which still
+   marks the state without spinning. */
+form[aria-busy="true"]
+  button[type="submit"]:is(:disabled, [aria-disabled="true"])::before {
+  width: 1em;
+  height: 1em;
+  flex: none;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  content: "";
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  form[aria-busy="true"]
+    button[type="submit"]:is(:disabled, [aria-disabled="true"])::before {
+    animation: button-spin 700ms linear infinite;
+  }
+
+  @keyframes button-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+}
+
+/* aria-disabled buttons (kept focusable) read as busy, not clickable. */
+button[aria-disabled="true"] {
+  cursor: wait;
+  opacity: 0.55;
+}
+
+/* ==== Error summary ==== */
+
+.form-error-summary h2 {
+  margin: 0;
+  color: var(--color-text);
+  font-size: var(--text-lg);
+}
+
+.form-error-summary p {
+  margin: var(--space-2) 0 0;
+}
+
+/* ==== Confirmation dialog ==== */
+
+/* Lock the page behind an open modal. */
+body:has(dialog.confirmation-dialog[open]) {
+  overflow: hidden;
+}
+
+.confirmation-dialog {
+  overscroll-behavior: contain;
+}
+
+.confirmation-dialog .actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-3);
+}
+
+/* Phone: stacked full-width buttons, the safe choice first. */
+@media (max-width: 40rem) {
+  .confirmation-dialog .actions {
+    flex-direction: column;
+  }
+
+  .confirmation-dialog .actions button {
+    width: 100%;
+    min-height: 2.75rem;
+  }
+}
+
+/* ==== Team pages ==== */
+
+/* ==== Membership panel ====
+   A titled panel: what joining asks for, then the one action. The password
+   toggle drops under the field as a quiet text control so a narrow panel
+   keeps one full-width input instead of a field and a button fighting for
+   the row. */
+.team-panel__title {
+  margin: 0;
+  font-size: var(--text-md);
+}
+
+.team-header__actions .team-panel__title + .form-help {
+  margin-top: calc(var(--space-2) * -1);
+}
+
+.team-join-form .password-input {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.team-join-form .password-input input {
+  flex: none;
+  width: 100%;
+}
+
+.team-join-form .password-input__toggle {
+  justify-self: start;
+  min-height: 2rem;
+  border-color: transparent;
+  padding-inline: 0;
+  background: transparent;
+  color: var(--color-link);
+  text-decoration: underline;
+}
+
+.team-role {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* ==== Long content ==== */
+.layout-detail__aside .detail-row dd,
+.layout-detail__aside .detail-row dt {
+  overflow-wrap: anywhere;
+}
+
+/* The member preview: tighten the gap above "See everyone". */
+.layout-detail__main .detail-card .detail-card-body {
+  padding-top: 0;
+}
+
+/* ==== Owner controls ====
+   Captains first as a ruled list. Transfer ownership is its own block under
+   a red edge on square corners, so the one action that hands the team away
+   is never mistaken for the routine captain buttons above it. */
+.team-manage {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.team-management-section h3 {
+  font-size: var(--text-md);
+}
+
+.team-management-row .person {
+  flex: 1 1 14rem;
+}
+
+.team-management-section--danger {
+  margin-top: var(--space-6);
+  border: 1px solid var(--color-border);
+  border-left: 4px solid var(--color-danger);
+  border-radius: 0;
+  padding: var(--space-4);
+}
+
+.team-management-section--danger,
+.team-management-section--danger:not(:first-child) {
+  border-top-width: 1px;
+  padding-top: var(--space-4);
+}
+
+.team-management-section--danger h3 {
+  color: var(--color-danger-dark);
+}
+
+/* ==== Sign up and log in ==== */
+
+/* Follow-up help under an error or success line: the next step to take. */
+main.auth-page .auth-help {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+}
+
+/* The link-styled primary action on a state page (verified, expired link). */
+main.auth-page > a.button {
+  justify-self: stretch;
+  min-height: 2.75rem;
+  text-align: center;
+  text-decoration: none;
+}
+
+/* ==== Home and school pages ==== */
+
+/* Home: a popular school's name reads as a row, not a paragraph of links; the
+   underline returns on hover and the chevron already says it is a link. */
+.home-schools .home-school .home-school__copy strong {
+  text-decoration: none;
+}
+
+.home-school__copy strong,
+.home-school__copy small {
+  overflow-wrap: anywhere;
+}
+
+@media (hover: hover) {
+  .home-schools .home-school:hover .home-school__copy strong {
     text-decoration: underline;
   }
 }
 
-.directory-sidebar__followed {
-  gap: 0.5rem;
+/* School hub: people preview rows carry no divider of their own. */
+.school-page__people .people-list > li {
+  margin-top: 0;
+  border-top: 0;
 }
 
-.directory-sidebar__followed a {
-  color: var(--color-text);
-  font-weight: 650;
+/* A wordmark logo, shown wide on a white card. */
+.school-wordmark {
+  display: grid;
+  min-height: 5rem;
+  place-items: center;
+  margin-bottom: var(--space-4);
+  border: 1px solid var(--color-card-border);
+  border-radius: var(--radius-panel);
+  padding: var(--space-4);
+  background: var(--color-surface);
 }
 
-.directory-sidebar__empty {
+.school-wordmark .school-logo {
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  max-height: 4.5rem;
+  object-fit: contain;
+}
+
+/* ==== Profiles, account, and people lists ==== */
+
+/* Profile: a bio the owner has not written is a quiet prompt, and the empty
+   Links panel keeps the header's rhythm. */
+.public-profile__bio.muted {
+  color: var(--color-muted);
+}
+
+.public-profile__links + .panel__body,
+.public-profile .panel__body.muted {
+  margin: 0;
+  border-top: 1px solid var(--color-border);
+  padding: var(--space-4);
+}
+
+/* Account dashboard: same gap before every section, tighter heading-to-list. */
+.account-page .section {
+  margin-top: var(--space-5);
+}
+
+.account-page .section-heading {
+  margin-bottom: var(--space-3);
+}
+
+.account-nav {
+  margin-top: var(--space-4);
+  margin-bottom: 0;
+}
+
+/* Empty states: a short message with its one action, left-aligned. */
+.account-page .empty-state {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-3);
+  padding: var(--space-4);
+}
+
+.account-page .empty-state > p {
+  margin: 0;
+  color: var(--color-muted);
+}
+
+/* The social-links disclosure reads as an action, not body text. */
+.more-social-links > summary {
+  min-height: 1.5rem;
+}
+
+/* People rows on a phone: the 44px link target is enough height. */
+@media (max-width: 42rem) {
+  .people-list > li {
+    padding: var(--space-2) var(--space-3);
+  }
+
+  .people-list .person__text small {
+    margin-top: -0.25rem;
+  }
+}
+
+/* ==== Event form ==== */
+
+/* The payment fields share the section's field spacing. They are hidden (by
+   the hidden attribute) only after hydration, while Cost is not Paid. */
+.event-payment-fields {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.event-payment-fields[hidden] {
+  display: none;
+}
+
+/* ==== Text pages (About, FAQ, Support, Terms, Privacy) ==== */
+
+/* ==== Prose typography (About, FAQ, Terms, Privacy, Support) ==== */
+
+.prose h2 {
+  margin-block: var(--space-6) var(--space-2);
+  line-height: 1.25;
+}
+
+.prose h3 {
+  margin-block: var(--space-5) var(--space-2);
+  line-height: 1.3;
+}
+
+.prose :is(p, ul, ol) {
+  margin-block: 0 var(--space-4);
+  line-height: 1.6;
+}
+
+.prose :is(ul, ol) {
+  padding-inline-start: var(--space-5);
+}
+
+.prose li + li {
+  margin-top: var(--space-2);
+}
+
+.prose li > :is(ul, ol) {
+  margin-top: var(--space-2);
+}
+
+/* Running text links are underlined (color alone is not enough) and keep the
+   underline clear of descenders. */
+.prose :is(p, li) a:not([class]) {
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+}
+
+.prose :is(p, li) a:not([class]):hover {
+  text-decoration-thickness: 2px;
+}
+
+/* ==== About ==== */
+
+.about-section {
+  margin-bottom: 0;
+  padding-block: var(--space-5);
+  border-top: 1px solid var(--color-border);
+}
+
+.about-section h2 {
+  margin-block: 0 var(--space-3);
+}
+
+.about-section > :last-child {
+  margin-bottom: 0;
+}
+
+/* The three things to do read as a short list of actions, not bullets. */
+.about-section ul {
+  display: grid;
+  gap: var(--space-2);
+  padding: 0;
+  list-style: none;
+}
+
+.about-section li {
+  margin: 0;
+  border: 1px solid var(--color-card-border);
+  border-left: 4px solid var(--color-primary);
+  border-radius: 0;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-card);
+}
+
+.about-section li + li {
+  margin-top: 0;
+}
+
+/* ==== Terms and Privacy ==== */
+
+.policy-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: var(--space-4) 0 0;
+  padding: 0;
+}
+
+.policy-meta span {
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 0.125rem var(--space-3);
+  color: var(--color-muted);
+  background: var(--color-surface);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.policy-layout {
+  max-inline-size: none;
+}
+
+.policy-section {
+  scroll-margin-top: var(--space-5);
+  margin-top: var(--space-6);
+}
+
+.policy-section h2 {
+  margin-block: 0 var(--space-3);
+  scroll-margin-top: var(--space-5);
+}
+
+.back-to-top {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: 1.5rem;
+  font-size: var(--text-sm);
+}
+
+.policy-contents__wide {
+  display: none;
+}
+
+.policy-contents {
+  margin-bottom: var(--space-5);
+}
+
+.policy-contents__narrow {
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.policy-contents__narrow summary {
+  min-block-size: 2.75rem;
+  padding: var(--space-3) var(--space-4);
+  color: var(--color-link);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.policy-contents__narrow nav {
+  padding: 0 var(--space-4) var(--space-3);
+}
+
+.policy-contents ol {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.policy-contents li {
   margin: 0;
 }
-/* ==== End directory sidebar ==== */
+
+.policy-contents a {
+  display: block;
+  border-left: 3px solid transparent;
+  padding: var(--space-2) var(--space-3);
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  text-decoration: none;
+}
+
+.policy-contents a[aria-current="location"] {
+  border-left-color: var(--color-primary);
+  color: var(--color-tag-text);
+  background: var(--color-tag);
+  font-weight: 700;
+}
+
+@media (hover: hover) {
+  .policy-contents a:hover {
+    background: var(--color-subtle);
+    text-decoration: underline;
+  }
+}
+
+.policy-contents__heading {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-md);
+  font-weight: 700;
+}
+
+@media (min-width: 64rem) {
+  .policy-layout.has-contents {
+    display: grid;
+    grid-template-columns: 15rem minmax(0, 68ch);
+    gap: var(--space-7);
+    align-items: start;
+  }
+
+  .policy-contents {
+    position: sticky;
+    top: var(--space-5);
+    margin-bottom: 0;
+  }
+
+  .policy-contents__wide {
+    display: block;
+  }
+
+  .policy-contents__narrow {
+    display: none;
+  }
+
+  .policy-section:first-child {
+    margin-top: 0;
+  }
+}
+
+/* ==== FAQ ==== */
+
+.faq-topics {
+  margin-bottom: var(--space-5);
+}
+
+.faq-topics ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.faq-topics li {
+  margin: 0;
+}
+
+.faq-topics a {
+  display: inline-flex;
+  min-block-size: 2.25rem;
+  align-items: center;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 999px;
+  padding: 0 var(--space-4);
+  color: var(--color-text);
+  background: var(--color-surface);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+@media (hover: hover) {
+  .faq-topics a:hover {
+    border-color: var(--color-primary);
+    color: var(--color-tag-text);
+    background: var(--color-tag);
+  }
+}
+
+.faq-group h2 {
+  margin-block: 0 var(--space-2);
+  scroll-margin-top: var(--space-5);
+}
+
+.faq-group details[open] > summary {
+  color: var(--color-text);
+}
+
+.faq-copy {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  margin-block: 0 var(--space-4);
+}
+
+.faq-copy__button {
+  display: inline-flex;
+  min-block-size: 2rem;
+  align-items: center;
+  gap: var(--space-2);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-control);
+  padding: 0 var(--space-3);
+  color: var(--color-text);
+  background: var(--color-surface);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.faq-copy__status {
+  color: var(--color-danger-dark);
+  font-size: var(--text-sm);
+}
+
+/* ==== Support ==== */
+
+/* The email field has no character count, so the two fields share a top edge
+   instead of stretching to the same height. */
+.support-form .split-fields {
+  align-items: start;
+}
+
+.support-success {
+  display: flex;
+  gap: var(--space-3);
+  border: 1px solid var(--color-success);
+  border-left-width: 4px;
+  padding: var(--space-4);
+  color: var(--color-text);
+  background: var(--color-success-soft);
+}
+
+.support-success svg {
+  flex: none;
+  color: var(--color-success);
+}
+
+.support-success p {
+  margin: var(--space-1) 0 0;
+}
+
+/* Directory results pending state */
+.directory-results {
+  scroll-margin-top: var(--space-6);
+  transition: opacity 150ms ease;
+}
+
+.directory-results:focus {
+  outline: none;
+}
+
+.directory-results[data-busy="true"] {
+  position: relative;
+  opacity: 0.55;
+}
+
+/* A thin sweep along the top edge of the busy list. */
+.directory-results[data-busy="true"]::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 1;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--color-primary),
+    transparent
+  );
+  background-size: 40% 100%;
+  background-repeat: no-repeat;
+  animation: directory-results-sweep 1.2s ease-in-out infinite;
+}
+
+@keyframes directory-results-sweep {
+  from {
+    background-position: -40% 0;
+  }
+  to {
+    background-position: 140% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .directory-results[data-busy="true"]::before {
+    animation: none;
+    background-size: 100% 100%;
+  }
+}
+
+/* ==== Reflow and resilience (WCAG 1.4.10, 1.4.12) ====
+   Long names, tags, and URLs wrap instead of widening the page, and rows and
+   grids give their children permission to shrink at 320 CSS px, with larger
+   text, and with user text spacing. */
+.tag {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.list > *,
+.directory-row > *,
+.callout > * {
+  min-width: 0;
+}
+
+.directory-row__counts > small:not(.event-counts),
+.directory-row__count {
+  white-space: normal;
+}
+
+.directory-row__name,
+.directory-row__detail,
+.directory-row__meta,
+.list-item,
+.key-information dt,
+.key-information dd,
+.detail-heading__title,
+.detail-heading__supporting,
+.event-facts li > div {
+  overflow-wrap: anywhere;
+}
+
+.directory-row__action,
+.directory-row__counts > span,
+.directory-row__counts .event-counts > * {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.detail-hero__body {
+  flex-basis: min(14rem, 100%);
+}
+
+.detail-hero__meta,
+.detail-hero__actions {
+  overflow-wrap: anywhere;
+}
+
+.event-facts {
+  grid-template-columns: repeat(auto-fit, minmax(min(15rem, 100%), 1fr));
+}
+
+.button,
+button {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.callout__action {
+  flex: 0 1 auto;
+  max-width: 100%;
+}
+
+@media (max-width: 30rem) {
+  .key-information dl > div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+}
+
+/* Reflow, continued: the header, filter fields, and school card wrap rather
+   than overflow; times in the event facts may break at small widths. */
+.site-header {
+  flex-wrap: wrap;
+  row-gap: var(--space-2);
+}
+
+.filter-toolbar__search {
+  flex-basis: min(32rem, 100%);
+}
+
+.school-select__card {
+  flex-wrap: wrap;
+}
+
+.picker__remove {
+  flex: 0 1 auto;
+  max-width: 100%;
+}
+
+@media (max-width: 30rem) {
+  .event-facts .nowrap {
+    white-space: normal;
+  }
+}
+
+/* At large text sizes the wordmark may wrap instead of widening the header. */
+.brand {
+  flex: 0 1 auto;
+  min-width: 0;
+  white-space: normal;
+}
+
+/* Touch targets
+   On touch devices, primary actions reach about 44px and text-only actions
+   keep the visual size but gain padding so the hit area is larger. */
+@media (pointer: coarse) {
+  .site-header nav a.button,
+  .site-header nav a:not(.button),
+  .pagination a,
+  .filter-search__submit,
+  .faq-topics a,
+  .faq-copy__button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.75rem;
+  }
+
+  .brand {
+    min-height: 2.75rem;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  input:not([type="checkbox"], [type="radio"], [type="hidden"], #_),
+  select:not([multiple], #_),
+  .site-header nav .account-menu__trigger:not(#_),
+  .password-input__toggle:not(#_),
+  .team-join-form .password-input__toggle:not(#_),
+  .picker__remove:not(#_),
+  .account-nav a:not(#_),
+  .settings-nav a:not(#_),
+  summary:not(#_) {
+    min-height: 2.75rem;
+  }
+
+  .text-action,
+  .breadcrumbs a,
+  .panel__header a,
+  .section-heading > a,
+  .back-link,
+  .safety-link,
+  a.with-arrow {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
+  }
+
+  .account-nav a,
+  .picker__remove {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  a.link:not(#_) {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
+  }
+
+  label:has(> input[type="checkbox"], > input[type="radio"]):not(#_) {
+    min-height: 2.75rem;
+    align-items: center;
+  }
+
+  .breadcrumbs li {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  /* Invisible hit area for compact controls without changing their look. */
+  .search-filter__clear,
+  .picker__remove,
+  .page-notice__dismiss {
+    position: relative;
+  }
+
+  .search-filter__clear::after,
+  .picker__remove::after,
+  .page-notice__dismiss::after {
+    content: "";
+    position: absolute;
+    inset: 50% auto auto 50%;
+    width: max(100%, 2.75rem);
+    height: max(100%, 2.75rem);
+    transform: translate(-50%, -50%);
+  }
+}

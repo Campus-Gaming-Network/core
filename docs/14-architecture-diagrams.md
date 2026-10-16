@@ -178,7 +178,7 @@ flowchart LR
 
     Admin -.->|"shared admin API"| API
     Admin -.-> R2
-    API -.->|"admin-started import and refresh"| IGDB
+    API -.->|"user search and import, admin refresh"| IGDB
     Web -->|"errors"| Sentry
     API -->|"errors"| Sentry
     Admin -.->|"errors"| Sentry

@@ -146,6 +146,7 @@ func (c *CachedRepository) Start(ctx context.Context, interval time.Duration) {
 	}
 }
 
+// Loaded reports whether a catalog snapshot is currently being served.
 func (c *CachedRepository) Loaded() bool {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
@@ -197,6 +198,7 @@ func matchesQuery(school School, lowerQuery string) bool {
 		strings.Contains(strings.ToLower(school.Alias), lowerQuery)
 }
 
+// GetByID returns the cached school with the given ID.
 func (c *CachedRepository) GetByID(ctx context.Context, id string) (School, error) {
 	current := c.current()
 	if current == nil {
@@ -209,6 +211,7 @@ func (c *CachedRepository) GetByID(ctx context.Context, id string) (School, erro
 	return school, nil
 }
 
+// GetBySlug returns the cached school with the given slug.
 func (c *CachedRepository) GetBySlug(ctx context.Context, slug string) (School, error) {
 	current := c.current()
 	if current == nil {
@@ -221,6 +224,8 @@ func (c *CachedRepository) GetBySlug(ctx context.Context, slug string) (School, 
 	return school, nil
 }
 
+// ExistsActive reports whether the cached catalog holds the school. The catalog
+// contains only active schools.
 func (c *CachedRepository) ExistsActive(ctx context.Context, id string) (bool, error) {
 	current := c.current()
 	if current == nil {

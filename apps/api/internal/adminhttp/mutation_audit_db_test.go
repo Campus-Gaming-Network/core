@@ -42,6 +42,21 @@ var mutationsCoveredByLogoTests = map[routeOperation]string{
 	"school_logos.remove": "TestSchoolLogoHTTPReplacesRemovesAndCleansUp, TestSchoolLogoFailuresNeverLeaveAReferencedOrOrphanedObject",
 }
 
+// insertGame stores an active game the way a seed or an earlier release did.
+// Admins edit games but never create them, so there is no endpoint for this.
+func (f catalogFixture) insertGame(t *testing.T, name, slug string) games.AdminGame {
+	t.Helper()
+	var id string
+	if err := f.pool.QueryRow(t.Context(), `INSERT INTO games(name,slug,is_active) VALUES($1,$2,TRUE) RETURNING id::text`, name, slug).Scan(&id); err != nil {
+		t.Fatal(err)
+	}
+	game, err := f.game.GetAdmin(t.Context(), id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return game
+}
+
 func (f catalogFixture) newSchool(t *testing.T, slug string) schools.AdminSchool {
 	t.Helper()
 	school, err := f.school.CreateAdmin(t.Context(), schools.AdminEdit{
@@ -119,28 +134,16 @@ var mutationCases = map[routeOperation]mutationCase{
 		}
 		return mutationRequest{"POST", "/admin/v1/schools/" + catalogSchoolID + "/admin-grants/" + grant.ID + "/revoke", f.versioned(grant.UpdatedAt)}
 	}},
-	"games.create": {adminaudit.ActionGameCreated, func(t *testing.T, f catalogFixture) mutationRequest {
-		return mutationRequest{"POST", "/admin/v1/games", games.AdminEdit{Command: f.command, Name: "Created Game", Slug: "created-game", IsActive: true}}
-	}},
 	"games.update": {adminaudit.ActionGameUpdated, func(t *testing.T, f catalogFixture) mutationRequest {
-		game, err := f.game.CreateAdmin(t.Context(), games.AdminEdit{Command: f.command, Name: "Update Game", Slug: "update-game", IsActive: true})
-		if err != nil {
-			t.Fatal(err)
-		}
+		game := f.insertGame(t, "Update Game", "update-game")
 		return mutationRequest{"PATCH", "/admin/v1/games/" + game.ID, games.AdminEdit{Command: f.versioned(game.UpdatedAt), Name: "Updated Game", Slug: game.Slug, IsActive: true}}
 	}},
 	"games.delete": {adminaudit.ActionGameDeleted, func(t *testing.T, f catalogFixture) mutationRequest {
-		game, err := f.game.CreateAdmin(t.Context(), games.AdminEdit{Command: f.command, Name: "Delete Game", Slug: "delete-game", IsActive: true})
-		if err != nil {
-			t.Fatal(err)
-		}
+		game := f.insertGame(t, "Delete Game", "delete-game")
 		return mutationRequest{"DELETE", "/admin/v1/games/" + game.ID, f.versioned(game.UpdatedAt)}
 	}},
-	"games.import": {adminaudit.ActionGameImported, func(t *testing.T, f catalogFixture) mutationRequest {
-		return mutationRequest{"POST", "/admin/v1/game-imports", games.IGDBImport{Command: f.command, IGDBID: fakeRocketLeagueID}}
-	}},
 	"games.refresh": {adminaudit.ActionGameRefreshed, func(t *testing.T, f catalogFixture) mutationRequest {
-		game := decodeCatalog[games.AdminGame](t, f.request(t, "POST", "/admin/v1/game-imports", games.IGDBImport{Command: f.command, IGDBID: fakeRocketLeagueID}, 201))
+		game := f.pickGame(t, fakeRocketLeagueID)
 		return mutationRequest{"POST", "/admin/v1/games/" + game.ID + "/refresh", f.versioned(game.UpdatedAt)}
 	}},
 	"users.suspend": {adminaudit.ActionUserSuspended, func(t *testing.T, f catalogFixture) mutationRequest {

@@ -1,6 +1,11 @@
 import { Star, Users } from "lucide-react";
 
-/** How many people are going and how many are interested, for an event row. */
+const count = new Intl.NumberFormat("en-US");
+
+/**
+ * How many people are going and, when anyone is, how many are interested, for
+ * an event row. "0 interested" says nothing useful, so it is left out.
+ */
 export function EventCounts({
   going,
   interested,
@@ -12,12 +17,14 @@ export function EventCounts({
     <small className="event-counts">
       <span>
         <Users aria-hidden="true" size={14} strokeWidth={1.75} />
-        {going} going
+        {count.format(going)} going
       </span>
-      <span>
-        <Star aria-hidden="true" size={14} strokeWidth={1.75} />
-        {interested} interested
-      </span>
+      {interested > 0 ? (
+        <span>
+          <Star aria-hidden="true" size={14} strokeWidth={1.75} />
+          {count.format(interested)} interested
+        </span>
+      ) : null}
     </small>
   );
 }

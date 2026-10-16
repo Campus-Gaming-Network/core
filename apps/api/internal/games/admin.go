@@ -12,13 +12,14 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
+// AdminGame is a catalog game with the fields only admins see.
 type AdminGame struct {
 	Game
 	IsActive  bool       `json:"is_active"`
 	CreatedAt time.Time  `json:"created_at"`
 	UpdatedAt time.Time  `json:"updated_at"`
 	DeletedAt *time.Time `json:"deleted_at"`
-	// IGDBID is nil for a game that was not imported from IGDB.
+	// IGDBID is nil for a game that is not linked to an IGDB entry.
 	IGDBID       *int64     `json:"igdb_id"`
 	LastSyncedAt *time.Time `json:"last_synced_at"`
 	// HasCover reports a stored cover. CoverURL stays the admin-entered URL.
@@ -28,6 +29,7 @@ type AdminGame struct {
 	UserSubmitted bool `json:"user_submitted"`
 }
 
+// AdminEdit is the named command that edits a stored game.
 type AdminEdit struct {
 	adminmutation.Command
 	Name     string `json:"name"`
@@ -45,6 +47,7 @@ func scanAdminGame(row pgx.Row) (AdminGame, error) {
 	return g, adminmutation.Error(err)
 }
 
+// ListAdmin pages through all games, including hidden and deleted ones.
 func (r *PostgresRepository) ListAdmin(ctx context.Context, filter adminmutation.Filter) ([]AdminGame, error) {
 	if err := filter.Validate(); err != nil {
 		return nil, err
@@ -80,6 +83,7 @@ func (r *PostgresRepository) ListAdmin(ctx context.Context, filter adminmutation
 	return items, rows.Err()
 }
 
+// GetAdmin returns one game by ID, or adminmutation.ErrNotFound.
 func (r *PostgresRepository) GetAdmin(ctx context.Context, id string) (AdminGame, error) {
 	if !adminmutation.UUID(id) {
 		return AdminGame{}, adminmutation.ErrNotFound
@@ -87,24 +91,23 @@ func (r *PostgresRepository) GetAdmin(ctx context.Context, id string) (AdminGame
 	return scanAdminGame(r.pool.QueryRow(ctx, `SELECT `+adminGameColumns+` FROM games WHERE id=$1::uuid`, id))
 }
 
-func (r *PostgresRepository) CreateAdmin(ctx context.Context, input AdminEdit) (AdminGame, error) {
-	return r.writeAdmin(ctx, "", input, false)
-}
+// UpdateAdmin edits a game's name, slug, cover URL, and visibility.
 func (r *PostgresRepository) UpdateAdmin(ctx context.Context, id string, input AdminEdit) (AdminGame, error) {
-	if !adminmutation.UUID(id) {
-		return AdminGame{}, adminmutation.ErrNotFound
-	}
 	return r.writeAdmin(ctx, id, input, false)
 }
+
+// DeleteAdmin soft-deletes a game that no event or team uses.
 func (r *PostgresRepository) DeleteAdmin(ctx context.Context, id string, command adminmutation.Command) (AdminGame, error) {
-	if !adminmutation.UUID(id) {
-		return AdminGame{}, adminmutation.ErrNotFound
-	}
 	return r.writeAdmin(ctx, id, AdminEdit{Command: command}, true)
 }
 
+// writeAdmin edits or deletes a stored game. Admins never create games: users
+// bring them in from IGDB or by typing a name.
 func (r *PostgresRepository) writeAdmin(ctx context.Context, id string, input AdminEdit, remove bool) (AdminGame, error) {
-	if err := input.Command.Validate(id != ""); err != nil {
+	if !adminmutation.UUID(id) {
+		return AdminGame{}, adminmutation.ErrNotFound
+	}
+	if err := input.Command.Validate(true); err != nil {
 		return AdminGame{}, err
 	}
 	if !remove && (!adminmutation.Text(input.Name, 200, true) || !adminmutation.Slug(input.Slug) || !adminmutation.URL(input.CoverURL)) {
@@ -115,24 +118,19 @@ func (r *PostgresRepository) writeAdmin(ctx context.Context, id string, input Ad
 		return AdminGame{}, err
 	}
 	defer tx.Rollback(ctx)
-	var before adminaudit.State = adminaudit.EmptyState{}
-	if id != "" {
-		current, err := scanAdminGame(tx.QueryRow(ctx, `SELECT `+adminGameColumns+` FROM games WHERE id=$1::uuid FOR UPDATE`, id))
-		if err != nil {
-			return AdminGame{}, err
-		}
-		if !current.UpdatedAt.Equal(input.ExpectedUpdatedAt) {
-			return AdminGame{}, adminmutation.ErrConflict
-		}
-		if current.DeletedAt != nil {
-			return AdminGame{}, adminmutation.ErrTransition
-		}
-		before = current.auditState()
+	current, err := scanAdminGame(tx.QueryRow(ctx, `SELECT `+adminGameColumns+` FROM games WHERE id=$1::uuid FOR UPDATE`, id))
+	if err != nil {
+		return AdminGame{}, err
+	}
+	if !current.UpdatedAt.Equal(input.ExpectedUpdatedAt) {
+		return AdminGame{}, adminmutation.ErrConflict
+	}
+	if current.DeletedAt != nil {
+		return AdminGame{}, adminmutation.ErrTransition
 	}
 	var next AdminGame
 	action := adminaudit.ActionGameUpdated
-	switch {
-	case remove:
+	if remove {
 		var dependencies bool
 		if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM event_games WHERE game_id=$1::uuid) OR EXISTS(SELECT 1 FROM team_games WHERE game_id=$1::uuid)`, id).Scan(&dependencies); err != nil {
 			return AdminGame{}, err
@@ -142,16 +140,13 @@ func (r *PostgresRepository) writeAdmin(ctx context.Context, id string, input Ad
 		}
 		next, err = scanAdminGame(tx.QueryRow(ctx, `UPDATE games SET is_active=false,deleted_at=clock_timestamp() WHERE id=$1::uuid RETURNING `+adminGameColumns, id))
 		action = adminaudit.ActionGameDeleted
-	case id == "":
-		next, err = scanAdminGame(tx.QueryRow(ctx, `INSERT INTO games(name,slug,cover_url,is_active) VALUES($1,$2,$3,$4) RETURNING `+adminGameColumns, strings.TrimSpace(input.Name), input.Slug, input.CoverURL, input.IsActive))
-		action = adminaudit.ActionGameCreated
-	default:
+	} else {
 		next, err = scanAdminGame(tx.QueryRow(ctx, `UPDATE games SET name=$2,slug=$3,cover_url=$4,is_active=$5 WHERE id=$1::uuid RETURNING `+adminGameColumns, id, strings.TrimSpace(input.Name), input.Slug, input.CoverURL, input.IsActive))
 	}
 	if err != nil {
 		return AdminGame{}, err
 	}
-	if err := input.Audit(ctx, tx, action, adminaudit.EntityGame, next.ID, before, next.auditState()); err != nil {
+	if err := input.Audit(ctx, tx, action, adminaudit.EntityGame, next.ID, current.auditState(), next.auditState()); err != nil {
 		return AdminGame{}, err
 	}
 	return next, tx.Commit(ctx)

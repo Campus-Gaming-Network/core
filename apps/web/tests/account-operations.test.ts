@@ -42,7 +42,7 @@ test("account dashboard requires /me, strips private additions, and isolates sec
   const api = (async ({ path, cookieHeader }) => {
     calls.push({ path, cookie: cookieHeader });
     if (path === "/me") return result(accountProfileDtoSchema.parse(profile));
-    if (path === "/me/events?limit=5") throw new Error("event outage");
+    if (path === "/me/events?limit=25") throw new Error("event outage");
     if (path === "/me/schools") return result({ schools: [] });
     if (path === "/me/teams?limit=10") return result({ teams: [], limit: 10 });
     throw new Error(`Unexpected path ${path}`);
@@ -60,6 +60,7 @@ test("account dashboard requires /me, strips private additions, and isolates sec
   assert.deepEqual(dashboard.dashboardEvents, {
     upcoming_rsvps: [],
     followed_school_events: [],
+    interested_events: [],
   });
   assert.equal(dashboard.unavailable.dashboardEvents, true);
   assert.equal(dashboard.unavailable.followedSchools, false);

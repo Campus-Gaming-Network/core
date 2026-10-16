@@ -1,4 +1,4 @@
-export type ZonedDateTimeResult =
+type ZonedDateTimeResult =
   | { success: true; instant: string }
   | {
       success: false;

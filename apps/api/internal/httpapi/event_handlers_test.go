@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -73,6 +74,54 @@ func TestHandleEventsRejectsInvalidPagination(t *testing.T) {
 
 	if response.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d, want %d", response.Code, http.StatusBadRequest)
+	}
+}
+
+func TestHandleEventsReadsTheStartRange(t *testing.T) {
+	weekStart := time.Date(2031, time.January, 10, 12, 0, 0, 0, time.UTC)
+	weekEnd := weekStart.AddDate(0, 0, 7)
+	for _, test := range []struct {
+		query      string
+		wantAfter  *time.Time
+		wantBefore *time.Time
+	}{
+		{query: "", wantAfter: nil, wantBefore: nil},
+		{query: "starts_before=2031-01-17T12:00:00Z", wantAfter: nil, wantBefore: &weekEnd},
+		{query: "starts_after=2031-01-10T12:00:00Z&starts_before=2031-01-17T12:00:00Z", wantAfter: &weekStart, wantBefore: &weekEnd},
+	} {
+		repository := &fakeEventRepository{}
+		router := &Router{events: repository}
+		response := httptest.NewRecorder()
+
+		router.handleEvents(response, httptest.NewRequest(http.MethodGet, "/events?"+test.query, nil))
+
+		if response.Code != http.StatusOK {
+			t.Fatalf("%q: status = %d, want %d", test.query, response.Code, http.StatusOK)
+		}
+		got := [2]*time.Time{repository.listParams.StartsAfter, repository.listParams.StartsBefore}
+		if !reflect.DeepEqual(got, [2]*time.Time{test.wantAfter, test.wantBefore}) {
+			t.Fatalf("%q: start range = %v, want %v and %v", test.query, got, test.wantAfter, test.wantBefore)
+		}
+	}
+
+	for _, query := range []string{
+		"starts_after=tomorrow",
+		"starts_before=2031-01-17",
+		"starts_after=2031-01-17T12:00:00Z&starts_before=2031-01-17T12:00:00Z",
+		"starts_after=2031-01-18T12:00:00Z&starts_before=2031-01-17T12:00:00Z",
+	} {
+		repository := &fakeEventRepository{}
+		router := &Router{events: repository}
+		response := httptest.NewRecorder()
+
+		router.handleEvents(response, httptest.NewRequest(http.MethodGet, "/events?"+query, nil))
+
+		if response.Code != http.StatusBadRequest || response.Body.String() != "{\"error\":\"invalid_time_range\"}\n" {
+			t.Fatalf("%q: response = %d %s, want 400 invalid_time_range", query, response.Code, response.Body.String())
+		}
+		if repository.listPublicCalled {
+			t.Fatalf("%q: ListPublic was called for an invalid range", query)
+		}
 	}
 }
 
@@ -163,9 +212,13 @@ func TestHandleMyEventsReturnsDashboardEvents(t *testing.T) {
 	followed.ID = "88888888-8888-8888-8888-888888888888"
 	followed.Slug = "followed-campus-final"
 	followed.Title = "Followed Campus Final"
+	interested := testEvent(eventstore.VisibilityPublic)
+	interested.Slug = "interested-campus-cup"
+	interested.ViewerInterested = true
 	repository := &fakeEventRepository{
 		upcomingRSVPs:        []eventstore.Event{upcoming},
 		followedSchoolEvents: []eventstore.Event{followed},
+		interestedEvents:     []eventstore.Event{interested},
 	}
 	handler := authenticatedMyEventsHandler(repository)
 	request := authenticatedEventRequest(http.MethodGet, "/me/events?limit=4", "")
@@ -192,6 +245,7 @@ func TestHandleMyEventsReturnsDashboardEvents(t *testing.T) {
 	var payload struct {
 		UpcomingRSVPs        []eventstore.Event `json:"upcoming_rsvps"`
 		FollowedSchoolEvents []eventstore.Event `json:"followed_school_events"`
+		InterestedEvents     []eventstore.Event `json:"interested_events"`
 	}
 	if err := json.NewDecoder(response.Body).Decode(&payload); err != nil {
 		t.Fatalf("decode response: %v", err)
@@ -201,6 +255,9 @@ func TestHandleMyEventsReturnsDashboardEvents(t *testing.T) {
 	}
 	if len(payload.FollowedSchoolEvents) != 1 || payload.FollowedSchoolEvents[0].Slug != "followed-campus-final" {
 		t.Fatalf("followed_school_events = %#v, want followed school event", payload.FollowedSchoolEvents)
+	}
+	if len(payload.InterestedEvents) != 1 || payload.InterestedEvents[0].Slug != "interested-campus-cup" || !payload.InterestedEvents[0].ViewerInterested {
+		t.Fatalf("interested_events = %#v, want the interested event", payload.InterestedEvents)
 	}
 }
 
@@ -825,5 +882,159 @@ func TestHandleEventPathReturnsNotFoundForMissingEvent(t *testing.T) {
 
 	if response.Code != http.StatusNotFound {
 		t.Fatalf("status = %d, want %d", response.Code, http.StatusNotFound)
+	}
+}
+
+func TestEventResponsesShowTheOnlineLinkOnlyToPeopleGoingAndOrganizers(t *testing.T) {
+	const link = "https://meet.example/campus-scrim"
+	hybrid := testEvent(eventstore.VisibilityPublic)
+	hybrid.OnlineURL = link
+
+	cases := []struct {
+		name        string
+		signedIn    bool
+		viewerRSVP  string
+		isOrganizer bool
+		want        string
+	}{
+		{name: "a visitor", want: ""},
+		{name: "a signed-in viewer with no RSVP", signedIn: true, want: ""},
+		{name: "a viewer who said maybe", signedIn: true, viewerRSVP: eventstore.RSVPMaybe, want: ""},
+		{name: "a viewer who is going", signedIn: true, viewerRSVP: eventstore.RSVPYes, want: link},
+		{name: "an organizer", signedIn: true, isOrganizer: true, want: link},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			repository := &fakeEventRepository{detail: hybrid, viewerRSVP: tc.viewerRSVP, isOrganizer: tc.isOrganizer}
+			response := httptest.NewRecorder()
+			if tc.signedIn {
+				authenticatedEventPathHandler(repository).ServeHTTP(response, authenticatedEventRequest(http.MethodGet, "/events/campus-scrim-night", ""))
+			} else {
+				(&Router{events: repository}).handleEventPath(response, httptest.NewRequest(http.MethodGet, "/events/campus-scrim-night", nil))
+			}
+			if response.Code != http.StatusOK {
+				t.Fatalf("status = %d, want %d; body = %s", response.Code, http.StatusOK, response.Body.String())
+			}
+			var payload eventstore.Event
+			if err := json.NewDecoder(response.Body).Decode(&payload); err != nil {
+				t.Fatalf("decode response: %v", err)
+			}
+			if payload.OnlineURL != tc.want {
+				t.Fatalf("online_url = %q, want %q", payload.OnlineURL, tc.want)
+			}
+		})
+	}
+}
+
+func TestHandleEventsNeverListsTheOnlineLink(t *testing.T) {
+	listed := testEvent(eventstore.VisibilityPublic)
+	listed.OnlineURL = "https://meet.example/campus-scrim"
+	repository := &fakeEventRepository{listed: []eventstore.Event{listed}}
+	response := httptest.NewRecorder()
+
+	(&Router{events: repository}).handleEvents(response, httptest.NewRequest(http.MethodGet, "/events", nil))
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d; body = %s", response.Code, http.StatusOK, response.Body.String())
+	}
+	var payload struct {
+		Events []eventstore.Event `json:"events"`
+	}
+	if err := json.NewDecoder(response.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if len(payload.Events) != 1 || payload.Events[0].OnlineURL != "" {
+		t.Fatalf("events = %+v, want one event without online_url", payload.Events)
+	}
+}
+
+func TestHandleRSVPEventReturnsTheOnlineLinkOnlyToAGoingResponse(t *testing.T) {
+	const link = "https://meet.example/campus-scrim"
+	for _, tc := range []struct {
+		response string
+		want     string
+	}{
+		{response: eventstore.RSVPYes, want: link},
+		{response: eventstore.RSVPMaybe, want: ""},
+		{response: eventstore.RSVPNo, want: ""},
+	} {
+		t.Run(tc.response, func(t *testing.T) {
+			hybrid := testEvent(eventstore.VisibilityPublic)
+			hybrid.OnlineURL = link
+			repository := &fakeEventRepository{detail: hybrid}
+			response := httptest.NewRecorder()
+
+			authenticatedEventPathHandler(repository).ServeHTTP(response, authenticatedEventRequest(http.MethodPost, "/events/campus-scrim-night/rsvp", `{"response":"`+tc.response+`"}`))
+
+			if response.Code != http.StatusOK {
+				t.Fatalf("status = %d, want %d; body = %s", response.Code, http.StatusOK, response.Body.String())
+			}
+			var payload eventstore.Event
+			if err := json.NewDecoder(response.Body).Decode(&payload); err != nil {
+				t.Fatalf("decode response: %v", err)
+			}
+			if payload.OnlineURL != tc.want {
+				t.Fatalf("online_url = %q, want %q", payload.OnlineURL, tc.want)
+			}
+		})
+	}
+}
+
+func TestMalformedSlugsNameTheirRecordType(t *testing.T) {
+	router := &Router{events: &fakeEventRepository{}}
+	got := map[string]string{}
+	for path, handle := range map[string]http.HandlerFunc{
+		"/schools/%25zz/members": router.handleSchoolPath,
+		"/events/%25zz":          router.handleEventPath,
+	} {
+		response := httptest.NewRecorder()
+		handle(response, httptest.NewRequest(http.MethodGet, path, nil))
+		got[path] = fmt.Sprintf("%d %s", response.Code, strings.TrimSpace(response.Body.String()))
+	}
+	want := map[string]string{
+		"/schools/%25zz/members": `400 {"error":"invalid_school_slug"}`,
+		"/events/%25zz":          `400 {"error":"invalid_event_slug"}`,
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("responses = %v, want %v", got, want)
+	}
+}
+
+func TestHandleMyEventsKeepsTheMeetingLinkForGoingViewersAndOrganizers(t *testing.T) {
+	link := "https://meet.example/campus-scrim"
+	maybe, yes := eventstore.RSVPMaybe, eventstore.RSVPYes
+	event := func(slug string, rsvp *string, canEdit bool) eventstore.Event {
+		event := testEvent(eventstore.VisibilityPublic)
+		event.Slug, event.OnlineURL, event.ViewerRSVP, event.ViewerCanEdit = slug, link, rsvp, canEdit
+		return event
+	}
+	repository := &fakeEventRepository{
+		upcomingRSVPs:        []eventstore.Event{event("going", &yes, false), event("maybe", &maybe, false), event("organizer-maybe", &maybe, true)},
+		followedSchoolEvents: []eventstore.Event{event("followed", nil, false)},
+		interestedEvents:     []eventstore.Event{event("organizer-interested", nil, true)},
+	}
+	response := httptest.NewRecorder()
+
+	authenticatedMyEventsHandler(repository).ServeHTTP(response, authenticatedEventRequest(http.MethodGet, "/me/events", ""))
+
+	var payload map[string][]struct {
+		Slug      string `json:"slug"`
+		OnlineURL string `json:"online_url"`
+	}
+	if err := json.NewDecoder(response.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	got := map[string]string{}
+	for _, list := range payload {
+		for _, item := range list {
+			got[item.Slug] = item.OnlineURL
+		}
+	}
+	want := map[string]string{
+		"going": link, "maybe": "", "organizer-maybe": link,
+		"followed": "", "organizer-interested": link,
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("online_url by event = %v, want %v", got, want)
 	}
 }

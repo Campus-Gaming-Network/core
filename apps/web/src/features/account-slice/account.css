@@ -1,110 +1,164 @@
-/* Sections reached from the in-page nav stop a little below the viewport top. */
-.account-page > [id] {
-  scroll-margin-top: 1.5rem;
+/* Settings and account (reference sheets 06 "Profile settings" and 09 "Edit
+   profile"): a vertical settings nav at the left, then the page's heading and
+   its white panels. On a phone the nav becomes one row of links above. */
+.settings-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-5);
+  align-items: start;
+}
+
+.settings-body {
+  min-width: 0;
+}
+
+.settings-body > .page-heading .link {
+  font-size: var(--text-sm);
+}
+
+.settings-nav__heading {
+  margin: 0 0 var(--space-2);
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.settings-nav ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.settings-nav a {
+  display: flex;
+  min-height: 2.75rem;
+  align-items: center;
+  gap: var(--space-3);
+  border-radius: var(--radius-small);
+  padding: var(--space-2) var(--space-3);
+  color: var(--color-text);
+  font-size: var(--text-md);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.settings-nav a svg {
+  flex: none;
+  color: var(--color-muted);
+}
+
+.settings-nav a[aria-current="page"] {
+  background: var(--color-tag);
+  color: var(--color-tag-text);
+}
+
+.settings-nav a[aria-current="page"] svg {
+  color: currentColor;
+}
+
+@media (hover: hover) {
+  .settings-nav a:not([aria-current="page"]):hover {
+    background: var(--color-subtle);
+  }
+}
+
+/* Delete account reads as destructive in the nav: red text and icon. */
+.settings-nav a.settings-nav__danger,
+.settings-nav a.settings-nav__danger svg {
+  color: var(--color-danger-dark);
+}
+
+.settings-nav a.settings-nav__danger[aria-current="page"] {
+  background: var(--color-danger-soft);
+}
+
+@media (min-width: 52rem) {
+  .settings-layout {
+    grid-template-columns: 14rem minmax(0, 1fr);
+    gap: var(--space-6);
+  }
+
+  .settings-nav {
+    position: sticky;
+    top: var(--space-5);
+  }
+
+  .settings-nav ul {
+    flex-direction: column;
+  }
+}
+
+/* ==== Settings: profile form ==== */
+
+.more-social-links > summary {
+  width: fit-content;
+  color: var(--color-link);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.more-social-links-fields {
+  display: grid;
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+}
+
+/* ==== Account dashboard ==== */
+
+/* Sections reached from the in-page links stop a little below the top. */
+.account-page .settings-body > [id] {
+  scroll-margin-top: var(--space-5);
 }
 
 .account-page .section {
-  margin-top: clamp(1.75rem, 4vw, 2.5rem);
+  margin-top: var(--space-6);
 }
 
-.account-page .section-heading {
-  margin-bottom: 0.75rem;
-}
-
-.account-page .section-heading h2 {
-  font-size: clamp(1.25rem, 2.5vw, 1.5rem);
-}
-
-.account-header {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.account-header .avatar--large {
+.account-page .detail-heading .avatar--large {
   width: 4rem;
   height: 4rem;
-  font-size: 1.5rem;
+  font-size: var(--text-xl);
 }
 
-.account-identity {
-  min-width: 0;
-  flex: 1 1 auto;
+.account-page .detail-heading__actions .link {
+  font-size: var(--text-sm);
 }
 
-.account-identity h1 {
-  margin: 0.1rem 0 0.25rem;
-  font-size: clamp(1.6rem, 4vw, 2.1rem);
-  line-height: 1.1;
-  letter-spacing: -0.015em;
+.account-page .settings-body > [role="alert"],
+.account-page .settings-body > .page-notice {
+  margin-bottom: var(--space-4);
 }
 
-.account-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.15rem 1rem;
-  margin: 0;
-  color: var(--color-muted);
-  font-size: 0.875rem;
-}
-
-.account-verified {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  color: var(--color-success);
-  font-weight: 750;
-}
-
-.account-header-links {
-  display: flex;
-  flex: none;
-  flex-wrap: wrap;
-  gap: 0.25rem 1rem;
-  font-size: 0.875rem;
-  font-weight: 750;
-}
-
+/* The in-page links: a quiet row of links over a divider. */
 .account-nav {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.25rem;
-  margin-top: 1.25rem;
-  padding-block: 0.5rem;
-  border-block: 1px solid var(--color-border);
+  align-items: baseline;
+  gap: var(--space-1) var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: var(--space-3);
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+}
+
+.account-nav ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
 .account-nav a {
   display: inline-flex;
-  min-height: 2.25rem;
+  min-height: 2rem;
   align-items: center;
-  border-radius: var(--radius-control);
-  padding-inline: 0.75rem;
-  font-size: 0.875rem;
-  font-weight: 750;
-  text-decoration: none;
-}
-
-@media (hover: hover) {
-  .account-nav a:hover {
-    background: var(--color-primary-soft);
-  }
-}
-
-.account-events .event-list-item {
-  padding-block: 0.75rem;
-}
-
-.account-events .event-card-heading {
-  margin-block: 0;
-}
-
-.account-events .empty-state > :first-child {
-  margin-top: 0;
-}
-
-.account-events .empty-state > :last-child {
-  margin-bottom: 0;
 }
 
 .account-more {
@@ -112,98 +166,81 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 0.25rem 1rem;
-  margin: 0.5rem 0 0;
+  gap: var(--space-1) var(--space-4);
+  margin: var(--space-2) 0 0;
   color: var(--color-muted);
-  font-size: 0.875rem;
+  font-size: var(--text-sm);
 }
 
-.account-more .link {
-  font-weight: 750;
+.account-page .empty-state > :first-child {
+  margin-top: 0;
 }
 
-/* Followed schools and teams: one bordered row each, name first. */
-.account-rows {
+.account-page .empty-state > :last-child {
+  margin-bottom: 0;
+}
+
+/* ==== Settings: delete account ====
+   The danger zone: a heading over a white panel with a red left edge on
+   square corners, the consequences, the typed confirmation, and a red
+   button. */
+.danger-zone > h2 {
+  margin: 0 0 var(--space-3);
+  color: var(--color-danger-dark);
+}
+
+.danger-zone__body {
   display: grid;
+  gap: var(--space-4);
+  border: 1px solid var(--color-card-border);
+  border-left: 4px solid var(--color-danger);
+  border-radius: 0;
+  padding: var(--space-5);
+  background: var(--color-surface);
+}
+
+.danger-zone__body > h3,
+.danger-zone__body > p {
   margin: 0;
-  padding: 0;
-  border-top: 1px solid var(--color-border);
-  list-style: none;
 }
 
-.account-rows li {
-  border-bottom: 1px solid var(--color-border);
-}
-
-.account-row {
-  display: flex;
-  min-height: 2.75rem;
-  flex-wrap: wrap;
-  align-content: center;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.1rem 1rem;
-  padding: 0.65rem 0.5rem;
-  color: var(--color-text);
-  text-decoration: none;
-}
-
-@media (hover: hover) {
-  .account-row:hover {
-    background: var(--color-panel);
-  }
-}
-
-.account-row small {
+.danger-zone__body > p {
+  max-width: 68ch;
   color: var(--color-muted);
 }
 
-.account-row-detail {
-  flex-basis: 100%;
+/* The form is the panel's content, not a second panel inside it. */
+.danger-zone .form-stack.sectioned-form {
+  border: 0;
+  background: transparent;
 }
 
-.more-social-links > summary {
-  width: fit-content;
-  color: var(--color-primary);
-  font-size: 0.875rem;
-  font-weight: 750;
-  cursor: pointer;
+.danger-zone .sectioned-form fieldset.form-section,
+.danger-zone .form-actions {
+  padding-inline: 0;
 }
 
-.more-social-links-fields {
-  display: grid;
-  gap: 1rem;
-  margin-top: 1rem;
+.danger-zone .form-actions {
+  justify-content: flex-start;
+  padding-bottom: 0;
 }
 
 @media (max-width: 42rem) {
-  .account-header {
-    flex-wrap: wrap;
+  .account-page .detail-heading .avatar--large {
+    width: 3rem;
+    height: 3rem;
+    font-size: 1.125rem;
   }
 
-  .account-header .avatar--large {
-    width: 3.5rem;
-    height: 3.5rem;
-    font-size: 1.25rem;
+  .settings-nav ul {
+    overflow-x: auto;
   }
 
-  .account-header-links {
-    flex-basis: 100%;
+  .settings-nav a {
+    white-space: nowrap;
   }
+}
 
-  .account-nav a {
-    min-height: 2.75rem;
-    padding-inline: 0.5rem;
-  }
-
-  /* Keep the heading and its action on one row, which the shared rule stacks. */
-  .account-page .section-heading {
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: center;
-  }
-
-  /* The whole row is the link, so the extra "View details" line is dropped. */
-  .account-events .event-card-action {
-    display: none;
-  }
+.danger-zone .sectioned-form .form-section > legend {
+  font-size: var(--text-md);
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
+// IsOrganizer reports whether the user organizes the live event with slug.
 func (r *PostgresRepository) IsOrganizer(ctx context.Context, slug string, userID string) (bool, error) {
 	var organizer bool
 	err := r.pool.QueryRow(ctx, `
@@ -28,6 +29,9 @@ func (r *PostgresRepository) IsOrganizer(ctx context.Context, slug string, userI
 	return organizer, err
 }
 
+// PrivatePasswordHash returns the password hash of a private event. It
+// returns ErrEventNotFound when the event is missing, not private, or has no
+// password.
 func (r *PostgresRepository) PrivatePasswordHash(ctx context.Context, slug string) (string, error) {
 	var hash sql.NullString
 	err := r.pool.QueryRow(ctx, `
@@ -49,6 +53,8 @@ func (r *PostgresRepository) PrivatePasswordHash(ctx context.Context, slug strin
 	return hash.String, nil
 }
 
+// IsPrivateUnlockValid reports whether tokenHash is an unexpired unlock for
+// the private event with slug.
 func (r *PostgresRepository) IsPrivateUnlockValid(ctx context.Context, slug string, tokenHash []byte) (bool, error) {
 	if len(tokenHash) == 0 {
 		return false, nil
@@ -71,6 +77,8 @@ func (r *PostgresRepository) IsPrivateUnlockValid(ctx context.Context, slug stri
 	return unlocked, err
 }
 
+// GetRSVP returns the user's RSVP response for the event, or "" when they
+// have not responded.
 func (r *PostgresRepository) GetRSVP(ctx context.Context, slug string, userID string) (string, error) {
 	var response string
 	err := r.pool.QueryRow(ctx, `
@@ -88,6 +96,7 @@ func (r *PostgresRepository) GetRSVP(ctx context.Context, slug string, userID st
 	return response, err
 }
 
+// IsInterested reports whether the user marked the event as interested.
 func (r *PostgresRepository) IsInterested(ctx context.Context, slug string, userID string) (bool, error) {
 	var interested bool
 	err := r.pool.QueryRow(ctx, `
@@ -104,52 +113,32 @@ func (r *PostgresRepository) IsInterested(ctx context.Context, slug string, user
 	return interested, err
 }
 
+// ListUpcomingRSVPs returns the upcoming events the user RSVP'd yes or maybe
+// to, soonest first.
 func (r *PostgresRepository) ListUpcomingRSVPs(ctx context.Context, userID string, limit int) ([]Event, error) {
-	userID = strings.TrimSpace(userID)
-	if userID == "" {
-		return nil, apperror.Validation("user is required")
-	}
-	if limit < 1 || limit > 25 {
-		limit = 5
-	}
-
-	rows, err := r.pool.Query(ctx, eventSelectForUserSQL(`
-		e.deleted_at IS NULL
-		AND e.ends_at > $2
-		AND viewer_rsvp.response IN ('yes', 'maybe')
-	`, `
-		ORDER BY e.starts_at, e.id
-		LIMIT $3
-	`), userID, r.now(), limit)
-	if err != nil {
-		return nil, fmt.Errorf("list upcoming event rsvps: %w", err)
-	}
-	defer rows.Close()
-
-	events := make([]Event, 0, limit)
-	for rows.Next() {
-		event, err := scanEventForUser(rows, r.now())
-		if err != nil {
-			return nil, err
-		}
-		events = append(events, event)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("iterate upcoming event rsvps: %w", err)
-	}
-	return events, nil
+	return r.listUpcomingForUser(ctx, userID, limit, `viewer_rsvp.response IN ('yes', 'maybe')`, "upcoming event rsvps")
 }
 
-func (r *PostgresRepository) ListFollowedSchoolEvents(ctx context.Context, userID string, limit int) ([]Event, error) {
-	userID = strings.TrimSpace(userID)
-	if userID == "" {
-		return nil, apperror.Validation("user is required")
-	}
-	if limit < 1 || limit > 25 {
-		limit = 5
-	}
+// ListInterestedEvents returns the upcoming events the user marked as
+// interested, soonest first.
+func (r *PostgresRepository) ListInterestedEvents(ctx context.Context, userID string, limit int) ([]Event, error) {
+	return r.listUpcomingForUser(ctx, userID, limit, `viewer_interest.user_id IS NOT NULL`, "interested events")
+}
 
-	rows, err := r.pool.Query(ctx, eventSelectForUserSQL(`
+// listUpcomingForUser lists events that have not ended and match condition,
+// a clause over the viewer_rsvp and viewer_interest joins, soonest first.
+func (r *PostgresRepository) listUpcomingForUser(ctx context.Context, userID string, limit int, condition string, label string) ([]Event, error) {
+	return r.listSoonestForUser(ctx, userID, limit, label, `
+		e.deleted_at IS NULL
+		AND e.ends_at > $2
+		AND `+condition+`
+	`)
+}
+
+// ListFollowedSchoolEvents returns the upcoming public events hosted by
+// schools the user follows, soonest first.
+func (r *PostgresRepository) ListFollowedSchoolEvents(ctx context.Context, userID string, limit int) ([]Event, error) {
+	return r.listSoonestForUser(ctx, userID, limit, "followed school events", `
 		e.deleted_at IS NULL
 		AND e.visibility = 'public'
 		AND e.ends_at > $2
@@ -160,12 +149,27 @@ func (r *PostgresRepository) ListFollowedSchoolEvents(ctx context.Context, userI
 			  AND f.user_id = $1::uuid
 			  AND f.deleted_at IS NULL
 		)
-	`, `
+	`)
+}
+
+// listSoonestForUser runs the viewer event select with whereClause, which may
+// use $1 (user ID) and $2 (now), and returns up to limit events by start time.
+// A limit outside 1 to 25 becomes 5.
+func (r *PostgresRepository) listSoonestForUser(ctx context.Context, userID string, limit int, label string, whereClause string) ([]Event, error) {
+	userID = strings.TrimSpace(userID)
+	if userID == "" {
+		return nil, apperror.Validation("user is required")
+	}
+	if limit < 1 || limit > 25 {
+		limit = 5
+	}
+
+	rows, err := r.pool.Query(ctx, eventSelectForUserSQL(whereClause, `
 		ORDER BY e.starts_at, e.id
 		LIMIT $3
 	`), userID, r.now(), limit)
 	if err != nil {
-		return nil, fmt.Errorf("list followed school events: %w", err)
+		return nil, fmt.Errorf("list %s: %w", label, err)
 	}
 	defer rows.Close()
 
@@ -178,11 +182,16 @@ func (r *PostgresRepository) ListFollowedSchoolEvents(ctx context.Context, userI
 		events = append(events, event)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("iterate followed school events: %w", err)
+		return nil, fmt.Errorf("iterate %s: %w", label, err)
 	}
 	return events, nil
 }
 
+// ListPublic returns public events that have not ended, soonest first,
+// optionally filtered by game, school, format, audience, event type, cost, and
+// start window (StartsAfter and StartsBefore). After and Before page forward
+// and backward from a cursor; setting both is an invalid cursor. A previous
+// page is returned in the same soonest-first order.
 func (r *PostgresRepository) ListPublic(ctx context.Context, params ListParams) ([]Event, error) {
 	params = NormalizeListParams(params)
 	if params.After != nil && params.Before != nil {
@@ -208,18 +217,29 @@ func (r *PostgresRepository) ListPublic(ctx context.Context, params ListParams) 
 	`
 	arguments := []any{
 		params.GameSlug, params.SchoolSlug, params.Format, params.Audience, params.EventType,
-		params.Cost,
+		params.Cost, r.now(),
 	}
-	// Newest start times first; a previous page reads forward and is reversed.
-	order := "ORDER BY e.starts_at DESC, e.id DESC"
+	// Soonest first: events under way, then upcoming ones by start time.
+	// Ended events leave the list. A previous page reads backward from its
+	// cursor and is reversed afterward.
+	whereClause += " AND e.ends_at > $7"
+	if params.StartsAfter != nil {
+		whereClause += fmt.Sprintf(" AND e.starts_at >= $%d", len(arguments)+1)
+		arguments = append(arguments, *params.StartsAfter)
+	}
+	if params.StartsBefore != nil {
+		whereClause += fmt.Sprintf(" AND e.starts_at < $%d", len(arguments)+1)
+		arguments = append(arguments, *params.StartsBefore)
+	}
+	order := "ORDER BY e.starts_at, e.id"
 	if params.After != nil {
-		whereClause += fmt.Sprintf(" AND (e.starts_at, e.id) < ($%d, $%d::uuid)", len(arguments)+1, len(arguments)+2)
+		whereClause += fmt.Sprintf(" AND (e.starts_at, e.id) > ($%d, $%d::uuid)", len(arguments)+1, len(arguments)+2)
 		arguments = append(arguments, params.After.Timestamp, params.After.ID)
 	}
 	if params.Before != nil {
-		whereClause += fmt.Sprintf(" AND (e.starts_at, e.id) > ($%d, $%d::uuid)", len(arguments)+1, len(arguments)+2)
+		whereClause += fmt.Sprintf(" AND (e.starts_at, e.id) < ($%d, $%d::uuid)", len(arguments)+1, len(arguments)+2)
 		arguments = append(arguments, params.Before.Timestamp, params.Before.ID)
-		order = "ORDER BY e.starts_at, e.id"
+		order = "ORDER BY e.starts_at DESC, e.id DESC"
 	}
 	arguments = append(arguments, params.Limit)
 	tailClause := fmt.Sprintf(" %s LIMIT $%d", order, len(arguments))
@@ -247,12 +267,15 @@ func (r *PostgresRepository) ListPublic(ctx context.Context, params ListParams) 
 	return result, nil
 }
 
+// reverseEvents reverses events in place.
 func reverseEvents(events []Event) {
 	for left, right := 0, len(events)-1; left < right; left, right = left+1, right-1 {
 		events[left], events[right] = events[right], events[left]
 	}
 }
 
+// GetBySlug returns the live event with slug, including its organizers. It
+// does not check visibility; callers do.
 func (r *PostgresRepository) GetBySlug(ctx context.Context, slug string) (Event, error) {
 	row := r.pool.QueryRow(ctx, eventSelectSQL(`
 		e.deleted_at IS NULL

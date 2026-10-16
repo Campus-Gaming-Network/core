@@ -60,10 +60,24 @@ func Lifecycle(now time.Time, startsAt time.Time, endsAt time.Time, capacity *in
 	return LifecycleUpcoming
 }
 
+// IsPrivate reports whether the event is private.
 func (e Event) IsPrivate() bool {
 	return e.Visibility == VisibilityPrivate
 }
 
+// HideOnlineURLUnlessGoing removes the online meeting link unless the viewer
+// RSVP'd yes or can edit the event: only people going, and the organizers who
+// manage the event, receive it. Call it after the viewer fields are set; an
+// event with none (a public list) always loses the link.
+func (e *Event) HideOnlineURLUnlessGoing() {
+	if e.ViewerCanEdit || (e.ViewerRSVP != nil && *e.ViewerRSVP == RSVPYes) {
+		return
+	}
+	e.OnlineURL = ""
+}
+
+// Locked returns the placeholder shown for a private event the viewer has not
+// unlocked.
 func (e Event) Locked() LockedEvent {
 	return LockedEvent{
 		Slug:       e.Slug,

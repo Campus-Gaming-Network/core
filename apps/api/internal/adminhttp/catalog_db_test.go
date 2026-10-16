@@ -214,9 +214,8 @@ func TestCatalogHTTPCommandsRefreshCacheAndProtectVersions(t *testing.T) {
 	}
 	command.ExpectedUpdatedAt = fixtureSchool.UpdatedAt
 	f.request(t, "DELETE", "/admin/v1/schools/"+catalogSchoolID, command, 409)
-	gameInput := games.AdminEdit{Command: f.command, Name: "New Game", Slug: "new-game", IsActive: true}
-	game := decodeCatalog[games.AdminGame](t, f.request(t, "POST", "/admin/v1/games", gameInput, 201))
-	gameInput.ExpectedUpdatedAt = game.UpdatedAt
+	game := f.insertGame(t, "New Game", "new-game")
+	gameInput := games.AdminEdit{Command: f.versioned(game.UpdatedAt), Name: "New Game", Slug: "new-game"}
 	gameInput.IsActive = false
 	game = decodeCatalog[games.AdminGame](t, f.request(t, "PATCH", "/admin/v1/games/"+game.ID, gameInput, 200))
 	if _, err := f.game.GetBySlug(ctx, game.Slug); !errors.Is(err, pgx.ErrNoRows) {
@@ -279,8 +278,8 @@ func TestAuditLogListsEveryChangeWithItsRecord(t *testing.T) {
 	if _, err := f.school.GrantAdmin(t.Context(), catalogSchoolID, schools.GrantAdminInput{Command: f.command, UserID: catalogTargetID}); err != nil {
 		t.Fatal(err)
 	}
-	game, err := f.game.CreateAdmin(t.Context(), games.AdminEdit{Command: f.command, Name: "Audit Game", Slug: "audit-game", IsActive: true})
-	if err != nil {
+	game := f.insertGame(t, "Audit Game", "audit-game")
+	if _, err := f.game.UpdateAdmin(t.Context(), game.ID, games.AdminEdit{Command: f.versioned(game.UpdatedAt), Name: game.Name, Slug: game.Slug}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -308,7 +307,7 @@ func TestAuditLogListsEveryChangeWithItsRecord(t *testing.T) {
 		return result, rows
 	}
 	want := []row{
-		{adminaudit.ActionGameCreated, adminaudit.EntityGame, game.ID, "Audit Game"},
+		{adminaudit.ActionGameUpdated, adminaudit.EntityGame, game.ID, "Audit Game"},
 		{adminaudit.ActionSchoolGrantGranted, adminaudit.EntitySchool, catalogSchoolID, "Fixture School"},
 		{adminaudit.ActionSchoolCreated, adminaudit.EntitySchool, school.ID, "Matrix audit-log"},
 		{adminaudit.ActionSiteRoleGrantBootstrap, adminaudit.EntityUser, catalogActorID, "Fixture User"},
@@ -455,10 +454,7 @@ func TestCatalogPaginationAndLiteralSearch(t *testing.T) {
 	f := newCatalogFixture(t)
 	ctx := t.Context()
 	for index := 0; index < 4; index++ {
-		_, err := f.game.CreateAdmin(ctx, games.AdminEdit{Command: f.command, Name: fmt.Sprintf("Page_%d", index), Slug: fmt.Sprintf("page-%d", index), IsActive: true})
-		if err != nil {
-			t.Fatal(err)
-		}
+		f.insertGame(t, fmt.Sprintf("Page_%d", index), fmt.Sprintf("page-%d", index))
 	}
 	filter := adminmutation.Filter{Query: "Page_", Limit: 3}
 	items, err := f.game.ListAdmin(ctx, filter)
@@ -531,10 +527,7 @@ func TestCatalogPaginationAndLiteralSearch(t *testing.T) {
 func TestCatalogAuditFailuresRollBackDomainAndSessionChanges(t *testing.T) {
 	f := newCatalogFixture(t)
 	ctx := t.Context()
-	game, err := f.game.CreateAdmin(ctx, games.AdminEdit{Command: f.command, Name: "Rollback", Slug: "rollback", IsActive: true})
-	if err != nil {
-		t.Fatal(err)
-	}
+	game := f.insertGame(t, "Rollback", "rollback")
 	school, err := f.school.GetAdmin(ctx, catalogSchoolID)
 	if err != nil {
 		t.Fatal(err)
@@ -600,10 +593,7 @@ func TestCatalogAuditFailuresRollBackDomainAndSessionChanges(t *testing.T) {
 func TestConcurrentCatalogUpdatesAndLastAdministratorChanges(t *testing.T) {
 	f := newCatalogFixture(t)
 	ctx := t.Context()
-	game, err := f.game.CreateAdmin(ctx, games.AdminEdit{Command: f.command, Name: "Concurrent", Slug: "concurrent", IsActive: true})
-	if err != nil {
-		t.Fatal(err)
-	}
+	game := f.insertGame(t, "Concurrent", "concurrent")
 	command := f.command
 	command.ExpectedUpdatedAt = game.UpdatedAt
 	start := make(chan struct{})
@@ -656,10 +646,7 @@ func TestConcurrentCatalogUpdatesAndLastAdministratorChanges(t *testing.T) {
 func TestGameDependenciesAndDeletedCatalogReferences(t *testing.T) {
 	f := newCatalogFixture(t)
 	ctx := t.Context()
-	game, err := f.game.CreateAdmin(ctx, games.AdminEdit{Command: f.command, Name: "Team Game", Slug: "team-game", IsActive: true})
-	if err != nil {
-		t.Fatal(err)
-	}
+	game := f.insertGame(t, "Team Game", "team-game")
 	var teamID string
 	if err := f.pool.QueryRow(ctx, `INSERT INTO teams(owner_user_id,name,slug,password_hash) VALUES($1,'Team','team','hash') RETURNING id::text`, catalogTargetID).Scan(&teamID); err != nil {
 		t.Fatal(err)
@@ -687,10 +674,7 @@ func TestCatalogDeleteWaitsForConcurrentReferenceThenRejectsIt(t *testing.T) {
 	f := newCatalogFixture(t)
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	defer cancel()
-	game, err := f.game.CreateAdmin(ctx, games.AdminEdit{Command: f.command, Name: "Referenced", Slug: "referenced", IsActive: true})
-	if err != nil {
-		t.Fatal(err)
-	}
+	game := f.insertGame(t, "Referenced", "referenced")
 	var teamID string
 	if err := f.pool.QueryRow(ctx, `INSERT INTO teams(owner_user_id,name,slug,password_hash) VALUES($1,'Concurrent Team','concurrent-team','hash') RETURNING id::text`, catalogTargetID).Scan(&teamID); err != nil {
 		t.Fatal(err)

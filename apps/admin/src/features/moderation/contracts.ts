@@ -130,7 +130,8 @@ export const queueBrowseInputSchema = z.object({
 });
 
 export const moderationDetailInputSchema = z.object({
-  id: uuidSchema,
+  // Any ID is passed on; the API answers 404 for one that is not a record.
+  id: z.string().min(1).max(100),
   audit_after: cursorSchema.optional(),
   audit_before: cursorSchema.optional(),
 });

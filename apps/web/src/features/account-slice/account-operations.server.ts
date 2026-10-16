@@ -39,6 +39,7 @@ type DeleteDependencies = ReadDependencies & {
 const emptyDashboard = {
   upcoming_rsvps: [],
   followed_school_events: [],
+  interested_events: [],
 };
 
 export async function accountProfileOperation({
@@ -87,6 +88,7 @@ export async function accountDashboardOperation(
           upcoming_rsvps: data.upcoming_rsvps.map(withHostSchoolLogo),
           followed_school_events:
             data.followed_school_events.map(withHostSchoolLogo),
+          interested_events: data.interested_events.map(withHostSchoolLogo),
         })),
       emptyDashboard,
       reportError,

@@ -34,9 +34,9 @@ export const teamDetailNotices = {
 export type TeamBrowseNotice = keyof typeof teamBrowseNotices;
 export type TeamDetailNotice = keyof typeof teamDetailNotices;
 
-export const teamsDescription =
+const teamsDescription =
   "Browse collegiate gaming teams and find one to join on your campus.";
-export const newTeamDescription = "Start a new collegiate gaming team.";
+const newTeamDescription = "Start a new collegiate gaming team.";
 
 export function teamRoleLabel(role: TeamRole): string {
   const labels: Record<TeamRole, string> = {

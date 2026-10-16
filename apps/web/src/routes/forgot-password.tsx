@@ -2,6 +2,7 @@ import { Link, createFileRoute } from "@tanstack/react-router";
 import { ForgotPasswordForm } from "../features/auth-flow-slice/auth-forms";
 import { validateForgotPasswordSearch } from "../features/auth-flow-slice/contracts";
 import { authPageHead } from "../features/auth-flow-slice/presentation";
+import "../features/auth-flow-slice/auth-flow.css";
 
 const description =
   "Request a password reset link for your Campus Gaming Network account.";
@@ -23,15 +24,14 @@ function ForgotPasswordPage() {
   const search = Route.useSearch();
   return (
     <main className="auth-page">
-      <section className="page-heading">
-        <p className="eyebrow">Password reset</p>
-        <h1>Get a reset link.</h1>
+      <header className="auth-heading">
+        <h1>Reset your password</h1>
         <p className="lede">
           Enter your email and we will send a reset link if the account exists.
         </p>
-      </section>
+      </header>
       <ForgotPasswordForm initialStatus={search.request} />
-      <p className="form-footer">
+      <p className="auth-footer">
         Remembered it? <Link to="/login">Log in</Link>
       </p>
     </main>

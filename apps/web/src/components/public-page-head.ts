@@ -2,7 +2,7 @@ export const siteName = "Campus Gaming Network";
 const localOrigin = "http://localhost:3000";
 
 /** The preview image every page without a better one shares: 1200 by 630. */
-export const defaultPreviewImagePath = "/og-default.png";
+const defaultPreviewImagePath = "/og-default.png";
 
 export type PageHeadOptions = {
   description: string;

@@ -36,14 +36,11 @@ type AdminSchools interface {
 type AdminGames interface {
 	ListAdmin(context.Context, adminmutation.Filter) ([]games.AdminGame, error)
 	GetAdmin(context.Context, string) (games.AdminGame, error)
-	CreateAdmin(context.Context, games.AdminEdit) (games.AdminGame, error)
 	UpdateAdmin(context.Context, string, games.AdminEdit) (games.AdminGame, error)
 	DeleteAdmin(context.Context, string, adminmutation.Command) (games.AdminGame, error)
 	AdminCover(context.Context, string) (games.Cover, error)
 }
 type AdminIGDB interface {
-	SearchIGDB(context.Context, string) ([]games.IGDBResult, error)
-	ImportFromIGDB(context.Context, games.IGDBImport) (games.AdminGame, error)
 	RefreshFromIGDB(context.Context, string, adminmutation.Command) (games.AdminGame, error)
 }
 type AdminUsers interface {
@@ -98,13 +95,10 @@ var catalogRoutes = []routePolicy{
 	{Method: "POST", Path: "/admin/v1/schools/{id}/admin-grants", Control: controlCapability, Capability: adminaccess.CapabilitySchoolGrantsManage, Mutation: true, Operation: "school_grants.grant"},
 	{Method: "POST", Path: "/admin/v1/schools/{id}/admin-grants/{grant_id}/revoke", Control: controlCapability, Capability: adminaccess.CapabilitySchoolGrantsManage, Mutation: true, Operation: "school_grants.revoke"},
 	{Method: "GET", Path: "/admin/v1/games", Control: controlCapability, Capability: adminaccess.CapabilityGamesManage, Operation: "games.list"},
-	{Method: "POST", Path: "/admin/v1/games", Control: controlCapability, Capability: adminaccess.CapabilityGamesManage, Mutation: true, Operation: "games.create"},
 	{Method: "GET", Path: "/admin/v1/games/{id}", Control: controlCapability, Capability: adminaccess.CapabilityGamesManage, Operation: "games.get"},
 	{Method: "PATCH", Path: "/admin/v1/games/{id}", Control: controlCapability, Capability: adminaccess.CapabilityGamesManage, Mutation: true, Operation: "games.update"},
 	{Method: "DELETE", Path: "/admin/v1/games/{id}", Control: controlCapability, Capability: adminaccess.CapabilityGamesManage, Mutation: true, Operation: "games.delete"},
 	{Method: "GET", Path: "/admin/v1/games/{id}/cover", Control: controlCapability, Capability: adminaccess.CapabilityGamesManage, Operation: "games.cover"},
-	{Method: "GET", Path: "/admin/v1/igdb-games", Control: controlCapability, Capability: adminaccess.CapabilityGamesManage, Operation: "games.igdb_search"},
-	{Method: "POST", Path: "/admin/v1/game-imports", Control: controlCapability, Capability: adminaccess.CapabilityGamesManage, Mutation: true, Operation: "games.import"},
 	{Method: "POST", Path: "/admin/v1/games/{id}/refresh", Control: controlCapability, Capability: adminaccess.CapabilityGamesManage, Mutation: true, Operation: "games.refresh"},
 	{Method: "GET", Path: "/admin/v1/users", Control: controlCapability, Capability: adminaccess.CapabilityUsersRead, Operation: "users.list"},
 	{Method: "GET", Path: "/admin/v1/users/{id}", Control: controlCapability, Capability: adminaccess.CapabilityUsersRead, Operation: "users.get"},
@@ -133,7 +127,7 @@ func (handler *Handler) catalogHandler(operation routeOperation, id string) http
 			writeAdminApplicationError(w, req, adminmutation.ErrNotFound, "admin_unavailable")
 			return
 		}
-		if (operation == "games.igdb_search" || operation == "games.import" || operation == "games.refresh") && deps.IGDB == nil {
+		if operation == "games.refresh" && deps.IGDB == nil {
 			writeError(w, http.StatusServiceUnavailable, "igdb_not_configured")
 			return
 		}
@@ -160,31 +154,13 @@ func (handler *Handler) catalogHandler(operation routeOperation, id string) http
 				result, err = deps.Schools.UpdateAdmin(req.Context(), id, input)
 			}
 			schoolChanged = err == nil
-		case "games.create", "games.update":
+		case "games.update":
 			var input games.AdminEdit
 			if err = decodeAdminJSON(w, req, &input); err != nil {
 				break
 			}
 			input.Correlation = correlation
-			if operation == "games.create" {
-				result, err = deps.Games.CreateAdmin(req.Context(), input)
-				status = http.StatusCreated
-			} else {
-				result, err = deps.Games.UpdateAdmin(req.Context(), id, input)
-			}
-		case "games.import":
-			var input games.IGDBImport
-			if err = decodeAdminJSON(w, req, &input); err != nil {
-				break
-			}
-			input.Correlation = correlation
-			var game games.AdminGame
-			game, err = deps.IGDB.ImportFromIGDB(req.Context(), input)
-			if errors.Is(err, games.ErrAlreadyImported) {
-				writeJSON(w, http.StatusConflict, map[string]any{"error": "game_already_imported", "current": game})
-				return
-			}
-			result, status = game, http.StatusCreated
+			result, err = deps.Games.UpdateAdmin(req.Context(), id, input)
 		case "school_logos.upload", "school_logos.remove":
 			if deps.Logos == nil {
 				writeError(w, http.StatusServiceUnavailable, "logo_storage_unavailable")
@@ -360,13 +336,6 @@ func (handler *Handler) catalogRead(w http.ResponseWriter, req *http.Request, ac
 		// The bytes travel base64-encoded in JSON, so the Admin Console shows
 		// the cover from its own page and loads no image from another origin.
 		result = map[string]any{"content_type": cover.ContentType, "data": cover.Bytes}
-	case "games.igdb_search":
-		if err = validateQueryKeys(req.URL.Query(), map[string]struct{}{"q": {}}); err != nil {
-			break
-		}
-		var matches []games.IGDBResult
-		matches, err = deps.IGDB.SearchIGDB(req.Context(), req.URL.Query().Get("q"))
-		result = map[string]any{"games": matches}
 	case "users.get":
 		result, err = deps.Users.GetAdmin(req.Context(), id)
 	case "schools.audit", "games.audit", "users.audit", "site_grants.audit", "school_grants.audit":

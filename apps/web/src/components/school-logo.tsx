@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useImageFailure } from "./use-image-failure";
 
 /**
  * A verified school logo. Missing or failed images reveal the caller's initial.
@@ -10,31 +10,28 @@ export function SchoolLogo({
   alt = "",
   size,
   inline = false,
+  eager = false,
 }: {
   logoURL?: string;
   alt?: string;
   size: number;
   /** Sits on the text line, in front of the school's name. */
   inline?: boolean;
+  /** Above the fold: load now instead of waiting to scroll near. */
+  eager?: boolean;
 }) {
-  const image = useRef<HTMLImageElement>(null);
-  const [failedURL, setFailedURL] = useState<string>();
-  useEffect(() => {
-    // An image can fail before hydration installs its error handler.
-    if (image.current?.complete && image.current.naturalWidth === 0)
-      setFailedURL(logoURL);
-  }, [logoURL]);
-  if (!logoURL || failedURL === logoURL) return null;
+  const { failed, onError, ref } = useImageFailure(logoURL);
+  if (!logoURL || failed) return null;
   return (
     <img
       alt={alt}
       className={inline ? "school-logo school-logo--inline" : "school-logo"}
       decoding="async"
       height={size}
-      loading="lazy"
+      loading={eager ? "eager" : "lazy"}
       referrerPolicy="no-referrer"
-      ref={image}
-      onError={() => setFailedURL(logoURL)}
+      ref={ref}
+      onError={onError}
       src={logoURL}
       width={size}
     />

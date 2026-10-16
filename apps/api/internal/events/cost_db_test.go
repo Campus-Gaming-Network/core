@@ -95,13 +95,13 @@ func TestPostgresRepositoryStoresAndFiltersCost(t *testing.T) {
 		}
 		return costs
 	}
-	wantFree := []string{"Cost Series=free/", "Cost Series=free/", "Cost Free=free/"}
+	wantFree := []string{"Cost Free=free/", "Cost Series=free/", "Cost Series=free/"}
 	if got := listed(CostFree); !reflect.DeepEqual(got, wantFree) {
 		t.Fatalf("ListPublic(free) = %v, want %v", got, wantFree)
 	}
 	wantAll := []string{
-		"Cost Series=free/", "Cost Series=free/", "Cost Unsaid=unspecified/",
-		"Cost Paid=paid/Pay at the door.", "Cost Free=free/",
+		"Cost Free=free/", "Cost Paid=paid/Pay at the door.",
+		"Cost Unsaid=unspecified/", "Cost Series=free/", "Cost Series=free/",
 	}
 	if got := listed(""); !reflect.DeepEqual(got, wantAll) {
 		t.Fatalf("ListPublic() = %v, want %v", got, wantAll)
@@ -204,7 +204,7 @@ func TestCostMigrationKeepsPaidEventsAndLeavesTheRestUnspecified(t *testing.T) {
 		}
 		return costs
 	}
-	wantAll := []string{"Unpaid Before=unspecified/", "Paid Before=paid/Pay at the door."}
+	wantAll := []string{"Paid Before=paid/Pay at the door.", "Unpaid Before=unspecified/"}
 	if got := listed(""); !reflect.DeepEqual(got, wantAll) {
 		t.Fatalf("migrated events = %v, want %v", got, wantAll)
 	}

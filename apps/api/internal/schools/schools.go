@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+// School is a catalog school as the public API reports it.
 type School struct {
 	ID     string `json:"id"`
 	UnitID *int64 `json:"unitid,omitempty"`
@@ -30,6 +31,8 @@ type School struct {
 	LogoURL      string   `json:"logo_url,omitempty"`
 }
 
+// ListParams filters and pages the catalog. Query matches name or alias and
+// State matches the state code exactly.
 type ListParams struct {
 	Query  string
 	State  string
@@ -37,6 +40,7 @@ type ListParams struct {
 	Offset int
 }
 
+// Repository reads the active school catalog.
 type Repository interface {
 	List(ctx context.Context, params ListParams) ([]School, error)
 	GetByID(ctx context.Context, id string) (School, error)
@@ -44,6 +48,7 @@ type Repository interface {
 	ExistsActive(ctx context.Context, id string) (bool, error)
 }
 
+// FollowRepository stores which schools a user follows.
 type FollowRepository interface {
 	Follow(ctx context.Context, userID string, schoolID string) error
 	Unfollow(ctx context.Context, userID string, schoolID string) error
@@ -69,6 +74,7 @@ func NormalizeListParams(params ListParams) ListParams {
 	return params
 }
 
+// PostgresRepository is the PostgreSQL-backed school store.
 type PostgresRepository struct {
 	pool *pgxpool.Pool
 }
@@ -85,10 +91,12 @@ type schoolScanner interface {
 	Scan(dest ...any) error
 }
 
+// NewPostgresRepository returns a repository that reads and writes through pool.
 func NewPostgresRepository(pool *pgxpool.Pool) *PostgresRepository {
 	return &PostgresRepository{pool: pool}
 }
 
+// List returns active schools ordered by name, city, and ID.
 func (r *PostgresRepository) List(ctx context.Context, params ListParams) ([]School, error) {
 	params = NormalizeListParams(params)
 	rows, err := r.pool.Query(ctx, `
@@ -172,10 +180,12 @@ func (r *PostgresRepository) ListPopular(ctx context.Context, limit int) ([]Scho
 	return result, nil
 }
 
+// GetByID returns the active school with the given ID, or a no-rows error.
 func (r *PostgresRepository) GetByID(ctx context.Context, id string) (School, error) {
 	return r.find(ctx, "s.id = $1::uuid", id)
 }
 
+// GetBySlug returns the active school with the given slug, or a no-rows error.
 func (r *PostgresRepository) GetBySlug(ctx context.Context, slug string) (School, error) {
 	return r.find(ctx, "s.slug = $1", strings.TrimSpace(slug))
 }
@@ -188,6 +198,7 @@ func (r *PostgresRepository) find(ctx context.Context, predicate string, arg any
 	`, arg))
 }
 
+// ExistsActive reports whether id names an active, undeleted school.
 func (r *PostgresRepository) ExistsActive(ctx context.Context, id string) (bool, error) {
 	var exists bool
 	err := r.pool.QueryRow(ctx, `
@@ -199,6 +210,8 @@ func (r *PostgresRepository) ExistsActive(ctx context.Context, id string) (bool,
 	return exists, err
 }
 
+// Follow records that the user follows the school, restoring an earlier
+// unfollow. It returns ErrSchoolNotFound when the school is not active.
 func (r *PostgresRepository) Follow(ctx context.Context, userID string, schoolID string) error {
 	tag, err := r.pool.Exec(ctx, `
 		INSERT INTO user_school_follows (user_id, school_id)
@@ -217,6 +230,8 @@ func (r *PostgresRepository) Follow(ctx context.Context, userID string, schoolID
 	return nil
 }
 
+// Unfollow ends the user's follow of the school. Unfollowing a school the user
+// does not follow is not an error.
 func (r *PostgresRepository) Unfollow(ctx context.Context, userID string, schoolID string) error {
 	_, err := r.pool.Exec(ctx, `
 		UPDATE user_school_follows
@@ -226,6 +241,7 @@ func (r *PostgresRepository) Unfollow(ctx context.Context, userID string, school
 	return err
 }
 
+// IsFollowing reports whether the user currently follows the school.
 func (r *PostgresRepository) IsFollowing(ctx context.Context, userID string, schoolID string) (bool, error) {
 	var following bool
 	err := r.pool.QueryRow(ctx, `
@@ -237,6 +253,7 @@ func (r *PostgresRepository) IsFollowing(ctx context.Context, userID string, sch
 	return following, err
 }
 
+// ListFollowed returns the active schools the user follows, ordered by name.
 func (r *PostgresRepository) ListFollowed(ctx context.Context, userID string) ([]School, error) {
 	rows, err := r.pool.Query(ctx, `
 		SELECT `+schoolColumns+`

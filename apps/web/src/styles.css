@@ -1,41 +1,91 @@
+/* ==========================================================================
+   CGN design system: foundation
+   Follows CGN_Design_Handoff/STYLE_GUIDE.md (v3) and reference sheets 10-12.
+   This file owns tokens, base elements, the application shell, layouts,
+   buttons, form controls, panels, lists, and notices. Components shared by
+   more than one route area live in components.css; a route area's own
+   styles live beside it in its feature folder.
+   ========================================================================== */
+
 :root {
   color-scheme: light;
-  --color-canvas: #f7f5ef;
-  --color-surface: #fffefa;
+
+  /* Color. A neutral light canvas, white surfaces, near-black text, a dark
+     navy masthead, blue actions and links, and a yellow focus ring. */
+  --color-canvas: #f8f8f8;
+  --color-surface: #ffffff;
   --color-panel: #ffffff;
-  --color-text: #17191f;
-  --color-muted: #676b76;
-  --color-border: #e1ddd4;
-  --color-border-strong: #d5d0c7;
-  /* Cards sit a shade lighter than the canvas, with a hairline a shade darker
-     than it, so the edge reads without a hard white-on-beige contrast. */
-  --color-card: #fffdf8;
-  --color-card-border: #e6e1d4;
-  /* A filled note: darker than the canvas, with no border. */
-  --color-callout: #ebe7da;
-  /* The month band on calendar tiles. */
-  --color-calendar-band: var(--color-primary);
-  /* Form control edges: 3:1 against white and the page canvas (WCAG 1.4.11). */
-  --color-control-border: #8f8a80;
-  --color-primary: #1f4ed8;
-  --color-primary-dark: #173a9e;
-  /* Text links while pressed: one step darker than --color-primary-dark. */
-  --color-primary-pressed: #133082;
-  --color-primary-soft: #edf2ff;
-  --color-accent: #ffbe18;
-  --color-accent-soft: #fff1bd;
-  --color-success: #246b3c;
-  --color-success-soft: #e6f5e9;
-  --color-danger: #bd3b2a;
-  --color-danger-dark: #8f2c20;
+  --color-subtle: #f3f2f1;
+  --color-text: #0b0c0c;
+  --color-muted: #505a5f;
+  --color-border: #d8dadb;
+  /* Edges of controls and pills: 3:1 or better on white, canvas, and the
+     subtle and tag tints (WCAG 1.4.11). */
+  --color-border-strong: #767f84;
+  --color-card: #ffffff;
+  --color-card-border: #d8dadb;
+  /* Form control edges: 3:1 or better against white (WCAG 1.4.11). The
+     handoff's #b1b4b6 separator gray is too light for that. */
+  --color-control-border: #6f777b;
+  /* The masthead is the near-black navy of reference sheets 10-12. */
+  --color-header: #0b1622;
+  --color-header-raised: #16222f;
+  --color-header-text: #ffffff;
+  --color-header-muted: #c5ccd3;
+  /* The current-page underline in the dark header: 3:1 or better on it. */
+  --color-header-accent: #5694ca;
+  --color-primary: #0057d9;
+  --color-primary-dark: #0046b5;
+  --color-primary-pressed: #003078;
+  --color-primary-soft: #e8f1fa;
+  --color-link: #1a68ac;
+  --color-link-hover: #003078;
+  --color-focus: #ffdd00;
+  --color-tag: #e8f1fa;
+  --color-tag-text: #0b4a8b;
+  --color-success: #00703c;
+  --color-success-soft: #e6f3ec;
+  --color-warning: #8a4b00;
+  --color-warning-soft: #fdf1df;
+  --color-danger: #d4351c;
+  --color-danger-dark: #942514;
   --color-danger-soft: #fbe9e6;
-  --shadow-window: 0 18px 60px rgba(41, 35, 24, 0.09);
-  --shadow-raised: 0 4px 0 var(--color-primary-dark);
-  --radius-small: 0.5rem;
-  --radius-control: 0.625rem;
-  --radius-panel: 1rem;
-  --content-width: 72rem;
-  --measure-width: 53.5rem;
+  /* A generated banner or tile when there is no artwork: flat navy. */
+  --color-identity: #12326b;
+  --color-identity-text: #ffffff;
+
+  /* Shape and elevation: square-ish controls, restrained elevation. */
+  --shadow-window: 0 8px 24px rgba(11, 12, 12, 0.14);
+  --radius-small: 0.25rem;
+  --radius-control: 0.25rem;
+  --radius-panel: 0.25rem;
+  --radius-media: 0.375rem;
+
+  /* Spacing on a 4px scale. */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+
+  /* Type. 16px body, 14px secondary, 19px section headings, 24-32px page titles. */
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-md: 1rem;
+  --text-lg: 1.1875rem;
+  --text-xl: 1.5rem;
+  --text-2xl: 2rem;
+
+  /* Layout. Every page shares one centered column and gutter. */
+  --content-width: 80rem;
+  --measure-width: 46rem;
+  --gutter: clamp(1rem, 3vw, 1.5rem);
+  --sidebar-width: 14.5rem;
+  --aside-width: 20rem;
+  --header-height: 3.5rem;
+
   color: var(--color-text);
   background: var(--color-canvas);
   font-family:
@@ -45,8 +95,15 @@
     -apple-system,
     BlinkMacSystemFont,
     "Segoe UI",
+    Roboto,
+    Arial,
     sans-serif;
+  font-size: 100%;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
+
+/* ==== Base ==== */
 
 * {
   box-sizing: border-box;
@@ -57,35 +114,70 @@ html {
 }
 
 body {
+  display: flex;
   min-height: 100vh;
   min-height: 100svh;
+  flex-direction: column;
   margin: 0;
   color: var(--color-text);
   background: var(--color-canvas);
+  font-size: var(--text-md);
   line-height: 1.5;
 }
 
+h1,
+h2,
+h3,
+h4 {
+  color: var(--color-text);
+  line-height: 1.2;
+  text-wrap: balance;
+}
+
+h1 {
+  font-size: clamp(1.625rem, 3vw, var(--text-2xl));
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+
+h2 {
+  font-size: var(--text-lg);
+  font-weight: 700;
+}
+
+h3 {
+  font-size: var(--text-md);
+  font-weight: 700;
+}
+
+p {
+  text-wrap: pretty;
+}
+
+small {
+  font-size: var(--text-sm);
+}
+
+hr {
+  border: 0;
+  border-top: 1px solid var(--color-border);
+}
+
+img {
+  max-width: 100%;
+}
+
 a {
-  color: var(--color-primary);
+  color: var(--color-link);
 }
 
 /* Text links.
-   A plain link is underlined at rest. Hover and keyboard focus darken it to
-   --color-primary-dark and thicken the underline to 2px, and pressing it
-   darkens it once more (--color-primary-pressed). Focus keeps the global ring
-   below and shows the same change, so it is not signalled by color alone.
-
-   Cards, buttons, the brand, the skip link, and the header keep their own
-   states and are excluded. The shared rules wrap their conditions in :where(),
-   so they weigh the same as the base `a` rule (one element): any component or
-   route rule that sets a color or removes the underline still wins, which is
-   how `.card`, `.account-row`, and the tab links keep their own hover. Keep
-   them below the base rule. The link classes that set their own color or
-   underline, or sit on a tinted surface, get matching rules after the shared
-   ones, written with real selectors so they outweigh the class that owns the
-   color. Contrast of the darkened colors is 8.4:1 or better on the canvas,
-   white, and every tinted notice background. */
-a:where(:not(.button, .card, .brand, .skip-link, .site-header a)) {
+   A plain link is blue and underlined at rest. Hover and keyboard focus darken
+   it and thicken the underline, and pressing it turns it to the text color.
+   The shared rules wrap their conditions in :where(), so they weigh the same
+   as the base `a` rule: any component rule that sets its own color or removes
+   the underline still wins. */
+a:where(:not(.button, .brand, .skip-link, .site-header a)) {
   text-decoration-thickness: 1px;
   text-underline-offset: 0.18em;
   transition:
@@ -93,51 +185,37 @@ a:where(:not(.button, .card, .brand, .skip-link, .site-header a)) {
     text-decoration-thickness 120ms ease;
 }
 
-a:where(:not(.button, .card, .brand, .skip-link, .site-header a)):where(
+a:where(:not(.button, .brand, .skip-link, .site-header a)):where(
     :focus-visible
   ) {
-  color: var(--color-primary-dark);
+  color: var(--color-link-hover);
   text-decoration-thickness: 2px;
 }
 
 @media (hover: hover) {
-  a:where(:not(.button, .card, .brand, .skip-link, .site-header a)):where(
-      :hover
-    ) {
-    color: var(--color-primary-dark);
+  a:where(:not(.button, .brand, .skip-link, .site-header a)):where(:hover) {
+    color: var(--color-link-hover);
     text-decoration-thickness: 2px;
   }
 }
 
-a:where(:not(.button, .card, .brand, .skip-link, .site-header a)):where(
-    :active
-  ) {
-  color: var(--color-primary-pressed);
+a:where(:not(.button, .brand, .skip-link, .site-header a)):where(:active) {
+  color: var(--color-text);
   text-decoration-thickness: 2px;
 }
 
 a.link:focus-visible {
-  color: var(--color-primary-dark);
+  color: var(--color-link-hover);
 }
 
 @media (hover: hover) {
   a.link:hover {
-    color: var(--color-primary-dark);
+    color: var(--color-link-hover);
   }
 }
 
 a.link:active {
-  color: var(--color-primary-pressed);
-}
-
-.site-footer a:focus-visible {
   color: var(--color-text);
-}
-
-@media (hover: hover) {
-  .site-footer a:hover {
-    color: var(--color-text);
-  }
 }
 
 .form-error-summary a:focus-visible {
@@ -150,21 +228,12 @@ a.link:active {
   }
 }
 
-/* Quiet links drop the underline at rest and gain it on hover and focus. */
-.back-link:focus-visible {
-  color: var(--color-text);
-  text-decoration-line: underline;
-  text-decoration-thickness: 2px;
-  text-underline-offset: 0.18em;
-}
-
-@media (hover: hover) {
-  .back-link:hover {
-    color: var(--color-text);
-    text-decoration-line: underline;
-    text-decoration-thickness: 2px;
-    text-underline-offset: 0.18em;
-  }
+/* Keyboard focus: a yellow ring with a near-black outer edge, so it reads on
+   white, the canvas, and the dark header alike. */
+:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 0;
+  box-shadow: 0 0 0 6px var(--color-text);
 }
 
 button,
@@ -174,14 +243,16 @@ textarea {
   font: inherit;
 }
 
-button,
-.button {
-  transition:
-    box-shadow 120ms ease,
-    transform 120ms ease,
-    background-color 120ms ease,
-    border-color 120ms ease,
-    filter 120ms ease;
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 
 .skip-link {
@@ -191,9 +262,9 @@ button,
   left: 0.75rem;
   padding: 0.65rem 0.9rem;
   border-radius: var(--radius-small);
-  color: #fff;
-  background: var(--color-primary);
-  font-weight: 750;
+  color: var(--color-text);
+  background: var(--color-focus);
+  font-weight: 700;
   transform: translateY(calc(-100% - 1rem));
 }
 
@@ -201,63 +272,32 @@ button,
   transform: translateY(0);
 }
 
-main,
-.site-header,
-.site-footer {
-  width: min(100%, var(--content-width));
-  margin-inline: auto;
-  padding-inline: clamp(1rem, 4vw, 2.25rem);
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
-/* Every page's <main> is --content-width wide, so every page shares one left
-   edge and gutter. Dashboards, forms and lists fill it. Pages of running text mark their main
-   `.prose` and keep a readable measure at the same left edge. */
-main {
-  min-height: calc(100vh - 10rem);
-  min-height: calc(100svh - 10rem);
-  padding-block: clamp(2.5rem, 6vw, 4.5rem);
-  overflow-wrap: anywhere;
-}
+/* ==== Application shell ==== */
 
-.prose > * {
-  max-width: var(--measure-width);
-}
-
-.auth-page {
-  display: grid;
-  grid-template-columns: minmax(15rem, 19.7rem) minmax(20rem, 32.8rem);
-  column-gap: clamp(2rem, 6vw, 5rem);
-  row-gap: 1.5rem;
-  justify-content: space-between;
-  align-content: start;
-  align-items: start;
-}
-
-.auth-page > .page-heading {
-  position: sticky;
-  top: 2rem;
-}
-
-.auth-page > .form-footer {
-  grid-column: 2;
-  margin: 0;
-}
-
-/* The shell bands span the full viewport while their content stays in the
-   centered column. A huge spread shadow paints the band without adding
-   scrollable overflow; clip-path keeps it to the band's own rows. The header
-   paints its band on a ::before layer, because clip-path on the header itself
-   would also clip the account menu where it hangs below the band. The header is
-   a stacking context above the page so that menu overlaps the content. */
+/* The header and footer bands span the viewport; their content sits in the
+   centered column. The header paints its band on a ::before layer so the
+   account menu and the phone menu can hang below it without being clipped. */
 .site-header {
   position: relative;
   z-index: 20;
   display: flex;
-  min-height: 4.25rem;
+  width: min(100%, var(--content-width));
+  min-height: var(--header-height);
   align-items: center;
-  justify-content: space-between;
-  gap: 1.5rem;
-  background: var(--color-panel);
+  gap: var(--space-6);
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+  color: var(--color-header-text);
+  background: var(--color-header);
 }
 
 .site-header::before {
@@ -265,110 +305,170 @@ main {
   z-index: -1;
   inset: 0;
   content: "";
-  background: var(--color-panel);
-  box-shadow:
-    0 0 0 100vmax var(--color-panel),
-    0 1px 0 100vmax var(--color-border);
-  clip-path: inset(0 -100vmax -1px -100vmax);
+  background: var(--color-header);
+  box-shadow: 0 0 0 100vmax var(--color-header);
+  clip-path: inset(0 -100vmax);
 }
 
 .site-header form {
   margin: 0;
 }
 
-.site-header nav,
-.site-footer,
-.actions {
-  display: flex;
-  flex-wrap: wrap;
+/* The brand: a blue tile with a controller, the CGN wordmark, and the full
+   name (hidden below 64rem). The link's aria-label names it. */
+.brand {
+  display: inline-flex;
+  flex: none;
   align-items: center;
-  gap: 1rem;
+  gap: 0.5rem;
+  color: var(--color-header-text);
+  text-decoration: none;
+  white-space: nowrap;
 }
 
+.brand-mark {
+  display: inline-grid;
+  width: 1.875rem;
+  height: 1.875rem;
+  place-items: center;
+  border-radius: var(--radius-small);
+  color: #fff;
+  background: var(--color-primary);
+}
+
+.brand-name {
+  font-size: 1.1875rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.brand-full {
+  color: var(--color-header-muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+@media (max-width: 64rem) {
+  .brand-full {
+    display: none;
+  }
+}
+
+/* Global links sit beside the brand; Log in and Sign up, or the account
+   menu, sit at the right edge. */
+.site-header nav {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.site-nav {
+  align-self: stretch;
+  display: flex;
+}
+
+.site-nav__links {
+  display: flex;
+  align-items: stretch;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.site-nav__links li {
+  display: flex;
+}
+
+.site-header nav .site-nav button.site-nav__toggle {
+  display: none;
+}
+
+.site-header nav > .auth-links,
+.site-header nav > .account-menu {
+  margin-left: auto;
+}
+
+.auth-links {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+/* Header links and buttons: white text, a blue underline for the current page
+   and on hover. */
 .site-header nav a:not(.button),
-.site-header nav button {
+.site-header nav button:not(.account-menu__item) {
+  display: inline-flex;
+  min-height: 2.5rem;
+  align-items: center;
   border: 0;
-  border-bottom: 2px solid transparent;
   border-radius: 0;
-  padding: 0.75rem 0;
-  color: var(--color-muted);
+  padding: 0 0.625rem;
+  color: var(--color-header-text);
   background: transparent;
-  box-shadow: none;
-  transform: none;
-  font-size: 0.875rem;
-  font-weight: 700;
+  box-shadow: inset 0 -3px 0 transparent;
+  filter: none;
+  font-size: var(--text-sm);
+  font-weight: 600;
   text-decoration: none;
 }
 
-.site-header nav button:focus-visible {
-  filter: none;
-  border-bottom-color: var(--color-accent);
-  color: var(--color-text);
+.site-nav__links a {
+  align-self: stretch;
+  min-height: var(--header-height) !important;
+}
+
+.site-header nav a:not(.button)[aria-current="page"] {
+  box-shadow: inset 0 -3px 0 var(--color-header-accent);
+}
+
+.site-header nav a:not(.button):focus-visible,
+.site-header nav button:not(.account-menu__item):focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: -3px;
+  box-shadow: none;
 }
 
 @media (hover: hover) {
-  .site-header nav button:hover:not(:disabled) {
-    filter: none;
-    border-bottom-color: var(--color-accent);
-    color: var(--color-text);
+  .site-header nav a:not(.button):hover,
+  .site-header nav button:not(.account-menu__item):hover:not(:disabled) {
+    background: var(--color-header-raised);
   }
-}
-
-.site-header nav button[type="submit"]:active {
-  box-shadow: none;
-  transform: none;
 }
 
 .site-header nav .button--primary {
-  padding: 0.45rem 0.95rem;
-  box-shadow: 0 2px 0 var(--color-primary-dark);
-  transform: none;
-  font-size: 0.875rem;
+  min-height: 2.25rem;
+  padding: 0.375rem 0.875rem;
+  font-size: var(--text-sm);
 }
 
-.site-header nav .button--primary:active {
-  box-shadow: none;
-  transform: translateY(1px);
+.site-header nav .button--primary:focus-visible {
+  outline-offset: 0;
+  box-shadow: 0 0 0 5px var(--color-header);
 }
 
-.site-header nav a:not(.button)[aria-current="page"],
-.site-header nav a:not(.button):focus-visible {
-  border-bottom-color: var(--color-accent);
-  color: var(--color-text);
-}
-
-@media (hover: hover) {
-  .site-header nav a:not(.button):hover {
-    border-bottom-color: var(--color-accent);
-    color: var(--color-text);
-  }
-}
-
-/* Account menu, shown once the viewer is known. The trigger reads like the
-   other nav links (accent underline on hover and while open) with a small
-   avatar and the first name. The panel is a disclosure of links and a native
-   logout form, positioned under the trigger and right-aligned to the header
-   content. The selectors carry the extra classes needed to beat the nav's
-   link and button rules above. */
+/* Account menu: an avatar and the first name, disclosing Account, Public
+   profile, and Log out in a panel under the trigger. */
 .site-header nav .account-menu {
   position: relative;
 }
 
 .site-header nav .account-menu__trigger {
-  display: inline-flex;
-  align-items: center;
   gap: 0.5rem;
-  padding-block: 0.5rem;
+  padding-inline: 0.375rem 0.5rem;
+  border-radius: var(--radius-control);
 }
 
 .site-header nav .account-menu__trigger[aria-expanded="true"] {
-  border-bottom-color: var(--color-accent);
-  color: var(--color-text);
+  background: var(--color-header-raised);
 }
 
 .account-menu__name {
   min-width: 0;
-  max-width: 7rem;
+  max-width: 8rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -386,7 +486,7 @@ main {
 .site-header nav .account-menu__panel {
   position: absolute;
   z-index: 1;
-  top: calc(100% + 0.75rem);
+  top: calc(100% + 0.5rem);
   right: 0;
   display: grid;
   width: max-content;
@@ -394,7 +494,7 @@ main {
   max-width: min(18rem, calc(100vw - 2rem));
   gap: 0.125rem;
   padding: 0.375rem;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-panel);
   background: var(--color-panel);
   box-shadow: var(--shadow-window);
@@ -407,19 +507,20 @@ main {
 .site-header nav .account-menu .account-menu__item {
   display: flex;
   width: 100%;
-  min-height: 2.75rem;
+  min-height: 2.5rem;
   align-items: center;
   justify-content: flex-start;
   border: 0;
-  border-radius: var(--radius-small);
+  /* Square, so the current item's left bar stays a straight edge. */
+  border-radius: 0;
   padding: 0.5rem 0.75rem;
   color: var(--color-text);
   background: transparent;
   box-shadow: none;
   filter: none;
   transform: none;
-  font-size: 0.9375rem;
-  font-weight: 700;
+  font-size: var(--text-sm);
+  font-weight: 600;
   text-align: left;
   text-decoration: none;
   cursor: pointer;
@@ -427,17 +528,19 @@ main {
 }
 
 .site-header nav .account-menu .account-menu__item:focus-visible {
-  background: var(--color-canvas);
+  box-shadow: none;
+  background: var(--color-subtle);
 }
 
 @media (hover: hover) {
   .site-header nav .account-menu .account-menu__item:hover:not(:disabled) {
-    background: var(--color-canvas);
+    background: var(--color-subtle);
   }
 }
 
 .site-header nav .account-menu .account-menu__item[aria-current="page"] {
-  background: var(--color-accent-soft);
+  box-shadow: inset 3px 0 0 var(--color-primary);
+  background: var(--color-primary-soft);
 }
 
 .site-header nav .account-menu__panel .logout-form {
@@ -452,176 +555,423 @@ main {
   font-weight: 600;
 }
 
-.site-footer {
-  min-height: 5rem;
-  color: var(--color-muted);
-  background: var(--color-surface);
-  box-shadow:
-    0 0 0 100vmax var(--color-surface),
-    0 -1px 0 100vmax var(--color-border);
-  clip-path: inset(-1px -100vmax 0 -100vmax);
-  font-size: 0.875rem;
+#main-content {
+  flex: 1;
 }
 
-.site-footer strong {
+#main-content:focus,
+#main-content h1[tabindex="-1"]:focus {
+  outline: none;
+}
+
+/* Every page's <main> shares one width and gutter. Pages of running text mark
+   their main `.prose` and keep a readable measure at the same left edge. */
+main {
+  width: min(100%, var(--content-width));
+  margin-inline: auto;
+  padding: var(--space-6) var(--gutter) var(--space-7);
+  overflow-wrap: anywhere;
+}
+
+.prose > * {
+  max-width: var(--measure-width);
+}
+
+.site-footer {
+  border-top: 1px solid var(--color-border);
+  color: var(--color-muted);
+  background: var(--color-surface);
+  font-size: var(--text-sm);
+}
+
+.site-footer__inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-5);
+  width: min(100%, var(--content-width));
+  margin-inline: auto;
+  padding: var(--space-5) var(--gutter);
+}
+
+.site-footer__brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   margin-right: auto;
   color: var(--color-text);
+  font-weight: 700;
+}
+
+.site-footer nav ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-5);
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
 .site-footer a {
   color: var(--color-muted);
 }
 
-.brand {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.625rem;
+.site-footer a:focus-visible {
   color: var(--color-text);
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  text-decoration: none;
-  white-space: nowrap;
 }
 
-.brand-mark {
-  display: inline-grid;
-  width: 1.875rem;
-  height: 1.875rem;
-  place-items: center;
-  border-radius: 0.55rem;
-  color: #17191f;
-  background: var(--color-accent);
-  font-size: 0.875rem;
-}
-
-.page-heading {
-  margin-bottom: 2rem;
-}
-
-.page-heading h1 {
-  max-width: 50rem;
-  margin-block: 0.35rem 0.75rem;
-  font-size: clamp(2.2rem, 6vw, 4rem);
-  line-height: 1.02;
-  letter-spacing: -0.03em;
-}
-
-.about-section {
-  max-width: 44rem;
-  margin-bottom: 2rem;
-}
-
-.about-section h2 {
-  margin-block: 0 0.5rem;
-  font-size: 1.25rem;
-}
-
-/* FAQ: questions grouped under headings. Each question is a native
-   disclosure, so it opens without JavaScript, and carries an id that a link
-   can point at. A linked question is marked, because the browser scrolls to it
-   but leaves it closed. */
-.faq-group {
-  margin-bottom: 2.5rem;
-}
-
-.faq-group h2 {
-  margin-block: 0 0.5rem;
-  font-size: 1.25rem;
-}
-
-.faq-group details {
-  border-bottom: 1px solid var(--color-border);
-  scroll-margin-top: 1rem;
-}
-
-.faq-group summary {
-  padding-block: 0.75rem;
-  font-weight: 650;
-  cursor: pointer;
-}
-
-.faq-group details p {
-  max-width: 44rem;
-  margin-block: 0 1rem;
-}
-
-.faq-group details:target {
-  border-radius: 0.375rem;
-  padding-inline: 0.75rem;
-  background: var(--color-primary-soft);
-}
-
-@media (pointer: coarse), (max-width: 42rem) {
-  .faq-group summary {
-    min-height: 2.75rem;
+@media (hover: hover) {
+  .site-footer a:hover {
+    color: var(--color-text);
   }
 }
 
-.browse-heading {
+/* Phone header: the brand, the account controls, and a Menu button. The
+   global links collapse into a panel under the header band, one 44px row each,
+   the current page marked by a left bar. Without script the root route's
+   noscript style shows the links instead. */
+@media (max-width: 42rem) {
+  .site-header {
+    gap: var(--space-2);
+  }
+
+  .site-header nav {
+    justify-content: flex-end;
+    gap: var(--space-2);
+  }
+
+  .site-header nav > .auth-links,
+  .site-header nav > .account-menu {
+    margin-left: 0;
+  }
+
+  .site-nav {
+    order: 1;
+    align-self: center;
+  }
+
+  .site-header nav .site-nav button.site-nav__toggle {
+    display: inline-flex;
+    width: 2.75rem;
+    min-height: 2.75rem;
+    justify-content: center;
+    padding: 0;
+  }
+
+  .site-header nav .site-nav__toggle[aria-expanded="true"] {
+    background: var(--color-header-raised);
+  }
+
+  .site-nav__links {
+    position: absolute;
+    z-index: 1;
+    top: 100%;
+    right: 0;
+    left: 0;
+    flex-direction: column;
+    gap: 0;
+    padding: 0.25rem 0 0.75rem;
+    border-top: 1px solid rgb(255 255 255 / 16%);
+    background: var(--color-header);
+    box-shadow: var(--shadow-window);
+  }
+
+  .site-nav__links:not([data-open="true"]) {
+    display: none;
+  }
+
+  .site-header nav .site-nav__links a:not(.button) {
+    width: 100%;
+    min-height: 2.75rem !important;
+    padding: 0 var(--gutter);
+    font-size: var(--text-md);
+  }
+
+  .site-header nav .site-nav__links a:not(.button)[aria-current="page"] {
+    box-shadow: inset 4px 0 0 var(--color-header-accent);
+  }
+
+  .account-menu__name {
+    max-width: min(7rem, max(2.5rem, calc(100vw - 17rem)));
+  }
+
+  .site-footer__brand {
+    width: 100%;
+  }
+}
+
+/* ==== Page layouts ==== */
+
+/* A page with a light navigation column on the left (the home page). */
+.layout-with-sidebar {
   display: grid;
-  max-width: 54rem;
-  gap: 0.2rem;
-  margin-bottom: 2.25rem;
+  grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+  gap: var(--space-6);
+  align-items: start;
+}
+
+/* The column follows the main content in the source, so the page's h1 is the
+   first heading a screen reader meets, and is placed back on the left here. */
+.layout-with-sidebar > .directory-sidebar {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+/* A detail page: the main column and a side panel of facts on the right. */
+.layout-detail {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--aside-width);
+  gap: var(--space-6);
+  align-items: start;
+}
+
+.layout-detail > aside,
+.layout-detail__aside {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.layout-detail__main {
+  display: grid;
+  gap: var(--space-6);
+  min-width: 0;
+}
+
+@media (max-width: 64rem) {
+  .layout-detail {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 56rem) {
+  .layout-with-sidebar {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ==== Page headings ==== */
+
+/* A page's heading: the h1 and lede on the left and the page's one action at
+   the right (Create event, Create team). */
+.page-heading,
+.directory-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4) var(--space-6);
+  margin-bottom: var(--space-5);
+}
+
+.page-heading > :first-child,
+.directory-heading > :first-child {
+  flex: 1 1 28rem;
+  min-width: 0;
+}
+
+.page-heading h1,
+.directory-heading h1 {
+  margin: 0;
+}
+
+.page-heading .lede,
+.directory-heading .lede {
+  margin: var(--space-2) 0 0;
+}
+
+.page-heading .eyebrow + h1 {
+  margin-top: var(--space-1);
+}
+
+.page-heading .actions,
+.directory-heading .actions {
+  margin: 0;
+}
+
+.eyebrow {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.lede {
+  max-width: var(--measure-width);
+  color: var(--color-muted);
+  font-size: var(--text-md);
+  line-height: 1.55;
+}
+
+/* A section's heading with an optional "View all" link at the right. */
+.section-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-4);
+  margin-bottom: var(--space-3);
+}
+
+.section-heading h2 {
+  margin: 0;
+  font-size: var(--text-lg);
+}
+
+.section-heading .eyebrow {
+  flex-basis: 100%;
+}
+
+.section-heading > a {
+  font-size: var(--text-sm);
+}
+
+.section {
+  margin-top: var(--space-7);
 }
 
 .back-link {
   display: inline-flex;
-  margin-bottom: 2rem;
-  color: var(--color-muted);
-  font-size: 0.875rem;
-  font-weight: 750;
+  align-items: center;
+  gap: 0.25rem;
+  margin-bottom: var(--space-4);
+  color: var(--color-link);
+  font-size: var(--text-sm);
+}
+
+/* ==== Actions ==== */
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+button,
+.button {
+  display: inline-flex;
+  min-height: 2.5rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-control);
+  padding: 0.5rem 1rem;
+  color: var(--color-text);
+  background: var(--color-surface);
+  font-size: var(--text-md);
+  font-weight: 600;
+  line-height: 1.25;
+  text-align: center;
   text-decoration: none;
+  cursor: pointer;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease,
+    color 120ms ease;
 }
 
-.hero {
-  max-width: 54rem;
-  padding-block: clamp(0.5rem, 2vw, 1.5rem) 0;
+/* Primary actions are solid blue (handoff v3 section 13), darker on hover,
+   and a 1px nudge while pressed. Green is kept for success states only. */
+.button--primary,
+button[type="submit"] {
+  border-color: var(--color-primary);
+  color: #fff;
+  background: var(--color-primary);
 }
 
-.hero h1 {
-  max-width: 44rem;
-  margin-block: 0.25rem 0.85rem;
-  font-size: clamp(2.75rem, 7vw, 5.25rem);
-  line-height: 0.98;
-  letter-spacing: -0.04em;
+.button--primary:active,
+button[type="submit"]:active {
+  transform: translateY(1px);
 }
 
-.hero-note {
-  margin-top: 1.4rem;
-  color: var(--color-muted);
-  font-size: 0.9rem;
+.button--secondary,
+button.button--secondary {
+  border-color: var(--color-border-strong);
+  color: var(--color-text);
+  background: var(--color-surface);
 }
 
-.eyebrow {
-  margin-bottom: 0;
-  color: #846700;
-  font-size: 0.75rem;
-  font-weight: 850;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
+.button--destructive,
+button.button--destructive {
+  border-color: var(--color-danger);
+  color: #fff;
+  background: var(--color-danger);
 }
 
-/* A short rule before the label. It is decoration only, so it adds no text. */
-.eyebrow::before {
-  display: inline-block;
-  width: 1.25rem;
-  height: 2px;
-  margin-right: 0.6rem;
-  border-radius: 1px;
-  background: currentColor;
-  content: "";
-  vertical-align: middle;
+.button--small {
+  min-height: 2rem;
+  padding: 0.3125rem 0.75rem;
+  font-size: var(--text-sm);
 }
 
-.lede {
-  max-width: 50rem;
-  color: var(--color-muted);
-  font-size: 1.05rem;
-  line-height: 1.65;
+@media (hover: hover) {
+  button:hover:not(:disabled),
+  .button:hover:not([aria-disabled="true"]) {
+    border-color: var(--color-control-border);
+    background: var(--color-subtle);
+  }
+
+  /* Swapping the variable inside the button, at zero specificity, leaves alone
+     any component rule that gives a submit button its own colors. */
+  :where(.button--primary, button[type="submit"]):where(
+    :hover:not(:disabled, [aria-disabled="true"])
+  ) {
+    --color-primary: var(--color-primary-dark);
+  }
+
+  .button--primary:hover:not([aria-disabled="true"]),
+  button[type="submit"]:hover:not(:disabled) {
+    border-color: var(--color-primary);
+    background: var(--color-primary);
+  }
+
+  .button--destructive:hover:not([aria-disabled="true"]),
+  button.button--destructive:hover:not(:disabled) {
+    border-color: var(--color-danger-dark);
+    background: var(--color-danger-dark);
+  }
 }
 
-.feature-board,
-.card,
+/* A button that reads as a text link (Cancel beside a submit, Show password). */
+.link {
+  min-height: 0;
+  border: 0;
+  padding: 0;
+  color: var(--color-link);
+  background: transparent;
+  font-weight: 400;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+}
+
+@media (hover: hover) {
+  button.link:hover:not(:disabled) {
+    border: 0;
+    color: var(--color-link-hover);
+    background: transparent;
+    text-decoration-thickness: 2px;
+  }
+}
+
+@media (pointer: coarse), (max-width: 42rem) {
+  button,
+  .button {
+    min-height: 2.75rem;
+  }
+
+  .button--small {
+    min-height: 2.5rem;
+  }
+}
+
+/* ==== Panels, cards, and lists ==== */
+
+/* The white bordered surface every grouped block sits on. */
+.panel,
 .empty-state,
 .action-panel {
   border: 1px solid var(--color-card-border);
@@ -629,187 +979,314 @@ main {
   background: var(--color-card);
 }
 
-.feature-board,
+.panel,
 .empty-state,
 .action-panel {
-  padding: clamp(1.25rem, 3vw, 1.75rem);
+  padding: var(--space-5);
 }
 
-.feature-board {
-  box-shadow: var(--shadow-window);
-}
-
-.board-kicker {
+.panel > :first-child,
+.empty-state > :first-child,
+.action-panel > :first-child {
   margin-top: 0;
-  color: var(--color-muted);
-  font-weight: 750;
 }
 
-.game-grid,
-.card-grid,
-.pill-list,
-.event-pill-list {
+.panel > :last-child,
+.empty-state > :last-child,
+.action-panel > :last-child {
+  margin-bottom: 0;
+}
+
+/* A panel whose heading sits on a divider above its content. */
+.panel--flush {
+  padding: 0;
+}
+
+.panel__header {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
-}
-
-.card-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
-.chip,
-.event-pill,
-.pill-list > span {
-  width: fit-content;
-  border: 1px solid var(--color-border);
-  border-radius: 0.45rem;
-  padding: 0.3rem 0.6rem;
-  color: var(--color-text);
-  background: var(--color-panel);
-  font-size: 0.8125rem;
-  font-weight: 750;
-}
-
-/* A profile link: the site's icon, then the link's label. */
-.social-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-
-.social-link svg {
-  flex: none;
-  color: var(--color-text);
-}
-
-.section {
-  margin-top: clamp(3rem, 7vw, 5rem);
-}
-
-.home-page .section {
-  margin-top: clamp(2.25rem, 5vw, 3.25rem);
-}
-
-/* "How it works": numbered steps. The ordered list carries the order; the
-   number shown on each card is generated, so it adds nothing to read aloud. */
-.steps {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 1rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  counter-reset: step;
-}
-
-.step {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-content: start;
   align-items: baseline;
-  gap: 0.6rem 0.6rem;
-  padding: 1.25rem;
-  counter-increment: step;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-4);
+  padding: var(--space-4) var(--space-4) var(--space-3);
 }
 
-.step::before {
-  color: var(--color-primary);
-  content: counter(step, decimal-leading-zero);
-  font-size: 0.8125rem;
-  font-weight: 850;
-  letter-spacing: 0.08em;
-}
-
-.step h3 {
+.panel__header h2 {
   margin: 0;
-  font-size: 1.125rem;
-  letter-spacing: -0.02em;
+  font-size: var(--text-lg);
 }
 
-.step p {
-  grid-column: 1 / -1;
-  margin: 0;
-  color: var(--color-muted);
-  font-size: 0.9375rem;
+.panel__header a {
+  font-size: var(--text-sm);
 }
 
-@media (max-width: 52rem) {
-  .steps {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+.panel__body {
+  padding: 0 var(--space-4) var(--space-4);
 }
 
-@media (max-width: 32rem) {
-  .steps {
-    grid-template-columns: 1fr;
-  }
+.action-panel {
+  margin-top: var(--space-6);
 }
 
-.section-heading {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: end;
-  gap: 0.25rem 1rem;
-  margin-bottom: 1.25rem;
+.action-panel h2 {
+  margin-bottom: var(--space-2);
 }
 
-.section-heading .eyebrow {
-  grid-column: 1 / -1;
-}
-
-.section-heading h2 {
-  margin: 0;
-  font-size: clamp(1.55rem, 3vw, 2rem);
-  letter-spacing: -0.03em;
-}
-
-.card {
-  padding: 1.1rem;
+.empty-state {
   color: var(--color-text);
+}
+
+.empty-state h2 {
+  margin-bottom: var(--space-2);
+  font-size: var(--text-lg);
+}
+
+.empty-state p {
+  max-width: var(--measure-width);
+  color: var(--color-muted);
+}
+
+p.empty-state {
+  color: var(--color-muted);
+}
+
+.empty-state .actions {
+  margin-top: var(--space-4);
+}
+
+/* A list of rows with a divider between them. In a directory, or anywhere it
+   is marked `.list--panel`, the rows sit on one white panel. */
+.list {
+  display: grid;
+}
+
+.list-item {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+  border: 0;
+  border-bottom: 1px solid var(--color-border);
+  border-radius: 0;
+  background: transparent;
+}
+
+.list-item:last-child {
+  border-bottom: 0;
+}
+
+.list-item small {
+  color: var(--color-muted);
+}
+
+.list-item > span:first-child {
+  display: grid;
+}
+
+.list--panel,
+.directory-page .list {
+  overflow: hidden;
+  border: 1px solid var(--color-card-border);
+  border-radius: var(--radius-panel);
+  background: var(--color-surface);
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-top: var(--space-5);
+}
+
+.pagination a {
+  display: inline-flex;
+  min-height: 2.5rem;
+  align-items: center;
+  gap: 0.375rem;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-control);
+  padding: 0.375rem 0.875rem;
+  color: var(--color-text);
+  background: var(--color-surface);
+  font-size: var(--text-sm);
+  font-weight: 600;
   text-decoration: none;
 }
 
 @media (hover: hover) {
-  .card--default:hover {
-    border-color: var(--color-border-strong);
-    background: #fffdf8;
+  .pagination a:hover {
+    color: var(--color-text);
+    background: var(--color-subtle);
   }
 }
 
-.school-card {
+/* Facts in rows: the term on the left and the value on the right, a thin
+   divider between rows. */
+.detail-row {
   display: grid;
-  gap: 0.35rem;
+  grid-template-columns: minmax(7rem, 0.35fr) minmax(0, 1fr);
+  gap: var(--space-4);
+  padding-block: var(--space-3);
+  border-bottom: 1px solid var(--color-border);
 }
 
-.school-card small,
-.list-item small,
-.form-help,
-.form-footer {
+.detail-row > span:first-child {
   color: var(--color-muted);
 }
 
-/* "(optional)" after a field's label, quieter than the label itself. */
-.field-optional {
-  color: var(--color-muted);
-  font-weight: 500;
+.detail-row .detail-value {
+  display: grid;
+  gap: 0.125rem;
+  justify-items: start;
 }
 
-.required-fields-note {
+.detail-value small {
+  color: var(--color-muted);
+  font-weight: 400;
+}
+
+/* A side-panel card: a heading on a divider, then rows or a body. */
+.detail-card {
+  overflow: hidden;
+  border: 1px solid var(--color-card-border);
+  border-radius: var(--radius-panel);
+  background: var(--color-card);
+}
+
+.detail-card > h2 {
   margin: 0;
-  font-size: 0.875rem;
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+  font-size: var(--text-md);
 }
 
-.policy-version {
-  color: var(--color-muted);
-  font-size: 0.9rem;
+.detail-card .detail-row {
+  grid-template-columns: minmax(6.5rem, 0.45fr) minmax(0, 1fr);
+  margin: 0;
+  padding-inline: var(--space-4);
+  font-size: var(--text-sm);
+}
+
+.detail-card .detail-row:last-child {
+  border-bottom: 0;
+}
+
+.detail-card-body {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+}
+
+.detail-card-body > * {
+  margin: 0;
+}
+
+.detail-card-body > a {
+  justify-self: start;
+}
+
+@media (max-width: 42rem) {
+  .detail-row,
+  .detail-card .detail-row {
+    grid-template-columns: 1fr;
+    gap: var(--space-1);
+  }
+}
+
+/* Tags: small labels for facts and states. Neutral by default; tinted
+   variants for an event's type, success, warning, and danger. */
+.tag {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  gap: 0.25rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-small);
+  padding: 0.0625rem 0.4375rem;
+  color: #383f43;
+  background: var(--color-subtle);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.tag--info {
+  color: var(--color-tag-text);
+  background: var(--color-tag);
+}
+
+.tag--success {
+  color: var(--color-success);
+  background: var(--color-success-soft);
+}
+
+.tag--warning {
+  color: var(--color-warning);
+  background: var(--color-warning-soft);
+}
+
+.tag--danger {
+  color: var(--color-danger-dark);
+  background: var(--color-danger-soft);
+}
+
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* ==== Identity marks ==== */
+
+/* A school's logo on a white tile, or its initial when there is no logo. */
+.school-directory-mark {
+  position: relative;
+  display: inline-grid;
+  flex: none;
+  width: 2.75rem;
+  height: 2.75rem;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-media);
+  color: var(--color-identity-text);
+  background: var(--color-identity);
+  font-weight: 700;
+}
+
+.school-directory-mark:has(.school-logo) {
+  background: var(--color-surface);
+  /* If the image fails to load, the initial still reads on the white tile. */
+  color: var(--color-identity);
+}
+
+.school-directory-mark .school-logo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0.1875rem;
+}
+
+.school-directory-mark--large {
+  width: 4.5rem;
+  height: 4.5rem;
+  border-radius: var(--radius-media);
+  font-size: 1.75rem;
+}
+
+.school-directory-mark--large .school-logo {
+  padding: 0.375rem;
 }
 
 .school-logo {
   flex: none;
   border-radius: var(--radius-small);
-  background: #fff;
+  background: var(--color-surface);
   object-fit: contain;
 }
 
@@ -818,22 +1295,10 @@ main {
   vertical-align: -0.2em;
 }
 
-/* A footnote under the school page, away from the school's own details. */
 .school-logo-credit {
-  margin: 2rem 0 0;
+  margin: var(--space-6) 0 0;
   color: var(--color-muted);
-  font-size: 0.75rem;
-  overflow-wrap: anywhere;
-}
-
-.list-item > .school-identity {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.school-identity > span {
-  display: grid;
+  font-size: var(--text-xs);
 }
 
 .avatar {
@@ -842,9 +1307,7 @@ main {
   flex: 0 0 auto;
   place-items: center;
   overflow: hidden;
-  /* A thin dark ring, so an avatar in a light palette color still has an edge
-     against the card or page behind it. */
-  border: 1px solid rgba(23, 25, 31, 0.22);
+  border: 1px solid rgba(11, 12, 12, 0.18);
   border-radius: 999px;
   color: var(--color-success);
   background: var(--color-success-soft);
@@ -860,308 +1323,170 @@ main {
 }
 
 .avatar--large {
-  width: 5rem;
-  height: 5rem;
+  width: 5.5rem;
+  height: 5.5rem;
   font-size: 2rem;
-  font-weight: 750;
+  font-weight: 700;
 }
 
 .avatar--medium {
   width: 2.5rem;
   height: 2.5rem;
   font-size: 0.875rem;
-  font-weight: 750;
+  font-weight: 700;
 }
 
 .avatar--small {
   width: 1.75rem;
   height: 1.75rem;
   font-size: 0.6875rem;
-  font-weight: 750;
+  font-weight: 700;
 }
 
-.profile-hero {
-  display: flex;
+.social-link {
+  display: inline-flex;
   align-items: center;
-  gap: 1.25rem;
-  margin-bottom: 2rem;
-}
-
-.profile-hero h1 {
-  margin-block: 0.25rem 0.75rem;
-}
-
-.search-bar {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr));
-  gap: 0.75rem;
-  align-items: end;
-  margin-bottom: 2rem;
-  padding: 1rem;
-  border: 1px solid var(--color-card-border);
-  border-radius: var(--radius-panel);
-  background: var(--color-card);
-}
-
-.filter-bar {
-  position: relative;
-  z-index: 1;
-  margin-bottom: 1.25rem;
-  box-shadow: 0 8px 28px rgba(41, 35, 24, 0.05);
-}
-
-.school-directory-page .browse-heading {
-  max-width: 45rem;
-}
-
-.school-directory-page .browse-heading h1 {
-  font-size: clamp(2.5rem, 6vw, 4.25rem);
-}
-
-.school-filter-bar {
-  grid-template-columns: minmax(16rem, 1fr) auto;
-  padding: 1.1rem;
-}
-
-.school-filter-bar button {
-  min-width: 9rem;
-}
-
-.results-heading {
-  display: flex;
-  align-items: end;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-block: 2rem 1rem;
-}
-
-.results-heading h2,
-.results-heading p {
-  margin: 0;
-}
-
-.results-heading h2 {
-  margin-top: 0.25rem;
-  font-size: 1.5rem;
-}
-
-.results-heading > span {
-  color: var(--color-muted);
-  font-size: 0.875rem;
-}
-
-.school-directory-mark {
-  position: relative;
-  display: inline-grid;
-  width: 2.75rem;
-  height: 2.75rem;
-  place-items: center;
-  overflow: hidden;
-  border: 1px solid #cfd9fa;
-  border-radius: 0.75rem;
-  color: var(--color-primary);
-  background: var(--color-primary-soft);
-  font-weight: 850;
-}
-
-.school-directory-mark .school-logo {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-}
-
-.school-directory-mark--large {
-  width: 4rem;
-  height: 4rem;
-  border-radius: 1rem;
-  font-size: 1.5rem;
-}
-
-.school-directory-mark--large .school-logo {
-  padding: 0.3rem;
-}
-
-/* A wordmark needs width; the initial shows again if its image fails. */
-.school-directory-mark--wide:has(.school-logo) {
-  width: min(12rem, 40vw);
-}
-
-.search-bar label {
-  display: grid;
   gap: 0.4rem;
-  font-size: 0.8125rem;
-  font-weight: 750;
 }
 
-.list {
-  display: grid;
+.social-link svg {
+  flex: none;
+  color: var(--color-text);
 }
 
-.list-item {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  border: 0;
-  border-bottom: 1px solid var(--color-border);
-  border-radius: 0;
-  background: transparent;
-}
+/* ==== Forms ==== */
 
-.list-item:first-child {
-  border-top: 1px solid var(--color-border);
-}
-
-.list-item > span:first-child {
-  display: grid;
-}
-
-.pagination {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  gap: 1rem;
-  align-items: center;
-  margin-top: 2rem;
-  text-align: center;
-}
-
-.pagination > :last-child {
-  justify-self: end;
-}
-
+/* A form's surface: a white panel with labeled fields stacked. */
 .form-stack,
 .inline-form {
   display: grid;
-  gap: 1rem;
-  padding: clamp(1.25rem, 3vw, 1.75rem);
-  border: 1px solid var(--color-border);
+  gap: var(--space-4);
+  padding: var(--space-5);
+  border: 1px solid var(--color-card-border);
   border-radius: var(--radius-panel);
   background: var(--color-panel);
 }
 
+/* Labels sit above their controls (handoff section 3). */
 .form-stack label,
-.inline-form label {
+.inline-form label,
+.search-bar label {
   display: grid;
-  gap: 0.4rem;
-  font-size: 0.875rem;
-  font-weight: 750;
+  /* Rows stay at their own height, so fields side by side line up at the top
+     even when one has a hint or count under it. */
+  align-content: start;
+  gap: 0.375rem;
+  font-size: var(--text-md);
+  font-weight: 600;
 }
 
-/* Sectioned forms: open sections separated by dividers, with a numbered title
-   and description on the left and the section's fields on the right. Use the
-   FormSection component inside a `form-stack sectioned-form` form. */
+.form-help {
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+}
+
+.form-help {
+  margin: 0;
+  font-weight: 400;
+}
+
+.field-optional {
+  color: var(--color-muted);
+  font-weight: 400;
+}
+
+.required-fields-note {
+  margin: 0;
+}
+
+.policy-version {
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+}
+
+/* Sectioned forms: open sections separated by dividers. Each section is one
+   column: the heading, a short hint, then its fields at a readable width
+   (reference sheets 09 and 10). Use FormSection inside a
+   `form-stack sectioned-form` form. */
 .form-stack.sectioned-form {
   gap: 0;
-  border: 0;
   padding: 0;
-  background: transparent;
-  counter-reset: form-section;
 }
 
 .sectioned-form fieldset.form-section {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
-  grid-template-rows: auto 1fr;
-  column-gap: 2rem;
-  row-gap: 0.35rem;
+  grid-template-columns: minmax(0, 1fr);
+  row-gap: var(--space-1);
   min-width: 0;
   margin: 0;
   border: 0;
   border-top: 1px solid var(--color-border);
   border-radius: 0;
-  padding: 2rem 0;
+  padding: var(--space-5);
   background: transparent;
-  counter-increment: form-section;
+  scroll-margin-top: var(--space-4);
 }
 
-/* A floated legend opts out of the browser's rendered-legend placement, so it
-   lays out as a normal grid item instead of sitting on the border. */
+.sectioned-form fieldset.form-section:first-of-type {
+  border-top: 0;
+}
+
+/* A floated legend lays out as a normal grid item instead of sitting on the
+   border. */
 .sectioned-form .form-section > legend {
   float: left;
-  display: flex;
-  grid-column: 1;
-  grid-row: 1;
-  align-items: center;
-  gap: 0.6rem;
   padding: 0;
-  font-size: 1rem;
-  font-weight: 800;
-}
-
-.sectioned-form .form-section > legend::before {
-  display: inline-grid;
-  flex: none;
-  place-items: center;
-  width: 1.5rem;
-  height: 1.5rem;
-  border-radius: 0.4rem;
-  color: var(--color-primary);
-  background: var(--color-primary-soft);
-  content: counter(form-section, decimal-leading-zero);
-  font-size: 0.6875rem;
-  font-weight: 850;
-}
-
-/* A form with a single section has nothing to number. */
-.sectioned-form fieldset.form-section:only-of-type > legend::before {
-  display: none;
-}
-
-.sectioned-form fieldset.form-section:only-of-type > .form-help {
-  padding-left: 0;
+  font-size: var(--text-lg);
+  font-weight: 700;
 }
 
 .sectioned-form .form-section > .form-help {
-  grid-column: 1;
-  grid-row: 2;
-  align-self: start;
   margin: 0;
-  padding-left: 2.1rem;
-  font-size: 0.8125rem;
 }
 
-/* Notices and the error summary at the top of a sectioned form sit above the
-   first section's divider with room to breathe. */
+.form-stack.sectioned-form > .required-fields-note {
+  padding: var(--space-4) var(--space-5) 0;
+}
+
 .form-stack.sectioned-form > [role="alert"],
 .form-stack.sectioned-form > [role="status"],
 .form-stack.sectioned-form > .form-error-summary {
-  margin: 0 0 1.5rem;
+  margin: var(--space-5) var(--space-5) 0;
 }
 
 .form-section-fields {
   display: grid;
-  grid-column: 2;
-  grid-row: 1 / span 2;
-  gap: 1rem;
+  gap: var(--space-5);
   min-width: 0;
+  max-width: 40rem;
+  margin-top: var(--space-4);
 }
 
-.sectioned-form .split-fields {
+.split-fields {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1rem;
+  gap: var(--space-4);
 }
 
+/* The submit row closes a form: Cancel (a secondary button or link) then the
+   primary action at the right. */
 .form-actions {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   justify-content: flex-end;
+  gap: var(--space-3);
   border-top: 1px solid var(--color-border);
-  padding-top: 1.5rem;
+  padding: var(--space-4) var(--space-5);
+  background: var(--color-surface);
+}
+
+.form-actions > :first-child:not(:only-child) {
+  margin-right: auto;
 }
 
 @media (max-width: 47.99rem) {
-  .sectioned-form fieldset.form-section {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto auto auto;
-  }
-
-  .form-section-fields {
-    grid-column: 1;
-    grid-row: 3;
-    margin-top: 0.75rem;
-  }
-
-  .sectioned-form .split-fields {
+  .split-fields {
     grid-template-columns: 1fr;
   }
 }
@@ -1171,358 +1496,64 @@ main {
 input,
 select,
 textarea {
-  min-width: 0;
   width: 100%;
+  min-width: 0;
+  min-height: 2.5rem;
   border: 1px solid var(--color-control-border);
   border-radius: var(--radius-small);
-  padding: 0.7rem 0.8rem;
+  padding: 0.5rem 0.75rem;
   color: var(--color-text);
-  font-size: 1rem;
+  background: var(--color-surface);
+  font-size: var(--text-md);
   font-weight: 400;
-  background: #fff;
+}
+
+textarea {
+  min-height: 7rem;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  border-color: var(--color-text);
+  outline: 3px solid var(--color-focus);
+  outline-offset: 0;
+  box-shadow: inset 0 0 0 1px var(--color-text);
 }
 
 select:not([multiple]) {
   appearance: none;
-  padding-right: 2.5rem;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23676b76' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-  background-position: right 1rem center;
+  padding-right: 2.25rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23505a5f' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-position: right 0.75rem center;
   background-repeat: no-repeat;
   background-size: 1rem 1rem;
 }
 
 input::placeholder,
 textarea::placeholder {
-  color: #6f737d;
+  color: var(--color-control-border);
 }
 
 input[type="checkbox"],
 input[type="radio"] {
   flex: none;
-  width: 1.5rem;
-  height: 1.5rem;
+  width: 1.25rem;
+  min-height: 0;
+  height: 1.25rem;
+  margin: 0;
   padding: 0;
   accent-color: var(--color-primary);
 }
 
-.form-stack .checkbox-field,
 .checkbox-field {
-  display: flex;
-  min-height: 2.75rem;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-/* Plain facts under a heading: a thin divider between rows, none above the
-   first or below the last. */
-.detail-grid {
-  display: grid;
-  gap: 0;
-  margin-block: 2rem;
-}
-
-.detail-grid .detail-row:last-child {
-  border-bottom: 0;
-}
-
-.detail-card {
-  overflow: hidden;
-  border: 1px solid var(--color-card-border);
-  border-radius: var(--radius-panel);
-  background: var(--color-card);
-}
-
-.detail-card h2 {
-  margin: 0;
-  padding: 1rem 1.1rem;
-  border-bottom: 1px solid var(--color-border);
-  color: var(--color-muted);
-  font-size: 0.72rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.detail-card .detail-row {
-  grid-template-columns: minmax(7rem, 0.45fr) minmax(0, 1fr);
-  margin: 0;
-  padding-inline: 1.1rem;
-  border-top: 0;
-}
-
-/* Free-form card content (text, a link, a form): inset like a card row on every
-   side, so the last element never touches the card's bottom edge. */
-.detail-card-body {
-  display: grid;
-  gap: 0.75rem;
-  padding: 1rem 1.1rem;
-}
-
-.detail-card-body > * {
-  margin: 0;
-}
-
-.detail-card-body > a {
-  justify-self: start;
-}
-
-.school-detail-layout,
-.team-detail-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(17rem, 21rem);
-  gap: clamp(2rem, 5vw, 4.5rem);
-  margin-top: 2rem;
-  align-items: start;
-}
-
-.school-detail-layout .detail-card,
-.team-detail-layout .detail-card {
-  align-self: start;
-}
-
-.school-follow-panel {
-  margin-top: 0;
-  box-shadow: var(--shadow-window);
-}
-
-.school-follow-panel h2,
-.team-action-panel h2 {
-  margin-block: 0.35rem 0.6rem;
-}
-
-.school-follow-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  color: var(--color-success);
-  font-weight: 800;
-}
-
-/* The school's events and teams, one under the other in the main column. */
-.school-community-content {
-  display: grid;
-  gap: 2.5rem;
-}
-
-.school-detail-main {
-  min-width: 0;
-}
-
-.school-community-content > section {
-  scroll-margin-top: 1rem;
-}
-
-.school-community-content .section-heading {
-  margin-bottom: 0.75rem;
-}
-
-.school-community-content .section-heading h2 {
-  font-size: 1.35rem;
-}
-
-.school-team-list {
-  border-top: 1px solid var(--color-border);
-}
-
-.school-team-list > a {
-  display: grid;
-  grid-template-columns: 2.75rem minmax(0, 1fr);
-  align-items: center;
-  gap: 0.85rem;
-  padding-block: 1rem;
-  border-bottom: 1px solid var(--color-border);
-  color: var(--color-text);
-  text-decoration: none;
-}
-
-@media (hover: hover) {
-  .school-team-list > a:hover strong {
-    color: var(--color-primary);
-  }
-}
-
-.school-team-list > a > span:last-child {
-  display: grid;
-  gap: 0.15rem;
-}
-
-.school-team-list small {
-  color: var(--color-muted);
-  font-size: 0.8125rem;
-}
-
-.school-inline-empty {
-  padding: 1.1rem 1.25rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-panel);
-  background: var(--color-panel);
-}
-
-.school-inline-empty p {
-  margin-block: 0 0.5rem;
-}
-
-.school-inline-empty p:last-child {
-  margin-bottom: 0;
-}
-
-.school-community-page .school-community-empty {
-  margin-top: 0.75rem;
-}
-
-.school-community-empty h2 {
-  margin-block: 0 0.5rem;
-  font-size: 1.35rem;
-}
-
-.school-community-empty p {
-  max-width: 38rem;
-  margin-block: 0 1.25rem;
-  color: var(--color-muted);
-}
-
-.school-community-empty > :last-child {
-  margin-bottom: 0;
-}
-
-.school-community-empty .school-empty-note {
-  margin-top: 1.25rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--color-border);
-  font-size: 0.875rem;
-}
-
-.detail-row {
-  display: grid;
-  grid-template-columns: minmax(7rem, 0.35fr) minmax(0, 1fr);
-  gap: 1rem;
-  padding-block: 0.9rem;
-  border-bottom: 1px solid var(--color-border);
-}
-
-/* A value with a second line, such as a school name over its location. */
-.detail-row .detail-value {
-  display: grid;
-  gap: 0.2rem;
-  justify-items: start;
-}
-
-.detail-value small {
-  color: var(--color-muted);
-  font-size: 0.875rem;
-  font-weight: 400;
-}
-
-.detail-row > span:first-child {
-  color: var(--color-muted);
-}
-
-/* An event's games, each beside its cover or a placeholder of the same size. */
-.event-game-list {
-  display: grid;
-  gap: 0.6rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.event-game-list li {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.event-game-cover {
-  display: grid;
-  flex: none;
-  place-items: center;
-  width: 3rem;
-  height: 4rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-small);
-  background: var(--color-border);
-  color: var(--color-muted);
-  object-fit: cover;
-}
-
-.action-panel {
-  margin-top: 2rem;
-}
-
-.button,
-button {
-  display: inline-flex;
+  display: flex !important;
   min-height: 2.5rem;
   align-items: center;
-  justify-content: center;
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-control);
-  padding: 0.6rem 0.9rem;
-  color: var(--color-text);
-  background: var(--color-panel);
-  font-weight: 750;
-  text-decoration: none;
-  cursor: pointer;
-}
-
-.button--primary,
-button[type="submit"] {
-  border-color: var(--color-primary);
-  color: #fff;
-  background: var(--color-primary);
-  box-shadow: var(--shadow-raised);
-  transform: translateY(-1px);
-}
-
-.button--primary:active,
-button[type="submit"]:active {
-  box-shadow: 0 1px 0 var(--color-primary-dark);
-  transform: translateY(2px);
-}
-
-.button--secondary {
-  background: var(--color-panel);
-}
-
-button.button--secondary {
-  border-color: var(--color-border-strong);
-  color: var(--color-text);
-  background: var(--color-panel);
-  box-shadow: none;
-  transform: none;
-}
-
-.button--destructive,
-button.button--destructive {
-  border-color: var(--color-danger);
-  color: #fff;
-  background: var(--color-danger);
-  box-shadow: 0 4px 0 var(--color-danger-dark);
-}
-
-.button--destructive:active,
-button.button--destructive:active {
-  box-shadow: 0 1px 0 var(--color-danger-dark);
-}
-
-button:disabled,
-.button[aria-disabled="true"] {
-  cursor: wait;
-  opacity: 0.55;
-}
-
-/* One hover treatment for every button variant. Dimming works on the primary,
-   destructive, secondary, and per-route button styles without each needing its
-   own hover color. */
-@media (hover: hover) {
-  button:hover:not(:disabled),
-  .button:hover:not([aria-disabled="true"]) {
-    filter: brightness(0.93);
-  }
-}
-
-:focus-visible {
-  outline: 3px solid var(--color-primary);
-  outline-offset: 3px;
+  gap: var(--space-3);
+  font-weight: 400 !important;
 }
 
 [role="alert"],
@@ -1530,33 +1561,144 @@ button:disabled,
   color: var(--color-danger);
 }
 
-[role="alert"]:not(.page-notice),
-.form-stack [role="status"] {
+.form-error {
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+/* An alert inside the page (not the PageNoticeView banner): a red-edged block
+   with a tinted fill. */
+[role="alert"]:not(.page-notice, .form-error) {
   margin: 0;
-  border: 1px solid #e9bdb6;
-  border-radius: var(--radius-small);
-  padding: 0.75rem 0.9rem;
+  border: 0;
+  border-left: 4px solid var(--color-danger);
+  border-radius: 0;
+  padding: var(--space-3) var(--space-4);
+  color: var(--color-text);
   background: var(--color-danger-soft);
 }
 
+.form-stack [role="status"] {
+  margin: 0;
+  border-left: 4px solid var(--color-success);
+  padding: var(--space-3) var(--space-4);
+  color: var(--color-text);
+  background: var(--color-success-soft);
+}
+
+/* Live-region helper text (the school search hint) is not a success message:
+   show it as plain help, and a failure as an error. */
+.form-stack [role="status"].form-help {
+  border: 0;
+  padding: 0;
+  color: var(--color-muted);
+  background: transparent;
+}
+
+.form-stack [role="status"].form-error {
+  border: 0;
+  padding: 0;
+  color: var(--color-danger);
+  background: transparent;
+}
+
+/* The error summary at the top of a form: a red frame, a heading, and links to
+   each invalid field (GOV.UK pattern). */
+.form-error-summary {
+  border: 3px solid var(--color-danger) !important;
+  padding: var(--space-4) !important;
+  background: var(--color-surface) !important;
+}
+
 .form-error-summary:focus {
-  outline: 3px solid var(--color-primary);
-  outline-offset: 3px;
+  outline: 3px solid var(--color-focus);
+  outline-offset: 0;
+  box-shadow: 0 0 0 6px var(--color-text);
 }
 
 .form-error-summary strong {
   display: block;
+  color: var(--color-text);
+  font-size: var(--text-lg);
 }
 
 .form-error-summary ul {
-  margin-block: 0.5rem 0;
+  margin-block: var(--space-2) 0;
   padding-left: 1.25rem;
 }
 
 .form-error-summary a {
-  color: inherit;
-  font-weight: 700;
+  color: var(--color-danger);
+  font-weight: 600;
 }
+
+/* Filters sit directly over the results: labels above compact controls in
+   one row where they fit, two to a row on a phone. Fields line up at the
+   top, so a hint under one control (the school search, a field locked by a
+   tab) does not lift it above the others. */
+.search-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: start;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.search-bar > label {
+  flex: 1 1 9rem;
+  min-width: 0;
+  font-size: var(--text-sm);
+}
+
+/* The button drops by one label line and the label's gap, to sit level with
+   the controls. */
+.search-bar > button {
+  flex: none;
+  margin-top: calc(var(--text-sm) * 1.5 + 0.375rem);
+}
+
+.search-bar small {
+  color: var(--color-muted);
+  font-weight: 400;
+}
+
+@media (max-width: 42rem) {
+  .search-bar {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .search-bar > button {
+    grid-column: 1 / -1;
+    margin-top: 0;
+  }
+}
+
+/* A count above results, with the sort or other note at the right. */
+.results-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+  margin-block: var(--space-4) var(--space-3);
+}
+
+.results-heading h2,
+.results-heading p {
+  margin: 0;
+}
+
+.results-heading h2 {
+  font-size: var(--text-md);
+}
+
+.results-heading > span {
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+}
+
+/* ==== Dialogs and route states ==== */
 
 .confirmation-dialog {
   width: min(32rem, calc(100% - 2rem));
@@ -1569,13 +1711,13 @@ button:disabled,
 }
 
 .confirmation-dialog::backdrop {
-  background: rgb(21 24 31 / 48%);
+  background: rgb(11 12 12 / 50%);
 }
 
 .confirmation-dialog__content {
   display: grid;
-  gap: 1rem;
-  padding: clamp(1.25rem, 4vw, 2rem);
+  gap: var(--space-4);
+  padding: var(--space-5);
 }
 
 .confirmation-dialog__content h2,
@@ -1584,233 +1726,67 @@ button:disabled,
 }
 
 .route-state {
-  margin-top: clamp(2rem, 7vw, 5rem);
+  margin-top: var(--space-6);
 }
 
-.form-stack [role="status"] {
-  border-color: #bad9c2;
-  color: var(--color-success);
-  background: var(--color-success-soft);
+/* ==== Text pages (About, FAQ, Terms) ==== */
+
+.about-section {
+  max-width: var(--measure-width);
+  margin-bottom: var(--space-6);
 }
 
-/* Live-region helper text (for example the school search hint) is not a
-   success message: show it as plain help, and a failure as an error. */
-.form-stack [role="status"].form-help {
-  border: 0;
-  padding: 0;
-  color: var(--color-muted);
-  background: transparent;
+.about-section h2 {
+  margin-block: 0 var(--space-2);
 }
 
-.form-stack [role="status"].form-error {
-  border-color: #e9bdb6;
-  color: var(--color-danger);
-  background: var(--color-danger-soft);
+.faq-group {
+  max-width: var(--measure-width);
+  margin-bottom: var(--space-6);
 }
+
+.faq-group h2 {
+  margin-block: 0 var(--space-2);
+}
+
+.faq-group details {
+  border-bottom: 1px solid var(--color-border);
+  scroll-margin-top: var(--space-4);
+}
+
+.faq-group summary {
+  padding-block: var(--space-3);
+  color: var(--color-link);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.faq-group details p {
+  margin-block: 0 var(--space-4);
+}
+
+.faq-group details:target {
+  border-left: 4px solid var(--color-primary);
+  padding-inline: var(--space-3);
+  background: var(--color-primary-soft);
+}
+
+@media (pointer: coarse), (max-width: 42rem) {
+  .faq-group summary {
+    min-height: 2.75rem;
+  }
+}
+
+/* ==== Utilities ==== */
 
 .block {
   display: block;
 }
 
 .compact {
-  margin-block: 0.5rem;
+  margin-block: var(--space-2);
 }
 
-.link {
-  border: 0;
-  padding: 0;
-  color: var(--color-primary);
-  background: transparent;
-  box-shadow: none;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    scroll-behavior: auto !important;
-    transition-duration: 0.01ms !important;
-  }
-}
-
-@media (pointer: coarse), (max-width: 42rem) {
-  button,
-  .button,
-  .site-header a,
-  .site-footer a,
-  .section-heading a,
-  .detail-row a,
-  .link {
-    display: inline-flex;
-    align-items: center;
-    min-height: 2.75rem;
-  }
-}
-
-/* Compact phone header, with no JavaScript. The brand and one primary action
-   share the first row; the other links sit below as equal 44px targets (four
-   for a visitor, three for a signed-in viewer, whose Account and Log out live
-   in the account menu). Every link stays in the server HTML and the nav stays
-   one landmark. The primary action (Sign up, or the account menu once signed
-   in) is lifted out of the grid and pinned to the first row's right edge: the
-   nav is its containing block, so `bottom: 100%` lands it exactly on the
-   brand's row, level with the page gutter. The header's own box still
-   encloses both rows, so the full-bleed band keeps working. */
-@media (max-width: 42rem) {
-  .site-header {
-    flex-wrap: wrap;
-    gap: 0;
-    padding-block: 0.5rem;
-  }
-
-  .site-header .brand {
-    min-height: 2.75rem;
-  }
-
-  .site-header nav {
-    position: relative;
-    display: grid;
-    width: 100%;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 0;
-  }
-
-  .site-header nav:has(.account-menu) {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .site-header nav a:not(.button),
-  .site-header nav button {
-    min-height: 2.75rem;
-    justify-content: center;
-    padding-block: 0;
-    text-align: center;
-  }
-
-  .site-header nav .button--primary,
-  .site-header nav .account-menu {
-    position: absolute;
-    right: 0;
-    bottom: 100%;
-    min-height: 2.75rem;
-  }
-
-  /* The trigger becomes the pill the Account link used to be. The name is
-     capped so a long one cannot reach the brand: the room beside it shrinks
-     with the viewport. */
-  .site-header nav .account-menu__trigger {
-    border: 1px solid var(--color-border-strong);
-    border-radius: var(--radius-control);
-    padding: 0 0.75rem 0 0.5rem;
-    color: var(--color-text);
-    background: var(--color-panel);
-  }
-
-  .site-header nav .account-menu__trigger:focus-visible {
-    border-color: var(--color-border-strong);
-  }
-
-  @media (hover: hover) {
-    .site-header nav .account-menu__trigger:hover:not(:disabled) {
-      border-color: var(--color-border-strong);
-      filter: brightness(0.93);
-    }
-  }
-
-  .site-header nav .account-menu .account-menu__trigger[aria-expanded="true"] {
-    border-color: var(--color-accent);
-    background: var(--color-accent-soft);
-  }
-
-  .account-menu__name {
-    max-width: min(7rem, max(3rem, calc(100vw - 16.5rem)));
-  }
-}
-
-@media (max-width: 52rem) {
-  .auth-page,
-  .hero,
-  .search-bar {
-    grid-template-columns: 1fr;
-  }
-
-  .card-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .school-filter-bar {
-    grid-template-columns: minmax(0, 1fr) auto;
-  }
-
-  .school-filter-bar button {
-    grid-column: auto;
-  }
-
-  .auth-page > .page-heading {
-    position: static;
-  }
-
-  .auth-page > .form-footer {
-    grid-column: 1;
-  }
-}
-
-@media (max-width: 42rem) {
-  main {
-    padding-block: 2.5rem;
-  }
-
-  .profile-hero {
-    align-items: flex-start;
-  }
-
-  .section-heading {
-    grid-template-columns: 1fr;
-  }
-
-  .card-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .school-filter-bar {
-    grid-template-columns: 1fr;
-  }
-
-  .school-filter-bar button {
-    grid-column: auto;
-  }
-
-  .results-heading {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .detail-row {
-    grid-template-columns: 1fr;
-    gap: 0.25rem;
-  }
-
-  .detail-card .detail-row {
-    grid-template-columns: 1fr;
-  }
-
-  .school-directory-mark--large {
-    width: 3.5rem;
-    height: 3.5rem;
-    border-radius: 0.875rem;
-    font-size: 1.25rem;
-  }
-
-  .school-detail-layout,
-  .team-detail-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .school-follow-panel {
-    grid-row: 1;
-  }
-
-  .site-footer strong {
-    width: 100%;
-  }
+.muted {
+  color: var(--color-muted);
 }

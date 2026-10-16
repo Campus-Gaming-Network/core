@@ -4,13 +4,18 @@ import {
   redirect,
   type ErrorComponentProps,
 } from "@tanstack/react-router";
+import { Breadcrumbs, BreadcrumbLink } from "../components/breadcrumbs";
+import { FormSectionNav } from "../components/form-section-nav";
 import { ButtonLink } from "../components/button-link";
 import { RouteErrorView, RoutePending } from "../components/route-boundaries";
 import {
   validateNewEventSearch,
   type EditEventPageResult,
 } from "../features/event-slice/contracts";
-import { EventForm } from "../features/event-slice/event-form";
+import {
+  EventForm,
+  eventFormSections,
+} from "../features/event-slice/event-form";
 import { getEditEventPage } from "../features/event-slice/event.functions";
 import { NoScriptSchoolSearch } from "../features/event-slice/event-school-picker";
 import eventCSS from "../features/event-slice/events.css?url";
@@ -79,53 +84,76 @@ function EditEventPage() {
 
   if (data.status === "denied") {
     return (
-      <main>
-        <section className="page-heading">
+      <main className="prose">
+        <section className="empty-state">
           <p className="eyebrow">Edit event</p>
           <h1>
             {data.reason === "locked"
               ? "This private event is locked."
               : "You do not have permission to edit this event."}
           </h1>
-          <p className="lede">
+          <p>
             {data.reason === "locked"
               ? "Only an event organizer can load private event details for editing."
               : "Only an event organizer can change or cancel it."}
           </p>
+          <div className="actions">
+            <ButtonLink
+              variant="secondary"
+              to="/events/$slug"
+              params={{ slug }}
+            >
+              Back to event
+            </ButtonLink>
+          </div>
         </section>
-        <ButtonLink variant="secondary" to="/events/$slug" params={{ slug }}>
-          Back to event
-        </ButtonLink>
       </main>
     );
   }
 
   const schoolQuery = search.school_q ?? "";
   return (
-    <main>
-      <section className="page-heading">
-        <p className="eyebrow">Edit event</p>
-        <h1>{data.event.title}</h1>
-        <p className="lede">
-          Update the event details. Leave the private password blank to keep the
-          current password.
-        </p>
-      </section>
-      {search.event === "failed" ? (
-        <p role="alert">We could not update that event. Please try again.</p>
-      ) : null}
-      <NoScriptSchoolSearch
-        action={`/events/${encodeURIComponent(slug)}/edit`}
-        query={schoolQuery}
-      />
-      <EventForm
-        event={data.event}
-        games={data.games}
-        initialSchoolQuery={schoolQuery}
-        initialSchoolSearchFailed={data.schoolSearchFailed}
-        mode="edit"
-        schools={data.schools}
-      />
+    <main className="form-page">
+      <Breadcrumbs current="Edit">
+        <BreadcrumbLink to="/events">Events</BreadcrumbLink>
+        <BreadcrumbLink to="/events/$slug" params={{ slug }}>
+          {data.event.title}
+        </BreadcrumbLink>
+      </Breadcrumbs>
+      <div className="form-page__layout">
+        <FormSectionNav heading="Edit event" sections={eventFormSections} />
+        <div className="form-page__body">
+          <section className="page-heading">
+            <div>
+              <h1>Edit event</h1>
+              <p className="lede">
+                Editing <strong>{data.event.title}</strong>. Changes are saved
+                to this event only; its repeat settings cannot be changed.
+                {data.event.visibility === "private"
+                  ? " Leave the private password blank to keep the current one."
+                  : ""}
+              </p>
+            </div>
+          </section>
+          {search.event === "failed" ? (
+            <p role="alert">
+              We could not update that event. Please try again.
+            </p>
+          ) : null}
+          <NoScriptSchoolSearch
+            action={`/events/${encodeURIComponent(slug)}/edit`}
+            query={schoolQuery}
+          />
+          <EventForm
+            event={data.event}
+            games={data.games}
+            initialSchoolQuery={schoolQuery}
+            initialSchoolSearchFailed={data.schoolSearchFailed}
+            mode="edit"
+            schools={data.schools}
+          />
+        </div>
+      </div>
     </main>
   );
 }

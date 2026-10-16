@@ -174,63 +174,57 @@ export async function getEventsBrowseOperation(
   input: EventsBrowseInput,
   { api, reportError = defaultErrorReporter }: PublicReadDependencies,
 ): Promise<EventsBrowseResult> {
-  const [events, games] = await Promise.all([
-    readEvents(api, input)
-      .then((data) => ({ data, unavailable: false }))
-      .catch((error: unknown) => {
-        reportError(error);
-        return {
-          data: {
-            events: [],
-            limit: 25,
-            has_more: false,
-            has_previous: false,
-          },
-          unavailable: true,
-        };
-      }),
-    api({
-      path: "/games",
-      cache: "no-store",
-      responseSchema: gamesBrowseResponseDtoSchema,
-    })
-      .then(({ data }) => ({ data: data.games, unavailable: false }))
-      .catch((error: unknown) => {
-        reportError(error);
-        return { data: [], unavailable: true };
-      }),
-  ]);
-
-  return {
-    ...events.data,
-    games: games.data,
-    eventsUnavailable: events.unavailable,
-    gamesUnavailable: games.unavailable,
-  };
+  try {
+    return { ...(await readEvents(api, input)), eventsUnavailable: false };
+  } catch (error) {
+    reportError(error);
+    return {
+      events: [],
+      limit: 25,
+      has_more: false,
+      has_previous: false,
+      eventsUnavailable: true,
+    };
+  }
 }
 
-// How many public events the home page previews.
-export const homeEventsLimit = 6;
+// How many public events each home page section previews.
+const homeEventsLimit = 6;
+
+const weekMilliseconds = 7 * 24 * 60 * 60 * 1000;
 
 /**
- * The home page's preview of public events, in the same order as the events
- * page. A failure never fails the home page: it reports itself as unavailable
- * so the page can say so.
+ * The home page's two previews of public events, each in the events page's
+ * order: "this week" is what is under way or starts in the next seven days,
+ * and "more" is everything that starts after that. The cut is rounded down to
+ * the minute. A failure never fails the home page: it reports itself as
+ * unavailable so the page can say so.
  */
 export async function homeEventsOperation({
   api,
+  now = () => new Date(),
   reportError = defaultErrorReporter,
-}: PublicReadDependencies) {
-  try {
+}: PublicReadDependencies & { now?: () => Date }) {
+  const weekEnd = new Date(now().getTime() + weekMilliseconds);
+  weekEnd.setUTCSeconds(0, 0);
+  const cut = weekEnd.toISOString().replace(".000Z", "Z");
+  const read = async (range: string) => {
     const { data } = await api({
-      path: `/events?limit=${homeEventsLimit}`,
+      path: `/events?limit=${homeEventsLimit}&${range}=${encodeURIComponent(cut)}`,
       cache: "no-store",
       responseSchema: eventsBrowseResponseDtoSchema,
     });
-    return { events: data.events.map(withHostSchoolLogo), unavailable: false };
+    return data.events.map(withHostSchoolLogo);
+  };
+  try {
+    const [thisWeek, later] = await Promise.all([
+      read("starts_before"),
+      read("starts_after"),
+    ]);
+    return { thisWeek, later, unavailable: false };
   } catch (error) {
     reportError(error);
-    return { events: [], unavailable: true };
+    return { thisWeek: [], later: [], unavailable: true };
   }
 }
 

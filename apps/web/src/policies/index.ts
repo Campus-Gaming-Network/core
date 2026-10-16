@@ -2,7 +2,7 @@ import type { PolicyDocument } from "./policy-document.js";
 import { privacyDraft20261006 } from "./privacy-draft-2026-10-06.js";
 import { termsDraft20261006 } from "./terms-draft-2026-10-06.js";
 
-export type { PolicyDocument } from "./policy-document.js";
+export type { PolicyDocument, PolicySection } from "./policy-document.js";
 
 /**
  * Every published version of each policy, oldest first. The last entry is the

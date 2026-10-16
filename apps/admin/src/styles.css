@@ -434,7 +434,6 @@
   .section-heading,
   .panel-heading,
   .detail-header,
-  .queue-card__topline,
   .audit-title {
     @apply flex items-start justify-between gap-4;
   }
@@ -469,7 +468,6 @@
     letter-spacing: 1px;
   }
 
-  .status-pill,
   .count-badge,
   .queue-status {
     @apply inline-flex w-fit shrink-0 items-center justify-center rounded-full border px-2 whitespace-nowrap;
@@ -485,7 +483,6 @@
     font-size: 12px;
   }
 
-  .status-pill,
   .queue-status--open {
     border-color: var(--tag-blue-border);
     color: var(--tag-blue-text);
@@ -717,41 +714,6 @@
     @apply w-fit;
   }
 
-  .queue-list {
-    @apply grid gap-3;
-  }
-
-  .queue-card {
-    @apply relative grid cursor-pointer gap-2 rounded-lg bg-admin-panel py-4 pr-14 pl-4 text-admin-muted no-underline;
-    box-shadow: var(--admin-shadow-raised);
-    transition: background-color 150ms;
-  }
-
-  @media (hover: hover) {
-    .queue-card:hover {
-      @apply bg-admin-panel-hover;
-    }
-  }
-
-  .queue-card__arrow {
-    @apply absolute right-4 bottom-4 grid h-6 w-6 place-items-center rounded-full bg-admin-surface text-admin-subtle;
-  }
-
-  @media (hover: hover) {
-    .queue-card:hover .queue-card__arrow {
-      @apply text-admin-ink;
-    }
-  }
-
-  .queue-card strong {
-    @apply font-medium text-admin-ink;
-  }
-
-  .queue-card__meta {
-    @apply text-admin-subtle;
-    font-size: 12px;
-  }
-
   .pagination {
     @apply flex items-center justify-between;
     min-height: 32px;
@@ -802,10 +764,6 @@
     .copy-id:hover {
       @apply bg-admin-border text-admin-ink;
     }
-  }
-
-  .detail-id {
-    @apply m-0 text-admin-muted;
   }
 
   .back-link {
@@ -1019,16 +977,6 @@
     @apply h-4 w-4 shrink-0;
   }
 
-  .igdb-match {
-    @apply m-0 flex items-center gap-3;
-  }
-
-  .igdb-thumbnail {
-    @apply block shrink-0 rounded border border-admin-border bg-admin-surface object-cover;
-    width: 45px;
-    height: 64px;
-  }
-
   .related-actions {
     @apply flex flex-wrap gap-2;
   }
@@ -1097,10 +1045,6 @@
   .detail-header,
   .panel-heading {
     display: grid;
-  }
-
-  .queue-card__topline {
-    align-items: flex-start;
   }
 }
 

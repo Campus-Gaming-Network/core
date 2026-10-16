@@ -1,7 +1,8 @@
 import type { PageNotice } from "../../components/page-notice.js";
 import { pageHead } from "../../components/public-page-head.js";
 
-export const accountNotices = {
+// The delete account page shows a failed deletion after a native form post.
+export const deleteAccountNotices = {
   "delete-failed": {
     message: "We could not delete your account. Please try again.",
     severity: "danger",
@@ -28,6 +29,15 @@ export function settingsProfileHead(publicOrigin?: string) {
     title: "Edit profile",
     description: "Edit your public Campus Gaming Network profile.",
     path: "/settings/profile",
+    noIndex: true,
+  });
+}
+
+export function deleteAccountHead(publicOrigin?: string) {
+  return pageHead(publicOrigin, {
+    title: "Delete account",
+    description: "Permanently delete your Campus Gaming Network account.",
+    path: "/settings/delete-account",
     noIndex: true,
   });
 }

@@ -1,4 +1,10 @@
-import { useEffect, useRef, type ReactNode, type RefObject } from "react";
+import {
+  useEffect,
+  useId,
+  useRef,
+  type ReactNode,
+  type RefObject,
+} from "react";
 
 export function ConfirmDialog({
   cancelLabel = "Keep it",
@@ -21,6 +27,8 @@ export function ConfirmDialog({
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
+  const titleId = useId();
+  const bodyId = useId();
 
   useEffect(() => {
     if (!open) return;
@@ -40,8 +48,14 @@ export function ConfirmDialog({
 
   return (
     <dialog
-      aria-labelledby="confirmation-dialog-title"
+      aria-describedby={bodyId}
+      aria-labelledby={titleId}
       className="confirmation-dialog"
+      onClick={(event) => {
+        // A click on the backdrop lands on the dialog element itself; the
+        // content fills the rest. Closing it is the safe outcome.
+        if (event.target === event.currentTarget && !pending) onClose();
+      }}
       onCancel={(event) => {
         event.preventDefault();
         if (!pending) onClose();
@@ -49,13 +63,15 @@ export function ConfirmDialog({
       ref={dialogRef}
     >
       <div className="confirmation-dialog__content">
-        <h2 id="confirmation-dialog-title">{heading}</h2>
-        <div>{children}</div>
+        <h2 id={titleId}>{heading}</h2>
+        <div id={bodyId}>{children}</div>
         <div className="actions">
           <button
             className="button--secondary"
-            disabled={pending}
-            onClick={onClose}
+            aria-disabled={pending || undefined}
+            onClick={() => {
+              if (!pending) onClose();
+            }}
             ref={cancelRef}
             type="button"
           >
@@ -63,7 +79,10 @@ export function ConfirmDialog({
           </button>
           <button
             className="button--destructive"
-            disabled={pending}
+            aria-disabled={pending || undefined}
+            onClick={(event) => {
+              if (pending) event.preventDefault();
+            }}
             type="submit"
           >
             {pending ? "Working…" : confirmLabel}

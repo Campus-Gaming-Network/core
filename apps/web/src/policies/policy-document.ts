@@ -11,4 +11,17 @@ export type PolicyDocument = {
   heading: string;
   lede: string;
   paragraphs: readonly string[];
+  /**
+   * Headed sections that follow the paragraphs. A version with three or more
+   * gets an "On this page" contents list. `id` is the section's permanent
+   * anchor, so set it once and never reword it; without one the anchor comes
+   * from the heading.
+   */
+  sections?: readonly PolicySection[];
+};
+
+export type PolicySection = {
+  id?: string;
+  heading: string;
+  paragraphs: readonly string[];
 };

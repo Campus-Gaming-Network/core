@@ -30,7 +30,7 @@ Side paths:
   Cloudflare R2 ──► school logos (Admin Console); other uploads later
   Sentry ──► errors
   Cloudflare ──► DNS / edge protection
-  IGDB ──► game search, import, and refresh (Go API only, started from the Admin Console)
+  IGDB ──► game search and import from the event and team forms, refresh from the Admin Console (Go API only)
 ```
 
 **Backend for Frontend (BFF):** the TanStack Start layer shapes safe display
@@ -58,7 +58,7 @@ See [14 — Architecture diagrams](./14-architecture-diagrams.md) for Mermaid vi
 | Errors           | Sentry                                                        | Web, Admin Console (each server and browser), and API failures when `SENTRY_DSN` is set; never the Admin API |
 | Avatars          | Boring Avatars Beam drawn by the web app (`/api/avatars/:id`) | No avatar service is contacted; custom avatars later                                                         |
 | Maps             | Google Maps embed (mini)                                      | Later nicety; address text first                                                                             |
-| Games data       | IGDB import via the Admin Console                             | Not user-editable; covers stored in Postgres                                                                 |
+| Games data       | IGDB import when a user picks a game                          | Not user-editable; covers stored in Postgres                                                                 |
 | Analytics        | Non-GA tool (TBD)                                             | No Google Analytics (perf)                                                                                   |
 | Client data libs | TanStack where justified                                      | Main site uses Start/Router; Query/Table remain optional                                                     |
 
@@ -197,7 +197,7 @@ The school and game catalogs are effectively static — roughly 6,200 schools gr
 
 - Schools are bootstrapped once from the Scorecard seed; users cannot create schools.
 - Admin Console: school create/edit/activation/delete, school logos, school admins, and the games catalog. School commands refresh the serving process's in-memory catalog after they commit.
-- Games: imported from IGDB by site admins; **not** editable by end users. Only the Go API calls IGDB. It caches one Twitch app token in memory and stores covers in Postgres, so no page loads an image from IGDB.
+- Games: imported from IGDB when a user picks one; **not** editable by end users. Site admins correct, hide, delete, and refresh them. Only the Go API calls IGDB. It caches one Twitch app token in memory and stores covers in Postgres, so no page loads an image from IGDB.
 
 ## Auth & security
 

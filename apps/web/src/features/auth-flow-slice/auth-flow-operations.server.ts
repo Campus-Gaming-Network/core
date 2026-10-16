@@ -159,24 +159,38 @@ async function performAuthMutation(
     };
   } catch (error) {
     reportError(error);
-    return { status: "error", message: authErrorMessage(error) };
+    const message = authErrorMessage(error);
+    const field =
+      error instanceof ApiError ? errorFields[error.code] : undefined;
+    return {
+      status: "error",
+      message,
+      ...(field ? { fieldErrors: { [field]: [message] } } : {}),
+    };
   }
 }
 
-export function authErrorMessage(error: unknown): string {
+/** API errors about one form field, so the form can point at it. */
+const errorFields: Record<string, string> = {
+  email_already_registered: "email",
+  home_school_not_found: "home_school_id",
+};
+
+function authErrorMessage(error: unknown): string {
   if (!(error instanceof ApiError)) {
     return "Something went wrong. Please try again.";
   }
 
   const messages: Record<string, string> = {
     database_unavailable: "The service is starting up. Try again in a moment.",
-    email_already_registered: "That email already has an account.",
+    email_already_registered:
+      "That email already has an account. Log in, or reset your password if you forgot it.",
     home_school_not_found: "Choose an active home school from the list.",
     invalid_or_expired_token: "That link is invalid or has expired.",
     invalid_request: "Check the form fields and try again.",
     policy_version_mismatch:
       "Our Terms or Privacy Policy changed. Reload this page, review them, and try again.",
-    rate_limited: "Too many attempts. Give it a minute, then try again.",
+    rate_limited: "Too many attempts. Please try again later.",
   };
   return messages[error.code] ?? "Something went wrong. Please try again.";
 }

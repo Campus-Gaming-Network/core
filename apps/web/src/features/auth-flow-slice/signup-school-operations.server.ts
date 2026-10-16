@@ -2,7 +2,7 @@ import type { ApiClient } from "../../server/api.server.js";
 import { readSchools } from "../school-slice/catalog-operations.server.js";
 import type { SchoolDTO } from "../school-slice/contracts.js";
 
-export type SignupSchoolSearchResult = {
+type SignupSchoolSearchResult = {
   schools: SchoolDTO[];
   failed: boolean;
 };

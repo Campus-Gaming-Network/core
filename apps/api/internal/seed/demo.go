@@ -232,8 +232,9 @@ func loadDemoSchools(ctx context.Context, pool *pgxpool.Pool) ([]demoSchool, err
 }
 
 // loadDemoGames returns the demo games, adding any the catalog lacks. They
-// share slugs with the IGDB starter set, so an imported game is reused and
-// the demo seed works without IGDB credentials.
+// share slugs with the IGDB starter set, so an imported game is reused, a
+// later starter import links a demo game rather than copying it, and the demo
+// seed works without IGDB credentials.
 func loadDemoGames(ctx context.Context, pool *pgxpool.Pool) ([]string, error) {
 	slugs := make([]string, 0, len(demoGames))
 	for _, game := range demoGames {

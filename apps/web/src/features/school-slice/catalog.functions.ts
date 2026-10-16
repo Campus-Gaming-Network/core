@@ -5,16 +5,21 @@ import {
   setPrivateNoStoreResponse,
 } from "../../server/request-boundary.server.js";
 import {
+  defaultErrorReporter,
   homeCatalogOperation,
   schoolCatalogOperation,
   schoolsCatalogOperation,
   schoolViewerStateOperation,
 } from "./catalog-operations.server.js";
 import {
+  schoolFilterInputSchema,
   schoolSlugInputSchema,
   schoolsBrowseInputSchema,
   schoolViewerInputSchema,
 } from "./contracts.js";
+import { loadSchoolFilterChoices } from "./school-filter.server.js";
+import { gameFilterInputSchema } from "../game-picker/contracts.js";
+import { loadGameFilterChoices } from "../game-picker/game-filter.server.js";
 
 export const getHomeCatalog = createServerFn({ method: "GET" }).handler(
   async () => homeCatalogOperation({ api: goBFFForCurrentRequest() }),
@@ -24,6 +29,24 @@ export const getSchoolsCatalog = createServerFn({ method: "GET" })
   .validator(schoolsBrowseInputSchema)
   .handler(async ({ data }) =>
     schoolsCatalogOperation(data, { api: goBFFForCurrentRequest() }),
+  );
+
+/** The chosen game and `game_q` matches for a directory's game filter. */
+export const getGameFilterChoices = createServerFn({ method: "GET" })
+  .validator(gameFilterInputSchema)
+  .handler(async ({ data }) =>
+    loadGameFilterChoices(goBFFForCurrentRequest(), data, defaultErrorReporter),
+  );
+
+/** The chosen school and `school_q` matches for a directory's school filter. */
+export const getSchoolFilterChoices = createServerFn({ method: "GET" })
+  .validator(schoolFilterInputSchema)
+  .handler(async ({ data }) =>
+    loadSchoolFilterChoices(
+      goBFFForCurrentRequest(),
+      data,
+      defaultErrorReporter,
+    ),
   );
 
 export const getSchoolCatalog = createServerFn({ method: "GET" })

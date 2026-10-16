@@ -24,6 +24,17 @@ export const gameSearchResponseSchema = z.object({
       release_year: z.number().int().optional(),
       // Set when the catalog already holds this game.
       game_id: z.string().max(200).optional(),
+      // A catalog game's cover is served by slug; the API sends these only for
+      // games the catalog already holds.
+      slug: z.string().max(200).optional(),
+      has_cover: z.boolean().optional(),
+      // IGDB's cover, served small at /api/igdb-covers/{id}. An ID the site
+      // would not serve is dropped, so the result shows the fallback tile.
+      cover_image_id: z
+        .string()
+        .regex(/^[a-z0-9_]{1,64}$/)
+        .optional()
+        .catch(undefined),
     }),
   ),
 });
@@ -41,3 +52,31 @@ export const gamePickerErrorMessages = {
     "Game search is unavailable right now. Type the game's name instead.",
   invalid_game_name: "Enter a game name using letters or numbers.",
 } as const;
+
+/** A catalog game as a directory's game filter shows it. */
+export const gameFilterOptionSchema = z.object({
+  id: z.string().trim().min(1).max(200),
+  name: z.string(),
+  slug: z.string().trim().min(1).max(200),
+  cover_url: z.string().optional(),
+});
+
+export const gameFilterOptionsResponseSchema = z.object({
+  games: z.array(gameFilterOptionSchema),
+});
+
+export type GameFilterOption = z.output<typeof gameFilterOptionSchema>;
+
+/** What a directory needs for its game filter. */
+export type GameFilterChoices = {
+  /** The game named by the `game` filter; absent when it cannot be found. */
+  selectedGame?: GameFilterOption;
+  /** Matches for the no-JavaScript `game_q` search. */
+  games: GameFilterOption[];
+  gameSearchFailed: boolean;
+};
+
+export const gameFilterInputSchema = z.object({
+  game: z.string().trim().min(1).max(200).optional(),
+  gameQuery: z.string().trim().max(100).optional(),
+});

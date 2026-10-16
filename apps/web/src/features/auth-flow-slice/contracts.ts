@@ -35,7 +35,7 @@ export const currentPoliciesDtoSchema = z.object({
 /** The exact versions a signup form shows and names in its submission. */
 export type SignupPolicies = { termsVersion: string; privacyVersion: string };
 
-export const signupInputSchema = z.object({
+const signupInputSchema = z.object({
   email: emailSchema,
   password: passwordSchema,
   name: z
@@ -64,12 +64,12 @@ export const signupInputSchema = z.object({
 
 export const emailInputSchema = z.object({ email: emailSchema });
 
-export const resetPasswordInputSchema = z.object({
+const resetPasswordInputSchema = z.object({
   token: tokenSchema,
   password: passwordSchema,
 });
 
-export const verificationTokenInputSchema = z.object({ token: tokenSchema });
+const verificationTokenInputSchema = z.object({ token: tokenSchema });
 
 export type SignupInput = z.output<typeof signupInputSchema>;
 export type EmailInput = z.output<typeof emailInputSchema>;
@@ -141,7 +141,7 @@ export function validateVerificationTokenServerInput(
   });
 }
 
-export type SignupSearch = {
+type SignupSearch = {
   q?: string;
   school_id?: string;
   auth?: "created" | "failed";
@@ -161,7 +161,7 @@ export function validateSignupSearch(
   };
 }
 
-export type ForgotPasswordSearch = {
+type ForgotPasswordSearch = {
   request?: "sent" | "failed";
 };
 
@@ -172,7 +172,7 @@ export function validateForgotPasswordSearch(
   return request === "sent" || request === "failed" ? { request } : {};
 }
 
-export type ResetPasswordSearch = {
+type ResetPasswordSearch = {
   token?: string;
   reset?: "failed";
 };
@@ -188,7 +188,7 @@ export function validateResetPasswordSearch(
   };
 }
 
-export type VerifyEmailSearch = {
+type VerifyEmailSearch = {
   token?: string;
   error?: "invalid-link";
   resend?: "sent" | "failed";

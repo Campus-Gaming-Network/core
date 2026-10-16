@@ -14,6 +14,8 @@ import {
   useIdempotencyKey,
 } from "../components/idempotency-key";
 import { Avatar } from "../components/avatar";
+import { KeyInformation } from "../components/key-information";
+import { StatusLabel } from "../components/status-label";
 import { PageNoticeView } from "../components/page-notice-view";
 import { RouteErrorView, RoutePending } from "../components/route-boundaries";
 import type {
@@ -23,6 +25,7 @@ import type {
 } from "../features/public-profile/contracts";
 import { validatePublicProfileSearch } from "../features/public-profile/contracts";
 import { SocialLinkIcon } from "../features/public-profile/social-link-icon";
+import profileCSS from "../features/public-profile/profile.css?url";
 import { socialSite } from "../features/public-profile/social-sites";
 import {
   getPublicProfilePage,
@@ -73,7 +76,13 @@ export const Route = createFileRoute("/users/$id")({
       : "public, max-age=0, must-revalidate",
     vary: "Cookie",
   }),
-  head: ({ loaderData }) => publicProfileHead(loaderData),
+  head: ({ loaderData }) => {
+    const head = publicProfileHead(loaderData);
+    return {
+      ...head,
+      links: [...head.links, { rel: "stylesheet", href: profileCSS }],
+    };
+  },
   pendingComponent: PublicProfilePending,
   errorComponent: PublicProfileError,
   component: PublicProfilePage,
@@ -92,42 +101,14 @@ function PublicProfilePage() {
   });
 
   return (
-    <main>
-      <section className="profile-hero">
+    <main className="public-profile">
+      <header className="panel public-profile__header">
         <Avatar id={profile.id} name={profile.name} />
-        <div>
-          <p className="eyebrow">Public profile</p>
+        <div className="public-profile__body">
           <h1>{profile.name}</h1>
-          <p className="lede">
-            {profile.bio || "This profile is ready for campus gaming activity."}
-          </p>
-          <div className="pill-list" aria-label="Profile verification">
-            <span>{verificationLabel(profile.verification_level)}</span>
-            {profile.role_indicators?.map((role) => (
-              <span key={role}>{roleIndicatorLabel(role)}</span>
-            ))}
-          </div>
-          {viewer === "self" ? (
-            <p>
-              <Link className="button" to="/settings/profile">
-                Edit profile
-              </Link>
-            </p>
-          ) : null}
-        </div>
-      </section>
-
-      <PageNoticeView
-        notice={search.report ? reportUserNotices[search.report] : undefined}
-      />
-
-      <section className="detail-grid" aria-label="Profile details">
-        <div className="detail-row">
-          <span>Home school</span>
-          <strong className="detail-value">
-            {profile.home_school ? (
+          {profile.home_school ? (
+            <p className="public-profile__school">
               <Link
-                className="link"
                 to="/schools/$slug"
                 params={{ slug: profile.home_school.slug }}
               >
@@ -138,44 +119,133 @@ function PublicProfilePage() {
                 />
                 {homeSchool.name}
               </Link>
-            ) : (
-              homeSchool.name
-            )}
-            {homeSchool.location ? <small>{homeSchool.location}</small> : null}
-          </strong>
-        </div>
-      </section>
-
-      {socialLinks.length > 0 ? (
-        <section className="section" aria-labelledby="social-links">
-          <h2 id="social-links">Links</h2>
-          <div className="pill-list">
-            {socialLinks.map((link) =>
-              link.kind === "discord" ? (
-                // A Discord username has no page to link to, so it is text.
-                <span
-                  className="social-link"
-                  key={link.id ?? `discord-${link.username}`}
-                >
-                  <SocialLinkIcon site="discord" />
-                  Discord: {link.username}
-                </span>
-              ) : (
-                <a
-                  className="social-link"
-                  href={link.url}
-                  key={link.id ?? `${link.label}-${link.url}`}
-                >
-                  <SocialLinkIcon site={socialSite(link.url)} />
-                  {link.label.trim() || "Profile link"}
-                </a>
-              ),
-            )}
+            </p>
+          ) : null}
+          <div className="tag-list" aria-label="Profile verification">
+            <StatusLabel
+              tone={profile.verification_level === "basic" ? undefined : "info"}
+            >
+              {verificationLabel(profile.verification_level)}
+            </StatusLabel>
+            {profile.role_indicators?.map((role) => (
+              <StatusLabel key={role}>{roleIndicatorLabel(role)}</StatusLabel>
+            ))}
           </div>
-        </section>
-      ) : (
-        <p>No public links yet.</p>
-      )}
+          {profile.bio?.trim() ? (
+            <p className="public-profile__bio">{profile.bio}</p>
+          ) : viewer === "self" ? (
+            <p className="public-profile__bio muted">
+              You have not written a bio yet.{" "}
+              <Link to="/settings/profile">Add one</Link>
+            </p>
+          ) : null}
+        </div>
+        {viewer === "self" ? (
+          <div className="public-profile__actions">
+            <Link className="button button--secondary" to="/settings/profile">
+              Edit profile
+            </Link>
+          </div>
+        ) : null}
+      </header>
+
+      <PageNoticeView
+        notice={search.report ? reportUserNotices[search.report] : undefined}
+      />
+
+      <div className="layout-detail">
+        <div className="layout-detail__main">
+          <section
+            aria-labelledby="social-links"
+            className="panel panel--flush"
+          >
+            <div className="panel__header">
+              <h2 id="social-links">Links</h2>
+            </div>
+            {socialLinks.length > 0 ? (
+              <ul className="public-profile__links">
+                {socialLinks.map((link) =>
+                  link.kind === "discord" ? (
+                    // A Discord username has no page to link to, so it is text.
+                    <li key={link.id ?? `discord-${link.username}`}>
+                      <span className="social-link">
+                        <SocialLinkIcon site="discord" />
+                        Discord: {link.username}
+                      </span>
+                    </li>
+                  ) : (
+                    <li key={link.id ?? `${link.label}-${link.url}`}>
+                      <a className="social-link" href={link.url}>
+                        <SocialLinkIcon site={socialSite(link.url)} />
+                        {link.label.trim() || "Profile link"}
+                      </a>
+                    </li>
+                  ),
+                )}
+              </ul>
+            ) : (
+              <p className="panel__body muted">
+                {viewer === "self" ? (
+                  <>
+                    You have not added any links.{" "}
+                    <Link to="/settings/profile">Add social links</Link>
+                  </>
+                ) : (
+                  "No public links yet."
+                )}
+              </p>
+            )}
+          </section>
+        </div>
+
+        <aside className="layout-detail__aside" aria-label="About this player">
+          <KeyInformation
+            title="About"
+            facts={[
+              {
+                term: "Home school",
+                value: profile.home_school ? (
+                  <Link
+                    className="public-profile__school-link"
+                    to="/schools/$slug"
+                    params={{ slug: profile.home_school.slug }}
+                  >
+                    <span className="school-directory-mark">
+                      <span aria-hidden="true">
+                        {profile.home_school.name.slice(0, 1).toUpperCase()}
+                      </span>
+                      <SchoolLogo
+                        logoURL={profile.home_school.logo_url}
+                        size={36}
+                      />
+                    </span>
+                    <span>{homeSchool.name}</span>
+                  </Link>
+                ) : (
+                  homeSchool.name
+                ),
+              },
+              ...(homeSchool.location
+                ? [{ term: "Location", value: homeSchool.location }]
+                : []),
+              {
+                term: "Member type",
+                value: verificationLabel(profile.verification_level),
+              },
+              ...(profile.role_indicators && profile.role_indicators.length > 0
+                ? [
+                    {
+                      term: "Roles",
+                      value: profile.role_indicators
+                        .map(roleIndicatorLabel)
+                        .join(", "),
+                    },
+                  ]
+                : []),
+            ]}
+          />
+        </aside>
+      </div>
 
       <ProfileSafety profileID={profile.id} viewer={viewer} />
     </main>

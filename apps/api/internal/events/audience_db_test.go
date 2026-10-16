@@ -100,8 +100,8 @@ func TestPostgresRepositoryStoresAndFiltersAudience(t *testing.T) {
 		t.Fatalf("ListPublic(open) = %v, want %v", got, want)
 	}
 	wantAll := []string{
+		"Audience Open=open", "Audience Campus=campus", "Audience Legacy=",
 		"Audience Series=members", "Audience Series=members", "Audience Series=members",
-		"Audience Legacy=", "Audience Campus=campus", "Audience Open=open",
 	}
 	if got := listed(""); !reflect.DeepEqual(got, wantAll) {
 		t.Fatalf("ListPublic() = %v, want %v", got, wantAll)

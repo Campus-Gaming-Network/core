@@ -1,6 +1,16 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useEffect, useRef, type FormEvent, type RefObject } from "react";
+import {
+  cloneElement,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type FormEvent,
+  type ReactElement,
+  type ReactNode,
+  type RefObject,
+} from "react";
 import {
   FieldError,
   FormErrorSummary,
@@ -17,7 +27,9 @@ import {
   signup,
   verifyEmail,
 } from "./auth-flow.functions";
-import { SchoolPicker } from "./school-picker";
+import { emailInputProps, passwordHint, passwordRules } from "./field-props";
+import { SchoolSearchSelect } from "../../components/school-search-select";
+import { detectTimeZone } from "./timezone";
 import { useAuthMutation } from "./use-auth-mutation";
 
 export function SignupForm({
@@ -60,7 +72,6 @@ export function SignupForm({
           name: "name-error",
           email: "email-error",
           password: "password-error",
-          timezone: "timezone-error",
           home_school_id: "home_school_id-error",
           age_confirmed: "age_confirmed-error",
           policies_accepted: "policies_accepted-error",
@@ -89,58 +100,68 @@ export function SignupForm({
           errors={mutation.fieldErrors.name}
           label="Name"
         >
-          <input name="name" autoComplete="name" required maxLength={120} />
+          <input
+            name="name"
+            autoComplete="name"
+            autoCapitalize="words"
+            enterKeyHint="next"
+            required
+            maxLength={120}
+          />
         </FormField>
         <FormField
           errorId="email-error"
           errors={mutation.fieldErrors.email}
           label="Email"
         >
-          <input name="email" type="email" autoComplete="email" required />
+          <input
+            name="email"
+            {...emailInputProps}
+            enterKeyHint="next"
+            required
+          />
         </FormField>
-        <FormField
+        <HintedField
           errorId="password-error"
           errors={mutation.fieldErrors.password}
+          hint={passwordHint}
           label="Password"
         >
           <input
             name="password"
             type="password"
             autoComplete="new-password"
-            minLength={8}
-            maxLength={256}
+            enterKeyHint="next"
+            {...passwordRules}
             required
           />
-        </FormField>
-        <FormField
-          errorId="timezone-error"
-          errors={mutation.fieldErrors.timezone}
-          label="Time zone"
-        >
-          <input
-            name="timezone"
-            defaultValue="America/Los_Angeles"
-            autoComplete="off"
-            required
-          />
-        </FormField>
+        </HintedField>
+        <DeviceTimeZone />
       </FormSection>
       <FormSection
         title="Your campus"
-        description="Pick your home school and confirm you are old enough to join."
+        description="Start typing the name of the school you attend, then choose it."
       >
         <div>
-          <SchoolPicker
-            schools={schools}
-            selectedSchoolId={selectedSchoolId}
-            initialQuery={initialQuery}
-            initialSearchFailed={initialSearchFailed}
+          <SchoolSearchSelect
+            defaultSchool={schools.find(
+              (school) => school.id === selectedSchoolId,
+            )}
+            defaultValue={selectedSchoolId ?? ""}
             describedBy={
               mutation.fieldErrors.home_school_id
                 ? "home_school_id-error"
                 : undefined
             }
+            emptyLabel="Choose your school"
+            initialQuery={initialQuery ?? ""}
+            initialSchools={schools}
+            initialSearchFailed={Boolean(initialSearchFailed)}
             invalid={Boolean(mutation.fieldErrors.home_school_id?.length)}
+            label="Your school"
+            name="home_school_id"
+            required
+            valueField="id"
           />
           <FieldError
             id="home_school_id-error"
@@ -157,7 +178,7 @@ export function SignupForm({
               "age_confirmed-error",
             )}
           />
-          <span>I confirm I am 18 or older.</span>
+          <span>I confirm I am 18 or older. CGN is for adults only.</span>
         </label>
         <FieldError
           id="age_confirmed-error"
@@ -193,19 +214,23 @@ export function SignupForm({
               <span>
                 I agree to the{" "}
                 <Link
+                  rel="noopener"
                   search={{ version: policies.termsVersion }}
                   target="_blank"
                   to="/terms"
                 >
                   Terms
+                  <NewTabNote />
                 </Link>{" "}
                 and acknowledge the{" "}
                 <Link
+                  rel="noopener"
                   search={{ version: policies.privacyVersion }}
                   target="_blank"
                   to="/privacy"
                 >
                   Privacy Policy
+                  <NewTabNote />
                 </Link>
                 .
               </span>
@@ -281,11 +306,17 @@ export function ForgotPasswordForm({
         errors={mutation.fieldErrors.email}
         label="Email"
       >
-        <input name="email" type="email" autoComplete="email" required />
+        <input name="email" {...emailInputProps} enterKeyHint="send" required />
       </FormField>
       <button type="submit" disabled={mutation.pending}>
         {mutation.pending ? "Sending…" : "Send reset link"}
       </button>
+      {mutation.status === "success" || initialStatus === "sent" ? (
+        <p className="auth-help">
+          The email can take a few minutes. Check your spam folder if it does
+          not show up. You can send another link from this page.
+        </p>
+      ) : null}
     </form>
   );
 }
@@ -318,23 +349,30 @@ export function ResetPasswordForm({ token }: { token: string }) {
         summaryRef={mutation.errorSummaryRef}
       />
       <FieldError id="token-error" messages={mutation.fieldErrors.token} />
-      <FormField
+      <HintedField
         errorId="password-error"
         errors={mutation.fieldErrors.password}
+        hint={passwordHint}
         label="New password"
       >
         <input
           name="password"
           type="password"
           autoComplete="new-password"
-          minLength={8}
-          maxLength={256}
+          enterKeyHint="go"
+          {...passwordRules}
           required
         />
-      </FormField>
+      </HintedField>
       <button type="submit" disabled={mutation.pending}>
         {mutation.pending ? "Resetting…" : "Reset password"}
       </button>
+      {mutation.status === "error" ? (
+        <p className="auth-help">
+          Reset links work once and expire.{" "}
+          <Link to="/forgot-password">Request a new link</Link>.
+        </p>
+      ) : null}
     </form>
   );
 }
@@ -354,10 +392,9 @@ export function SignupConfirmation({ email }: { email: string | null }) {
 
   return (
     <>
-      <section className="page-heading">
-        <p className="eyebrow">Account created</p>
+      <header className="auth-heading">
         <h1 ref={headingRef} tabIndex={-1}>
-          Check your email.
+          Check your email
         </h1>
         <p className="lede">
           {email ? (
@@ -369,7 +406,7 @@ export function SignupConfirmation({ email }: { email: string | null }) {
           )}{" "}
           Open it to verify your email, then log in.
         </p>
-      </section>
+      </header>
       <section className="form-stack" aria-labelledby="resend-heading">
         <h2 id="resend-heading">Did not get it?</h2>
         <p>
@@ -436,9 +473,9 @@ export function ResendVerificationForm({
       >
         <input
           name="email"
-          type="email"
-          autoComplete="email"
+          {...emailInputProps}
           defaultValue={defaultEmail}
+          enterKeyHint="send"
           required
         />
       </FormField>
@@ -459,7 +496,21 @@ export function VerifyEmailForm({ token }: { token: string }) {
     await mutation.execute(() => runVerify({ data: form }));
   }
 
-  if (mutation.status === "success") {
+  const router = useRouter();
+  const succeeded = mutation.status === "success";
+
+  // Move to the same page a form post without JavaScript lands on, so the
+  // heading says "verified" and the token leaves the address bar.
+  useEffect(() => {
+    if (!succeeded) return;
+    void router.navigate({
+      to: "/auth/verify-email",
+      search: { verified: "complete" },
+      replace: true,
+    });
+  }, [succeeded, router]);
+
+  if (succeeded) {
     return (
       <p role="status" aria-live="polite">
         {mutation.message} <Link to="/login">Log in</Link> to continue.
@@ -496,6 +547,73 @@ export function VerifyEmailForm({ token }: { token: string }) {
       ) : null}
     </>
   );
+}
+
+/**
+ * A labeled control with a line of help under it. The help is tied to the
+ * control with `aria-describedby`, next to any error. FormField has no help
+ * line, so this repeats its markup.
+ */
+function HintedField({
+  children,
+  errorId,
+  errors,
+  hint,
+  hintId: givenHintId,
+  label,
+}: {
+  children: ReactElement<{
+    "aria-describedby"?: string;
+    "aria-labelledby"?: string;
+    "aria-invalid"?: boolean;
+  }>;
+  errorId: string;
+  errors?: string[];
+  hint: ReactNode;
+  hintId?: string;
+  label: string;
+}) {
+  const labelId = useId();
+  const ownHintId = useId();
+  const hintId = givenHintId ?? ownHintId;
+  const errorProps = fieldErrorProps(errors, errorId);
+  return (
+    <label>
+      <span id={labelId}>{label}</span>
+      {cloneElement(children, {
+        "aria-labelledby": labelId,
+        ...errorProps,
+        "aria-describedby":
+          [errorProps["aria-describedby"], hintId].filter(Boolean).join(" ") ||
+          undefined,
+      })}
+      <FieldError id={errorId} messages={errors} />
+      <span className="form-help" id={hintId}>
+        {hint}
+      </span>
+    </label>
+  );
+}
+
+const defaultTimeZone = "America/Los_Angeles";
+
+/**
+ * The time zone, sent with the signup without asking: the device's own once
+ * the page is interactive, Pacific Time without JavaScript. It can be changed
+ * later in profile settings, which offer a pick list.
+ */
+function DeviceTimeZone() {
+  const [zone, setZone] = useState(defaultTimeZone);
+  useEffect(() => {
+    const found = detectTimeZone();
+    if (found) setZone(found);
+  }, []);
+  return <input name="timezone" type="hidden" value={zone} />;
+}
+
+/** Warns assistive technology that a link leaves the signup form. */
+function NewTabNote() {
+  return <span className="visually-hidden"> (opens in a new tab)</span>;
 }
 
 function FormNotice({

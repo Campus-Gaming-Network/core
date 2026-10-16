@@ -37,10 +37,12 @@ func NormalizeListParams(params ListParams) ListParams {
 	return params
 }
 
+// ValidateCreateInput checks the fields of a new event.
 func ValidateCreateInput(input CreateInput) error {
 	return validateEventFields(input, true)
 }
 
+// ValidateUpdateInput checks the fields of an event edit.
 func ValidateUpdateInput(input UpdateInput) error {
 	if strings.TrimSpace(input.Slug) == "" {
 		return apperror.Validation("event slug is required")
@@ -72,6 +74,8 @@ func ValidateUpdateInput(input UpdateInput) error {
 	}, false)
 }
 
+// ValidateRSVPInput checks that an RSVP names an event, a user, and a valid
+// response.
 func ValidateRSVPInput(input RSVPInput) error {
 	if strings.TrimSpace(input.Slug) == "" {
 		return apperror.Validation("event slug is required")

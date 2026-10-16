@@ -65,28 +65,6 @@ export const gameCoverSchema = z.object({
     .regex(/^[A-Za-z0-9+/]+={0,2}$/),
 });
 
-export const igdbSearchSchema = z.object({
-  games: z.array(
-    z.object({
-      igdb_id: z.number().int().positive(),
-      name: z.string().max(500),
-      release_year: z.number().int().optional(),
-      // The catalog game already imported from this match.
-      game_id: uuidSchema.optional(),
-      // A small cover, absent when IGDB has none or it could not be fetched.
-      // A data URL, so the console loads no image from IGDB.
-      thumbnail: gameCoverSchema
-        .transform((cover) => `data:${cover.content_type};base64,${cover.data}`)
-        .optional(),
-    }),
-  ),
-});
-export type IGDBMatch = z.output<typeof igdbSearchSchema>["games"][number];
-
-export const igdbSearchInputSchema = z.object({
-  q: z.string().trim().max(100).optional(),
-});
-
 export const accountStatusSchema = z.enum(["active", "suspended", "deleted"]);
 
 export const adminUserSchema = z.object({
@@ -318,7 +296,8 @@ export function validateCatalogDetailSearch(
 }
 
 export const catalogDetailInputSchema = z.object({
-  id: uuidSchema,
+  // Any ID is passed on; the API answers 404 for one that is not a record.
+  id: z.string().min(1).max(100),
   audit_after: cursorSchema.optional(),
   audit_before: cursorSchema.optional(),
 });
@@ -349,17 +328,15 @@ export const logoErrorNotices: Partial<
   rate_limited: "rate-limited",
 };
 
-// The Admin API's reasons an IGDB search, import, or refresh fails, and the
-// redirect notice a no-JavaScript form shows for each.
+// The Admin API's reasons an IGDB refresh fails, and the redirect notice a
+// no-JavaScript form shows for each.
 export const igdbErrorMessages = {
-  game_already_imported: "That game is already in the catalog.",
   game_not_from_igdb: "This game was not imported from IGDB.",
   igdb_not_configured:
     "IGDB is not configured for this environment. Set the IGDB credentials on the API.",
   igdb_rate_limited: "IGDB is limiting requests right now. Try again shortly.",
   igdb_unavailable: "IGDB could not be reached. Try again later.",
   igdb_game_not_found: "IGDB no longer lists that game.",
-  igdb_game_invalid: "IGDB has no usable name for that game.",
   igdb_cover_unusable:
     "IGDB's cover for that game is too large or is not a supported image.",
 } as const;
@@ -368,29 +345,18 @@ export const igdbErrorNotices: Record<
   keyof typeof igdbErrorMessages,
   CatalogNotice
 > = {
-  game_already_imported: "already-imported",
   game_not_from_igdb: "not-from-igdb",
   igdb_not_configured: "igdb-not-configured",
   igdb_rate_limited: "igdb-rate-limited",
   igdb_unavailable: "igdb-unavailable",
   igdb_game_not_found: "igdb-game-not-found",
-  igdb_game_invalid: "igdb-game-invalid",
   igdb_cover_unusable: "igdb-cover-unusable",
 };
 
 // Redirect notices shown after a catalog form. Failures render as alerts.
 export const catalogNotices = {
   created: { message: "Created.", severity: "success" },
-  imported: {
-    message:
-      "Imported from IGDB. The game stays hidden from the public picker until you show it.",
-    severity: "success",
-  },
   refreshed: { message: "Refreshed from IGDB.", severity: "success" },
-  "already-imported": {
-    message: igdbErrorMessages.game_already_imported,
-    severity: "danger",
-  },
   "not-from-igdb": {
     message: igdbErrorMessages.game_not_from_igdb,
     severity: "danger",
@@ -409,10 +375,6 @@ export const catalogNotices = {
   },
   "igdb-game-not-found": {
     message: igdbErrorMessages.igdb_game_not_found,
-    severity: "danger",
-  },
-  "igdb-game-invalid": {
-    message: igdbErrorMessages.igdb_game_invalid,
     severity: "danger",
   },
   "igdb-cover-unusable": {
@@ -606,15 +568,20 @@ const gameFieldsSchema = z.object({
   reason: reasonSchema,
 });
 
+const existingTargetSchema = z.object({
+  id: uuidSchema,
+  expected_updated_at: timestampSchema,
+});
 const editTargetSchema = z.union([
   z.object({ id: z.literal(""), expected_updated_at: z.literal("") }),
-  z.object({ id: uuidSchema, expected_updated_at: timestampSchema }),
+  existingTargetSchema,
 ]);
 
 export type SchoolFormInput = z.output<typeof schoolFieldsSchema> &
   z.output<typeof editTargetSchema>;
+// Admins edit stored games but never create them: users add games from IGDB.
 export type GameFormInput = z.output<typeof gameFieldsSchema> &
-  z.output<typeof editTargetSchema>;
+  z.output<typeof existingTargetSchema>;
 
 export type Validated<T> =
   | { valid: true; value: T }
@@ -650,22 +617,31 @@ export function validateSchoolFormInput(
 export function validateGameFormInput(
   input: FormData | object,
 ): Validated<GameFormInput> {
-  return validateRecordForm(input, gameFieldsSchema, {
-    name: inputValue(input, "name"),
-    slug: inputValue(input, "slug"),
-    cover_url: inputValue(input, "cover_url"),
-    is_active: checkboxValue(input, "is_active"),
-    reason: inputValue(input, "reason"),
-  });
+  return validateRecordForm(
+    input,
+    gameFieldsSchema,
+    {
+      name: inputValue(input, "name"),
+      slug: inputValue(input, "slug"),
+      cover_url: inputValue(input, "cover_url"),
+      is_active: checkboxValue(input, "is_active"),
+      reason: inputValue(input, "reason"),
+    },
+    existingTargetSchema,
+  );
 }
 
-function validateRecordForm<TSchema extends z.ZodType<object>>(
+function validateRecordForm<
+  TSchema extends z.ZodType<object>,
+  TTarget extends z.ZodType<object> = typeof editTargetSchema,
+>(
   input: FormData | object,
   fieldsSchema: TSchema,
   candidate: Record<string, unknown>,
-): Validated<z.output<TSchema> & z.output<typeof editTargetSchema>> {
+  targetSchema: TTarget = editTargetSchema as unknown as TTarget,
+): Validated<z.output<TSchema> & z.output<TTarget>> {
   const id = inputValue(input, "id");
-  const target = editTargetSchema.safeParse({
+  const target = targetSchema.safeParse({
     id,
     expected_updated_at: inputValue(input, "expected_updated_at"),
   });
@@ -840,32 +816,6 @@ export function validateCatalogCommandInput(
   return parsed.success
     ? { valid: true, value: parsed.data }
     : invalid(id, parsed.error.issues);
-}
-
-export type GameImportInput = { igdb_id: number; reason: string };
-
-const gameImportSchema = z.object({
-  igdb_id: z.coerce
-    .number<string>("Choose a game to import.")
-    .int("Choose a game to import.")
-    .positive("Choose a game to import."),
-  reason: reasonSchema,
-});
-
-/**
- * An import names only the IGDB entry. The Go API reads the name, slug, and
- * cover from IGDB itself.
- */
-export function validateGameImportInput(
-  input: FormData | object,
-): Validated<GameImportInput> {
-  const parsed = gameImportSchema.safeParse({
-    igdb_id: inputValue(input, "igdb_id"),
-    reason: inputValue(input, "reason"),
-  });
-  return parsed.success
-    ? { valid: true, value: parsed.data }
-    : invalid("", parsed.error.issues);
 }
 
 export type CatalogMutationResult =

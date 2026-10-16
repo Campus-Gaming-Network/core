@@ -8,7 +8,6 @@ import { optionalViewerProfile } from "../../server/viewer.server.js";
 import { bundledSchoolLogo } from "./school-logos.server.js";
 import {
   followedSchoolsResponseDtoSchema,
-  gamesResponseDtoSchema,
   schoolDtoSchema,
   schoolsPageSize,
   schoolsResponseDtoSchema,
@@ -42,29 +41,11 @@ export async function homeCatalogOperation({
   logoBase = schoolLogoBase(),
   reportError = defaultErrorReporter,
 }: CatalogDependencies): Promise<HomeCatalogResult> {
-  const [schools, games] = await Promise.all([
-    readHomeSchools(api, reportError).then((result) => ({
-      ...result,
-      data: result.data.map((school) => withVerifiedLogo(school, logoBase)),
-    })),
-    api({
-      path: "/games",
-      cache: "no-store",
-      responseSchema: gamesResponseDtoSchema,
-    })
-      .then(({ data }) => ({ data: data.games, unavailable: false }))
-      .catch((error: unknown) => {
-        reportError(error);
-        return { data: [], unavailable: true };
-      }),
-  ]);
-
+  const schools = await readHomeSchools(api, reportError);
   return {
-    schools: schools.data,
+    schools: schools.data.map((school) => withVerifiedLogo(school, logoBase)),
     schoolsPopular: schools.popular,
-    games: games.data,
     schoolsUnavailable: schools.unavailable,
-    gamesUnavailable: games.unavailable,
   };
 }
 
@@ -255,7 +236,7 @@ function withVerifiedLogo(
   }
 }
 
-function defaultErrorReporter(error: unknown): void {
+export function defaultErrorReporter(error: unknown): void {
   if (error instanceof ApiContractError) {
     console.error("School catalog response contract violation", {
       path: error.path,

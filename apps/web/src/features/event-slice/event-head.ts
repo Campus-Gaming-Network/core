@@ -42,8 +42,8 @@ export function eventDetailHead(
   const event = loaderData?.event;
   const publicOrigin = loaderData?.publicOrigin;
 
-  if (!event || !isFullEvent(event)) {
-    return withLinks(
+  if (!event || !isFullEvent(event) || event.visibility === "private") {
+    const head = withLinks(
       pageHead(publicOrigin, {
         ...privateEventPreview,
         path: event ? eventPath(event.slug) : "/events",
@@ -51,6 +51,16 @@ export function eventDetailHead(
       }),
       extraLinks,
     );
+    if (!event || !isFullEvent(event)) return head;
+    // The API sends a private event in full only to someone allowed to see
+    // it; everyone else, a link preview bot included, gets it locked. So the
+    // viewer's tab can name it, while the preview tags stay generic.
+    return {
+      ...head,
+      meta: head.meta.map((tag) =>
+        "title" in tag ? { title: `${event.title} | ${siteName}` } : tag,
+      ),
+    };
   }
 
   if (isRestrictedAudience(event)) {
@@ -86,7 +96,7 @@ export function eventDetailHead(
  * person, and an online event's meeting link is left out: the page may show it
  * only to people who RSVP.
  */
-export function eventJsonLd(
+function eventJsonLd(
   event: EventDTO,
   publicOrigin: string | undefined,
 ): Record<string, unknown> {

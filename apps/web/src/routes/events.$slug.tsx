@@ -8,20 +8,24 @@ import { useServerFn } from "@tanstack/react-start";
 import {
   ArrowRight,
   CalendarDays,
+  CalendarPlus,
   Check,
   CircleHelp,
   Flag,
-  Gamepad2,
+  Globe,
+  Lock,
   Mail,
   MapPin,
   Star,
+  Users,
   X,
 } from "lucide-react";
 import { type FormEvent, useRef, useState } from "react";
 import { BreadcrumbLink, Breadcrumbs } from "../components/breadcrumbs";
 import { ButtonLink } from "../components/button-link";
-import { CalendarDate } from "../components/calendar-date";
 import { Callout } from "../components/callout";
+import { DetailHero } from "../components/detail-hero";
+import { TabLink, Tabs } from "../components/tabs";
 import { CopyLink } from "../components/copy-link";
 import { ConfirmDialog } from "../components/confirm-dialog";
 import {
@@ -32,7 +36,6 @@ import {
 } from "../components/enhanced-mutation";
 import { FormField } from "../components/form-field";
 import { KeyInformation } from "../components/key-information";
-import { PageHeading } from "../components/page-heading";
 import { PasswordInput } from "../components/password-input";
 import {
   newIdempotencyKey,
@@ -41,7 +44,11 @@ import {
 import { pageNoticeKey } from "../components/page-notice";
 import { PageNoticeView } from "../components/page-notice-view";
 import { Person } from "../components/person";
-import { RouteErrorView, RoutePending } from "../components/route-boundaries";
+import {
+  RecordNotFound,
+  RouteErrorView,
+  RoutePending,
+} from "../components/route-boundaries";
 import { StatusLabel } from "../components/status-label";
 import {
   cancelEvent,
@@ -52,18 +59,17 @@ import {
   unlockEvent,
 } from "../features/event-slice/event.functions";
 import { getEventViewerSession } from "../features/event-slice/auth.functions";
-import { EventBanner } from "../features/event-slice/event-banner";
+import { EventGameCover } from "../features/event-slice/event-game-cover";
 import { EventFacts } from "../features/event-slice/event-facts";
+import { EventTimeText } from "../features/event-slice/event-time-text";
 import type {
   EventDTO,
   EventDetailDTO,
   LockedEventDTO,
 } from "../features/event-slice/contracts";
 import {
-  eventAudienceLabels,
   eventDetailNotices,
   eventLifecycleLabel,
-  eventLocation,
   eventRSVPLabel,
   eventTimeRange,
   eventTypeLabels,
@@ -73,6 +79,7 @@ import {
   type EventDetailNotice,
   safeExternalEventUrl,
 } from "../features/event-slice/presentation";
+import { eventDetailHead } from "../features/event-slice/event-head";
 import eventCSS from "../features/event-slice/events.css?url";
 import {
   peoplePreviewSize,
@@ -84,13 +91,8 @@ import {
   PeopleSignedOut,
 } from "../features/people-slice/people-views";
 import { verificationDetail } from "../features/people-slice/presentation";
-import { SchoolLogo } from "../components/school-logo";
 
-const siteName = "Campus Gaming Network";
-const privateEventDescription =
-  "This event is private. Enter the password to view it.";
-
-export type EventRouteData = {
+type EventRouteData = {
   event: EventDetailDTO;
   authenticated: boolean;
   /** The first people going, read only for a signed-in viewer of a visible event. */
@@ -155,69 +157,21 @@ export const Route = createFileRoute("/events/$slug")({
     "cache-control": "private, no-store",
     vary: "Cookie",
   }),
-  head: ({ loaderData }) => ({
-    ...eventHead(loaderData),
-    links: [{ rel: "stylesheet", href: eventCSS }],
-  }),
+  // Without loader data the page is a not-found or error view, which sets its
+  // own title and robots; adding the private-event head would duplicate them.
+  head: ({ loaderData }) =>
+    loaderData
+      ? eventDetailHead(loaderData, [{ rel: "stylesheet", href: eventCSS }])
+      : { links: [{ rel: "stylesheet", href: eventCSS }] },
   pendingComponent: EventPending,
   errorComponent: EventError,
+  notFoundComponent: () => <RecordNotFound kind="event" />,
   component: EventPage,
 });
 
-export function validateEventSearch(
-  search: Record<string, unknown>,
-): EventSearch {
+function validateEventSearch(search: Record<string, unknown>): EventSearch {
   const event = pageNoticeKey(eventDetailNotices, search.event);
   return event ? { event } : {};
-}
-
-export function eventHead(loaderData?: EventRouteData) {
-  const event = loaderData?.event;
-
-  if (!event || isLockedEvent(event)) {
-    const title = `Private event | ${siteName}`;
-
-    return {
-      meta: [
-        { title },
-        { name: "description", content: privateEventDescription },
-        { name: "robots", content: "noindex,nofollow" },
-        { property: "og:type", content: "website" },
-        { property: "og:site_name", content: siteName },
-        { property: "og:title", content: title },
-        { property: "og:description", content: privateEventDescription },
-        { name: "twitter:card", content: "summary" },
-        { name: "twitter:title", content: title },
-        { name: "twitter:description", content: privateEventDescription },
-      ],
-    };
-  }
-
-  const title = `${event.title} | ${siteName}`;
-  const description =
-    event.description ||
-    `A campus gaming event hosted by ${event.host_school.name}.`;
-
-  return {
-    meta: [
-      { title },
-      { name: "description", content: description },
-      ...(event.visibility === "public"
-        ? []
-        : [{ name: "robots", content: "noindex,nofollow" }]),
-      { property: "og:type", content: "website" },
-      { property: "og:site_name", content: siteName },
-      { property: "og:title", content: title },
-      { property: "og:description", content: description },
-      {
-        property: "og:url",
-        content: `${loaderData.publicOrigin}/events/${encodeURIComponent(event.slug)}`,
-      },
-      { name: "twitter:card", content: "summary" },
-      { name: "twitter:title", content: title },
-      { name: "twitter:description", content: description },
-    ],
-  };
 }
 
 function EventPage() {
@@ -246,7 +200,7 @@ function EventPage() {
   );
 }
 
-export function LockedEventView({
+function LockedEventView({
   slug,
   authenticated,
   notice,
@@ -257,15 +211,15 @@ export function LockedEventView({
 }) {
   return (
     <main className="prose">
-      <EventBanner locked size="hero" />
-      <section className="page-heading">
-        <p className="eyebrow">Private event</p>
+      <DetailHero tile={<Lock size={36} strokeWidth={2} />}>
         <h1>This event is private.</h1>
-        <p className="lede">Enter the event password to reveal the details.</p>
-        <Callout icon="lock">
-          Nothing private is sent to the browser until the password checks out.
-        </Callout>
-      </section>
+        <p className="detail-hero__meta">
+          Enter the event password to reveal the details.
+        </p>
+      </DetailHero>
+      <Callout icon="lock">
+        Nothing private is sent to the browser until the password checks out.
+      </Callout>
       <PageNoticeView
         notice={notice ? eventDetailNotices[notice] : undefined}
       />
@@ -302,8 +256,11 @@ function VisibleEventView({
   publicOrigin: string;
 }) {
   const paymentURL = safeExternalEventUrl(event.payment_url);
+  const onlineURL = safeExternalEventUrl(event.online_url);
+  const primaryGame = event.games[0];
+  const hasPlace = event.format !== "online";
   const directionsURL =
-    event.address || event.location_name
+    hasPlace && (event.address || event.location_name)
       ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
           [event.location_name, event.address].filter(Boolean).join(", "),
         )}`
@@ -311,61 +268,176 @@ function VisibleEventView({
 
   return (
     <main className="event-page">
-      <EventBanner event={event} size="hero" />
       <Breadcrumbs current={event.title}>
         <BreadcrumbLink to="/events">Events</BreadcrumbLink>
       </Breadcrumbs>
-      <PageHeading
-        identity={
-          <CalendarDate
-            size="large"
-            startsAt={event.starts_at}
-            timezone={event.timezone}
-          />
+      <DetailHero
+        coverURL={
+          primaryGame?.has_cover
+            ? `/api/games/${encodeURIComponent(primaryGame.slug)}/cover`
+            : undefined
         }
-        title={event.title}
-        supporting={
-          <>
-            Hosted by{" "}
-            <Link to="/schools/$slug" params={{ slug: event.host_school.slug }}>
-              <SchoolLogo
-                inline
-                logoURL={event.host_school.logo_url}
-                size={20}
-              />
-              {event.host_school.name}
-            </Link>
-          </>
-        }
-        tags={
-          <div className="event-pill-list">
-            {event.lifecycle !== "upcoming" ? (
-              <StatusLabel status={event.lifecycle}>
-                {eventLifecycleLabel(event.lifecycle)}
-              </StatusLabel>
-            ) : null}
-            <StatusLabel>{eventVisibilityLabel(event.visibility)}</StatusLabel>
-            <EventFacts event={event} />
-          </div>
-        }
-      />
+        initial={event.host_school.name}
+        logoURL={event.host_school.logo_url}
+      >
+        <h1>{event.title}</h1>
+        <p className="detail-hero__meta">
+          Hosted by{" "}
+          <Link to="/schools/$slug" params={{ slug: event.host_school.slug }}>
+            {event.host_school.name}
+          </Link>
+        </p>
+        <div className="tag-list">
+          {event.event_type ? (
+            <StatusLabel>{eventTypeLabels[event.event_type]}</StatusLabel>
+          ) : null}
+          {event.lifecycle !== "upcoming" ? (
+            <StatusLabel status={event.lifecycle}>
+              {eventLifecycleLabel(event.lifecycle)}
+            </StatusLabel>
+          ) : null}
+          <StatusLabel>{eventVisibilityLabel(event.visibility)}</StatusLabel>
+          <EventFacts event={{ ...event, event_type: undefined }} />
+        </div>
+      </DetailHero>
+      <div className="event-header">
+        {/* When, where, online, and who is going, each said once, with the
+            action that goes with it. */}
+        <ul className="event-facts" aria-label="When and where">
+          <li>
+            <CalendarDays aria-hidden="true" size={20} strokeWidth={1.75} />
+            <div>
+              <strong>
+                <EventTimeText range={eventTimeRange(event)} />
+              </strong>
+              <small>{event.timezone.replaceAll("_", " ")}</small>
+              <a
+                className="text-action with-arrow"
+                href={`/api/events/${encodeURIComponent(event.slug)}/calendar.ics`}
+              >
+                <CalendarPlus aria-hidden="true" size={16} strokeWidth={1.75} />
+                Add to calendar
+              </a>
+            </div>
+          </li>
+          {hasPlace ? (
+            <li>
+              <MapPin aria-hidden="true" size={20} strokeWidth={1.75} />
+              <div>
+                <strong>
+                  {event.location_name ||
+                    event.address ||
+                    "Location to be announced"}
+                </strong>
+                {event.location_name && event.address ? (
+                  <small>{event.address}</small>
+                ) : null}
+                {directionsURL ? (
+                  <a className="text-action" href={directionsURL}>
+                    Get directions
+                  </a>
+                ) : null}
+              </div>
+            </li>
+          ) : null}
+          {event.format !== "in_person" ? (
+            <li>
+              <Globe aria-hidden="true" size={20} strokeWidth={1.75} />
+              <div>
+                <strong>
+                  {event.format === "hybrid" ? "Also online" : "Online event"}
+                </strong>
+                {/* The API sends the meeting link only to people going and
+                    to organizers, so its presence decides what shows. */}
+                {onlineURL ? (
+                  <>
+                    <small className="online-url">{onlineURL}</small>
+                    <a
+                      className="button button--primary button--small calendar-action"
+                      href={onlineURL}
+                      rel="noopener noreferrer"
+                      target="_blank"
+                    >
+                      Join online
+                      <span className="visually-hidden">
+                        {" "}
+                        (opens in a new tab)
+                      </span>
+                    </a>
+                  </>
+                ) : (
+                  <small>The link is shared with people who are going.</small>
+                )}
+              </div>
+            </li>
+          ) : null}
+          <li>
+            <Users aria-hidden="true" size={20} strokeWidth={1.75} />
+            <div>
+              <strong>
+                {event.capacity
+                  ? `${event.rsvp_yes_count} of ${event.capacity} going`
+                  : `${event.rsvp_yes_count} going`}
+              </strong>
+              {event.interest_count > 0 ? (
+                <small>{event.interest_count} interested</small>
+              ) : null}
+            </div>
+          </li>
+        </ul>
+        <section
+          className="event-header__rsvp"
+          aria-labelledby="event-rsvp-heading"
+        >
+          <h2 id="event-rsvp-heading">Are you going?</h2>
+          {authenticated ? (
+            <>
+              <RsvpEventForm event={event} />
+              <InterestEventForm event={event} />
+            </>
+          ) : (
+            <ButtonLink
+              variant="primary"
+              to="/login"
+              search={{ next: `/events/${event.slug}` }}
+            >
+              Log in to RSVP
+            </ButtonLink>
+          )}
+          <p className="rsvp-help">
+            <Mail aria-hidden="true" size={14} strokeWidth={1.75} />
+            Going RSVPs get a confirmation email with a calendar file.
+          </p>
+        </section>
+      </div>
+
+      <Tabs label="Event sections">
+        <TabLink current to="/events/$slug" params={{ slug: event.slug }}>
+          Overview
+        </TabLink>
+        <TabLink
+          current={false}
+          to="/events/$slug/people"
+          params={{ slug: event.slug }}
+        >
+          {`Going (${event.rsvp_yes_count})`}
+        </TabLink>
+      </Tabs>
 
       <PageNoticeView
         notice={notice ? eventDetailNotices[notice] : undefined}
       />
 
-      <div className="event-detail-layout">
-        <div className="event-detail-main">
+      <div className="layout-detail">
+        <div className="layout-detail__main">
           <section className="event-about" aria-labelledby="event-about-title">
             <h2 id="event-about-title">About this event</h2>
-            <p className="lede">
-              {event.description || "Event details are coming soon."}
-            </p>
+            <p>{event.description || "Event details are coming soon."}</p>
           </section>
 
           {authenticated ? (
             <section
-              className="detail-card people-card"
+              className="detail-card"
               aria-labelledby="event-people-title"
             >
               <h2 id="event-people-title">{"Who's going"}</h2>
@@ -375,6 +447,7 @@ function VisibleEventView({
               />
               <div className="detail-card-body">
                 <Link
+                  aria-label={`See everyone going to ${event.title}`}
                   className="link with-arrow"
                   to="/events/$slug/people"
                   params={{ slug: event.slug }}
@@ -385,19 +458,14 @@ function VisibleEventView({
               </div>
             </section>
           ) : (
-            <div className="people-card">
-              <PeopleSignedOut
-                message="Log in to see who's going."
-                next={`/events/${event.slug}`}
-              />
-            </div>
+            <PeopleSignedOut
+              message="Log in to see who's going."
+              next={`/events/${event.slug}`}
+            />
           )}
 
           {event.organizers && event.organizers.length > 0 ? (
-            <section
-              className="section section--compact"
-              aria-labelledby="event-organizers"
-            >
+            <section aria-labelledby="event-organizers">
               <h2 id="event-organizers">Organizers</h2>
               <ul className="organizer-list">
                 {event.organizers.map((organizer) => (
@@ -415,13 +483,13 @@ function VisibleEventView({
           ) : null}
 
           {authenticated ? (
-            <section
-              className="section section--compact"
-              aria-label="Event safety and management"
-            >
+            <section aria-label="Event safety and management">
               {event.viewer_can_edit ? (
-                <>
+                <div className="panel event-manage">
                   <h2 id="manage-event">Manage event</h2>
+                  <p className="form-help">
+                    You can change the details or cancel this event.
+                  </p>
                   <div className="actions">
                     <ButtonLink
                       variant="secondary"
@@ -432,7 +500,7 @@ function VisibleEventView({
                     </ButtonLink>
                     <CancelEventForm slug={event.slug} />
                   </div>
-                </>
+                </div>
               ) : null}
               <details className="safety-details">
                 <summary>
@@ -445,66 +513,7 @@ function VisibleEventView({
           ) : null}
         </div>
 
-        <aside
-          className="event-detail-sidebar"
-          aria-label="RSVP and event info"
-        >
-          <section
-            className="detail-card rsvp-card"
-            aria-labelledby="event-rsvp-title"
-          >
-            <h2 id="event-rsvp-title">RSVP</h2>
-            <div className="detail-card-body">
-              {authenticated ? (
-                <>
-                  <RsvpEventForm event={event} />
-                  <InterestEventForm event={event} />
-                </>
-              ) : (
-                <ButtonLink
-                  variant="primary"
-                  to="/login"
-                  search={{ next: `/events/${event.slug}` }}
-                >
-                  Log in to RSVP
-                </ButtonLink>
-              )}
-              <p className="rsvp-help">
-                <Mail aria-hidden="true" size={14} strokeWidth={1.75} />
-                Going RSVPs get a confirmation email with a calendar file.
-              </p>
-            </div>
-          </section>
-
-          <section className="detail-card">
-            <h2>When and where</h2>
-            <div className="detail-card-row">
-              <CalendarDays aria-hidden="true" size={18} strokeWidth={1.75} />
-              <div>
-                <strong>{eventTimeRange(event)}</strong>
-                <small>{event.timezone.replaceAll("_", " ")}</small>
-                <a
-                  className="text-action"
-                  href={`/api/events/${encodeURIComponent(event.slug)}/calendar.ics`}
-                >
-                  Add to calendar
-                </a>
-              </div>
-            </div>
-            <div className="detail-card-row">
-              <MapPin aria-hidden="true" size={18} strokeWidth={1.75} />
-              <div>
-                <strong>{eventLocation(event, "N/A")}</strong>
-                {event.address ? <small>{event.address}</small> : null}
-                {directionsURL ? (
-                  <a className="text-action" href={directionsURL}>
-                    Get directions
-                  </a>
-                ) : null}
-              </div>
-            </div>
-          </section>
-
+        <aside className="layout-detail__aside" aria-label="Event info">
           <KeyInformation
             facts={[
               {
@@ -514,23 +523,10 @@ function VisibleEventView({
                     <ul aria-label="Games" className="event-game-list">
                       {event.games.map((game) => (
                         <li key={game.id}>
-                          {game.has_cover ? (
-                            <img
-                              alt=""
-                              className="event-game-cover"
-                              height={64}
-                              loading="lazy"
-                              src={`/api/games/${encodeURIComponent(game.slug)}/cover`}
-                              width={48}
-                            />
-                          ) : (
-                            <span
-                              className="event-game-cover"
-                              aria-hidden="true"
-                            >
-                              <Gamepad2 size={18} strokeWidth={2} />
-                            </span>
-                          )}
+                          <EventGameCover
+                            hasCover={game.has_cover}
+                            slug={game.slug}
+                          />
                           <strong>{game.name}</strong>
                         </li>
                       ))}
@@ -539,32 +535,6 @@ function VisibleEventView({
                     "To be announced"
                   ),
               },
-              ...(event.event_type
-                ? [{ term: "Type", value: eventTypeLabels[event.event_type] }]
-                : []),
-              ...(event.audience
-                ? [
-                    {
-                      term: "Audience",
-                      value: eventAudienceLabels[event.audience],
-                    },
-                  ]
-                : []),
-              ...(event.cost !== "unspecified"
-                ? [
-                    {
-                      term: "Cost",
-                      value: event.cost === "free" ? "Free" : "Paid",
-                    },
-                  ]
-                : []),
-              {
-                term: event.capacity ? "Attending" : "Going",
-                value: event.capacity
-                  ? `${event.rsvp_yes_count} of ${event.capacity}`
-                  : event.rsvp_yes_count,
-              },
-              { term: "Interested", value: event.interest_count },
               ...(event.recurrence_rule && event.recurrence_until
                 ? [
                     {
@@ -574,12 +544,14 @@ function VisibleEventView({
                   ]
                 : []),
             ]}
+            title="Details"
           />
 
           <section className="detail-card">
             <h2>Share</h2>
             <CopyLink
               label="Event link"
+              shareTitle={event.title}
               url={`${publicOrigin}/events/${encodeURIComponent(event.slug)}`}
             />
           </section>
@@ -876,12 +848,6 @@ function RsvpEventForm({ event }: { event: EventDTO }) {
         message={mutation.message}
         summaryRef={mutation.errorSummaryRef}
       />
-      <p className="rsvp-current">
-        Current RSVP:{" "}
-        <strong>
-          {event.viewer_rsvp ? eventRSVPLabel(event.viewer_rsvp) : "Not set"}
-        </strong>
-      </p>
       {mutation.pending ? (
         <p aria-live="polite" className="rsvp-note" role="status">
           Saving your RSVP…
@@ -911,7 +877,7 @@ function RsvpEventForm({ event }: { event: EventDTO }) {
               type="submit"
               value={response}
             >
-              <RsvpIcon aria-hidden="true" size={16} strokeWidth={2} />
+              <RsvpIcon aria-hidden="true" size={16} strokeWidth={2.25} />
               {eventRSVPLabel(response)}
             </button>
           );
@@ -932,8 +898,7 @@ function EventError({ reset }: ErrorComponentProps) {
       reset={reset}
       eyebrow="Event unavailable"
       heading="We could not load this event."
-      description="Please try again in a moment."
-      showNavigation={false}
+      description="This is usually temporary. Try again in a moment."
     />
   );
 }

@@ -118,6 +118,11 @@ The two past-event rows are the intended rule; neither is enforced yet, so organ
 - Visibility: **public** · **unlisted** · **private** (password modal; content gated/blurred until unlock)
 - Optional **capacity**; counts RSVP **yes** only; when full, block new yes — **no waitlist** yet
 - RSVP: yes/no/maybe; **interested** is a separate favorite
+- The **online meeting link** (`online_url`) goes only to viewers whose RSVP is
+  **yes** and to the event's organizers. The API leaves it out of every other
+  response: public lists, a visitor's or a maybe/no viewer's event page, and
+  the interest, RSVP, and unlock responses unless the requester is going or
+  organizes the event. The RSVP confirmation email (sent on yes) includes it.
 - Registration closes automatically; ended or full → no new yes RSVPs
 - Past events: organizers limited to minor corrections (not date/location)
 - Soft cancel only; active yes/maybe RSVPs receive a best-effort cancellation email
@@ -135,7 +140,7 @@ The two past-event rows are the intended rule; neither is enforced yet, so organ
 ## Games
 
 - End users: cannot edit a game. A signed-in user can search IGDB, add a result to the catalog, or type a game name while creating an event or team
-- Create/update/delete, hide, and IGDB refresh: **site admin only, via the Admin Console** (`games.manage`). Hiding or deleting a game stops users from adding it
+- Update, hide, delete, and IGDB refresh: **site admin only, via the Admin Console** (`games.manage`). Admins do not create or import games. Hiding or deleting a game stops users from adding it
 
 ## Impersonation (“mimic”)
 
@@ -174,4 +179,4 @@ Apply stricter limits to:
 
 Failed authZ returns **403**; missing resource **404**. Do not leak private/unlisted events via search — only `public` appears in discovery.
 
-On the web side this is enforced in page metadata as well as in responses: a locked private event renders only a generic "Private event" title with `noindex`, and unlisted events resolve normally but are also `noindex`. An event for a campus or a group (audience `campus` or `members`) and a public profile also get a generic preview and `noindex`, and neither appears in the sitemap. Metadata is part of the gating guarantee — see [06 — Architecture](./06-architecture.md).
+On the web side this is enforced in page metadata as well as in responses: a private event always gets a generic "Private event" link preview with `noindex`; someone the API lets see it in full also gets its name as the tab title, while a locked one shows "Private event" there too. Unlisted events resolve normally but are also `noindex`. An event for a campus or a group (audience `campus` or `members`) and a public profile also get a generic preview and `noindex`, and neither appears in the sitemap. Metadata is part of the gating guarantee — see [06 — Architecture](./06-architecture.md).

@@ -100,8 +100,8 @@ func TestPostgresRepositoryStoresAndFiltersEventType(t *testing.T) {
 		t.Fatalf("ListPublic(lan) = %v, want %v", got, want)
 	}
 	wantAll := []string{
+		"Type LAN=lan", "Type Game Night=game_night", "Type Legacy=",
 		"Type Series=tryout", "Type Series=tryout", "Type Series=tryout",
-		"Type Legacy=", "Type Game Night=game_night", "Type LAN=lan",
 	}
 	if got := listed(""); !reflect.DeepEqual(got, wantAll) {
 		t.Fatalf("ListPublic() = %v, want %v", got, wantAll)

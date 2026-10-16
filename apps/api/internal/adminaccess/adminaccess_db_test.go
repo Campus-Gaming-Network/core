@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
 	"testing"
 	"time"
 
@@ -23,28 +22,13 @@ type adminAccessFixture struct {
 	otherID    string
 }
 
+// newAdminAccessFixture returns a repository over a freshly migrated schema of
+// its own. Bootstrap is only available while no site administrator grant
+// exists, so these tests cannot share the grants already in the local database.
 func newAdminAccessFixture(t *testing.T) adminAccessFixture {
 	t.Helper()
-	databaseURL := os.Getenv("API_DATABASE_URL")
-	if databaseURL == "" {
-		t.Skip("API_DATABASE_URL not set")
-	}
-
+	pool := dbtest.NewMigratedSchemaPool(t, "adminaccess")
 	ctx := context.Background()
-	pool, err := pgxpool.New(ctx, databaseURL)
-	if err != nil {
-		t.Fatalf("connect: %v", err)
-	}
-	t.Cleanup(pool.Close)
-	unlock, err := dbtest.LockSiteRoleGrantTests(ctx, pool)
-	if err != nil {
-		t.Fatalf("lock site-role grant tests: %v", err)
-	}
-	t.Cleanup(func() {
-		if err := unlock(context.Background()); err != nil {
-			t.Errorf("unlock site-role grant tests: %v", err)
-		}
-	})
 
 	suffix := fmt.Sprint(time.Now().UnixNano())
 	var schoolID string
@@ -73,23 +57,6 @@ func newAdminAccessFixture(t *testing.T) adminAccessFixture {
 	}
 	actorID := insertUser("site-admin-actor")
 	otherID := insertUser("site-admin-other")
-
-	t.Cleanup(func() {
-		cleanupCtx := context.Background()
-		_, _ = pool.Exec(cleanupCtx, `DELETE FROM admin_security_events WHERE metadata ->> 'target_user_id' IN ($1, $2)`, actorID, otherID)
-		_, _ = pool.Exec(cleanupCtx, `DELETE FROM admin_sessions WHERE user_id IN ($1::uuid, $2::uuid)`, actorID, otherID)
-		_, _ = pool.Exec(cleanupCtx, `
-			DELETE FROM audit_logs
-			WHERE entity_type = 'site_role_grant'
-			  AND entity_id IN (
-				SELECT id FROM site_role_grants
-				WHERE user_id IN ($1::uuid, $2::uuid)
-			  )
-		`, actorID, otherID)
-		_, _ = pool.Exec(cleanupCtx, `DELETE FROM site_role_grants WHERE user_id IN ($1::uuid, $2::uuid)`, actorID, otherID)
-		_, _ = pool.Exec(cleanupCtx, `DELETE FROM users WHERE id IN ($1::uuid, $2::uuid)`, actorID, otherID)
-		_, _ = pool.Exec(cleanupCtx, `DELETE FROM schools WHERE id = $1::uuid`, schoolID)
-	})
 
 	return adminAccessFixture{
 		pool:       pool,
