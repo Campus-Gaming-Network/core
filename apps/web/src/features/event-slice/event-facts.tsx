@@ -1,9 +1,19 @@
-import { Cog, Presentation, Trophy, type LucideIcon } from "lucide-react";
+import {
+  Cog,
+  Globe,
+  GraduationCap,
+  Presentation,
+  School,
+  Shield,
+  Trophy,
+  type LucideIcon,
+} from "lucide-react";
 import { StatusLabel } from "../../components/status-label.js";
 import type { EventBrowseItemDTO } from "./contracts.js";
 import { eventAudienceLabels, eventTypeLabels } from "./presentation.js";
 
 type EventType = NonNullable<EventBrowseItemDTO["event_type"]>;
+type EventAudience = NonNullable<EventBrowseItemDTO["audience"]>;
 
 // The types whose tag carries an icon before its word. The word always
 // carries the meaning; the icon only helps the eye find it.
@@ -11,6 +21,14 @@ const eventTypeIcons: Partial<Record<EventType, LucideIcon>> = {
   meeting: Presentation,
   tournament: Trophy,
   workshop: Cog,
+};
+
+// Every audience has an icon, so the eye can tell who may come at a glance.
+const eventAudienceIcons: Record<EventAudience, LucideIcon> = {
+  open: Globe,
+  collegiate: GraduationCap,
+  campus: School,
+  members: Shield,
 };
 
 /**
@@ -34,6 +52,17 @@ export function EventTypeTag({
   );
 }
 
+/** An event's audience as a neutral tag with its icon. */
+function EventAudienceTag({ audience }: { audience: EventAudience }) {
+  const Icon = eventAudienceIcons[audience];
+  return (
+    <StatusLabel>
+      <Icon aria-hidden="true" size={12} strokeWidth={2.25} />
+      {eventAudienceLabels[audience]}
+    </StatusLabel>
+  );
+}
+
 /**
  * An event's type, audience, and cost as tags, as on the reference sheets: the
  * type is tinted blue, Free green, and the audience neutral. The format is
@@ -50,9 +79,7 @@ export function EventFacts({
       {event.event_type ? (
         <EventTypeTag tone="info" type={event.event_type} />
       ) : null}
-      {event.audience ? (
-        <StatusLabel>{eventAudienceLabels[event.audience]}</StatusLabel>
-      ) : null}
+      {event.audience ? <EventAudienceTag audience={event.audience} /> : null}
       {event.cost === "free" ? (
         <StatusLabel tone="success">Free</StatusLabel>
       ) : null}
