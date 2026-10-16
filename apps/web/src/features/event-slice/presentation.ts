@@ -155,6 +155,31 @@ export function eventPlace(
   return event.location_name || undefined;
 }
 
+/**
+ * When a running event ends, in its own zone: "9:00 PM CDT", with the end
+ * date added when the event ends on a later day than it started
+ * ("Sep 5, 12:00 AM PDT").
+ */
+export function eventEndTime(
+  event: Pick<EventDTO, "starts_at" | "ends_at" | "timezone">,
+): string {
+  const timeZone = event.timezone;
+  const start = calendarDay(new Date(event.starts_at), timeZone);
+  const end = new Date(event.ends_at);
+  const endDay = calendarDay(end, timeZone);
+  const sameDay =
+    start.year === endDay.year &&
+    start.month === endDay.month &&
+    start.day === endDay.day;
+  const time = new Intl.DateTimeFormat("en-US", {
+    ...(sameDay ? {} : { month: "short", day: "numeric" }),
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone,
+  }).format(end);
+  return `${time} ${zoneName(end, timeZone)}`;
+}
+
 export function eventLifecycleLabel(
   lifecycle: EventBrowseItemDTO["lifecycle"],
 ): string {

@@ -1,6 +1,56 @@
 /* The event page (header, RSVP, body) and the event form's own pieces. The
    shared form-page layout and choice cards live in components.css. */
 
+/* ==== Happening now ====
+   Above the title in the hero: the solid green label the directory tile uses
+   for a running event, at a size that leads the page, and when it ends. */
+.event-now {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  margin: 0;
+}
+
+.event-now__label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  border-radius: var(--radius-small);
+  padding: 0.3125rem 0.75rem;
+  color: var(--color-identity-text);
+  background: var(--color-success);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+/* A solid dot before the words, the "on air" mark. */
+.event-now__label::before {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: currentColor;
+  content: "";
+}
+
+.event-now__until {
+  color: rgb(255 255 255 / 85%);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+@media (forced-colors: active) {
+  .event-now__label {
+    border: 2px solid CanvasText;
+  }
+
+  .event-now__until {
+    color: CanvasText;
+  }
+}
+
 /* ==== Event header ====
    Under the hero: the facts (when, where, online, going), each with its
    action, at the left; the RSVP panel at the right (reference sheets 11 and

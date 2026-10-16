@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { eventTimeRange } from "../src/features/event-slice/presentation.js";
+import {
+  eventEndTime,
+  eventTimeRange,
+} from "../src/features/event-slice/presentation.js";
 
 // The expected strings are independent of the process time zone because the
 // formatter always uses the event's own zone. `now` is fixed so the year rule
@@ -82,4 +85,13 @@ test("eventTimeRange leaves the start date out for a row with a calendar tile", 
     "1:30 AM EDT – 2:30 AM EST",
     "9:00 PM – Jan 1, 2027, 1:00 AM EST",
   ]);
+});
+
+// A running event's page says when it ends, with the end date only when the
+// event ends on a later day than it started.
+test("eventEndTime gives the end time and adds a later end date", () => {
+  const ends = [cases[0], cases[2], cases[3]].map(({ event }) =>
+    eventEndTime(event),
+  );
+  assert.deepEqual(ends, ["9:00 PM CDT", "Sep 5, 12:00 AM PDT", "2:30 AM EST"]);
 });

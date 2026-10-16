@@ -70,6 +70,7 @@ import type {
 } from "../features/event-slice/contracts";
 import {
   eventDetailNotices,
+  eventEndTime,
   eventLifecycleLabel,
   eventRSVPLabel,
   eventTimeRange,
@@ -280,6 +281,16 @@ function VisibleEventView({
         initial={event.host_school.name}
         logoURL={event.host_school.logo_url}
       >
+        {/* A running event says so as loudly as the green "Now" band on its
+            directory tile, not as one more chip in the tag list. */}
+        {event.lifecycle === "happening_now" ? (
+          <p className="event-now">
+            <span className="event-now__label">Happening now</span>
+            <span className="event-now__until">
+              Until {eventEndTime(event)}
+            </span>
+          </p>
+        ) : null}
         <h1>{event.title}</h1>
         <p className="detail-hero__meta">
           Hosted by{" "}
@@ -289,7 +300,7 @@ function VisibleEventView({
         </p>
         <div className="tag-list">
           {event.event_type ? <EventTypeTag type={event.event_type} /> : null}
-          {event.lifecycle !== "upcoming" ? (
+          {event.lifecycle === "ended" || event.lifecycle === "full" ? (
             <StatusLabel status={event.lifecycle}>
               {eventLifecycleLabel(event.lifecycle)}
             </StatusLabel>
