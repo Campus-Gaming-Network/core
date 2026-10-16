@@ -1,7 +1,7 @@
 import { Cog, Presentation, Trophy, type LucideIcon } from "lucide-react";
-import { StatusLabel } from "../../components/status-label";
+import { StatusLabel } from "../../components/status-label.js";
 import type { EventBrowseItemDTO } from "./contracts.js";
-import { eventAudienceLabels, eventTypeLabels } from "./presentation";
+import { eventAudienceLabels, eventTypeLabels } from "./presentation.js";
 
 type EventType = NonNullable<EventBrowseItemDTO["event_type"]>;
 
@@ -13,7 +13,10 @@ const eventTypeIcons: Partial<Record<EventType, LucideIcon>> = {
   workshop: Cog,
 };
 
-/** An event's type as a tag, with its icon when the type has one. */
+/**
+ * An event's type as a tag, with its icon when the type has one. "Other" says
+ * nothing about the event, so it shows no tag.
+ */
 export function EventTypeTag({
   tone,
   type,
@@ -21,6 +24,7 @@ export function EventTypeTag({
   tone?: "info";
   type: EventType;
 }) {
+  if (type === "other") return null;
   const Icon = eventTypeIcons[type];
   return (
     <StatusLabel tone={tone}>
