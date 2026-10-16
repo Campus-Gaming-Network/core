@@ -391,12 +391,14 @@ async function verifyHomePage(
   assertSSRDocumentShell(html, "GET /");
   assert.match(
     html,
-    /<h1[^>]*>Find your next game night\.<\/h1>/i,
-    "GET / SSR output must include the parity home heading",
+    /<h1[^>]*>Find gaming events at your school<\/h1>/i,
+    "GET / SSR output must include the visitor home heading",
   );
   assert.ok(
-    html.includes("Smoke Arena") && html.includes("Smoke Test University"),
-    "GET / SSR output must include its independently loaded game and school catalogs",
+    html.includes(">Events this week<") &&
+      html.includes(">More events<") &&
+      html.includes("Smoke Test University"),
+    "GET / SSR output must include both event sections and its independently loaded schools",
   );
   assert.match(
     html,
@@ -409,7 +411,29 @@ async function verifyHomePage(
 
   const calls = upstreamCalls.slice(callsBefore);
   oneUpstreamCall(calls, "GET", "/schools");
-  oneUpstreamCall(calls, "GET", "/games");
+  // This week's events and the ones after it are read separately, split at
+  // the same minute. The home page no longer loads the game catalog.
+  const eventReads = calls
+    .filter((call) => call.method === "GET" && call.pathname === "/events")
+    .map((call) => new URLSearchParams(call.search));
+  assert.deepEqual(
+    eventReads.map((query) => [...query.keys()].sort()),
+    [
+      ["limit", "starts_before"],
+      ["limit", "starts_after"],
+    ],
+    "GET / must read this week's events and later events once each",
+  );
+  assert.equal(
+    eventReads[0]?.get("starts_before"),
+    eventReads[1]?.get("starts_after"),
+    "GET / must split this week's events from later ones at one instant",
+  );
+  assert.equal(
+    calls.some((call) => call.pathname === "/games"),
+    false,
+    "GET / must not load the whole game catalog",
+  );
 }
 
 async function verifyAccountRoute(
@@ -508,23 +532,23 @@ async function verifyPhase4RouteBoundaries(
     {
       path: "/signup?q=Smoke",
       title: "Sign up",
-      heading: "Join with your home school.",
+      heading: "Create an account",
     },
     {
       path: "/forgot-password",
       title: "Forgot password",
-      heading: "Get a reset link.",
+      heading: "Reset your password",
     },
     {
       path: "/reset-password?token=smoke-reset-token",
       title: "Reset password",
-      heading: "Choose a new password.",
+      heading: "Choose a new password",
       private: true,
     },
     {
       path: "/auth/verify-email?token=smoke-verification-token",
       title: "Verify email",
-      heading: "Confirm your email.",
+      heading: "Confirm your email",
       private: true,
     },
   ];
@@ -691,7 +715,7 @@ async function verifyEventBrowse(
   );
   assert.match(
     html,
-    /<h1[^>]*>Browse campus gaming events<\/h1>/i,
+    /<h1[^>]*>Events<\/h1>/i,
     "Event browse must render its heading",
   );
   assert.ok(
@@ -711,7 +735,15 @@ async function verifyEventBrowse(
     `?game=smoke-arena&school=${schoolSlug}&format=in_person&limit=25`,
     "Event browse must forward normalized filters and its bounded page size",
   );
-  oneUpstreamCall(calls, "GET", "/games");
+  // The chosen game and school are looked up one by one; the directory never
+  // loads the whole game catalog.
+  oneUpstreamCall(calls, "GET", "/games/smoke-arena");
+  oneUpstreamCall(calls, "GET", `/schools/${schoolSlug}`);
+  assert.equal(
+    matchingUpstreamCalls(calls, "GET", "/games").length,
+    0,
+    "Event browse must not load the whole game catalog",
+  );
   assert.equal(
     matchingUpstreamCalls(calls, "GET", "/me").length,
     0,
@@ -745,7 +777,7 @@ async function verifyTeamRoutes(
   );
   assert.match(
     browseHTML,
-    /<h1[^>]*>Find campus gaming teams<\/h1>/i,
+    /<h1[^>]*>Teams<\/h1>/i,
     "Team browse must render its heading",
   );
   assert.ok(
@@ -763,7 +795,12 @@ async function verifyTeamRoutes(
     `?game=smoke-arena&school=${schoolSlug}&limit=25`,
     "Team browse must forward normalized filters and its bounded page size",
   );
-  oneUpstreamCall(browseCalls, "GET", "/games");
+  oneUpstreamCall(browseCalls, "GET", "/games/smoke-arena");
+  assert.equal(
+    matchingUpstreamCalls(browseCalls, "GET", "/games").length,
+    0,
+    "Team browse must not load the whole game catalog",
+  );
 
   const detailCallsBefore = upstreamCalls.length;
   const detailResponse = await smokeFetch(
@@ -822,8 +859,8 @@ async function verifyTeamRoutes(
   );
   assert.match(
     await missingResponse.text(),
-    /<title>Page not found \| Campus Gaming Network<\/title>/i,
-    "A missing team must render the shared safe not-found metadata",
+    /<title>Team not found \| Campus Gaming Network<\/title>/i,
+    "A missing team must render its safe not-found metadata",
   );
 }
 
@@ -853,7 +890,7 @@ async function verifySchoolRoutes(
   );
   assert.match(
     browseHTML,
-    /<h1[^>]*>Browse schools<\/h1>/i,
+    /<h1[^>]*>Schools<\/h1>/i,
     "School browse must render its heading",
   );
   assert.ok(
@@ -922,8 +959,8 @@ async function verifySchoolRoutes(
   );
   assert.match(
     await missingResponse.text(),
-    /<title>Page not found \| Campus Gaming Network<\/title>/i,
-    "A missing school must render the shared safe not-found metadata",
+    /<title>School not found \| Campus Gaming Network<\/title>/i,
+    "A missing school must render its safe not-found metadata",
   );
 }
 
@@ -1065,7 +1102,7 @@ async function verifyAuthenticatedWritePages(
     {
       path: "/events/new",
       title: "Create event",
-      heading: "Create a campus gaming event",
+      heading: "<h1>Create event</h1>",
     },
     {
       path: `/events/${eventSlug}/edit`,
@@ -1075,7 +1112,7 @@ async function verifyAuthenticatedWritePages(
     {
       path: "/teams/new",
       title: "Start a team",
-      heading: "Create a campus gaming team",
+      heading: "<h1>Create team</h1>",
     },
   ];
 
@@ -1268,7 +1305,7 @@ async function verifyEventNotFound(
   assertSSRDocumentShell(html, "Missing event");
   assert.match(
     html,
-    /<title>Page not found \| Campus Gaming Network<\/title>/i,
+    /<title>Event not found \| Campus Gaming Network<\/title>/i,
     "A missing event must render the safe not-found title",
   );
   assert.match(
@@ -2016,6 +2053,15 @@ async function handleFakeAPIRequest(
   if (method === "GET" && requestURL.pathname === "/games") {
     writeJSON(response, 200, {
       games: [{ id: "game-smoke", name: "Smoke Arena", slug: "smoke-arena" }],
+    });
+    return;
+  }
+
+  if (method === "GET" && requestURL.pathname === "/games/smoke-arena") {
+    writeJSON(response, 200, {
+      id: "game-smoke",
+      name: "Smoke Arena",
+      slug: "smoke-arena",
     });
     return;
   }
