@@ -6,7 +6,7 @@ import {
   type ErrorComponentProps,
 } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { Flag } from "lucide-react";
+import { Flag, ShieldCheck } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { FormField } from "../components/form-field";
 import {
@@ -122,14 +122,22 @@ function PublicProfilePage() {
             </p>
           ) : null}
           <div className="tag-list" aria-label="Profile verification">
+            {profile.role_indicators?.includes("site_admin") ? (
+              <StatusLabel tone="admin">
+                <ShieldCheck aria-hidden="true" size={14} strokeWidth={2.25} />
+                {roleIndicatorLabel("site_admin")}
+              </StatusLabel>
+            ) : null}
             <StatusLabel
               tone={profile.verification_level === "basic" ? undefined : "info"}
             >
               {verificationLabel(profile.verification_level)}
             </StatusLabel>
-            {profile.role_indicators?.map((role) => (
-              <StatusLabel key={role}>{roleIndicatorLabel(role)}</StatusLabel>
-            ))}
+            {profile.role_indicators
+              ?.filter((role) => role !== "site_admin")
+              .map((role) => (
+                <StatusLabel key={role}>{roleIndicatorLabel(role)}</StatusLabel>
+              ))}
           </div>
           {profile.bio?.trim() ? (
             <p className="public-profile__bio">{profile.bio}</p>

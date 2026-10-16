@@ -53,6 +53,7 @@ export function GameSelect({
   fallback,
   initialGames = [],
   label,
+  optional = false,
   otherGameErrorId,
   otherGameErrors,
 }: {
@@ -63,6 +64,8 @@ export function GameSelect({
   /** The games already chosen (an edited event's), kept even if retired. */
   initialGames?: CatalogGame[];
   label: string;
+  /** Mark the field "(optional)": an event may have no game, a team may not. */
+  optional?: boolean;
   otherGameErrorId: string;
   otherGameErrors?: string[];
 }) {
@@ -220,6 +223,9 @@ export function GameSelect({
       <div className="game-picker picker live-only">
         <label className="picker__label" htmlFor={`${listID}-input`}>
           {label}
+          {optional ? (
+            <span className="field-optional"> (optional)</span>
+          ) : null}
         </label>
         <p className="form-help picker__hint">
           Search games on Campus Gaming Network and IGDB. Add as many as you

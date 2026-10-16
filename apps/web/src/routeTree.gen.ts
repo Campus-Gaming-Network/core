@@ -27,6 +27,8 @@ import { Route as StyleguideRouteImport } from './routes/styleguide'
 import { Route as SupportRouteImport } from './routes/support'
 import { Route as TeamsRouteImport } from './routes/teams'
 import { Route as TermsRouteImport } from './routes/terms'
+import { Route as AccountEventsRouteImport } from './routes/account_.events'
+import { Route as AccountTeamsRouteImport } from './routes/account_.teams'
 import { Route as ApiErrorMonitoringTestRouteImport } from './routes/api.error-monitoring-test'
 import { Route as ApiHealthRouteImport } from './routes/api.health'
 import { Route as ApiSchoolsRouteImport } from './routes/api.schools'
@@ -143,6 +145,16 @@ const TeamsRoute = TeamsRouteImport.update({
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
   path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AccountEventsRoute = AccountEventsRouteImport.update({
+  id: '/account_/events',
+  path: '/account/events',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AccountTeamsRoute = AccountTeamsRouteImport.update({
+  id: '/account_/teams',
+  path: '/account/teams',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiErrorMonitoringTestRoute = ApiErrorMonitoringTestRouteImport.update({
@@ -301,6 +313,8 @@ export interface FileRoutesByFullPath {
   '/support': typeof SupportRoute
   '/teams': typeof TeamsRouteWithChildren
   '/terms': typeof TermsRoute
+  '/account/events': typeof AccountEventsRoute
+  '/account/teams': typeof AccountTeamsRoute
   '/api/error-monitoring-test': typeof ApiErrorMonitoringTestRoute
   '/api/health': typeof ApiHealthRoute
   '/api/schools': typeof ApiSchoolsRoute
@@ -344,6 +358,8 @@ export interface FileRoutesByTo {
   '/styleguide': typeof StyleguideRoute
   '/support': typeof SupportRoute
   '/terms': typeof TermsRoute
+  '/account/events': typeof AccountEventsRoute
+  '/account/teams': typeof AccountTeamsRoute
   '/api/error-monitoring-test': typeof ApiErrorMonitoringTestRoute
   '/api/health': typeof ApiHealthRoute
   '/api/schools': typeof ApiSchoolsRoute
@@ -392,6 +408,8 @@ export interface FileRoutesById {
   '/support': typeof SupportRoute
   '/teams': typeof TeamsRouteWithChildren
   '/terms': typeof TermsRoute
+  '/account_/events': typeof AccountEventsRoute
+  '/account_/teams': typeof AccountTeamsRoute
   '/api/error-monitoring-test': typeof ApiErrorMonitoringTestRoute
   '/api/health': typeof ApiHealthRoute
   '/api/schools': typeof ApiSchoolsRoute
@@ -441,6 +459,8 @@ export interface FileRouteTypes {
     | '/support'
     | '/teams'
     | '/terms'
+    | '/account/events'
+    | '/account/teams'
     | '/api/error-monitoring-test'
     | '/api/health'
     | '/api/schools'
@@ -484,6 +504,8 @@ export interface FileRouteTypes {
     | '/styleguide'
     | '/support'
     | '/terms'
+    | '/account/events'
+    | '/account/teams'
     | '/api/error-monitoring-test'
     | '/api/health'
     | '/api/schools'
@@ -531,6 +553,8 @@ export interface FileRouteTypes {
     | '/support'
     | '/teams'
     | '/terms'
+    | '/account_/events'
+    | '/account_/teams'
     | '/api/error-monitoring-test'
     | '/api/health'
     | '/api/schools'
@@ -579,6 +603,8 @@ export interface RootRouteChildren {
   SupportRoute: typeof SupportRoute
   TeamsRoute: typeof TeamsRouteWithChildren
   TermsRoute: typeof TermsRoute
+  AccountEventsRoute: typeof AccountEventsRoute
+  AccountTeamsRoute: typeof AccountTeamsRoute
   ApiErrorMonitoringTestRoute: typeof ApiErrorMonitoringTestRoute
   ApiHealthRoute: typeof ApiHealthRoute
   ApiSchoolsRoute: typeof ApiSchoolsRoute
@@ -719,6 +745,20 @@ declare module '@tanstack/react-router' {
       path: '/terms'
       fullPath: '/terms'
       preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/account_/events': {
+      id: '/account_/events'
+      path: '/account/events'
+      fullPath: '/account/events'
+      preLoaderRoute: typeof AccountEventsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/account_/teams': {
+      id: '/account_/teams'
+      path: '/account/teams'
+      fullPath: '/account/teams'
+      preLoaderRoute: typeof AccountTeamsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/error-monitoring-test': {
@@ -998,6 +1038,8 @@ const rootRouteChildren: RootRouteChildren = {
   SupportRoute: SupportRoute,
   TeamsRoute: TeamsRouteWithChildren,
   TermsRoute: TermsRoute,
+  AccountEventsRoute: AccountEventsRoute,
+  AccountTeamsRoute: AccountTeamsRoute,
   ApiErrorMonitoringTestRoute: ApiErrorMonitoringTestRoute,
   ApiHealthRoute: ApiHealthRoute,
   ApiSchoolsRoute: ApiSchoolsRoute,

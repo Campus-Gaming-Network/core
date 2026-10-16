@@ -239,3 +239,80 @@ func TestPostgresRepositoryListInterestedEventsListsUpcomingInterestsSoonestFirs
 		t.Fatalf("guest interested events = %+v, want %+v", gotGuest, want)
 	}
 }
+
+func TestPostgresRepositoryEventsNeedNoGames(t *testing.T) {
+	databaseURL := os.Getenv("API_DATABASE_URL")
+	if databaseURL == "" {
+		t.Skip("API_DATABASE_URL not set")
+	}
+
+	ctx := context.Background()
+	pool, err := pgxpool.New(ctx, databaseURL)
+	if err != nil {
+		t.Fatalf("connect: %v", err)
+	}
+	t.Cleanup(pool.Close)
+
+	suffix := fmt.Sprint(time.Now().UnixNano())
+	var schoolID, userID, gameID string
+	t.Cleanup(func() {
+		cleanupContext := context.Background()
+		if userID != "" {
+			_, _ = pool.Exec(cleanupContext, `DELETE FROM events WHERE creator_user_id = $1::uuid`, userID)
+			_, _ = pool.Exec(cleanupContext, `DELETE FROM users WHERE id = $1::uuid`, userID)
+		}
+		if schoolID != "" {
+			_, _ = pool.Exec(cleanupContext, `DELETE FROM schools WHERE id = $1::uuid`, schoolID)
+		}
+		if gameID != "" {
+			_, _ = pool.Exec(cleanupContext, `DELETE FROM games WHERE id = $1::uuid`, gameID)
+		}
+	})
+	if err := pool.QueryRow(ctx, `INSERT INTO schools (name, slug) VALUES ('Gameless School', $1) RETURNING id::text`, "gameless-school-"+suffix).Scan(&schoolID); err != nil {
+		t.Fatalf("insert school: %v", err)
+	}
+	if err := pool.QueryRow(ctx, `
+		INSERT INTO users (email, password_hash, name, home_school_id, age_confirmed_at)
+		VALUES ($1, 'hash', 'Club Officer', $2::uuid, NOW()) RETURNING id::text
+	`, "gameless-"+suffix+"@example.test", schoolID).Scan(&userID); err != nil {
+		t.Fatalf("insert user: %v", err)
+	}
+	if err := pool.QueryRow(ctx, `INSERT INTO games (name, slug) VALUES ('Gameless Game', $1) RETURNING id::text`, "gameless-game-"+suffix).Scan(&gameID); err != nil {
+		t.Fatalf("insert game: %v", err)
+	}
+
+	repository := NewPostgresRepository(pool)
+	startsAt := time.Date(2031, time.May, 10, 19, 0, 0, 0, time.UTC)
+	// A club's informational meeting is about no game in particular.
+	meeting, err := repository.Create(ctx, CreateParams{CreateInput: CreateInput{
+		Title: "Club Info Meeting", CreatorUserID: userID, HostSchoolID: schoolID,
+		Visibility: VisibilityPublic, Format: FormatOnline, Audience: AudienceOpen, EventType: EventTypeMeeting,
+		StartsAt: startsAt, EndsAt: startsAt.Add(time.Hour), Timezone: "UTC",
+	}})
+	if err != nil {
+		t.Fatalf("Create() without games error = %v", err)
+	}
+	if len(meeting.Games) != 0 {
+		t.Fatalf("created games = %+v, want none", meeting.Games)
+	}
+
+	update := func(gameIDs []string) []GameSummary {
+		t.Helper()
+		updated, err := repository.Update(ctx, UpdateParams{UpdateInput: UpdateInput{
+			Slug: meeting.Slug, EditorUserID: userID, Title: meeting.Title, HostSchoolID: schoolID,
+			GameIDs: gameIDs, Visibility: VisibilityPublic, Format: FormatOnline, Audience: AudienceOpen,
+			EventType: EventTypeMeeting, StartsAt: startsAt, EndsAt: startsAt.Add(time.Hour), Timezone: "UTC",
+		}})
+		if err != nil {
+			t.Fatalf("Update(%v) error = %v", gameIDs, err)
+		}
+		return updated.Games
+	}
+	// A game can be added later, and an edit that removes it leaves none.
+	if got := update([]string{gameID}); len(got) != 1 || got[0].ID != gameID {
+		t.Fatalf("games after adding one = %+v, want the game", got)
+	}
+	if got := update(nil); len(got) != 0 {
+		t.Fatalf("games after removing all = %+v, want none", got)
+	}
+}

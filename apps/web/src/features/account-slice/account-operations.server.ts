@@ -107,7 +107,7 @@ export async function accountDashboardOperation(
     safeSecondaryRead(
       () =>
         api({
-          path: "/me/teams?limit=10",
+          path: "/me/teams?limit=25",
           cookieHeader,
           cache: "no-store",
           responseSchema: myTeamsDtoSchema,

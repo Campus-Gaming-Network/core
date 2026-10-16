@@ -516,25 +516,27 @@ function VisibleEventView({
         <aside className="layout-detail__aside" aria-label="Event info">
           <KeyInformation
             facts={[
-              {
-                term: "Games",
-                value:
-                  event.games.length > 0 ? (
-                    <ul aria-label="Games" className="event-game-list">
-                      {event.games.map((game) => (
-                        <li key={game.id}>
-                          <EventGameCover
-                            hasCover={game.has_cover}
-                            slug={game.slug}
-                          />
-                          <strong>{game.name}</strong>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    "To be announced"
-                  ),
-              },
+              // An event about no game (an informational meeting) has no row.
+              ...(event.games.length > 0
+                ? [
+                    {
+                      term: "Games",
+                      value: (
+                        <ul aria-label="Games" className="event-game-list">
+                          {event.games.map((game) => (
+                            <li key={game.id}>
+                              <EventGameCover
+                                hasCover={game.has_cover}
+                                slug={game.slug}
+                              />
+                              <strong>{game.name}</strong>
+                            </li>
+                          ))}
+                        </ul>
+                      ),
+                    },
+                  ]
+                : []),
               ...(event.recurrence_rule && event.recurrence_until
                 ? [
                     {

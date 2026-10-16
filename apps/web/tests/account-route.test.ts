@@ -9,6 +9,11 @@ const appRoot =
     ? currentDirectory
     : join(currentDirectory, "apps/web");
 const source = readFileSync(join(appRoot, "src/routes/account.tsx"), "utf8");
+// The account page's event and team rows come from the shared account lists.
+const lists = readFileSync(
+  join(appRoot, "src/features/account-slice/account-lists.tsx"),
+  "utf8",
+);
 
 test("account route is private, noindex, strict, and uses typed registered links", () => {
   assert.match(source, /createFileRoute\("\/account"\)/);
@@ -17,7 +22,9 @@ test("account route is private, noindex, strict, and uses typed registered links
   assert.match(source, /getAccountDashboard\(\)/);
   assert.match(source, /dashboard\.status === "unauthenticated"/);
   assert.match(source, /to="\/users\/\$id"/);
-  assert.match(source, /to="\/events\/\$slug"/);
-  assert.match(source, /to="\/teams\/\$slug"/);
+  assert.match(source, /<AccountEventSection/);
+  assert.match(source, /<AccountTeamList/);
+  assert.match(lists, /to="\/events\/\$slug"/);
+  assert.match(lists, /to="\/teams\/\$slug"/);
   assert.match(source, /<RoutePending message="Loading your account…"/);
 });

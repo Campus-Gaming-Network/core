@@ -44,7 +44,7 @@ test("account dashboard requires /me, strips private additions, and isolates sec
     if (path === "/me") return result(accountProfileDtoSchema.parse(profile));
     if (path === "/me/events?limit=25") throw new Error("event outage");
     if (path === "/me/schools") return result({ schools: [] });
-    if (path === "/me/teams?limit=10") return result({ teams: [], limit: 10 });
+    if (path === "/me/teams?limit=25") return result({ teams: [], limit: 25 });
     throw new Error(`Unexpected path ${path}`);
   }) as ApiClient;
 

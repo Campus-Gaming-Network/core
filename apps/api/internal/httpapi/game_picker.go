@@ -101,8 +101,9 @@ func (r *Router) handleSearchResultCover(w http.ResponseWriter, req *http.Reques
 	_, _ = w.Write(cover.Bytes)
 }
 
-// pendingGameID stands in for picked games while the rest of a request is
-// validated, so "at least one game" passes before anything is imported.
+// pendingGameID stands in for picked games while the rest of a team request is
+// validated, so a team's "at least one game" passes before anything is
+// imported. Events need no stand-in, because their games are optional.
 const pendingGameID = "pending-picked-game"
 
 // pending reports whether the form named a game beyond its catalog IDs.

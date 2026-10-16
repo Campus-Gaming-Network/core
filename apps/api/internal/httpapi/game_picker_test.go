@@ -154,7 +154,8 @@ func TestCreateEventResolvesPickedAndTypedGames(t *testing.T) {
 			wantGameIDs: []string{"typed-game"},
 			wantTyped:   []string{"Campus Trivia"},
 		},
-		{name: "no game at all", games: ``, status: http.StatusBadRequest},
+		// An informational meeting or a club social needs no game.
+		{name: "no game at all", games: ``, status: http.StatusCreated, wantGameIDs: []string{}},
 		{name: "a game IGDB does not know", games: `"igdb_game_ids":[404],`, status: http.StatusUnprocessableEntity},
 		{name: "too many IGDB games", games: `"igdb_game_ids":[1,2,3,4,5,6],`, status: http.StatusBadRequest},
 	} {

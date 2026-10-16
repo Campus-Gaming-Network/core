@@ -96,7 +96,8 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 - [x] Profile: single **name** field, bio, socials, timezone
 - [x] Boring Avatars Beam avatars drawn by the web app, with initials fallback
 - [x] Public profile at `/users/:id` (database id)
-- [x] Edit profile page at `/settings/profile`, linked from the owner's public profile, the account menu, and the account page
+- [x] Edit profile page at `/settings/profile`, linked from the owner's public profile, the account menu (Settings), and the account page
+- [x] Your events (`/account/events`: going, maybe, and interested) and Your teams (`/account/teams`) pages, linked from the account menu
 - [x] `show_in_lists` account setting (on by default) that opts a person out of every people list; returned by `GET /me` and changed with `PATCH /me`
 
 ### Schools

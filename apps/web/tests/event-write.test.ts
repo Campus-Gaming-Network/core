@@ -662,7 +662,7 @@ function validPayload(): EventMutationPayload {
   };
 }
 
-test("an event needs one game from the list, from search, or typed in", () => {
+test("an event takes games from the list, from search, or typed in, or none at all", () => {
   const searched = validEventForm();
   searched.set("recurrence_rule", "");
   searched.delete("game_ids");
@@ -679,12 +679,18 @@ test("an event needs one game from the list, from search, or typed in", () => {
     { game_ids: [], igdb_game_ids: [11198], other_game: "Campus Trivia" },
   );
 
+  // An informational meeting may be about no game.
   const none = validEventForm();
   none.set("recurrence_rule", "");
   none.delete("game_ids");
-  const rejected = validateCreateEventServerInput(none);
-  if (rejected.valid) assert.fail("an event with no game was accepted");
-  assert.deepEqual(rejected.fieldErrors, {
-    game_ids: ["Choose a game, search for one, or type its name."],
-  });
+  const meeting = validateCreateEventServerInput(none);
+  if (!meeting.valid) assert.fail(JSON.stringify(meeting.fieldErrors));
+  assert.deepEqual(
+    {
+      game_ids: meeting.value.game_ids,
+      igdb_game_ids: meeting.value.igdb_game_ids,
+      other_game: meeting.value.other_game,
+    },
+    { game_ids: [], igdb_game_ids: [], other_game: "" },
+  );
 });

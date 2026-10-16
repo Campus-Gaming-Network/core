@@ -42,6 +42,29 @@ export function deleteAccountHead(publicOrigin?: string) {
   });
 }
 
+/** Head for the signed-in viewer's own pages, kept out of search. */
+export function yourPageHead(
+  publicOrigin: string | undefined,
+  page: "events" | "teams",
+) {
+  const pages = {
+    events: {
+      title: "Your events",
+      description:
+        "Events you are going to, might go to, or are interested in.",
+    },
+    teams: {
+      title: "Your teams",
+      description: "The teams you belong to on Campus Gaming Network.",
+    },
+  } as const;
+  return pageHead(publicOrigin, {
+    ...pages[page],
+    path: `/account/${page}`,
+    noIndex: true,
+  });
+}
+
 export function accountHead(publicOrigin?: string) {
   return pageHead(publicOrigin, {
     title: "Account",

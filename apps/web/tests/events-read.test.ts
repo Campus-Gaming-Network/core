@@ -214,7 +214,7 @@ test("event read presentation matches labels, notices, indexable head, and safe 
       eventPlace({ ...browseEvent, format: "in_person" }),
       eventPlace(unlocated),
     ],
-    ["Student Union + online", "Student Union", "Location pending"],
+    ["Student Union + online", "Student Union", undefined],
   );
   assert.equal(safeExternalEventUrl("javascript:alert(1)"), undefined);
   assert.equal(

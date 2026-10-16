@@ -157,9 +157,6 @@ func (r *Router) handleCreateEvent(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	input := createEventInputFromRequest(request, userID)
-	if request.pickedGames.pending() {
-		input.GameIDs = append(input.GameIDs, pendingGameID)
-	}
 	input.IdempotencyKey = key
 	if request.RecurrenceUntil.present && strings.TrimSpace(request.RecurrenceUntil.value) != "" {
 		parsed, err := recurrenceEndOfDate(
@@ -241,9 +238,6 @@ func (r *Router) handleUpdateEvent(w http.ResponseWriter, req *http.Request, slu
 		return
 	}
 	input := updateEventInputFromRequest(request, slug, userID)
-	if request.pickedGames.pending() {
-		input.GameIDs = append(input.GameIDs, pendingGameID)
-	}
 	if err := eventstore.ValidateUpdateInput(input); err != nil {
 		writeApplicationError(w, err, "event_update_failed")
 		return

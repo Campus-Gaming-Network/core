@@ -39,13 +39,8 @@ export function verificationLabel(level: string): string {
   return labels[level] ?? "Community member";
 }
 
-export function roleIndicatorLabel(role: string): string {
-  const labels: Record<string, string> = {
-    school_admin: "School admin",
-    staff_faculty: "Staff / faculty",
-  };
-  return labels[role] ?? "Community role";
-}
+// One set of role labels for profiles, people lists, and organizers.
+export { roleIndicatorLabel } from "../event-slice/presentation.js";
 
 export function publicProfileHomeSchool(profile: PublicProfileDTO): {
   name: string;

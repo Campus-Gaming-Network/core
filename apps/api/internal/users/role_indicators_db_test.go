@@ -58,13 +58,25 @@ func TestPostgresRepositoryFindByIDPopulatesActiveRoleIndicators(t *testing.T) {
 	`, schoolID, userID); err != nil {
 		t.Fatalf("insert school admin: %v", err)
 	}
+	var grantID string
+	if err := pool.QueryRow(ctx, `
+		INSERT INTO site_role_grants (user_id, role, granted_by_user_id, grant_reason)
+		VALUES ($1::uuid, 'site_admin', $1::uuid, 'Role indicator test')
+		RETURNING id::text
+	`, userID).Scan(&grantID); err != nil {
+		t.Fatalf("insert site admin grant: %v", err)
+	}
+	// Registered after the user's cleanup, so it runs first.
+	t.Cleanup(func() {
+		_, _ = pool.Exec(context.Background(), `DELETE FROM site_role_grants WHERE id = $1::uuid`, grantID)
+	})
 
 	repository := NewPostgresRepository(pool)
 	profile, err := repository.FindByID(ctx, userID)
 	if err != nil {
 		t.Fatalf("FindByID() error = %v", err)
 	}
-	wantActive := []string{"school_admin", "staff_faculty"}
+	wantActive := []string{"school_admin", "site_admin", "staff_faculty"}
 	if !reflect.DeepEqual(profile.RoleIndicators, wantActive) {
 		t.Fatalf("FindByID() RoleIndicators = %#v, want %#v", profile.RoleIndicators, wantActive)
 	}
@@ -79,10 +91,17 @@ func TestPostgresRepositoryFindByIDPopulatesActiveRoleIndicators(t *testing.T) {
 	`, schoolID, userID); err != nil {
 		t.Fatalf("revoke school admin: %v", err)
 	}
+	if _, err := pool.Exec(ctx, `
+		UPDATE site_role_grants
+		SET revoked_at = NOW(), revoked_by_user_id = $2::uuid, revoke_reason = 'Role indicator test'
+		WHERE id = $1::uuid
+	`, grantID, userID); err != nil {
+		t.Fatalf("revoke site admin grant: %v", err)
+	}
 
 	profile, err = repository.FindByID(ctx, userID)
 	if err != nil {
-		t.Fatalf("FindByID() after revoke error = %v", err)
+		t.Fatalf("FindByID() after revokes error = %v", err)
 	}
 	wantRevoked := []string{"staff_faculty"}
 	if !reflect.DeepEqual(profile.RoleIndicators, wantRevoked) {

@@ -1506,6 +1506,11 @@ input[type="radio"] {
     border-style: dashed;
   }
 
+  .tag--admin {
+    border-width: 3px;
+    border-style: double;
+  }
+
   /* The selected RSVP choice keeps its fill and a heavier edge. */
   .rsvp-form .rsvp-buttons > button {
     border: 1px solid ButtonText;

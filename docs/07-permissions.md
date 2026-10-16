@@ -36,11 +36,12 @@ Verification is not a substitute for school admin or site admin.
 
 ## Role indicators (UI)
 
-| Role              | Indicator                                                                    |
-| ----------------- | ---------------------------------------------------------------------------- |
-| School admin      | Visible badge/label on profile and event organizer UI for the granted school |
-| Staff / faculty   | Visible badge/label on profile and event organizer UI                        |
-| Verified (`.edu`) | Optional trust mark (lighter than admin/faculty)                             |
+| Role              | Indicator                                                                                                                                                     |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Site admin        | Navy "Site admin" tag with a shield, first on the public profile; also named in people lists and organizer UI (`site_admin`, from an active site-admin grant) |
+| School admin      | Visible badge/label on profile and event organizer UI for the granted school                                                                                  |
+| Staff / faculty   | Visible badge/label on profile and event organizer UI                                                                                                         |
+| Verified (`.edu`) | Optional trust mark (lighter than admin/faculty)                                                                                                              |
 
 ## Permission matrix (summary)
 

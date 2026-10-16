@@ -499,6 +499,13 @@ func RoleIndicatorsSQL(userAlias string) string {
 			FROM school_admins role_sa
 			WHERE role_sa.user_id = ` + userAlias + `.id AND role_sa.deleted_at IS NULL
 		) THEN 'school_admin'::text END,
+		CASE WHEN EXISTS (
+			SELECT 1
+			FROM site_role_grants role_sr
+			WHERE role_sr.user_id = ` + userAlias + `.id
+			  AND role_sr.role = 'site_admin'
+			  AND role_sr.revoked_at IS NULL
+		) THEN 'site_admin'::text END,
 		CASE WHEN ` + userAlias + `.verification_level = 'staff_faculty' THEN 'staff_faculty'::text END
 	], NULL::text)`
 }
@@ -516,6 +523,13 @@ func listRoleIndicators(ctx context.Context, queryer profileQueryer, userID stri
 			WHERE user_id = $1::uuid AND deleted_at IS NULL
 		)
 		UNION ALL
+		SELECT 'site_admin'
+		WHERE EXISTS (
+			SELECT 1
+			FROM site_role_grants
+			WHERE user_id = $1::uuid AND role = 'site_admin' AND revoked_at IS NULL
+		)
+		UNION ALL
 		SELECT 'staff_faculty'
 		WHERE $2 = 'staff_faculty'
 		ORDER BY 1
@@ -525,7 +539,7 @@ func listRoleIndicators(ctx context.Context, queryer profileQueryer, userID stri
 	}
 	defer rows.Close()
 
-	roles := make([]string, 0, 2)
+	roles := make([]string, 0, 3)
 	for rows.Next() {
 		var role string
 		if err := rows.Scan(&role); err != nil {

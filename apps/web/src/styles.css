@@ -1231,6 +1231,12 @@ p.empty-state {
   background: var(--color-danger-soft);
 }
 
+/* A site administrator: the site's own navy, so it reads as official. */
+.tag--admin {
+  color: var(--color-identity-text);
+  background: var(--color-identity);
+}
+
 .tag-list {
   display: flex;
   flex-wrap: wrap;

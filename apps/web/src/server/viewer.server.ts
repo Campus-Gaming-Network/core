@@ -11,7 +11,8 @@ export const profileDtoSchema = z.object({
   timezone: z.string().min(1),
   home_school_id: z.string().min(1),
   // A home school the web cannot read is left out rather than failing the
-  // whole viewer read; only the events directory's My school tab uses it.
+  // whole viewer read. The events directory's My school tab and the account
+  // menu's Your school link use it.
   home_school: z
     .object({ name: z.string(), slug: z.string().trim().min(1).max(200) })
     .optional()

@@ -200,7 +200,7 @@ Signup also requires confirming **age 18+**. Alumni can participate. Faculty who
 - Past events: organizers may make minor corrections only (not date/location)
 - Organizer role badges are shown on event pages
 - Report inappropriate events
-- Reference one or more games; browse/filter by game
+- Reference any number of games, including none (an informational meeting or club social); browse/filter by game
 - Timezone: user preference (default system) for display
 
 ### Tournaments (later)

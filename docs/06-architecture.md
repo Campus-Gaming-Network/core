@@ -101,7 +101,9 @@ See [14 — Architecture diagrams](./14-architecture-diagrams.md) for Mermaid vi
   rendered page; they do not independently fetch the entity again.
 - The root route learns the viewer on the server, so the header's account menu
   is in the first HTML and never appears late. It carries only the viewer's own
-  id and name, nothing else from the profile. A request with a session cookie
+  id, name, and home school's name and slug (for Your school), nothing else
+  from the profile. The menu links to View profile, Your school, Your events
+  (`/account/events`), Your teams (`/account/teams`), Settings, and Log out. A request with a session cookie
   makes one upstream `/me` call and its document is `private, no-store`; a
   request without one makes no upstream call and gets the same public document
   as every other visitor. The root asks again on every navigation, so a login,

@@ -7,8 +7,9 @@ import { Avatar } from "./avatar";
 
 /**
  * The signed-in header's account menu: the viewer's avatar and first name open
- * a disclosure with Account, Public profile, and Log out. The server HTML
- * already holds it for a signed-in viewer.
+ * a disclosure with View profile, Your school (when the viewer has one), Your
+ * events, Your teams, Settings, and Log out. The server HTML already holds it
+ * for a signed-in viewer.
  *
  * The panel is a disclosure of plain links and a native POST form, not an ARIA
  * menu, so it asks for no arrow-key handling: Tab walks through it. It closes
@@ -100,24 +101,41 @@ export function AccountMenu({
         <Link
           className="account-menu__item"
           onClick={closeAfterLink}
-          to="/account"
+          params={{ id: viewer.id }}
+          to="/users/$id"
         >
-          Account
+          View profile
+        </Link>
+        {viewer.homeSchool ? (
+          <Link
+            className="account-menu__item"
+            onClick={closeAfterLink}
+            params={{ slug: viewer.homeSchool.slug }}
+            to="/schools/$slug"
+          >
+            Your school
+          </Link>
+        ) : null}
+        <Link
+          className="account-menu__item"
+          onClick={closeAfterLink}
+          to="/account/events"
+        >
+          Your events
         </Link>
         <Link
           className="account-menu__item"
           onClick={closeAfterLink}
-          params={{ id: viewer.id }}
-          to="/users/$id"
+          to="/account/teams"
         >
-          Public profile
+          Your teams
         </Link>
         <Link
           className="account-menu__item"
           onClick={closeAfterLink}
           to="/settings/profile"
         >
-          Edit profile
+          Settings
         </Link>
         <form
           action={logout.url}

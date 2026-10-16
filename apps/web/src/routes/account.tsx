@@ -4,39 +4,25 @@ import {
   redirect,
   type ErrorComponentProps,
 } from "@tanstack/react-router";
-import { Users } from "lucide-react";
-import type { ReactNode } from "react";
 import { ButtonLink } from "../components/button-link";
-import { CalendarDate } from "../components/calendar-date";
-import { EventRelativeDay } from "../features/event-slice/event-relative-day";
 import {
   DirectoryRow,
   directoryRowClassName,
 } from "../components/directory-row";
-import { EventCounts } from "../components/event-counts";
 import { getAccountDashboard } from "../features/account-slice/account.functions";
-import { accountHead } from "../features/account-slice/presentation";
 import {
-  type DashboardEventDTO,
-  dashboardEventLimit,
-} from "../features/account-slice/contracts";
+  AccountEventSection,
+  AccountTeamList,
+} from "../features/account-slice/account-lists";
+import { accountHead } from "../features/account-slice/presentation";
 import { Avatar } from "../components/avatar";
 import { PageHeading } from "../components/page-heading";
 import { RouteErrorView, RoutePending } from "../components/route-boundaries";
 import { SchoolLogo } from "../components/school-logo";
 import { StatusLabel } from "../components/status-label";
-import {
-  eventLifecycleLabel,
-  eventRSVPLabel,
-  eventTimeRange,
-} from "../features/event-slice/presentation";
 import { schoolLocation } from "../features/school-slice/presentation";
-import { teamRoleLabel } from "../features/team-slice/presentation";
 import accountCSS from "../features/account-slice/account.css?url";
 import { SettingsNav } from "../features/account-slice/settings-nav";
-
-// The dashboard shows this many rows of each event list.
-const dashboardPreviewCount = 3;
 
 export const Route = createFileRoute("/account")({
   loader: async ({ context }) => {
@@ -123,7 +109,7 @@ function AccountPage() {
             </ul>
           </nav>
 
-          <DashboardEventSection
+          <AccountEventSection
             heading="Upcoming RSVPs"
             headingId="upcoming-rsvps-title"
             sectionId="events"
@@ -138,7 +124,7 @@ function AccountPage() {
             events={data.dashboardEvents.upcoming_rsvps}
             variant="rsvp"
           />
-          <DashboardEventSection
+          <AccountEventSection
             heading="Interested"
             headingId="interested-events-title"
             sectionId="interested"
@@ -156,7 +142,7 @@ function AccountPage() {
             showAll
             variant="interested"
           />
-          <DashboardEventSection
+          <AccountEventSection
             heading="Followed-school events"
             headingId="followed-school-events-title"
             sectionId="following"
@@ -230,156 +216,11 @@ function AccountPage() {
                 Find teams
               </Link>
             </div>
-            {data.teams.length > 0 ? (
-              <div className="list list--panel">
-                {data.teams.map((team) => (
-                  <Link
-                    className={directoryRowClassName}
-                    key={team.id}
-                    to="/teams/$slug"
-                    params={{ slug: team.slug }}
-                  >
-                    <DirectoryRow
-                      action="View team"
-                      counts={
-                        <small className="directory-row__count">
-                          <Users
-                            aria-hidden="true"
-                            size={14}
-                            strokeWidth={1.75}
-                          />
-                          {team.member_count} member
-                          {team.member_count === 1 ? "" : "s"}
-                        </small>
-                      }
-                      detail={
-                        team.viewer_role
-                          ? teamRoleLabel(team.viewer_role)
-                          : "Member"
-                      }
-                      identity={
-                        <span aria-hidden="true" className="team-mark">
-                          {team.name.slice(0, 1).toUpperCase()}
-                        </span>
-                      }
-                      meta={[team.school?.name ?? "Independent team"]}
-                      name={team.name}
-                      tags={team.games.map((game) => game.name)}
-                    />
-                  </Link>
-                ))}
-              </div>
-            ) : (
-              <div className="empty-state">
-                <p>
-                  You have not joined any teams yet. Join with a team password
-                  or create your first team.
-                </p>
-                <ButtonLink to="/teams" variant="secondary">
-                  Find teams
-                </ButtonLink>
-              </div>
-            )}
+            <AccountTeamList teams={data.teams} />
           </section>
         </div>
       </div>
     </main>
-  );
-}
-
-function DashboardEventSection({
-  heading,
-  headingId,
-  sectionId,
-  empty,
-  events,
-  showAll = false,
-  variant,
-}: {
-  heading: string;
-  headingId: string;
-  sectionId: string;
-  empty: ReactNode;
-  events: DashboardEventDTO[];
-  /** List every event read, not a short preview. */
-  showAll?: boolean;
-  variant: "followed" | "interested" | "rsvp";
-}) {
-  const shown = showAll ? events : events.slice(0, dashboardPreviewCount);
-  // The API cuts each list off at its limit, so a full list may be longer.
-  const total =
-    events.length >= dashboardEventLimit
-      ? `${events.length}+`
-      : String(events.length);
-
-  return (
-    <section className="section" id={sectionId} aria-labelledby={headingId}>
-      <div className="section-heading">
-        <h2 id={headingId}>{heading}</h2>
-      </div>
-      {events.length > 0 ? (
-        <>
-          <div className="list list--panel">
-            {shown.map((event) => (
-              <Link
-                className={directoryRowClassName}
-                key={event.id}
-                to="/events/$slug"
-                params={{ slug: event.slug }}
-              >
-                <DirectoryRow
-                  action="View event"
-                  counts={
-                    <EventCounts
-                      going={event.rsvp_yes_count}
-                      interested={event.interest_count}
-                    />
-                  }
-                  detail={eventTimeRange(event)}
-                  identity={
-                    <CalendarDate
-                      decorative
-                      startsAt={event.starts_at}
-                      timezone={event.timezone}
-                    />
-                  }
-                  meta={[event.host_school.name]}
-                  name={event.title}
-                  status={
-                    <>
-                      {event.lifecycle === "upcoming" ? null : (
-                        <StatusLabel status={event.lifecycle}>
-                          {eventLifecycleLabel(event.lifecycle)}
-                        </StatusLabel>
-                      )}
-                      <EventRelativeDay event={event} />
-                      {variant === "rsvp" && event.viewer_rsvp ? (
-                        <StatusLabel tone="success">
-                          {eventRSVPLabel(event.viewer_rsvp)}
-                        </StatusLabel>
-                      ) : null}
-                    </>
-                  }
-                  tags={event.games.map((game) => game.name)}
-                />
-              </Link>
-            ))}
-          </div>
-          {events.length > shown.length ? (
-            <p className="account-more">
-              <span>
-                Showing {shown.length} of {total}
-              </span>
-              <Link className="link" to="/events">
-                See all events
-              </Link>
-            </p>
-          ) : null}
-        </>
-      ) : (
-        <div className="empty-state">{empty}</div>
-      )}
-    </section>
   );
 }
 

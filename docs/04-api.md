@@ -206,8 +206,10 @@ user intended for the first event; the recurrence rules above govern derived
 occurrences.
 
 Event detail responses include `organizers`, with each organizer's name, role,
-`verification_level`, and applicable `role_indicators` (`school_admin` and/or
-`staff_faculty`).
+`verification_level`, and applicable `role_indicators`, in this order:
+`school_admin` (an active school-admin grant), `site_admin` (an active
+site-admin grant), and `staff_faculty`. Profiles and people lists carry the
+same indicators.
 
 ### People lists
 
@@ -328,7 +330,8 @@ an ID; a matching `If-None-Match` gets `304` without calling IGDB. It answers
 `/api/igdb-covers/{image_id}`.
 
 `POST /events`, `PATCH /events/:slug`, and `POST /teams` take two fields beside
-`game_ids`. At least one game is required across the three.
+`game_ids`. A team needs at least one game across the three. An event may have
+none, such as a club's informational meeting, and an edit can remove them all.
 
 - `igdb_game_ids`: up to five IGDB IDs from the search. Each is imported as an
   active game with its cover if the catalog does not hold it. If the cover

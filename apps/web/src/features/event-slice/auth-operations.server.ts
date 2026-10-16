@@ -55,11 +55,20 @@ export async function getNavigationSessionOperation({
       cookieHeader,
       sessionCookieValue,
     });
-    // Only what the header shows. The profile's email, bio, and school stay
-    // out of this response.
-    return profile
-      ? { authenticated: true, user: { id: profile.id, name: profile.name } }
-      : { authenticated: false };
+    // Only what the header shows. The profile's email and bio stay out of
+    // this response; the home school's name and slug feed Your school.
+    if (!profile) return { authenticated: false };
+    const school = profile.home_school;
+    return {
+      authenticated: true,
+      user: {
+        id: profile.id,
+        name: profile.name,
+        ...(school
+          ? { homeSchool: { name: school.name, slug: school.slug } }
+          : {}),
+      },
+    };
   } catch {
     // Navigation is decorative. Authenticated loaders can surface outages, but
     // the public shell must remain usable when /me is unavailable.

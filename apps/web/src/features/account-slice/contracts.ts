@@ -153,7 +153,7 @@ export type AccountProfileDTO = z.output<typeof accountProfileDtoSchema>;
 export type DashboardEventDTO = z.output<typeof dashboardEventDtoSchema> & {
   host_school: WithSchoolLogo<{ name: string; slug: string }>;
 };
-type AccountTeamDTO = z.output<typeof accountTeamDtoSchema>;
+export type AccountTeamDTO = z.output<typeof accountTeamDtoSchema>;
 export type UpdateProfileInput = z.input<typeof updateProfileInputSchema>;
 export type DeleteAccountInput = z.input<typeof deleteAccountInputSchema>;
 type AccountFormErrors = Record<string, string[] | undefined>;

@@ -1,6 +1,5 @@
 import * as z from "zod";
 import {
-  noGameChosenMessage,
   otherGameSchema,
   pickedIGDBGameIDsSchema,
 } from "../game-picker/contracts.js";
@@ -384,6 +383,8 @@ export type GetEventDetailResult =
 export type NavigationViewer = {
   id: string;
   name: string;
+  /** The viewer's home school, for the account menu's Your school link. */
+  homeSchool?: { name: string; slug: string };
 };
 
 export type NavigationSessionDTO =
@@ -726,17 +727,7 @@ function validateEventForm(
   const startsAt = localDateTimeToInstant(event.starts_at, event.timezone);
   const endsAt = localDateTimeToInstant(event.ends_at, event.timezone);
 
-  if (
-    event.game_ids.length + event.igdb_game_ids.length === 0 &&
-    event.other_game === ""
-  ) {
-    context.addIssue({
-      code: "custom",
-      message: noGameChosenMessage,
-      path: ["game_ids"],
-    });
-  }
-
+  // Games are optional: an informational meeting may be about no game.
   addLocalTimeIssue(startsAt, "Start", "starts_at", context);
   addLocalTimeIssue(endsAt, "End", "ends_at", context);
 

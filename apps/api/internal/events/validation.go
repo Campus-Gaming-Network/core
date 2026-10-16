@@ -108,9 +108,8 @@ func validateEventFields(input CreateInput, requirePrivatePassword bool) error {
 	if strings.TrimSpace(input.HostSchoolID) == "" {
 		return apperror.Validation("host school is required")
 	}
-	if len(input.GameIDs) == 0 {
-		return apperror.Validation("at least one game is required")
-	}
+	// Games are optional: an informational meeting or a club social may not
+	// center on any game.
 	for _, gameID := range input.GameIDs {
 		if strings.TrimSpace(gameID) == "" {
 			return apperror.Validation("game IDs must be valid")

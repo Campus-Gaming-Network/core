@@ -54,11 +54,36 @@ test("navigation session is a no-store viewer read and degrades safely", async (
     sessionCookieValue: "expired",
   });
 
-  // The viewer gets their own id and name for the account menu, and nothing
-  // else from the profile (no email, school, or bio).
+  const withSchool = await getNavigationSessionOperation({
+    api: client(async () =>
+      Response.json({
+        ...profile,
+        home_school: {
+          id: "school-1",
+          name: "Example University",
+          slug: "example-university",
+          city: "Springfield",
+        },
+      }),
+    ),
+    cookieHeader: "cgn_session=session-value",
+    sessionCookieValue: "session-value",
+  });
+
+  // The viewer gets their own id and name for the account menu, and their
+  // home school's name and slug for its Your school link. Nothing else from
+  // the profile (no email, bio, or school details) reaches the header.
   assert.deepEqual(authenticated, {
     authenticated: true,
     user: { id: "user-1", name: "Player One" },
+  });
+  assert.deepEqual(withSchool, {
+    authenticated: true,
+    user: {
+      id: "user-1",
+      name: "Player One",
+      homeSchool: { name: "Example University", slug: "example-university" },
+    },
   });
   assert.equal(init?.cache, "no-store");
   assert.equal(

@@ -129,22 +129,22 @@ export function formatEventDate(value: string, timeZone: string): string {
 
 /**
  * Where an event happens, for a list row: the place's name without its street
- * address, which the event page shows. A hybrid event adds "+ online".
+ * address, which the event page shows. A hybrid event adds "+ online". It is
+ * undefined while an in-person or hybrid event has no place set.
  */
 export function eventPlace(
   event: Pick<EventDTO, "format" | "location_name">,
-): string {
+): string | undefined {
   if (event.format === "online") {
     // The meeting link reaches only people going, so whether it is set says
     // nothing to everyone else.
     return "Online";
   }
+  // A place not set yet is left out of the row rather than named "pending".
   if (event.format === "hybrid") {
-    return event.location_name
-      ? `${event.location_name} + online`
-      : "Hybrid details pending";
+    return event.location_name ? `${event.location_name} + online` : undefined;
   }
-  return event.location_name || "Location pending";
+  return event.location_name || undefined;
 }
 
 export function eventLifecycleLabel(
@@ -204,6 +204,14 @@ export function eventRSVPLabel(response: EventRSVP): string {
   return labels[response];
 }
 
+/** The tag tint for an RSVP answer, so Going and Maybe read apart at a glance. */
+export function eventRSVPTone(
+  response: EventRSVP,
+): "success" | "warning" | "neutral" {
+  const tones = { maybe: "warning", no: "neutral", yes: "success" } as const;
+  return tones[response];
+}
+
 export function recurrenceRuleLabel(
   rule: NonNullable<EventDTO["recurrence_rule"]>,
 ): string {
@@ -227,6 +235,7 @@ export function verificationLabel(level: string): string {
 export function roleIndicatorLabel(role: string): string {
   const labels: Record<string, string> = {
     school_admin: "School admin",
+    site_admin: "Site admin",
     staff_faculty: "Staff / faculty",
   };
   return labels[role] ?? "Community role";

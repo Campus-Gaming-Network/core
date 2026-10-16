@@ -138,8 +138,9 @@ export function EventForm({
   const [endEdited, setEndEdited] = useState(Boolean(event));
   const [rule, setRule] = useState("");
   const [until, setUntil] = useState("");
+  // Most campus gaming events are played online, so a new event starts there.
   const [format, setFormat] = useState<keyof typeof formatHints>(
-    event?.format ?? "in_person",
+    event?.format ?? "online",
   );
   const [visibility, setVisibility] = useState<string>(
     event?.visibility ?? "public",
@@ -293,8 +294,8 @@ export function EventForm({
               required
               value={format}
             >
-              <option value="in_person">In person</option>
               <option value="online">Online</option>
+              <option value="in_person">In person</option>
               <option value="hybrid">Hybrid</option>
             </select>
           </FormField>
@@ -554,6 +555,7 @@ export function EventForm({
                   errorId="event-game-ids-error"
                   errors={errors("game_ids")}
                   label="Games"
+                  optional
                 >
                   <select
                     defaultValue={event?.games.map((game) => game.id)}
@@ -573,13 +575,15 @@ export function EventForm({
                   </select>
                 </FormField>
                 <p className="form-help">
-                  Choose at least one game, or type its name below. Hold Ctrl
-                  (Cmd on Mac) to choose several.
+                  Choose the games you will play, or type a name below. Leave it
+                  empty for a meeting that is not about a game. Hold Ctrl (Cmd
+                  on Mac) to choose several.
                 </p>
               </>
             }
             initialGames={catalogGamesFromSummaries(event?.games ?? [])}
             label="Games"
+            optional
             otherGameErrorId="event-other-game-error"
             otherGameErrors={errors("other_game")}
           />
