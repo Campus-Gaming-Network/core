@@ -4,28 +4,30 @@ import type { EventsSearch } from "./contracts.js";
  * The scope tabs above the events directory. Each scope stands for one value
  * of the `school`, `format`, or `type` filter; All events stands for none.
  */
-export type EventScope = "all" | "my-school" | "online" | "tournaments";
+export type EventScope = "all" | NonNullable<EventsSearch["scope"]>;
 
 /**
- * The scope that matches the current query. A query whose only scope filter
- * equals a tab's filter selects that tab. No scope filter, more than one, or a
- * value no tab stands for selects All events.
+ * The tab the viewer chose, named by the query's `scope`. A filter alone
+ * never selects a tab, so choosing Online as the format under All events
+ * stays on All events. A `scope` whose filter is missing or changed (an
+ * edited link, a home school that is no longer the viewer's) selects All
+ * events.
  */
 export function currentEventScope(
   search: EventsSearch,
   homeSchoolSlug: string | undefined,
 ): EventScope {
-  const { school, format, type } = search;
-  const scopeFilters = [school, format, type].filter(Boolean).length;
-  if (scopeFilters !== 1) return "all";
-  if (school && school === homeSchoolSlug) return "my-school";
-  if (format === "online") return "online";
-  if (type === "tournament") return "tournaments";
+  const { scope, school, format, type } = search;
+  if (scope === "my-school" && homeSchoolSlug && school === homeSchoolSlug)
+    return scope;
+  if (scope === "online" && format === "online") return scope;
+  if (scope === "tournaments" && type === "tournament") return scope;
   return "all";
 }
 
 /**
- * The query a scope tab links to: the game, audience, and cost filters stay,
+ * The query a scope tab links to: the tab's own `scope`, then the game,
+ * audience, and cost filters stay,
  * the scope filters are replaced by the tab's own, and the page cursors and
  * any notice are dropped so the list starts from its first page.
  */
@@ -35,6 +37,7 @@ export function eventScopeSearch(
   homeSchoolSlug: string | undefined,
 ): EventsSearch {
   return {
+    ...(scope === "all" ? {} : { scope }),
     ...(search.game ? { game: search.game } : {}),
     ...(scope === "my-school" && homeSchoolSlug
       ? { school: homeSchoolSlug }

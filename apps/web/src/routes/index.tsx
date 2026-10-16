@@ -102,7 +102,7 @@ function HomePage() {
                 <Link
                   className="home-scope home-scope--current"
                   to="/events"
-                  search={{ school: homeSchool.slug }}
+                  search={{ scope: "my-school", school: homeSchool.slug }}
                 >
                   <School aria-hidden="true" size={20} strokeWidth={2} />
                   <span>
@@ -124,7 +124,7 @@ function HomePage() {
               <Link
                 className="home-scope"
                 to="/events"
-                search={{ format: "online" }}
+                search={{ scope: "online", format: "online" }}
               >
                 <Globe aria-hidden="true" size={20} strokeWidth={2} />
                 <span>

@@ -178,7 +178,9 @@ drawn as placeholders: see #61, #62, #246-#272, and #215-#216.
   result names the filters and offers to remove the most restrictive one. A
   scope tab fixes its own filter (Online the format, Tournaments the type, My
   school the school): that filter shows as a dashed button with a lock, its
-  value is kept in a hidden input, and Clear filters keeps the tab.
+  value is kept in a hidden input, and Clear filters keeps the tab. The tab
+  is named in the URL (`scope`), so choosing the same filter under All
+  events (Format: Online) stays on All events and leaves the filter editable.
 - **Page changes**: after an in-app navigation to a different page,
   `RouteAnnouncer` moves focus to the new page's h1 (without scrolling, so
   scroll restoration still decides) and announces its title politely. The

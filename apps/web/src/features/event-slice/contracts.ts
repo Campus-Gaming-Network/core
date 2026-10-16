@@ -491,8 +491,12 @@ export type EventsBrowseResult = {
   eventsUnavailable: boolean;
 };
 
+const eventScopeSchema = z.enum(["my-school", "online", "tournaments"]);
+
 export type EventsSearch = EventsBrowseInput & {
   event?: EventBrowseNotice;
+  /** The scope tab the viewer chose; absent for All events. */
+  scope?: z.output<typeof eventScopeSchema>;
   /** Searches schools for the no-JavaScript school filter. */
   school_q?: string;
   /** Searches games for the no-JavaScript game filter. */
@@ -512,6 +516,7 @@ export function validateEventsSearch(
   const type = eventTypeSchema.safeParse(
     boundedSearchValue(search.type, eventFilterSchema),
   );
+  const scope = eventScopeSchema.safeParse(search.scope);
   const after = boundedSearchValue(search.after, eventCursorSchema);
   const before = boundedSearchValue(search.before, eventCursorSchema);
   const event = pageNoticeKey(eventBrowseNotices, search.event);
@@ -530,6 +535,7 @@ export function validateEventsSearch(
     ...(audience.success ? { audience: audience.data } : {}),
     ...(type.success ? { type: type.data } : {}),
     ...(search.cost === "free" ? { cost: "free" as const } : {}),
+    ...(scope.success ? { scope: scope.data } : {}),
     ...(after ? { after } : {}),
     ...(before ? { before } : {}),
     ...(event ? { event } : {}),

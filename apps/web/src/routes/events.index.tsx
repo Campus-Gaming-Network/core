@@ -200,6 +200,7 @@ function EventsPage() {
           type: search.type,
           audience: search.audience,
           cost: search.cost,
+          scope: scope === "all" ? undefined : scope,
         }}
       />
       {/* The controls start from the URL. A scope tab or Back navigates
@@ -208,6 +209,10 @@ function EventsPage() {
         action="/events"
         formKey={JSON.stringify(paginationSearch(search, {}))}
       >
+        {/* Filtering inside a tab stays on that tab. */}
+        {scope === "all" ? null : (
+          <input name="scope" type="hidden" value={scope} />
+        )}
         <FilterToolbar
           clear={
             filters.length > 0 ? (
@@ -407,6 +412,7 @@ function paginationSearch(
     ...(search.audience ? { audience: search.audience } : {}),
     ...(search.type ? { type: search.type } : {}),
     ...(search.cost ? { cost: search.cost } : {}),
+    ...(search.scope ? { scope: search.scope } : {}),
     ...(search.school_q ? { school_q: search.school_q } : {}),
     ...(search.game_q ? { game_q: search.game_q } : {}),
     ...cursor,

@@ -1173,7 +1173,7 @@ function NavigationSection() {
       </p>
       <EventScopeTabs
         homeSchool={{ name: "Summit Ridge University", slug: "summit-ridge" }}
-        search={{ type: "tournament" }}
+        search={{ scope: "tournaments", type: "tournament" }}
       />
 
       <h3 className="styleguide-sub">Directory sidebar</h3>
