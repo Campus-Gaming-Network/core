@@ -15,6 +15,7 @@ import { useUnsavedChangesGuard } from "../../components/unsaved-changes";
 import { ButtonLink } from "../../components/button-link";
 import { FormSection } from "../../components/form-section";
 import { useIdempotencyKey } from "../../components/idempotency-key.js";
+import { revealFirstInvalidField } from "../../components/reveal-invalid-field.js";
 import type {
   EventDTO,
   EventFormSchoolDTO,
@@ -229,7 +230,10 @@ export function EventForm({
         className="form-stack event-form sectioned-form"
         method="post"
         ref={formRef}
-        onInvalidCapture={() => setAttempted(true)}
+        onInvalidCapture={(invalidEvent) => {
+          setAttempted(true);
+          revealFirstInvalidField(invalidEvent);
+        }}
         onSubmit={submit}
       >
         {event ? <input name="slug" type="hidden" value={event.slug} /> : null}
