@@ -241,6 +241,7 @@ func (r *PostgresRepository) DeleteAccount(ctx context.Context, userID string) e
 		 WHERE user_id = $1::uuid AND revoked_at IS NULL`,
 		`DELETE FROM user_social_links WHERE user_id = $1::uuid`,
 		`DELETE FROM user_school_follows WHERE user_id = $1::uuid`,
+		`DELETE FROM user_games WHERE user_id = $1::uuid`,
 		`DELETE FROM event_rsvps WHERE user_id = $1::uuid`,
 		`DELETE FROM event_interests WHERE user_id = $1::uuid`,
 		`DELETE FROM notifications WHERE user_id = $1::uuid`,

@@ -30,24 +30,25 @@ SiteAnnouncement ── global banner                        (later)
 
 ### User
 
-| Field / concept     | Notes                                                                                                                                            |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Email / password    | Auth; forgot/reset password; change either while signed in (current password required; a new email takes effect only after its link is followed) |
-| Email verification  | Signup sends verification email; link click sets email verified                                                                                  |
-| Age gate            | Must confirm **18+** at signup (checkbox); store acceptance timestamp                                                                            |
-| Name                | Single public name field (no usernames; no first/last/display split)                                                                             |
-| Profile URL         | `/users/:id` (database id)                                                                                                                       |
-| Verification level  | `basic` (email verified) \| `verified` (`.edu`) \| `staff_faculty`                                                                               |
-| Avatar              | Boring Avatars Beam drawn by this site from the user id; initials show when the picture cannot load                                              |
-| Bio, social links   | Profile; a social link is a URL with a label, or a Discord username                                                                              |
-| Timezone            | Default from system; used to display event times                                                                                                 |
-| School affiliations | Selects one home school during signup; can follow additional schools afterward                                                                   |
-| Majors              | Later: multiple allowed (open question in [08](./08-open-questions.md))                                                                          |
-| Graduation          | Later: expected graduation date; alumni still participate                                                                                        |
-| Degree level        | Later: undergrad / graduate / etc. (open question)                                                                                               |
-| Role context        | Later: student, alumni, faculty advisor, etc.                                                                                                    |
-| Role indicators     | Active site-admin grants, school-admin grants, and staff/faculty status produce visible role indicators                                          |
-| List visibility     | `show_in_lists`, default on; off hides the person from the people lists (see rules below)                                                        |
+| Field / concept     | Notes                                                                                                                                                      |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Email / password    | Auth; forgot/reset password; change either while signed in (current password required; a new email takes effect only after its link is followed)           |
+| Email verification  | Signup sends verification email; link click sets email verified                                                                                            |
+| Age gate            | Must confirm **18+** at signup (checkbox); store acceptance timestamp                                                                                      |
+| Name                | Single public name field (no usernames; no first/last/display split)                                                                                       |
+| Profile URL         | `/users/:id` (database id)                                                                                                                                 |
+| Verification level  | `basic` (email verified) \| `verified` (`.edu`) \| `staff_faculty`                                                                                         |
+| Avatar              | Boring Avatars Beam drawn by this site from the user id; initials show when the picture cannot load                                                        |
+| Bio, social links   | Profile; a social link is a URL with a label, or a Discord username                                                                                        |
+| Profile games       | Three ordered lists: Favorite games (at most 5), Games I like, and Want to play. A game is in at most one of a user's lists; adding it to another moves it |
+| Timezone            | Default from system; used to display event times                                                                                                           |
+| School affiliations | Selects one home school during signup; can follow additional schools afterward                                                                             |
+| Majors              | Later: multiple allowed (open question in [08](./08-open-questions.md))                                                                                    |
+| Graduation          | Later: expected graduation date; alumni still participate                                                                                                  |
+| Degree level        | Later: undergrad / graduate / etc. (open question)                                                                                                         |
+| Role context        | Later: student, alumni, faculty advisor, etc.                                                                                                              |
+| Role indicators     | Active site-admin grants, school-admin grants, and staff/faculty status produce visible role indicators                                                    |
+| List visibility     | `show_in_lists`, default on; off hides the person from the people lists (see rules below)                                                                  |
 
 **Rules**
 

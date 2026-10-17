@@ -22,6 +22,8 @@ import {
   updateAccountProfile,
 } from "../features/account-slice/account.functions";
 import type { AccountProfileDTO } from "../features/account-slice/contracts";
+import { ProfileGamesEditor } from "../features/profile-games/profile-games-editor";
+import { getProfileGames } from "../features/profile-games/profile-games.functions";
 import {
   settingsNotices,
   settingsProfileHead,
@@ -36,7 +38,10 @@ export const Route = createFileRoute("/settings/profile")({
     return settings ? { settings } : {};
   },
   loader: async ({ context }) => {
-    const result = await getAccountProfile();
+    const [result, games] = await Promise.all([
+      getAccountProfile(),
+      getProfileGames(),
+    ]);
     if (result.status === "unauthenticated") {
       throw redirect({
         to: "/login",
@@ -47,6 +52,11 @@ export const Route = createFileRoute("/settings/profile")({
       throw new Error("Account details are unavailable");
     }
     return {
+      // A signed-out games read means the session ended between the reads.
+      games:
+        games.status === "unauthenticated"
+          ? { status: "unavailable" as const }
+          : games,
       profile: result.profile,
       publicOrigin: context.publicOrigin,
       timeZones: allTimeZones(),
@@ -61,7 +71,7 @@ export const Route = createFileRoute("/settings/profile")({
 });
 
 function SettingsProfilePage() {
-  const { profile, timeZones } = Route.useLoaderData();
+  const { games, profile, timeZones } = Route.useLoaderData();
   const search = Route.useSearch();
 
   return (
@@ -81,6 +91,7 @@ function SettingsProfilePage() {
         notice={search.settings ? settingsNotices[search.settings] : undefined}
       />
       <ProfileForm profile={profile} timeZones={timeZones} />
+      <ProfileGamesEditor page={games} />
     </>
   );
 }

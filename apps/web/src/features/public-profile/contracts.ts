@@ -1,4 +1,5 @@
 import * as z from "zod";
+import { profileGameListsDtoSchema } from "../profile-games/contracts.js";
 import { pageNoticeKey } from "../../components/page-notice.js";
 import type { WithSchoolLogo } from "../school-slice/contracts.js";
 import { reportUserNotices, type ReportUserNotice } from "./presentation.js";
@@ -49,6 +50,7 @@ export const publicProfileDtoSchema = z.object({
   home_school: schoolSummarySchema.optional(),
   social_links: z.array(socialLinkSchema).optional(),
   role_indicators: z.array(z.string()).optional(),
+  games: profileGameListsDtoSchema.optional(),
 });
 
 export const publicProfileInputSchema = z.object({

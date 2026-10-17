@@ -14,6 +14,7 @@ import (
 
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/apperror"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/auth"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/games"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/policies"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/users"
 	"github.com/jackc/pgx/v5"
@@ -501,7 +502,22 @@ func (r *Router) handleUserPath(w http.ResponseWriter, req *http.Request) {
 		writeApplicationError(w, err, "profile_unavailable")
 		return
 	}
-	writeJSON(w, http.StatusOK, profile)
+	// The lists follow the profile's own visibility: whoever can see the
+	// profile sees them.
+	response := publicProfileResponse{PublicProfile: profile}
+	if r.userGames != nil {
+		if response.Games, err = r.userLists(req.Context(), id); err != nil {
+			writeError(w, http.StatusInternalServerError, "profile_unavailable")
+			return
+		}
+	}
+	writeJSON(w, http.StatusOK, response)
+}
+
+// publicProfileResponse is a public profile with the games its owner lists.
+type publicProfileResponse struct {
+	users.PublicProfile
+	Games games.UserLists `json:"games"`
 }
 
 func (r *Router) allowVisitor(action string, req *http.Request) bool {

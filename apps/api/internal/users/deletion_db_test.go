@@ -116,6 +116,12 @@ func TestDeleteAccountScrubsIdentifyingData(t *testing.T) {
 		t.Fatalf("insert follow: %v", err)
 	}
 	if _, err := pool.Exec(ctx, `
+		WITH game AS (INSERT INTO games (name, slug) VALUES ('Scrub Game', 'scrub-game') RETURNING id)
+		INSERT INTO user_games (user_id, game_id, list, position) SELECT $1::uuid, id, 'favorite', 0 FROM game`,
+		userID); err != nil {
+		t.Fatalf("insert listed game: %v", err)
+	}
+	if _, err := pool.Exec(ctx, `
 		INSERT INTO auth_sessions (user_id, token_hash, expires_at)
 		VALUES ($1::uuid, '\xfe'::bytea, NOW() + INTERVAL '10 days')`, userID); err != nil {
 		t.Fatalf("insert session: %v", err)
@@ -205,6 +211,7 @@ func TestDeleteAccountScrubsIdentifyingData(t *testing.T) {
 	}{
 		{"social links", `SELECT COUNT(*) FROM user_social_links WHERE user_id = $1::uuid`},
 		{"school follows", `SELECT COUNT(*) FROM user_school_follows WHERE user_id = $1::uuid`},
+		{"profile game lists", `SELECT COUNT(*) FROM user_games WHERE user_id = $1::uuid`},
 		{"notifications", `SELECT COUNT(*) FROM notifications WHERE user_id = $1::uuid`},
 		{"live sessions", `SELECT COUNT(*) FROM auth_sessions WHERE user_id = $1::uuid AND revoked_at IS NULL`},
 	} {

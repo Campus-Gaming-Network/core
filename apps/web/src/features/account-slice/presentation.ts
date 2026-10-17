@@ -15,6 +15,16 @@ export const settingsNotices = {
     severity: "danger",
   },
   "profile-updated": { message: "Profile updated.", severity: "success" },
+  "games-updated": { message: "Your games were updated.", severity: "success" },
+  "games-failed": {
+    message: "We could not update your games. Please try again.",
+    severity: "danger",
+  },
+  "favorite-add-failed": {
+    message:
+      "You can list five favorite games. Remove one before you add another.",
+    severity: "danger",
+  },
 } as const satisfies Record<string, PageNotice>;
 
 // Account deletion ends the session and redirects to the home page.

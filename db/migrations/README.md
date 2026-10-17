@@ -114,3 +114,6 @@ Migration `000031_account_email_change.up.sql` adds `email_change_tokens`
 for confirming a new email address, and the `email_change_verification` and
 `email_changed_notice` email kinds. Apply it before deploying the API that
 serves `POST /me/email` and `POST /auth/confirm-email-change`.
+Migration `000032_user_games.up.sql` adds `user_games`, the favorite, liked,
+and want-to-play games a user lists on their profile, with a check that caps
+favorites at five. Apply it before deploying the API that serves `/me/games`.

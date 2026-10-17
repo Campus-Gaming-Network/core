@@ -26,6 +26,7 @@ import type {
 import { validatePublicProfileSearch } from "../features/public-profile/contracts";
 import { SocialLinkIcon } from "../features/public-profile/social-link-icon";
 import profileCSS from "../features/public-profile/profile.css?url";
+import { ProfileGameLists } from "../features/profile-games/profile-game-lists";
 import { socialSite } from "../features/public-profile/social-sites";
 import {
   getPublicProfilePage,
@@ -204,6 +205,7 @@ function PublicProfilePage() {
               </p>
             )}
           </section>
+          <ProfileGameLists lists={profile.games} self={viewer === "self"} />
         </div>
 
         <aside className="layout-detail__aside" aria-label="About this player">

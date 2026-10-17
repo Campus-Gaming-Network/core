@@ -66,6 +66,7 @@ type Router struct {
 	// picker is nil when the IGDB credentials are not configured.
 	picker            gamePicker
 	customGames       customGames
+	userGames         userGameLists
 	gameSearchLimiter *ratelimit.Limiter
 	events            eventstore.Repository
 	teams             teamstore.Repository
@@ -120,6 +121,7 @@ func NewRouter(cfg config.Config, pools ...*pgxpool.Pool) http.Handler {
 		router.games = gameRepository
 		router.covers = gameRepository
 		router.customGames = gameRepository
+		router.userGames = gameRepository
 		router.gameSearchLimiter = ratelimit.New(gameSearchRateLimit, time.Minute)
 		if cfg.IGDBConfigured() {
 			igdbClient = igdb.NewClient(igdb.Config{
@@ -279,6 +281,9 @@ func (r *Router) registerPublicRoutes() {
 	r.mux.HandleFunc("/me/events", r.handleMyEvents)
 	r.mux.HandleFunc("/me/schools", r.handleMySchools)
 	r.mux.HandleFunc("/me/teams", r.handleMyTeams)
+	r.mux.HandleFunc("/me/games", r.handleMyGames)
+	r.mux.HandleFunc("/me/games/{gameID}", requireMethod(http.MethodDelete, r.handleRemoveMyGame))
+	r.mux.HandleFunc("/me/games/{gameID}/position", requireMethod(http.MethodPost, r.handleMoveMyGame))
 	r.mux.HandleFunc("/me", r.handleMe)
 	r.mux.HandleFunc("/users/", r.handleUserPath)
 }

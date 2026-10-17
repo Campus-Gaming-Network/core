@@ -3953,3 +3953,65 @@ button {
     transform: translate(-50%, -50%);
   }
 }
+
+/* Profile game lists: the settings editor and the public profile. Each game
+   is a row with its cover tile and name; the editor adds its buttons. */
+.profile-games {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.profile-games--settings {
+  margin-top: var(--space-6);
+}
+
+.profile-games h2,
+.profile-game-list h3 {
+  margin: 0;
+}
+
+.profile-game-list {
+  display: grid;
+  gap: var(--space-3);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
+}
+
+.profile-game-list__count {
+  color: var(--color-muted);
+  font-weight: 400;
+}
+
+.profile-game-list__games {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.profile-game-list__games li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  min-width: 0;
+}
+
+.profile-game-list__name {
+  flex: 1 1 8rem;
+  min-width: 0;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.profile-game-list__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.profile-game-list__empty {
+  margin: 0;
+  color: var(--color-muted);
+}

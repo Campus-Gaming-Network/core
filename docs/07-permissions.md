@@ -54,6 +54,7 @@ Verification is not a substitute for school admin or site admin.
 | Badge on created event                   |           |                 | ✓            | later        |            | if approved     | ✓                 |
 | Unlock private event (password modal)    | ✓*        | ✓               | ✓            | ✓            | ✓          | ✓               | ✓                 |
 | Mark event interested (favorite)         |           | ✓               | ✓            | ✓            | ✓          | ✓               | ✓                 |
+| List games on own profile                |           | ✓               | ✓            | ✓            | ✓          | ✓               | ✓                 |
 | Create team                              |           | ✓               | ✓            | ✓            | ✓          | ✓               | ✓                 |
 | View team page                           | ✓         | ✓               | ✓            | ✓            | ✓          | ✓               | ✓                 |
 | View people lists (signed in)            |           | ✓               | ✓            | ✓            | ✓          | ✓               | ✓                 |
@@ -148,6 +149,7 @@ The two past-event rows are the intended rule; neither is enforced yet, so organ
 ## Games
 
 - End users: cannot edit a game. A signed-in user can search IGDB, add a result to the catalog, or type a game name while creating an event or team
+- A signed-in user lists games only on their own profile (`/me/games`). The lists are as visible as the profile; no one else can change them
 - Update, hide, delete, and IGDB refresh: **site admin only, via the Admin Console** (`games.manage`). Admins do not create or import games. Hiding or deleting a game stops users from adding it
 
 ## Impersonation (“mimic”)

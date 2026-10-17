@@ -50,6 +50,14 @@ user_social_links
   username,                   -- set when kind is discord, otherwise NULL
   sort_order, ...
 
+user_games
+  user_id, game_id,           -- primary key; a game is in at most one of a user's lists
+  list,                       -- favorite | like | want_to_play
+  position,                   -- order within the list from 0; unique per list, checked at commit
+  created_at
+  -- favorites are capped at 5 by CHECK (list <> 'favorite' OR position < 5)
+  -- a deleted game drops off the lists; account deletion removes the rows
+
 user_majors  (later)
   id, user_id, major_name (or major_id FK if normalized)
 
@@ -360,11 +368,11 @@ Do not list `unlisted` or `private` events in discovery search. Unlisted is reac
 
 ## Soft delete & anonymization
 
-| Case                 | Behavior                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Event cancelled      | Soft delete; public URL shows “no longer exists”; best-effort cancellation email to active yes/maybe RSVPs                                                                                                                                                                                                                                                                                                                                                                                                        |
-| User deletes account | Scrub the account row; delete personal follows, memberships, RSVPs, interests, tokens, and notifications; revoke school-admin and site-admin grants while keeping their history; unassign moderation/support work; detach submitted support tickets and scrub direct contact fields on terminal tickets; transfer created events to the longest-tenured active co-organizer or soft-cancel them; keep required domain FKs and audit history. Free-text retention and final purge policy remain tracked in doc 16. |
-| Hard delete          | Avoid for domain entities unless legally required                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| Case                 | Behavior                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Event cancelled      | Soft delete; public URL shows “no longer exists”; best-effort cancellation email to active yes/maybe RSVPs                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| User deletes account | Scrub the account row; delete personal follows, profile game lists, memberships, RSVPs, interests, tokens, and notifications; revoke school-admin and site-admin grants while keeping their history; unassign moderation/support work; detach submitted support tickets and scrub direct contact fields on terminal tickets; transfer created events to the longest-tenured active co-organizer or soft-cancel them; keep required domain FKs and audit history. Free-text retention and final purge policy remain tracked in doc 16. |
+| Hard delete          | Avoid for domain entities unless legally required                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 
 ## Backups
 
