@@ -1,3 +1,4 @@
+import { Timestamp } from "../components/timestamp";
 import {
   HeadContent,
   Link,
@@ -13,7 +14,6 @@ import {
   DefaultNotFound,
   DefaultPending,
 } from "../components/route-boundaries";
-import { formatTimestamp } from "../features/moderation/moderation-components";
 import { getAdminShellSession, logout } from "../features/session.functions";
 import { initialColorTheme, toggleColorTheme } from "../features/theme";
 import type { AdminSession } from "../server/contracts.server";
@@ -271,10 +271,7 @@ function AuthenticatedShell({
           <div className="operator-card__identity">
             <strong title={session.email}>{session.email}</strong>
             <span>
-              Session ends{" "}
-              <time dateTime={session.absolute_expires_at}>
-                {formatTimestamp(session.absolute_expires_at)} UTC
-              </time>
+              Session ends <Timestamp value={session.absolute_expires_at} />
             </span>
           </div>
           <div className="operator-actions">

@@ -1,3 +1,4 @@
+import { Timestamp } from "../components/timestamp";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { DataTable, dataColumn } from "../components/data-table";
 import { UserLink } from "../components/user-link";
@@ -8,7 +9,6 @@ import {
   validateAuditLogSearch,
   type AuditLogEntry,
 } from "../features/audit-log/contracts";
-import { formatTimestamp } from "../features/moderation/moderation-components";
 
 export const Route = createFileRoute("/audit-log")({
   validateSearch: validateAuditLogSearch,
@@ -81,9 +81,7 @@ const auditLogColumns = [
     id: "created_at",
     header: "When",
     sortValue: (row) => row.created_at,
-    cell: (row) => (
-      <time dateTime={row.created_at}>{formatTimestamp(row.created_at)}</time>
-    ),
+    cell: (row) => <Timestamp value={row.created_at} />,
   }),
   dataColumn<AuditLogEntry>({
     id: "action",

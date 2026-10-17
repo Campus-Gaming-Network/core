@@ -1,9 +1,9 @@
+import { Timestamp } from "../components/timestamp";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import {
   QueueFilters,
   QueuePagination,
   QueueStatusBadge,
-  formatTimestamp,
 } from "../features/moderation/moderation-components";
 import { UserLink } from "../components/user-link";
 import { DataTable, dataColumn } from "../components/data-table";
@@ -75,9 +75,7 @@ const ticketColumns = [
     id: "created_at",
     header: "Created",
     sortValue: (row) => row.created_at,
-    cell: (row) => (
-      <time dateTime={row.created_at}>{formatTimestamp(row.created_at)}</time>
-    ),
+    cell: (row) => <Timestamp value={row.created_at} />,
   }),
 ];
 

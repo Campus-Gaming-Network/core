@@ -1,3 +1,4 @@
+import { Timestamp } from "../../components/timestamp";
 import { UserLink } from "../../components/user-link";
 import { useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
@@ -8,10 +9,7 @@ import {
   type FormEvent,
   type ReactNode,
 } from "react";
-import {
-  FieldError,
-  formatTimestamp,
-} from "../moderation/moderation-components";
+import { FieldError } from "../moderation/moderation-components";
 import {
   catalogCommands,
   catalogNotices,
@@ -640,9 +638,7 @@ export function CatalogAuditPanel({
               <div>
                 <div className="audit-title">
                   <strong>{auditActionLabels[entry.action]}</strong>
-                  <time dateTime={entry.created_at}>
-                    {formatTimestamp(entry.created_at)}
-                  </time>
+                  <Timestamp value={entry.created_at} />
                 </div>
                 {entry.reason ? (
                   <p className="stored-content">{entry.reason}</p>

@@ -1,3 +1,4 @@
+import { Timestamp } from "../components/timestamp";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { UserLink } from "../components/user-link";
 import { CopyIdButton } from "../components/copy-id-button";
@@ -7,7 +8,6 @@ import {
   DetailNotice,
   QueueMutationForm,
   QueueStatusBadge,
-  formatTimestamp,
 } from "../features/moderation/moderation-components";
 import { validateModerationDetailSearch } from "../features/moderation/contracts";
 import { getSupportDetail } from "../features/moderation/moderation.functions";
@@ -81,15 +81,11 @@ function SupportTicketDetailPage() {
           </DetailFact>
           <DetailFact label="Contact email">{ticket.contact_email}</DetailFact>
           <DetailFact label="Submitted">
-            <time dateTime={ticket.created_at}>
-              {formatTimestamp(ticket.created_at)}
-            </time>
+            <Timestamp value={ticket.created_at} />
           </DetailFact>
           <DetailFact label="Retention started">
             {ticket.retention_started_at ? (
-              <time dateTime={ticket.retention_started_at}>
-                {formatTimestamp(ticket.retention_started_at)}
-              </time>
+              <Timestamp value={ticket.retention_started_at} />
             ) : (
               "Not started"
             )}

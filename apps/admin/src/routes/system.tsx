@@ -1,8 +1,6 @@
+import { Timestamp } from "../components/timestamp";
 import { createFileRoute } from "@tanstack/react-router";
-import {
-  DetailFact,
-  formatTimestamp,
-} from "../features/moderation/moderation-components";
+import { DetailFact } from "../features/moderation/moderation-components";
 import {
   systemCheckLabels,
   systemStatusLabels,
@@ -78,10 +76,7 @@ function SystemPage() {
           {outbox.oldest_pending_at ? (
             <>
               Oldest waiting message queued{" "}
-              <time dateTime={outbox.oldest_pending_at}>
-                {formatTimestamp(outbox.oldest_pending_at)}
-              </time>
-              .
+              <Timestamp value={outbox.oldest_pending_at} />.
             </>
           ) : (
             "No email is waiting."

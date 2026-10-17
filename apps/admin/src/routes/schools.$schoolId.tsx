@@ -1,3 +1,4 @@
+import { Timestamp } from "../components/timestamp";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { CopyIdButton } from "../components/copy-id-button";
 import {
@@ -12,10 +13,7 @@ import {
 } from "../features/catalog/catalog-components";
 import { getSchoolDetail } from "../features/catalog/catalog.functions";
 import { validateCatalogDetailSearch } from "../features/catalog/contracts";
-import {
-  DetailFact,
-  formatTimestamp,
-} from "../features/moderation/moderation-components";
+import { DetailFact } from "../features/moderation/moderation-components";
 
 export const Route = createFileRoute("/schools/$schoolId")({
   validateSearch: validateCatalogDetailSearch,
@@ -91,9 +89,7 @@ function SchoolDetailPage() {
             {school.website_url || "Not set"}
           </DetailFact>
           <DetailFact label="Last changed">
-            <time dateTime={school.updated_at}>
-              {formatTimestamp(school.updated_at)}
-            </time>
+            <Timestamp value={school.updated_at} />
           </DetailFact>
         </dl>
       </section>

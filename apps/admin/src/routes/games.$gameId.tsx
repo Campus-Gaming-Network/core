@@ -1,3 +1,4 @@
+import { Timestamp } from "../components/timestamp";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { CopyIdButton } from "../components/copy-id-button";
 import {
@@ -10,10 +11,7 @@ import {
 } from "../features/catalog/catalog-components";
 import { getGameDetail } from "../features/catalog/catalog.functions";
 import { validateCatalogDetailSearch } from "../features/catalog/contracts";
-import {
-  DetailFact,
-  formatTimestamp,
-} from "../features/moderation/moderation-components";
+import { DetailFact } from "../features/moderation/moderation-components";
 
 export const Route = createFileRoute("/games/$gameId")({
   validateSearch: validateCatalogDetailSearch,
@@ -88,15 +86,11 @@ function GameDetailPage() {
           </DetailFact>
           {game.last_synced_at ? (
             <DetailFact label="Last synced with IGDB">
-              <time dateTime={game.last_synced_at}>
-                {formatTimestamp(game.last_synced_at)}
-              </time>
+              <Timestamp value={game.last_synced_at} />
             </DetailFact>
           ) : null}
           <DetailFact label="Last changed">
-            <time dateTime={game.updated_at}>
-              {formatTimestamp(game.updated_at)}
-            </time>
+            <Timestamp value={game.updated_at} />
           </DetailFact>
         </dl>
       </section>

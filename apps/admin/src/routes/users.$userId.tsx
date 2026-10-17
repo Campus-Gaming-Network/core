@@ -1,3 +1,4 @@
+import { Timestamp } from "../components/timestamp";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { CopyIdButton } from "../components/copy-id-button";
 import {
@@ -17,7 +18,6 @@ import type { ReportSummary } from "../features/moderation/contracts";
 import {
   DetailFact,
   QueueStatusBadge,
-  formatTimestamp,
 } from "../features/moderation/moderation-components";
 
 export const Route = createFileRoute("/users/$userId")({
@@ -52,7 +52,7 @@ const reportColumns = [
         params={{ reportId: row.id }}
         to="/reports/$reportId"
       >
-        <time dateTime={row.created_at}>{formatTimestamp(row.created_at)}</time>
+        <Timestamp value={row.created_at} />
       </Link>
     ),
   }),
@@ -124,9 +124,7 @@ function UserDetailPage() {
           <DetailFact label="Email">{user.email}</DetailFact>
           <DetailFact label="Email verified">
             {user.email_verified_at ? (
-              <time dateTime={user.email_verified_at}>
-                {formatTimestamp(user.email_verified_at)}
-              </time>
+              <Timestamp value={user.email_verified_at} />
             ) : (
               "Not verified"
             )}
@@ -153,9 +151,7 @@ function UserDetailPage() {
             {user.school_admin_count}
           </DetailFact>
           <DetailFact label="Last changed">
-            <time dateTime={user.updated_at}>
-              {formatTimestamp(user.updated_at)}
-            </time>
+            <Timestamp value={user.updated_at} />
           </DetailFact>
         </dl>
       </section>

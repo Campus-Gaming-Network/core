@@ -1,3 +1,4 @@
+import { Timestamp } from "../components/timestamp";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { UserLink } from "../components/user-link";
 import { CopyIdButton } from "../components/copy-id-button";
@@ -7,7 +8,6 @@ import {
   DetailNotice,
   QueueMutationForm,
   QueueStatusBadge,
-  formatTimestamp,
 } from "../features/moderation/moderation-components";
 import { validateModerationDetailSearch } from "../features/moderation/contracts";
 import { getReportDetail } from "../features/moderation/moderation.functions";
@@ -91,15 +91,11 @@ function ReportDetailPage() {
             />
           </DetailFact>
           <DetailFact label="Submitted">
-            <time dateTime={report.created_at}>
-              {formatTimestamp(report.created_at)}
-            </time>
+            <Timestamp value={report.created_at} />
           </DetailFact>
           <DetailFact label="Retention started">
             {report.retention_started_at ? (
-              <time dateTime={report.retention_started_at}>
-                {formatTimestamp(report.retention_started_at)}
-              </time>
+              <Timestamp value={report.retention_started_at} />
             ) : (
               "Not started"
             )}

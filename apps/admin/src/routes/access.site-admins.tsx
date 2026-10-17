@@ -1,3 +1,4 @@
+import { Timestamp } from "../components/timestamp";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import {
   CatalogNoticeView,
@@ -12,7 +13,6 @@ import {
   validateCatalogDetailSearch,
   validateCatalogSearch,
 } from "../features/catalog/contracts";
-import { formatTimestamp } from "../features/moderation/moderation-components";
 
 export const Route = createFileRoute("/access/site-admins")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -83,16 +83,11 @@ function SiteAdminsPage() {
                 <StateBadge state={grant.revoked_at ? "revoked" : "active"} />
               </p>
               <p className="audit-meta">
-                Granted{" "}
-                <time dateTime={grant.granted_at}>
-                  {formatTimestamp(grant.granted_at)}
-                </time>
+                Granted <Timestamp value={grant.granted_at} />
                 {grant.revoked_at ? (
                   <>
                     {" · Revoked "}
-                    <time dateTime={grant.revoked_at}>
-                      {formatTimestamp(grant.revoked_at)}
-                    </time>
+                    <Timestamp value={grant.revoked_at} />
                   </>
                 ) : null}
               </p>

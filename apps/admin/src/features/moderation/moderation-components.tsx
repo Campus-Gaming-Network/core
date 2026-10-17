@@ -1,3 +1,4 @@
+import { Timestamp } from "../../components/timestamp";
 import { UserLink } from "../../components/user-link";
 import { useRouteContext, useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
@@ -345,9 +346,7 @@ export function AuditPanel({
               <div>
                 <div className="audit-title">
                   <strong>{auditActionLabel(entry.action)}</strong>
-                  <time dateTime={entry.created_at}>
-                    {formatTimestamp(entry.created_at)}
-                  </time>
+                  <Timestamp value={entry.created_at} />
                 </div>
                 <p>
                   <QueueStatusBadge status={entry.before.status} />
@@ -417,14 +416,6 @@ export function DetailFact({
   );
 }
 
-export function formatTimestamp(value: string): string {
-  return new Intl.DateTimeFormat("en", {
-    dateStyle: "medium",
-    timeStyle: "short",
-    timeZone: "UTC",
-  }).format(new Date(value));
-}
-
 function ConflictState({ item }: { item: Report | SupportTicket }) {
   return (
     <aside className="conflict-panel" aria-labelledby="conflict-heading">
@@ -441,9 +432,7 @@ function ConflictState({ item }: { item: Report | SupportTicket }) {
           />
         </DetailFact>
         <DetailFact label="Last changed">
-          <time dateTime={item.updated_at}>
-            {formatTimestamp(item.updated_at)}
-          </time>
+          <Timestamp value={item.updated_at} />
         </DetailFact>
       </dl>
     </aside>
