@@ -167,6 +167,10 @@ const transferTeamOwnershipInputSchema = teamSlugInputSchema.extend({
   new_owner_user_id: identifierSchema,
 });
 
+const removeTeamMemberInputSchema = teamSlugInputSchema.extend({
+  user_id: identifierSchema,
+});
+
 export const newTeamPageInputSchema = z.object({
   schoolQuery: filterSchema,
 });
@@ -190,6 +194,10 @@ export type JoinTeamInput = z.output<typeof joinTeamInputSchema>;
 export type SetTeamCaptainInput = z.output<typeof setTeamCaptainInputSchema>;
 export type TransferTeamOwnershipInput = z.output<
   typeof transferTeamOwnershipInputSchema
+>;
+export type LeaveTeamInput = z.output<typeof teamSlugInputSchema>;
+export type RemoveTeamMemberInput = z.output<
+  typeof removeTeamMemberInputSchema
 >;
 export type NewTeamPageInput = z.output<typeof newTeamPageInputSchema>;
 
@@ -380,6 +388,29 @@ export function validateTransferTeamOwnershipServerInput(
   };
   return validationResult(
     transferTeamOwnershipInputSchema.safeParse(candidate),
+    validFailureSlug(candidate.slug),
+  );
+}
+
+export function validateLeaveTeamServerInput(
+  input: LeaveTeamInput | FormData,
+): ValidatedTeamInput<LeaveTeamInput> {
+  const candidate = { slug: inputValue(input, "slug") };
+  return validationResult(
+    teamSlugInputSchema.safeParse(candidate),
+    validFailureSlug(candidate.slug),
+  );
+}
+
+export function validateRemoveTeamMemberServerInput(
+  input: RemoveTeamMemberInput | FormData,
+): ValidatedTeamInput<RemoveTeamMemberInput> {
+  const candidate = {
+    slug: inputValue(input, "slug"),
+    user_id: inputValue(input, "user_id"),
+  };
+  return validationResult(
+    removeTeamMemberInputSchema.safeParse(candidate),
     validFailureSlug(candidate.slug),
   );
 }

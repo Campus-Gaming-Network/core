@@ -106,6 +106,9 @@ The two past-event rows are the intended rule; neither is enforced yet, so organ
 - Anyone authenticated (email-verified) can create a team
 - Team pages are **public**; password required only to **join / interact** (no invite-link tokens yet)
 - Owner can transfer ownership
+- Members and captains can leave a team; the owner must transfer ownership
+  first. Only the owner can remove another member. Leaving or removal clears
+  any captain role, and the person may rejoin with the team password
 - Captains can be assigned; captains register teams for team tournaments
 - User may create and belong to many teams
 - Teams may optionally be assigned to a **club** (Varsity, JV, etc.)

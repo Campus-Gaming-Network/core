@@ -165,6 +165,8 @@ Signup also requires confirming **age 18+**. Alumni can participate. Faculty who
 - Team pages are **public**; password only required to **join / interact**
 - Share team URL freely; no invite-link tokens at launch (maybe later)
 - Owner can transfer ownership; users can assign captains
+- Members can leave a team, and the owner can remove members; the owner
+  transfers ownership before leaving
 - Schools can have sponsored teams
 - Teams reference one or more games
 - Signed-in people see a team's members with their roles; see

@@ -94,6 +94,13 @@
   margin: 0;
 }
 
+/* The captain toggle and Remove sit together at the row's end. */
+.team-management-row__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
 .team-transfer-form {
   display: grid;
   justify-items: start;

@@ -26,6 +26,9 @@ var (
 	ErrNotTeamOwner       = apperror.New(apperror.KindAuthorization, "not_team_owner", "not team owner")
 	ErrTeamMemberNotFound = apperror.New(apperror.KindUnprocessable, "team_member_not_found", "team member not found")
 	ErrInvalidTeamRole    = apperror.New(apperror.KindValidation, "invalid_team_role", "invalid team role")
+	// ErrOwnerCannotLeave reports an owner trying to leave; a team always has
+	// an owner, so the owner transfers ownership first.
+	ErrOwnerCannotLeave = apperror.New(apperror.KindConflict, "team_owner_cannot_leave", "transfer ownership before leaving the team")
 	// ErrIdempotencyKeyReused reports a key whose original team belongs to
 	// another owner or has since been deleted.
 	ErrIdempotencyKeyReused = apperror.New(apperror.KindConflict, "idempotency_key_reused", "idempotency key was used by another request")
@@ -120,6 +123,8 @@ type Repository interface {
 	ListForUser(ctx context.Context, userID string, limit int) ([]Team, error)
 	SetCaptain(ctx context.Context, slug string, ownerUserID string, memberUserID string, captain bool) (Team, error)
 	TransferOwnership(ctx context.Context, slug string, ownerUserID string, newOwnerUserID string) (Team, error)
+	Leave(ctx context.Context, slug string, userID string) (Team, error)
+	RemoveMember(ctx context.Context, slug string, ownerUserID string, memberUserID string) (Team, error)
 	ListPublic(ctx context.Context, params ListParams) ([]Team, error)
 	GetBySlug(ctx context.Context, slug string) (Team, error)
 }
@@ -580,6 +585,109 @@ func (r *PostgresRepository) TransferOwnership(ctx context.Context, slug string,
 	}
 
 	return r.teamForViewer(ctx, slug, ownerUserID)
+}
+
+// Leave ends the user's membership and returns the team as a non-member sees
+// it. The owner cannot leave until they transfer ownership. A captain who
+// leaves stops being one; rejoining with the password starts as a member.
+func (r *PostgresRepository) Leave(ctx context.Context, slug string, userID string) (Team, error) {
+	slug = strings.TrimSpace(slug)
+	userID = strings.TrimSpace(userID)
+	if slug == "" || userID == "" {
+		return Team{}, apperror.Validation("team slug and user are required")
+	}
+
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return Team{}, fmt.Errorf("begin leave team: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	// Lock the team so a concurrent ownership transfer cannot hand it to a
+	// member who is leaving.
+	var teamID string
+	err = tx.QueryRow(ctx, `
+		SELECT id::text
+		FROM teams
+		WHERE slug = $1
+		  AND deleted_at IS NULL
+		FOR UPDATE
+	`, slug).Scan(&teamID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return Team{}, ErrTeamNotFound
+	}
+	if err != nil {
+		return Team{}, fmt.Errorf("lock team to leave: %w", err)
+	}
+	role, err := activeMemberRole(ctx, tx, teamID, userID)
+	if err != nil {
+		return Team{}, err
+	}
+	if role == RoleOwner {
+		return Team{}, ErrOwnerCannotLeave
+	}
+	if err := endMembership(ctx, tx, teamID, userID); err != nil {
+		return Team{}, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return Team{}, fmt.Errorf("commit leave team: %w", err)
+	}
+
+	return r.GetBySlug(ctx, slug)
+}
+
+// RemoveMember ends another member's membership, captain or not. Only the
+// team's owner may call it, and the owner cannot remove themselves. The
+// removed person may rejoin with the team password.
+func (r *PostgresRepository) RemoveMember(ctx context.Context, slug string, ownerUserID string, memberUserID string) (Team, error) {
+	slug = strings.TrimSpace(slug)
+	ownerUserID = strings.TrimSpace(ownerUserID)
+	memberUserID = strings.TrimSpace(memberUserID)
+	if slug == "" || ownerUserID == "" || memberUserID == "" {
+		return Team{}, apperror.Validation("team slug, owner, and member are required")
+	}
+
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return Team{}, fmt.Errorf("begin remove team member: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	teamID, err := r.teamIDForOwner(ctx, tx, slug, ownerUserID)
+	if err != nil {
+		return Team{}, err
+	}
+	role, err := activeMemberRole(ctx, tx, teamID, memberUserID)
+	if err != nil {
+		return Team{}, err
+	}
+	if role == RoleOwner {
+		return Team{}, ErrInvalidTeamRole
+	}
+	if err := endMembership(ctx, tx, teamID, memberUserID); err != nil {
+		return Team{}, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return Team{}, fmt.Errorf("commit remove team member: %w", err)
+	}
+
+	return r.teamForViewer(ctx, slug, ownerUserID)
+}
+
+// endMembership soft-deletes an active membership and clears its captain
+// role, so a later rejoin starts as a member.
+func endMembership(ctx context.Context, tx pgx.Tx, teamID string, userID string) error {
+	if _, err := tx.Exec(ctx, `
+		UPDATE team_members
+		SET deleted_at = NOW(),
+		    role = 'member'
+		WHERE team_id = $1::uuid
+		  AND user_id = $2::uuid
+		  AND deleted_at IS NULL
+	`, teamID, userID); err != nil {
+		return fmt.Errorf("end team membership: %w", err)
+	}
+	return nil
 }
 
 func (r *PostgresRepository) createWithSlug(ctx context.Context, params CreateParams, slug string) (string, error) {

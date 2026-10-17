@@ -4,6 +4,8 @@ import { createApiClient, type Fetcher } from "../src/server/api.server.js";
 import {
   validateCreateTeamServerInput,
   validateJoinTeamServerInput,
+  validateLeaveTeamServerInput,
+  validateRemoveTeamMemberServerInput,
   validateSetTeamCaptainServerInput,
   validateTransferTeamOwnershipServerInput,
   teamDtoSchema,
@@ -16,6 +18,8 @@ import {
 import {
   createTeamOperation,
   joinTeamOperation,
+  leaveTeamOperation,
+  removeTeamMemberOperation,
   newTeamPageOperation,
   safeTeamMutationMessage,
   setTeamCaptainOperation,
@@ -608,6 +612,17 @@ test("team write validators normalize typed and native inputs without accepting 
     }).valid,
     false,
   );
+  const leaveForm = new FormData();
+  leaveForm.set("slug", " team-a ");
+  const removeForm = new FormData();
+  removeForm.set("slug", "team-a");
+  assert.deepEqual(
+    [
+      validateLeaveTeamServerInput(leaveForm),
+      validateRemoveTeamMemberServerInput(removeForm).valid,
+    ],
+    [{ valid: true, value: { slug: "team-a" } }, false],
+  );
   assert.deepEqual(
     validateNewTeamSearch({ school_q: " Example ", team: "x" }),
     {
@@ -669,6 +684,11 @@ test("team mutations use exact Go endpoints, request cookies, and minimal respon
       { slug: "team/a", new_owner_user_id: "member-2" },
       dependencies,
     ),
+    leaveTeamOperation({ slug: "team/a" }, dependencies),
+    removeTeamMemberOperation(
+      { slug: "team/a", user_id: "member-3" },
+      dependencies,
+    ),
   ]);
 
   assert.deepEqual(
@@ -678,22 +698,26 @@ test("team mutations use exact Go endpoints, request cookies, and minimal respon
       "http://api:8080/teams/team%2Fa/join",
       "http://api:8080/teams/team%2Fa/captains",
       "http://api:8080/teams/team%2Fa/transfer-ownership",
+      "http://api:8080/teams/team%2Fa/leave",
+      "http://api:8080/teams/team%2Fa/remove-member",
     ],
   );
   assert.deepEqual(
     calls.map(({ method }) => method),
-    ["POST", "POST", "POST", "POST"],
+    ["POST", "POST", "POST", "POST", "POST", "POST"],
   );
   assert.ok(calls.every(({ cookie }) => cookie === "cgn_session=server-only"));
   assert.deepEqual(
     calls.map((call) => call.idempotencyKey),
-    [idempotencyKey, null, null, null],
+    [idempotencyKey, null, null, null, null, null],
   );
   assert.ok(calls[0]);
   assert.equal("idempotency_key" in (calls[0].body as object), false);
   assert.deepEqual(calls[1]?.body, { password: "TeamPass8" });
   assert.deepEqual(calls[2]?.body, { user_id: "member-1", captain: true });
   assert.deepEqual(calls[3]?.body, { new_owner_user_id: "member-2" });
+  assert.deepEqual(calls[4]?.body, {});
+  assert.deepEqual(calls[5]?.body, { user_id: "member-3" });
   assert.deepEqual(
     results.map((result) =>
       result.status === "success" ? result.redirectTo : result.status,
@@ -703,6 +727,8 @@ test("team mutations use exact Go endpoints, request cookies, and minimal respon
       "/teams/returned%2Fteam?team=joined",
       "/teams/returned%2Fteam?team=captain-updated",
       "/teams/returned%2Fteam?team=ownership-transferred",
+      "/teams/returned%2Fteam?team=left",
+      "/teams/returned%2Fteam?team=member-removed",
     ],
   );
   assert.equal(JSON.stringify(results).includes("must-not-serialize"), false);
@@ -792,5 +818,29 @@ test("a team needs one game from the list, from search, or typed in", () => {
       password: "TeamPass8",
       idempotency_key: idempotencyKey,
     },
+  });
+});
+
+test("an owner who tries to leave is told to transfer ownership first", async () => {
+  const result = await leaveTeamOperation(
+    { slug: "team-a" },
+    {
+      api: client(async (input) =>
+        String(input).endsWith("/me")
+          ? Response.json(profile)
+          : Response.json(
+              { error: "team_owner_cannot_leave" },
+              { status: 409 },
+            ),
+      ),
+      cookieHeader: "cgn_session=owner",
+      sessionCookieValue: "owner",
+      reportError: () => {},
+    },
+  );
+
+  assert.deepEqual(result, {
+    status: "error",
+    message: "Transfer ownership to another member before you leave the team.",
   });
 });

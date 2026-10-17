@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -408,6 +409,7 @@ func TestHandleTeamMemberCommandsRejectMalformedUserIDs(t *testing.T) {
 	}{
 		{name: "captain", path: "/teams/varsity-rocket-league/captains", body: `{"user_id":"not-a-uuid","captain":true}`},
 		{name: "transfer", path: "/teams/varsity-rocket-league/transfer-ownership", body: `{"new_owner_user_id":"not-a-uuid"}`},
+		{name: "remove", path: "/teams/varsity-rocket-league/remove-member", body: `{"user_id":"not-a-uuid"}`},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			repository := &fakeTeamRepository{detail: testTeam()}
@@ -418,7 +420,7 @@ func TestHandleTeamMemberCommandsRejectMalformedUserIDs(t *testing.T) {
 			if response.Code != http.StatusBadRequest || !strings.Contains(response.Body.String(), "invalid_id") {
 				t.Fatalf("response = %d %s, want 400 invalid_id", response.Code, response.Body.String())
 			}
-			if repository.setCaptainCalled || repository.transferCalled {
+			if repository.setCaptainCalled || repository.transferCalled || repository.removeCalled {
 				t.Fatal("repository was called with a malformed user ID")
 			}
 		})
@@ -438,5 +440,62 @@ func TestHandleTransferTeamOwnershipMapsMissingMember(t *testing.T) {
 	}
 	if !strings.Contains(response.Body.String(), "team_member_not_found") {
 		t.Fatalf("body = %s, want team_member_not_found", response.Body.String())
+	}
+}
+
+func TestHandleLeaveAndRemoveTeamMemberCallTheirOperations(t *testing.T) {
+	leaveRepository := &fakeTeamRepository{}
+	leave := httptest.NewRecorder()
+	authenticatedTeamPathHandler(leaveRepository).ServeHTTP(leave,
+		authenticatedEventRequest(http.MethodPost, "/teams/varsity-rocket-league/leave", ``))
+
+	removeRepository := &fakeTeamRepository{}
+	remove := httptest.NewRecorder()
+	authenticatedTeamPathHandler(removeRepository).ServeHTTP(remove,
+		authenticatedEventRequest(http.MethodPost, "/teams/varsity-rocket-league/remove-member", `{"user_id":"`+testTeamCaptainID+`"}`))
+
+	type call struct {
+		Status int
+		Called bool
+		Slug   string
+		Users  []string
+	}
+	got := []call{
+		{leave.Code, leaveRepository.leaveCalled, leaveRepository.leaveSlug, []string{leaveRepository.leaveUserID}},
+		{remove.Code, removeRepository.removeCalled, removeRepository.removeSlug, []string{removeRepository.removeOwnerID, removeRepository.removeUserID}},
+	}
+	want := []call{
+		{http.StatusOK, true, "varsity-rocket-league", []string{testUserID}},
+		{http.StatusOK, true, "varsity-rocket-league", []string{testUserID, testTeamCaptainID}},
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("calls = %+v, want %+v", got, want)
+	}
+}
+
+func TestHandleLeaveAndRemoveTeamMemberMapErrors(t *testing.T) {
+	for _, test := range []struct {
+		name   string
+		path   string
+		body   string
+		err    error
+		status int
+		code   string
+	}{
+		{name: "owner leaving", path: "leave", err: teamstore.ErrOwnerCannotLeave, status: http.StatusConflict, code: "team_owner_cannot_leave"},
+		{name: "non-member leaving", path: "leave", err: teamstore.ErrTeamMemberNotFound, status: http.StatusUnprocessableEntity, code: "team_member_not_found"},
+		{name: "non-owner removing", path: "remove-member", body: `{"user_id":"` + testTeamCaptainID + `"}`, err: teamstore.ErrNotTeamOwner, status: http.StatusForbidden, code: "not_team_owner"},
+		{name: "removing a non-member", path: "remove-member", body: `{"user_id":"` + testTeamCaptainID + `"}`, err: teamstore.ErrTeamMemberNotFound, status: http.StatusUnprocessableEntity, code: "team_member_not_found"},
+		{name: "removing the owner", path: "remove-member", body: `{"user_id":"` + testTeamCaptainID + `"}`, err: teamstore.ErrInvalidTeamRole, status: http.StatusBadRequest, code: "invalid_team_role"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			response := httptest.NewRecorder()
+			authenticatedTeamPathHandler(&fakeTeamRepository{err: test.err}).ServeHTTP(response,
+				authenticatedEventRequest(http.MethodPost, "/teams/varsity-rocket-league/"+test.path, test.body))
+
+			if response.Code != test.status || !strings.Contains(response.Body.String(), test.code) {
+				t.Fatalf("response = %d %s, want %d %s", response.Code, response.Body.String(), test.status, test.code)
+			}
+		})
 	}
 }

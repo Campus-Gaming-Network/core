@@ -14,16 +14,22 @@ import {
   teamsBrowsePageInputSchema,
   validateCreateTeamServerInput,
   validateJoinTeamServerInput,
+  validateLeaveTeamServerInput,
+  validateRemoveTeamMemberServerInput,
   validateSetTeamCaptainServerInput,
   validateTransferTeamOwnershipServerInput,
   type CreateTeamFormInput,
   type JoinTeamInput,
+  type LeaveTeamInput,
+  type RemoveTeamMemberInput,
   type SetTeamCaptainInput,
   type TransferTeamOwnershipInput,
 } from "./contracts.js";
 import {
   createTeamOperation,
   joinTeamOperation,
+  leaveTeamOperation,
+  removeTeamMemberOperation,
   newTeamPageOperation,
   setTeamCaptainOperation,
   teamDetailOperation,
@@ -184,6 +190,68 @@ export const transferTeamOwnership = createServerFn({
     return result;
   });
 
+export const leaveTeam = createServerFn({
+  method: "POST",
+  strict: { input: false },
+})
+  .validator((input: LeaveTeamInput | FormData) =>
+    validateLeaveTeamServerInput(input),
+  )
+  .handler(async ({ data }) => {
+    setPrivateNoStoreResponse();
+    const nativeForm = isNativeFormPost();
+    if (!data.valid) {
+      if (nativeForm) {
+        throwTeamRedirect(teamFailureDestination(data.slug, "leave-failed"));
+      }
+      return validationFailure(data);
+    }
+
+    const result = await leaveTeamOperation(
+      data.value,
+      currentSessionRequest(),
+    );
+    if (nativeForm) {
+      throwTeamRedirect(
+        result.status === "success"
+          ? result.redirectTo
+          : teamFailureDestination(data.value.slug, "leave-failed"),
+      );
+    }
+    return result;
+  });
+
+export const removeTeamMember = createServerFn({
+  method: "POST",
+  strict: { input: false },
+})
+  .validator((input: RemoveTeamMemberInput | FormData) =>
+    validateRemoveTeamMemberServerInput(input),
+  )
+  .handler(async ({ data }) => {
+    setPrivateNoStoreResponse();
+    const nativeForm = isNativeFormPost();
+    if (!data.valid) {
+      if (nativeForm) {
+        throwTeamRedirect(teamFailureDestination(data.slug, "manage-failed"));
+      }
+      return validationFailure(data);
+    }
+
+    const result = await removeTeamMemberOperation(
+      data.value,
+      currentSessionRequest(),
+    );
+    if (nativeForm) {
+      throwTeamRedirect(
+        result.status === "success"
+          ? result.redirectTo
+          : teamFailureDestination(data.value.slug, "manage-failed"),
+      );
+    }
+    return result;
+  });
+
 function validationFailure(data: {
   message: "Check the highlighted fields and try again.";
   fieldErrors: Record<string, string[] | undefined>;
@@ -197,7 +265,7 @@ function validationFailure(data: {
 
 function teamFailureDestination(
   slug: string | undefined,
-  notice: "join-failed" | "manage-failed",
+  notice: "join-failed" | "manage-failed" | "leave-failed",
 ): string {
   return slug
     ? `/teams/${encodeURIComponent(slug)}?team=${notice}`

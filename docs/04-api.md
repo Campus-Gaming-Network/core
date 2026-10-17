@@ -145,16 +145,20 @@ a Discord link as text because a username has no page to link to.
 
 ### Teams
 
-| Method | Path                              | Notes                                                                                                                                            |
-| ------ | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| POST   | `/teams`                          | Anyone authenticated                                                                                                                             |
-| GET    | `/teams`                          | Public browse; `game`, `school`, `limit`, and opaque `after`/`before` cursors; response includes `has_more` and `has_previous`                   |
-| GET    | `/teams/:slug`                    | **Public** team page                                                                                                                             |
-| GET    | `/teams/:slug/members`            | Auth required (the team page itself is public); the [people list](#people-lists) of members with their `role`; `404 team_not_found` when missing |
-| POST   | `/teams/:slug/join`               | Password required to join/interact                                                                                                               |
-| POST   | `/teams/:slug/transfer-ownership` | Owner                                                                                                                                            |
-| POST   | `/teams/:slug/captains`           | Assign captains                                                                                                                                  |
-| GET    | `/teams/:slug/audit`              | **(planned)** Team change history                                                                                                                |
+| Method | Path                              | Notes                                                                                                                                                                                |
+| ------ | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| POST   | `/teams`                          | Anyone authenticated                                                                                                                                                                 |
+| GET    | `/teams`                          | Public browse; `game`, `school`, `limit`, and opaque `after`/`before` cursors; response includes `has_more` and `has_previous`                                                       |
+| GET    | `/teams/:slug`                    | **Public** team page                                                                                                                                                                 |
+| GET    | `/teams/:slug/members`            | Auth required (the team page itself is public); the [people list](#people-lists) of members with their `role`; `404 team_not_found` when missing                                     |
+| POST   | `/teams/:slug/join`               | Password required to join/interact                                                                                                                                                   |
+| POST   | `/teams/:slug/transfer-ownership` | Owner                                                                                                                                                                                |
+| POST   | `/teams/:slug/captains`           | Assign captains                                                                                                                                                                      |
+| POST   | `/teams/:slug/leave`              | Auth; a member or captain leaves (no body). The owner gets `409 team_owner_cannot_leave` and must transfer ownership first; a non-member gets `422 team_member_not_found`            |
+| POST   | `/teams/:slug/remove-member`      | Owner; `{ "user_id" }` of another member or captain. A non-owner gets `403 not_team_owner`, a non-member `422 team_member_not_found`, and the owner's own ID `400 invalid_team_role` |
+| GET    | `/teams/:slug/audit`              | **(planned)** Team change history                                                                                                                                                    |
+
+Leaving or being removed ends the membership and clears any captain role. The person may rejoin with the team password and starts again as a member. Events the team hosts keep the team. Neither operation writes an audit record, the same as captain changes and ownership transfers; team change history is planned under `/teams/:slug/audit`.
 
 ### Events
 

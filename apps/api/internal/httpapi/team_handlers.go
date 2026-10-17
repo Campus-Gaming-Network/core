@@ -35,6 +35,10 @@ type transferTeamOwnershipRequest struct {
 	NewOwnerUserID string `json:"new_owner_user_id"`
 }
 
+type removeTeamMemberRequest struct {
+	UserID string `json:"user_id"`
+}
+
 func (r *Router) handleTeams(w http.ResponseWriter, req *http.Request) {
 	if req.URL.Path != "/teams" {
 		http.NotFound(w, req)
@@ -231,6 +235,22 @@ func (r *Router) handleTeamPath(w http.ResponseWriter, req *http.Request) {
 		r.handleTransferTeamOwnership(w, req, parts[0])
 		return
 	}
+	if len(parts) == 2 && parts[1] == "leave" {
+		if req.Method != http.MethodPost {
+			methodNotAllowed(w, http.MethodPost)
+			return
+		}
+		r.handleLeaveTeam(w, req, parts[0])
+		return
+	}
+	if len(parts) == 2 && parts[1] == "remove-member" {
+		if req.Method != http.MethodPost {
+			methodNotAllowed(w, http.MethodPost)
+			return
+		}
+		r.handleRemoveTeamMember(w, req, parts[0])
+		return
+	}
 	if len(parts) == 2 && parts[1] == "members" {
 		r.handleTeamMembers(w, req, parts[0])
 		return
@@ -349,6 +369,53 @@ func (r *Router) handleTransferTeamOwnership(w http.ResponseWriter, req *http.Re
 	team, err := r.teams.TransferOwnership(req.Context(), slug, userID, request.NewOwnerUserID)
 	if err != nil {
 		writeApplicationError(w, err, "team_transfer_failed")
+		return
+	}
+	writeJSON(w, http.StatusOK, team)
+}
+
+// handleLeaveTeam ends the requester's own membership. It takes no body.
+func (r *Router) handleLeaveTeam(w http.ResponseWriter, req *http.Request, slug string) {
+	if r.teams == nil {
+		writeError(w, http.StatusServiceUnavailable, "database_unavailable")
+		return
+	}
+	userID, err := auth.RequireUser(req.Context())
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, "authentication_required")
+		return
+	}
+	team, err := r.teams.Leave(req.Context(), slug, userID)
+	if err != nil {
+		writeApplicationError(w, err, "team_leave_failed")
+		return
+	}
+	writeJSON(w, http.StatusOK, team)
+}
+
+// handleRemoveTeamMember lets the owner end another member's membership.
+func (r *Router) handleRemoveTeamMember(w http.ResponseWriter, req *http.Request, slug string) {
+	if r.teams == nil {
+		writeError(w, http.StatusServiceUnavailable, "database_unavailable")
+		return
+	}
+	userID, err := auth.RequireUser(req.Context())
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, "authentication_required")
+		return
+	}
+
+	var request removeTeamMemberRequest
+	if !decodeJSON(w, req, &request) {
+		return
+	}
+	if !looksLikeUUID(strings.TrimSpace(request.UserID)) {
+		writeError(w, http.StatusBadRequest, "invalid_id")
+		return
+	}
+	team, err := r.teams.RemoveMember(req.Context(), slug, userID, request.UserID)
+	if err != nil {
+		writeApplicationError(w, err, "team_remove_member_failed")
 		return
 	}
 	writeJSON(w, http.StatusOK, team)

@@ -18,6 +18,11 @@ export const teamBrowseNotices = {
     message: "We could not update team management. Please try again.",
     severity: "danger",
   },
+  "leave-failed": {
+    message:
+      "We could not take you off this team. An owner must transfer ownership before leaving.",
+    severity: "danger",
+  },
 } as const satisfies Record<string, PageNotice>;
 
 export const teamDetailNotices = {
@@ -29,6 +34,8 @@ export const teamDetailNotices = {
     message: "Ownership transferred.",
     severity: "success",
   },
+  left: { message: "You left the team.", severity: "success" },
+  "member-removed": { message: "Member removed.", severity: "success" },
 } as const satisfies Record<string, PageNotice>;
 
 export type TeamBrowseNotice = keyof typeof teamBrowseNotices;

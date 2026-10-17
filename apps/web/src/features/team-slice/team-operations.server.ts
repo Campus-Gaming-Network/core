@@ -24,6 +24,8 @@ import {
   type TeamDetailResult,
   type TeamMutationResult,
   type TransferTeamOwnershipInput,
+  type LeaveTeamInput,
+  type RemoveTeamMemberInput,
   type TeamsBrowseInput,
   type TeamsBrowsePageInput,
   type TeamsBrowsePageResult,
@@ -218,6 +220,36 @@ export async function transferTeamOwnershipOperation(
   );
 }
 
+export async function leaveTeamOperation(
+  { slug }: LeaveTeamInput,
+  dependencies: AuthorizedDependencies,
+): Promise<TeamMutationResult> {
+  return authorizedTeamMutation(
+    dependencies,
+    () => ({
+      path: `/teams/${encodeURIComponent(slug)}/leave`,
+      method: "POST" as const,
+      body: {},
+    }),
+    "left",
+  );
+}
+
+export async function removeTeamMemberOperation(
+  { slug, user_id }: RemoveTeamMemberInput,
+  dependencies: AuthorizedDependencies,
+): Promise<TeamMutationResult> {
+  return authorizedTeamMutation(
+    dependencies,
+    () => ({
+      path: `/teams/${encodeURIComponent(slug)}/remove-member`,
+      method: "POST" as const,
+      body: { user_id },
+    }),
+    "member-removed",
+  );
+}
+
 async function authorizedTeamMutation(
   {
     api,
@@ -231,7 +263,13 @@ async function authorizedTeamMutation(
     headers?: HeadersInit;
     body: unknown;
   },
-  notice: "created" | "joined" | "captain-updated" | "ownership-transferred",
+  notice:
+    | "created"
+    | "joined"
+    | "captain-updated"
+    | "ownership-transferred"
+    | "left"
+    | "member-removed",
 ): Promise<TeamMutationResult> {
   try {
     // The session is derived from the incoming request, never function input.
@@ -309,6 +347,11 @@ export function safeTeamMutationMessage(error: unknown): string {
     team_create_failed: "We could not create that team. Please try again.",
     team_game_not_found: "Choose at least one active game from the list.",
     team_join_failed: "We could not join that team. Please try again.",
+    team_leave_failed: "We could not take you off that team. Please try again.",
+    team_owner_cannot_leave:
+      "Transfer ownership to another member before you leave the team.",
+    team_remove_member_failed:
+      "We could not remove that member. Please try again.",
     team_member_not_found: "Choose an active team member.",
     team_not_found: "That team could not be found.",
     team_school_not_found: "Choose an active school for that team.",

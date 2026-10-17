@@ -202,6 +202,13 @@ type fakeTeamRepository struct {
 	transferSlug       string
 	transferOwnerID    string
 	transferNewOwnerID string
+	leaveCalled        bool
+	leaveSlug          string
+	leaveUserID        string
+	removeCalled       bool
+	removeSlug         string
+	removeOwnerID      string
+	removeUserID       string
 	err                error
 }
 
@@ -321,6 +328,30 @@ func (r *fakeTeamRepository) TransferOwnership(_ context.Context, slug string, o
 	}
 	team.OwnerUserID = newOwnerUserID
 	role := teamstore.RoleMember
+	team.ViewerRole = &role
+	return team, nil
+}
+
+func (r *fakeTeamRepository) Leave(_ context.Context, slug string, userID string) (teamstore.Team, error) {
+	r.leaveCalled = true
+	r.leaveSlug = slug
+	r.leaveUserID = userID
+	if r.err != nil {
+		return teamstore.Team{}, r.err
+	}
+	return testTeam(), nil
+}
+
+func (r *fakeTeamRepository) RemoveMember(_ context.Context, slug string, ownerUserID string, memberUserID string) (teamstore.Team, error) {
+	r.removeCalled = true
+	r.removeSlug = slug
+	r.removeOwnerID = ownerUserID
+	r.removeUserID = memberUserID
+	if r.err != nil {
+		return teamstore.Team{}, r.err
+	}
+	team := testTeam()
+	role := teamstore.RoleOwner
 	team.ViewerRole = &role
 	return team, nil
 }

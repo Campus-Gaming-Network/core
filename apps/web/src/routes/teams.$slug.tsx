@@ -49,6 +49,8 @@ import {
 import {
   getTeamDetail,
   joinTeam,
+  leaveTeam,
+  removeTeamMember,
   setTeamCaptain,
   transferTeamOwnership,
 } from "../features/team-slice/team.functions";
@@ -304,12 +306,69 @@ function TeamActions({
         <span>Your role</span>
         <StatusLabel tone="info">{teamRoleLabel(viewer)}</StatusLabel>
       </p>
-      <p className="form-help">
-        {viewer === "owner"
-          ? "You can manage captains and ownership below."
-          : "Captains and owners manage team roles."}
-      </p>
+      {viewer === "owner" ? (
+        <p className="form-help">
+          You can manage members, captains, and ownership below. To leave the
+          team, transfer ownership to another member first.
+        </p>
+      ) : (
+        <LeaveTeamForm slug={slug} />
+      )}
     </>
+  );
+}
+
+/** Ends the viewer's own membership after they confirm. */
+function LeaveTeamForm({ slug }: { slug: string }) {
+  const runLeaveTeam = useServerFn(leaveTeam);
+  const router = useRouter();
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const [confirming, setConfirming] = useState(false);
+  const [pending, setPending] = useState(false);
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!confirming) {
+      setConfirming(true);
+      return;
+    }
+    setPending(true);
+    let result: TeamMutationResult | undefined;
+    try {
+      result = await runLeaveTeam({ data: { slug } });
+    } catch {
+      result = undefined;
+    }
+    await finishTeamMutation(router, result, slug, "leave-failed");
+    setPending(false);
+  }
+
+  return (
+    <form action={leaveTeam.url} method="post" onSubmit={submit}>
+      <input name="slug" type="hidden" value={slug} />
+      <button
+        className="button--secondary"
+        disabled={pending}
+        ref={triggerRef}
+        type="submit"
+      >
+        {pending ? "Leaving…" : "Leave team"}
+      </button>
+      <ConfirmDialog
+        cancelLabel="Stay on the team"
+        confirmLabel="Leave team"
+        heading="Leave this team?"
+        onClose={() => setConfirming(false)}
+        open={confirming}
+        pending={pending}
+        returnFocusRef={triggerRef}
+      >
+        <p>
+          You will come off the roster and lose any captain role. You can rejoin
+          later with the team password.
+        </p>
+      </ConfirmDialog>
+    </form>
   );
 }
 
@@ -387,9 +446,10 @@ function TeamManagementPanel({
         className="team-management-section"
         aria-labelledby="captain-management"
       >
-        <h3 id="captain-management">Captains</h3>
+        <h3 id="captain-management">Members and captains</h3>
         <p className="form-help">
-          Owners can add or remove captain status at any time.
+          Owners can make or remove captains and remove members at any time. A
+          removed member can rejoin with the team password.
         </p>
         {manageableMembers.length > 0 ? (
           <ul className="team-management-list">
@@ -458,7 +518,7 @@ function CaptainManagementRow({
     } catch {
       result = undefined;
     }
-    await finishManagementMutation(router, result, slug);
+    await finishTeamMutation(router, result, slug, "manage-failed");
     setPending(false);
   }
 
@@ -469,42 +529,109 @@ function CaptainManagementRow({
         id={member.user_id}
         name={member.name}
       />
-      <form action={setTeamCaptain.url} method="post" onSubmit={submit}>
-        <input name="slug" type="hidden" value={slug} />
-        <input name="user_id" type="hidden" value={member.user_id} />
-        <input
-          name="captain"
-          type="hidden"
-          value={isCaptain ? "false" : "true"}
-        />
-        <button
-          aria-label={`${isCaptain ? "Remove captain" : "Make captain"} ${member.name}`}
-          className="button--secondary button--small"
-          disabled={pending}
-          ref={triggerRef}
-          type="submit"
-        >
-          {pending
-            ? "Updating…"
-            : isCaptain
-              ? "Remove captain"
-              : "Make captain"}
-        </button>
-        <ConfirmDialog
-          cancelLabel="Keep captain"
-          confirmLabel="Remove captain"
-          heading={`Remove ${member.name} as captain?`}
-          onClose={() => setConfirming(false)}
-          open={confirming}
-          pending={pending}
-          returnFocusRef={triggerRef}
-        >
-          <p>
-            They will remain a team member but will lose captain permissions.
-          </p>
-        </ConfirmDialog>
-      </form>
+      <div className="team-management-row__actions">
+        <form action={setTeamCaptain.url} method="post" onSubmit={submit}>
+          <input name="slug" type="hidden" value={slug} />
+          <input name="user_id" type="hidden" value={member.user_id} />
+          <input
+            name="captain"
+            type="hidden"
+            value={isCaptain ? "false" : "true"}
+          />
+          <button
+            aria-label={`${isCaptain ? "Remove captain" : "Make captain"} ${member.name}`}
+            className="button--secondary button--small"
+            disabled={pending}
+            ref={triggerRef}
+            type="submit"
+          >
+            {pending
+              ? "Updating…"
+              : isCaptain
+                ? "Remove captain"
+                : "Make captain"}
+          </button>
+          <ConfirmDialog
+            cancelLabel="Keep captain"
+            confirmLabel="Remove captain"
+            heading={`Remove ${member.name} as captain?`}
+            onClose={() => setConfirming(false)}
+            open={confirming}
+            pending={pending}
+            returnFocusRef={triggerRef}
+          >
+            <p>
+              They will remain a team member but will lose captain permissions.
+            </p>
+          </ConfirmDialog>
+        </form>
+        <RemoveMemberForm member={member} slug={slug} />
+      </div>
     </li>
+  );
+}
+
+/** Lets the owner take a member off the roster after confirming. */
+function RemoveMemberForm({
+  member,
+  slug,
+}: {
+  member: TeamMemberDTO;
+  slug: string;
+}) {
+  const runRemoveTeamMember = useServerFn(removeTeamMember);
+  const router = useRouter();
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const [confirming, setConfirming] = useState(false);
+  const [pending, setPending] = useState(false);
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!confirming) {
+      setConfirming(true);
+      return;
+    }
+    setPending(true);
+    let result: TeamMutationResult | undefined;
+    try {
+      result = await runRemoveTeamMember({
+        data: { slug, user_id: member.user_id },
+      });
+    } catch {
+      result = undefined;
+    }
+    await finishTeamMutation(router, result, slug, "manage-failed");
+    setPending(false);
+  }
+
+  return (
+    <form action={removeTeamMember.url} method="post" onSubmit={submit}>
+      <input name="slug" type="hidden" value={slug} />
+      <input name="user_id" type="hidden" value={member.user_id} />
+      <button
+        aria-label={`Remove ${member.name} from the team`}
+        className="button--secondary button--small"
+        disabled={pending}
+        ref={triggerRef}
+        type="submit"
+      >
+        {pending ? "Removing…" : "Remove"}
+      </button>
+      <ConfirmDialog
+        cancelLabel="Keep member"
+        confirmLabel="Remove member"
+        heading={`Remove ${member.name} from the team?`}
+        onClose={() => setConfirming(false)}
+        open={confirming}
+        pending={pending}
+        returnFocusRef={triggerRef}
+      >
+        <p>
+          They will come off the roster and lose any captain role. They can
+          rejoin with the team password.
+        </p>
+      </ConfirmDialog>
+    </form>
   );
 }
 
@@ -546,7 +673,7 @@ function TransferOwnershipForm({
     } catch {
       result = undefined;
     }
-    await finishManagementMutation(router, result, slug);
+    await finishTeamMutation(router, result, slug, "manage-failed");
     setPending(false);
   }
 
@@ -602,17 +729,18 @@ function TransferOwnershipForm({
   );
 }
 
-async function finishManagementMutation(
+async function finishTeamMutation(
   router: ReturnType<typeof useRouter>,
   result: TeamMutationResult | undefined,
   slug: string,
+  failure: "manage-failed" | "leave-failed",
 ) {
   await router.invalidate();
   await router.navigate({
     href:
       result?.status === "success"
         ? result.redirectTo
-        : `/teams/${encodeURIComponent(slug)}?team=manage-failed`,
+        : `/teams/${encodeURIComponent(slug)}?team=${failure}`,
     replace: true,
   });
 }
