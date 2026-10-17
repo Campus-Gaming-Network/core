@@ -52,6 +52,16 @@ type resetPasswordRequest struct {
 	Password string `json:"password"`
 }
 
+type changePasswordRequest struct {
+	CurrentPassword string `json:"current_password"`
+	NewPassword     string `json:"new_password"`
+}
+
+type changeEmailRequest struct {
+	CurrentPassword string `json:"current_password"`
+	NewEmail        string `json:"new_email"`
+}
+
 type profileUpdateRequest struct {
 	Name        *string             `json:"name"`
 	Bio         *string             `json:"bio"`
@@ -272,6 +282,99 @@ func (r *Router) handleResetPassword(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// handleChangePassword replaces a signed-in person's password. The session
+// that makes the change stays signed in; every other session ends.
+func (r *Router) handleChangePassword(w http.ResponseWriter, req *http.Request) {
+	if r.account == nil {
+		writeError(w, http.StatusServiceUnavailable, "database_unavailable")
+		return
+	}
+	userID, err := auth.RequireUser(req.Context())
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, "authentication_required")
+		return
+	}
+	if !r.allowAccount("change-password", userID) {
+		rateLimitExceeded(w, r)
+		return
+	}
+	var input changePasswordRequest
+	if !decodeJSON(w, req, &input) {
+		return
+	}
+	cookie, err := req.Cookie(r.cfg.SessionCookie)
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, "authentication_required")
+		return
+	}
+	if err := r.account.ChangePassword(req.Context(), userID, cookie.Value, input.CurrentPassword, input.NewPassword); err != nil {
+		writeApplicationError(w, err, "password_change_failed")
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// handleChangeEmail sends a confirmation link to the new address. It answers
+// the same whether or not another account uses that address.
+func (r *Router) handleChangeEmail(w http.ResponseWriter, req *http.Request) {
+	if r.account == nil {
+		writeError(w, http.StatusServiceUnavailable, "database_unavailable")
+		return
+	}
+	userID, err := auth.RequireUser(req.Context())
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, "authentication_required")
+		return
+	}
+	if !r.allowAccount("change-email", userID) {
+		rateLimitExceeded(w, r)
+		return
+	}
+	var input changeEmailRequest
+	if !decodeJSON(w, req, &input) {
+		return
+	}
+	if !validEmail(input.NewEmail) {
+		writeError(w, http.StatusBadRequest, "invalid_request")
+		return
+	}
+	if err := r.account.RequestEmailChange(req.Context(), userID, input.CurrentPassword, input.NewEmail); err != nil {
+		writeApplicationError(w, err, "email_change_failed")
+		return
+	}
+	writeJSON(w, http.StatusAccepted, map[string]string{"status": "confirmation_sent_if_available"})
+}
+
+// handleConfirmEmailChange applies an email change from the link sent to the
+// new address. It needs no session: the link may open in another browser.
+func (r *Router) handleConfirmEmailChange(w http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodPost {
+		methodNotAllowed(w, http.MethodPost)
+		return
+	}
+	if r.account == nil {
+		writeError(w, http.StatusServiceUnavailable, "database_unavailable")
+		return
+	}
+	if !r.allowVisitor("confirm-email-change", req) {
+		rateLimitExceeded(w, r)
+		return
+	}
+	var input tokenRequest
+	if !decodeJSON(w, req, &input) {
+		return
+	}
+	if !r.allowTarget("confirm-email-change-token:" + opaqueRateLimitTarget(input.Token)) {
+		rateLimitExceeded(w, r)
+		return
+	}
+	if err := r.account.ConfirmEmailChange(req.Context(), strings.TrimSpace(input.Token)); err != nil {
+		writeApplicationError(w, err, "email_change_failed")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"status": "email_changed"})
 }
 
 func (r *Router) handleMe(w http.ResponseWriter, req *http.Request) {

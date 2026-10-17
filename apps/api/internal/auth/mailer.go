@@ -19,6 +19,8 @@ import (
 type Mailer interface {
 	SendVerification(ctx context.Context, recipient string, token string, idempotencyKey string) (string, error)
 	SendPasswordReset(ctx context.Context, recipient string, token string, idempotencyKey string) (string, error)
+	SendEmailChangeVerification(ctx context.Context, recipient string, token string, idempotencyKey string) (string, error)
+	SendEmailChangedNotice(ctx context.Context, recipient string, idempotencyKey string) (string, error)
 }
 
 // ResendMailer uses Resend in configured environments. Without an API key it
@@ -41,6 +43,24 @@ func (m *ResendMailer) SendPasswordReset(ctx context.Context, recipient string, 
 	return m.send(ctx, recipient, "Reset your Campus Gaming Network password", passwordResetLink(m.SiteURL, token), "password_reset", idempotencyKey)
 }
 
+// SendEmailChangeVerification sends the link that moves an account to this
+// address.
+func (m *ResendMailer) SendEmailChangeVerification(ctx context.Context, recipient string, token string, idempotencyKey string) (string, error) {
+	return m.send(ctx, recipient, "Confirm your new Campus Gaming Network email", accountLink(m.SiteURL, "/confirm-email-change", token), "email_change_verification", idempotencyKey)
+}
+
+// SendEmailChangedNotice tells an account's previous address that the account
+// now uses another one, so a change the owner did not make gets noticed. It
+// names neither address and links to the password reset form.
+func (m *ResendMailer) SendEmailChangedNotice(ctx context.Context, recipient string, idempotencyKey string) (string, error) {
+	link := strings.TrimRight(m.SiteURL, "/") + "/forgot-password"
+	return m.sendHTML(ctx, recipient, "Your Campus Gaming Network email was changed", fmt.Sprintf(
+		`<p>The email address on your Campus Gaming Network account was just changed, so this address no longer signs in.</p>`+
+			`<p>If you did not make this change, <a href="%s">reset your password</a> and contact support.</p>`,
+		html.EscapeString(link),
+	), "email_changed_notice", idempotencyKey)
+}
+
 func verificationLink(siteURL string, token string) string {
 	return accountLink(siteURL, "/auth/verify-email", token)
 }
@@ -54,6 +74,10 @@ func accountLink(siteURL string, path string, token string) string {
 }
 
 func (m *ResendMailer) send(ctx context.Context, recipient, subject, link, kind, idempotencyKey string) (string, error) {
+	return m.sendHTML(ctx, recipient, subject, fmt.Sprintf(`<p><a href="%s">Continue to Campus Gaming Network</a></p>`, html.EscapeString(link)), kind, idempotencyKey)
+}
+
+func (m *ResendMailer) sendHTML(ctx context.Context, recipient, subject, body, kind, idempotencyKey string) (string, error) {
 	if m.APIKey == "" {
 		if m.Logger != nil {
 			// Tokens live in links, so local delivery logs only safe metadata.
@@ -71,14 +95,14 @@ func (m *ResendMailer) send(ctx context.Context, recipient, subject, link, kind,
 		From:    m.From,
 		To:      []string{recipient},
 		Subject: subject,
-		HTML:    fmt.Sprintf(`<p><a href="%s">Continue to Campus Gaming Network</a></p>`, html.EscapeString(link)),
+		HTML:    body,
 	}
-	body, err := json.Marshal(payload)
+	encoded, err := json.Marshal(payload)
 	if err != nil {
 		return "", fmt.Errorf("encode account email: %w", err)
 	}
 
-	request, err := http.NewRequestWithContext(ctx, http.MethodPost, resendEndpoint(m.Endpoint), bytes.NewReader(body))
+	request, err := http.NewRequestWithContext(ctx, http.MethodPost, resendEndpoint(m.Endpoint), bytes.NewReader(encoded))
 	if err != nil {
 		return "", fmt.Errorf("create account email request: %w", err)
 	}

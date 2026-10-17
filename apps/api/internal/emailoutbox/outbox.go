@@ -23,6 +23,10 @@ const (
 	KindPasswordReset       = "password_reset"
 	KindRSVPConfirmation    = "event_rsvp_confirmation"
 	KindEventCancellation   = "event_cancellation"
+	// KindEmailChangeVerification carries the link that confirms a new
+	// address; KindEmailChangedNotice tells the old address it was replaced.
+	KindEmailChangeVerification = "email_change_verification"
+	KindEmailChangedNotice      = "email_changed_notice"
 )
 
 const (

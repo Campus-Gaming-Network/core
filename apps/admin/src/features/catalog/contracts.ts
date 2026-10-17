@@ -129,6 +129,8 @@ export const catalogAuditEntrySchema = z
       "user.suspended",
       "user.reactivated",
       "user.trust_changed",
+      "user.password_changed",
+      "user.email_changed",
       "site_role_grant.bootstrapped",
       "site_role_grant.granted",
       "site_role_grant.revoked",

@@ -249,6 +249,7 @@ func (r *PostgresRepository) DeleteAccount(ctx context.Context, userID string) e
 		    OR payload ->> 'user_id' = ($1::uuid)::text`,
 		`DELETE FROM email_verification_tokens WHERE user_id = $1::uuid`,
 		`DELETE FROM password_reset_tokens WHERE user_id = $1::uuid`,
+		`DELETE FROM email_change_tokens WHERE user_id = $1::uuid`,
 		`UPDATE auth_sessions SET revoked_at = NOW() WHERE user_id = $1::uuid AND revoked_at IS NULL`,
 	} {
 		if _, err := tx.Exec(ctx, statement, userID); err != nil {

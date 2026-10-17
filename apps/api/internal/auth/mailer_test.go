@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -148,5 +149,55 @@ func TestResendMailerSendsVerificationEmail(t *testing.T) {
 	}
 	if !strings.Contains(payload.HTML, `href="https://campusgamingnetwork.com/auth/verify-email?token=verify+token"`) {
 		t.Fatalf("HTML = %q, want verification link", payload.HTML)
+	}
+}
+
+func TestResendMailerSendsEmailChangeMessages(t *testing.T) {
+	type sent struct {
+		To      []string `json:"to"`
+		Subject string   `json:"subject"`
+		HTML    string   `json:"html"`
+	}
+	var messages []sent
+	mailer := &ResendMailer{
+		APIKey:   "resend-api-key",
+		Endpoint: "https://mail.stub.test/emails",
+		SiteURL:  "https://campusgamingnetwork.com/",
+		Client: &http.Client{Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
+			var message sent
+			if err := json.NewDecoder(request.Body).Decode(&message); err != nil {
+				t.Fatalf("decode Resend payload: %v", err)
+			}
+			messages = append(messages, message)
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Header:     make(http.Header),
+				Body:       io.NopCloser(strings.NewReader(`{"id":"provider-message"}`)),
+			}, nil
+		})},
+	}
+
+	if _, err := mailer.SendEmailChangeVerification(context.Background(), "new@example.com", "change token", "change-key"); err != nil {
+		t.Fatalf("SendEmailChangeVerification() error = %v", err)
+	}
+	if _, err := mailer.SendEmailChangedNotice(context.Background(), "old@example.com", "notice-key"); err != nil {
+		t.Fatalf("SendEmailChangedNotice() error = %v", err)
+	}
+
+	want := []sent{
+		{
+			To:      []string{"new@example.com"},
+			Subject: "Confirm your new Campus Gaming Network email",
+			HTML:    `<p><a href="https://campusgamingnetwork.com/confirm-email-change?token=change+token">Continue to Campus Gaming Network</a></p>`,
+		},
+		{
+			To:      []string{"old@example.com"},
+			Subject: "Your Campus Gaming Network email was changed",
+			HTML: `<p>The email address on your Campus Gaming Network account was just changed, so this address no longer signs in.</p>` +
+				`<p>If you did not make this change, <a href="https://campusgamingnetwork.com/forgot-password">reset your password</a> and contact support.</p>`,
+		},
+	}
+	if !reflect.DeepEqual(messages, want) {
+		t.Fatalf("messages = %#v, want %#v", messages, want)
 	}
 }

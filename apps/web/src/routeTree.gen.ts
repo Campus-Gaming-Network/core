@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as AccountRouteImport } from './routes/account'
+import { Route as ConfirmEmailChangeRouteImport } from './routes/confirm-email-change'
 import { Route as EventsRouteImport } from './routes/events'
 import { Route as FaqRouteImport } from './routes/faq'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
@@ -42,6 +43,7 @@ import { Route as SchoolsSlugRouteImport } from './routes/schools.$slug'
 import { Route as SettingsIndexRouteImport } from './routes/settings.index'
 import { Route as SettingsDeleteAccountRouteImport } from './routes/settings.delete-account'
 import { Route as SettingsProfileRouteImport } from './routes/settings.profile'
+import { Route as SettingsSecurityRouteImport } from './routes/settings.security'
 import { Route as TeamsIndexRouteImport } from './routes/teams.index'
 import { Route as TeamsSlugRouteImport } from './routes/teams.$slug'
 import { Route as TeamsNewRouteImport } from './routes/teams.new'
@@ -70,6 +72,11 @@ const AboutRoute = AboutRouteImport.update({
 const AccountRoute = AccountRouteImport.update({
   id: '/account',
   path: '/account',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConfirmEmailChangeRoute = ConfirmEmailChangeRouteImport.update({
+  id: '/confirm-email-change',
+  path: '/confirm-email-change',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EventsRoute = EventsRouteImport.update({
@@ -222,6 +229,11 @@ const SettingsProfileRoute = SettingsProfileRouteImport.update({
   path: '/profile',
   getParentRoute: () => SettingsRoute,
 } as any)
+const SettingsSecurityRoute = SettingsSecurityRouteImport.update({
+  id: '/security',
+  path: '/security',
+  getParentRoute: () => SettingsRoute,
+} as any)
 const TeamsIndexRoute = TeamsIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -298,6 +310,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/account': typeof AccountRoute
+  '/confirm-email-change': typeof ConfirmEmailChangeRoute
   '/events': typeof EventsRouteWithChildren
   '/faq': typeof FaqRoute
   '/forgot-password': typeof ForgotPasswordRoute
@@ -325,6 +338,7 @@ export interface FileRoutesByFullPath {
   '/schools/$slug': typeof SchoolsSlugRoute
   '/settings/delete-account': typeof SettingsDeleteAccountRoute
   '/settings/profile': typeof SettingsProfileRoute
+  '/settings/security': typeof SettingsSecurityRoute
   '/teams/$slug': typeof TeamsSlugRoute
   '/teams/new': typeof TeamsNewRoute
   '/users/$id': typeof UsersIdRoute
@@ -347,6 +361,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/account': typeof AccountRoute
+  '/confirm-email-change': typeof ConfirmEmailChangeRoute
   '/faq': typeof FaqRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
@@ -370,6 +385,7 @@ export interface FileRoutesByTo {
   '/schools/$slug': typeof SchoolsSlugRoute
   '/settings/delete-account': typeof SettingsDeleteAccountRoute
   '/settings/profile': typeof SettingsProfileRoute
+  '/settings/security': typeof SettingsSecurityRoute
   '/teams/$slug': typeof TeamsSlugRoute
   '/teams/new': typeof TeamsNewRoute
   '/users/$id': typeof UsersIdRoute
@@ -393,6 +409,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/account': typeof AccountRoute
+  '/confirm-email-change': typeof ConfirmEmailChangeRoute
   '/events': typeof EventsRouteWithChildren
   '/faq': typeof FaqRoute
   '/forgot-password': typeof ForgotPasswordRoute
@@ -420,6 +437,7 @@ export interface FileRoutesById {
   '/schools/$slug': typeof SchoolsSlugRoute
   '/settings/delete-account': typeof SettingsDeleteAccountRoute
   '/settings/profile': typeof SettingsProfileRoute
+  '/settings/security': typeof SettingsSecurityRoute
   '/teams/$slug': typeof TeamsSlugRoute
   '/teams/new': typeof TeamsNewRoute
   '/users/$id': typeof UsersIdRoute
@@ -444,6 +462,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/account'
+    | '/confirm-email-change'
     | '/events'
     | '/faq'
     | '/forgot-password'
@@ -471,6 +490,7 @@ export interface FileRouteTypes {
     | '/schools/$slug'
     | '/settings/delete-account'
     | '/settings/profile'
+    | '/settings/security'
     | '/teams/$slug'
     | '/teams/new'
     | '/users/$id'
@@ -493,6 +513,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/account'
+    | '/confirm-email-change'
     | '/faq'
     | '/forgot-password'
     | '/login'
@@ -516,6 +537,7 @@ export interface FileRouteTypes {
     | '/schools/$slug'
     | '/settings/delete-account'
     | '/settings/profile'
+    | '/settings/security'
     | '/teams/$slug'
     | '/teams/new'
     | '/users/$id'
@@ -538,6 +560,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/account'
+    | '/confirm-email-change'
     | '/events'
     | '/faq'
     | '/forgot-password'
@@ -565,6 +588,7 @@ export interface FileRouteTypes {
     | '/schools/$slug'
     | '/settings/delete-account'
     | '/settings/profile'
+    | '/settings/security'
     | '/teams/$slug'
     | '/teams/new'
     | '/users/$id'
@@ -588,6 +612,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
   AccountRoute: typeof AccountRoute
+  ConfirmEmailChangeRoute: typeof ConfirmEmailChangeRoute
   EventsRoute: typeof EventsRouteWithChildren
   FaqRoute: typeof FaqRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
@@ -640,6 +665,13 @@ declare module '@tanstack/react-router' {
       path: '/account'
       fullPath: '/account'
       preLoaderRoute: typeof AccountRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/confirm-email-change': {
+      id: '/confirm-email-change'
+      path: '/confirm-email-change'
+      fullPath: '/confirm-email-change'
+      preLoaderRoute: typeof ConfirmEmailChangeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/events': {
@@ -852,6 +884,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsProfileRouteImport
       parentRoute: typeof SettingsRoute
     }
+    '/settings/security': {
+      id: '/settings/security'
+      path: '/security'
+      fullPath: '/settings/security'
+      preLoaderRoute: typeof SettingsSecurityRouteImport
+      parentRoute: typeof SettingsRoute
+    }
     '/teams/': {
       id: '/teams/'
       path: '/'
@@ -990,12 +1029,14 @@ const SchoolsRouteWithChildren =
 interface SettingsRouteChildren {
   SettingsDeleteAccountRoute: typeof SettingsDeleteAccountRoute
   SettingsProfileRoute: typeof SettingsProfileRoute
+  SettingsSecurityRoute: typeof SettingsSecurityRoute
   SettingsIndexRoute: typeof SettingsIndexRoute
 }
 
 const SettingsRouteChildren: SettingsRouteChildren = {
   SettingsDeleteAccountRoute: SettingsDeleteAccountRoute,
   SettingsProfileRoute: SettingsProfileRoute,
+  SettingsSecurityRoute: SettingsSecurityRoute,
   SettingsIndexRoute: SettingsIndexRoute,
 }
 
@@ -1023,6 +1064,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
   AccountRoute: AccountRoute,
+  ConfirmEmailChangeRoute: ConfirmEmailChangeRoute,
   EventsRoute: EventsRouteWithChildren,
   FaqRoute: FaqRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,

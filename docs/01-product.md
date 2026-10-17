@@ -275,6 +275,11 @@ visitors see counts only; the API answers them with 401.
 - On signup: send **verification email**; clicking the link verifies the account
 - Signup requires checkbox confirming user is **at least 18 years old**
 - Forgot password / reset password
+- Change password while signed in (Settings → Email and password): requires
+  the current password; every other device is signed out
+- Change email while signed in: requires the current password; the new
+  address must confirm by link before the change takes effect, and the old
+  address is told about the change
 - Account deletion → scrub PII, display “Deleted User” on retained records
 - `.edu` email may still unlock a separate “verified student” trust tier (see permissions)
 
@@ -287,7 +292,8 @@ visitors see counts only; the API answers them with 401.
   `events@campusgamingnetwork.com` (best effort; no ICS attachment)
 - Basic notifications from `notifications@campusgamingnetwork.com` (later)
 - Support / report follow-up email from `support@campusgamingnetwork.com` (later Admin Console workflow)
-- Account emails (verify, reset password) from `account@campusgamingnetwork.com`
+- Account emails (verify, reset password, confirm a new email, email-changed
+  notice) from `account@campusgamingnetwork.com`
 - Support tickets: **anyone** can submit (logged out OK); reviewed in the Admin Console support queue
 - Site-wide announcement banner deployable to every page (later)
 

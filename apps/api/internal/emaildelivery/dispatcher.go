@@ -53,6 +53,22 @@ func (d *Dispatcher) Send(ctx context.Context, message emailoutbox.Message) (str
 		}
 		providerID, err := d.Account.SendPasswordReset(ctx, message.Recipient, payload.Token, message.IdempotencyKey)
 		return providerID, classifyProviderError(err)
+	case emailoutbox.KindEmailChangeVerification:
+		payload, err := decodeTokenPayload(message.Payload)
+		if err != nil {
+			return "", err
+		}
+		if d.Account == nil {
+			return "", errors.New("account mailer unavailable")
+		}
+		providerID, err := d.Account.SendEmailChangeVerification(ctx, message.Recipient, payload.Token, message.IdempotencyKey)
+		return providerID, classifyProviderError(err)
+	case emailoutbox.KindEmailChangedNotice:
+		if d.Account == nil {
+			return "", errors.New("account mailer unavailable")
+		}
+		providerID, err := d.Account.SendEmailChangedNotice(ctx, message.Recipient, message.IdempotencyKey)
+		return providerID, classifyProviderError(err)
 	case emailoutbox.KindRSVPConfirmation, emailoutbox.KindEventCancellation:
 		payload, err := decodeEventPayload(message.Payload)
 		if err != nil {

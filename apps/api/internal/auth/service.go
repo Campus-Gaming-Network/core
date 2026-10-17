@@ -34,8 +34,10 @@ type AccountService struct {
 	Policies interface {
 		Current(context.Context, time.Time) (policies.Current, error)
 	}
-	Sessions        SessionManager
-	Tokens          TokenStore
+	Sessions SessionManager
+	Tokens   TokenStore
+	// Changes stores password and email changes made while signed in.
+	Changes         AccountChangeStore
 	SessionTTL      time.Duration
 	VerificationTTL time.Duration
 	ResetTTL        time.Duration
@@ -49,7 +51,7 @@ type LoginResult struct {
 }
 
 func NewAccountService(userStore users.AccountRepository, schoolStore schools.Repository, sessions SessionManager, tokens TokenStore, sessionTTL, verificationTTL, resetTTL time.Duration) *AccountService {
-	return &AccountService{
+	service := &AccountService{
 		Users:           userStore,
 		Schools:         schoolStore,
 		Sessions:        sessions,
@@ -59,6 +61,11 @@ func NewAccountService(userStore users.AccountRepository, schoolStore schools.Re
 		ResetTTL:        resetTTL,
 		now:             time.Now,
 	}
+	// The Postgres token repository also stores account changes.
+	if changes, ok := tokens.(AccountChangeStore); ok {
+		service.Changes = changes
+	}
+	return service
 }
 
 func (s *AccountService) Signup(ctx context.Context, input users.SignupInput) (users.Profile, error) {

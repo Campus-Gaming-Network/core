@@ -99,7 +99,15 @@ email_verification_tokens
 
 password_reset_tokens
   id, user_id, token_hash, expires_at, consumed_at, ...
-  -- a successful reset consumes the token and revokes the user's sessions
+  -- a successful reset consumes the token and revokes the user's sessions.
+  -- A signed-in password change revokes every session but the requesting
+  -- one and consumes open reset tokens
+
+email_change_tokens
+  id, user_id, new_email, token_hash, expires_at, consumed_at, ...
+  -- a signed-in person's pending email change; a newer request consumes older
+  -- ones. Using one moves users.email to new_email and sets
+  -- email_verified_at; it fails if another account took new_email since
 ```
 
 ### Schools & clubs

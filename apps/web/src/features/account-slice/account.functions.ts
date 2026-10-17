@@ -3,12 +3,16 @@ import { createServerFn } from "@tanstack/react-start";
 import {
   applyCookieMutation,
   currentSessionRequest,
+  goBFFForCurrentRequest,
   isNativeFormPost,
   setPrivateNoStoreResponse,
 } from "../../server/request-boundary.server.js";
 import {
   accountDashboardOperation,
   accountProfileOperation,
+  changeEmailOperation,
+  changePasswordOperation,
+  confirmEmailChangeOperation,
   deleteAccountOperation,
   directorySidebarOperation,
   updateProfileOperation,
@@ -20,6 +24,16 @@ import {
   type DirectorySidebarResult,
   type UpdateProfileInput,
 } from "./contracts.js";
+import {
+  securityValidationNotice,
+  validateChangeEmailInput,
+  validateChangePasswordInput,
+  validateConfirmEmailChangeInput,
+  type ChangeEmailInput,
+  type ChangePasswordInput,
+  type ConfirmEmailChangeInput,
+  type SecurityForm,
+} from "./security.js";
 
 export const getAccountDashboard = createServerFn({ method: "GET" }).handler(
   async () => {
@@ -151,3 +165,111 @@ export const deleteAccount = createServerFn({
     }
     return result;
   });
+
+export const changePassword = createServerFn({
+  method: "POST",
+  strict: { input: false },
+})
+  .validator((input: ChangePasswordInput | FormData) =>
+    validateChangePasswordInput(input),
+  )
+  .handler(async ({ data }) => {
+    setPrivateNoStoreResponse();
+    const request = currentSessionRequest();
+    if (!data.valid) return securityValidationFailure("password", data);
+    const result = await changePasswordOperation(data.value, {
+      api: request.api,
+      cookieHeader: request.cookieHeader,
+    });
+    if (isNativeFormPost()) {
+      throw redirect({
+        href:
+          result.status === "success"
+            ? result.redirectTo
+            : `/settings/security?security=${result.notice}`,
+        statusCode: 303,
+      });
+    }
+    return result;
+  });
+
+export const changeEmail = createServerFn({
+  method: "POST",
+  strict: { input: false },
+})
+  .validator((input: ChangeEmailInput | FormData) =>
+    validateChangeEmailInput(input),
+  )
+  .handler(async ({ data }) => {
+    setPrivateNoStoreResponse();
+    const request = currentSessionRequest();
+    if (!data.valid) return securityValidationFailure("email", data);
+    const result = await changeEmailOperation(data.value, {
+      api: request.api,
+      cookieHeader: request.cookieHeader,
+    });
+    if (isNativeFormPost()) {
+      throw redirect({
+        href:
+          result.status === "success"
+            ? result.redirectTo
+            : `/settings/security?security=${result.notice}`,
+        statusCode: 303,
+      });
+    }
+    return result;
+  });
+
+export const confirmEmailChange = createServerFn({
+  method: "POST",
+  strict: { input: false },
+})
+  .validator((input: ConfirmEmailChangeInput | FormData) =>
+    validateConfirmEmailChangeInput(input),
+  )
+  .handler(async ({ data }) => {
+    setPrivateNoStoreResponse();
+    const nativeForm = isNativeFormPost();
+    const result = data.valid
+      ? await confirmEmailChangeOperation(data.value, {
+          api: goBFFForCurrentRequest(),
+        })
+      : {
+          status: "error" as const,
+          message: "That link is invalid or has expired.",
+        };
+    if (nativeForm) {
+      throw redirect({
+        href:
+          result.status === "success"
+            ? "/confirm-email-change?changed=complete"
+            : "/confirm-email-change?error=invalid-link",
+        statusCode: 303,
+      });
+    }
+    return result;
+  });
+
+/**
+ * Input the web server rejected: a post without JavaScript goes back to the
+ * page with the field's notice; the enhanced form gets the field errors.
+ */
+function securityValidationFailure(
+  form: SecurityForm,
+  data: {
+    message: string;
+    fieldErrors: Record<string, string[] | undefined>;
+  },
+) {
+  if (isNativeFormPost()) {
+    throw redirect({
+      href: `/settings/security?security=${securityValidationNotice(form, data.fieldErrors)}`,
+      statusCode: 303,
+    });
+  }
+  return {
+    status: "error" as const,
+    message: data.message,
+    fieldErrors: data.fieldErrors,
+  };
+}

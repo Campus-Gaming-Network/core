@@ -24,6 +24,8 @@ export const auditLogActionLabels = {
   "user.suspended": "Account suspended",
   "user.reactivated": "Account reactivated",
   "user.trust_changed": "Trust level changed",
+  "user.password_changed": "Password changed by the account holder",
+  "user.email_changed": "Email changed by the account holder",
   "site_role_grant.bootstrapped": "First site admin bootstrapped",
   "site_role_grant.granted": "Site-admin access granted",
   "site_role_grant.revoked": "Site-admin access revoked",

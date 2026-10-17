@@ -244,3 +244,9 @@
 .danger-zone .sectioned-form .form-section > legend {
   font-size: var(--text-md);
 }
+
+/* The email-and-password page: one card per form, stacked. */
+.security-forms {
+  display: grid;
+  gap: var(--space-5);
+}

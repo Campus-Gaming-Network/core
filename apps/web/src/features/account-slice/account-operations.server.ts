@@ -24,6 +24,15 @@ import {
   type DeleteAccountInput,
   type UpdateProfileInput,
 } from "./contracts.js";
+import {
+  securityFailureNotice,
+  securityNotices,
+  type ChangeEmailInput,
+  type ChangePasswordInput,
+  type ConfirmEmailChangeInput,
+  type SecurityForm,
+  type SecurityNoticeKey,
+} from "./security.js";
 
 type ReadDependencies = {
   api: ApiClient;
@@ -272,4 +281,109 @@ function defaultErrorReporter(error: unknown): void {
   } else if (!(error instanceof ApiError)) {
     console.error("Account request failed");
   }
+}
+
+/** A password or email change: where to go next, or the notice to show. */
+export type SecurityChangeResult =
+  | { status: "success"; message: string; redirectTo: string }
+  | {
+      status: "error";
+      message: string;
+      notice: SecurityNoticeKey;
+      fieldErrors?: Record<string, string[] | undefined>;
+    };
+
+// POST /me/email answers 202 with a status; POST /me/password answers 204.
+const acceptedResponseSchema = z.object({ status: z.string() });
+
+export async function changePasswordOperation(
+  input: ChangePasswordInput,
+  { api, cookieHeader, reportError = defaultErrorReporter }: ReadDependencies,
+): Promise<SecurityChangeResult> {
+  try {
+    await api({
+      path: "/me/password",
+      method: "POST",
+      cookieHeader,
+      body: input,
+      responseSchema: z.undefined(),
+    });
+    return {
+      status: "success",
+      message: securityNotices["password-changed"].message,
+      redirectTo: "/settings/security?security=password-changed",
+    };
+  } catch (error) {
+    return securityFailure("password", error, reportError);
+  }
+}
+
+export async function changeEmailOperation(
+  input: ChangeEmailInput,
+  { api, cookieHeader, reportError = defaultErrorReporter }: ReadDependencies,
+): Promise<SecurityChangeResult> {
+  try {
+    await api({
+      path: "/me/email",
+      method: "POST",
+      cookieHeader,
+      body: input,
+      responseSchema: acceptedResponseSchema,
+    });
+    return {
+      status: "success",
+      message: securityNotices["email-sent"].message,
+      redirectTo: "/settings/security?security=email-sent",
+    };
+  } catch (error) {
+    return securityFailure("email", error, reportError);
+  }
+}
+
+/**
+ * Applies an email change from the link sent to the new address. It sends no
+ * session cookie: the link may open anywhere, and the token alone decides.
+ */
+export async function confirmEmailChangeOperation(
+  input: ConfirmEmailChangeInput,
+  {
+    api,
+    reportError = defaultErrorReporter,
+  }: Omit<ReadDependencies, "cookieHeader">,
+): Promise<{ status: "success" } | { status: "error"; message: string }> {
+  try {
+    await api({
+      path: "/auth/confirm-email-change",
+      method: "POST",
+      body: input,
+      responseSchema: acceptedResponseSchema,
+    });
+    return { status: "success" };
+  } catch (error) {
+    if (!(error instanceof ApiError) || error.status >= 500) reportError(error);
+    return {
+      status: "error",
+      message:
+        error instanceof ApiError && error.code === "rate_limited"
+          ? securityNotices["rate-limited"].message
+          : "That link is invalid or has expired.",
+    };
+  }
+}
+
+function securityFailure(
+  form: SecurityForm,
+  error: unknown,
+  reportError: (error: unknown) => void,
+): SecurityChangeResult {
+  const code = error instanceof ApiError ? error.code : undefined;
+  if (!(error instanceof ApiError) || error.status >= 500) reportError(error);
+  const notice = securityFailureNotice(form, code);
+  const entry: { message: string; field?: string } = securityNotices[notice];
+  return {
+    status: "error",
+    message: entry.message,
+    notice,
+    ...(entry.field ? { fieldErrors: { [entry.field]: [entry.message] } } : {}),
+  };
 }

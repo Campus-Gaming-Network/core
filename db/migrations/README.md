@@ -110,3 +110,7 @@ Migration `000030_event_host_team.up.sql` adds the nullable
 `events.host_team_id`, the team that hosts an event, indexed with
 `starts_at` for a team page's event list. Apply it before deploying the API
 that reads or writes the column.
+Migration `000031_account_email_change.up.sql` adds `email_change_tokens`
+for confirming a new email address, and the `email_change_verification` and
+`email_changed_notice` email kinds. Apply it before deploying the API that
+serves `POST /me/email` and `POST /auth/confirm-email-change`.
