@@ -25,6 +25,25 @@ func TestWriteInputValidation(t *testing.T) {
 	if err := valid.validate(); err != nil {
 		t.Fatalf("valid audit error = %v", err)
 	}
+	assignee := auditTestUUID
+	otherUser := "00000000-0000-4000-8000-000000000002"
+	unassigned := WriteInput{
+		Correlation: Correlation{ActorUserID: assignee},
+		Action:      ActionSupportTicketAssigneeDeleted,
+		EntityType:  EntitySupportTicket,
+		EntityID:    auditTestUUID,
+		Before:      QueueState{Status: "open", AssignedToUserID: &assignee},
+		After:       QueueState{Status: "open"},
+	}
+	if err := unassigned.validate(); err != nil {
+		t.Fatalf("valid unassignment audit error = %v", err)
+	}
+	withSession := unassigned
+	withSession.Correlation = valid.Correlation
+	otherAssignee := unassigned
+	otherAssignee.Before = QueueState{Status: "open", AssignedToUserID: &otherUser}
+	stillAssigned := unassigned
+	stillAssigned.After = QueueState{Status: "open", AssignedToUserID: &assignee}
 
 	tests := []struct {
 		name  string
@@ -36,6 +55,9 @@ func TestWriteInputValidation(t *testing.T) {
 		{name: "queue state for grant", input: WriteInput{Action: ActionSiteRoleGrantGranted, EntityType: EntitySiteRoleGrant, EntityID: auditTestUUID, Before: EmptyState{}, After: QueueState{Status: "open"}}},
 		{name: "edited fields on a lifecycle action", input: WriteInput{Correlation: valid.Correlation, Action: ActionSchoolDeactivated, EntityType: EntitySchool, EntityID: auditTestUUID, Before: CatalogState{Slug: "school", UpdatedAt: time.Unix(1, 0)}, After: CatalogState{Slug: "school", UpdatedAt: time.Unix(2, 0)}, Metadata: Metadata{OperatorReason: "cleanup", EditedFields: []string{"name"}}}},
 		{name: "edited field that is not a field name", input: WriteInput{Correlation: valid.Correlation, Action: ActionSchoolUpdated, EntityType: EntitySchool, EntityID: auditTestUUID, Before: CatalogState{Slug: "school", UpdatedAt: time.Unix(1, 0)}, After: CatalogState{Slug: "school", UpdatedAt: time.Unix(2, 0)}, Metadata: Metadata{OperatorReason: "cleanup", EditedFields: []string{"New School Name"}}}},
+		{name: "unassignment from an admin session", input: withSession},
+		{name: "unassignment of someone else's work", input: otherAssignee},
+		{name: "unassignment that leaves an assignee", input: stillAssigned},
 		{name: "bootstrap metadata on update", input: WriteInput{Action: ActionReportUpdated, EntityType: EntityReport, EntityID: auditTestUUID, Before: QueueState{Status: "open"}, After: QueueState{Status: "closed"}, Metadata: Metadata{Bootstrap: true, OperatorIdentity: "operator@example.test"}}},
 	}
 	for _, test := range tests {

@@ -2,11 +2,13 @@ package users
 
 import (
 	"context"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/dbtest"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -687,5 +689,84 @@ func TestDeleteAccountSoftDeletesSoleMemberTeam(t *testing.T) {
 	}
 	if deletedAt == nil {
 		t.Fatal("team with no other members was not soft deleted")
+	}
+}
+
+func TestDeleteAccountAuditsEachQueueItemItUnassigns(t *testing.T) {
+	pool, schoolID := newDeletionFixture(t)
+	ctx := context.Background()
+	assigneeID := insertUser(t, pool, schoolID, "assignee@example.test")
+	otherID := insertUser(t, pool, schoolID, "other-assignee@example.test")
+	retentionStartedAt := time.Date(2026, 9, 1, 12, 0, 0, 0, time.UTC)
+
+	insertReport := func(assignedTo, status string, retention *time.Time) string {
+		t.Helper()
+		var id string
+		if err := pool.QueryRow(ctx, `
+			INSERT INTO reports (reporter_user_id, target_type, target_id, reason, assigned_to_user_id, status, retention_started_at)
+			VALUES ($1::uuid, 'user', $1::uuid, 'Audit test', $1::uuid, $2, $3)
+			RETURNING id::text`, assignedTo, status, retention).Scan(&id); err != nil {
+			t.Fatalf("insert report: %v", err)
+		}
+		return id
+	}
+	openReportID := insertReport(assigneeID, "open", nil)
+	resolvedReportID := insertReport(assigneeID, "resolved", &retentionStartedAt)
+	otherReportID := insertReport(otherID, "in_review", nil)
+	var ticketID string
+	if err := pool.QueryRow(ctx, `
+		INSERT INTO support_tickets (contact_email, subject, message, assigned_to_user_id, status)
+		VALUES ('help@example.test', 'Audit test', 'Help', $1::uuid, 'in_review')
+		RETURNING id::text`, assigneeID).Scan(&ticketID); err != nil {
+		t.Fatalf("insert support ticket: %v", err)
+	}
+
+	if err := NewPostgresRepository(pool).DeleteAccount(ctx, assigneeID); err != nil {
+		t.Fatalf("DeleteAccount() error = %v", err)
+	}
+
+	type auditRow struct {
+		Actor, Action, EntityType, EntityID, Before, After, Metadata string
+		AdminSession                                                 *string
+	}
+	rows, err := pool.Query(ctx, `
+		SELECT actor_user_id::text, action, entity_type, entity_id::text,
+		       before_json::text, after_json::text, metadata::text, admin_session_id::text
+		FROM audit_logs ORDER BY action, entity_id`)
+	if err != nil {
+		t.Fatalf("list audit rows: %v", err)
+	}
+	got, err := pgx.CollectRows(rows, func(row pgx.CollectableRow) (auditRow, error) {
+		var r auditRow
+		err := row.Scan(&r.Actor, &r.Action, &r.EntityType, &r.EntityID, &r.Before, &r.After, &r.Metadata, &r.AdminSession)
+		return r, err
+	})
+	if err != nil {
+		t.Fatalf("scan audit rows: %v", err)
+	}
+	reportRows := []auditRow{
+		{assigneeID, "report.assignee_deleted", "report", openReportID,
+			`{"status": "open", "assigned_to_user_id": "` + assigneeID + `", "retention_started_at": null}`,
+			`{"status": "open", "assigned_to_user_id": null, "retention_started_at": null}`, `{}`, nil},
+		{assigneeID, "report.assignee_deleted", "report", resolvedReportID,
+			`{"status": "resolved", "assigned_to_user_id": "` + assigneeID + `", "retention_started_at": "2026-09-01T12:00:00Z"}`,
+			`{"status": "resolved", "assigned_to_user_id": null, "retention_started_at": "2026-09-01T12:00:00Z"}`, `{}`, nil},
+	}
+	if reportRows[0].EntityID > reportRows[1].EntityID {
+		reportRows[0], reportRows[1] = reportRows[1], reportRows[0]
+	}
+	want := append(reportRows, auditRow{assigneeID, "support_ticket.assignee_deleted", "support_ticket", ticketID,
+		`{"status": "in_review", "assigned_to_user_id": "` + assigneeID + `", "retention_started_at": null}`,
+		`{"status": "in_review", "assigned_to_user_id": null, "retention_started_at": null}`, `{}`, nil})
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("audit rows =\n%+v\nwant\n%+v", got, want)
+	}
+
+	var otherAssignee string
+	if err := pool.QueryRow(ctx, `SELECT assigned_to_user_id::text FROM reports WHERE id = $1::uuid`, otherReportID).Scan(&otherAssignee); err != nil {
+		t.Fatalf("read other report: %v", err)
+	}
+	if otherAssignee != otherID {
+		t.Fatalf("other report assignee = %q, want %q", otherAssignee, otherID)
 	}
 }

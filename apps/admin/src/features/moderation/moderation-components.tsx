@@ -3,6 +3,7 @@ import { UserLink } from "../../components/user-link";
 import { useRouteContext, useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useState, type FormEvent, type ReactNode } from "react";
+import { auditLogActionLabels } from "../audit-log/contracts";
 import { updateQueueItem } from "./moderation.functions";
 import type {
   AuditPage,
@@ -345,7 +346,7 @@ export function AuditPanel({
               <div className="audit-marker" aria-hidden="true" />
               <div>
                 <div className="audit-title">
-                  <strong>{auditActionLabel(entry.action)}</strong>
+                  <strong>{auditLogActionLabels[entry.action]}</strong>
                   <Timestamp value={entry.created_at} />
                 </div>
                 <p>
@@ -479,12 +480,6 @@ function auditPageURL(
   if (search.notice) query.set("notice", search.notice);
   query.set(direction, cursor);
   return `${path}?${query.toString()}`;
-}
-
-function auditActionLabel(action: string): string {
-  return action === "report.updated"
-    ? "Report updated"
-    : "Support ticket updated";
 }
 
 /**

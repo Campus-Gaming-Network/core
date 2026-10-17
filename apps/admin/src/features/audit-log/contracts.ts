@@ -7,6 +7,10 @@ const cursorSchema = z.string().trim().min(1).max(2048);
 export const auditLogActionLabels = {
   "report.updated": "Report updated",
   "support_ticket.updated": "Support ticket updated",
+  "report.assignee_deleted":
+    "Report unassigned: assignee deleted their account",
+  "support_ticket.assignee_deleted":
+    "Support ticket unassigned: assignee deleted their account",
   "school.created": "School created",
   "school.updated": "School updated",
   "school.deactivated": "School deactivated",

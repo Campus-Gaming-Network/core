@@ -75,7 +75,12 @@ export const auditEntrySchema = z.object({
   actor_name: z.string().optional(),
   admin_session_id: uuidSchema.optional(),
   request_id: z.string().max(128).optional(),
-  action: z.enum(["report.updated", "support_ticket.updated"]),
+  action: z.enum([
+    "report.updated",
+    "support_ticket.updated",
+    "report.assignee_deleted",
+    "support_ticket.assignee_deleted",
+  ]),
   entity_type: z.enum(["report", "support_ticket"]),
   entity_id: uuidSchema,
   before: auditQueueStateSchema,

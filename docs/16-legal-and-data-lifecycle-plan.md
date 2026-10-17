@@ -279,9 +279,13 @@ queue UI are tracked as `AC-003`, `AC-008`, and `AC-012` in
 
 - [ ] Add authenticated user notification list/unread/mark-read endpoints and an
       in-app notification inbox. Do not expose the repository directly.
-- [ ] Adopt audit writes for deletion-triggered queue unassignment and other
-      account-lifecycle domain mutations; the current audit guarantee covers queue
-      repository patches, not every direct transactional maintenance change.
+- [x] Audit deletion-triggered queue unassignment: each report or support ticket
+      unassigned because its assignee deleted their account gets a
+      `report.assignee_deleted` or `support_ticket.assignee_deleted` entry, with
+      the deleted account as actor, in the deletion transaction.
+- [ ] Adopt audit writes for the other account-lifecycle domain mutations
+      (team and event transfers, revoked grants); the audit guarantee covers
+      queue changes, not every direct transactional maintenance change.
 
 ### Known trust and infrastructure mismatches — pre-launch
 

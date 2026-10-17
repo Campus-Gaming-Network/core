@@ -3,8 +3,11 @@ package users
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminaccess"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminaudit"
+	"github.com/jackc/pgx/v5"
 )
 
 // DeletedNamePlaceholder is what a deleted account renders as anywhere a name
@@ -34,7 +37,8 @@ const deletedPasswordSentinel = "deleted"
 //     address for re-registration.
 //   - Purely personal rows — social links, school follows, RSVPs, interests,
 //     and notifications — are hard deleted. Domain audit history remains.
-//   - Open moderation and support work is unassigned from the deleted account.
+//   - Reports and support tickets assigned to the account are unassigned,
+//     with one audit entry per item.
 //   - Sessions are revoked and outstanding tokens are dropped.
 func (r *PostgresRepository) DeleteAccount(ctx context.Context, userID string) error {
 	tx, err := r.pool.Begin(ctx)
@@ -228,9 +232,11 @@ func (r *PostgresRepository) DeleteAccount(ctx context.Context, userID string) e
 		return fmt.Errorf("detach support tickets: %w", err)
 	}
 
+	if err := unassignDeletedAccountQueueWork(ctx, tx, userID); err != nil {
+		return err
+	}
+
 	for _, statement := range []string{
-		`UPDATE reports SET assigned_to_user_id = NULL WHERE assigned_to_user_id = $1::uuid`,
-		`UPDATE support_tickets SET assigned_to_user_id = NULL WHERE assigned_to_user_id = $1::uuid`,
 		`DELETE FROM team_members WHERE user_id = $1::uuid`,
 		`DELETE FROM event_organizers WHERE user_id = $1::uuid`,
 		// Administrative grants are revoked rather than deleted so their
@@ -276,6 +282,75 @@ func (r *PostgresRepository) DeleteAccount(ctx context.Context, userID string) e
 
 	if err := tx.Commit(ctx); err != nil {
 		return fmt.Errorf("commit account deletion: %w", err)
+	}
+	return nil
+}
+
+// unassignDeletedAccountQueueWork clears the account from every report and
+// support ticket assigned to it and records each one in the audit history,
+// so an item's history explains why it lost its assignee.
+func unassignDeletedAccountQueueWork(ctx context.Context, tx pgx.Tx, userID string) error {
+	audit := adminaudit.NewPostgresStoreForTransaction(tx)
+	for _, queue := range []struct {
+		statement  string
+		action     adminaudit.Action
+		entityType adminaudit.EntityType
+	}{
+		{
+			statement: `UPDATE reports SET assigned_to_user_id = NULL WHERE assigned_to_user_id = $1::uuid
+			 RETURNING id::text, status, retention_started_at`,
+			action:     adminaudit.ActionReportAssigneeDeleted,
+			entityType: adminaudit.EntityReport,
+		},
+		{
+			statement: `UPDATE support_tickets SET assigned_to_user_id = NULL WHERE assigned_to_user_id = $1::uuid
+			 RETURNING id::text, status, retention_started_at`,
+			action:     adminaudit.ActionSupportTicketAssigneeDeleted,
+			entityType: adminaudit.EntitySupportTicket,
+		},
+	} {
+		rows, err := tx.Query(ctx, queue.statement, userID)
+		if err != nil {
+			return fmt.Errorf("unassign %s work: %w", queue.entityType, err)
+		}
+		type unassigned struct {
+			id                 string
+			status             string
+			retentionStartedAt *time.Time
+		}
+		items, err := pgx.CollectRows(rows, func(row pgx.CollectableRow) (unassigned, error) {
+			var item unassigned
+			if err := row.Scan(&item.id, &item.status, &item.retentionStartedAt); err != nil {
+				return unassigned{}, err
+			}
+			if item.retentionStartedAt != nil {
+				utc := item.retentionStartedAt.UTC()
+				item.retentionStartedAt = &utc
+			}
+			return item, nil
+		})
+		if err != nil {
+			return fmt.Errorf("unassign %s work: %w", queue.entityType, err)
+		}
+		for _, item := range items {
+			if _, err := audit.Insert(ctx, adminaudit.WriteInput{
+				Correlation: adminaudit.Correlation{ActorUserID: userID},
+				Action:      queue.action,
+				EntityType:  queue.entityType,
+				EntityID:    item.id,
+				Before: adminaudit.QueueState{
+					Status:             item.status,
+					AssignedToUserID:   &userID,
+					RetentionStartedAt: item.retentionStartedAt,
+				},
+				After: adminaudit.QueueState{
+					Status:             item.status,
+					RetentionStartedAt: item.retentionStartedAt,
+				},
+			}); err != nil {
+				return fmt.Errorf("audit %s unassignment: %w", queue.entityType, err)
+			}
+		}
 	}
 	return nil
 }

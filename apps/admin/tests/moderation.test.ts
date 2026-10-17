@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import type { ApiClient } from "../src/server/api.server.js";
 import {
+  auditPageSchema,
   reportsPageSchema,
   supportTicketsPageSchema,
   validateModerationDetailSearch,
@@ -264,4 +265,36 @@ test("queues default to open items unless all statuses are chosen", () => {
   assert.deepEqual(validateOpenQueueSearch({ status: "closed" }), {
     status: "closed",
   });
+});
+
+test("a report's history accepts the entry written when its assignee deletes their account", () => {
+  const entry = {
+    id: targetID,
+    actor_user_id: reporterID,
+    actor_name: "Deleted user",
+    action: "report.assignee_deleted",
+    entity_type: "report",
+    entity_id: reportID,
+    before: {
+      status: "open",
+      assigned_to_user_id: reporterID,
+      retention_started_at: null,
+    },
+    after: {
+      status: "open",
+      assigned_to_user_id: null,
+      retention_started_at: null,
+    },
+    metadata: {},
+    created_at: "2026-10-17T12:00:00Z",
+  };
+
+  assert.deepEqual(
+    auditPageSchema.parse({
+      audit_entries: [entry],
+      next_cursor: "",
+      previous_cursor: "",
+    }).audit_entries,
+    [entry],
+  );
 });

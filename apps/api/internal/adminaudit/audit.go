@@ -17,28 +17,33 @@ import (
 type Action string
 
 const (
-	ActionReportUpdated          Action = "report.updated"
-	ActionSupportTicketUpdated   Action = "support_ticket.updated"
-	ActionSiteRoleGrantBootstrap Action = "site_role_grant.bootstrapped"
-	ActionSiteRoleGrantGranted   Action = "site_role_grant.granted"
-	ActionSiteRoleGrantRevoked   Action = "site_role_grant.revoked"
-	ActionSchoolCreated          Action = "school.created"
-	ActionSchoolUpdated          Action = "school.updated"
-	ActionSchoolDeactivated      Action = "school.deactivated"
-	ActionSchoolReactivated      Action = "school.reactivated"
-	ActionSchoolDeleted          Action = "school.deleted"
-	ActionSchoolLogoUpdated      Action = "school.logo_updated"
-	ActionSchoolLogoRemoved      Action = "school.logo_removed"
-	ActionGameCreated            Action = "game.created"
-	ActionGameUpdated            Action = "game.updated"
-	ActionGameDeleted            Action = "game.deleted"
-	ActionGameImported           Action = "game.imported"
-	ActionGameRefreshed          Action = "game.refreshed"
-	ActionUserSuspended          Action = "user.suspended"
-	ActionUserReactivated        Action = "user.reactivated"
-	ActionTrustChanged           Action = "user.trust_changed"
-	ActionSchoolGrantGranted     Action = "school_admin.granted"
-	ActionSchoolGrantRevoked     Action = "school_admin.revoked"
+	ActionReportUpdated        Action = "report.updated"
+	ActionSupportTicketUpdated Action = "support_ticket.updated"
+	// ActionReportAssigneeDeleted and ActionSupportTicketAssigneeDeleted
+	// record work unassigned because its assignee deleted their account. The
+	// deleted account is the actor; no admin session is involved.
+	ActionReportAssigneeDeleted        Action = "report.assignee_deleted"
+	ActionSupportTicketAssigneeDeleted Action = "support_ticket.assignee_deleted"
+	ActionSiteRoleGrantBootstrap       Action = "site_role_grant.bootstrapped"
+	ActionSiteRoleGrantGranted         Action = "site_role_grant.granted"
+	ActionSiteRoleGrantRevoked         Action = "site_role_grant.revoked"
+	ActionSchoolCreated                Action = "school.created"
+	ActionSchoolUpdated                Action = "school.updated"
+	ActionSchoolDeactivated            Action = "school.deactivated"
+	ActionSchoolReactivated            Action = "school.reactivated"
+	ActionSchoolDeleted                Action = "school.deleted"
+	ActionSchoolLogoUpdated            Action = "school.logo_updated"
+	ActionSchoolLogoRemoved            Action = "school.logo_removed"
+	ActionGameCreated                  Action = "game.created"
+	ActionGameUpdated                  Action = "game.updated"
+	ActionGameDeleted                  Action = "game.deleted"
+	ActionGameImported                 Action = "game.imported"
+	ActionGameRefreshed                Action = "game.refreshed"
+	ActionUserSuspended                Action = "user.suspended"
+	ActionUserReactivated              Action = "user.reactivated"
+	ActionTrustChanged                 Action = "user.trust_changed"
+	ActionSchoolGrantGranted           Action = "school_admin.granted"
+	ActionSchoolGrantRevoked           Action = "school_admin.revoked"
 )
 
 type EntityType string
@@ -227,6 +232,15 @@ func (input WriteInput) validate() error {
 			return ErrInvalidAudit
 		}
 	}
+	if input.Action == ActionReportAssigneeDeleted || input.Action == ActionSupportTicketAssigneeDeleted {
+		before, _ := input.Before.(QueueState)
+		after, _ := input.After.(QueueState)
+		if input.Correlation.ActorUserID == "" || input.Correlation.AdminSessionID != "" ||
+			before.AssignedToUserID == nil || *before.AssignedToUserID != input.Correlation.ActorUserID ||
+			after.AssignedToUserID != nil {
+			return ErrInvalidAudit
+		}
+	}
 	if input.Action == ActionSiteRoleGrantGranted || input.Action == ActionSiteRoleGrantRevoked {
 		if input.Correlation.ActorUserID == "" {
 			return ErrInvalidAudit
@@ -360,9 +374,9 @@ func ValidateSafeDocuments(documents ...[]byte) error {
 
 func validActionEntity(action Action, entityType EntityType) bool {
 	switch action {
-	case ActionReportUpdated:
+	case ActionReportUpdated, ActionReportAssigneeDeleted:
 		return entityType == EntityReport
-	case ActionSupportTicketUpdated:
+	case ActionSupportTicketUpdated, ActionSupportTicketAssigneeDeleted:
 		return entityType == EntitySupportTicket
 	case ActionSiteRoleGrantBootstrap, ActionSiteRoleGrantGranted, ActionSiteRoleGrantRevoked:
 		return entityType == EntitySiteRoleGrant
