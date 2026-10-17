@@ -14,7 +14,7 @@ import { safeLocalPath } from "../safe-local-path";
 import "../features/auth-flow-slice/auth-flow.css";
 
 type LoginSearch = {
-  error?: "login-failed";
+  error?: "login-failed" | "account-suspended";
   next?: string;
   reset?: "complete";
   signup?: "check-email";
@@ -41,8 +41,8 @@ function validateLoginSearch(search: Record<string, unknown>): LoginSearch {
   const next = safeLocalPath(nextValue);
 
   return {
-    ...(errorValue === "login-failed"
-      ? { error: "login-failed" as const }
+    ...(errorValue === "login-failed" || errorValue === "account-suspended"
+      ? { error: errorValue }
       : {}),
     ...(next ? { next } : {}),
     ...(resetValue === "complete" ? { reset: "complete" as const } : {}),
@@ -73,7 +73,7 @@ function LoginPage() {
       <LoginForm
         next={search.next}
         notice={notice}
-        initialFailure={search.error === "login-failed"}
+        initialFailure={search.error}
       />
       <ul className="auth-footer">
         <li>
@@ -94,7 +94,7 @@ function LoginForm({
 }: {
   next?: string;
   notice?: string;
-  initialFailure: boolean;
+  initialFailure?: LoginSearch["error"];
 }) {
   const runLogin = useServerFn(login);
   const mutation = useEnhancedMutation(
@@ -118,9 +118,11 @@ function LoginForm({
 
   const failure =
     mutation.message ||
-    (initialFailure
-      ? "We could not log you in. Check your details and try again."
-      : "");
+    (initialFailure === "account-suspended"
+      ? "Your account is suspended."
+      : initialFailure
+        ? "We could not log you in. Check your details and try again."
+        : "");
   const problem = loginProblem(failure);
   const emailErrors = mutation.fieldErrors.email;
   const passwordErrors = mutation.fieldErrors.password;
@@ -147,7 +149,12 @@ function LoginForm({
         message={failure}
         summaryRef={mutation.errorSummaryRef}
       />
-      {problem === "mismatch" ? (
+      {problem === "suspended" ? (
+        <p className="auth-help">
+          You cannot log in while it is suspended.{" "}
+          <Link to="/support">Contact support</Link> for help.
+        </p>
+      ) : problem === "mismatch" ? (
         <p className="auth-help">
           Check for typos, or{" "}
           <Link to="/forgot-password">reset your password</Link>.

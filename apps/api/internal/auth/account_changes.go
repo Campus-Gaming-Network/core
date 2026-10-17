@@ -103,7 +103,7 @@ func (s *AccountService) checkCurrentPassword(ctx context.Context, userID string
 	if err != nil {
 		return err
 	}
-	if credentials.Profile.ID != userID || !ComparePassword(credentials.PasswordHash, password) {
+	if credentials.Profile.ID != userID || credentials.Suspended || !ComparePassword(credentials.PasswordHash, password) {
 		return ErrInvalidCurrentPassword
 	}
 	return nil

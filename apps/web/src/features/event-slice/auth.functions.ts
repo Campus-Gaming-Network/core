@@ -13,6 +13,7 @@ import {
   loginOperation,
   logoutOperation,
 } from "./auth-operations.server.js";
+import { loginProblem } from "../auth-flow-slice/login-help.js";
 import { validateLoginServerInput, type LoginInput } from "./contracts.js";
 
 export const getEventViewerSession = createServerFn({ method: "GET" }).handler(
@@ -82,7 +83,9 @@ export const login = createServerFn({
       const destination =
         result.status === "success"
           ? result.redirectTo
-          : "/login?error=login-failed";
+          : loginProblem(result.message) === "suspended"
+            ? "/login?error=account-suspended"
+            : "/login?error=login-failed";
       throw redirect({ href: destination, statusCode: 303 });
     }
     return result;

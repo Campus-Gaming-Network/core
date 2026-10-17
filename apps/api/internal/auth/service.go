@@ -17,7 +17,10 @@ var (
 	ErrHomeSchoolNotFound = apperror.New(apperror.KindUnprocessable, "home_school_not_found", "home school not found")
 	ErrInvalidCredentials = apperror.New(apperror.KindAuthentication, "invalid_credentials", "invalid credentials")
 	ErrEmailUnverified    = apperror.New(apperror.KindAuthorization, "email_not_verified", "email is not verified")
-	ErrInvalidToken       = apperror.New(apperror.KindValidation, "invalid_or_expired_token", "invalid or expired token")
+	// ErrAccountSuspended is returned only after the password matched, so it
+	// never reveals an account's status to someone without its password.
+	ErrAccountSuspended = apperror.New(apperror.KindAuthorization, "account_suspended", "account is suspended")
+	ErrInvalidToken     = apperror.New(apperror.KindValidation, "invalid_or_expired_token", "invalid or expired token")
 )
 
 type SessionManager interface {
@@ -122,6 +125,9 @@ func (s *AccountService) Login(ctx context.Context, email string, password strin
 	credentials, err := s.Users.FindCredentialsByEmail(ctx, users.NormalizeEmail(email))
 	if err != nil || !ComparePassword(credentials.PasswordHash, password) {
 		return LoginResult{}, ErrInvalidCredentials
+	}
+	if credentials.Suspended {
+		return LoginResult{}, ErrAccountSuspended
 	}
 	if credentials.Profile.EmailVerifiedAt == nil {
 		return LoginResult{}, ErrEmailUnverified

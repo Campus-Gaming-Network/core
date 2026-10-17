@@ -115,6 +115,7 @@ func TestMapDomainErrors(t *testing.T) {
 		{name: "home school", err: auth.ErrHomeSchoolNotFound, wantStatus: http.StatusUnprocessableEntity, wantCode: "home_school_not_found"},
 		{name: "credentials", err: auth.ErrInvalidCredentials, wantStatus: http.StatusUnauthorized, wantCode: "invalid_credentials"},
 		{name: "email verification", err: auth.ErrEmailUnverified, wantStatus: http.StatusForbidden, wantCode: "email_not_verified"},
+		{name: "suspended account", err: auth.ErrAccountSuspended, wantStatus: http.StatusForbidden, wantCode: "account_suspended"},
 		{name: "token", err: auth.ErrInvalidToken, wantStatus: http.StatusBadRequest, wantCode: "invalid_or_expired_token"},
 		{name: "session", err: auth.ErrUnauthenticated, wantStatus: http.StatusUnauthorized, wantCode: "authentication_required"},
 		{name: "school", err: schools.ErrSchoolNotFound, wantStatus: http.StatusNotFound, wantCode: "school_not_found"},

@@ -87,6 +87,10 @@ type SocialLink struct {
 type Credentials struct {
 	Profile      Profile
 	PasswordHash string
+	// Suspended is true for an account an operator suspended. The lookup
+	// returns it so login can tell a user who knows the password why they
+	// cannot sign in; nothing else may treat it as an active account.
+	Suspended bool
 }
 
 type SignupInput struct {
@@ -372,11 +376,12 @@ func (r *PostgresRepository) FindCredentialsByEmail(ctx context.Context, email s
 	err := r.pool.QueryRow(ctx, `
 		SELECT u.id::text, u.email::text, u.password_hash, u.email_verified_at,
 		       u.verification_level, u.name, COALESCE(u.bio, ''), u.timezone,
-		       u.home_school_id::text, u.show_in_lists
+		       u.home_school_id::text, u.show_in_lists,
+		       u.account_status = 'suspended'
 		FROM users u
 		WHERE u.email = $1
 		  AND u.deleted_at IS NULL
-		  AND u.account_status = 'active'
+		  AND u.account_status IN ('active', 'suspended')
 	`, NormalizeEmail(email)).Scan(
 		&credentials.Profile.ID,
 		&credentials.Profile.Email,
@@ -388,6 +393,7 @@ func (r *PostgresRepository) FindCredentialsByEmail(ctx context.Context, email s
 		&credentials.Profile.Timezone,
 		&credentials.Profile.HomeSchoolID,
 		&credentials.Profile.ShowInLists,
+		&credentials.Suspended,
 	)
 	if err != nil {
 		return Credentials{}, err

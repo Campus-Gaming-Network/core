@@ -5,6 +5,7 @@ import { loginProblem } from "../src/features/auth-flow-slice/login-help.js";
 test("loginProblem sorts the login messages the web shows", () => {
   assert.deepEqual(
     [
+      "Your account is suspended.",
       "Please verify your email before logging in.",
       "Too many attempts. Please try again later.",
       "The email or password did not match.",
@@ -13,6 +14,7 @@ test("loginProblem sorts the login messages the web shows", () => {
       "",
     ].map(loginProblem),
     [
+      "suspended",
       "unverified",
       "rate-limited",
       "mismatch",

@@ -429,21 +429,26 @@ test("login validation returns bounded accessible field errors", () => {
 });
 
 test("login maps API failures without exposing upstream details", async () => {
-  const result = await loginOperation(
-    { email: "player@example.com", password: "wrong" },
-    {
-      api: client(async () =>
-        Response.json({ error: "invalid_credentials" }, { status: 401 }),
-      ),
-      sessionCookieName: "cgn_session",
-      applyCookie: () => assert.fail("failed login must not write a cookie"),
-    },
-  );
+  const failedLogin = (error: string, status: number) =>
+    loginOperation(
+      { email: "player@example.com", password: "a-long-enough-password" },
+      {
+        api: client(async () => Response.json({ error }, { status })),
+        sessionCookieName: "cgn_session",
+        applyCookie: () => assert.fail("failed login must not write a cookie"),
+      },
+    );
 
-  assert.deepEqual(result, {
-    status: "error",
-    message: "The email or password did not match.",
-  });
+  assert.deepEqual(
+    await Promise.all([
+      failedLogin("invalid_credentials", 401),
+      failedLogin("account_suspended", 403),
+    ]),
+    [
+      { status: "error", message: "The email or password did not match." },
+      { status: "error", message: "Your account is suspended." },
+    ],
+  );
 });
 
 test("logout posts the incoming session and mirrors upstream deletion", async () => {

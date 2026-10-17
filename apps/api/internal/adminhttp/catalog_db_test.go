@@ -396,6 +396,13 @@ func TestUserStatusTrustAndSiteGrantHTTP(t *testing.T) {
 	if suspended.AccountStatus != "suspended" {
 		t.Fatalf("status: %#v", suspended)
 	}
+	if _, err := public.FindSession(ctx, []byte("target-token")); !errors.Is(err, pgx.ErrNoRows) {
+		t.Fatalf("public session survived suspension: %v", err)
+	}
+	credentials, err := users.NewPostgresRepository(f.pool).FindCredentialsByEmail(ctx, u.Email)
+	if err != nil || !credentials.Suspended {
+		t.Fatalf("suspended credentials = %#v, %v; want the account marked suspended", credentials, err)
+	}
 	lastCommand := f.command
 	lastCommand.ExpectedUpdatedAt = f.actorGrant.GrantedAt
 	f.request(t, "POST", "/admin/v1/site-admin-grants/"+f.actorGrant.ID+"/revoke", lastCommand, 409)

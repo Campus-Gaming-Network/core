@@ -142,6 +142,7 @@ export function safeApiErrorMessage(error: unknown): string {
   }
 
   const messages: Record<string, string> = {
+    account_suspended: "Your account is suspended.",
     authentication_required: "Please log in to continue.",
     database_unavailable: "The service is starting up. Try again in a moment.",
     email_not_verified: "Please verify your email before logging in.",

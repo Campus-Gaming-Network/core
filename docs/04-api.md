@@ -76,6 +76,14 @@ All other paths exist in the Go API.
 | POST   | `/auth/resend-verification`  | Rate limited                                                                                                                                                                                                                                              |
 | POST   | `/auth/confirm-email-change` | `{ "token" }` from the link sent to a new address; no session needed. Rate limited per visitor and per token. A missing, used, expired, or superseded token, or an address another account took since the request, returns `400 invalid_or_expired_token` |
 
+Logging in: `POST /auth/login` returns `401 invalid_credentials` for an unknown
+or deleted email or a wrong password, `403 account_suspended` when the password
+is correct but an operator suspended the account, and `403 email_not_verified`
+for a correct password on an unverified account. Because `account_suspended`
+needs the password, it never reveals an account's status to anyone else. None
+of these creates a session. Suspending an account also ends its sessions, and a
+session for an account that is not active no longer authenticates.
+
 Changing an email: `POST /me/email` retires any earlier pending change and
 queues the link to the new address, valid for the verification TTL. Following
 it (`POST /auth/confirm-email-change`) moves the account to the new address,

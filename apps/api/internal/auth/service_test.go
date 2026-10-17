@@ -300,6 +300,27 @@ func TestAccountServiceSignupAndLogin(t *testing.T) {
 	}
 }
 
+func TestAccountServiceLoginNamesASuspensionOnlyForTheRightPassword(t *testing.T) {
+	passwordHash, err := HashPassword("a-long-enough-password")
+	if err != nil {
+		t.Fatal(err)
+	}
+	verifiedAt := time.Now()
+	userStore := &fakeUsers{credentials: users.Credentials{
+		Profile:      users.Profile{ID: "user-id", Email: "player@example.com", EmailVerifiedAt: &verifiedAt},
+		PasswordHash: passwordHash,
+		Suspended:    true,
+	}}
+	sessions := &fakeSessions{}
+	service := NewAccountService(userStore, fakeSchools{}, sessions, &fakeTokens{}, time.Hour, time.Hour, time.Hour)
+
+	_, wrongPassword := service.Login(context.Background(), "player@example.com", "not-the-password")
+	_, rightPassword := service.Login(context.Background(), "player@example.com", "a-long-enough-password")
+	if wrongPassword != ErrInvalidCredentials || rightPassword != ErrAccountSuspended || sessions.userID != "" {
+		t.Fatalf("Login() errors = (%v, %v), session for %q; want (ErrInvalidCredentials, ErrAccountSuspended) and no session", wrongPassword, rightPassword, sessions.userID)
+	}
+}
+
 func TestAccountServiceResendVerificationIssuesAndSendsFreshToken(t *testing.T) {
 	userStore := &fakeUsers{profile: users.Profile{
 		ID:    "user-id",
