@@ -32,6 +32,8 @@ import {
   peoplePreviewSize,
   type PeopleListResult,
 } from "../features/people-slice/contracts";
+import { EventCard } from "../features/event-slice/event-card";
+import { getTeamEvents } from "../features/event-slice/event.functions";
 import { getTeamMembers } from "../features/people-slice/people.functions";
 import {
   PeoplePreview,
@@ -60,6 +62,8 @@ import teamCSS from "../features/team-slice/teams.css?url";
 
 type TeamRouteData = {
   team: TeamDTO;
+  /** The public events the team hosts that have not ended. */
+  events: Awaited<ReturnType<typeof getTeamEvents>>;
   viewer: TeamViewerState;
   ownerRoster?: TeamMemberDTO[];
   /** The first members; a visitor's read is a signed-out result. */
@@ -71,13 +75,14 @@ type TeamRouteData = {
 export const Route = createFileRoute("/teams/$slug")({
   validateSearch: validateTeamDetailSearch,
   loader: async ({ context, params }): Promise<TeamRouteData> => {
-    const [detail, session, members] = await Promise.all([
+    const [detail, session, members, events] = await Promise.all([
       getTeamDetail({ data: { slug: params.slug } }),
       getEventViewerSession(),
       // A request with no session never reaches the API.
       getTeamMembers({
         data: { slug: params.slug, limit: peoplePreviewSize },
       }),
+      getTeamEvents({ data: { slug: params.slug } }),
     ]);
     if (detail.status === "not_found") {
       throw notFound();
@@ -91,6 +96,7 @@ export const Route = createFileRoute("/teams/$slug")({
 
     return {
       team: detail.team,
+      events,
       viewer:
         session.status === "authenticated"
           ? (detail.viewerRole ?? "non_member")
@@ -125,7 +131,7 @@ export const Route = createFileRoute("/teams/$slug")({
 });
 
 function TeamPage() {
-  const { members, ownerRoster, team, viewer } = Route.useLoaderData();
+  const { events, members, ownerRoster, team, viewer } = Route.useLoaderData();
   const search = Route.useSearch();
   const location = team.school ? schoolLocation(team.school, "") : "";
 
@@ -179,6 +185,30 @@ function TeamPage() {
           <section className="team-about" aria-labelledby="team-about-title">
             <h2 id="team-about-title">About</h2>
             <p>{team.description || "Team details are coming soon."}</p>
+          </section>
+
+          <section
+            aria-labelledby="team-events-title"
+            className="panel panel--flush"
+          >
+            <div className="panel__header">
+              <h2 id="team-events-title">Upcoming events</h2>
+            </div>
+            {events.unavailable ? (
+              <p className="panel__body muted">
+                Events are unavailable right now. Please check back soon.
+              </p>
+            ) : events.events.length > 0 ? (
+              <div className="list directory-list">
+                {events.events.map((event) => (
+                  <EventCard event={event} key={event.id} showTeam={false} />
+                ))}
+              </div>
+            ) : (
+              <p className="panel__body muted">
+                {team.name} has no upcoming public events.
+              </p>
+            )}
           </section>
 
           {viewer === "anonymous" ? (

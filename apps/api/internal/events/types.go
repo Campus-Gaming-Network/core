@@ -12,6 +12,9 @@ import (
 
 var (
 	ErrHostSchoolNotFound = apperror.New(apperror.KindUnprocessable, "host_school_not_found", "host school not found")
+	// ErrHostTeamNotAllowed reports a host team that does not exist or that
+	// the organizer does not own or captain.
+	ErrHostTeamNotAllowed = apperror.New(apperror.KindUnprocessable, "host_team_not_allowed", "host team must be one you own or captain")
 	ErrGameNotFound       = apperror.New(apperror.KindUnprocessable, "game_not_found", "game not found")
 	ErrSlugUnavailable    = apperror.New(apperror.KindConflict, "event_slug_unavailable", "event slug unavailable")
 	ErrEventNotFound      = apperror.New(apperror.KindNotFound, "event_not_found", "event not found")
@@ -80,23 +83,26 @@ type Event struct {
 	Audience string `json:"audience,omitempty"`
 	// EventType says what kind of event this is. It is empty for events
 	// created before the field existed.
-	EventType        string        `json:"event_type,omitempty"`
-	StartsAt         time.Time     `json:"starts_at"`
-	EndsAt           time.Time     `json:"ends_at"`
-	Timezone         string        `json:"timezone"`
-	LocationName     string        `json:"location_name,omitempty"`
-	Address          string        `json:"address,omitempty"`
-	OnlineURL        string        `json:"online_url,omitempty"`
-	Capacity         *int          `json:"capacity,omitempty"`
-	RSVPYesCount     int           `json:"rsvp_yes_count"`
-	InterestCount    int           `json:"interest_count"`
-	Lifecycle        string        `json:"lifecycle"`
-	RecurrenceRule   string        `json:"recurrence_rule,omitempty"`
-	RecurrenceUntil  *time.Time    `json:"recurrence_until,omitempty"`
-	Cost             string        `json:"cost"`
-	PaymentNote      string        `json:"payment_note,omitempty"`
-	PaymentURL       string        `json:"payment_url,omitempty"`
-	HostSchool       SchoolSummary `json:"host_school"`
+	EventType       string        `json:"event_type,omitempty"`
+	StartsAt        time.Time     `json:"starts_at"`
+	EndsAt          time.Time     `json:"ends_at"`
+	Timezone        string        `json:"timezone"`
+	LocationName    string        `json:"location_name,omitempty"`
+	Address         string        `json:"address,omitempty"`
+	OnlineURL       string        `json:"online_url,omitempty"`
+	Capacity        *int          `json:"capacity,omitempty"`
+	RSVPYesCount    int           `json:"rsvp_yes_count"`
+	InterestCount   int           `json:"interest_count"`
+	Lifecycle       string        `json:"lifecycle"`
+	RecurrenceRule  string        `json:"recurrence_rule,omitempty"`
+	RecurrenceUntil *time.Time    `json:"recurrence_until,omitempty"`
+	Cost            string        `json:"cost"`
+	PaymentNote     string        `json:"payment_note,omitempty"`
+	PaymentURL      string        `json:"payment_url,omitempty"`
+	HostSchool      SchoolSummary `json:"host_school"`
+	// HostTeam is the team that hosts the event. It is nil for an event its
+	// organizer runs alone.
+	HostTeam         *TeamSummary  `json:"host_team,omitempty"`
 	Games            []GameSummary `json:"games"`
 	Organizers       []Organizer   `json:"organizers,omitempty"`
 	ViewerRSVP       *string       `json:"viewer_rsvp,omitempty"`
@@ -129,6 +135,13 @@ type SchoolSummary struct {
 	State string `json:"state,omitempty"`
 }
 
+// TeamSummary identifies the team that hosts an event.
+type TeamSummary struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+	Slug string `json:"slug"`
+}
+
 // GameSummary identifies a game in event responses.
 type GameSummary struct {
 	ID   string `json:"id"`
@@ -144,10 +157,12 @@ type GameSummary struct {
 type ListParams struct {
 	GameSlug   string
 	SchoolSlug string
-	Format     string
-	Audience   string
-	EventType  string
-	Cost       string
+	// TeamSlug keeps the events that team hosts.
+	TeamSlug  string
+	Format    string
+	Audience  string
+	EventType string
+	Cost      string
 	// StartsAfter keeps events starting at or after it; StartsBefore keeps
 	// events starting before it. Either may be nil.
 	StartsAfter  *time.Time
@@ -159,10 +174,12 @@ type ListParams struct {
 
 // CreateInput is the validated request to create an event.
 type CreateInput struct {
-	Title           string
-	Description     string
-	CreatorUserID   string
-	HostSchoolID    string
+	Title         string
+	Description   string
+	CreatorUserID string
+	HostSchoolID  string
+	// HostTeamID is optional. The creator must own or captain the team.
+	HostTeamID      string
 	GameIDs         []string
 	Visibility      string
 	Format          string
@@ -195,11 +212,14 @@ type CreateParams struct {
 
 // UpdateInput is the request to edit an event.
 type UpdateInput struct {
-	Slug            string
-	EditorUserID    string
-	Title           string
-	Description     string
-	HostSchoolID    string
+	Slug         string
+	EditorUserID string
+	Title        string
+	Description  string
+	HostSchoolID string
+	// HostTeamID is optional. Keeping the event's current team needs no role;
+	// choosing a different team needs the editor to own or captain it.
+	HostTeamID      string
 	GameIDs         []string
 	Visibility      string
 	Format          string

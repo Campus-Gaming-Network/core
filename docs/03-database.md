@@ -161,6 +161,8 @@ events
                               -- 'tournament' is a label, not a tournament record
   audience nullable (open|collegiate|campus|members),
                               -- who the event is for; null only on events created before the column
+  host_team_id nullable,      -- the hosting team; null when the organizer runs it alone.
+                              -- checked against the organizer's team role only when chosen
   cost (free|paid|unspecified) default unspecified,
                               -- unspecified = the organizer did not say; never treated as free.
                               -- Replaced is_paid: true became paid, everything else unspecified

@@ -711,6 +711,7 @@ func (r *Router) handleEvents(w http.ResponseWriter, req *http.Request) {
 	params := eventstore.ListParams{
 		GameSlug:     req.URL.Query().Get("game"),
 		SchoolSlug:   req.URL.Query().Get("school"),
+		TeamSlug:     req.URL.Query().Get("team"),
 		Format:       req.URL.Query().Get("format"),
 		Audience:     req.URL.Query().Get("audience"),
 		EventType:    req.URL.Query().Get("type"),

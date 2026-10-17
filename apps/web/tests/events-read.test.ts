@@ -7,6 +7,7 @@ import {
 import {
   getEventsBrowseOperation,
   homeEventsOperation,
+  teamEventsOperation,
 } from "../src/features/event-slice/event-operations.server.js";
 import {
   currentEventScope,
@@ -251,6 +252,50 @@ test("the home page previews this week's events and the ones after it, split at 
     [["campus-tournament"], ["campus-tournament"]],
   );
   assert.equal(JSON.stringify(result).includes("unlock_token"), false);
+});
+
+test("a team page reads the events that team hosts, and survives a failure", async () => {
+  const requested: string[] = [];
+  const hosted = {
+    ...browseEvent,
+    host_team: { name: "Red Team", slug: "red/team" },
+  };
+  const found = await teamEventsOperation(
+    { slug: "red/team" },
+    {
+      api: client(async (input) => {
+        requested.push(String(input));
+        return Response.json({
+          events: [hosted],
+          limit: 6,
+          has_more: false,
+          has_previous: false,
+        });
+      }),
+    },
+  );
+  const reported: unknown[] = [];
+  const failed = await teamEventsOperation(
+    { slug: "red/team" },
+    {
+      api: client(async () =>
+        Response.json({ error: "events_unavailable" }, { status: 503 }),
+      ),
+      reportError: (error) => reported.push(error),
+    },
+  );
+
+  assert.deepEqual(requested, [
+    "http://api:8080/events?limit=6&team=red%2Fteam",
+  ]);
+  assert.deepEqual(
+    found.events.map((event) => [event.slug, event.host_team]),
+    [["campus-tournament", { name: "Red Team", slug: "red/team" }]],
+  );
+  assert.deepEqual(
+    { failed, reported: reported.length },
+    { failed: { events: [], unavailable: true }, reported: 1 },
+  );
 });
 
 test("a failed or malformed events read leaves the home page up and says so", async () => {

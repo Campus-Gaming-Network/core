@@ -1291,7 +1291,7 @@ function DetailHeaderSection() {
               />
             }
             level={2}
-            supporting={`Hosted by ${event.host_school.name}`}
+            supporting={event.host_school.name}
             tags={
               <>
                 <StatusLabel>Public</StatusLabel>

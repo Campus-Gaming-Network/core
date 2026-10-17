@@ -188,8 +188,8 @@ func (r *PostgresRepository) listSoonestForUser(ctx context.Context, userID stri
 }
 
 // ListPublic returns public events that have not ended, soonest first,
-// optionally filtered by game, school, format, audience, event type, cost, and
-// start window (StartsAfter and StartsBefore). After and Before page forward
+// optionally filtered by game, school, host team, format, audience, event
+// type, cost, and start window (StartsAfter and StartsBefore). After and Before page forward
 // and backward from a cursor; setting both is an invalid cursor. A previous
 // page is returned in the same soonest-first order.
 func (r *PostgresRepository) ListPublic(ctx context.Context, params ListParams) ([]Event, error) {
@@ -214,10 +214,11 @@ func (r *PostgresRepository) ListPublic(ctx context.Context, params ListParams) 
 		AND ($4 = '' OR e.audience = $4)
 		AND ($5 = '' OR e.event_type = $5)
 		AND ($6 = '' OR e.cost = $6)
+		AND ($8 = '' OR ht.slug = $8)
 	`
 	arguments := []any{
 		params.GameSlug, params.SchoolSlug, params.Format, params.Audience, params.EventType,
-		params.Cost, r.now(),
+		params.Cost, r.now(), params.TeamSlug,
 	}
 	// Soonest first: events under way, then upcoming ones by start time.
 	// Ended events leave the list. A previous page reads backward from its

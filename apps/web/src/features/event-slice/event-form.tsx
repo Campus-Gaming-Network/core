@@ -20,6 +20,7 @@ import type {
   EventDTO,
   EventFormSchoolDTO,
   EventGameDTO,
+  EventHostTeamDTO,
 } from "./contracts.js";
 import { createEvent, updateEvent } from "./event.functions.js";
 import {
@@ -49,6 +50,8 @@ type Props = {
   defaultSchoolID?: string;
   defaultSchool?: EventFormSchoolDTO;
   defaultTimeZone?: string;
+  /** Teams that may host the event: the viewer's own, plus the event's. */
+  hostTeams: EventHostTeamDTO[];
   initialSchoolQuery: string;
   initialSchoolSearchFailed: boolean;
   /** Server-rendered key for create mode; see useIdempotencyKey. */
@@ -108,6 +111,7 @@ export function EventForm({
   defaultSchoolID,
   defaultSchool,
   defaultTimeZone,
+  hostTeams,
   initialSchoolQuery,
   initialSchoolSearchFailed,
   idempotencyKey = "",
@@ -323,6 +327,28 @@ export function EventForm({
               ))}
             </select>
           </FormField>
+
+          {/* Only a viewer who owns or captains a team gets the choice; the
+              event then reads "Hosted by" the team instead of its organizer. */}
+          {hostTeams.length > 0 ? (
+            <FormField
+              errorId="event-host-team-error"
+              errors={errors("host_team_id")}
+              label="Hosted by"
+            >
+              <select
+                defaultValue={event?.host_team?.id ?? ""}
+                name="host_team_id"
+              >
+                <option value="">Just me</option>
+                {hostTeams.map((team) => (
+                  <option key={team.id} value={team.id}>
+                    {team.name}
+                  </option>
+                ))}
+              </select>
+            </FormField>
+          ) : null}
 
           {/* No audience is preselected: an event created before the field
             existed has none, and its organizer must choose one to save. */}

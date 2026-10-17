@@ -17,6 +17,7 @@ import {
   eventFormPageInputSchema,
   eventFormViewerDtoSchema,
   eventFormSchoolsResponseDtoSchema,
+  eventFormTeamsResponseDtoSchema,
   eventsBrowseResponseDtoSchema,
   gamesBrowseResponseDtoSchema,
   idResponseDtoSchema,
@@ -24,6 +25,7 @@ import {
   type EditEventPageResult,
   type EventInterestInput,
   type EventMutationPayload,
+  type EventHostTeamDTO,
   type EventMutationResult,
   type EventRedirectResult,
   type NewEventPageResult,
@@ -92,11 +94,10 @@ export async function newEventPageOperation(
     return { status: "error", message: "Event creation is unavailable." };
   }
 
-  const resources = await readEventFormResources(
-    normalizedSchoolQuery,
-    api,
-    reportError,
-  );
+  const [resources, hostTeams] = await Promise.all([
+    readEventFormResources(normalizedSchoolQuery, api, reportError),
+    readEventFormHostTeams(api, cookieHeader, reportError),
+  ]);
   if (resources.status === "error") {
     return { status: "error", message: "Event creation is unavailable." };
   }
@@ -109,6 +110,7 @@ export async function newEventPageOperation(
       : {}),
     defaultTimeZone: viewer.profile.timezone,
     games: resources.games,
+    hostTeams,
     schools: resources.schools,
     schoolSearchFailed: resources.schoolSearchFailed,
   };
@@ -152,19 +154,24 @@ export async function editEventPageOperation(
     return { status: "denied", reason: "forbidden" };
   }
 
-  const resources = await readEventFormResources(
-    normalizedSchoolQuery,
-    api,
-    reportError,
-  );
+  const [resources, hostTeams] = await Promise.all([
+    readEventFormResources(normalizedSchoolQuery, api, reportError),
+    readEventFormHostTeams(api, cookieHeader, reportError),
+  ]);
   if (resources.status === "error") {
     return { status: "error", message: "Event editing is unavailable." };
   }
+  // The event keeps its team even when the editor no longer leads it.
+  const currentTeam = detail.event.host_team;
 
   return {
     status: "ready",
     event: detail.event,
     games: resources.games,
+    hostTeams:
+      currentTeam && !hostTeams.some((team) => team.id === currentTeam.id)
+        ? [currentTeam, ...hostTeams]
+        : hostTeams,
     schools: resources.schools,
     schoolSearchFailed: resources.schoolSearchFailed,
   };
@@ -225,6 +232,30 @@ export async function homeEventsOperation({
   } catch (error) {
     reportError(error);
     return { thisWeek: [], later: [], unavailable: true };
+  }
+}
+
+// How many upcoming events a team page lists.
+const teamEventsLimit = 6;
+
+/**
+ * The public events a team hosts that have not ended, soonest first. A
+ * failure never fails the team page: it reports itself as unavailable.
+ */
+export async function teamEventsOperation(
+  { slug }: EventSlugInput,
+  { api, reportError = defaultErrorReporter }: PublicReadDependencies,
+) {
+  try {
+    const { data } = await api({
+      path: `/events?limit=${teamEventsLimit}&team=${encodeURIComponent(slug)}`,
+      cache: "no-store",
+      responseSchema: eventsBrowseResponseDtoSchema,
+    });
+    return { events: data.events.map(withHostSchoolLogo), unavailable: false };
+  } catch (error) {
+    reportError(error);
+    return { events: [], unavailable: true };
   }
 }
 
@@ -490,6 +521,34 @@ async function readEventFormViewer({
     }
     reportError?.(error);
     return { status: "error" };
+  }
+}
+
+/**
+ * The teams the viewer owns or captains, which may host their events. A
+ * failed read leaves the choice out rather than blocking the form.
+ */
+async function readEventFormHostTeams(
+  api: ApiClient,
+  cookieHeader: string,
+  reportError: (error: unknown) => void,
+): Promise<EventHostTeamDTO[]> {
+  try {
+    const { data } = await api({
+      path: "/me/teams?limit=25",
+      cookieHeader,
+      cache: "no-store",
+      responseSchema: eventFormTeamsResponseDtoSchema,
+    });
+    return data.teams
+      .filter(
+        (team) =>
+          team.viewer_role === "owner" || team.viewer_role === "captain",
+      )
+      .map(({ id, name, slug }) => ({ id, name, slug }));
+  } catch (error) {
+    reportError(error);
+    return [];
   }
 }
 

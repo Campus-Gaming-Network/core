@@ -59,6 +59,7 @@ function validEventForm(): FormData {
   form.set("title", "  Campus tournament  ");
   form.set("description", " Bring your controller. ");
   form.set("host_school_id", school.id);
+  form.set("host_team_id", " team-1 ");
   form.append("game_ids", ` ${game.id} `);
   form.set("visibility", "public");
   form.set("format", "in_person");
@@ -91,6 +92,7 @@ test("event create validation normalizes payloads, local times, and recurrence",
     title: "Campus tournament",
     description: "Bring your controller.",
     host_school_id: school.id,
+    host_team_id: "team-1",
     game_ids: [game.id],
     igdb_game_ids: [],
     other_game: "",
@@ -290,6 +292,9 @@ test("new-event page data enforces auth then loads default profile and catalogs"
         if (path === "/games") {
           return Response.json({ games: [{ ...game, internal_rank: 1 }] });
         }
+        if (path === "/me/teams?limit=25") {
+          return Response.json({ teams: myTeams });
+        }
         return Response.json({
           schools: [{ ...school, internal_note: "strip" }],
           limit: 50,
@@ -309,6 +314,11 @@ test("new-event page data enforces auth then loads default profile and catalogs"
   assert.deepEqual(ready.defaultSchool, school);
   assert.deepEqual(ready.games, [game]);
   assert.deepEqual(ready.schools, [school]);
+  // Only the teams the viewer owns or captains may host.
+  assert.deepEqual(ready.hostTeams, [
+    { id: "team-1", name: "Red Team", slug: "red-team" },
+    { id: "team-2", name: "Blue Team", slug: "blue-team" },
+  ]);
   assert.equal(JSON.stringify(ready).includes("private@example.test"), false);
   assert.equal(JSON.stringify(ready).includes("internal"), false);
   assert.deepEqual(calls[0], {
@@ -321,10 +331,23 @@ test("new-event page data enforces auth then loads default profile and catalogs"
     ),
     {
       "/games": null,
+      "/me/teams?limit=25": "cgn_session=session-value",
       "/schools?q=Example&limit=50": null,
     },
   );
 });
+
+// The viewer's teams as /me/teams reports them, with their role in each.
+const myTeams = [
+  { id: "team-1", name: "Red Team", slug: "red-team", viewer_role: "owner" },
+  {
+    id: "team-2",
+    name: "Blue Team",
+    slug: "blue-team",
+    viewer_role: "captain",
+  },
+  { id: "team-3", name: "Gold Team", slug: "gold-team", viewer_role: "member" },
+];
 
 test("new-event catalogs keep school failure inline and make game failure fatal", async () => {
   const reported: unknown[] = [];
@@ -354,6 +377,8 @@ test("new-event catalogs keep school failure inline and make game failure fatal"
   if (schoolFailure.status !== "ready") assert.fail("school failure was fatal");
   assert.equal(schoolFailure.schoolSearchFailed, true);
   assert.deepEqual(schoolFailure.schools, []);
+  // A failed team read leaves the choice out instead of failing the page.
+  assert.deepEqual(schoolFailure.hostTeams, []);
 
   const gameFailure = await newEventPageOperation(
     { schoolQuery: "" },
@@ -375,7 +400,8 @@ test("new-event catalogs keep school failure inline and make game failure fatal"
     status: "error",
     message: "Event creation is unavailable.",
   });
-  assert.equal(reported.length, 2);
+  // Schools and teams in the first read, games and teams in the second.
+  assert.equal(reported.length, 4);
 });
 
 test("edit page distinguishes missing, locked, forbidden, and editable events", async () => {
@@ -394,6 +420,7 @@ test("edit page distinguishes missing, locked, forbidden, and editable events", 
             });
           }
           if (path === "/games") return Response.json({ games: [game] });
+          if (path === "/me/teams") return Response.json({ teams: myTeams });
           return detailResponse.clone();
         }),
         cookieHeader: "cgn_session=value",
@@ -431,10 +458,23 @@ test("edit page distinguishes missing, locked, forbidden, and editable events", 
   assert.equal(editable.result.status, "ready");
   if (editable.result.status !== "ready") assert.fail("editor was denied");
   assert.deepEqual(editable.result.event, event);
-  assert.deepEqual(editable.calls, [
+  assert.deepEqual(editable.calls.slice(0, 2), [
     "/me",
     "/events/campus%2Ftournament",
-    "/games",
+  ]);
+  assert.deepEqual(editable.calls.slice(2).sort(), ["/games", "/me/teams"]);
+
+  // An event keeps its team after its editor stops leading it, so the form
+  // still offers that team first.
+  const oldTeam = { id: "team-9", name: "Old Team", slug: "old-team" };
+  const teamHosted = await editWith(
+    Response.json({ ...event, host_team: oldTeam }),
+  );
+  if (teamHosted.result.status !== "ready") assert.fail("editor was denied");
+  assert.deepEqual(teamHosted.result.hostTeams, [
+    oldTeam,
+    { id: "team-1", name: "Red Team", slug: "red-team" },
+    { id: "team-2", name: "Blue Team", slug: "blue-team" },
   ]);
 });
 
@@ -641,6 +681,7 @@ function validPayload(): EventMutationPayload {
     title: "Campus tournament",
     description: "Bring your controller.",
     host_school_id: school.id,
+    host_team_id: "",
     game_ids: [game.id],
     igdb_game_ids: [],
     other_game: "",

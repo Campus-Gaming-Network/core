@@ -23,6 +23,11 @@ func (r *PostgresRepository) Create(ctx context.Context, params CreateParams) (E
 	}
 
 	params = normalizeCreateParams(params)
+	if params.HostTeamID != "" {
+		if err := checkHostTeam(ctx, r.pool, params.HostTeamID, params.CreatorUserID); err != nil {
+			return Event{}, err
+		}
+	}
 	baseSlug := GenerateSlug(params.Title, params.CreatorUserID, r.now())
 	for attempt := 0; attempt < 5; attempt++ {
 		slug := baseSlug
@@ -70,6 +75,22 @@ func (r *PostgresRepository) Update(ctx context.Context, params UpdateParams) (E
 		return Event{}, err
 	}
 
+	// An event keeps its team after the organizer leaves it or stops being a
+	// captain, so only a change of team needs the role.
+	if params.HostTeamID != "" {
+		var currentHostTeamID string
+		if err := tx.QueryRow(ctx, `
+			SELECT COALESCE(host_team_id::text, '') FROM events WHERE id = $1::uuid
+		`, eventID).Scan(&currentHostTeamID); err != nil {
+			return Event{}, fmt.Errorf("load event host team: %w", err)
+		}
+		if params.HostTeamID != currentHostTeamID {
+			if err := checkHostTeam(ctx, tx, params.HostTeamID, params.EditorUserID); err != nil {
+				return Event{}, err
+			}
+		}
+	}
+
 	privatePasswordHash := ""
 	if params.Visibility == VisibilityPrivate {
 		privatePasswordHash = params.PrivatePasswordHash
@@ -101,7 +122,8 @@ func (r *PostgresRepository) Update(ctx context.Context, params UpdateParams) (E
 		    payment_note = NULLIF($16, ''),
 		    payment_url = NULLIF($17, ''),
 		    audience = $18,
-		    event_type = $19
+		    event_type = $19,
+		    host_team_id = NULLIF($20, '')::uuid
 		FROM schools s
 		WHERE e.id = $1::uuid
 		  AND s.id = $2::uuid
@@ -112,7 +134,7 @@ func (r *PostgresRepository) Update(ctx context.Context, params UpdateParams) (E
 		params.Format, params.StartsAt, params.EndsAt, params.Timezone, params.LocationName,
 		params.Address, params.OnlineURL, privatePasswordHash, nullableInt(params.Capacity),
 		params.Cost, params.PaymentNote, params.PaymentURL, params.Audience,
-		params.EventType).Scan(&slug)
+		params.EventType, params.HostTeamID).Scan(&slug)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Event{}, ErrHostSchoolNotFound
 	}

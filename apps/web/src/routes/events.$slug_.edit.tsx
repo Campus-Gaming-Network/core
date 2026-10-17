@@ -147,6 +147,7 @@ function EditEventPage() {
           <EventForm
             event={data.event}
             games={data.games}
+            hostTeams={data.hostTeams}
             initialSchoolQuery={schoolQuery}
             initialSchoolSearchFailed={data.schoolSearchFailed}
             mode="edit"

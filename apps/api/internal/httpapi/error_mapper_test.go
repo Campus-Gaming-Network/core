@@ -121,6 +121,7 @@ func TestMapDomainErrors(t *testing.T) {
 		{name: "event", err: eventstore.ErrEventNotFound, wantStatus: http.StatusNotFound, wantCode: "event_not_found"},
 		{name: "event organizer", err: eventstore.ErrOrganizerRequired, wantStatus: http.StatusForbidden, wantCode: "not_event_organizer"},
 		{name: "event host school", err: eventstore.ErrHostSchoolNotFound, wantStatus: http.StatusUnprocessableEntity, wantCode: "host_school_not_found"},
+		{name: "event host team", err: eventstore.ErrHostTeamNotAllowed, wantStatus: http.StatusUnprocessableEntity, wantCode: "host_team_not_allowed"},
 		{name: "event game", err: eventstore.ErrGameNotFound, wantStatus: http.StatusUnprocessableEntity, wantCode: "game_not_found"},
 		{name: "event slug", err: eventstore.ErrSlugUnavailable, wantStatus: http.StatusConflict, wantCode: "event_slug_unavailable"},
 		{name: "event full", err: eventstore.ErrEventFull, wantStatus: http.StatusConflict, wantCode: "event_full"},

@@ -116,6 +116,10 @@ The two past-event rows are the intended rule; neither is enforced yet, so organ
 - The creator is the only organizer; co-organizers come after the first release
 - Event pages show organizer names and school-admin/staff-faculty role indicators
   when applicable
+- An organizer may host an event as a team only if they own or captain that
+  team when they choose it. The event keeps the team if they later leave it or
+  stop being a captain; the team's other owners and captains do not gain the
+  right to edit the event
 - Visibility: **public** · **unlisted** · **private** (password modal; content gated/blurred until unlock)
 - Optional **capacity**; counts RSVP **yes** only; when full, block new yes — **no waitlist** yet
 - RSVP: yes/no/maybe; **interested** is a separate favorite

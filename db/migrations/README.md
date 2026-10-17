@@ -106,3 +106,7 @@ Migration `000029_igdb_search_cache_covers.up.sql` adds a GIN index on
 `igdb_search_cache.results`, so the API can check that a search returned a
 cover image ID before it proxies that image. Apply it before deploying the API
 that serves `/igdb-covers/{image_id}`.
+Migration `000030_event_host_team.up.sql` adds the nullable
+`events.host_team_id`, the team that hosts an event, indexed with
+`starts_at` for a team page's event list. Apply it before deploying the API
+that reads or writes the column.

@@ -24,12 +24,14 @@ func (r *PostgresRepository) createWithSlug(ctx context.Context, params CreatePa
 			creator_user_id, host_school_id, title, slug, description, visibility,
 			format, starts_at, ends_at, timezone, location_name, address, online_url,
 			private_password_hash, capacity, cost, payment_note, payment_url,
-			recurrence_rule, recurrence_until, idempotency_key, audience, event_type
+			recurrence_rule, recurrence_until, idempotency_key, audience, event_type,
+			host_team_id
 		)
 		SELECT $1::uuid, s.id, $3, $4, $5, $6, $7, $8, $9, $10,
 		       NULLIF($11, ''), NULLIF($12, ''), NULLIF($13, ''),
 		       NULLIF($14, ''), $15, $16, NULLIF($17, ''), NULLIF($18, ''),
-		       NULLIF($19, ''), $20, NULLIF($21, '')::uuid, $22, $23
+		       NULLIF($19, ''), $20, NULLIF($21, '')::uuid, $22, $23,
+		       NULLIF($24, '')::uuid
 		FROM schools s
 		WHERE s.id = $2::uuid
 		  AND s.deleted_at IS NULL
@@ -41,7 +43,7 @@ func (r *PostgresRepository) createWithSlug(ctx context.Context, params CreatePa
 		params.LocationName, params.Address, params.OnlineURL, params.PrivatePasswordHash,
 		nullableInt(params.Capacity), params.Cost, params.PaymentNote, params.PaymentURL,
 		params.RecurrenceRule, nullableTime(params.RecurrenceUntil), params.IdempotencyKey,
-		params.Audience, params.EventType).Scan(&eventID)
+		params.Audience, params.EventType, params.HostTeamID).Scan(&eventID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return "", r.createNoRowsError(ctx, tx, params.HostSchoolID, params.IdempotencyKey)
 	}
@@ -137,12 +139,13 @@ func insertRecurringOccurrence(ctx context.Context, tx pgx.Tx, params CreatePara
 			format, starts_at, ends_at, timezone, location_name, address, online_url,
 			private_password_hash, capacity, cost, payment_note, payment_url,
 			recurrence_rule, recurrence_until, recurrence_parent_id, idempotency_key,
-			audience, event_type
+			audience, event_type, host_team_id
 		)
 		SELECT $1::uuid, s.id, $3, $4, $5, $6, $7, $8, $9, $10,
 		       NULLIF($11, ''), NULLIF($12, ''), NULLIF($13, ''),
 		       NULLIF($14, ''), $15, $16, NULLIF($17, ''), NULLIF($18, ''),
-		       NULLIF($19, ''), $20, NULLIF($21, '')::uuid, NULLIF($22, '')::uuid, $23, $24
+		       NULLIF($19, ''), $20, NULLIF($21, '')::uuid, NULLIF($22, '')::uuid, $23, $24,
+		       NULLIF($25, '')::uuid
 		FROM schools s
 		WHERE s.id = $2::uuid
 		  AND s.deleted_at IS NULL
@@ -154,7 +157,7 @@ func insertRecurringOccurrence(ctx context.Context, tx pgx.Tx, params CreatePara
 		params.LocationName, params.Address, params.OnlineURL, params.PrivatePasswordHash,
 		nullableInt(params.Capacity), params.Cost, params.PaymentNote, params.PaymentURL,
 		params.RecurrenceRule, nullableTime(params.RecurrenceUntil), parentID, idempotencyKey,
-		params.Audience, params.EventType).Scan(&eventID)
+		params.Audience, params.EventType, params.HostTeamID).Scan(&eventID)
 	if err != nil {
 		return "", fmt.Errorf("insert recurring event occurrence: %w", err)
 	}
@@ -174,6 +177,34 @@ func insertEventAssociations(ctx context.Context, tx pgx.Tx, eventID string, par
 	}
 	if insertedGameCount != len(params.GameIDs) {
 		return ErrGameNotFound
+	}
+	return nil
+}
+
+type hostTeamChecker interface {
+	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
+}
+
+// checkHostTeam returns ErrHostTeamNotAllowed unless userID is an active
+// owner or captain of the live team teamID.
+func checkHostTeam(ctx context.Context, checker hostTeamChecker, teamID string, userID string) error {
+	var allowed bool
+	if err := checker.QueryRow(ctx, `
+		SELECT EXISTS (
+			SELECT 1
+			FROM teams t
+			JOIN team_members tm ON tm.team_id = t.id
+			WHERE t.id::text = $1
+			  AND t.deleted_at IS NULL
+			  AND tm.user_id = $2::uuid
+			  AND tm.deleted_at IS NULL
+			  AND tm.role IN ('owner', 'captain')
+		)
+	`, teamID, userID).Scan(&allowed); err != nil {
+		return fmt.Errorf("check event host team: %w", err)
+	}
+	if !allowed {
+		return ErrHostTeamNotAllowed
 	}
 	return nil
 }

@@ -52,6 +52,13 @@ export const schoolSummarySchema = z.object({
   state: z.string().optional(),
 });
 
+// The team that hosts an event, when a team does.
+const eventHostTeamSchema = z.object({
+  id: identifierSchema,
+  name: z.string(),
+  slug: identifierSchema,
+});
+
 export const gameSummaryDtoSchema = z.object({
   id: identifierSchema,
   name: z.string(),
@@ -105,6 +112,7 @@ export const eventDtoSchema = z.object({
   payment_note: z.string().optional(),
   payment_url: z.string().optional(),
   host_school: schoolSummarySchema,
+  host_team: eventHostTeamSchema.optional(),
   games: z.array(eventGameDtoSchema),
   organizers: z.array(eventOrganizerSchema).optional(),
   viewer_rsvp: eventRSVPSchema.optional(),
@@ -141,6 +149,7 @@ const eventBrowseItemDtoSchema = z.object({
   lifecycle: z.enum(["upcoming", "happening_now", "ended", "full"]),
   cost: eventCostSchema,
   host_school: z.object({ name: z.string(), slug: identifierSchema }),
+  host_team: z.object({ name: z.string(), slug: identifierSchema }).optional(),
   // The API sends each game's slug and whether the site serves its cover;
   // rows show the first game's cover when it has one.
   games: z.array(
@@ -246,6 +255,8 @@ const eventMutableInputSchema = z.object({
   title: requiredText("Title", 120),
   description: optionalText("Description", 5000),
   host_school_id: z.string().trim().min(1, "Choose a host school."),
+  // Empty when the organizer runs the event alone. The API checks the role.
+  host_team_id: z.string().trim().max(100),
   game_ids: z.array(identifierSchema),
   igdb_game_ids: pickedIGDBGameIDsSchema,
   other_game: otherGameSchema,
@@ -323,6 +334,15 @@ export const eventFormViewerDtoSchema = z.object({
   timezone: identifierSchema,
 });
 
+/** The viewer's teams; the form offers the ones they own or captain. */
+export const eventFormTeamsResponseDtoSchema = z.object({
+  teams: z.array(
+    eventHostTeamSchema.extend({
+      viewer_role: z.enum(["owner", "captain", "member"]).optional(),
+    }),
+  ),
+});
+
 export const eventFormSchoolsResponseDtoSchema = z.object({
   schools: z.array(schoolSummarySchema),
   limit: nonNegativeIntegerSchema,
@@ -337,6 +357,7 @@ type WithHostSchoolLogo<T extends { host_school: unknown }> = T & {
   host_school: WithSchoolLogo<T["host_school"]>;
 };
 export type EventDTO = WithHostSchoolLogo<z.output<typeof eventDtoSchema>>;
+export type EventHostTeamDTO = z.output<typeof eventHostTeamSchema>;
 export type LockedEventDTO = z.output<typeof lockedEventDtoSchema>;
 export type EventDetailDTO = EventDTO | LockedEventDTO;
 export type EventBrowseItemDTO = WithHostSchoolLogo<
@@ -443,6 +464,7 @@ export type NewEventPageResult =
       defaultSchool?: EventFormSchoolDTO;
       defaultTimeZone: string;
       games: EventGameDTO[];
+      hostTeams: EventHostTeamDTO[];
       schools: EventFormSchoolDTO[];
       schoolSearchFailed: boolean;
     }
@@ -454,6 +476,7 @@ export type EditEventPageResult =
       status: "ready";
       event: EventDTO;
       games: EventGameDTO[];
+      hostTeams: EventHostTeamDTO[];
       schools: EventFormSchoolDTO[];
       schoolSearchFailed: boolean;
     }
@@ -695,6 +718,7 @@ function eventWriteCandidate(
     title: normalizedInputValue(input, "title"),
     description: normalizedInputValue(input, "description"),
     host_school_id: normalizedInputValue(input, "host_school_id"),
+    host_team_id: normalizedInputValue(input, "host_team_id"),
     game_ids: normalizedInputValues(input, "game_ids"),
     igdb_game_ids: normalizedInputValues(input, "igdb_game_ids"),
     other_game: normalizedInputValue(input, "other_game"),

@@ -19,6 +19,7 @@ type createEventRequest struct {
 	Title           string             `json:"title"`
 	Description     string             `json:"description"`
 	HostSchoolID    string             `json:"host_school_id"`
+	HostTeamID      string             `json:"host_team_id"`
 	GameIDs         []string           `json:"game_ids"`
 	Visibility      string             `json:"visibility"`
 	Format          string             `json:"format"`
@@ -457,6 +458,7 @@ func createEventInputFromRequest(request createEventRequest, userID string) even
 		Description:     request.Description,
 		CreatorUserID:   userID,
 		HostSchoolID:    request.HostSchoolID,
+		HostTeamID:      request.HostTeamID,
 		GameIDs:         request.GameIDs,
 		Visibility:      request.Visibility,
 		Format:          request.Format,
@@ -484,6 +486,7 @@ func updateEventInputFromRequest(request createEventRequest, slug string, userID
 		Title:           request.Title,
 		Description:     request.Description,
 		HostSchoolID:    request.HostSchoolID,
+		HostTeamID:      request.HostTeamID,
 		GameIDs:         request.GameIDs,
 		Visibility:      request.Visibility,
 		Format:          request.Format,

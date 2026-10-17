@@ -15,6 +15,7 @@ import (
 func NormalizeListParams(params ListParams) ListParams {
 	params.GameSlug = strings.TrimSpace(params.GameSlug)
 	params.SchoolSlug = strings.TrimSpace(params.SchoolSlug)
+	params.TeamSlug = strings.TrimSpace(params.TeamSlug)
 	params.Format = strings.TrimSpace(params.Format)
 	if params.Format != "" && params.Format != FormatOnline && params.Format != FormatInPerson && params.Format != FormatHybrid {
 		params.Format = ""
@@ -55,6 +56,7 @@ func ValidateUpdateInput(input UpdateInput) error {
 		Description:     input.Description,
 		CreatorUserID:   input.EditorUserID,
 		HostSchoolID:    input.HostSchoolID,
+		HostTeamID:      input.HostTeamID,
 		GameIDs:         input.GameIDs,
 		Visibility:      input.Visibility,
 		Format:          input.Format,
@@ -255,6 +257,7 @@ func normalizeCreateParams(params CreateParams) CreateParams {
 	params.Description = strings.TrimSpace(params.Description)
 	params.CreatorUserID = strings.TrimSpace(params.CreatorUserID)
 	params.HostSchoolID = strings.TrimSpace(params.HostSchoolID)
+	params.HostTeamID = strings.TrimSpace(params.HostTeamID)
 	params.GameIDs = normalizeIDs(params.GameIDs)
 	params.Visibility = strings.TrimSpace(params.Visibility)
 	params.Format = strings.TrimSpace(params.Format)
@@ -279,6 +282,7 @@ func normalizeUpdateParams(params UpdateParams) UpdateParams {
 	params.Title = strings.TrimSpace(params.Title)
 	params.Description = strings.TrimSpace(params.Description)
 	params.HostSchoolID = strings.TrimSpace(params.HostSchoolID)
+	params.HostTeamID = strings.TrimSpace(params.HostTeamID)
 	params.GameIDs = normalizeIDs(params.GameIDs)
 	params.Visibility = strings.TrimSpace(params.Visibility)
 	params.Format = strings.TrimSpace(params.Format)

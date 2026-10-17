@@ -259,6 +259,7 @@ function VisibleEventView({
   const paymentURL = safeExternalEventUrl(event.payment_url);
   const onlineURL = safeExternalEventUrl(event.online_url);
   const primaryGame = event.games[0];
+  const organizer = event.organizers?.[0];
   const hasPlace = event.format !== "online";
   const directionsURL =
     hasPlace && (event.address || event.location_name)
@@ -292,8 +293,27 @@ function VisibleEventView({
           </p>
         ) : null}
         <h1>{event.title}</h1>
+        {/* A team hosts; a person only organizes. The school is where the
+            event belongs, never its host, since a student's own event is not
+            run by their school. */}
         <p className="detail-hero__meta">
-          Hosted by{" "}
+          {event.host_team ? (
+            <>
+              Hosted by{" "}
+              <Link to="/teams/$slug" params={{ slug: event.host_team.slug }}>
+                {event.host_team.name}
+              </Link>
+              {" · "}
+            </>
+          ) : organizer ? (
+            <>
+              Organized by{" "}
+              <Link to="/users/$id" params={{ id: organizer.id }}>
+                {organizer.name}
+              </Link>
+              {" · "}
+            </>
+          ) : null}
           <Link to="/schools/$slug" params={{ slug: event.host_school.slug }}>
             {event.host_school.name}
           </Link>

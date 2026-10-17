@@ -114,6 +114,7 @@ function NewEventPage() {
             defaultSchoolID={data.defaultSchoolID}
             defaultTimeZone={data.defaultTimeZone}
             games={data.games}
+            hostTeams={data.hostTeams}
             idempotencyKey={data.idempotencyKey}
             initialSchoolQuery={schoolQuery}
             initialSchoolSearchFailed={data.schoolSearchFailed}

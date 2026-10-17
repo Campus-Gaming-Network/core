@@ -189,7 +189,10 @@ Signup also requires confirming **age 18+**. Alumni can participate. Faculty who
 - Optional capacity; counts **RSVP yes only**; when full, no further yes RSVPs (no waitlist yet)
 - Physical address + optional mini Google Map
 - Description with character limit; **default banner/background placeholder** (custom uploads later with moderation)
-- Show creator and host(s)
+- Show the organizer, or the hosting team: an organizer who owns or captains a
+  team may host the event as that team. The page reads "Hosted by <team>" or
+  "Organized by <person>", with the school beside it; a school is never shown
+  as the host of a student's event. Team pages list their upcoming events
 - RSVP: **yes / no / maybe**
 - Interested: separate favorite/bookmark (not an RSVP answer)
 - Signed-in people see who is going (yes) and who might go (maybe); see
