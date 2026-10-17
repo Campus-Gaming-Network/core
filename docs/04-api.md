@@ -206,6 +206,12 @@ there is no per-list privacy setting.
 | POST   | `/teams/:slug/remove-member`      | Owner; `{ "user_id" }` of another member or captain. A non-owner gets `403 not_team_owner`, a non-member `422 team_member_not_found`, and the owner's own ID `400 invalid_team_role` |
 | GET    | `/teams/:slug/audit`              | **(planned)** Team change history                                                                                                                                                    |
 
+Each entry in a team's `games`, in the browse list, the team page, and the
+signed-in user's teams, is `{ "id", "name", "slug", "has_cover" }`, with
+`has_cover` meaning what it means for [an event's games](#events): the site
+serves the cover at `/api/games/:slug/cover`. Team rows show the first game's
+cover.
+
 Leaving or being removed ends the membership and clears any captain role. The person may rejoin with the team password and starts again as a member. Events the team hosts keep the team. Neither operation writes an audit record, the same as captain changes and ownership transfers; team change history is planned under `/teams/:slug/audit`.
 
 ### Events

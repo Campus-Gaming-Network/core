@@ -64,7 +64,8 @@ drawn as placeholders: see #61, #62, #246-#272, and #215-#216.
   initial, or school logo; the calendar date is a white tile with a red top
   edge), on event rows the first game's portrait cover at a
   fixed 3:4 size or a controller tile (it stands for the games, so event rows
-  list no game names as tags; its alt text names them), the name as a blue underlined link, a
+  list no game names as tags; its alt text names them; team rows show the
+  same picture as decoration beside their game tags), the name as a blue underlined link, a
   time line, a muted line with the host and the place's name (the street address is left to the detail page; a school's own page leaves out the host), tags, counts ("0 interested" is left out), and a small blue
   action link with an arrow ("View event →"). The whole row is one link. Event times give the date once for a
   one-day event, the year only outside the current year, and the time zone

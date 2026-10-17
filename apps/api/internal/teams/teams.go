@@ -82,6 +82,10 @@ type GameSummary struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
 	Slug string `json:"slug"`
+	// HasCover reports a cover the site serves at /api/games/{slug}/cover.
+	// It is false for a game hidden since the team chose it, whose cover the
+	// site no longer serves.
+	HasCover bool `json:"has_cover"`
 }
 
 // ListParams filters and pages the public team list. After and Before are
@@ -755,6 +759,7 @@ func scanTeam(scanner teamScanner) (Team, error) {
 	var gameIDs []string
 	var gameNames []string
 	var gameSlugs []string
+	var gameCovers []bool
 
 	err := scanner.Scan(
 		&team.ID,
@@ -772,6 +777,7 @@ func scanTeam(scanner teamScanner) (Team, error) {
 		&gameIDs,
 		&gameNames,
 		&gameSlugs,
+		&gameCovers,
 	)
 	if err != nil {
 		return Team{}, err
@@ -790,9 +796,10 @@ func scanTeam(scanner teamScanner) (Team, error) {
 	team.Games = make([]GameSummary, 0, len(gameIDs))
 	for index := range gameIDs {
 		team.Games = append(team.Games, GameSummary{
-			ID:   gameIDs[index],
-			Name: gameNames[index],
-			Slug: gameSlugs[index],
+			ID:       gameIDs[index],
+			Name:     gameNames[index],
+			Slug:     gameSlugs[index],
+			HasCover: gameCovers[index],
 		})
 	}
 
@@ -810,6 +817,7 @@ func scanTeamWithRole(scanner teamScanner) (Team, error) {
 	var gameIDs []string
 	var gameNames []string
 	var gameSlugs []string
+	var gameCovers []bool
 
 	err := scanner.Scan(
 		&team.ID,
@@ -827,6 +835,7 @@ func scanTeamWithRole(scanner teamScanner) (Team, error) {
 		&gameIDs,
 		&gameNames,
 		&gameSlugs,
+		&gameCovers,
 		&role,
 	)
 	if err != nil {
@@ -846,9 +855,10 @@ func scanTeamWithRole(scanner teamScanner) (Team, error) {
 	team.Games = make([]GameSummary, 0, len(gameIDs))
 	for index := range gameIDs {
 		team.Games = append(team.Games, GameSummary{
-			ID:   gameIDs[index],
-			Name: gameNames[index],
-			Slug: gameSlugs[index],
+			ID:       gameIDs[index],
+			Name:     gameNames[index],
+			Slug:     gameSlugs[index],
+			HasCover: gameCovers[index],
 		})
 	}
 	if role != "" {
@@ -874,6 +884,11 @@ func teamSelectSQL(whereClause string, tailClause string) string {
 		       COALESCE(
 		           array_agg(g.slug ORDER BY g.name, g.id::text) FILTER (WHERE g.id IS NOT NULL),
 		           ARRAY[]::text[]
+		       ),
+		       COALESCE(
+		           array_agg(g.is_active AND EXISTS(SELECT 1 FROM game_covers gc WHERE gc.game_id = g.id)
+		                     ORDER BY g.name, g.id::text) FILTER (WHERE g.id IS NOT NULL),
+		           ARRAY[]::boolean[]
 		       )
 		FROM teams t
 		LEFT JOIN schools s ON s.id = t.school_id
@@ -907,6 +922,11 @@ func teamSelectForUserSQL(whereClause string, tailClause string) string {
 		       COALESCE(
 		           array_agg(g.slug ORDER BY g.name, g.id::text) FILTER (WHERE g.id IS NOT NULL),
 		           ARRAY[]::text[]
+		       ),
+		       COALESCE(
+		           array_agg(g.is_active AND EXISTS(SELECT 1 FROM game_covers gc WHERE gc.game_id = g.id)
+		                     ORDER BY g.name, g.id::text) FILTER (WHERE g.id IS NOT NULL),
+		           ARRAY[]::boolean[]
 		       ),
 		       viewer_membership.role
 		FROM team_members viewer_membership

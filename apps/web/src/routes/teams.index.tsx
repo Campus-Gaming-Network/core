@@ -37,6 +37,7 @@ import {
   searchSchoolFilter,
 } from "../features/school-slice/school-filter-options";
 import { getEventViewerSession } from "../features/event-slice/auth.functions";
+import { EventGameThumb } from "../features/event-slice/event-game-thumb";
 import {
   teamsBrowsePageInput,
   validateTeamsSearch,
@@ -261,6 +262,7 @@ function TeamsPage() {
                       {team.name.slice(0, 1).toUpperCase()}
                     </span>
                   }
+                  media={<EventGameThumb decorative games={team.games} />}
                   meta={
                     team.school
                       ? [team.school.name, schoolLocation(team.school, "")]

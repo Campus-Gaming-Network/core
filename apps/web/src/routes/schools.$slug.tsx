@@ -26,6 +26,7 @@ import { SchoolLogo } from "../components/school-logo";
 import { StatusLabel } from "../components/status-label";
 import { TabLink, Tabs } from "../components/tabs";
 import { EventCard } from "../features/event-slice/event-card";
+import { EventGameThumb } from "../features/event-slice/event-game-thumb";
 import { getEventsBrowse } from "../features/event-slice/event.functions";
 import {
   peoplePreviewSize,
@@ -331,6 +332,9 @@ function SchoolPage() {
                               <span aria-hidden="true" className="team-mark">
                                 {team.name.slice(0, 1).toUpperCase()}
                               </span>
+                            }
+                            media={
+                              <EventGameThumb decorative games={team.games} />
                             }
                             meta={[
                               `${team.member_count} member${team.member_count === 1 ? "" : "s"}`,

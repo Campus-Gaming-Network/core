@@ -50,7 +50,14 @@ const team = {
     city: "Irvine",
     state: "CA",
   },
-  games: [{ id: "game-1", name: "Rocket League", slug: "rocket-league" }],
+  games: [
+    {
+      id: "game-1",
+      name: "Rocket League",
+      slug: "rocket-league",
+      has_cover: true,
+    },
+  ],
   viewer_role: "owner",
   members: [
     {

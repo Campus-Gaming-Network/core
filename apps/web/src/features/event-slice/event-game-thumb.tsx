@@ -1,5 +1,5 @@
 import { Gamepad2 } from "lucide-react";
-import { useImageFailure } from "../../components/use-image-failure";
+import { useImageFailure } from "../../components/use-image-failure.js";
 
 /**
  * The picture on an event row: the first game's portrait cover at a fixed
@@ -8,18 +8,23 @@ import { useImageFailure } from "../../components/use-image-failure";
  * load so the row never shows a broken image. The row lists no game names,
  * so this picture names the event's games for screen readers: as the
  * cover's alt text, or as the tile's label. An event with no games gets a
- * decorative tile.
+ * decorative tile. A row that already names its games as tags (a team row)
+ * passes `decorative`, so screen readers do not hear the names twice.
  */
 export function EventGameThumb({
+  decorative = false,
   games,
 }: {
+  decorative?: boolean;
   games: ReadonlyArray<{ has_cover?: boolean; slug?: string; name?: string }>;
 }) {
   const game = games[0];
-  const names = games
-    .map((each) => each.name)
-    .filter(Boolean)
-    .join(", ");
+  const names = decorative
+    ? ""
+    : games
+        .map((each) => each.name)
+        .filter(Boolean)
+        .join(", ");
   const coverURL =
     game?.slug && game.has_cover
       ? `/api/games/${encodeURIComponent(game.slug)}/cover`

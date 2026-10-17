@@ -40,6 +40,8 @@ export const gameSummaryDtoSchema = z.object({
   id: identifierSchema,
   name: z.string(),
   slug: identifierSchema,
+  // Whether the site serves the game's cover; team rows show the first one.
+  has_cover: z.boolean().optional(),
 });
 
 // The catalog list for the team form's game field: a game also says, through
