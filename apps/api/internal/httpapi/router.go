@@ -67,6 +67,7 @@ type Router struct {
 	picker            gamePicker
 	customGames       customGames
 	userGames         userGameLists
+	popularGames      popularGames
 	gameSearchLimiter *ratelimit.Limiter
 	events            eventstore.Repository
 	teams             teamstore.Repository
@@ -122,6 +123,7 @@ func NewRouter(cfg config.Config, pools ...*pgxpool.Pool) http.Handler {
 		router.covers = gameRepository
 		router.customGames = gameRepository
 		router.userGames = gameRepository
+		router.popularGames = gameRepository
 		router.gameSearchLimiter = ratelimit.New(gameSearchRateLimit, time.Minute)
 		if cfg.IGDBConfigured() {
 			igdbClient = igdb.NewClient(igdb.Config{
@@ -258,6 +260,7 @@ func (r *Router) registerPublicRoutes() {
 	r.mux.HandleFunc("/games/{slug}", requireMethod(http.MethodGet, r.handleGame))
 	r.mux.HandleFunc("/games/{slug}/cover", requireMethod(http.MethodGet, r.handleGameCover))
 	r.mux.HandleFunc("/games/igdb-search", requireMethod(http.MethodGet, r.handleGameSearch))
+	r.mux.HandleFunc("/popular-games", requireMethod(http.MethodGet, r.handlePopularGames))
 	r.mux.HandleFunc("/igdb-covers/{imageID}", requireMethod(http.MethodGet, r.handleSearchResultCover))
 	r.mux.HandleFunc("/internal/schools/refresh", requireMethod(http.MethodPost, r.handleRefreshCatalog))
 	r.mux.HandleFunc("/internal/error-monitoring/test", requireMethod(http.MethodPost, r.handleErrorMonitoringTest))
@@ -622,6 +625,30 @@ func (r *Router) handleGame(w http.ResponseWriter, req *http.Request) {
 	}
 	setPublicCatalogCache(w)
 	writeJSON(w, http.StatusOK, r.withSiteCoverURL(game))
+}
+
+// popularGames ranks catalog games by their upcoming public events.
+type popularGames interface {
+	Popular(ctx context.Context, schoolSlug string, now time.Time) ([]games.PopularGame, error)
+}
+
+// handlePopularGames answers GET /popular-games: the games most listed by
+// public events that have not ended, overall or, with school, for the events
+// that school hosts.
+func (r *Router) handlePopularGames(w http.ResponseWriter, req *http.Request) {
+	if r.popularGames == nil {
+		writeError(w, http.StatusServiceUnavailable, "database_unavailable")
+		return
+	}
+	result, err := r.popularGames.Popular(req.Context(), req.URL.Query().Get("school"), time.Now())
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "games_unavailable")
+		return
+	}
+	for index := range result {
+		result[index].Game = r.withSiteCoverURL(result[index].Game)
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"games": result})
 }
 
 // withSiteCoverURL points a game with a stored cover at the site's cover

@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -126,4 +127,55 @@ func scanGame(scanner gameScanner) (Game, error) {
 		return Game{}, err
 	}
 	return game, nil
+}
+
+// MaximumPopularGames is how many games a popular-games list shows.
+const MaximumPopularGames = 8
+
+// PopularGame is a catalog game with the number of upcoming public events
+// that list it.
+type PopularGame struct {
+	Game
+	UpcomingEvents int `json:"upcoming_events"`
+}
+
+// Popular returns up to MaximumPopularGames active games ranked by how many
+// public events that have not ended by now list them, most first, then by
+// name. A nonempty schoolSlug counts only events that school hosts. A game
+// with no such event is left out, so the list may be empty.
+func (r *PostgresRepository) Popular(ctx context.Context, schoolSlug string, now time.Time) ([]PopularGame, error) {
+	rows, err := r.pool.Query(ctx, `
+		SELECT `+gameColumns+`, counts.upcoming_events
+		FROM (
+			SELECT eg.game_id, COUNT(*)::int AS upcoming_events
+			FROM event_games eg
+			JOIN events e ON e.id = eg.event_id
+			JOIN schools s ON s.id = e.host_school_id
+			WHERE e.deleted_at IS NULL
+			  AND e.visibility = 'public'
+			  AND e.ends_at > $1
+			  AND ($2 = '' OR s.slug = $2)
+			GROUP BY eg.game_id
+		) counts
+		JOIN games ON games.id = counts.game_id
+		WHERE games.deleted_at IS NULL AND games.is_active = TRUE
+		ORDER BY counts.upcoming_events DESC, games.name, games.id
+		LIMIT $3
+	`, now, strings.TrimSpace(schoolSlug), MaximumPopularGames)
+	if err != nil {
+		return nil, fmt.Errorf("list popular games: %w", err)
+	}
+	defer rows.Close()
+	result := []PopularGame{}
+	for rows.Next() {
+		var game PopularGame
+		if err := rows.Scan(&game.ID, &game.Name, &game.Slug, &game.CoverURL, &game.HasCover, &game.UpcomingEvents); err != nil {
+			return nil, fmt.Errorf("scan popular game: %w", err)
+		}
+		result = append(result, game)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate popular games: %w", err)
+	}
+	return result, nil
 }

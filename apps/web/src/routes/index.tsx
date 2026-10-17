@@ -13,6 +13,8 @@ import { DirectorySidebar } from "../components/directory-sidebar";
 import homeCSS from "../features/home-slice/home.css?url";
 import { getHomeEvents } from "../features/event-slice/event.functions";
 import { getHomeCatalog } from "../features/school-slice/catalog.functions";
+import { getPopularGames } from "../features/popular-games/popular-games.functions";
+import { PopularGamesPanel } from "../features/popular-games/popular-games-panel";
 import { catalogClientStaleTime } from "../features/school-slice/contracts";
 import {
   homeHead,
@@ -25,12 +27,19 @@ export const Route = createFileRoute("/")({
     return account ? { account } : {};
   },
   loader: async ({ context }) => {
-    const [catalog, events, sidebar] = await Promise.all([
+    const [catalog, events, sidebar, popularGames] = await Promise.all([
       getHomeCatalog(),
       getHomeEvents(),
       loadDirectorySidebar(),
+      getPopularGames({ data: {} }),
     ]);
-    return { catalog, events, sidebar, publicOrigin: context.publicOrigin };
+    return {
+      catalog,
+      events,
+      sidebar,
+      popularGames,
+      publicOrigin: context.publicOrigin,
+    };
   },
   staleTime: catalogClientStaleTime,
   head: ({ loaderData }) => ({
@@ -41,7 +50,7 @@ export const Route = createFileRoute("/")({
 });
 
 function HomePage() {
-  const { catalog, events, sidebar } = Route.useLoaderData();
+  const { catalog, events, sidebar, popularGames } = Route.useLoaderData();
   const viewer = useViewer();
   const search = Route.useSearch();
   const firstName = viewer?.name.trim().split(/\s+/)[0];
@@ -217,6 +226,8 @@ function HomePage() {
                 <p className="panel__body muted">No schools are listed yet.</p>
               )}
             </section>
+
+            <PopularGamesPanel heading="Popular games" result={popularGames} />
 
             <section className="panel" aria-labelledby="host-title">
               <h2 id="host-title">Host something</h2>

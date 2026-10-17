@@ -4015,3 +4015,48 @@ button {
   margin: 0;
   color: var(--color-muted);
 }
+
+/* Popular games: a cover, the name, and its upcoming event count per row. */
+.popular-games {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.popular-games h2 {
+  margin: 0;
+}
+
+.popular-games__list {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.popular-games__game {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+  color: var(--color-text) !important;
+  text-decoration: none !important;
+}
+
+.popular-games__copy {
+  display: grid;
+  min-width: 0;
+}
+
+.popular-games__copy strong {
+  color: var(--color-link);
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+
+.popular-games__copy small {
+  color: var(--color-muted);
+  font-size: var(--text-xs);
+}

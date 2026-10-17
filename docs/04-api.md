@@ -341,6 +341,7 @@ Response:
 | GET    | `/games/:slug/cover`       | Stored cover image of an active game                     |
 | GET    | `/games/igdb-search?q=`    | Auth; search IGDB from a game picker                     |
 | GET    | `/igdb-covers/:image_id`   | Small IGDB cover of a recent search result (public)      |
+| GET    | `/popular-games`           | Games with the most upcoming public events (public)      |
 | GET    | `/games/:slug/events`      | **(planned)** Public events for game + filters           |
 | GET    | `/games/:slug/tournaments` | **(planned)** Tournaments for game + filters             |
 
@@ -357,6 +358,16 @@ name first, then names that start with `q`, then the rest, each by name. The
 directories' game filters use the search and `GET /games/:slug`, which returns
 one game in the same shape, so they never load the whole catalog. The web app
 serves the filter's search to browsers at `/api/games/catalog-search?q=`.
+
+`GET /popular-games` returns up to 8 active games ranked by how many public
+events that have not ended list them, most first, then by name, as
+`{ "games": [{ "id", "name", "slug", "cover_url"?, "upcoming_events" }] }`.
+With `school=<slug>` it counts only the events that school hosts; an unknown
+slug returns an empty list. A game with no such event is left out, so the list
+can be empty. Events under way count, as they do on the events list, and
+private and deleted events never count. The home page and the school page show
+it as "Popular games", each game linking to the events list filtered by that
+game (and school).
 
 `GET /games/igdb-search?q=` (2 to 100 characters) returns
 `{ "games": [{ "igdb_id", "name", "release_year"?, "game_id"?, "slug"?, "has_cover"?, "cover_image_id"? }] }`; `game_id`

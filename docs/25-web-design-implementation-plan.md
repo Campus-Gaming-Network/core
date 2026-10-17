@@ -93,8 +93,10 @@ drawn as placeholders: see #61, #62, #246-#272, and #215-#216.
   school" and "Schools you follow", long names ending in an ellipsis; no
   section links, since the header is the one global navigation), then a
   welcome panel with three event shortcuts (My school or Find your school,
-  Online, Nationwide), then "Events this week" and "More events" beside popular schools and a
-  "Host something" panel. A visitor gets no left column. There is no
+  Online, Nationwide), then "Events this week" and "More events" beside popular schools, "Popular
+  games" (hidden when no game has an upcoming public event), and a "Host
+  something" panel. The school page's side column shows "Popular games at
+  <school>" under About, on the same terms. A visitor gets no left column. There is no
   marketing hero or "How it works" row.
 - **Create and edit forms** (events, teams): breadcrumbs, a sticky numbered
   section nav at the left from 64rem (plain in-page links, not a stepper), and

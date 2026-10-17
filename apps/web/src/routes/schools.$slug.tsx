@@ -56,6 +56,9 @@ import {
   safeSchoolWebsite,
 } from "../features/school-slice/presentation";
 import { getTeamsBrowse } from "../features/team-slice/team.functions";
+import type { PopularGamesResult } from "../features/popular-games/contracts";
+import { getPopularGames } from "../features/popular-games/popular-games.functions";
+import { PopularGamesPanel } from "../features/popular-games/popular-games-panel";
 import schoolPageCSS from "../features/school-slice/school-page.css?url";
 
 type SchoolRouteData = {
@@ -65,6 +68,7 @@ type SchoolRouteData = {
   teams: Awaited<ReturnType<typeof getTeamsBrowse>>;
   /** The first home-school members; a visitor's read is a signed-out result. */
   members: PeopleListResult;
+  popularGames: PopularGamesResult;
   publicOrigin: string;
 };
 
@@ -79,7 +83,7 @@ export const Route = createFileRoute("/schools/$slug")({
       throw new Error("School detail is unavailable");
     }
     const school = catalog.school;
-    const [viewer, events, teams, members] = await Promise.all([
+    const [viewer, events, teams, members, popularGames] = await Promise.all([
       getSchoolViewerState({ data: { schoolId: school.id } }),
       getEventsBrowse({ data: { school: school.slug } }),
       getTeamsBrowse({
@@ -89,6 +93,7 @@ export const Route = createFileRoute("/schools/$slug")({
       getSchoolMembers({
         data: { slug: school.slug, limit: peoplePreviewSize },
       }),
+      getPopularGames({ data: { school: school.slug } }),
     ]);
     return {
       school,
@@ -96,6 +101,7 @@ export const Route = createFileRoute("/schools/$slug")({
       events,
       teams,
       members,
+      popularGames,
       publicOrigin: context.publicOrigin,
     };
   },
@@ -122,7 +128,8 @@ export const Route = createFileRoute("/schools/$slug")({
 });
 
 function SchoolPage() {
-  const { school, viewer, events, teams, members } = Route.useLoaderData();
+  const { school, viewer, events, teams, members, popularGames } =
+    Route.useLoaderData();
   const search = Route.useSearch();
   const website = safeSchoolWebsite(school.website_url);
   const tab = search.tab;
@@ -408,6 +415,11 @@ function SchoolPage() {
                 value: school.is_main_campus ? "Main campus" : "Branch campus",
               },
             ]}
+          />
+          <PopularGamesPanel
+            heading={`Popular games at ${school.name}`}
+            result={popularGames}
+            school={school.slug}
           />
         </aside>
       </div>

@@ -162,6 +162,7 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 
 - [x] Simple dashboard: upcoming RSVPs + followed-school events + team activity
 - [x] Homepage (works with little/no UGC), with six-event previews of public events this week (under way or starting in the next seven days) and after it, in the events page order and the six most popular schools (active members plus public events hosted), falling back to the alphabetical list until any school has activity
+- [x] "Popular games" on the home page and the school page: up to eight games ranked by upcoming public events (at that school on the school page), each linking to the filtered events list; hidden when no game has an upcoming event
 - [x] Cold-start plan (demo seed and/or “create first event” CTA)
 - [x] FAQ and About; Terms and Privacy routes exist pending reviewed copy
 - [x] Support ticket form — **anyone** can submit (logged out OK)
