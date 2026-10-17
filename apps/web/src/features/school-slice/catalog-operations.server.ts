@@ -11,12 +11,14 @@ import {
   schoolDtoSchema,
   schoolsPageSize,
   schoolsResponseDtoSchema,
+  schoolStatsResponseDtoSchema,
   type HomeCatalogResult,
   type SchoolCatalogResult,
   type SchoolDTO,
   type SchoolSlugInput,
   type SchoolsBrowseInput,
   type SchoolsCatalogResult,
+  type SchoolStatsDTO,
   type SchoolViewerInput,
   type SchoolViewerState,
 } from "./contracts.js";
@@ -98,6 +100,11 @@ export async function schoolsCatalogOperation(
     return {
       ...page,
       schools: page.schools.map((school) => withVerifiedLogo(school, logoBase)),
+      stats: await readSchoolStats(
+        api,
+        page.schools.map((school) => school.slug),
+        reportError,
+      ),
       unavailable: false,
     };
   } catch (error) {
@@ -107,6 +114,7 @@ export async function schoolsCatalogOperation(
       limit: schoolsPageSize,
       offset,
       has_more: false,
+      stats: {},
       unavailable: true,
     };
   }
@@ -133,6 +141,36 @@ export async function schoolCatalogOperation(
     }
     reportError(error);
     return { status: "error", message: "School details are unavailable." };
+  }
+}
+
+/** One school's counts for its page, or null when they cannot be read. */
+export async function schoolStatsOperation(
+  { slug }: SchoolSlugInput,
+  { api, reportError = defaultErrorReporter }: CatalogDependencies,
+): Promise<SchoolStatsDTO | null> {
+  return (await readSchoolStats(api, [slug], reportError))[slug] ?? null;
+}
+
+// Counts are extra detail: a failed read leaves rows without them rather than
+// failing the page.
+async function readSchoolStats(
+  api: ApiClient,
+  slugs: string[],
+  reportError: (error: unknown) => void,
+): Promise<Record<string, SchoolStatsDTO>> {
+  if (slugs.length === 0) return {};
+  const search = new URLSearchParams(slugs.map((slug) => ["school", slug]));
+  try {
+    const { data } = await api({
+      path: `/school-stats?${search.toString()}`,
+      cache: "no-store",
+      responseSchema: schoolStatsResponseDtoSchema,
+    });
+    return Object.fromEntries(data.stats.map((stats) => [stats.slug, stats]));
+  } catch (error) {
+    reportError(error);
+    return {};
   }
 }
 

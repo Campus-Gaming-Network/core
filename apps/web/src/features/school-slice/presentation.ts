@@ -4,7 +4,7 @@ import {
   pageHead,
   siteName,
 } from "../../components/public-page-head.js";
-import type { SchoolDTO } from "./contracts.js";
+import type { SchoolDTO, SchoolStatsDTO } from "./contracts.js";
 
 export { siteName };
 
@@ -36,6 +36,22 @@ export function schoolLocation(
   fallback = "Location pending",
 ): string {
   return [school.city, school.state].filter(Boolean).join(", ") || fallback;
+}
+
+/**
+ * A school's CGN activity as short phrases, such as "3 teams". A zero is
+ * shown as zero, never hidden or rounded up.
+ */
+export function schoolActivityCounts(stats: SchoolStatsDTO): string[] {
+  return [
+    counted(stats.teams, "team", "teams"),
+    counted(stats.upcoming_events, "upcoming event", "upcoming events"),
+    counted(stats.members, "member", "members"),
+  ];
+}
+
+function counted(count: number, one: string, many: string): string {
+  return `${count.toLocaleString("en-US")} ${count === 1 ? one : many}`;
 }
 
 /**

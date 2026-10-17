@@ -39,6 +39,7 @@ import {
 } from "../features/people-slice/people-views";
 import {
   getSchoolCatalog,
+  getSchoolStats,
   getSchoolViewerState,
 } from "../features/school-slice/catalog.functions";
 import {
@@ -48,8 +49,10 @@ import {
 import {
   validateSchoolSearch,
   type SchoolDTO,
+  type SchoolStatsDTO,
 } from "../features/school-slice/contracts";
 import {
+  schoolActivityCounts,
   schoolDetailNotices,
   schoolHead,
   schoolLocation,
@@ -70,6 +73,8 @@ type SchoolRouteData = {
   /** The first home-school members; a visitor's read is a signed-out result. */
   members: PeopleListResult;
   popularGames: PopularGamesResult;
+  /** Null when the counts could not be read; the header then leaves them out. */
+  stats: SchoolStatsDTO | null;
   publicOrigin: string;
 };
 
@@ -84,18 +89,20 @@ export const Route = createFileRoute("/schools/$slug")({
       throw new Error("School detail is unavailable");
     }
     const school = catalog.school;
-    const [viewer, events, teams, members, popularGames] = await Promise.all([
-      getSchoolViewerState({ data: { schoolId: school.id } }),
-      getEventsBrowse({ data: { school: school.slug } }),
-      getTeamsBrowse({
-        data: { game: "", school: school.slug, after: "", before: "" },
-      }),
-      // A request with no session never reaches the API.
-      getSchoolMembers({
-        data: { slug: school.slug, limit: peoplePreviewSize },
-      }),
-      getPopularGames({ data: { school: school.slug } }),
-    ]);
+    const [viewer, events, teams, members, popularGames, stats] =
+      await Promise.all([
+        getSchoolViewerState({ data: { schoolId: school.id } }),
+        getEventsBrowse({ data: { school: school.slug } }),
+        getTeamsBrowse({
+          data: { game: "", school: school.slug, after: "", before: "" },
+        }),
+        // A request with no session never reaches the API.
+        getSchoolMembers({
+          data: { slug: school.slug, limit: peoplePreviewSize },
+        }),
+        getPopularGames({ data: { school: school.slug } }),
+        getSchoolStats({ data: { slug: school.slug } }),
+      ]);
     return {
       school,
       viewer,
@@ -103,6 +110,7 @@ export const Route = createFileRoute("/schools/$slug")({
       teams,
       members,
       popularGames,
+      stats,
       publicOrigin: context.publicOrigin,
     };
   },
@@ -129,7 +137,7 @@ export const Route = createFileRoute("/schools/$slug")({
 });
 
 function SchoolPage() {
-  const { school, viewer, events, teams, members, popularGames } =
+  const { school, viewer, events, teams, members, popularGames, stats } =
     Route.useLoaderData();
   const search = Route.useSearch();
   const website = safeSchoolWebsite(school.website_url);
@@ -186,6 +194,11 @@ function SchoolPage() {
             </>
           ) : null}
         </p>
+        {stats ? (
+          <p className="detail-hero__meta">
+            {schoolActivityCounts(stats).join(" · ")}
+          </p>
+        ) : null}
       </DetailHero>
 
       <PageNoticeView

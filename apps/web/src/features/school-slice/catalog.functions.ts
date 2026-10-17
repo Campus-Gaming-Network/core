@@ -9,6 +9,7 @@ import {
   homeCatalogOperation,
   schoolCatalogOperation,
   schoolsCatalogOperation,
+  schoolStatsOperation,
   schoolViewerStateOperation,
 } from "./catalog-operations.server.js";
 import {
@@ -53,6 +54,12 @@ export const getSchoolCatalog = createServerFn({ method: "GET" })
   .validator(schoolSlugInputSchema)
   .handler(async ({ data }) =>
     schoolCatalogOperation(data, { api: goBFFForCurrentRequest() }),
+  );
+
+export const getSchoolStats = createServerFn({ method: "GET" })
+  .validator(schoolSlugInputSchema)
+  .handler(async ({ data }) =>
+    schoolStatsOperation(data, { api: goBFFForCurrentRequest() }),
   );
 
 export const getSchoolViewerState = createServerFn({ method: "GET" })

@@ -99,6 +99,20 @@ export const schoolFollowInputSchema = z
   .strict();
 export const emptyResponseDtoSchema = z.undefined();
 
+const countSchema = z.number().int().nonnegative();
+
+/** A school's CGN activity, as `/school-stats` counts it: not enrollment. */
+export const schoolStatsDtoSchema = z.object({
+  slug: identifierSchema,
+  members: countSchema,
+  teams: countSchema,
+  upcoming_events: countSchema,
+});
+export const schoolStatsResponseDtoSchema = z.object({
+  stats: z.array(schoolStatsDtoSchema),
+});
+export type SchoolStatsDTO = z.output<typeof schoolStatsDtoSchema>;
+
 export type SchoolDTO = z.output<typeof schoolDtoSchema> & {
   /** Added by the BFF: a bundled logo the school page gives a wider mark. */
   logo_wide?: true;
@@ -132,6 +146,8 @@ export type HomeCatalogResult = {
 };
 
 export type SchoolsCatalogResult = SchoolsResponseDTO & {
+  /** Each listed school's counts by slug; empty when they could not be read. */
+  stats: Record<string, SchoolStatsDTO>;
   unavailable: boolean;
 };
 

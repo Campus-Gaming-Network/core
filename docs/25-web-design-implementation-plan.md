@@ -66,7 +66,7 @@ drawn as placeholders: see #61, #62, #246-#272, and #215-#216.
   fixed 3:4 size or a controller tile (it stands for the games, so event rows
   list no game names as tags; its alt text names them; team rows show the
   same picture as decoration beside their game tags), the name as a blue underlined link, a
-  time line, a muted line with the host and the place's name (the street address is left to the detail page; a school's own page leaves out the host), tags, counts ("0 interested" is left out), and a small blue
+  time line, a muted line with the host and the place's name (the street address is left to the detail page; a school's own page leaves out the host), tags, counts ("0 interested" is left out; school rows show teams, upcoming events, and members, zeros included, and leave all three out when they cannot be read), and a small blue
   action link with an arrow ("View event →"). The whole row is one link. Event times give the date once for a
   one-day event, the year only outside the current year, and the time zone
   once unless it changes during the event. It lays out by the width of its list: in
@@ -97,7 +97,9 @@ drawn as placeholders: see #61, #62, #246-#272, and #215-#216.
   Online, Nationwide), then "Events this week" and "More events" beside popular schools, "Popular
   games" (hidden when no game has an upcoming public event), and a "Host
   something" panel. The school page's side column shows "Popular games at
-  <school>" under About, on the same terms. A visitor gets no left column. There is no
+  <school>" under About, on the same terms. Its header shows the school's
+  teams, upcoming events, and members under the location, or nothing when the
+  counts cannot be read. A visitor gets no left column. There is no
   marketing hero or "How it works" row.
 - **Create and edit forms** (events, teams): breadcrumbs, a sticky numbered
   section nav at the left from 64rem (plain in-page links, not a stepper), and

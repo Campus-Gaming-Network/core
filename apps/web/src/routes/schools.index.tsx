@@ -31,6 +31,7 @@ import {
   type SchoolsSearch,
 } from "../features/school-slice/contracts";
 import {
+  schoolActivityCounts,
   schoolBrowseNotices,
   schoolLocation,
   schoolShortName,
@@ -168,34 +169,49 @@ function SchoolsPage() {
               </span>
             </div>
             <div className="list">
-              {catalog.schools.map((school) => (
-                <Link
-                  className={directoryRowClassName}
-                  key={school.id}
-                  to="/schools/$slug"
-                  params={{ slug: school.slug }}
-                >
-                  <DirectoryRow
-                    action="View school"
-                    identity={
-                      <span
-                        aria-hidden="true"
-                        className="school-directory-mark"
-                      >
-                        {school.name.slice(0, 1).toUpperCase()}
-                        <SchoolLogo
-                          logoURL={
-                            school.logo_wordmark ? undefined : school.logo_url
-                          }
-                          size={44}
-                        />
-                      </span>
-                    }
-                    meta={[schoolShortName(school), schoolLocation(school)]}
-                    name={school.name}
-                  />
-                </Link>
-              ))}
+              {catalog.schools.map((school) => {
+                const stats = catalog.stats[school.slug];
+                return (
+                  <Link
+                    className={directoryRowClassName}
+                    key={school.id}
+                    to="/schools/$slug"
+                    params={{ slug: school.slug }}
+                  >
+                    <DirectoryRow
+                      action="View school"
+                      counts={
+                        stats
+                          ? schoolActivityCounts(stats).map((count) => (
+                              <small
+                                className="directory-row__count"
+                                key={count}
+                              >
+                                {count}
+                              </small>
+                            ))
+                          : undefined
+                      }
+                      identity={
+                        <span
+                          aria-hidden="true"
+                          className="school-directory-mark"
+                        >
+                          {school.name.slice(0, 1).toUpperCase()}
+                          <SchoolLogo
+                            logoURL={
+                              school.logo_wordmark ? undefined : school.logo_url
+                            }
+                            size={44}
+                          />
+                        </span>
+                      }
+                      meta={[schoolShortName(school), schoolLocation(school)]}
+                      name={school.name}
+                    />
+                  </Link>
+                );
+              })}
             </div>
           </section>
         ) : (

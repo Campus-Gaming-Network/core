@@ -68,6 +68,7 @@ type Router struct {
 	customGames       customGames
 	userGames         userGameLists
 	popularGames      popularGames
+	schoolStats       schoolStats
 	gameSearchLimiter *ratelimit.Limiter
 	events            eventstore.Repository
 	teams             teamstore.Repository
@@ -118,6 +119,7 @@ func NewRouter(cfg config.Config, pools ...*pgxpool.Pool) http.Handler {
 		router.catalog = catalog
 		router.schools = catalog
 		router.follows = schoolRepository
+		router.schoolStats = schoolRepository
 		gameRepository := games.NewPostgresRepository(router.db)
 		router.games = gameRepository
 		router.covers = gameRepository
@@ -261,6 +263,7 @@ func (r *Router) registerPublicRoutes() {
 	r.mux.HandleFunc("/games/{slug}/cover", requireMethod(http.MethodGet, r.handleGameCover))
 	r.mux.HandleFunc("/games/igdb-search", requireMethod(http.MethodGet, r.handleGameSearch))
 	r.mux.HandleFunc("/popular-games", requireMethod(http.MethodGet, r.handlePopularGames))
+	r.mux.HandleFunc("/school-stats", requireMethod(http.MethodGet, r.handleSchoolStats))
 	r.mux.HandleFunc("/igdb-covers/{imageID}", requireMethod(http.MethodGet, r.handleSearchResultCover))
 	r.mux.HandleFunc("/internal/schools/refresh", requireMethod(http.MethodPost, r.handleRefreshCatalog))
 	r.mux.HandleFunc("/internal/error-monitoring/test", requireMethod(http.MethodPost, r.handleErrorMonitoringTest))
@@ -625,6 +628,36 @@ func (r *Router) handleGame(w http.ResponseWriter, req *http.Request) {
 	}
 	setPublicCatalogCache(w)
 	writeJSON(w, http.StatusOK, r.withSiteCoverURL(game))
+}
+
+// schoolStats counts each school's members, teams, and upcoming events.
+type schoolStats interface {
+	Stats(ctx context.Context, slugs []string, now time.Time) ([]schools.Stats, error)
+}
+
+// handleSchoolStats answers GET /school-stats?school=<slug>&school=...: the
+// activity counts of up to MaximumStatsSchools active schools, read in one
+// query so a directory page costs one request.
+func (r *Router) handleSchoolStats(w http.ResponseWriter, req *http.Request) {
+	if r.schoolStats == nil {
+		writeError(w, http.StatusServiceUnavailable, "database_unavailable")
+		return
+	}
+	slugs := req.URL.Query()["school"]
+	if len(slugs) > schools.MaximumStatsSchools {
+		writeError(w, http.StatusBadRequest, "too_many_schools")
+		return
+	}
+	result := []schools.Stats{}
+	if len(slugs) > 0 {
+		var err error
+		result, err = r.schoolStats.Stats(req.Context(), slugs, time.Now())
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "school_stats_unavailable")
+			return
+		}
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"stats": result})
 }
 
 // popularGames ranks catalog games by their upcoming public events.

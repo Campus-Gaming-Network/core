@@ -6,6 +6,7 @@ import {
   homeCatalogOperation,
   schoolCatalogOperation,
   schoolsCatalogOperation,
+  schoolStatsOperation,
   schoolViewerStateOperation,
 } from "../src/features/school-slice/catalog-operations.server.js";
 import { loadSchoolFilterChoices } from "../src/features/school-slice/school-filter.server.js";
@@ -17,6 +18,7 @@ import {
 import {
   homeHead,
   safeSchoolWebsite,
+  schoolActivityCounts,
   schoolHead,
   schoolLocation,
   schoolShortName,
@@ -113,12 +115,21 @@ test("home catalog loads the popular schools without the game catalog", async ()
 });
 
 test("school browse builds encoded pagination requests and falls back to an empty page", async () => {
-  let requested = "";
+  const requested: string[] = [];
+  const stats = {
+    slug: school.slug,
+    members: 310,
+    teams: 18,
+    upcoming_events: 0,
+  };
   const available = await schoolsCatalogOperation(
     { query: "Cal State", state: "CA", page: 3 },
     {
       api: client(async (input) => {
-        requested = String(input);
+        requested.push(String(input));
+        if (String(input).includes("/school-stats")) {
+          return Response.json({ stats: [stats] });
+        }
         return Response.json({
           schools: [school],
           limit: 25,
@@ -138,15 +149,16 @@ test("school browse builds encoded pagination requests and falls back to an empt
     },
   );
 
-  assert.equal(
-    requested,
+  assert.deepEqual(requested, [
     "http://api:8080/schools?q=Cal+State&state=CA&limit=25&offset=50",
-  );
+    "http://api:8080/school-stats?school=example-university",
+  ]);
   assert.deepEqual(available, {
     schools: [school],
     limit: 25,
     offset: 50,
     has_more: true,
+    stats: { [school.slug]: stats },
     unavailable: false,
   });
   assert.deepEqual(unavailable, {
@@ -154,8 +166,72 @@ test("school browse builds encoded pagination requests and falls back to an empt
     limit: 25,
     offset: 50,
     has_more: false,
+    stats: {},
     unavailable: true,
   });
+});
+
+test("school counts that cannot be read leave the rows and the page without them", async () => {
+  const reported: unknown[] = [];
+  const page = { schools: [school], limit: 25, offset: 0, has_more: false };
+  const failingStats = client(async (input) =>
+    String(input).includes("/school-stats")
+      ? Response.json({ error: "school_stats_unavailable" }, { status: 500 })
+      : Response.json(page),
+  );
+  const stats = {
+    slug: school.slug,
+    members: 1,
+    teams: 0,
+    upcoming_events: 2,
+  };
+
+  assert.deepEqual(
+    {
+      browse: await schoolsCatalogOperation(
+        { query: "", state: "", page: 1 },
+        { api: failingStats, reportError: (error) => reported.push(error) },
+      ),
+      failed: await schoolStatsOperation(
+        { slug: school.slug },
+        { api: failingStats, reportError: (error) => reported.push(error) },
+      ),
+      found: await schoolStatsOperation(
+        { slug: school.slug },
+        { api: client(async () => Response.json({ stats: [stats] })) },
+      ),
+      reported: reported.length,
+    },
+    {
+      browse: { ...page, stats: {}, unavailable: false },
+      failed: null,
+      found: stats,
+      reported: 2,
+    },
+  );
+});
+
+test("school counts read as CGN activity and show a zero as zero", () => {
+  assert.deepEqual(
+    [
+      schoolActivityCounts({
+        slug: "a",
+        members: 1310,
+        teams: 18,
+        upcoming_events: 42,
+      }),
+      schoolActivityCounts({
+        slug: "b",
+        members: 1,
+        teams: 1,
+        upcoming_events: 0,
+      }),
+    ],
+    [
+      ["18 teams", "42 upcoming events", "1,310 members"],
+      ["1 team", "0 upcoming events", "1 member"],
+    ],
+  );
 });
 
 test("school detail strips additive data and distinguishes a true upstream 404", async () => {
