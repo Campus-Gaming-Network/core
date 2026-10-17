@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"regexp"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -134,6 +135,9 @@ type Metadata struct {
 	Bootstrap             bool   `json:"bootstrap,omitempty"`
 	OperatorIdentity      string `json:"operator_identity,omitempty"`
 	OperatorReason        string `json:"operator_reason,omitempty"`
+	// EditedFields names the form fields a school or game update changed. It
+	// holds field names only, never their values.
+	EditedFields []string `json:"edited_fields,omitempty"`
 }
 
 type WriteInput struct {
@@ -251,8 +255,25 @@ func (input WriteInput) validate() error {
 	if input.EntityType == EntitySiteRoleGrant && input.Metadata.ResolutionNoteChanged {
 		return ErrInvalidAudit
 	}
+	if len(input.Metadata.EditedFields) > 0 && input.Action != ActionSchoolUpdated && input.Action != ActionGameUpdated {
+		return ErrInvalidAudit
+	}
+	if len(input.Metadata.EditedFields) > maximumEditedFields {
+		return ErrInvalidAudit
+	}
+	for _, name := range input.Metadata.EditedFields {
+		if !fieldNamePattern.MatchString(name) {
+			return ErrInvalidAudit
+		}
+	}
 	return nil
 }
+
+// maximumEditedFields bounds Metadata.EditedFields above the largest edit
+// form, the school form's 13 fields.
+const maximumEditedFields = 32
+
+var fieldNamePattern = regexp.MustCompile(`^[a-z][a-z0-9_]{0,63}$`)
 
 func (params ListParams) validate() error {
 	if !validEntityType(params.EntityType) || !validUUID(params.EntityID) || params.Limit < 0 || params.Limit > 201 {

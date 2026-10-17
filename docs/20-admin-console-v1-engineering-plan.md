@@ -1013,6 +1013,11 @@ API contracts for AC-013:
   `is_active`. Mutations of existing records require `expected_updated_at`.
   Stale school/game/account writes return `409 admin_record_conflict` with
   `current`; clients reload grant detail/history after grant conflicts.
+- School and game audit state holds slug, lifecycle, logo, and `updated_at`
+  only. An edit also records the names, never the values, of the form fields
+  it changed in the audit metadata as `edited_fields`. The console's changed
+  field list combines those names with the audit state fields that differ and
+  leaves out bookkeeping timestamps (`updated_at`, `retention_started_at`).
 - A first school grant accepts `user_id` and `reason` without a version.
   Re-grant restores the existing row and requires its last `updated_at` value.
   Revocation uses the stable grant ID scoped to its school. Every transition

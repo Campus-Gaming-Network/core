@@ -303,7 +303,7 @@ func TestPostgresRepositoryQueuesWriteAuditHistory(t *testing.T) {
 	if err := json.Unmarshal(ticketHistory[0].Metadata, &metadata); err != nil {
 		t.Fatalf("decode support ticket audit metadata: %v", err)
 	}
-	if metadata != (adminaudit.Metadata{ResolutionNoteChanged: true}) {
+	if !reflect.DeepEqual(metadata, adminaudit.Metadata{ResolutionNoteChanged: true}) {
 		t.Fatalf("support ticket audit metadata = %#v, want note-change marker", metadata)
 	}
 	if err := adminaudit.ValidateSafeDocuments(

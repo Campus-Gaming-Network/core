@@ -331,6 +331,41 @@ func TestAuditLogListsEveryChangeWithItsRecord(t *testing.T) {
 	f.request(t, "GET", "/admin/v1/audit?entity_type=event", nil, 400)
 }
 
+func TestCatalogUpdatesAuditTheNamesOfTheEditedFields(t *testing.T) {
+	f := newCatalogFixture(t)
+	school := f.newSchool(t, "short-name-edit")
+	schoolEdit := schools.AdminEdit{Command: f.versioned(school.UpdatedAt), AdminFields: school.AdminFields}
+	schoolEdit.ShortName = "SNE"
+	f.request(t, "PATCH", "/admin/v1/schools/"+school.ID, schoolEdit, 200)
+	game := f.insertGame(t, "Edited Game", "edited-game")
+	f.request(t, "PATCH", "/admin/v1/games/"+game.ID, games.AdminEdit{Command: f.versioned(game.UpdatedAt), Name: "Renamed Game", Slug: game.Slug}, 200)
+
+	edited := map[adminaudit.Action]adminaudit.Metadata{}
+	rows, err := f.pool.Query(t.Context(), `SELECT action, metadata FROM audit_logs WHERE action IN ('school.updated','game.updated')`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var action adminaudit.Action
+		var metadata adminaudit.Metadata
+		if err := rows.Scan(&action, &metadata); err != nil {
+			t.Fatal(err)
+		}
+		edited[action] = metadata
+	}
+	if err := rows.Err(); err != nil {
+		t.Fatal(err)
+	}
+	want := map[adminaudit.Action]adminaudit.Metadata{
+		adminaudit.ActionSchoolUpdated: {OperatorReason: f.command.Reason, EditedFields: []string{"short_name"}},
+		adminaudit.ActionGameUpdated:   {OperatorReason: f.command.Reason, EditedFields: []string{"is_active", "name"}},
+	}
+	if !reflect.DeepEqual(edited, want) {
+		t.Fatalf("audit metadata = %#v, want %#v", edited, want)
+	}
+}
+
 func TestUserStatusTrustAndSiteGrantHTTP(t *testing.T) {
 	f := newCatalogFixture(t)
 	ctx := t.Context()

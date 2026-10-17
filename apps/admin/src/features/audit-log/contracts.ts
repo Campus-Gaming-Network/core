@@ -1,5 +1,5 @@
 import * as z from "zod";
-import { changedFields } from "../catalog/contracts.js";
+import { auditMetadataSchema, changedFields } from "../catalog/contracts.js";
 
 const uuidSchema = z.string().uuid();
 const cursorSchema = z.string().trim().min(1).max(2048);
@@ -63,12 +63,7 @@ export const auditLogEntrySchema = z
     target_name: z.string().optional(),
     before: z.unknown(),
     after: z.unknown(),
-    metadata: z
-      .object({
-        operator_reason: z.string().max(1000).optional(),
-        resolution_note_changed: z.boolean().optional(),
-      })
-      .nullish(),
+    metadata: auditMetadataSchema,
     created_at: z.iso.datetime({ offset: true }),
   })
   // The browser receives which fields changed and the operator's reason, not
@@ -76,10 +71,10 @@ export const auditLogEntrySchema = z
   .transform(({ before, after, metadata, ...entry }) => ({
     ...entry,
     reason: metadata?.operator_reason ?? "",
-    changed_fields: [
-      ...changedFields(before, after),
+    changed_fields: changedFields(before, after, [
+      ...(metadata?.edited_fields ?? []),
       ...(metadata?.resolution_note_changed ? ["resolution_note"] : []),
-    ],
+    ]),
   }));
 
 export const auditLogPageSchema = z.object({

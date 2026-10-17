@@ -146,7 +146,17 @@ func (r *PostgresRepository) writeAdmin(ctx context.Context, id string, input Ad
 	if err != nil {
 		return AdminGame{}, err
 	}
-	if err := input.Audit(ctx, tx, action, adminaudit.EntityGame, next.ID, current.auditState(), next.auditState()); err != nil {
+	var editedFields []string
+	if !remove {
+		editedFields, err = adminmutation.EditedFields(
+			AdminEdit{Name: current.Name, Slug: current.Slug, CoverURL: current.CoverURL, IsActive: current.IsActive},
+			AdminEdit{Name: next.Name, Slug: next.Slug, CoverURL: next.CoverURL, IsActive: next.IsActive},
+		)
+		if err != nil {
+			return AdminGame{}, err
+		}
+	}
+	if err := input.AuditEdit(ctx, tx, action, adminaudit.EntityGame, next.ID, current.auditState(), next.auditState(), editedFields); err != nil {
 		return AdminGame{}, err
 	}
 	return next, tx.Commit(ctx)

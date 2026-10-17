@@ -235,7 +235,14 @@ func (r *PostgresRepository) changeAdmin(ctx context.Context, id string, command
 	if err != nil {
 		return AdminSchool{}, err
 	}
-	if err := command.Audit(ctx, tx, action, adminaudit.EntitySchool, id, current.auditState(), next.auditState()); err != nil {
+	var editedFields []string
+	if action == adminaudit.ActionSchoolUpdated {
+		editedFields, err = adminmutation.EditedFields(current.AdminFields, next.AdminFields)
+		if err != nil {
+			return AdminSchool{}, err
+		}
+	}
+	if err := command.AuditEdit(ctx, tx, action, adminaudit.EntitySchool, id, current.auditState(), next.auditState(), editedFields); err != nil {
 		return AdminSchool{}, err
 	}
 	return next, tx.Commit(ctx)

@@ -3,6 +3,7 @@ package adminaudit
 import (
 	"errors"
 	"testing"
+	"time"
 )
 
 const auditTestUUID = "00000000-0000-4000-8000-000000000001"
@@ -33,6 +34,8 @@ func TestWriteInputValidation(t *testing.T) {
 		{name: "action entity mismatch", input: WriteInput{Action: ActionReportUpdated, EntityType: EntitySupportTicket, EntityID: auditTestUUID, Before: QueueState{Status: "open"}, After: QueueState{Status: "closed"}}},
 		{name: "missing after state", input: WriteInput{Action: ActionReportUpdated, EntityType: EntityReport, EntityID: auditTestUUID, Before: QueueState{Status: "open"}}},
 		{name: "queue state for grant", input: WriteInput{Action: ActionSiteRoleGrantGranted, EntityType: EntitySiteRoleGrant, EntityID: auditTestUUID, Before: EmptyState{}, After: QueueState{Status: "open"}}},
+		{name: "edited fields on a lifecycle action", input: WriteInput{Correlation: valid.Correlation, Action: ActionSchoolDeactivated, EntityType: EntitySchool, EntityID: auditTestUUID, Before: CatalogState{Slug: "school", UpdatedAt: time.Unix(1, 0)}, After: CatalogState{Slug: "school", UpdatedAt: time.Unix(2, 0)}, Metadata: Metadata{OperatorReason: "cleanup", EditedFields: []string{"name"}}}},
+		{name: "edited field that is not a field name", input: WriteInput{Correlation: valid.Correlation, Action: ActionSchoolUpdated, EntityType: EntitySchool, EntityID: auditTestUUID, Before: CatalogState{Slug: "school", UpdatedAt: time.Unix(1, 0)}, After: CatalogState{Slug: "school", UpdatedAt: time.Unix(2, 0)}, Metadata: Metadata{OperatorReason: "cleanup", EditedFields: []string{"New School Name"}}}},
 		{name: "bootstrap metadata on update", input: WriteInput{Action: ActionReportUpdated, EntityType: EntityReport, EntityID: auditTestUUID, Before: QueueState{Status: "open"}, After: QueueState{Status: "closed"}, Metadata: Metadata{Bootstrap: true, OperatorIdentity: "operator@example.test"}}},
 	}
 	for _, test := range tests {

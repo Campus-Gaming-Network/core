@@ -3,10 +3,13 @@
 package adminmutation
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"net/url"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -49,11 +52,50 @@ func (command Command) Validate(versionRequired bool) error {
 }
 
 func (command Command) Audit(ctx context.Context, tx pgx.Tx, action adminaudit.Action, entity adminaudit.EntityType, id string, before, after adminaudit.State) error {
+	return command.AuditEdit(ctx, tx, action, entity, id, before, after, nil)
+}
+
+// AuditEdit is Audit for a form edit. It also records the names, never the
+// values, of the form fields the edit changed, which the audit states do not
+// carry.
+func (command Command) AuditEdit(ctx context.Context, tx pgx.Tx, action adminaudit.Action, entity adminaudit.EntityType, id string, before, after adminaudit.State, editedFields []string) error {
 	_, err := adminaudit.NewPostgresStoreForTransaction(tx).Insert(ctx, adminaudit.WriteInput{
 		Correlation: command.Correlation, Action: action, EntityType: entity, EntityID: id,
-		Before: before, After: after, Metadata: adminaudit.Metadata{OperatorReason: strings.TrimSpace(command.Reason)},
+		Before: before, After: after,
+		Metadata: adminaudit.Metadata{OperatorReason: strings.TrimSpace(command.Reason), EditedFields: editedFields},
 	})
 	return err
+}
+
+// EditedFields returns the JSON names of the fields whose values differ
+// between two forms of the same type, in sorted order.
+func EditedFields(before, after any) ([]string, error) {
+	var previous, next map[string]json.RawMessage
+	for _, form := range []struct {
+		value  any
+		fields *map[string]json.RawMessage
+	}{{before, &previous}, {after, &next}} {
+		encoded, err := json.Marshal(form.value)
+		if err != nil {
+			return nil, err
+		}
+		if err := json.Unmarshal(encoded, form.fields); err != nil {
+			return nil, err
+		}
+	}
+	edited := []string{}
+	for name, value := range next {
+		if !bytes.Equal(previous[name], value) {
+			edited = append(edited, name)
+		}
+	}
+	for name := range previous {
+		if _, found := next[name]; !found {
+			edited = append(edited, name)
+		}
+	}
+	slices.Sort(edited)
+	return edited, nil
 }
 
 type Filter struct {

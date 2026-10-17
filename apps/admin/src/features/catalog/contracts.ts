@@ -106,6 +106,14 @@ export const siteGrantSchema = z.object({
   revoke_reason: z.string().max(1000).optional(),
 });
 
+export const auditMetadataSchema = z
+  .object({
+    operator_reason: z.string().max(1000).optional(),
+    resolution_note_changed: z.boolean().optional(),
+    edited_fields: z.array(z.string().max(64)).max(32).optional(),
+  })
+  .nullish();
+
 export const catalogAuditEntrySchema = z
   .object({
     id: uuidSchema,
@@ -137,9 +145,7 @@ export const catalogAuditEntrySchema = z
     ]),
     before: z.unknown(),
     after: z.unknown(),
-    metadata: z
-      .object({ operator_reason: z.string().max(1000).optional() })
-      .nullish(),
+    metadata: auditMetadataSchema,
     created_at: timestampSchema,
   })
   // The browser receives which fields changed and the operator's reason, not
@@ -147,15 +153,30 @@ export const catalogAuditEntrySchema = z
   .transform(({ before, after, metadata, ...entry }) => ({
     ...entry,
     reason: metadata?.operator_reason ?? "",
-    changed_fields: changedFields(before, after),
+    changed_fields: changedFields(before, after, metadata?.edited_fields),
   }));
 
-export function changedFields(before: unknown, after: unknown): string[] {
+// Timestamps a write sets on its own. They change with every edit, so they
+// say nothing about what the admin changed.
+const bookkeepingFields = new Set(["updated_at", "retention_started_at"]);
+
+// changedFields lists the audited state fields that differ, then the edited
+// form fields the API recorded by name, without bookkeeping timestamps.
+export function changedFields(
+  before: unknown,
+  after: unknown,
+  editedFields: string[] = [],
+): string[] {
   const previous = auditState(before);
   const next = auditState(after);
-  return [...new Set([...Object.keys(previous), ...Object.keys(next)])].filter(
-    (key) => JSON.stringify(previous[key]) !== JSON.stringify(next[key]),
-  );
+  return [
+    ...new Set([
+      ...[...Object.keys(previous), ...Object.keys(next)].filter(
+        (key) => JSON.stringify(previous[key]) !== JSON.stringify(next[key]),
+      ),
+      ...editedFields,
+    ]),
+  ].filter((key) => !bookkeepingFields.has(key));
 }
 
 function auditState(value: unknown): Record<string, unknown> {

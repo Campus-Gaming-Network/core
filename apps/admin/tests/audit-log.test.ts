@@ -142,3 +142,64 @@ test("changes people make to their own account read as entries with no values", 
     })),
   );
 });
+
+test("an audit entry lists the fields the admin changed without bookkeeping timestamps", () => {
+  const schoolID = "44444444-4444-4444-8444-444444444444";
+  const entry = {
+    id: entryID,
+    actor_user_id: userID,
+    actor_name: "Operator",
+    target_type: "school",
+    target_id: schoolID,
+    target_name: "Portland State University",
+    created_at: createdAt,
+  };
+  const catalogState = {
+    slug: "portland-state-university",
+    is_active: true,
+    deleted_at: null,
+  };
+
+  assert.deepEqual(
+    auditLogPageSchema.parse({
+      audit_entries: [
+        {
+          ...entry,
+          action: "school.updated",
+          before: { ...catalogState, updated_at: "2026-10-12T22:14:00Z" },
+          after: { ...catalogState, updated_at: "2026-10-12T22:15:00Z" },
+          metadata: {
+            operator_reason: "Use the common short name",
+            edited_fields: ["short_name"],
+          },
+        },
+        {
+          ...entry,
+          action: "school_admin.revoked",
+          before: { revoked_at: null, updated_at: "2026-10-12T22:14:00Z" },
+          after: {
+            revoked_at: "2026-10-12T22:15:00Z",
+            updated_at: "2026-10-12T22:15:00Z",
+          },
+          metadata: { operator_reason: "Left the school" },
+        },
+      ],
+      next_cursor: "",
+      previous_cursor: "",
+    }).audit_entries,
+    [
+      {
+        ...entry,
+        action: "school.updated",
+        reason: "Use the common short name",
+        changed_fields: ["short_name"],
+      },
+      {
+        ...entry,
+        action: "school_admin.revoked",
+        reason: "Left the school",
+        changed_fields: ["revoked_at"],
+      },
+    ],
+  );
+});
