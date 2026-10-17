@@ -190,7 +190,7 @@ Tracked ticket by ticket in [20 — Admin Console v1 engineering plan](./20-admi
 - [ ] Sentry/error monitoring
 - [ ] Analytics (non-GA: Plausible or Cloudflare Web Analytics)
 - [x] Frontend regression coverage for routes, components, server functions, native forms, and the built Nitro runtime
-- [ ] Open Graph share image, favicon, `robots.txt`, and `sitemap.xml`
+- [x] Open Graph share image, favicon, `robots.txt`, and `sitemap.xml`
 
 ### Active product milestone
 
