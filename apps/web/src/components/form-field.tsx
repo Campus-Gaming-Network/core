@@ -1,6 +1,6 @@
 import { cloneElement, useId, type ReactElement } from "react";
-import { CharacterCount } from "./character-count";
-import { FieldError, fieldErrorProps } from "./enhanced-mutation";
+import { CharacterCount } from "./character-count.js";
+import { FieldError, fieldErrorProps } from "./enhanced-mutation.js";
 
 /**
  * A label wrapping one control and its validation text. The control is the

@@ -1,6 +1,6 @@
 import { useRouter } from "@tanstack/react-router";
 import { useEffect, useId, useRef, useState, type RefObject } from "react";
-import type { FormFieldErrors } from "../features/event-slice/contracts";
+import type { FormFieldErrors } from "../features/event-slice/contracts.js";
 
 type EnhancedMutationResult =
   | { status: "success"; redirectTo: string }
