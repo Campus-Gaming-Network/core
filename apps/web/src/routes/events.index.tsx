@@ -7,7 +7,7 @@ import {
   createFileRoute,
   type ErrorComponentProps,
 } from "@tanstack/react-router";
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { ArrowLeft, ArrowRight, Search } from "lucide-react";
 import { ButtonLink } from "../components/button-link";
 import {
   ListUnavailable,
@@ -23,6 +23,7 @@ import {
 } from "../components/directory-filters";
 import {
   ClearFiltersLink,
+  FilterDate,
   FilterForm,
   FilterSelect,
   FilterToggle,
@@ -153,7 +154,15 @@ function EventsPage() {
   const chosenGame = gameFilter.selectedGame
     ? gameFilterOption(gameFilter.selectedGame)
     : undefined;
-  const chips = activeFilterChips(filters);
+  // Removing one filter keeps the tab and the filter it sets.
+  const tabSearch = eventScopeSearch({}, scope, homeSchool?.slug) as Record<
+    string,
+    string
+  >;
+  const chips = activeFilterChips(filters).map((chip) => ({
+    ...chip,
+    search: { ...tabSearch, ...chip.search },
+  }));
   const loosest = mostRestrictiveChip(chips, restrictiveOrder);
 
   return (
@@ -200,6 +209,9 @@ function EventsPage() {
           type: search.type,
           audience: search.audience,
           cost: search.cost,
+          q: search.q,
+          from: search.from,
+          to: search.to,
           scope: scope === "all" ? undefined : scope,
         }}
       />
@@ -225,6 +237,28 @@ function EventsPage() {
           label="Event filters"
           search={
             <>
+              <div className="filter-search">
+                <label className="visually-hidden" htmlFor="events-keyword">
+                  Search event titles
+                </label>
+                <Search
+                  aria-hidden="true"
+                  className="filter-search__icon"
+                  size={18}
+                  strokeWidth={2}
+                />
+                <input
+                  defaultValue={search.q}
+                  id="events-keyword"
+                  maxLength={100}
+                  name="q"
+                  placeholder="Search event titles"
+                  type="search"
+                />
+                <button className="filter-search__submit" type="submit">
+                  Search
+                </button>
+              </div>
               {scopeFilter === "school" && search.school ? (
                 <LockedFilter
                   label="School"
@@ -314,6 +348,19 @@ function EventsPage() {
             label="Free only"
             name="cost"
             value="free"
+          />
+          {/* Dates read in each event's own time zone, as its page shows. */}
+          <FilterDate
+            label="From"
+            max={search.to}
+            name="from"
+            value={search.from}
+          />
+          <FilterDate
+            label="To"
+            min={search.from}
+            name="to"
+            value={search.to}
           />
         </FilterToolbar>
       </FilterForm>
@@ -412,6 +459,9 @@ function paginationSearch(
     ...(search.audience ? { audience: search.audience } : {}),
     ...(search.type ? { type: search.type } : {}),
     ...(search.cost ? { cost: search.cost } : {}),
+    ...(search.q ? { q: search.q } : {}),
+    ...(search.from ? { from: search.from } : {}),
+    ...(search.to ? { to: search.to } : {}),
     ...(search.scope ? { scope: search.scope } : {}),
     ...(search.school_q ? { school_q: search.school_q } : {}),
     ...(search.game_q ? { game_q: search.game_q } : {}),
@@ -433,9 +483,12 @@ const noGameFilterChoices: GameFilterChoices = {
 
 /** Filters from the narrowest to the broadest, for the empty-results shortcut. */
 const restrictiveOrder = [
+  "q",
   "school",
   "type",
   "game",
+  "from",
+  "to",
   "audience",
   "format",
   "cost",
@@ -509,7 +562,36 @@ function appliedEventFilters(
       value: search.cost,
       label: "Free",
     });
+  if (search.q)
+    filters.push({
+      key: "q",
+      name: "Keyword",
+      value: search.q,
+      label: `“${search.q}”`,
+    });
+  if (search.from)
+    filters.push({
+      key: "from",
+      name: "From",
+      value: search.from,
+      label: formatFilterDate(search.from),
+    });
+  if (search.to)
+    filters.push({
+      key: "to",
+      name: "To",
+      value: search.to,
+      label: formatFilterDate(search.to),
+    });
   return filters;
+}
+
+/** "May 1, 2031" for a filter's YYYY-MM-DD date, the same in every zone. */
+function formatFilterDate(date: string): string {
+  return new Intl.DateTimeFormat("en-US", {
+    dateStyle: "medium",
+    timeZone: "UTC",
+  }).format(new Date(`${date}T00:00:00Z`));
 }
 
 function EventsPending() {

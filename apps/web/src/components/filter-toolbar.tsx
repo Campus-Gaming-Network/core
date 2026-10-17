@@ -78,7 +78,8 @@ export function FilterForm({
     const target = event.target;
     const applies =
       target instanceof HTMLSelectElement ||
-      (target instanceof HTMLInputElement && target.type === "checkbox");
+      (target instanceof HTMLInputElement &&
+        (target.type === "checkbox" || target.type === "date"));
     if (applies) apply(event.currentTarget);
   }
 
@@ -228,6 +229,43 @@ export function FilterSelect({
 }
 
 /** A yes-or-no filter as a button with a checkbox, such as "Free only". */
+/**
+ * A date filter as a compact native date field: the filter's name, then the
+ * date. Highlighted while a date is set; clearing the date removes it.
+ */
+export function FilterDate({
+  label,
+  max,
+  min,
+  name,
+  value,
+}: {
+  label: string;
+  max?: string;
+  min?: string;
+  name: string;
+  value?: string;
+}) {
+  const id = useId();
+  return (
+    <label
+      className="filter-pill filter-pill--date"
+      data-active={value ? "" : undefined}
+      htmlFor={id}
+    >
+      <span className="filter-pill__name">{label}</span>
+      <input
+        defaultValue={value ?? ""}
+        id={id}
+        max={max}
+        min={min}
+        name={name}
+        type="date"
+      />
+    </label>
+  );
+}
+
 export function FilterToggle({
   checked,
   label,

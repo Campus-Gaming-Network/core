@@ -111,6 +111,25 @@ test("event search accepts bounded filters, a school search, and opaque cursors 
   );
 });
 
+test("the keyword and dates in the URL are bounded, and a reversed range is turned round", () => {
+  assert.deepEqual(
+    [
+      { q: "  smash   night ", from: "2031-05-01", to: "2031-05-31" },
+      { q: 2042, to: "2031-05-31" },
+      { from: "2031-05-31", to: "2031-05-01" },
+      { q: "x".repeat(101), from: "May 1", to: "2031-02-30" },
+      { q: "   " },
+    ].map((query) => validateEventsSearch(query)),
+    [
+      { q: "smash night", from: "2031-05-01", to: "2031-05-31" },
+      { q: "2042", to: "2031-05-31" },
+      { from: "2031-05-01", to: "2031-05-31" },
+      {},
+      {},
+    ],
+  );
+});
+
 test("event browse reads public no-store DTOs and strips viewer/private fields", async () => {
   const requests: Array<{ url: string; init?: RequestInit }> = [];
   const result = await getEventsBrowseOperation(
@@ -121,6 +140,9 @@ test("event browse reads public no-store DTOs and strips viewer/private fields",
       audience: "open",
       type: "lan",
       cost: "free",
+      q: "smash night",
+      from: "2031-05-01",
+      to: "2031-05-31",
       after: "opaque+cursor==",
     },
     {
@@ -142,7 +164,7 @@ test("event browse reads public no-store DTOs and strips viewer/private fields",
   assert.deepEqual(
     requests.map(({ url }) => url),
     [
-      "http://api:8080/events?game=example-game&school=example-school&format=hybrid&audience=open&type=lan&cost=free&limit=25&after=opaque%2Bcursor%3D%3D",
+      "http://api:8080/events?game=example-game&school=example-school&format=hybrid&audience=open&type=lan&cost=free&q=smash+night&from=2031-05-01&to=2031-05-31&limit=25&after=opaque%2Bcursor%3D%3D",
     ],
   );
   for (const request of requests) {
@@ -368,13 +390,21 @@ test("a scope tab keeps the other filters, swaps the scope filter, and drops cur
     audience: "open",
     type: "lan",
     cost: "free",
+    q: "smash",
+    from: "2031-05-01",
     after: "cursor-after",
     event: "cancelled",
   });
   const links = (["all", "my-school", "online", "tournaments"] as const).map(
     (scope) => eventScopeSearch(search, scope, "summit-ridge"),
   );
-  const kept = { game: "valorant", audience: "open", cost: "free" };
+  const kept = {
+    game: "valorant",
+    audience: "open",
+    cost: "free",
+    q: "smash",
+    from: "2031-05-01",
+  };
 
   assert.deepEqual(links, [
     kept,

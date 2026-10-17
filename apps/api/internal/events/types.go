@@ -158,7 +158,9 @@ type ListParams struct {
 	GameSlug   string
 	SchoolSlug string
 	// TeamSlug keeps the events that team hosts.
-	TeamSlug  string
+	TeamSlug string
+	// Query keeps events whose title contains it, ignoring case.
+	Query     string
 	Format    string
 	Audience  string
 	EventType string
@@ -167,9 +169,14 @@ type ListParams struct {
 	// events starting before it. Either may be nil.
 	StartsAfter  *time.Time
 	StartsBefore *time.Time
-	Limit        int
-	After        *pagecursor.Cursor
-	Before       *pagecursor.Cursor
+	// FromDate and ToDate (YYYY-MM-DD, inclusive) keep events whose start
+	// falls on those calendar days in the event's own time zone, the date its
+	// page shows. Either may be empty.
+	FromDate string
+	ToDate   string
+	Limit    int
+	After    *pagecursor.Cursor
+	Before   *pagecursor.Cursor
 }
 
 // CreateInput is the validated request to create an event.

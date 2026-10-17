@@ -16,6 +16,7 @@ func NormalizeListParams(params ListParams) ListParams {
 	params.GameSlug = strings.TrimSpace(params.GameSlug)
 	params.SchoolSlug = strings.TrimSpace(params.SchoolSlug)
 	params.TeamSlug = strings.TrimSpace(params.TeamSlug)
+	params.Query = strings.Join(strings.Fields(params.Query), " ")
 	params.Format = strings.TrimSpace(params.Format)
 	if params.Format != "" && params.Format != FormatOnline && params.Format != FormatInPerson && params.Format != FormatHybrid {
 		params.Format = ""

@@ -78,8 +78,12 @@ Signup also requires confirming **age 18+**. Alumni can participate. Faculty who
   "More events" (everything after)
 - The event directory has scope tabs: All events, My school (events hosted at
   the viewer's home school; shown only when signed in), Online, and
-  Tournaments. A tab keeps the game, audience, and cost filters, and its URL
-  can be shared
+  Tournaments. A tab keeps the game, audience, cost, keyword, and date
+  filters, and its URL can be shared
+- The event directory searches event titles by keyword and narrows to a date
+  range (from and to). A date is the day the event starts in its own time
+  zone, the date its page shows. Both stay in the URL with the other filters
+  and work without JavaScript
 - Select a home school during signup; follow additional schools afterward (logged in)
 - See popular games by school
 - Dashboard: upcoming events, activity at followed schools, team activity

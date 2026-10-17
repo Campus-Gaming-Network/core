@@ -614,6 +614,9 @@ async function readEvents(api: ApiClient, input: EventsBrowseInput) {
   if (input.audience) search.set("audience", input.audience);
   if (input.type) search.set("type", input.type);
   if (input.cost) search.set("cost", input.cost);
+  if (input.q) search.set("q", input.q);
+  if (input.from) search.set("from", input.from);
+  if (input.to) search.set("to", input.to);
   search.set("limit", "25");
   if (input.after) search.set("after", input.after);
   if (input.before) search.set("before", input.before);

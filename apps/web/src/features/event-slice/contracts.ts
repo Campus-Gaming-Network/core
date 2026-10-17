@@ -15,6 +15,12 @@ const eventFilterSchema = z.string().trim().min(1).max(200);
 const eventCursorSchema = z.string().trim().min(1).max(1024);
 const eventSchoolQuerySchema = z.string().trim().min(1).max(120);
 const eventGameQuerySchema = z.string().trim().min(1).max(100);
+// The title keyword: spaces collapse, and the API's 100-character bound.
+const eventKeywordSchema = z
+  .string()
+  .transform((value) => value.trim().split(/\s+/).join(" "))
+  .pipe(z.string().min(1).max(100));
+const eventDateSchema = z.iso.date();
 const idempotencyKeySchema = z.uuid("Reload the page and try again.");
 
 const eventRSVPSchema = z.enum(["yes", "maybe", "no"]);
@@ -183,6 +189,10 @@ export const eventsBrowseInputSchema = z.object({
   audience: eventAudienceSchema.optional(),
   type: eventTypeSchema.optional(),
   cost: z.literal("free").optional(),
+  q: eventKeywordSchema.optional(),
+  // Calendar days (inclusive) in each event's own time zone.
+  from: eventDateSchema.optional(),
+  to: eventDateSchema.optional(),
   after: eventCursorSchema.optional(),
   before: eventCursorSchema.optional(),
 });
@@ -540,6 +550,18 @@ export function validateEventsSearch(
     boundedSearchValue(search.type, eventFilterSchema),
   );
   const scope = eventScopeSchema.safeParse(search.scope);
+  // The router reads "?q=2042" as a number, so a keyword may arrive as one.
+  const rawKeyword = Array.isArray(search.q) ? search.q[0] : search.q;
+  const keyword = boundedSearchValue(
+    typeof rawKeyword === "number" ? String(rawKeyword) : rawKeyword,
+    eventKeywordSchema,
+  );
+  // A reversed range is read the way it was meant: earlier date first.
+  const fromDate = boundedSearchValue(search.from, eventDateSchema);
+  const toDate = boundedSearchValue(search.to, eventDateSchema);
+  const reversed = Boolean(fromDate && toDate && fromDate > toDate);
+  const from = reversed ? toDate : fromDate;
+  const to = reversed ? fromDate : toDate;
   const after = boundedSearchValue(search.after, eventCursorSchema);
   const before = boundedSearchValue(search.before, eventCursorSchema);
   const event = pageNoticeKey(eventBrowseNotices, search.event);
@@ -558,6 +580,9 @@ export function validateEventsSearch(
     ...(audience.success ? { audience: audience.data } : {}),
     ...(type.success ? { type: type.data } : {}),
     ...(search.cost === "free" ? { cost: "free" as const } : {}),
+    ...(keyword ? { q: keyword } : {}),
+    ...(from ? { from } : {}),
+    ...(to ? { to } : {}),
     ...(scope.success ? { scope: scope.data } : {}),
     ...(after ? { after } : {}),
     ...(before ? { before } : {}),
@@ -573,6 +598,9 @@ export function eventsBrowseInput(search: EventsSearch): EventsBrowseInput {
     ...(search.audience ? { audience: search.audience } : {}),
     ...(search.type ? { type: search.type } : {}),
     ...(search.cost ? { cost: search.cost } : {}),
+    ...(search.q ? { q: search.q } : {}),
+    ...(search.from ? { from: search.from } : {}),
+    ...(search.to ? { to: search.to } : {}),
     ...(search.after ? { after: search.after } : {}),
     ...(search.before ? { before: search.before } : {}),
   };

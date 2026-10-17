@@ -711,10 +711,23 @@ func (r *Router) handleEvents(w http.ResponseWriter, req *http.Request) {
 		writeError(w, http.StatusBadRequest, "invalid_time_range")
 		return
 	}
+	fromDate, toDate, err := parseDateRange(req.URL.Query())
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_date_range")
+		return
+	}
+	query := strings.TrimSpace(req.URL.Query().Get("q"))
+	if utf8.RuneCountInString(query) > maxEventQueryLength {
+		writeError(w, http.StatusBadRequest, "invalid_query")
+		return
+	}
 	params := eventstore.ListParams{
 		GameSlug:     req.URL.Query().Get("game"),
 		SchoolSlug:   req.URL.Query().Get("school"),
 		TeamSlug:     req.URL.Query().Get("team"),
+		Query:        query,
+		FromDate:     fromDate,
+		ToDate:       toDate,
 		Format:       req.URL.Query().Get("format"),
 		Audience:     req.URL.Query().Get("audience"),
 		EventType:    req.URL.Query().Get("type"),
@@ -752,6 +765,32 @@ func (r *Router) handleEvents(w http.ResponseWriter, req *http.Request) {
 		payload["previous_cursor"] = page.PreviousCursor
 	}
 	writeJSON(w, http.StatusOK, payload)
+}
+
+// maxEventQueryLength bounds the event list's title keyword.
+const maxEventQueryLength = 100
+
+// parseDateRange reads the optional from and to calendar dates (YYYY-MM-DD,
+// inclusive) of an event list. It is an error when either is malformed or
+// from is after to.
+func parseDateRange(values url.Values) (string, string, error) {
+	from, to := values.Get("from"), values.Get("to")
+	var fromDate, toDate time.Time
+	var err error
+	if from != "" {
+		if fromDate, err = time.Parse(time.DateOnly, from); err != nil {
+			return "", "", fmt.Errorf("parse from: %w", err)
+		}
+	}
+	if to != "" {
+		if toDate, err = time.Parse(time.DateOnly, to); err != nil {
+			return "", "", fmt.Errorf("parse to: %w", err)
+		}
+	}
+	if from != "" && to != "" && fromDate.After(toDate) {
+		return "", "", errors.New("from must not be after to")
+	}
+	return from, to, nil
 }
 
 // parseStartRange reads the optional starts_after and starts_before RFC 3339

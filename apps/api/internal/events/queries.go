@@ -188,8 +188,8 @@ func (r *PostgresRepository) listSoonestForUser(ctx context.Context, userID stri
 }
 
 // ListPublic returns public events that have not ended, soonest first,
-// optionally filtered by game, school, host team, format, audience, event
-// type, cost, and start window (StartsAfter and StartsBefore). After and Before page forward
+// optionally filtered by game, school, host team, title keyword, format,
+// audience, event type, cost, local start date, and start window (StartsAfter and StartsBefore). After and Before page forward
 // and backward from a cursor; setting both is an invalid cursor. A previous
 // page is returned in the same soonest-first order.
 func (r *PostgresRepository) ListPublic(ctx context.Context, params ListParams) ([]Event, error) {
@@ -215,10 +215,13 @@ func (r *PostgresRepository) ListPublic(ctx context.Context, params ListParams) 
 		AND ($5 = '' OR e.event_type = $5)
 		AND ($6 = '' OR e.cost = $6)
 		AND ($8 = '' OR ht.slug = $8)
+		AND ($9 = '' OR e.title ILIKE '%' || $9 || '%')
+		AND ($10 = '' OR (e.starts_at AT TIME ZONE e.timezone)::date >= $10::date)
+		AND ($11 = '' OR (e.starts_at AT TIME ZONE e.timezone)::date <= $11::date)
 	`
 	arguments := []any{
 		params.GameSlug, params.SchoolSlug, params.Format, params.Audience, params.EventType,
-		params.Cost, r.now(), params.TeamSlug,
+		params.Cost, r.now(), params.TeamSlug, likePattern(params.Query), params.FromDate, params.ToDate,
 	}
 	// Soonest first: events under way, then upcoming ones by start time.
 	// Ended events leave the list. A previous page reads backward from its
@@ -266,6 +269,12 @@ func (r *PostgresRepository) ListPublic(ctx context.Context, params ListParams) 
 		reverseEvents(result)
 	}
 	return result, nil
+}
+
+// likePattern escapes a keyword so ILIKE matches it literally; the trigram
+// index on events.title serves the contains-match.
+func likePattern(query string) string {
+	return strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(query)
 }
 
 // reverseEvents reverses events in place.

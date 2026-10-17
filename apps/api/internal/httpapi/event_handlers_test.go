@@ -125,6 +125,43 @@ func TestHandleEventsReadsTheStartRange(t *testing.T) {
 	}
 }
 
+func TestHandleEventsReadsKeywordAndDates(t *testing.T) {
+	type search struct{ Query, From, To string }
+	for _, test := range []struct {
+		query string
+		want  search
+	}{
+		{query: "", want: search{}},
+		{query: "q=+Smash+Night+&from=2031-05-01&to=2031-05-01", want: search{Query: "Smash Night", From: "2031-05-01", To: "2031-05-01"}},
+		{query: "from=2031-05-01", want: search{From: "2031-05-01"}},
+		{query: "to=2031-05-31&q=" + strings.Repeat("é", maxEventQueryLength), want: search{Query: strings.Repeat("é", maxEventQueryLength), To: "2031-05-31"}},
+	} {
+		repository := &fakeEventRepository{}
+		response := httptest.NewRecorder()
+		(&Router{events: repository}).handleEvents(response, httptest.NewRequest(http.MethodGet, "/events?"+test.query, nil))
+
+		got := search{repository.listParams.Query, repository.listParams.FromDate, repository.listParams.ToDate}
+		if response.Code != http.StatusOK || got != test.want {
+			t.Fatalf("%q: %d with %+v, want 200 with %+v", test.query, response.Code, got, test.want)
+		}
+	}
+
+	for query, code := range map[string]string{
+		"from=May+1":                    "invalid_date_range",
+		"to=2031-02-30":                 "invalid_date_range",
+		"from=2031-05-02&to=2031-05-01": "invalid_date_range",
+		"q=" + strings.Repeat("a", 101): "invalid_query",
+	} {
+		repository := &fakeEventRepository{}
+		response := httptest.NewRecorder()
+		(&Router{events: repository}).handleEvents(response, httptest.NewRequest(http.MethodGet, "/events?"+query, nil))
+
+		if response.Code != http.StatusBadRequest || response.Body.String() != "{\"error\":\""+code+"\"}\n" || repository.listPublicCalled {
+			t.Fatalf("%q: response = %d %s, want 400 %s without a query", query, response.Code, response.Body.String(), code)
+		}
+	}
+}
+
 func TestHandleEventsProvidesStableNextAndPreviousCursors(t *testing.T) {
 	events := make([]eventstore.Event, 0, 6)
 	for index := 0; index < 6; index++ {

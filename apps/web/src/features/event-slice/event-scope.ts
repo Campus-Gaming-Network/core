@@ -27,7 +27,7 @@ export function currentEventScope(
 
 /**
  * The query a scope tab links to: the tab's own `scope`, then the game,
- * audience, and cost filters stay,
+ * audience, cost, keyword, and date filters stay,
  * the scope filters are replaced by the tab's own, and the page cursors and
  * any notice are dropped so the list starts from its first page.
  */
@@ -46,5 +46,8 @@ export function eventScopeSearch(
     ...(search.audience ? { audience: search.audience } : {}),
     ...(scope === "tournaments" ? { type: "tournament" as const } : {}),
     ...(search.cost ? { cost: search.cost } : {}),
+    ...(search.q ? { q: search.q } : {}),
+    ...(search.from ? { from: search.from } : {}),
+    ...(search.to ? { to: search.to } : {}),
   };
 }
