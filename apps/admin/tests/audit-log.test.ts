@@ -107,21 +107,23 @@ test("audit log searches keep a known entity type and one cursor direction", () 
   );
 });
 
-test("changes people make to their own account read as entries with no values", () => {
-  const entries = ["user.password_changed", "user.email_changed"].map(
-    (action) => ({
-      id: entryID,
-      actor_user_id: userID,
-      actor_name: "Player",
-      action,
-      target_type: "user",
-      target_id: userID,
-      before: {},
-      after: {},
-      metadata: {},
-      created_at: createdAt,
-    }),
-  );
+test("what people do to their own account reads as entries with no values", () => {
+  const entries = [
+    "user.password_changed",
+    "user.email_changed",
+    "user.data_exported",
+  ].map((action) => ({
+    id: entryID,
+    actor_user_id: userID,
+    actor_name: "Player",
+    action,
+    target_type: "user",
+    target_id: userID,
+    before: {},
+    after: {},
+    metadata: {},
+    created_at: createdAt,
+  }));
 
   assert.deepEqual(
     auditLogPageSchema.parse({

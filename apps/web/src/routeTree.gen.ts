@@ -42,6 +42,7 @@ import { Route as EventsNewRouteImport } from './routes/events.new'
 import { Route as SchoolsIndexRouteImport } from './routes/schools.index'
 import { Route as SchoolsSlugRouteImport } from './routes/schools.$slug'
 import { Route as SettingsIndexRouteImport } from './routes/settings.index'
+import { Route as SettingsDataRouteImport } from './routes/settings.data'
 import { Route as SettingsDeleteAccountRouteImport } from './routes/settings.delete-account'
 import { Route as SettingsProfileRouteImport } from './routes/settings.profile'
 import { Route as SettingsSecurityRouteImport } from './routes/settings.security'
@@ -49,6 +50,7 @@ import { Route as TeamsIndexRouteImport } from './routes/teams.index'
 import { Route as TeamsSlugRouteImport } from './routes/teams.$slug'
 import { Route as TeamsNewRouteImport } from './routes/teams.new'
 import { Route as UsersIdRouteImport } from './routes/users.$id'
+import { Route as ApiAccountExportRouteImport } from './routes/api.account.export'
 import { Route as ApiAvatarsIdRouteImport } from './routes/api.avatars.$id'
 import { Route as ApiGamesCatalogSearchRouteImport } from './routes/api.games.catalog-search'
 import { Route as ApiGamesIgdbSearchRouteImport } from './routes/api.games.igdb-search'
@@ -225,6 +227,11 @@ const SettingsIndexRoute = SettingsIndexRouteImport.update({
   path: '/',
   getParentRoute: () => SettingsRoute,
 } as any)
+const SettingsDataRoute = SettingsDataRouteImport.update({
+  id: '/data',
+  path: '/data',
+  getParentRoute: () => SettingsRoute,
+} as any)
 const SettingsDeleteAccountRoute = SettingsDeleteAccountRouteImport.update({
   id: '/delete-account',
   path: '/delete-account',
@@ -258,6 +265,11 @@ const TeamsNewRoute = TeamsNewRouteImport.update({
 const UsersIdRoute = UsersIdRouteImport.update({
   id: '/users/$id',
   path: '/users/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAccountExportRoute = ApiAccountExportRouteImport.update({
+  id: '/api/account/export',
+  path: '/api/account/export',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAvatarsIdRoute = ApiAvatarsIdRouteImport.update({
@@ -343,6 +355,7 @@ export interface FileRoutesByFullPath {
   '/events/$slug': typeof EventsSlugRoute
   '/events/new': typeof EventsNewRoute
   '/schools/$slug': typeof SchoolsSlugRoute
+  '/settings/data': typeof SettingsDataRoute
   '/settings/delete-account': typeof SettingsDeleteAccountRoute
   '/settings/profile': typeof SettingsProfileRoute
   '/settings/security': typeof SettingsSecurityRoute
@@ -353,6 +366,7 @@ export interface FileRoutesByFullPath {
   '/schools/': typeof SchoolsIndexRoute
   '/settings/': typeof SettingsIndexRoute
   '/teams/': typeof TeamsIndexRoute
+  '/api/account/export': typeof ApiAccountExportRoute
   '/api/avatars/$id': typeof ApiAvatarsIdRoute
   '/api/games/catalog-search': typeof ApiGamesCatalogSearchRoute
   '/api/games/igdb-search': typeof ApiGamesIgdbSearchRoute
@@ -391,6 +405,7 @@ export interface FileRoutesByTo {
   '/events/$slug': typeof EventsSlugRoute
   '/events/new': typeof EventsNewRoute
   '/schools/$slug': typeof SchoolsSlugRoute
+  '/settings/data': typeof SettingsDataRoute
   '/settings/delete-account': typeof SettingsDeleteAccountRoute
   '/settings/profile': typeof SettingsProfileRoute
   '/settings/security': typeof SettingsSecurityRoute
@@ -401,6 +416,7 @@ export interface FileRoutesByTo {
   '/schools': typeof SchoolsIndexRoute
   '/settings': typeof SettingsIndexRoute
   '/teams': typeof TeamsIndexRoute
+  '/api/account/export': typeof ApiAccountExportRoute
   '/api/avatars/$id': typeof ApiAvatarsIdRoute
   '/api/games/catalog-search': typeof ApiGamesCatalogSearchRoute
   '/api/games/igdb-search': typeof ApiGamesIgdbSearchRoute
@@ -444,6 +460,7 @@ export interface FileRoutesById {
   '/events/$slug': typeof EventsSlugRoute
   '/events/new': typeof EventsNewRoute
   '/schools/$slug': typeof SchoolsSlugRoute
+  '/settings/data': typeof SettingsDataRoute
   '/settings/delete-account': typeof SettingsDeleteAccountRoute
   '/settings/profile': typeof SettingsProfileRoute
   '/settings/security': typeof SettingsSecurityRoute
@@ -454,6 +471,7 @@ export interface FileRoutesById {
   '/schools/': typeof SchoolsIndexRoute
   '/settings/': typeof SettingsIndexRoute
   '/teams/': typeof TeamsIndexRoute
+  '/api/account/export': typeof ApiAccountExportRoute
   '/api/avatars/$id': typeof ApiAvatarsIdRoute
   '/api/games/catalog-search': typeof ApiGamesCatalogSearchRoute
   '/api/games/igdb-search': typeof ApiGamesIgdbSearchRoute
@@ -498,6 +516,7 @@ export interface FileRouteTypes {
     | '/events/$slug'
     | '/events/new'
     | '/schools/$slug'
+    | '/settings/data'
     | '/settings/delete-account'
     | '/settings/profile'
     | '/settings/security'
@@ -508,6 +527,7 @@ export interface FileRouteTypes {
     | '/schools/'
     | '/settings/'
     | '/teams/'
+    | '/api/account/export'
     | '/api/avatars/$id'
     | '/api/games/catalog-search'
     | '/api/games/igdb-search'
@@ -546,6 +566,7 @@ export interface FileRouteTypes {
     | '/events/$slug'
     | '/events/new'
     | '/schools/$slug'
+    | '/settings/data'
     | '/settings/delete-account'
     | '/settings/profile'
     | '/settings/security'
@@ -556,6 +577,7 @@ export interface FileRouteTypes {
     | '/schools'
     | '/settings'
     | '/teams'
+    | '/api/account/export'
     | '/api/avatars/$id'
     | '/api/games/catalog-search'
     | '/api/games/igdb-search'
@@ -598,6 +620,7 @@ export interface FileRouteTypes {
     | '/events/$slug'
     | '/events/new'
     | '/schools/$slug'
+    | '/settings/data'
     | '/settings/delete-account'
     | '/settings/profile'
     | '/settings/security'
@@ -608,6 +631,7 @@ export interface FileRouteTypes {
     | '/schools/'
     | '/settings/'
     | '/teams/'
+    | '/api/account/export'
     | '/api/avatars/$id'
     | '/api/games/catalog-search'
     | '/api/games/igdb-search'
@@ -649,6 +673,7 @@ export interface RootRouteChildren {
   AuthResetPasswordRoute: typeof AuthResetPasswordRoute
   AuthVerifyEmailRoute: typeof AuthVerifyEmailRoute
   UsersIdRoute: typeof UsersIdRoute
+  ApiAccountExportRoute: typeof ApiAccountExportRoute
   ApiAvatarsIdRoute: typeof ApiAvatarsIdRoute
   ApiGamesCatalogSearchRoute: typeof ApiGamesCatalogSearchRoute
   ApiGamesIgdbSearchRoute: typeof ApiGamesIgdbSearchRoute
@@ -890,6 +915,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsIndexRouteImport
       parentRoute: typeof SettingsRoute
     }
+    '/settings/data': {
+      id: '/settings/data'
+      path: '/data'
+      fullPath: '/settings/data'
+      preLoaderRoute: typeof SettingsDataRouteImport
+      parentRoute: typeof SettingsRoute
+    }
     '/settings/delete-account': {
       id: '/settings/delete-account'
       path: '/delete-account'
@@ -937,6 +969,13 @@ declare module '@tanstack/react-router' {
       path: '/users/$id'
       fullPath: '/users/$id'
       preLoaderRoute: typeof UsersIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/account/export': {
+      id: '/api/account/export'
+      path: '/api/account/export'
+      fullPath: '/api/account/export'
+      preLoaderRoute: typeof ApiAccountExportRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/avatars/$id': {
@@ -1047,6 +1086,7 @@ const SchoolsRouteWithChildren =
   SchoolsRoute._addFileChildren(SchoolsRouteChildren)
 
 interface SettingsRouteChildren {
+  SettingsDataRoute: typeof SettingsDataRoute
   SettingsDeleteAccountRoute: typeof SettingsDeleteAccountRoute
   SettingsProfileRoute: typeof SettingsProfileRoute
   SettingsSecurityRoute: typeof SettingsSecurityRoute
@@ -1054,6 +1094,7 @@ interface SettingsRouteChildren {
 }
 
 const SettingsRouteChildren: SettingsRouteChildren = {
+  SettingsDataRoute: SettingsDataRoute,
   SettingsDeleteAccountRoute: SettingsDeleteAccountRoute,
   SettingsProfileRoute: SettingsProfileRoute,
   SettingsSecurityRoute: SettingsSecurityRoute,
@@ -1109,6 +1150,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthResetPasswordRoute: AuthResetPasswordRoute,
   AuthVerifyEmailRoute: AuthVerifyEmailRoute,
   UsersIdRoute: UsersIdRoute,
+  ApiAccountExportRoute: ApiAccountExportRoute,
   ApiAvatarsIdRoute: ApiAvatarsIdRoute,
   ApiGamesCatalogSearchRoute: ApiGamesCatalogSearchRoute,
   ApiGamesIgdbSearchRoute: ApiGamesIgdbSearchRoute,

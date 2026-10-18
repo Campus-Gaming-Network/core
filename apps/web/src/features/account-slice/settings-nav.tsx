@@ -1,5 +1,11 @@
 import { Link } from "@tanstack/react-router";
-import { KeyRound, LayoutDashboard, Trash2, UserRound } from "lucide-react";
+import {
+  Download,
+  KeyRound,
+  LayoutDashboard,
+  Trash2,
+  UserRound,
+} from "lucide-react";
 
 /**
  * The signed-in person's settings pages, as the left column of the settings
@@ -22,6 +28,12 @@ export function SettingsNav() {
           <Link to="/settings/security">
             <KeyRound aria-hidden="true" size={18} strokeWidth={2} />
             Email and password
+          </Link>
+        </li>
+        <li>
+          <Link to="/settings/data">
+            <Download aria-hidden="true" size={18} strokeWidth={2} />
+            Your data
           </Link>
         </li>
         <li>

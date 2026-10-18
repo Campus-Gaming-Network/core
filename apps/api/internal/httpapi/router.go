@@ -25,6 +25,7 @@ import (
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminsession"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/auth"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/config"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/dataexport"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/emailoutbox"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/errormonitor"
 	eventstore "github.com/Campus-Gaming-Network/core/apps/api/internal/events"
@@ -70,6 +71,7 @@ type Router struct {
 	popularGames      popularGames
 	schoolStats       schoolStats
 	organizers        eventOrganizers
+	dataExports       dataExports
 	gameSearchLimiter *ratelimit.Limiter
 	events            eventstore.Repository
 	teams             teamstore.Repository
@@ -144,6 +146,7 @@ func NewRouter(cfg config.Config, pools ...*pgxpool.Pool) http.Handler {
 		router.people = people.NewPostgresRepository(router.db)
 		router.safety = safety.NewPostgresRepository(router.db)
 		router.users = userRepository
+		router.dataExports = dataexport.NewPostgresRepository(router.db)
 		router.account = auth.NewAccountService(
 			userRepository,
 			schoolRepository,
@@ -286,6 +289,7 @@ func (r *Router) registerPublicRoutes() {
 	r.mux.HandleFunc("/auth/confirm-email-change", r.handleConfirmEmailChange)
 	r.mux.HandleFunc("/me/password", requireMethod(http.MethodPost, r.handleChangePassword))
 	r.mux.HandleFunc("/me/email", requireMethod(http.MethodPost, r.handleChangeEmail))
+	r.mux.HandleFunc("/me/export", requireMethod(http.MethodPost, r.handleDataExport))
 	r.mux.HandleFunc("/policies/current", requireMethod(http.MethodGet, r.handleCurrentPolicies))
 	r.mux.HandleFunc("/me/policy-acceptances", requireMethod(http.MethodGet, r.handleMyPolicyAcceptances))
 	r.mux.HandleFunc("/me/events", r.handleMyEvents)

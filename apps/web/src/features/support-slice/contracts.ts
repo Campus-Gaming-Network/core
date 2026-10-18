@@ -77,13 +77,23 @@ export function validateSupportTicketServerInput(
 
 export type SupportSearch = {
   support?: "failed" | "submitted";
+  /** `privacy` starts the form as a privacy request. */
+  topic?: "privacy";
 };
+
+/** The subject a privacy request starts with, so support can sort it. */
+export const privacyRequestSubject = "Privacy request";
 
 export function validateSupportSearch(
   search: Record<string, unknown>,
 ): SupportSearch {
   const value = firstString(search.support);
-  return value === "failed" || value === "submitted" ? { support: value } : {};
+  return {
+    ...(value === "failed" || value === "submitted" ? { support: value } : {}),
+    ...(firstString(search.topic) === "privacy"
+      ? { topic: "privacy" as const }
+      : {}),
+  };
 }
 
 function inputValue(input: FormData | object, name: string): string {

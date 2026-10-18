@@ -1,7 +1,10 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute } from "@tanstack/react-router";
 import { newIdempotencyKey } from "../components/idempotency-key";
 import { publicPageHead } from "../components/public-page-head";
-import { validateSupportSearch } from "../features/support-slice/contracts";
+import {
+  privacyRequestSubject,
+  validateSupportSearch,
+} from "../features/support-slice/contracts";
 import { SupportTicketForm } from "../features/support-slice/support-ticket-form";
 
 const description =
@@ -40,9 +43,20 @@ function SupportPage() {
           </p>
         </div>
       </section>
+      {search.topic === "privacy" ? (
+        <p>
+          Tell us what you want corrected or what you want to know about your
+          data. Use the email address on your account so we can match the
+          request to it. You can download your own data from{" "}
+          <Link to="/settings/data">Your data</Link>.
+        </p>
+      ) : null}
       <SupportTicketForm
         idempotencyKey={idempotencyKey}
         initialStatus={search.support}
+        initialSubject={
+          search.topic === "privacy" ? privacyRequestSubject : undefined
+        }
       />
     </main>
   );

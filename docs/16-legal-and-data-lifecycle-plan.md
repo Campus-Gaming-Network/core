@@ -261,15 +261,25 @@ to every signed-in account, so they are part of the privacy inventory.
 
 ### Privacy request operations
 
-- [ ] Add authenticated data export covering profile, school relationships,
-      teams, events, RSVPs/interests, support/report submissions, notifications,
-      and policy-acceptance history, with secure generation, expiry, and audit.
-- [ ] Add correction paths for editable profile data and a support workflow for
-      records that cannot safely be self-edited. Document identity verification,
-      request status, response deadlines, denial/appeal handling, and authorized
-      agents after launch geography is known.
+- [x] Authenticated data export: Settings → Your data downloads a JSON file
+      covering the account and profile, school follows and admin roles, site
+      roles, game lists, teams, organized events, RSVPs and interests, support
+      and report submissions, notifications, policy-acceptance history, and
+      sign-in sessions ([04](./04-api.md#data-export)). It needs the current
+      password, is rate limited, is built on request and never stored (so there
+      is no file to expire), and each download writes a `user.data_exported`
+      audit row.
+- [x] Correction paths: the Your data page points to profile settings (name,
+      bio, links, game lists, list visibility) and email and password settings,
+      and to a support form prefilled as a "Privacy request" for records that
+      cannot be self-edited, such as the home school or a submitted report.
+- [ ] Document identity verification, request status, response deadlines,
+      denial/appeal handling, and authorized agents once launch geography is
+      known (depends on the operator facts above).
 - [ ] Keep deletion and privacy-request access available to users who decline a
-      new Terms version.
+      new Terms version. Nothing gates them yet; the reacceptance flow (#44)
+      must leave `/settings/data`, `/settings/delete-account`, `/support`, and
+      logout reachable.
 
 ### Operations surfaces
 

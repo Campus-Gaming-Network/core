@@ -15,9 +15,11 @@ const emptyErrors: SupportFieldErrors = {};
 export function SupportTicketForm({
   idempotencyKey,
   initialStatus,
+  initialSubject,
 }: {
   idempotencyKey: string;
   initialStatus?: "failed" | "submitted";
+  initialSubject?: string;
 }) {
   const idempotency = useIdempotencyKey(idempotencyKey);
   const runSubmission = useServerFn(submitSupportTicket);
@@ -164,7 +166,13 @@ export function SupportTicketForm({
           label="Subject"
           characterCount
         >
-          <input autoComplete="off" name="subject" required maxLength={160} />
+          <input
+            autoComplete="off"
+            defaultValue={initialSubject}
+            name="subject"
+            required
+            maxLength={160}
+          />
         </FormField>
         <FormField
           errorId="message-error"

@@ -9,6 +9,24 @@ export const deleteAccountNotices = {
   },
 } as const satisfies Record<string, PageNotice>;
 
+// The "Your data" page shows why a download did not start.
+export const dataExportNotices = {
+  "wrong-password": {
+    message: "That password is not correct, so nothing was downloaded.",
+    severity: "danger",
+  },
+  "rate-limited": {
+    message:
+      "You have downloaded your data several times recently. Wait a few minutes and try again.",
+    severity: "danger",
+  },
+  failed: {
+    message: "We could not prepare your data. Please try again.",
+    severity: "danger",
+  },
+} as const satisfies Record<string, PageNotice>;
+export type DataExportNotice = keyof typeof dataExportNotices;
+
 export const settingsNotices = {
   "profile-failed": {
     message: "We could not update your profile. Please try again.",
@@ -48,6 +66,16 @@ export function deleteAccountHead(publicOrigin?: string) {
     title: "Delete account",
     description: "Permanently delete your Campus Gaming Network account.",
     path: "/settings/delete-account",
+    noIndex: true,
+  });
+}
+
+export function dataSettingsHead(publicOrigin?: string) {
+  return pageHead(publicOrigin, {
+    title: "Your data",
+    description:
+      "Download or correct the data Campus Gaming Network holds about you.",
+    path: "/settings/data",
     noIndex: true,
   });
 }

@@ -94,6 +94,12 @@ func (s *AccountService) ConfirmEmailChange(ctx context.Context, rawToken string
 	return err
 }
 
+// VerifyCurrentPassword confirms a signed-in person's password before an
+// action that hands over or changes their data. A suspended account fails.
+func (s *AccountService) VerifyCurrentPassword(ctx context.Context, userID string, password string) error {
+	return s.checkCurrentPassword(ctx, userID, password)
+}
+
 func (s *AccountService) checkCurrentPassword(ctx context.Context, userID string, password string) error {
 	profile, err := s.Users.FindByID(ctx, userID)
 	if err != nil {

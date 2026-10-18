@@ -386,6 +386,7 @@ These screens can be implemented against existing routes and contracts:
 | Public profile        | `/users/:id`                         | Populated, minimal, unavailable, not found                                                                   |
 | Account               | `/account`                           | Dashboard sections, deletion confirmation                                                                    |
 | Edit profile          | `/settings/profile`                  | Default, validation, saved, unavailable                                                                      |
+| Your data             | `/settings/data`                     | Download (wrong password, rate limited, failed), correction links                                            |
 | Support and reporting | `/support`, event report forms       | Default, validation, submitted, unavailable                                                                  |
 | Information pages     | Static routes                        | Normal, not found                                                                                            |
 
