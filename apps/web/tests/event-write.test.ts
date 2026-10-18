@@ -283,6 +283,7 @@ test("new-event page data enforces auth then loads default profile and catalogs"
         if (path === "/me") {
           return Response.json({
             email: "private@example.test",
+            id: "viewer-1",
             home_school_id: school.id,
             home_school: { ...school, private_note: "strip" },
             timezone: "America/New_York",
@@ -358,6 +359,7 @@ test("new-event catalogs keep school failure inline and make game failure fatal"
         const path = new URL(String(input)).pathname;
         if (path === "/me") {
           return Response.json({
+            id: "viewer-1",
             home_school_id: school.id,
             timezone: "America/Los_Angeles",
           });
@@ -386,6 +388,7 @@ test("new-event catalogs keep school failure inline and make game failure fatal"
       api: client(async (input) =>
         new URL(String(input)).pathname === "/me"
           ? Response.json({
+              id: "viewer-1",
               home_school_id: school.id,
               timezone: "America/Los_Angeles",
             })
@@ -415,6 +418,7 @@ test("edit page distinguishes missing, locked, forbidden, and editable events", 
           calls.push(path);
           if (path === "/me") {
             return Response.json({
+              id: "viewer-1",
               home_school_id: school.id,
               timezone: "America/Los_Angeles",
             });
@@ -458,6 +462,7 @@ test("edit page distinguishes missing, locked, forbidden, and editable events", 
   assert.equal(editable.result.status, "ready");
   if (editable.result.status !== "ready") assert.fail("editor was denied");
   assert.deepEqual(editable.result.event, event);
+  assert.equal(editable.result.viewerID, "viewer-1");
   assert.deepEqual(editable.calls.slice(0, 2), [
     "/me",
     "/events/campus%2Ftournament",

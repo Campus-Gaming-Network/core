@@ -18,15 +18,26 @@ import {
 } from "../features/event-slice/event-form";
 import { getEditEventPage } from "../features/event-slice/event.functions";
 import { NoScriptSchoolSearch } from "../features/event-slice/event-school-picker";
+import {
+  validateOrganizerSearch,
+  type OrganizerInvitesResult,
+} from "../features/event-organizers/contracts";
+import { getOrganizerInvites } from "../features/event-organizers/organizer.functions";
+import { OrganizersPanel } from "../features/event-organizers/organizers-panel";
 import eventCSS from "../features/event-slice/events.css?url";
 
-type EditEventRouteData = Extract<
-  EditEventPageResult,
-  { status: "ready" | "denied" }
->;
+type EditEventRouteData =
+  | (Extract<EditEventPageResult, { status: "ready" }> & {
+      /** The creator's pending invitations; absent for a co-organizer. */
+      invites?: OrganizerInvitesResult;
+    })
+  | Extract<EditEventPageResult, { status: "denied" }>;
 
 export const Route = createFileRoute("/events/$slug_/edit")({
-  validateSearch: validateNewEventSearch,
+  validateSearch: (search: Record<string, unknown>) => ({
+    ...validateNewEventSearch(search),
+    ...validateOrganizerSearch(search),
+  }),
   loaderDeps: ({ search }) => ({ schoolQuery: search.school_q ?? "" }),
   loader: async ({ deps, params }): Promise<EditEventRouteData> => {
     const result = await getEditEventPage({
@@ -41,6 +52,12 @@ export const Route = createFileRoute("/events/$slug_/edit")({
     if (result.status === "not_found") throw notFound();
     if (result.status === "error") {
       throw new Error("Event editing is unavailable");
+    }
+    if (result.status === "ready" && result.event.viewer_is_creator) {
+      const invites = await getOrganizerInvites({
+        data: { slug: params.slug },
+      });
+      return { ...result, invites };
     }
     return result;
   },
@@ -95,7 +112,7 @@ function EditEventPage() {
           <p>
             {data.reason === "locked"
               ? "Only an event organizer can load private event details for editing."
-              : "Only an event organizer can change or cancel it."}
+              : "Only an event organizer can change it."}
           </p>
           <div className="actions">
             <ButtonLink
@@ -152,6 +169,14 @@ function EditEventPage() {
             initialSchoolSearchFailed={data.schoolSearchFailed}
             mode="edit"
             schools={data.schools}
+          />
+          <OrganizersPanel
+            invites={data.invites}
+            notice={search.organizers}
+            organizers={data.event.organizers ?? []}
+            slug={slug}
+            viewerID={data.viewerID}
+            viewerIsCreator={data.event.viewer_is_creator === true}
           />
         </div>
       </div>

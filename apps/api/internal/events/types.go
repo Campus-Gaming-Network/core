@@ -108,6 +108,9 @@ type Event struct {
 	ViewerRSVP       *string       `json:"viewer_rsvp,omitempty"`
 	ViewerInterested bool          `json:"viewer_interested,omitempty"`
 	ViewerCanEdit    bool          `json:"viewer_can_edit,omitempty"`
+	// ViewerIsCreator is set for the event's creator, who alone cancels it
+	// and manages its co-organizers.
+	ViewerIsCreator bool `json:"viewer_is_creator,omitempty"`
 }
 
 // Organizer is a user who manages an event.

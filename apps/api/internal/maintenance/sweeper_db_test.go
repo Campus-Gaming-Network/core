@@ -40,6 +40,26 @@ func TestSweeperDeletesOnlyAgedRows(t *testing.T) {
 		t.Fatalf("insert tokens: %v", err)
 	}
 
+	var eventID string
+	if err := pool.QueryRow(ctx, `
+		INSERT INTO events (creator_user_id, host_school_id, title, slug, description,
+			visibility, format, starts_at, ends_at, timezone)
+		VALUES ($1::uuid, $2::uuid, 'Sweep', 'sweep', '', 'public', 'online', NOW(), NOW() + INTERVAL '1 hour', 'UTC')
+		RETURNING id::text`, userID, schoolID).Scan(&eventID); err != nil {
+		t.Fatalf("insert event: %v", err)
+	}
+	// Expired, accepted, and revoked past the grace window go; a pending invite
+	// and one accepted within the window stay.
+	if _, err := pool.Exec(ctx, `
+		INSERT INTO event_organizer_invites (event_id, email, token_hash, expires_at, accepted_at, revoked_at) VALUES
+			($1::uuid, 'a@example.test', '\x05'::bytea, NOW() - INTERVAL '10 days', NULL, NULL),
+			($1::uuid, 'b@example.test', '\x06'::bytea, NOW() + INTERVAL '1 day', NOW() - INTERVAL '10 days', NULL),
+			($1::uuid, 'c@example.test', '\x07'::bytea, NOW() + INTERVAL '1 day', NULL, NOW() - INTERVAL '10 days'),
+			($1::uuid, 'd@example.test', '\x08'::bytea, NOW() + INTERVAL '1 day', NULL, NULL),
+			($1::uuid, 'e@example.test', '\x09'::bytea, NOW() + INTERVAL '1 day', NOW(), NULL)`, eventID); err != nil {
+		t.Fatalf("insert organizer invites: %v", err)
+	}
+
 	result, err := NewSweeper(pool, nil).Run(ctx)
 	if err != nil {
 		t.Fatalf("Run() error = %v", err)
@@ -49,6 +69,9 @@ func TestSweeperDeletesOnlyAgedRows(t *testing.T) {
 	}
 	if result.VerificationTokens != 1 {
 		t.Fatalf("deleted %d verification tokens, want 1", result.VerificationTokens)
+	}
+	if result.OrganizerInvites != 3 {
+		t.Fatalf("deleted %d organizer invites, want 3", result.OrganizerInvites)
 	}
 
 	var sessions, tokens int

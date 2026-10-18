@@ -69,6 +69,7 @@ type Router struct {
 	userGames         userGameLists
 	popularGames      popularGames
 	schoolStats       schoolStats
+	organizers        eventOrganizers
 	gameSearchLimiter *ratelimit.Limiter
 	events            eventstore.Repository
 	teams             teamstore.Repository
@@ -135,7 +136,9 @@ func NewRouter(cfg config.Config, pools ...*pgxpool.Pool) http.Handler {
 			gameImports = games.NewIGDBService(gameRepository, igdbClient)
 			router.picker = gameImports
 		}
-		router.events = eventstore.NewPostgresRepository(router.db)
+		eventRepository := eventstore.NewPostgresRepository(router.db)
+		router.events = eventRepository
+		router.organizers = eventRepository
 		router.teams = teamstore.NewPostgresRepository(router.db)
 		router.sitemap = sitemap.NewPostgresRepository(router.db)
 		router.people = people.NewPostgresRepository(router.db)
@@ -264,6 +267,7 @@ func (r *Router) registerPublicRoutes() {
 	r.mux.HandleFunc("/games/igdb-search", requireMethod(http.MethodGet, r.handleGameSearch))
 	r.mux.HandleFunc("/popular-games", requireMethod(http.MethodGet, r.handlePopularGames))
 	r.mux.HandleFunc("/school-stats", requireMethod(http.MethodGet, r.handleSchoolStats))
+	r.mux.HandleFunc("/organizer-invites/accept", requireMethod(http.MethodPost, r.handleAcceptOrganizerInvite))
 	r.mux.HandleFunc("/igdb-covers/{imageID}", requireMethod(http.MethodGet, r.handleSearchResultCover))
 	r.mux.HandleFunc("/internal/schools/refresh", requireMethod(http.MethodPost, r.handleRefreshCatalog))
 	r.mux.HandleFunc("/internal/error-monitoring/test", requireMethod(http.MethodPost, r.handleErrorMonitoringTest))
@@ -945,6 +949,41 @@ func (r *Router) handleEventPath(w http.ResponseWriter, req *http.Request) {
 		r.handleReportEvent(w, req, slug)
 		return
 	}
+	if len(parts) >= 2 && (parts[1] == "organizer-invites" || parts[1] == "organizers") {
+		slug, ok := pathSlug(w, parts[0], "invalid_event_slug")
+		if !ok {
+			return
+		}
+		switch {
+		case len(parts) == 2 && parts[1] == "organizer-invites":
+			if req.Method != http.MethodGet && req.Method != http.MethodPost {
+				methodNotAllowed(w, http.MethodGet+", "+http.MethodPost)
+				return
+			}
+			r.handleOrganizerInvites(w, req, slug)
+		case len(parts) == 3 && parts[1] == "organizer-invites":
+			if req.Method != http.MethodDelete {
+				methodNotAllowed(w, http.MethodDelete)
+				return
+			}
+			r.handleRevokeOrganizerInvite(w, req, slug, parts[2])
+		case len(parts) == 3 && parts[1] == "organizers":
+			if req.Method != http.MethodDelete {
+				methodNotAllowed(w, http.MethodDelete)
+				return
+			}
+			r.handleRemoveOrganizer(w, req, slug, parts[2])
+		case len(parts) == 4 && parts[1] == "organizers" && parts[3] == "creator":
+			if req.Method != http.MethodPost {
+				methodNotAllowed(w, http.MethodPost)
+				return
+			}
+			r.handleTransferEventCreator(w, req, slug, parts[2])
+		default:
+			http.NotFound(w, req)
+		}
+		return
+	}
 	if len(parts) == 2 && parts[1] == "attendees" {
 		slug, ok := pathSlug(w, parts[0], "invalid_event_slug")
 		if !ok {
@@ -1050,6 +1089,11 @@ func (r *Router) decorateEventForViewer(req *http.Request, slug string, event *e
 		return err
 	}
 	event.ViewerCanEdit = organizer
+	for _, candidate := range event.Organizers {
+		if candidate.Role == "creator" && candidate.ID == userID {
+			event.ViewerIsCreator = true
+		}
+	}
 	return nil
 }
 

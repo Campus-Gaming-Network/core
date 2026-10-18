@@ -173,15 +173,25 @@ func TestDeleteAccountScrubsIdentifyingData(t *testing.T) {
 		_, _ = pool.Exec(context.Background(), `DELETE FROM audit_logs WHERE id = $1::uuid`, auditID)
 	})
 
+	inviterID := insertUser(t, pool, schoolID, "inviter@example.test")
+	inviteEventID := insertDeletionEvent(t, pool, inviterID, schoolID, "deletion-invite-event")
+	if _, err := pool.Exec(ctx, `
+		INSERT INTO event_organizer_invites (event_id, email, token_hash, expires_at)
+		VALUES ($1::uuid, 'scrub@example.test', '\xfd'::bytea, NOW() + INTERVAL '1 day')`, inviteEventID); err != nil {
+		t.Fatalf("insert organizer invite: %v", err)
+	}
 	if err := NewPostgresRepository(pool).DeleteAccount(ctx, userID); err != nil {
 		t.Fatalf("DeleteAccount() error = %v", err)
 	}
-	var retainedEmails int
-	if err := pool.QueryRow(ctx, `SELECT COUNT(*) FROM email_outbox WHERE recipient = 'scrub@example.test'`).Scan(&retainedEmails); err != nil {
-		t.Fatalf("count retained account emails: %v", err)
+	var retainedEmails, retainedInvites int
+	if err := pool.QueryRow(ctx, `
+		SELECT (SELECT COUNT(*) FROM email_outbox WHERE recipient = 'scrub@example.test'),
+		       (SELECT COUNT(*) FROM event_organizer_invites WHERE email = 'scrub@example.test')
+	`).Scan(&retainedEmails, &retainedInvites); err != nil {
+		t.Fatalf("count retained account emails and invites: %v", err)
 	}
-	if retainedEmails != 0 {
-		t.Fatalf("retained account emails = %d, want 0", retainedEmails)
+	if retainedEmails != 0 || retainedInvites != 0 {
+		t.Fatalf("retained account emails = %d and invites = %d, want 0 and 0", retainedEmails, retainedInvites)
 	}
 
 	var email, name, status string

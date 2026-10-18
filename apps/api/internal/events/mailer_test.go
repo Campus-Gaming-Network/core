@@ -7,6 +7,8 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"net/http/httptest"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -218,5 +220,46 @@ func TestEventCancellationHTMLEscapesDetails(t *testing.T) {
 	}
 	if !strings.Contains(html, "Event cancelled") || strings.Contains(html, "You're going to") {
 		t.Fatalf("cancellation HTML = %q, want cancellation copy", html)
+	}
+}
+
+func TestResendMailerSendsOrganizerInvites(t *testing.T) {
+	var bodies []map[string]any
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Errorf("decode email: %v", err)
+		}
+		bodies = append(bodies, body)
+		_, _ = w.Write([]byte(`{"id":"provider-id"}`))
+	}))
+	t.Cleanup(server.Close)
+	mailer := &ResendMailer{APIKey: "key", From: "CGN <hi@example.test>", Endpoint: server.URL, SiteURL: "https://cgn.example/"}
+
+	for _, invite := range []OrganizerInvitePayload{
+		{Token: "a+b", EventTitle: "Smash <Night>", InviterName: "Ana & Bo"},
+		{Token: "c", InviterName: "Ana"},
+	} {
+		if _, err := mailer.SendOrganizerInvite(t.Context(), "guest@example.test", invite, "key-"+invite.Token); err != nil {
+			t.Fatalf("SendOrganizerInvite() error = %v", err)
+		}
+	}
+
+	notice := `<p>Sign in with this email address to accept. The link expires in seven days. If you weren't expecting this, you can ignore it.</p>`
+	subject := "You're invited to co-organize an event on Campus Gaming Network"
+	want := []map[string]any{
+		{
+			"from": "CGN <hi@example.test>", "to": []any{"guest@example.test"}, "subject": subject,
+			"html": `<h1>You're invited to co-organize</h1><p>Ana &amp; Bo invited you to help organize <strong>Smash &lt;Night&gt;</strong> on Campus Gaming Network. Co-organizers can edit the event.</p>` +
+				`<p><a href="https://cgn.example/organizer-invite?token=a%2Bb">Accept the invitation</a></p>` + notice,
+		},
+		{
+			"from": "CGN <hi@example.test>", "to": []any{"guest@example.test"}, "subject": subject,
+			"html": `<h1>You're invited to co-organize</h1><p>Ana invited you to help organize an event on Campus Gaming Network. Co-organizers can edit the event.</p>` +
+				`<p><a href="https://cgn.example/organizer-invite?token=c">Accept the invitation</a></p>` + notice,
+		},
+	}
+	if !reflect.DeepEqual(bodies, want) {
+		t.Fatalf("emails = %#v\nwant %#v", bodies, want)
 	}
 }

@@ -254,6 +254,10 @@ func (r *PostgresRepository) DeleteAccount(ctx context.Context, userID string) e
 		`DELETE FROM email_outbox
 		 WHERE recipient = (SELECT email::text FROM users WHERE id = $1::uuid)
 		    OR payload ->> 'user_id' = ($1::uuid)::text`,
+		// Invites to co-organize hold the address; they cannot be accepted
+		// once the account is gone.
+		`DELETE FROM event_organizer_invites
+		 WHERE email = (SELECT email FROM users WHERE id = $1::uuid)`,
 		`DELETE FROM email_verification_tokens WHERE user_id = $1::uuid`,
 		`DELETE FROM password_reset_tokens WHERE user_id = $1::uuid`,
 		`DELETE FROM email_change_tokens WHERE user_id = $1::uuid`,

@@ -517,7 +517,9 @@ function VisibleEventView({
                 <div className="panel event-manage">
                   <h2 id="manage-event">Manage event</h2>
                   <p className="form-help">
-                    You can change the details or cancel this event.
+                    {event.viewer_is_creator
+                      ? "You can change the details, manage organizers, or cancel this event."
+                      : "You can change the details of this event as a co-organizer."}
                   </p>
                   <div className="actions">
                     <ButtonLink
@@ -527,7 +529,9 @@ function VisibleEventView({
                     >
                       Edit event
                     </ButtonLink>
-                    <CancelEventForm slug={event.slug} />
+                    {event.viewer_is_creator ? (
+                      <CancelEventForm slug={event.slug} />
+                    ) : null}
                   </div>
                 </div>
               ) : null}

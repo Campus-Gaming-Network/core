@@ -124,6 +124,8 @@ export const eventDtoSchema = z.object({
   viewer_rsvp: eventRSVPSchema.optional(),
   viewer_interested: z.boolean().optional(),
   viewer_can_edit: z.boolean().optional(),
+  /** The creator alone cancels the event and manages its co-organizers. */
+  viewer_is_creator: z.boolean().optional(),
 });
 
 const lockedEventDtoSchema = z.object({
@@ -339,6 +341,7 @@ export const eventFormPageInputSchema = z.object({
 });
 
 export const eventFormViewerDtoSchema = z.object({
+  id: identifierSchema,
   home_school_id: identifierSchema,
   home_school: schoolSummarySchema.optional(),
   timezone: identifierSchema,
@@ -485,6 +488,8 @@ export type EditEventPageResult =
   | {
       status: "ready";
       event: EventDTO;
+      /** The signed-in editor, so a co-organizer can step down. */
+      viewerID: string;
       games: EventGameDTO[];
       hostTeams: EventHostTeamDTO[];
       schools: EventFormSchoolDTO[];

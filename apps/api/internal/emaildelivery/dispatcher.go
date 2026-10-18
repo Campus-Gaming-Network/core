@@ -83,6 +83,16 @@ func (d *Dispatcher) Send(ctx context.Context, message emailoutbox.Message) (str
 		}
 		providerID, err := d.Events.SendCancellationNotification(ctx, message.Recipient, payload.Event, message.IdempotencyKey)
 		return providerID, classifyProviderError(err)
+	case emailoutbox.KindOrganizerInvite:
+		var payload eventstore.OrganizerInvitePayload
+		if json.Unmarshal(message.Payload, &payload) != nil || strings.TrimSpace(payload.Token) == "" || strings.TrimSpace(payload.InviterName) == "" {
+			return "", emailoutbox.Permanent(errors.New("invalid organizer invite email payload"))
+		}
+		if d.Events == nil {
+			return "", errors.New("event mailer unavailable")
+		}
+		providerID, err := d.Events.SendOrganizerInvite(ctx, message.Recipient, payload, message.IdempotencyKey)
+		return providerID, classifyProviderError(err)
 	default:
 		return "", emailoutbox.Permanent(fmt.Errorf("unsupported email kind %q", message.Kind))
 	}

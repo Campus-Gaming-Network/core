@@ -187,7 +187,8 @@ func (r *PostgresRepository) Delete(ctx context.Context, slug string, userID str
 	}
 	defer tx.Rollback(ctx)
 
-	eventID, _, err := lockEditableEvent(ctx, tx, strings.TrimSpace(slug), strings.TrimSpace(userID))
+	// Co-organizers edit an event; only its creator cancels it.
+	eventID, err := lockOwnedEvent(ctx, tx, slug, userID)
 	if err != nil {
 		return err
 	}

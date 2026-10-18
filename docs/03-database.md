@@ -194,7 +194,12 @@ events
   created_at, updated_at, deleted_at
 
 event_organizers
-  event_id, user_id, ...
+  event_id, user_id, role (creator|organizer), ...
+
+event_organizer_invites
+  id, event_id, invited_by_user_id, email, token_hash (unique; raw token only
+  in the email), expires_at, accepted_at, accepted_by_user_id, revoked_at, ...
+  -- one pending invite per (event_id, email); swept a day after it ends
 
 event_games
   event_id, game_id

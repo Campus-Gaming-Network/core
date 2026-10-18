@@ -17,6 +17,7 @@ import { Route as EventsRouteImport } from './routes/events'
 import { Route as FaqRouteImport } from './routes/faq'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as OrganizerInviteRouteImport } from './routes/organizer-invite'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
@@ -97,6 +98,11 @@ const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OrganizerInviteRoute = OrganizerInviteRouteImport.update({
+  id: '/organizer-invite',
+  path: '/organizer-invite',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PrivacyRoute = PrivacyRouteImport.update({
@@ -315,6 +321,7 @@ export interface FileRoutesByFullPath {
   '/faq': typeof FaqRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/organizer-invite': typeof OrganizerInviteRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
   '/robots.txt': typeof RobotsDottxtRoute
@@ -365,6 +372,7 @@ export interface FileRoutesByTo {
   '/faq': typeof FaqRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/organizer-invite': typeof OrganizerInviteRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
   '/robots.txt': typeof RobotsDottxtRoute
@@ -414,6 +422,7 @@ export interface FileRoutesById {
   '/faq': typeof FaqRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/organizer-invite': typeof OrganizerInviteRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
   '/robots.txt': typeof RobotsDottxtRoute
@@ -467,6 +476,7 @@ export interface FileRouteTypes {
     | '/faq'
     | '/forgot-password'
     | '/login'
+    | '/organizer-invite'
     | '/privacy'
     | '/reset-password'
     | '/robots.txt'
@@ -517,6 +527,7 @@ export interface FileRouteTypes {
     | '/faq'
     | '/forgot-password'
     | '/login'
+    | '/organizer-invite'
     | '/privacy'
     | '/reset-password'
     | '/robots.txt'
@@ -565,6 +576,7 @@ export interface FileRouteTypes {
     | '/faq'
     | '/forgot-password'
     | '/login'
+    | '/organizer-invite'
     | '/privacy'
     | '/reset-password'
     | '/robots.txt'
@@ -617,6 +629,7 @@ export interface RootRouteChildren {
   FaqRoute: typeof FaqRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
+  OrganizerInviteRoute: typeof OrganizerInviteRoute
   PrivacyRoute: typeof PrivacyRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   RobotsDottxtRoute: typeof RobotsDottxtRoute
@@ -700,6 +713,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/organizer-invite': {
+      id: '/organizer-invite'
+      path: '/organizer-invite'
+      fullPath: '/organizer-invite'
+      preLoaderRoute: typeof OrganizerInviteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/privacy': {
@@ -1069,6 +1089,7 @@ const rootRouteChildren: RootRouteChildren = {
   FaqRoute: FaqRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
+  OrganizerInviteRoute: OrganizerInviteRoute,
   PrivacyRoute: PrivacyRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   RobotsDottxtRoute: RobotsDottxtRoute,

@@ -272,6 +272,43 @@
   margin: 0 0 var(--space-1);
 }
 
+/* The edit page's Organizers section: one row per organizer or pending
+   invitation, with its actions at the end; the actions wrap under the name
+   on a narrow screen. */
+.event-organizers {
+  display: grid;
+  gap: var(--space-3);
+  margin-top: var(--space-6);
+}
+
+.event-organizers h2,
+.event-organizers h3 {
+  margin: 0;
+}
+
+.event-organizers__list {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.event-organizers__list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  overflow-wrap: anywhere;
+}
+
+.event-organizers__list .actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
 .event-manage .actions {
   margin-top: var(--space-4);
 }

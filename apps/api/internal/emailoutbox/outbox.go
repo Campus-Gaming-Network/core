@@ -27,6 +27,9 @@ const (
 	// address; KindEmailChangedNotice tells the old address it was replaced.
 	KindEmailChangeVerification = "email_change_verification"
 	KindEmailChangedNotice      = "email_changed_notice"
+	// KindOrganizerInvite carries the link that accepts an invite to
+	// co-organize an event.
+	KindOrganizerInvite = "event_organizer_invite"
 )
 
 const (

@@ -1,7 +1,7 @@
 // Package maintenance removes rows that have aged out of usefulness.
 //
-// Sessions, verification and reset tokens, private event unlocks, Admin
-// Console sessions, and finished email outbox rows are written on ordinary
+// Sessions, verification and reset tokens, private event unlocks, event
+// organizer invites, Admin Console sessions, and finished email outbox rows are written on ordinary
 // activity and would otherwise grow without bound. Deletes run in bounded
 // batches and never touch audit history.
 package maintenance
@@ -48,13 +48,14 @@ type Result struct {
 	VerificationTokens int64
 	ResetTokens        int64
 	EventUnlocks       int64
+	OrganizerInvites   int64
 	AdminSessions      int64
 	EmailOutbox        int64
 }
 
 func (r Result) Total() int64 {
 	return r.Sessions + r.VerificationTokens + r.ResetTokens + r.EventUnlocks +
-		r.AdminSessions + r.EmailOutbox
+		r.OrganizerInvites + r.AdminSessions + r.EmailOutbox
 }
 
 // purge is one table's cleanup. Its where clause takes the cutoff as $1 and
@@ -96,6 +97,14 @@ var purges = []purge{
 		where:  "expires_at < $1 OR deleted_at < $1",
 		cutoff: graceCutoff,
 		count:  func(r *Result) *int64 { return &r.EventUnlocks },
+	},
+	{
+		// An invite holds the address it was sent to, so it goes once it can no
+		// longer be used.
+		table:  "event_organizer_invites",
+		where:  "expires_at < $1 OR accepted_at < $1 OR revoked_at < $1",
+		cutoff: graceCutoff,
+		count:  func(r *Result) *int64 { return &r.OrganizerInvites },
 	},
 	{
 		// Sessions that audit_logs or admin_security_events still reference are

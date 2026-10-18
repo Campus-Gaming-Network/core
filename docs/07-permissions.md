@@ -15,7 +15,7 @@ Authorization rules for the public site and the Admin Console. Enforce in **Go**
 | **Club officer**       | Later club workflow                                                 | Manage club; future badge-eligible events                                                                                                    |
 | **Team owner**         | Creator or transfer                                                 | Manage team; transfer ownership; assign captains                                                                                             |
 | **Team captain**       | Owner assigns                                                       | Register team for tournaments; limited team mgmt                                                                                             |
-| **Event organizer**    | Creator or assigned                                                 | Edit event (past-event limits planned); manage RSVPs as needed                                                                               |
+| **Event organizer**    | Creator, or co-organizer by accepted invite                         | Edit event (past-event limits planned); the creator alone cancels it and manages co-organizers                                               |
 | **Approved organizer** | Explicit grant                                                      | Badge-eligible events                                                                                                                        |
 | **Site admin**         | Bootstrap, then Admin Console                                       | Schools; games; reports; support tickets; staff grants; impersonation and feature flags later                                                |
 
@@ -69,7 +69,7 @@ Verification is not a substitute for school admin or site admin.
 | Remove other school admin                |           |                 | ✗            |              |            |                 | ✓ only            |
 | Edit past event date/location            |           | ✗               | ✗            | ✗            | ✗          | ✗               | break-glass TBD   |
 | Minor edit past event                    |           |                 |              |              |            | ✓               | ✓                 |
-| Soft-delete event                        |           |                 |              |              |            | ✓               | ✓                 |
+| Soft-delete event                        |           |                 |              |              |            | creator only    | ✓                 |
 | View all reports                         |           |                 |              |              |            |                 | ✓                 |
 | Impersonate user                         |           |                 |              |              |            |                 | ✓                 |
 | Manage feature flags                     |           |                 |              |              |            |                 | ✓ (later)         |
@@ -117,7 +117,10 @@ The two past-event rows are the intended rule; neither is enforced yet, so organ
 ## Event rules
 
 - Anyone authenticated (email-verified) can create an event — **no approval required**
-- The creator is the only organizer; co-organizers come after the first release
+- The creator invites co-organizers by email; an invite is accepted by signing in
+  with that address. Co-organizers edit the event and may step down. Only the
+  creator cancels the event, manages invites and co-organizers, and hands the
+  creator role to a co-organizer (see [04 — API](./04-api.md#co-organizers))
 - Event pages show organizer names and school-admin/staff-faculty role indicators
   when applicable
 - An organizer may host an event as a team only if they own or captain that

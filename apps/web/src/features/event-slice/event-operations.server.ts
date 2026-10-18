@@ -167,6 +167,7 @@ export async function editEventPageOperation(
   return {
     status: "ready",
     event: detail.event,
+    viewerID: viewer.profile.id,
     games: resources.games,
     hostTeams:
       currentTeam && !hostTeams.some((team) => team.id === currentTeam.id)

@@ -55,7 +55,7 @@
 | **School admin**           | Edits school details, manages school teams/clubs, cannot remove other school admins                 |
 | **Club officer**           | Manages a club; can create badge-eligible events                                                    |
 | **Team owner / captain**   | Owns or captains a team; can invite members and register for team tournaments                       |
-| **Event organizer**        | Creates/hosts events; co-organizers come later                                                      |
+| **Event organizer**        | Creates/hosts events; the creator can invite co-organizers, who can edit the event                  |
 | **Site admin**             | Later: creates schools via the Admin Console, manages users/ACLs, views reports, impersonates users |
 | **Admin Console operator** | Later: uses the Admin Console (not raw DB) to manage schools, users, ACLs                           |
 

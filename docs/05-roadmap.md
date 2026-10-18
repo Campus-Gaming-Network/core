@@ -171,7 +171,6 @@ feeling unfinished.
 
 ## Later (not yet scheduled)
 
-- Event co-organizers (invite, permissions, removal, creator transfer)
 - Clubs
 - Tournaments
 - On-site payments

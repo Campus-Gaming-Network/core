@@ -11,6 +11,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -20,6 +21,7 @@ import (
 type RSVPMailer interface {
 	SendRSVPConfirmation(ctx context.Context, recipient string, event Event, idempotencyKey string) (string, error)
 	SendCancellationNotification(ctx context.Context, recipient string, event Event, idempotencyKey string) (string, error)
+	SendOrganizerInvite(ctx context.Context, recipient string, invite OrganizerInvitePayload, idempotencyKey string) (string, error)
 }
 
 type ResendMailer struct {
@@ -101,7 +103,6 @@ func (m *ResendMailer) SendRSVPConfirmation(ctx context.Context, recipient strin
 // SendCancellationNotification emails recipient that the event was cancelled
 // and returns the provider message ID.
 func (m *ResendMailer) SendCancellationNotification(ctx context.Context, recipient string, event Event, idempotencyKey string) (string, error) {
-	eventLink := eventURL(m.SiteURL, event.Slug)
 	if m.APIKey == "" {
 		if m.Logger != nil {
 			m.Logger.Info("local event cancellation notification",
@@ -110,7 +111,26 @@ func (m *ResendMailer) SendCancellationNotification(ctx context.Context, recipie
 		}
 		return "local-" + idempotencyKey, nil
 	}
+	return m.sendHTML(ctx, recipient, "Event cancelled: "+event.Title,
+		eventCancellationHTML(event, eventURL(m.SiteURL, event.Slug)), "event cancellation", idempotencyKey)
+}
 
+// SendOrganizerInvite emails the link that accepts an invite to co-organize
+// an event and returns the provider message ID.
+func (m *ResendMailer) SendOrganizerInvite(ctx context.Context, recipient string, invite OrganizerInvitePayload, idempotencyKey string) (string, error) {
+	if m.APIKey == "" {
+		if m.Logger != nil {
+			m.Logger.Info("local event organizer invite")
+		}
+		return "local-" + idempotencyKey, nil
+	}
+	link := strings.TrimRight(m.SiteURL, "/") + "/organizer-invite?token=" + url.QueryEscape(invite.Token)
+	return m.sendHTML(ctx, recipient, "You're invited to co-organize an event on Campus Gaming Network",
+		organizerInviteHTML(invite, link), "event organizer invite", idempotencyKey)
+}
+
+// sendHTML posts one HTML email to Resend.
+func (m *ResendMailer) sendHTML(ctx context.Context, recipient, subject, htmlBody, label, idempotencyKey string) (string, error) {
 	payload := struct {
 		From    string   `json:"from"`
 		To      []string `json:"to"`
@@ -119,16 +139,16 @@ func (m *ResendMailer) SendCancellationNotification(ctx context.Context, recipie
 	}{
 		From:    m.From,
 		To:      []string{recipient},
-		Subject: "Event cancelled: " + event.Title,
-		HTML:    eventCancellationHTML(event, eventLink),
+		Subject: subject,
+		HTML:    htmlBody,
 	}
 	body, err := json.Marshal(payload)
 	if err != nil {
-		return "", fmt.Errorf("encode event cancellation email: %w", err)
+		return "", fmt.Errorf("encode %s email: %w", label, err)
 	}
 	request, err := http.NewRequestWithContext(ctx, http.MethodPost, resendEndpoint(m.Endpoint), bytes.NewReader(body))
 	if err != nil {
-		return "", fmt.Errorf("create event cancellation email request: %w", err)
+		return "", fmt.Errorf("create %s email request: %w", label, err)
 	}
 	request.Header.Set("Authorization", "Bearer "+m.APIKey)
 	request.Header.Set("Content-Type", "application/json")
@@ -139,7 +159,7 @@ func (m *ResendMailer) SendCancellationNotification(ctx context.Context, recipie
 	}
 	response, err := client.Do(request)
 	if err != nil {
-		return "", fmt.Errorf("send event cancellation email: %w", err)
+		return "", fmt.Errorf("send %s email: %w", label, err)
 	}
 	defer response.Body.Close()
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
@@ -236,6 +256,19 @@ func eventCancellationHTML(event Event, eventURL string) string {
 		`<h1>Event cancelled</h1><p><strong>%s</strong> has been cancelled by the organizer.</p><p><a href="%s">View event details</a></p>`,
 		html.EscapeString(event.Title),
 		html.EscapeString(eventURL),
+	)
+}
+
+func organizerInviteHTML(invite OrganizerInvitePayload, link string) string {
+	event := "an event"
+	if invite.EventTitle != "" {
+		event = "<strong>" + html.EscapeString(invite.EventTitle) + "</strong>"
+	}
+	return fmt.Sprintf(
+		`<h1>You're invited to co-organize</h1><p>%s invited you to help organize %s on Campus Gaming Network. Co-organizers can edit the event.</p>`+
+			`<p><a href="%s">Accept the invitation</a></p>`+
+			`<p>Sign in with this email address to accept. The link expires in seven days. If you weren't expecting this, you can ignore it.</p>`,
+		html.EscapeString(invite.InviterName), event, html.EscapeString(link),
 	)
 }
 

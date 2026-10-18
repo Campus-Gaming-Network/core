@@ -367,26 +367,27 @@ own fields, so the page repeats those calls.
 
 These screens can be implemented against existing routes and contracts:
 
-| Experience            | Existing route                       | Required states                                                       |
-| --------------------- | ------------------------------------ | --------------------------------------------------------------------- |
-| Public homepage       | `/`                                  | Events/schools available, empty, unavailable                          |
-| School directory      | `/schools`                           | Search, filtered, empty, unavailable, pagination                      |
-| School page           | `/schools/:slug`                     | Active, empty, followed/unfollowed, unavailable                       |
-| Event discovery       | `/events`                            | Scope tabs, filters, empty, unavailable, lifecycle labels, pagination |
-| Event detail          | `/events/:slug`                      | Upcoming, live, full, ended, private/locked, unavailable              |
-| Create event          | `/events/new`                        | Default, validation errors, submitting, success                       |
-| Edit event            | `/events/:slug/edit`                 | Editable, forbidden, validation errors, cancelled                     |
-| Event attendees       | `/events/:slug/people`               | Going and Maybe tabs, empty, unavailable, pagination                  |
-| School people         | `/schools/:slug/people`              | Members, empty, unavailable, pagination                               |
-| Team people           | `/teams/:slug/people`                | Members with roles, empty, unavailable, pagination                    |
-| Team directory        | `/teams`                             | Search/filter, empty, unavailable, pagination                         |
-| Team page             | `/teams/:slug`                       | Public, member, joinable, management controls                         |
-| Authentication        | `/login`, `/signup`, password routes | Default, validation, pending, recovery, verification                  |
-| Public profile        | `/users/:id`                         | Populated, minimal, unavailable, not found                            |
-| Account               | `/account`                           | Dashboard sections, deletion confirmation                             |
-| Edit profile          | `/settings/profile`                  | Default, validation, saved, unavailable                               |
-| Support and reporting | `/support`, event report forms       | Default, validation, submitted, unavailable                           |
-| Information pages     | Static routes                        | Normal, not found                                                     |
+| Experience            | Existing route                       | Required states                                                                                              |
+| --------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------ |
+| Public homepage       | `/`                                  | Events/schools available, empty, unavailable                                                                 |
+| School directory      | `/schools`                           | Search, filtered, empty, unavailable, pagination                                                             |
+| School page           | `/schools/:slug`                     | Active, empty, followed/unfollowed, unavailable                                                              |
+| Event discovery       | `/events`                            | Scope tabs, filters, empty, unavailable, lifecycle labels, pagination                                        |
+| Event detail          | `/events/:slug`                      | Upcoming, live, full, ended, private/locked, unavailable                                                     |
+| Create event          | `/events/new`                        | Default, validation errors, submitting, success                                                              |
+| Edit event            | `/events/:slug/edit`                 | Editable, forbidden, validation errors, cancelled; Organizers section for the creator and for a co-organizer |
+| Co-organizer invite   | `/organizer-invite`                  | Signed out (to login and back), accept, invalid, wrong account                                               |
+| Event attendees       | `/events/:slug/people`               | Going and Maybe tabs, empty, unavailable, pagination                                                         |
+| School people         | `/schools/:slug/people`              | Members, empty, unavailable, pagination                                                                      |
+| Team people           | `/teams/:slug/people`                | Members with roles, empty, unavailable, pagination                                                           |
+| Team directory        | `/teams`                             | Search/filter, empty, unavailable, pagination                                                                |
+| Team page             | `/teams/:slug`                       | Public, member, joinable, management controls                                                                |
+| Authentication        | `/login`, `/signup`, password routes | Default, validation, pending, recovery, verification                                                         |
+| Public profile        | `/users/:id`                         | Populated, minimal, unavailable, not found                                                                   |
+| Account               | `/account`                           | Dashboard sections, deletion confirmation                                                                    |
+| Edit profile          | `/settings/profile`                  | Default, validation, saved, unavailable                                                                      |
+| Support and reporting | `/support`, event report forms       | Default, validation, submitted, unavailable                                                                  |
+| Information pages     | Static routes                        | Normal, not found                                                                                            |
 
 ### Existing data that needs a new web surface
 

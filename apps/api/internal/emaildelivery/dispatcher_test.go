@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/emailoutbox"
+	eventstore "github.com/Campus-Gaming-Network/core/apps/api/internal/events"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/mailhttp"
 )
 
@@ -107,5 +108,44 @@ func TestDispatcherClassifiesProviderResponses(t *testing.T) {
 				t.Fatalf("permanent = %v, want %v", emailoutbox.IsPermanent(err), test.wantPermanent)
 			}
 		})
+	}
+}
+
+type eventMailerStub struct {
+	sent []eventstore.OrganizerInvitePayload
+}
+
+func (m *eventMailerStub) SendRSVPConfirmation(context.Context, string, eventstore.Event, string) (string, error) {
+	return "", nil
+}
+
+func (m *eventMailerStub) SendCancellationNotification(context.Context, string, eventstore.Event, string) (string, error) {
+	return "", nil
+}
+
+func (m *eventMailerStub) SendOrganizerInvite(_ context.Context, _ string, invite eventstore.OrganizerInvitePayload, _ string) (string, error) {
+	m.sent = append(m.sent, invite)
+	return "", nil
+}
+
+func TestDispatcherSendsOrganizerInvitesAndQuarantinesBadOnes(t *testing.T) {
+	mailer := &eventMailerStub{}
+	dispatcher := &Dispatcher{Events: mailer}
+	send := func(payload string) error {
+		_, err := dispatcher.Send(t.Context(), emailoutbox.Message{
+			Kind: emailoutbox.KindOrganizerInvite, Recipient: "guest@example.com", IdempotencyKey: "invite-key", Payload: json.RawMessage(payload),
+		})
+		return err
+	}
+	if err := send(`{"token":"invite-secret","event_title":"Chess Night","inviter_name":"Ana"}`); err != nil {
+		t.Fatalf("Send() error = %v", err)
+	}
+	for _, payload := range []string{`{"token":"","inviter_name":"Ana"}`, `{"token":"t"}`, `null`} {
+		if err := send(payload); !emailoutbox.IsPermanent(err) {
+			t.Fatalf("Send(%s) error = %v, want permanent", payload, err)
+		}
+	}
+	if want := []eventstore.OrganizerInvitePayload{{Token: "invite-secret", EventTitle: "Chess Night", InviterName: "Ana"}}; !reflect.DeepEqual(mailer.sent, want) {
+		t.Fatalf("sent = %+v, want %+v", mailer.sent, want)
 	}
 }

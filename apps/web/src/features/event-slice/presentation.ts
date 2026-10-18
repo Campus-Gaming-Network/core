@@ -312,6 +312,14 @@ export const eventDetailNotices = {
   ...eventFailureNotices,
   created: { message: "Event created.", severity: "success" },
   "interest-added": { message: "Marked as interested.", severity: "success" },
+  "organizer-joined": {
+    message: "You're now a co-organizer of this event.",
+    severity: "success",
+  },
+  "organizer-left": {
+    message: "You're no longer a co-organizer of this event.",
+    severity: "success",
+  },
   "interest-removed": {
     message: "Removed from interested events.",
     severity: "success",
