@@ -55,6 +55,9 @@ import {
   safeSchoolWebsite,
 } from "../features/school-slice/presentation";
 import { getTeamsBrowse } from "../features/team-slice/team.functions";
+import { getSchoolClubs } from "../features/club-slice/club.functions";
+import type { SchoolClubsResult } from "../features/club-slice/contracts";
+import { clubTypeLabels } from "../features/club-slice/presentation";
 import type { PopularGamesResult } from "../features/popular-games/contracts";
 import { getPopularGames } from "../features/popular-games/popular-games.functions";
 import { PopularGamesPanel } from "../features/popular-games/popular-games-panel";
@@ -65,6 +68,7 @@ type SchoolRouteData = {
   viewer: Awaited<ReturnType<typeof getSchoolViewerState>>;
   events: Awaited<ReturnType<typeof getEventsBrowse>>;
   teams: Awaited<ReturnType<typeof getTeamsBrowse>>;
+  clubs: SchoolClubsResult;
   /** The first home-school members; a visitor's read is a signed-out result. */
   members: PeopleListResult;
   popularGames: PopularGamesResult;
@@ -84,13 +88,14 @@ export const Route = createFileRoute("/schools/$slug")({
       throw new Error("School detail is unavailable");
     }
     const school = catalog.school;
-    const [viewer, events, teams, members, popularGames, stats] =
+    const [viewer, events, teams, clubs, members, popularGames, stats] =
       await Promise.all([
         getSchoolViewerState({ data: { schoolId: school.id } }),
         getEventsBrowse({ data: { school: school.slug } }),
         getTeamsBrowse({
           data: { game: "", school: school.slug, after: "", before: "" },
         }),
+        getSchoolClubs({ data: { slug: school.slug } }),
         // A request with no session never reaches the API.
         getSchoolMembers({
           data: { slug: school.slug, limit: peoplePreviewSize },
@@ -103,6 +108,7 @@ export const Route = createFileRoute("/schools/$slug")({
       viewer,
       events,
       teams,
+      clubs,
       members,
       popularGames,
       stats,
@@ -132,7 +138,7 @@ export const Route = createFileRoute("/schools/$slug")({
 });
 
 function SchoolPage() {
-  const { school, viewer, events, teams, members, popularGames, stats } =
+  const { school, viewer, events, teams, clubs, members, popularGames, stats } =
     Route.useLoaderData();
   const search = Route.useSearch();
   const website = safeSchoolWebsite(school.website_url);
@@ -370,6 +376,50 @@ function SchoolPage() {
               ) : null}
             </>
           )}
+
+          {/* Clubs show on the overview once the school has any; a school
+              without clubs gets no empty panel. */}
+          {tab === undefined &&
+          (clubs.unavailable || clubs.clubs.length > 0) ? (
+            <section
+              aria-labelledby="school-clubs-heading"
+              className="panel panel--flush"
+              id="school-clubs"
+            >
+              <div className="panel__header">
+                <h2 id="school-clubs-heading">Clubs at {school.name}</h2>
+              </div>
+              {clubs.unavailable ? (
+                <p className="panel__body muted">
+                  Clubs are unavailable right now. Please check back soon.
+                </p>
+              ) : (
+                <div className="list directory-list school-page__rows">
+                  {clubs.clubs.map((club) => (
+                    <Link
+                      className={directoryRowClassName}
+                      key={club.id}
+                      to="/clubs/$slug"
+                      params={{ slug: club.slug }}
+                    >
+                      <DirectoryRow
+                        action="View club"
+                        identity={
+                          <span aria-hidden="true" className="team-mark">
+                            {club.name.slice(0, 1).toUpperCase()}
+                          </span>
+                        }
+                        media={<EventGameThumb decorative games={club.games} />}
+                        meta={[clubTypeLabels[club.type]]}
+                        name={club.name}
+                        tags={club.games.map((game) => game.name)}
+                      />
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </section>
+          ) : null}
 
           <section
             aria-labelledby="school-people-heading"

@@ -173,13 +173,33 @@ there is no per-list privacy setting.
   position past the end moves the game to the end. Removing or moving a game
   that is not listed returns `404 listed_game_not_found`.
 
+### Clubs
+
+| Method | Path           | Notes                                                                                   |
+| ------ | -------------- | --------------------------------------------------------------------------------------- |
+| GET    | `/clubs/:slug` | Public; one published club. `404 club_not_found` for a hidden, deleted, or missing club |
+
+A club is `{"id", "name", "slug", "type", "summary", "how_to_join", "school", "games", "links", "claimed", "confirmed_at", "confirmed_source"}`.
+`type` is `student_club` or `university_program`; neither implies university
+endorsement. `how_to_join` is the club's own process for becoming a member and
+is omitted when the club has not said. `links` are `{"type", "label", "url"}`
+with `type` `website`, `discord`, or `social`, in the club's order, and only
+`http` or `https` URLs; they are information, not the way to join. `claimed`
+is `false` while CGN maintains the club (until claims ship, always).
+`confirmed_at` and `confirmed_source` (`club` or `cgn`) are omitted until the
+details have been confirmed. Each game carries `has_cover`, as on events.
+Site admins create and edit clubs through the Admin API (#116); claims (#117),
+owner and editor operations (#118), and joining on CGN (#262) add their routes
+when they ship.
+
 ### Schools
 
 | Method | Path                         | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | ------ | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | GET    | `/schools`                   | Search/browse (public, incl. logged out); `q`, `state`, `limit`, and `offset`; response includes `has_more` (no total count). `sort=popular` instead returns the most active schools, ranked by active members plus hosted public events (ties: more members, then name), omitting schools with no activity; it takes only `limit` (default 6, at most 50), any other filter or sort returns `400 invalid_sort`, and the ranking is cached for five minutes |
-| GET    | `/schools/:slug`             | Public school page (clubs list when clubs ship). School objects include `logo_url` when a logo is set                                                                                                                                                                                                                                                                                                                                                       |
+| GET    | `/schools/:slug`             | Public school page; its clubs come from `/schools/:slug/clubs`. School objects include `logo_url` when a logo is set                                                                                                                                                                                                                                                                                                                                        |
 | GET    | `/schools/:slug/members`     | Auth required; the [people list](#people-lists) of users whose home school it is; `404 school_not_found` when missing                                                                                                                                                                                                                                                                                                                                       |
+| GET    | `/schools/:slug/clubs`       | Public; the school's published [clubs](#clubs), by name: `{"clubs": [{"id", "name", "slug", "type", "summary", "games", "claimed"}]}`; `404 school_not_found` for a missing or inactive school                                                                                                                                                                                                                                                              |
 | GET    | `/school-stats`              | Public activity counts; repeat `school=<slug>` for up to 50 schools (`400 too_many_schools` past that)                                                                                                                                                                                                                                                                                                                                                      |
 | POST   | `/schools/:id/follow`        | Auth required                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | DELETE | `/schools/:id/follow`        |                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
@@ -187,17 +207,6 @@ there is no per-list privacy setting.
 | PATCH  | `/schools/:id`               | **(planned)** School admin only; site admins edit schools through the [Admin API](#admin-api)                                                                                                                                                                                                                                                                                                                                                               |
 
 `GET /school-stats` returns `{"stats": [{"slug", "members", "teams", "upcoming_events"}]}` for the active schools among the requested slugs, ordered by slug; unknown and inactive slugs are left out, and no slugs returns an empty list. The counts are CGN activity, not enrollment, and are read live in one query rather than from the catalog cache. `members` counts active accounts with the school as home school, including people who left member lists; `teams` counts teams at the school that are not deleted; `upcoming_events` counts public events the school hosts that have not ended. The `sort=popular` ranking counts all public events, past ones included, so it can order schools differently from `upcoming_events`.
-
-### Clubs (later)
-
-| Method | Path                          | Notes                                |
-| ------ | ----------------------------- | ------------------------------------ |
-| GET    | `/schools/:slug/clubs`        | Public; clubs for that school        |
-| POST   | `/schools/:id/clubs/requests` | User request                         |
-| POST   | `/clubs`                      | School admin create/manage           |
-| PATCH  | `/clubs/:id`                  | School admin                         |
-| POST   | `/clubs/:id/approve`          | School admin                         |
-| POST   | `/clubs/:id/teams`            | Assign team to club (Varsity, JV, …) |
 
 ### Teams
 

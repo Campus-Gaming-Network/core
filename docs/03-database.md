@@ -21,7 +21,7 @@ PostgreSQL is the system of record. Conventions first; then core tables. Exact c
 
 Keep the first migration set scoped to shipped features. Create only the tables needed for auth/profile, home school and follows, schools seed, launch games, events, teams, reports/support tickets, and operational needs.
 
-Do **not** create first-pass tables for clubs, tournaments, user activity history, feature flags, site announcements, on-site payments, IGDB bulk-sync runs, or broader Admin Console-only workflows until those phases are actively being built. The operations foundation includes audit history and per-user notifications. Audit history is readable through capability-gated Admin Console API routes; notifications have no HTTP or UI surface yet.
+Do **not** create first-pass tables for tournaments, user activity history, feature flags, site announcements, on-site payments, IGDB bulk-sync runs, or broader Admin Console-only workflows until those phases are actively being built. The operations foundation includes audit history and per-user notifications. Audit history is readable through capability-gated Admin Console API routes; notifications have no HTTP or UI surface yet.
 
 ## Core tables (logical)
 
@@ -135,14 +135,23 @@ schools
   -- logo_url is later Admin Console-only (PNG/JPG ≤5 MB), not Scorecard; not uploadable from main site
 
 clubs
-  id, school_id (required), name, is_official, status (pending|approved|...), ...
-  -- clubs exist only under a school; school admins manage
-
-club_officers
-  club_id, user_id, ...
+  id, school_id (required), name, slug (unique),
+  type (student_club|university_program),   -- neither implies endorsement
+  summary, how_to_join,                     -- '' means the club has not said
+  status (published|hidden),                -- hidden: absent everywhere, page 404
+  confirmed_at nullable, confirmed_source nullable (club|cgn),  -- both or neither
+  created_at, updated_at, deleted_at
 
 club_games
   club_id, game_id
+
+club_links
+  id, club_id, type (website|discord|social), label, url (http/https only),
+  position, created_at, updated_at
+  -- information only; none is the way to join
+
+-- club_members (owner|editor|member) and club_claims arrive with #117, #118,
+-- and #262
 ```
 
 ### Teams
@@ -387,7 +396,7 @@ Do not list `unlisted` or `private` events in discovery search. Unlisted is reac
 ## Migrations
 
 - Versioned SQL migrations live in `db/migrations` and are applied by the Go migrator
-- First migrations stay scoped to shipped features; defer schema for clubs, tournaments, feature flags, site announcements, on-site payments, IGDB sync, and Admin Console-only workflows.
+- First migrations stay scoped to shipped features; defer schema for tournaments, feature flags, site announcements, on-site payments, IGDB sync, and Admin Console-only workflows.
 - In Railway production, run the Go migrator as a pre-deploy command or dedicated migration service/job before the API serves traffic
 - Never rely on manual prod SQL for schema changes
 - The migrator runs each file in one transaction, so `CREATE INDEX CONCURRENTLY` is not available; indexes build under a write lock, which is acceptable at current table sizes

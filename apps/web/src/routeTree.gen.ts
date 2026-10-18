@@ -37,6 +37,7 @@ import { Route as ApiHealthRouteImport } from './routes/api.health'
 import { Route as ApiSchoolsRouteImport } from './routes/api.schools'
 import { Route as AuthResetPasswordRouteImport } from './routes/auth.reset-password'
 import { Route as AuthVerifyEmailRouteImport } from './routes/auth.verify-email'
+import { Route as ClubsSlugRouteImport } from './routes/clubs.$slug'
 import { Route as EventsIndexRouteImport } from './routes/events.index'
 import { Route as EventsSlugRouteImport } from './routes/events.$slug'
 import { Route as EventsNewRouteImport } from './routes/events.new'
@@ -203,6 +204,11 @@ const AuthVerifyEmailRoute = AuthVerifyEmailRouteImport.update({
   path: '/auth/verify-email',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ClubsSlugRoute = ClubsSlugRouteImport.update({
+  id: '/clubs/$slug',
+  path: '/clubs/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const EventsIndexRoute = EventsIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -359,6 +365,7 @@ export interface FileRoutesByFullPath {
   '/api/schools': typeof ApiSchoolsRoute
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/auth/verify-email': typeof AuthVerifyEmailRoute
+  '/clubs/$slug': typeof ClubsSlugRoute
   '/events/$slug': typeof EventsSlugRoute
   '/events/new': typeof EventsNewRoute
   '/schools/$slug': typeof SchoolsSlugRoute
@@ -410,6 +417,7 @@ export interface FileRoutesByTo {
   '/api/schools': typeof ApiSchoolsRoute
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/auth/verify-email': typeof AuthVerifyEmailRoute
+  '/clubs/$slug': typeof ClubsSlugRoute
   '/events/$slug': typeof EventsSlugRoute
   '/events/new': typeof EventsNewRoute
   '/schools/$slug': typeof SchoolsSlugRoute
@@ -466,6 +474,7 @@ export interface FileRoutesById {
   '/api/schools': typeof ApiSchoolsRoute
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/auth/verify-email': typeof AuthVerifyEmailRoute
+  '/clubs/$slug': typeof ClubsSlugRoute
   '/events/$slug': typeof EventsSlugRoute
   '/events/new': typeof EventsNewRoute
   '/schools/$slug': typeof SchoolsSlugRoute
@@ -523,6 +532,7 @@ export interface FileRouteTypes {
     | '/api/schools'
     | '/auth/reset-password'
     | '/auth/verify-email'
+    | '/clubs/$slug'
     | '/events/$slug'
     | '/events/new'
     | '/schools/$slug'
@@ -574,6 +584,7 @@ export interface FileRouteTypes {
     | '/api/schools'
     | '/auth/reset-password'
     | '/auth/verify-email'
+    | '/clubs/$slug'
     | '/events/$slug'
     | '/events/new'
     | '/schools/$slug'
@@ -629,6 +640,7 @@ export interface FileRouteTypes {
     | '/api/schools'
     | '/auth/reset-password'
     | '/auth/verify-email'
+    | '/clubs/$slug'
     | '/events/$slug'
     | '/events/new'
     | '/schools/$slug'
@@ -685,6 +697,7 @@ export interface RootRouteChildren {
   ApiSchoolsRoute: typeof ApiSchoolsRoute
   AuthResetPasswordRoute: typeof AuthResetPasswordRoute
   AuthVerifyEmailRoute: typeof AuthVerifyEmailRoute
+  ClubsSlugRoute: typeof ClubsSlugRoute
   UsersIdRoute: typeof UsersIdRoute
   ApiAccountExportRoute: typeof ApiAccountExportRoute
   ApiAvatarsIdRoute: typeof ApiAvatarsIdRoute
@@ -891,6 +904,13 @@ declare module '@tanstack/react-router' {
       path: '/auth/verify-email'
       fullPath: '/auth/verify-email'
       preLoaderRoute: typeof AuthVerifyEmailRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/clubs/$slug': {
+      id: '/clubs/$slug'
+      path: '/clubs/$slug'
+      fullPath: '/clubs/$slug'
+      preLoaderRoute: typeof ClubsSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/events/': {
@@ -1170,6 +1190,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiSchoolsRoute: ApiSchoolsRoute,
   AuthResetPasswordRoute: AuthResetPasswordRoute,
   AuthVerifyEmailRoute: AuthVerifyEmailRoute,
+  ClubsSlugRoute: ClubsSlugRoute,
   UsersIdRoute: UsersIdRoute,
   ApiAccountExportRoute: ApiAccountExportRoute,
   ApiAvatarsIdRoute: ApiAvatarsIdRoute,

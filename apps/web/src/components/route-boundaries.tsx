@@ -197,12 +197,12 @@ export function DefaultNotFound() {
   );
 }
 
-// An event, team, or school address that matched nothing. The slug comes from
+// A club, event, team, or school address that matched nothing. The slug comes from
 // the URL, so a school link carries its words into the school search.
 export function RecordNotFound({
   kind,
 }: {
-  kind: "event" | "school" | "team";
+  kind: "club" | "event" | "school" | "team";
 }) {
   const slug = useParams({
     strict: false,
@@ -220,6 +220,26 @@ export function RecordNotFound({
           <>
             <Link className="button button--primary" to="/events">
               Browse events
+            </Link>
+            <Link className="button button--secondary" to="/">
+              Go home
+            </Link>
+          </>
+        }
+      />
+    );
+  }
+
+  if (kind === "club") {
+    return (
+      <NotFoundView
+        title="Club not found"
+        heading="We could not find that club."
+        description="The link may be broken, or the club may have been removed or hidden. Its school's page lists the clubs there."
+        actions={
+          <>
+            <Link className="button button--primary" to="/schools">
+              Browse schools
             </Link>
             <Link className="button button--secondary" to="/">
               Go home

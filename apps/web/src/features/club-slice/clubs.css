@@ -1,0 +1,29 @@
+/* The club page: About and How to join in the main column, links and details
+   at the side. Shared layout lives in components.css. */
+
+/* Club text keeps the line breaks its officers typed. */
+.club-text {
+  margin: 0;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.club-page .layout-detail__main {
+  display: grid;
+  gap: var(--space-6);
+  align-content: start;
+}
+
+.club-join {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.club-join h2 {
+  margin: 0;
+}
+
+.club-links {
+  margin: 0;
+  list-style: none;
+}

@@ -24,6 +24,7 @@ import (
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminsecurity"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminsession"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/auth"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/clubs"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/config"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/dataexport"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/emailoutbox"
@@ -77,6 +78,7 @@ type Router struct {
 	gameSearchLimiter *ratelimit.Limiter
 	events            eventstore.Repository
 	teams             teamstore.Repository
+	clubs             clubs.Repository
 	safety            safety.Repository
 	users             users.Repository
 	people            people.Repository
@@ -145,6 +147,7 @@ func NewRouter(cfg config.Config, pools ...*pgxpool.Pool) http.Handler {
 		router.organizers = eventRepository
 		router.inbox = notifications.NewPostgresRepository(router.db)
 		router.teams = teamstore.NewPostgresRepository(router.db)
+		router.clubs = clubs.NewPostgresRepository(router.db)
 		router.sitemap = sitemap.NewPostgresRepository(router.db)
 		router.people = people.NewPostgresRepository(router.db)
 		router.safety = safety.NewPostgresRepository(router.db)
@@ -279,6 +282,7 @@ func (r *Router) registerPublicRoutes() {
 	r.mux.HandleFunc("/internal/error-monitoring/test", requireMethod(http.MethodPost, r.handleErrorMonitoringTest))
 	r.mux.HandleFunc("/events", r.handleEvents)
 	r.mux.HandleFunc("/events/", r.handleEventPath)
+	r.mux.HandleFunc("/clubs/{slug}", requireMethod(http.MethodGet, r.handleClub))
 	r.mux.HandleFunc("/teams", r.handleTeams)
 	r.mux.HandleFunc("/teams/", r.handleTeamPath)
 	r.mux.HandleFunc("/support-tickets", r.handleSupportTickets)
@@ -497,6 +501,15 @@ func (r *Router) handleSchoolPath(w http.ResponseWriter, req *http.Request) {
 		}
 		setPublicCatalogCache(w)
 		writeJSON(w, http.StatusOK, school)
+		return
+	}
+
+	if len(parts) == 2 && parts[1] == "clubs" {
+		slug, ok := pathSlug(w, parts[0], "invalid_school_slug")
+		if !ok {
+			return
+		}
+		r.handleSchoolClubs(w, req, slug)
 		return
 	}
 
