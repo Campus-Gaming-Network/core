@@ -10,7 +10,7 @@
     "@playwright/test": "1.62.1",
     "@types/node": "24.13.3",
     "oxfmt": "0.68.0",
-    "typescript": "5.9.3",
+    "typescript": "7.0.2",
     "vue": "3.5.42"
   },
   "scripts": {
