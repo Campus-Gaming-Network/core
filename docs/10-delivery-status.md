@@ -210,7 +210,8 @@ Tracked ticket by ticket in [20 — Admin Console v1 engineering plan](./20-admi
 - [x] Event co-organizers: email invites, edit rights, removal and stepping down, and creator transfer
 - [ ] Richer profile fields (majors, graduation automation, faculty extras)
 - [x] Database-backed audit-history foundation (broader domain adoption and UIs remain)
-- [ ] User-visible activity history and notification inbox
+- [x] Notification inbox: `/notifications` with an unread badge in the header; event cancellations and accepted co-organizer invites write notices
+- [ ] User-visible activity history
 - [ ] Site-wide announcements
 - [ ] Impersonation
 - [ ] Bulk or scheduled IGDB sync (single-game refresh is implemented)

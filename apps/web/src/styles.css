@@ -450,6 +450,29 @@ textarea {
   box-shadow: 0 0 0 5px var(--color-header);
 }
 
+/* The bell beside the account menu. Its unread count is a badge on the
+   icon; the link's accessible name carries the number. */
+.site-header nav a.notifications-link {
+  position: relative;
+  min-width: 2.75rem;
+  justify-content: center;
+}
+
+.notifications-link__count {
+  position: absolute;
+  top: 0.125rem;
+  right: 0.125rem;
+  min-width: 1.125rem;
+  padding: 0 0.25rem;
+  border-radius: 999px;
+  background: var(--color-danger);
+  color: #fff;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  line-height: 1.125rem;
+  text-align: center;
+}
+
 /* Account menu: an avatar and the first name, disclosing Account, Public
    profile, and Log out in a panel under the trigger. */
 .site-header nav .account-menu {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"reflect"
 	"sort"
 	"testing"
 	"time"
@@ -103,10 +104,39 @@ func TestPostgresEventMutationsCommitDurableEmailIntent(t *testing.T) {
 		t.Fatalf("suspended RSVP rows = %d, want transaction rollback", suspendedRSVPs)
 	}
 
+	// The creator going too shows the canceller gets an email but no inbox
+	// notice of their own cancellation.
+	if _, err := repository.SetRSVP(ctx, RSVPInput{Slug: slug, UserID: creatorID, Response: RSVPYes}); err != nil {
+		t.Fatalf("creator SetRSVP() error = %v", err)
+	}
 	if err := repository.Delete(ctx, slug, creatorID); err != nil {
 		t.Fatalf("Delete() error = %v", err)
 	}
-	assertEventOutboxCount(t, pool, eventID, emailoutbox.KindEventCancellation, 2)
+	assertEventOutboxCount(t, pool, eventID, emailoutbox.KindEventCancellation, 3)
+	var notified []string
+	noticeRows, err := pool.Query(ctx, `
+		SELECT user_id::text || ':' || type || ':' || title || ':' || body
+		FROM notifications WHERE entity_type = 'event' AND entity_id = $1::uuid
+	`, eventID)
+	if err != nil {
+		t.Fatalf("list cancellation notifications: %v", err)
+	}
+	for noticeRows.Next() {
+		var notice string
+		if err := noticeRows.Scan(&notice); err != nil {
+			t.Fatalf("scan cancellation notification: %v", err)
+		}
+		notified = append(notified, notice)
+	}
+	sort.Strings(notified)
+	wantNotified := []string{
+		maybeUserID + ":event.cancelled:Event cancelled:Outbox Event was cancelled by its organizer.",
+		yesUserID + ":event.cancelled:Event cancelled:Outbox Event was cancelled by its organizer.",
+	}
+	sort.Strings(wantNotified)
+	if !reflect.DeepEqual(notified, wantNotified) {
+		t.Fatalf("cancellation notifications = %v, want %v", notified, wantNotified)
+	}
 	rows, err := pool.Query(ctx, `
 		SELECT recipient FROM email_outbox
 		WHERE kind = $1 AND payload -> 'event' ->> 'id' = $2
@@ -125,7 +155,7 @@ func TestPostgresEventMutationsCommitDurableEmailIntent(t *testing.T) {
 		recipients = append(recipients, recipient)
 	}
 	sort.Strings(recipients)
-	wantRecipients := []string{maybeEmail, yesEmail}
+	wantRecipients := []string{creatorEmail, maybeEmail, yesEmail}
 	sort.Strings(wantRecipients)
 	if fmt.Sprint(recipients) != fmt.Sprint(wantRecipients) {
 		t.Fatalf("cancellation recipients = %v, want %v", recipients, wantRecipients)

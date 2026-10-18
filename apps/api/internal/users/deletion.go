@@ -7,6 +7,7 @@ import (
 
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminaccess"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminaudit"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/notifications"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -181,6 +182,26 @@ func (r *PostgresRepository) DeleteAccount(ctx context.Context, userID string) e
 		ON CONFLICT (idempotency_key) DO NOTHING
 	`, userID); err != nil {
 		return fmt.Errorf("enqueue deleted-account event cancellations: %w", err)
+	}
+	// The same attendees get an inbox notice.
+	if _, err := tx.Exec(ctx, `
+		INSERT INTO notifications (user_id, type, title, body, entity_type, entity_id)
+		SELECT attendee.id, $2, 'Event cancelled',
+		       LEFT(e.title || ' was cancelled because its organizer deleted their account.', 2000),
+		       'event', e.id
+		FROM events e
+		JOIN event_rsvps r ON r.event_id = e.id
+		JOIN users attendee ON attendee.id = r.user_id
+		WHERE e.creator_user_id = $1::uuid
+		  AND e.deleted_at IS NULL
+		  AND e.ends_at > NOW()
+		  AND r.deleted_at IS NULL
+		  AND r.response IN ('yes', 'maybe')
+		  AND attendee.id <> $1::uuid
+		  AND attendee.deleted_at IS NULL
+		  AND attendee.account_status = 'active'
+	`, userID, notifications.TypeEventCancelled); err != nil {
+		return fmt.Errorf("notify deleted-account event cancellations: %w", err)
 	}
 
 	if _, err := tx.Exec(ctx, `

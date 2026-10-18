@@ -3,6 +3,7 @@ package users
 import (
 	"context"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -367,6 +368,27 @@ func TestDeleteAccountSoftDeletesEventWithoutActiveSuccessor(t *testing.T) {
 	}
 	if cancellationMessages != 2 {
 		t.Fatalf("account-deletion cancellation messages = %d, want 2", cancellationMessages)
+	}
+	var notified []string
+	rows, err := pool.Query(ctx, `
+		SELECT user_id::text FROM notifications
+		WHERE type = 'event.cancelled' AND entity_type = 'event' AND entity_id = $1::uuid
+		ORDER BY user_id
+	`, eventID)
+	if err != nil {
+		t.Fatalf("list account-deletion cancellation notifications: %v", err)
+	}
+	for rows.Next() {
+		var userID string
+		if err := rows.Scan(&userID); err != nil {
+			t.Fatalf("scan cancellation notification: %v", err)
+		}
+		notified = append(notified, userID)
+	}
+	want := []string{yesAttendeeID, maybeAttendeeID}
+	slices.Sort(want)
+	if !reflect.DeepEqual(notified, want) {
+		t.Fatalf("notified attendees = %v, want %v", notified, want)
 	}
 }
 

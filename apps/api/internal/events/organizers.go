@@ -9,6 +9,7 @@ import (
 
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/apperror"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/emailoutbox"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/notifications"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -249,6 +250,25 @@ func (r *PostgresRepository) AcceptOrganizerInvite(ctx context.Context, tokenHas
 		    role = CASE WHEN event_organizers.deleted_at IS NULL THEN event_organizers.role ELSE 'organizer' END
 	`, eventID, userID); err != nil {
 		return "", fmt.Errorf("add event organizer: %w", err)
+	}
+	var creatorID, title, name string
+	if err := tx.QueryRow(ctx, `
+		SELECT e.creator_user_id::text, e.title, u.name
+		FROM events e, users u
+		WHERE e.id = $1::uuid AND u.id = $2::uuid
+	`, eventID, userID).Scan(&creatorID, &title, &name); err != nil {
+		return "", fmt.Errorf("read accepted invite: %w", err)
+	}
+	if creatorID != userID {
+		if err := notifications.Insert(ctx, tx, notifications.Input{
+			UserID:  creatorID,
+			Type:    notifications.TypeEventOrganizerJoined,
+			Title:   "New co-organizer",
+			Body:    name + " accepted your invitation and is now a co-organizer of " + title + ".",
+			EventID: eventID,
+		}); err != nil {
+			return "", err
+		}
 	}
 	if err := tx.Commit(ctx); err != nil {
 		return "", fmt.Errorf("commit organizer invite accept: %w", err)

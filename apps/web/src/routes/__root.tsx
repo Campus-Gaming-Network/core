@@ -8,7 +8,7 @@ import {
   type ErrorComponentProps,
 } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { Gamepad2 } from "lucide-react";
+import { Bell, Gamepad2 } from "lucide-react";
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { AccountMenu } from "../components/account-menu";
 import { RouteAnnouncer } from "../components/route-announcer";
@@ -227,13 +227,30 @@ function AuthNavigation({ viewer }: { viewer: ViewerState }) {
     );
   }
 
+  const unread = viewer.unreadNotifications ?? 0;
   return (
-    <AccountMenu
-      logoutError={logoutError}
-      logoutPending={pending}
-      onLogout={submit}
-      viewer={viewer}
-    />
+    <div className="auth-links">
+      <Link
+        aria-label={
+          unread > 0 ? `Notifications, ${unread} unread` : "Notifications"
+        }
+        className="notifications-link"
+        to="/notifications"
+      >
+        <Bell aria-hidden="true" size={20} strokeWidth={2} />
+        {unread > 0 ? (
+          <span aria-hidden="true" className="notifications-link__count">
+            {unread > 99 ? "99+" : unread}
+          </span>
+        ) : null}
+      </Link>
+      <AccountMenu
+        logoutError={logoutError}
+        logoutPending={pending}
+        onLogout={submit}
+        viewer={viewer}
+      />
+    </div>
   );
 }
 

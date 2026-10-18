@@ -31,6 +31,7 @@ import (
 	eventstore "github.com/Campus-Gaming-Network/core/apps/api/internal/events"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/games"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/igdb"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/notifications"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/objectstore"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/operations"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/people"
@@ -71,6 +72,7 @@ type Router struct {
 	popularGames      popularGames
 	schoolStats       schoolStats
 	organizers        eventOrganizers
+	inbox             inbox
 	dataExports       dataExports
 	gameSearchLimiter *ratelimit.Limiter
 	events            eventstore.Repository
@@ -141,6 +143,7 @@ func NewRouter(cfg config.Config, pools ...*pgxpool.Pool) http.Handler {
 		eventRepository := eventstore.NewPostgresRepository(router.db)
 		router.events = eventRepository
 		router.organizers = eventRepository
+		router.inbox = notifications.NewPostgresRepository(router.db)
 		router.teams = teamstore.NewPostgresRepository(router.db)
 		router.sitemap = sitemap.NewPostgresRepository(router.db)
 		router.people = people.NewPostgresRepository(router.db)
@@ -296,6 +299,10 @@ func (r *Router) registerPublicRoutes() {
 	r.mux.HandleFunc("/me/schools", r.handleMySchools)
 	r.mux.HandleFunc("/me/teams", r.handleMyTeams)
 	r.mux.HandleFunc("/me/games", r.handleMyGames)
+	r.mux.HandleFunc("/me/notifications", requireMethod(http.MethodGet, r.handleNotifications))
+	r.mux.HandleFunc("/me/notifications/unread-count", requireMethod(http.MethodGet, r.handleUnreadNotificationCount))
+	r.mux.HandleFunc("/me/notifications/read-all", requireMethod(http.MethodPost, r.handleReadAllNotifications))
+	r.mux.HandleFunc("/me/notifications/{notificationID}/read", requireMethod(http.MethodPost, r.handleReadNotification))
 	r.mux.HandleFunc("/me/games/{gameID}", requireMethod(http.MethodDelete, r.handleRemoveMyGame))
 	r.mux.HandleFunc("/me/games/{gameID}/position", requireMethod(http.MethodPost, r.handleMoveMyGame))
 	r.mux.HandleFunc("/me", r.handleMe)

@@ -419,6 +419,8 @@ export type NavigationViewer = {
   name: string;
   /** The viewer's home school, for the account menu's Your school link. */
   homeSchool?: { name: string; slug: string };
+  /** Unread notifications for the header badge; absent when unknown. */
+  unreadNotifications?: number;
 };
 
 export type NavigationSessionDTO =

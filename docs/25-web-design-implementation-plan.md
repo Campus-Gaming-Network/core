@@ -387,6 +387,7 @@ These screens can be implemented against existing routes and contracts:
 | Account               | `/account`                           | Dashboard sections, deletion confirmation                                                                    |
 | Edit profile          | `/settings/profile`                  | Default, validation, saved, unavailable                                                                      |
 | Your data             | `/settings/data`                     | Download (wrong password, rate limited, failed), correction links                                            |
+| Notifications         | `/notifications`                     | Unread and read, empty, unavailable, older pages; header bell with an unread count                           |
 | Support and reporting | `/support`, event report forms       | Default, validation, submitted, unavailable                                                                  |
 | Information pages     | Static routes                        | Normal, not found                                                                                            |
 

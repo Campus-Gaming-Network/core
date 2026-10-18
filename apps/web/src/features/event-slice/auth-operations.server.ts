@@ -1,3 +1,4 @@
+import { unreadCountOperation } from "../notifications/notifications-operations.server.js";
 import * as z from "zod";
 import { safeLocalPath } from "../../safe-local-path.js";
 import {
@@ -50,11 +51,10 @@ export async function getNavigationSessionOperation({
   }
 
   try {
-    const profile = await optionalViewerProfile({
-      api,
-      cookieHeader,
-      sessionCookieValue,
-    });
+    const [profile, unreadNotifications] = await Promise.all([
+      optionalViewerProfile({ api, cookieHeader, sessionCookieValue }),
+      unreadCountOperation({ api, cookieHeader }),
+    ]);
     // Only what the header shows. The profile's email and bio stay out of
     // this response; the home school's name and slug feed Your school.
     if (!profile) return { authenticated: false };
@@ -67,6 +67,7 @@ export async function getNavigationSessionOperation({
         ...(school
           ? { homeSchool: { name: school.name, slug: school.slug } }
           : {}),
+        ...(unreadNotifications === undefined ? {} : { unreadNotifications }),
       },
     };
   } catch {

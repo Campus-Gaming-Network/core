@@ -28,7 +28,7 @@
 - Internet Explorer support
 - Heavy user-generated content on the homepage (keep it simple until content exists)
 - Shipping the Admin Console in the first release (it comes later)
-- In-app notifications and user/entity audit-history views (later)
+- User/entity audit-history views (later)
 
 ## Product principles
 
@@ -289,8 +289,9 @@ visitors see counts only; the API answers them with 401.
 
 ### Notifications & email
 
-- In-app notification storage and repository foundation exists; authenticated
-  API and inbox UI are later
+- An in-app inbox at `/notifications`, with an unread count in the header, holds
+  a notice for each active yes/maybe attendee when an event is cancelled and
+  for an event's creator when someone accepts a co-organizer invite
 - Email after event RSVP yes (details + calendar add) from `events@campusgamingnetwork.com`
 - Email active yes/maybe RSVPs after an event is cancelled from
   `events@campusgamingnetwork.com` (best effort; no ICS attachment)

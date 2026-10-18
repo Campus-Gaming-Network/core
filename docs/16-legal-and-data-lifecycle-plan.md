@@ -287,8 +287,10 @@ Site-admin bootstrap, the report/support queue and audit endpoints, and the
 queue UI are tracked as `AC-003`, `AC-008`, and `AC-012` in
 [20 — Admin Console v1 engineering plan](./20-admin-console-v1-engineering-plan.md).
 
-- [ ] Add authenticated user notification list/unread/mark-read endpoints and an
-      in-app notification inbox. Do not expose the repository directly.
+- [x] Authenticated notification list, unread-count, mark-read, and
+      mark-all-read endpoints and an in-app inbox at `/notifications`, through
+      their own repository rather than the operations one
+      ([04](./04-api.md#notifications--announcements)).
 - [x] Audit deletion-triggered queue unassignment: each report or support ticket
       unassigned because its assignee deleted their account gets a
       `report.assignee_deleted` or `support_ticket.assignee_deleted` entry, with

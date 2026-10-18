@@ -17,6 +17,7 @@ import { Route as EventsRouteImport } from './routes/events'
 import { Route as FaqRouteImport } from './routes/faq'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as NotificationsRouteImport } from './routes/notifications'
 import { Route as OrganizerInviteRouteImport } from './routes/organizer-invite'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
@@ -100,6 +101,11 @@ const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NotificationsRoute = NotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OrganizerInviteRoute = OrganizerInviteRouteImport.update({
@@ -333,6 +339,7 @@ export interface FileRoutesByFullPath {
   '/faq': typeof FaqRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/notifications': typeof NotificationsRoute
   '/organizer-invite': typeof OrganizerInviteRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -386,6 +393,7 @@ export interface FileRoutesByTo {
   '/faq': typeof FaqRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/notifications': typeof NotificationsRoute
   '/organizer-invite': typeof OrganizerInviteRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -438,6 +446,7 @@ export interface FileRoutesById {
   '/faq': typeof FaqRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
+  '/notifications': typeof NotificationsRoute
   '/organizer-invite': typeof OrganizerInviteRoute
   '/privacy': typeof PrivacyRoute
   '/reset-password': typeof ResetPasswordRoute
@@ -494,6 +503,7 @@ export interface FileRouteTypes {
     | '/faq'
     | '/forgot-password'
     | '/login'
+    | '/notifications'
     | '/organizer-invite'
     | '/privacy'
     | '/reset-password'
@@ -547,6 +557,7 @@ export interface FileRouteTypes {
     | '/faq'
     | '/forgot-password'
     | '/login'
+    | '/notifications'
     | '/organizer-invite'
     | '/privacy'
     | '/reset-password'
@@ -598,6 +609,7 @@ export interface FileRouteTypes {
     | '/faq'
     | '/forgot-password'
     | '/login'
+    | '/notifications'
     | '/organizer-invite'
     | '/privacy'
     | '/reset-password'
@@ -653,6 +665,7 @@ export interface RootRouteChildren {
   FaqRoute: typeof FaqRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
+  NotificationsRoute: typeof NotificationsRoute
   OrganizerInviteRoute: typeof OrganizerInviteRoute
   PrivacyRoute: typeof PrivacyRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
@@ -738,6 +751,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/notifications': {
+      id: '/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof NotificationsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/organizer-invite': {
@@ -1130,6 +1150,7 @@ const rootRouteChildren: RootRouteChildren = {
   FaqRoute: FaqRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
+  NotificationsRoute: NotificationsRoute,
   OrganizerInviteRoute: OrganizerInviteRoute,
   PrivacyRoute: PrivacyRoute,
   ResetPasswordRoute: ResetPasswordRoute,

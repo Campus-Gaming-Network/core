@@ -10,6 +10,7 @@ import (
 
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/apperror"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/emailoutbox"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/notifications"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -208,6 +209,19 @@ func (r *PostgresRepository) Delete(ctx context.Context, slug string, userID str
 			IdempotencyKey: "event-cancellation:" + eventID + ":" + recipient.UserID,
 		}); err != nil {
 			return fmt.Errorf("enqueue event cancellation email: %w", err)
+		}
+		// The person cancelling needs no notice of it.
+		if recipient.UserID == strings.TrimSpace(userID) {
+			continue
+		}
+		if err := notifications.Insert(ctx, tx, notifications.Input{
+			UserID:  recipient.UserID,
+			Type:    notifications.TypeEventCancelled,
+			Title:   "Event cancelled",
+			Body:    event.Title + " was cancelled by its organizer.",
+			EventID: eventID,
+		}); err != nil {
+			return err
 		}
 	}
 

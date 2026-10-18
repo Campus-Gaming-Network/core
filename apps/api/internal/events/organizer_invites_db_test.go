@@ -144,6 +144,21 @@ func TestOrganizerInviteAddsACoOrganizerWhoCanEditButNotCancel(t *testing.T) {
 	if _, err := accept("second", guestID); !errors.Is(err, ErrOrganizerInviteNotFound) {
 		t.Fatalf("accepting twice error = %v, want %v", err, ErrOrganizerInviteNotFound)
 	}
+	var creatorNotices []string
+	noticeRows, err := f.pool.Query(ctx, `SELECT type || ':' || body FROM notifications WHERE user_id = $1::uuid`, creatorID)
+	if err != nil {
+		t.Fatalf("list creator notifications: %v", err)
+	}
+	for noticeRows.Next() {
+		var notice string
+		if err := noticeRows.Scan(&notice); err != nil {
+			t.Fatalf("scan creator notification: %v", err)
+		}
+		creatorNotices = append(creatorNotices, notice)
+	}
+	if want := []string{"event.organizer_joined:Guest accepted your invitation and is now a co-organizer of Campus Chess Night."}; !reflect.DeepEqual(creatorNotices, want) {
+		t.Fatalf("creator notifications = %v, want %v", creatorNotices, want)
+	}
 
 	updated, err := f.repository.Update(ctx, UpdateParams{UpdateInput: UpdateInput{
 		Slug:         event.Slug,
