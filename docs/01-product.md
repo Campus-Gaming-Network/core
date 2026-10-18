@@ -15,7 +15,6 @@
 
 ## Non-goals (not scheduled yet)
 
-- Clubs (later)
 - Tournaments (later)
 - On-site payment processing (paid events may be listed for now, but organizers handle payment off-site)
 - Near-you / geo discovery (later)
@@ -52,8 +51,10 @@
 | **Verified student**       | Registered/verified with a `.edu` email                                                             |
 | **Staff / faculty**        | Granted by site admin; may run esports programs or advise clubs                                     |
 | **Alumni**                 | Can participate after graduation                                                                    |
-| **School admin**           | Edits school details, manages school teams/clubs, cannot remove other school admins                 |
-| **Club officer**           | Manages a club; can create badge-eligible events                                                    |
+| **School admin**           | Edits school details and the clubs at their school; cannot remove other school admins               |
+| **Club owner**             | Runs a claimed club: edits it, invites and removes editors, removes members, hands ownership over   |
+| **Club editor**            | Helps run a club: edits it and removes members                                                      |
+| **Club member**            | Joined a club on CGN; listed on the club's member list                                              |
 | **Team owner / captain**   | Owns or captains a team; can invite members and register for team tournaments                       |
 | **Event organizer**        | Creates/hosts events; the creator can invite co-organizers, who can edit the event                  |
 | **Site admin**             | Later: creates schools via the Admin Console, manages users/ACLs, views reports, impersonates users |
@@ -152,20 +153,59 @@ Signup also requires confirming **age 18+**. Alumni can participate. Faculty who
 - Popular games by school
 - Signed-in people see the school's members, the people whose home school it is;
   see [People lists](#people-lists)
-- Clubs listed on school pages **after** clubs ship (later)
+- School pages list the school's clubs; see [Clubs](#clubs)
 
-### Clubs (later)
+### Clubs
 
-- Belong **only** to a school (no orphan clubs)
-- Distinguished as **official** school orgs
-- Users can request a school club; school admins create, approve, and manage clubs
-- Clubs can have **teams assigned** (e.g. Varsity, JV)
-- Clubs reference one or more games
+Students join clubs on CGN: the club's page and its member list live here,
+not on the club's own Discord or sign-up form.
+
+- **Types:** a club is a **student club** or a **university program** (a
+  school-run esports program). A school can have several of either type. A
+  club page does not imply that the university endorses the club
+- **One school:** every club belongs to exactly one school, and the school page
+  lists its clubs
+- **Profile:** name, URL slug, type, summary, games, and optional labeled links
+  (website, Discord, social). The links are information; joining happens on CGN
+- **Unclaimed clubs:** site admins create clubs from public sources so that
+  pages exist before any officer signs up. An unclaimed club's page says it is
+  "Maintained by Campus Gaming Network"
+- **Claims and requests:** a club officer **claims** an existing club or
+  **requests** one that is not listed. Site admins review both in the Admin
+  Console; a school admin is not needed. A school email shows control of an
+  address, not authority over a club, so a claim asks for other evidence (an
+  official club contact or the university's organization page). An approved
+  claim makes the applicant the club's owner, and the page then reads "Managed
+  by the club"
+- **Roles:** **owner**, **editor**, and **member**. Owners and editors edit the
+  club's profile and remove members. Owners also invite and remove editors and
+  hand ownership to another member, which takes effect when that person
+  accepts. A claimed club always keeps at least one owner: the last owner
+  cannot leave or be removed
+- **School admins** can edit the clubs at their school. They do not review
+  claims
+- **Joining:** any signed-in person with a verified email joins a club with one
+  button, claimed or not, and can leave at any time. There is no approval step
+  yet. A removed member may join again
+- **Member list:** signed-in people see a club's members with their roles; see
+  [People lists](#people-lists). Signed-out visitors see the count
+- **Last confirmed:** a club page shows when its details were last confirmed and
+  by whom: "Confirmed by the club on <date>" or "Checked by Campus Gaming
+  Network on <date>". After 90 days it reads "Needs confirmation", which never
+  says or implies the club is inactive
+- **Events:** a club's owners and editors can host an event as the club, as a
+  team's owners and captains can host as the team; an event has at most one
+  hosting team or club. Any owner or editor of the club can manage an event the
+  club hosts, and the club page lists its upcoming public events
+- **Nothing implied:** a club that states no fee, eligibility, or skill level is
+  never shown as free, open to all, or beginner-friendly
+- **Later:** assigning teams to a club (Varsity, JV), join requests that an
+  officer approves, and several clubs co-hosting one event
 
 ### Teams
 
 - Anyone can create a team; a user can create and belong to multiple teams
-- Optional assignment to a school club (Varsity, JV, etc.) — once clubs exist
+- Assignment to a school club (Varsity, JV, etc.) is later
 - Team pages are **public**; password only required to **join / interact**
 - Share team URL freely; no invite-link tokens at launch (maybe later)
 - Owner can transfer ownership; users can assign captains
@@ -259,6 +299,8 @@ visitors see counts only; the API answers them with 401.
   school are not listed
 - **Team:** the team's members with their roles (owner, captain, member). The
   team page stays public; only the list needs a session
+- **Club:** the club's members with their roles (owner, editor, member). The
+  club page stays public; only the list needs a session
 - A private event's list follows the event page: it is hidden, as a missing
   event would be, until the viewer unlocks the event or organizes it. A missing
   or cancelled event has no list

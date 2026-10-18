@@ -8,13 +8,12 @@ Canonical entities and business rules. Schema details live in [03 — Database](
 User ──< follows >── School
 User ──< majors >── Major (later; free-text or curated list is open)
 User ── home school + affiliation(s) ── School
-User ── roles ── SchoolAdmin | Faculty | ClubOfficer | TeamOwner/Captain | EventOrganizer | SiteAdmin
+User ── roles ── SchoolAdmin | Faculty | ClubOwner/Editor/Member | TeamOwner/Captain | EventOrganizer | SiteAdmin
 
 School ──< has >── Club (required parent)
 School ── logo, slug, admins
-Club   ──< may have >── Team (e.g. Varsity, JV)
-Club   ── games
-Team   ── games, members (URL + password), owner, captains; optional club_id
+Club   ── games, links, members (owner, editors, members), claims
+Team   ── games, members (URL + password), owner, captains
 Event ── games, organizers, RSVPs, interests, location, capacity, visibility, slug
 Tournament ── games, optional Event, individual | team, capacity, slug
 Game ── added from IGDB when a user picks it (corrected and hidden by site admins, not editable by end users)
@@ -74,7 +73,7 @@ SiteAnnouncement ── global banner                        (later)
 | Logo            | Later Admin Console upload only (PNG/JPG ≤5 MB); placeholder until set          |
 | Location        | City, state, zip, lat/lng (from seed or Admin Console)                          |
 | Admins          | Many; a user may admin many schools                                             |
-| Clubs           | Listed on school page when clubs ship (later)                                   |
+| Clubs           | Listed on the school page                                                       |
 | Popularity      | Derived (e.g. event volume)                                                     |
 
 **Rules**
@@ -83,38 +82,54 @@ SiteAnnouncement ── global banner                        (later)
 - Import **all** seed schools (main + branch), `is_active=true`; branch campuses use the same UI/UX as other schools; review/deactivate later in the Admin Console
 - After bootstrap, the **later Admin Console** owns create / edit / soft-delete (users cannot create schools)
 - Anyone (including logged-out) can **search and browse** schools
-- School admins edit school details, **manage clubs** (when clubs ship), and assign school teams
+- School admins edit school details and the clubs at their school, and assign school teams
 - School admins **cannot** remove other school admins
 - US only at launch
 - Near-you / geo discovery is **later**
 
 ### Club
 
-| Field / concept | Notes                                                                                              |
-| --------------- | -------------------------------------------------------------------------------------------------- |
-| School          | **Required** — clubs exist only under a school                                                     |
-| Official        | Clubs are the official school org type                                                             |
-| Teams           | Optional assigned teams (Varsity, JV, etc.)                                                        |
-| Games           | One or more                                                                                        |
-| Officers        | Club officer workflow is later; current event badges use school-admin and staff/faculty indicators |
+| Field / concept | Notes                                                                                                    |
+| --------------- | -------------------------------------------------------------------------------------------------------- |
+| School          | **Required** — a club belongs to exactly one school                                                      |
+| Type            | `student_club` or `university_program`; neither implies university endorsement                           |
+| Name, slug      | Name need not be unique; slug is the URL identity                                                        |
+| Summary         | Short description                                                                                        |
+| Games           | Any number                                                                                               |
+| Links           | Optional labeled links (website, Discord, social); information only, never the way to join               |
+| Status          | `published` or `hidden`; a hidden club is absent everywhere and its page is a 404                        |
+| Claimed         | Unclaimed ("Maintained by Campus Gaming Network") until a site admin approves a claim                    |
+| Members         | Role `owner`, `editor`, or `member`                                                                      |
+| Last confirmed  | Date and source: the club (an owner or editor confirmed) or CGN (a site admin checked the public source) |
 
 **Rules**
 
-- Users may **request** a club; **school admins** create, approve, and manage
-- Visible on the parent school’s page
-- Distinct from free-floating teams (a team may optionally belong to a club)
+- Site admins create unclaimed clubs. A user claims an existing club or
+  requests a new one; site admins approve or reject each in the Admin Console.
+  Approval makes the applicant the owner, and for a request creates the club
+- Owners and editors edit the profile and remove members; owners also manage
+  editors and transfer ownership (accepted by the recipient). A claimed club
+  always has at least one owner
+- School admins may edit clubs at their school; they do not review claims
+- Any signed-in user with a verified email joins a club directly and may leave;
+  a removed member may join again
+- Unstated facts stay unstated: no fee, eligibility, or skill level is shown
+  unless the club states it
+- After 90 days without confirmation the club shows "Needs confirmation" and
+  stays listed
+- Teams assigned to a club (Varsity, JV) are later
 
 ### Team
 
-| Field / concept    | Notes                                                                      |
-| ------------------ | -------------------------------------------------------------------------- |
-| Owner              | Transferable                                                               |
-| Captains           | Assignable                                                                 |
-| Visibility         | **Public** team page                                                       |
-| Members            | Password required to **join / interact** (not to view the page)            |
-| Club               | Optional `club_id` when the team is part of a school club (Varsity, JV, …) |
-| Games              | One or more                                                                |
-| School sponsorship | Optional sponsored team/group without a club                               |
+| Field / concept    | Notes                                                           |
+| ------------------ | --------------------------------------------------------------- |
+| Owner              | Transferable                                                    |
+| Captains           | Assignable                                                      |
+| Visibility         | **Public** team page                                            |
+| Members            | Password required to **join / interact** (not to view the page) |
+| Club               | Later: a team may be assigned to a school club (Varsity, JV, …) |
+| Games              | One or more                                                     |
+| School sponsorship | Optional sponsored team/group without a club                    |
 
 **Rules**
 
@@ -186,6 +201,11 @@ host. A team's event is listed and filtered like any other public event, so
 players from other schools find it the same way, and the team's page lists its
 upcoming public events.
 
+A club can host an event the same way: its owners and editors choose it as the
+host, the club must belong to the event's host school, and an event has at
+most one hosting team or club. Unlike a team, any owner or editor of the
+hosting club can edit and cancel the event, so it survives officer turnover.
+
 **Type**
 
 The event type says what kind of event it is so browse can tell a weekly game
@@ -235,7 +255,7 @@ slug    = slugify(eventTitle) + "-" + short
 - Past events: organizers may edit **minor corrections only** — not date or location
 - Event organizer summaries show the account verification level plus
   school-admin and staff/faculty role indicators when applicable to the host
-  school; future club-officer/approved-organizer grants can extend this model
+  school; future club owner/editor and approved-organizer grants can extend this model
 
 **Reports**
 
@@ -324,7 +344,8 @@ Used for: browse/filter events (and later tournaments) by game; popular games by
 | User ↔ Team (member)   | many-to-many                          |
 | User → Team (owner)    | one owner per team; user may own many |
 | School → Club          | one-to-many (required parent)         |
-| Club → Team            | one-to-many (optional on team)        |
+| User ↔ Club (member)   | many-to-many, with role               |
+| Club → Team            | later                                 |
 | Event ↔ Organizer      | many-to-many                          |
 | Event ↔ Game           | many-to-many                          |
 | Team ↔ Game            | many-to-many                          |

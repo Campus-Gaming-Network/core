@@ -6,7 +6,7 @@ Phased delivery for a single developer. Each phase should be shippable. Do not p
 
 **Infra:** Railway (TanStack Start web, Go API, PostgreSQL) · Cloudflare DNS/protection · Resend email (`events@` / `account@`) · game catalog imported from IGDB. `notifications@` and `support@` workflows, plus Cloudflare R2 for Admin Console logo uploads, are later.
 
-**Not yet scheduled:** clubs, tournaments, on-site payments, usernames, waitlists, team invite links, feature flags, near-you, custom event banner uploads. Admin Console v1 is in progress and release-gated: it runs on staging and is not deployed to production.
+**Not yet scheduled:** tournaments, on-site payments, usernames, waitlists, team invite links, feature flags, near-you, custom event banner uploads. Admin Console v1 is in progress and release-gated: it runs on staging and is not deployed to production.
 
 **School seed:** import all 6,243 operating schools (4,943 main · 1,300 branch) as `is_active=true`; branch campuses use the same UI/UX; review later in the Admin Console.
 
@@ -43,7 +43,7 @@ service, and PostgreSQL database, with Cloudflare for DNS/protection.
 - Profile: single **name** field, bio, social links, timezone, a drawn Boring Avatars Beam avatar with initials fallback; URL `/users/:id`
 - Home school selected on signup; follow additional schools afterward
 - One-time import of **all** `data/schools_seed.csv` rows as `is_active=true` (`unitid` optional on Admin Console creates)
-- Public search/browse schools (Postgres `pg_trgm`); school detail by slug (no clubs list until later)
+- Public search/browse schools (Postgres `pg_trgm`); school detail by slug (clubs list arrives with Phase 6a)
 - Rate limit signups + resend verification (Resend)
 - Game catalog: games users pick from IGDB search (the six seeded launch games were removed)
 - Support email + FAQ + About + Terms + Privacy stubs
@@ -135,17 +135,35 @@ feeling unfinished.
 
 **Exit:** Catalog can grow without user-editable games.
 
-## Phase 6 — Clubs & tournaments (later)
+## Phase 6a — Clubs
 
-**Goal:** Official school orgs + competitive layer.
+**Goal:** Every school's gaming clubs and esports programs have a page that
+students join on CGN. See [01 — Product](./01-product.md#clubs).
 
-- Clubs: school-scoped; request / approve / manage by school admins; teams (Varsity, JV, …)
-- School page lists clubs
+In order (each issue names its own "Done when"):
+
+1. #114 — Clubs spec (this model)
+2. #115 — Schema, public API, club pages, and a Clubs section on school pages
+3. #116 — Site admins create and manage unclaimed clubs in the Admin Console
+4. #117 — Officers claim or request a club; site admins review
+5. #118 — Owners and editors: edit, invite editors, transfer ownership
+6. #262 — Students join clubs and see the member list
+7. Then, in any order: #119 (last confirmed), #124 (clubs host events), #261
+   (clubs directory)
+
+Later: assigning teams to clubs (Varsity, JV), join approval, co-hosted events.
+
+**Exit:** A club on a school page that students can join, run by its officers.
+
+## Phase 6b — Tournaments (later)
+
+**Goal:** Competitive layer.
+
 - Tournaments as own entity; slug = name + hash; optional event link; optional capacity
 - Individual vs team tournaments; captain registration
 - Browse/filter tournaments by game
 
-**Exit:** Club on a school page; tournament registerable.
+**Exit:** Tournament registerable.
 
 ## Phase 7 — Hardening & production ops
 
@@ -171,7 +189,6 @@ feeling unfinished.
 
 ## Later (not yet scheduled)
 
-- Clubs
 - Tournaments
 - On-site payments
 - Waitlists
