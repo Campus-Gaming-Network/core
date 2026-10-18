@@ -165,8 +165,9 @@ The two past-event rows are the intended rule; neither is enforced yet, so organ
   takes effect when the recipient accepts, and the previous owner becomes an
   editor. The last owner cannot leave or be removed
 - **School admins** may edit clubs at their school; they do not review claims
-- Any signed-in user with a verified email **joins** a club directly and may
-  leave. A removed member may join again
+- Any signed-in user with a verified email **joins** a club on CGN directly and
+  may leave. A removed member may join again. Joining on CGN grants nothing in
+  the club itself; the club's own process (How to join) decides that
 - Signed-in people see the member list (see the People lists rules in
   [01 — Product](./01-product.md#people-lists)); visitors see the count
 - A club's owners and editors may host an event as the club, at the club's

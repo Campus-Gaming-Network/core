@@ -157,16 +157,22 @@ Signup also requires confirming **age 18+**. Alumni can participate. Faculty who
 
 ### Clubs
 
-Students join clubs on CGN: the club's page and its member list live here,
-not on the club's own Discord or sign-up form.
+Clubs are not run by CGN, so each club decides how people become members. A
+club page says how to join the club itself, and separately lets people join the
+club on CGN, which lists them as members here.
 
 - **Types:** a club is a **student club** or a **university program** (a
   school-run esports program). A school can have several of either type. A
   club page does not imply that the university endorses the club
 - **One school:** every club belongs to exactly one school, and the school page
   lists its clubs
-- **Profile:** name, URL slug, type, summary, games, and optional labeled links
-  (website, Discord, social). The links are information; joining happens on CGN
+- **Profile:** name, URL slug, type, summary, games, **how to join**, and
+  optional labeled links (website, Discord, social)
+- **How to join:** a short plain-text section, written by the club (or by CGN
+  for an unclaimed club), saying how to become a member of the club itself: an
+  interest form, a tryout, a meeting to attend. It is separate from the summary
+  so it can sit next to the join button and be kept current each term. A club
+  that has not written one shows nothing there and claims no process
 - **Unclaimed clubs:** site admins create clubs from public sources so that
   pages exist before any officer signs up. An unclaimed club's page says it is
   "Maintained by Campus Gaming Network"
@@ -184,9 +190,12 @@ not on the club's own Discord or sign-up form.
   cannot leave or be removed
 - **School admins** can edit the clubs at their school. They do not review
   claims
-- **Joining:** any signed-in person with a verified email joins a club with one
-  button, claimed or not, and can leave at any time. There is no approval step
-  yet. A removed member may join again
+- **Joining on CGN:** any signed-in person with a verified email joins a club on
+  CGN with one button, claimed or not, and can leave at any time. There is no
+  approval step yet. A removed member may join again. Joining on CGN lists the
+  person on the club's member list here; it does **not** make them a member of
+  the club itself, and the page says so next to the button and points to How
+  to join
 - **Member list:** signed-in people see a club's members with their roles; see
   [People lists](#people-lists). Signed-out visitors see the count
 - **Last confirmed:** a club page shows when its details were last confirmed and

@@ -94,9 +94,10 @@ SiteAnnouncement ── global banner                        (later)
 | School          | **Required** — a club belongs to exactly one school                                                      |
 | Type            | `student_club` or `university_program`; neither implies university endorsement                           |
 | Name, slug      | Name need not be unique; slug is the URL identity                                                        |
-| Summary         | Short description                                                                                        |
+| Summary         | Short description of what the club is                                                                    |
+| How to join     | Optional plain text: the club's own process for becoming a member (form, tryout, meeting)                |
 | Games           | Any number                                                                                               |
-| Links           | Optional labeled links (website, Discord, social); information only, never the way to join               |
+| Links           | Optional labeled links (website, Discord, social)                                                        |
 | Status          | `published` or `hidden`; a hidden club is absent everywhere and its page is a 404                        |
 | Claimed         | Unclaimed ("Maintained by Campus Gaming Network") until a site admin approves a claim                    |
 | Members         | Role `owner`, `editor`, or `member`                                                                      |
@@ -111,8 +112,9 @@ SiteAnnouncement ── global banner                        (later)
   editors and transfer ownership (accepted by the recipient). A claimed club
   always has at least one owner
 - School admins may edit clubs at their school; they do not review claims
-- Any signed-in user with a verified email joins a club directly and may leave;
-  a removed member may join again
+- Any signed-in user with a verified email joins a club on CGN directly and may
+  leave; a removed member may join again. Membership on CGN is not membership
+  in the club itself, which follows the club's How to join
 - Unstated facts stay unstated: no fee, eligibility, or skill level is shown
   unless the club states it
 - After 90 days without confirmation the club shows "Needs confirmation" and
