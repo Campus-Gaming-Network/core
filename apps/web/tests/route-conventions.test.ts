@@ -21,12 +21,9 @@ test("shared route defaults preserve safe pending, error, and not-found conventi
 
   assert.match(boundaries, /aria-busy="true"/);
   assert.match(boundaries, /aria-live="polite"/);
-  assert.match(boundaries, /await router\.invalidate\(\)/);
-  assert.ok(
-    boundaries.indexOf("await router.invalidate()") <
-      boundaries.indexOf("reset();"),
-    "Error retry must invalidate stale loader data before resetting the boundary",
-  );
+  // Retrying loads a whole new document; an in-place refetch would rerun a
+  // stale tab's old code (see route-error-view.test.ts).
+  assert.doesNotMatch(boundaries, /router\.invalidate\(\)/);
   assert.doesNotMatch(boundaries, /error\.message/);
   // Not-found titles read "<what> | Campus Gaming Network", "Page not found"
   // by default.
@@ -44,10 +41,7 @@ test("shared route defaults preserve safe pending, error, and not-found conventi
   // The root's error view is the shared one inside the site shell, so a
   // failure at the root keeps the header and footer.
   assert.match(root, /errorComponent: RootError/);
-  assert.match(
-    root,
-    /<SiteShell>\s*<DefaultError \{\.\.\.props\} \/>\s*<\/SiteShell>/,
-  );
+  assert.match(root, /<SiteShell>\s*<DefaultError \/>\s*<\/SiteShell>/);
   assert.match(root, /notFoundComponent: DefaultNotFound/);
   assert.match(root, /shellComponent: RootDocument/);
   assert.match(event, /<RoutePending message="Loading event…"/);

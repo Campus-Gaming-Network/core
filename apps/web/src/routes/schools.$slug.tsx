@@ -1,9 +1,4 @@
-import {
-  Link,
-  createFileRoute,
-  notFound,
-  type ErrorComponentProps,
-} from "@tanstack/react-router";
+import { Link, createFileRoute, notFound } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { ArrowRight, ArrowUpRight } from "lucide-react";
 import type { FormEvent } from "react";
@@ -515,10 +510,9 @@ function SchoolPending() {
   return <RoutePending message="Loading school…" />;
 }
 
-function SchoolError({ reset }: ErrorComponentProps) {
+function SchoolError() {
   return (
     <RouteErrorView
-      reset={reset}
       eyebrow="School unavailable"
       heading="We could not load this school."
     />

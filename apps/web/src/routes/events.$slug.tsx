@@ -1,9 +1,4 @@
-import {
-  Link,
-  createFileRoute,
-  notFound,
-  type ErrorComponentProps,
-} from "@tanstack/react-router";
+import { Link, createFileRoute, notFound } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import {
   ArrowRight,
@@ -927,10 +922,9 @@ function EventPending() {
   return <RoutePending message="Loading event…" />;
 }
 
-function EventError({ reset }: ErrorComponentProps) {
+function EventError() {
   return (
     <RouteErrorView
-      reset={reset}
       eyebrow="Event unavailable"
       heading="We could not load this event."
       description="This is usually temporary. Try again in a moment."

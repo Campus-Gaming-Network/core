@@ -1,9 +1,4 @@
-import {
-  Link,
-  createFileRoute,
-  redirect,
-  type ErrorComponentProps,
-} from "@tanstack/react-router";
+import { Link, createFileRoute, redirect } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import type { FormEvent } from "react";
 import {
@@ -199,10 +194,9 @@ function InboxPending() {
   return <RoutePending message="Loading notifications…" />;
 }
 
-function InboxError({ reset }: ErrorComponentProps) {
+function InboxError() {
   return (
     <RouteErrorView
-      reset={reset}
       eyebrow="Notifications unavailable"
       heading="We could not load your notifications."
       description="Please try again in a moment."

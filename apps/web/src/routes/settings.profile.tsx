@@ -1,9 +1,4 @@
-import {
-  Link,
-  createFileRoute,
-  redirect,
-  type ErrorComponentProps,
-} from "@tanstack/react-router";
+import { Link, createFileRoute, redirect } from "@tanstack/react-router";
 import { allTimeZones, TimeZoneSelect } from "../components/time-zone-select";
 import { useServerFn } from "@tanstack/react-start";
 import type { FormEvent } from "react";
@@ -316,10 +311,9 @@ function ProfilePending() {
   return <RoutePending message="Loading your profile…" />;
 }
 
-function ProfileError({ reset }: ErrorComponentProps) {
+function ProfileError() {
   return (
     <RouteErrorView
-      reset={reset}
       eyebrow="Profile unavailable"
       heading="We could not load your profile."
     />

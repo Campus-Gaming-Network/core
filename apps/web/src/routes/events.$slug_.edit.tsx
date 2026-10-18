@@ -1,9 +1,4 @@
-import {
-  createFileRoute,
-  notFound,
-  redirect,
-  type ErrorComponentProps,
-} from "@tanstack/react-router";
+import { createFileRoute, notFound, redirect } from "@tanstack/react-router";
 import { Breadcrumbs, BreadcrumbLink } from "../components/breadcrumbs";
 import { FormSectionNav } from "../components/form-section-nav";
 import { ButtonLink } from "../components/button-link";
@@ -188,10 +183,9 @@ function EditEventPending() {
   return <RoutePending message="Loading event form…" />;
 }
 
-function EditEventError({ reset }: ErrorComponentProps) {
+function EditEventError() {
   return (
     <RouteErrorView
-      reset={reset}
       eyebrow="Event editing unavailable"
       heading="We could not load this event for editing."
       description="Please try again in a moment."

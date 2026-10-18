@@ -1,8 +1,4 @@
-import {
-  createFileRoute,
-  redirect,
-  type ErrorComponentProps,
-} from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { ButtonLink } from "../components/button-link";
 import { PageHeading } from "../components/page-heading";
 import { RouteErrorView, RoutePending } from "../components/route-boundaries";
@@ -111,10 +107,9 @@ function YourEventsPage() {
   );
 }
 
-function YourEventsError({ reset }: ErrorComponentProps) {
+function YourEventsError() {
   return (
     <RouteErrorView
-      reset={reset}
       eyebrow="Your events unavailable"
       heading="We could not load your events."
     />

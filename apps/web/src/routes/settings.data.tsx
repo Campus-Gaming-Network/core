@@ -1,9 +1,4 @@
-import {
-  Link,
-  createFileRoute,
-  redirect,
-  type ErrorComponentProps,
-} from "@tanstack/react-router";
+import { Link, createFileRoute, redirect } from "@tanstack/react-router";
 import { pageNoticeKey } from "../components/page-notice";
 import { PageNoticeView } from "../components/page-notice-view";
 import { RouteErrorView, RoutePending } from "../components/route-boundaries";
@@ -124,10 +119,9 @@ function DataSettingsPending() {
   return <RoutePending message="Loading account settings…" />;
 }
 
-function DataSettingsError({ reset }: ErrorComponentProps) {
+function DataSettingsError() {
   return (
     <RouteErrorView
-      reset={reset}
       eyebrow="Account settings unavailable"
       heading="We could not load your account settings."
       description="Please try again in a moment."

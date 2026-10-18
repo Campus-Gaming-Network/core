@@ -1,9 +1,4 @@
-import {
-  Link,
-  createFileRoute,
-  redirect,
-  type ErrorComponentProps,
-} from "@tanstack/react-router";
+import { Link, createFileRoute, redirect } from "@tanstack/react-router";
 import { ButtonLink } from "../components/button-link";
 import {
   DirectoryRow,
@@ -227,10 +222,9 @@ function AccountPage() {
 function AccountPending() {
   return <RoutePending message="Loading your account…" />;
 }
-function AccountError({ reset }: ErrorComponentProps) {
+function AccountError() {
   return (
     <RouteErrorView
-      reset={reset}
       eyebrow="Account unavailable"
       heading="We could not load your account."
     />

@@ -1,8 +1,4 @@
-import {
-  createFileRoute,
-  redirect,
-  type ErrorComponentProps,
-} from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { Breadcrumbs, BreadcrumbLink } from "../components/breadcrumbs";
 import { FormSectionNav } from "../components/form-section-nav";
 import { newIdempotencyKey } from "../components/idempotency-key";
@@ -131,10 +127,9 @@ function NewEventPending() {
   return <RoutePending message="Loading event form…" />;
 }
 
-function NewEventError({ reset }: ErrorComponentProps) {
+function NewEventError() {
   return (
     <RouteErrorView
-      reset={reset}
       eyebrow="Event creation unavailable"
       heading="We could not load the event form."
       description="Please try again in a moment."

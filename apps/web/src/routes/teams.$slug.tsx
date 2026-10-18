@@ -3,7 +3,6 @@ import {
   createFileRoute,
   notFound,
   useRouter,
-  type ErrorComponentProps,
 } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { ArrowRight } from "lucide-react";
@@ -749,10 +748,9 @@ function TeamPending() {
   return <RoutePending message="Loading team…" />;
 }
 
-function TeamError({ reset }: ErrorComponentProps) {
+function TeamError() {
   return (
     <RouteErrorView
-      reset={reset}
       eyebrow="Team unavailable"
       heading="We could not load this team."
     />

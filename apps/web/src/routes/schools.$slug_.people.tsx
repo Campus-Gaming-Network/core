@@ -3,7 +3,6 @@ import {
   createFileRoute,
   notFound,
   redirect,
-  type ErrorComponentProps,
 } from "@tanstack/react-router";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { BreadcrumbLink, Breadcrumbs } from "../components/breadcrumbs";
@@ -173,10 +172,9 @@ function SchoolPeoplePending() {
   return <RoutePending message="Loading people…" />;
 }
 
-function SchoolPeopleError({ reset }: ErrorComponentProps) {
+function SchoolPeopleError() {
   return (
     <RouteErrorView
-      reset={reset}
       eyebrow="Members unavailable"
       heading="We could not load this list."
       description="Please try again in a moment."

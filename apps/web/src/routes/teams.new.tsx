@@ -3,11 +3,7 @@ import { ButtonLink } from "../components/button-link";
 import { FormSectionNav } from "../components/form-section-nav";
 import { GameSelect } from "../components/game-select";
 import { catalogGamesFromSummaries } from "../features/game-picker/game-select-helpers";
-import {
-  createFileRoute,
-  redirect,
-  type ErrorComponentProps,
-} from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { type FormEvent } from "react";
 import {
@@ -309,10 +305,9 @@ function NewTeamPending() {
   return <RoutePending message="Loading team form…" />;
 }
 
-function NewTeamError({ reset }: ErrorComponentProps) {
+function NewTeamError() {
   return (
     <RouteErrorView
-      reset={reset}
       eyebrow="Team creation unavailable"
       heading="We could not load the team form."
     />

@@ -3,7 +3,6 @@ import {
   createFileRoute,
   notFound,
   redirect,
-  type ErrorComponentProps,
 } from "@tanstack/react-router";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { BreadcrumbLink, Breadcrumbs } from "../components/breadcrumbs";
@@ -205,10 +204,9 @@ function EventPeoplePending() {
   return <RoutePending message="Loading who's going…" />;
 }
 
-function EventPeopleError({ reset }: ErrorComponentProps) {
+function EventPeopleError() {
   return (
     <RouteErrorView
-      reset={reset}
       eyebrow="Attendees unavailable"
       heading="We could not load this list."
       description="Please try again in a moment."

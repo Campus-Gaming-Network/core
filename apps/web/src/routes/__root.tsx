@@ -5,7 +5,6 @@ import {
   Scripts,
   useRouter,
   createRootRoute,
-  type ErrorComponentProps,
 } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Bell, Gamepad2 } from "lucide-react";
@@ -177,10 +176,10 @@ function SiteShell({
 }
 
 /** The root's error view inside the site shell. */
-function RootError(props: ErrorComponentProps) {
+function RootError() {
   return (
     <SiteShell>
-      <DefaultError {...props} />
+      <DefaultError />
     </SiteShell>
   );
 }

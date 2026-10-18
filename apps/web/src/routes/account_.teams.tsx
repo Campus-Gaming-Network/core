@@ -1,8 +1,4 @@
-import {
-  createFileRoute,
-  redirect,
-  type ErrorComponentProps,
-} from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { ButtonLink } from "../components/button-link";
 import { PageHeading } from "../components/page-heading";
 import { RouteErrorView, RoutePending } from "../components/route-boundaries";
@@ -62,10 +58,9 @@ function YourTeamsPage() {
   );
 }
 
-function YourTeamsError({ reset }: ErrorComponentProps) {
+function YourTeamsError() {
   return (
     <RouteErrorView
-      reset={reset}
       eyebrow="Your teams unavailable"
       heading="We could not load your teams."
     />

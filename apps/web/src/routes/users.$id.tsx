@@ -1,10 +1,5 @@
 import { SchoolLogo } from "../components/school-logo";
-import {
-  Link,
-  createFileRoute,
-  notFound,
-  type ErrorComponentProps,
-} from "@tanstack/react-router";
+import { Link, createFileRoute, notFound } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Flag, ShieldCheck } from "lucide-react";
 import { type FormEvent, useState } from "react";
@@ -384,10 +379,9 @@ function PublicProfilePending() {
   return <RoutePending message="Loading profile…" />;
 }
 
-function PublicProfileError({ reset }: ErrorComponentProps) {
+function PublicProfileError() {
   return (
     <RouteErrorView
-      reset={reset}
       eyebrow="Profile unavailable"
       heading="We could not load this profile."
     />

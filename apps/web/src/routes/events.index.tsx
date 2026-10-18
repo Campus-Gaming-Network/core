@@ -2,11 +2,7 @@ import {
   DirectoryResults,
   useDirectoryResults,
 } from "../components/directory-results";
-import {
-  Link,
-  createFileRoute,
-  type ErrorComponentProps,
-} from "@tanstack/react-router";
+import { Link, createFileRoute } from "@tanstack/react-router";
 import { ArrowLeft, ArrowRight, Search } from "lucide-react";
 import { ButtonLink } from "../components/button-link";
 import {
@@ -598,10 +594,9 @@ function EventsPending() {
   return <RoutePending message="Loading events…" />;
 }
 
-function EventsError({ reset }: ErrorComponentProps) {
+function EventsError() {
   return (
     <RouteErrorView
-      reset={reset}
       eyebrow="Events unavailable"
       heading="We could not load events."
       description="Please try again in a moment."

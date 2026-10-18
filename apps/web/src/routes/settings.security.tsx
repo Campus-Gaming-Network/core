@@ -1,8 +1,4 @@
-import {
-  createFileRoute,
-  redirect,
-  type ErrorComponentProps,
-} from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { pageNoticeKey } from "../components/page-notice";
 import { PageNoticeView } from "../components/page-notice-view";
 import { RouteErrorView, RoutePending } from "../components/route-boundaries";
@@ -71,10 +67,9 @@ function SecurityPending() {
   return <RoutePending message="Loading your account…" />;
 }
 
-function SecurityError({ reset }: ErrorComponentProps) {
+function SecurityError() {
   return (
     <RouteErrorView
-      reset={reset}
       eyebrow="Account unavailable"
       heading="We could not load your account."
     />

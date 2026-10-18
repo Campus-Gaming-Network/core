@@ -1,19 +1,13 @@
-import {
-  Link,
-  useLocation,
-  useParams,
-  useRouter,
-  type ErrorComponentProps,
-} from "@tanstack/react-router";
+import { Link, useLocation, useParams } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
-import { siteName } from "./public-page-head";
-import { slugSearchWords } from "./slug-search";
+import { siteName } from "./public-page-head.js";
+import { slugSearchWords } from "./slug-search.js";
 
 type RoutePendingProps = {
   message?: string;
 };
 
-type RouteErrorViewProps = Pick<ErrorComponentProps, "reset"> & {
+type RouteErrorViewProps = {
   description?: string;
   eyebrow?: string;
   heading?: string;
@@ -55,15 +49,21 @@ export function DefaultPending() {
   return <RoutePending />;
 }
 
+/**
+ * The page a route shows when its loader or render throws. "Try again" loads
+ * the same URL as a whole new document rather than refetching in place: a
+ * tab left open across a release runs the old build's code, and a refetch
+ * would hand that code the new server's data and fail the same way. A full
+ * load brings in the current build, and as a plain link it works without
+ * JavaScript too.
+ */
 export function RouteErrorView({
-  reset,
   description = "This is usually temporary. Try again, and contact support if it keeps happening.",
   eyebrow = "Something went wrong",
   heading = "We could not load this page.",
   showNavigation = true,
 }: RouteErrorViewProps) {
-  const router = useRouter();
-  const [retrying, setRetrying] = useState(false);
+  const href = useLocation({ select: (location) => location.href });
   const [offline, setOffline] = useState(false);
 
   // Read after hydration so the server and first client render agree.
@@ -78,27 +78,6 @@ export function RouteErrorView({
     };
   }, []);
 
-  async function retry() {
-    setRetrying(true);
-    try {
-      await router.invalidate();
-    } finally {
-      reset();
-      setRetrying(false);
-    }
-  }
-
-  const retryButton = (
-    <button
-      className="button button--primary"
-      disabled={retrying}
-      type="button"
-      onClick={() => void retry()}
-    >
-      {retrying ? "Trying again…" : "Try again"}
-    </button>
-  );
-
   return (
     <main className="route-state">
       <section className="empty-state route-state__panel" role="alert">
@@ -112,7 +91,9 @@ export function RouteErrorView({
             : description}
         </p>
         <div className="actions">
-          {retryButton}
+          <a className="button button--primary" href={href}>
+            Try again
+          </a>
           {showNavigation ? (
             <>
               <Link className="button button--secondary" to="/">
@@ -150,8 +131,8 @@ export function ListUnavailable({ heading }: { heading: string }) {
   );
 }
 
-export function DefaultError({ reset }: ErrorComponentProps) {
-  return <RouteErrorView reset={reset} />;
+export function DefaultError() {
+  return <RouteErrorView />;
 }
 
 type NotFoundViewProps = {
