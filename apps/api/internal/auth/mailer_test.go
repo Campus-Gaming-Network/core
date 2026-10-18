@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/emaillayout"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/mailhttp"
 )
 
@@ -22,7 +23,8 @@ func (f roundTripFunc) RoundTrip(request *http.Request) (*http.Response, error) 
 
 func TestResendMailerHonorsContextDeadline(t *testing.T) {
 	mailer := &ResendMailer{
-		APIKey: "resend-api-key",
+		APIKey:  "resend-api-key",
+		SiteURL: "https://campusgamingnetwork.com",
 		Client: &http.Client{Transport: roundTripFunc(func(request *http.Request) (*http.Response, error) {
 			<-request.Context().Done()
 			return nil, request.Context().Err()
@@ -39,7 +41,8 @@ func TestResendMailerHonorsContextDeadline(t *testing.T) {
 
 func TestResendMailerReturnsTypedNonSuccessResponse(t *testing.T) {
 	mailer := &ResendMailer{
-		APIKey: "resend-api-key",
+		APIKey:  "resend-api-key",
+		SiteURL: "https://campusgamingnetwork.com",
 		Client: &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
 			return &http.Response{
 				StatusCode: http.StatusUnprocessableEntity,
@@ -93,6 +96,7 @@ func TestResendMailerSendsVerificationEmail(t *testing.T) {
 		To      []string `json:"to"`
 		Subject string   `json:"subject"`
 		HTML    string   `json:"html"`
+		Text    string   `json:"text"`
 	}
 
 	var payload resendPayload
@@ -147,8 +151,76 @@ func TestResendMailerSendsVerificationEmail(t *testing.T) {
 	if payload.Subject != "Verify your Campus Gaming Network email" {
 		t.Fatalf("subject = %q, want verification subject", payload.Subject)
 	}
-	if !strings.Contains(payload.HTML, `href="https://campusgamingnetwork.com/auth/verify-email?token=verify+token"`) {
+	message := verificationMessage("https://campusgamingnetwork.com/auth/verify-email?token=verify+token")
+	wantHTML, err := emaillayout.HTML(message)
+	if err != nil {
+		t.Fatalf("render verification email: %v", err)
+	}
+	if payload.HTML != wantHTML || payload.Text != emaillayout.Text(message) {
+		t.Fatalf("verification email = %q / %q, want the shared layout", payload.HTML, payload.Text)
+	}
+	if !strings.Contains(payload.HTML, `href="https://campusgamingnetwork.com/auth/verify-email?token=verify&#43;token"`) {
 		t.Fatalf("HTML = %q, want verification link", payload.HTML)
+	}
+}
+
+// Each account email says what its button does and what to do when the
+// recipient did not ask for it.
+func TestAccountEmailMessages(t *testing.T) {
+	link := "https://cgn.example/link?token=t"
+	got := []emaillayout.Message{
+		verificationMessage(link),
+		passwordResetMessage(link),
+		emailChangeMessage(link),
+		emailChangedMessage(link),
+	}
+	want := []emaillayout.Message{
+		{
+			Preview:    "Confirm your email address to finish signing up.",
+			Heading:    "Confirm your email address",
+			Paragraphs: []string{"Thanks for signing up for Campus Gaming Network. Confirm that this is your email address to finish setting up your account."},
+			Action:     &emaillayout.Action{Label: "Confirm email address", URL: link},
+			Notes: []string{
+				"The link works once. If it has expired, log in and ask for a new one.",
+				"If you did not create an account, you can ignore this email. No account is set up until the address is confirmed.",
+			},
+			Reason: "You received this email because this address was used to sign up for Campus Gaming Network.",
+		},
+		{
+			Preview:    "Choose a new password for your account.",
+			Heading:    "Reset your password",
+			Paragraphs: []string{"Someone asked to reset the password for the Campus Gaming Network account that uses this email address. Choose a new password with the button below."},
+			Action:     &emaillayout.Action{Label: "Choose a new password", URL: link},
+			Notes: []string{
+				"The link works once and expires soon.",
+				"If you did not ask to reset your password, you can ignore this email. Your password stays the same.",
+			},
+			Reason: "You received this email because a password reset was requested for this address.",
+		},
+		{
+			Preview:    "Confirm the new email address for your account.",
+			Heading:    "Confirm your new email address",
+			Paragraphs: []string{"A Campus Gaming Network account asked to use this address from now on. Confirm it to finish the change."},
+			Action:     &emaillayout.Action{Label: "Confirm new email", URL: link},
+			Notes: []string{
+				"Until you confirm, the account keeps its current address. The link works once.",
+				"If you did not ask for this, you can ignore this email.",
+			},
+			Reason: "You received this email because this address was entered as the new address for a Campus Gaming Network account.",
+		},
+		{
+			Preview: "This address no longer signs in to your account.",
+			Heading: "Your email address was changed",
+			Paragraphs: []string{
+				"The email address on your Campus Gaming Network account was just changed, so this address no longer signs in.",
+				"If you did not make this change, reset your password now and contact support.",
+			},
+			Action: &emaillayout.Action{Label: "Reset your password", URL: link},
+			Reason: "You received this email because this address was on a Campus Gaming Network account.",
+		},
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("account email messages = %+v\nwant %+v", got, want)
 	}
 }
 
@@ -184,17 +256,24 @@ func TestResendMailerSendsEmailChangeMessages(t *testing.T) {
 		t.Fatalf("SendEmailChangedNotice() error = %v", err)
 	}
 
+	render := func(message emaillayout.Message) string {
+		t.Helper()
+		body, err := emaillayout.HTML(message)
+		if err != nil {
+			t.Fatalf("render: %v", err)
+		}
+		return body
+	}
 	want := []sent{
 		{
 			To:      []string{"new@example.com"},
 			Subject: "Confirm your new Campus Gaming Network email",
-			HTML:    `<p><a href="https://campusgamingnetwork.com/confirm-email-change?token=change+token">Continue to Campus Gaming Network</a></p>`,
+			HTML:    render(emailChangeMessage("https://campusgamingnetwork.com/confirm-email-change?token=change+token")),
 		},
 		{
 			To:      []string{"old@example.com"},
 			Subject: "Your Campus Gaming Network email was changed",
-			HTML: `<p>The email address on your Campus Gaming Network account was just changed, so this address no longer signs in.</p>` +
-				`<p>If you did not make this change, <a href="https://campusgamingnetwork.com/forgot-password">reset your password</a> and contact support.</p>`,
+			HTML:    render(emailChangedMessage("https://campusgamingnetwork.com/forgot-password")),
 		},
 	}
 	if !reflect.DeepEqual(messages, want) {

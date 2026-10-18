@@ -568,15 +568,19 @@ Bulk IGDB sync, impersonation, feature flags, and site announcements are later.
 
 ## Email side effects
 
-| Trigger                                   | Email                                                                                    |
-| ----------------------------------------- | ---------------------------------------------------------------------------------------- |
-| Event RSVP (yes)                          | Details + ICS — from `events@campusgamingnetwork.com`                                    |
-| Event cancellation                        | Active yes/maybe RSVPs; best effort, without ICS — from `events@campusgamingnetwork.com` |
-| Signup verification                       | Link — from `account@campusgamingnetwork.com`                                            |
-| Password reset                            | Link — from `account@campusgamingnetwork.com`                                            |
-| Basic notifications (later)               | From `notifications@campusgamingnetwork.com`                                             |
-| Support / report follow-up (later)        | From `support@campusgamingnetwork.com`                                                   |
-| (Future) club approval, team invite links | As needed                                                                                |
+| Trigger                                   | Email                                                                                                      |
+| ----------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| Event RSVP (yes)                          | Details + ICS — from `events@campusgamingnetwork.com`                                                      |
+| Event cancellation                        | Active yes/maybe RSVPs; best effort, without ICS — from `events@campusgamingnetwork.com`                   |
+| Signup verification                       | Link — from `account@campusgamingnetwork.com`                                                              |
+| Password reset                            | Link — from `account@campusgamingnetwork.com`                                                              |
+| Email change                              | Confirmation link to the new address, and a notice to the old one — from `account@campusgamingnetwork.com` |
+| Co-organizer invite                       | Accept link — from `events@campusgamingnetwork.com`                                                        |
+| Basic notifications (later)               | From `notifications@campusgamingnetwork.com`                                                               |
+| Support / report follow-up (later)        | From `support@campusgamingnetwork.com`                                                                     |
+| (Future) club approval, team invite links | As needed                                                                                                  |
+
+Every email renders through one layout (`internal/emaillayout`): the site's name in a navy header, a heading, the message, one main action as a blue button with its plain address beneath it, smaller notes, and a footer saying why the recipient got it. Styles are inline because mail clients drop style blocks; a dark color scheme is added for clients that honor `prefers-color-scheme`. There are no images or remote fonts, every value is HTML-escaped, and an action's address must be `http` or `https`. Each email also carries a plain-text version. Account emails explain the action and what to do if the recipient did not ask for it. The cancellation email links to the events list, since the cancelled event's page is gone. `internal/emaillayout/testdata/full.html` pins the shared markup.
 
 ## Validation & safety
 

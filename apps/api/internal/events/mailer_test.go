@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/emaillayout"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/mailhttp"
 )
 
@@ -24,7 +25,8 @@ func (f eventRoundTripFunc) RoundTrip(request *http.Request) (*http.Response, er
 
 func TestEventResendMailerHonorsContextDeadline(t *testing.T) {
 	mailer := &ResendMailer{
-		APIKey: "resend-api-key",
+		APIKey:  "resend-api-key",
+		SiteURL: "https://campusgamingnetwork.com",
 		Client: &http.Client{Transport: eventRoundTripFunc(func(request *http.Request) (*http.Response, error) {
 			<-request.Context().Done()
 			return nil, request.Context().Err()
@@ -43,7 +45,8 @@ func TestEventResendMailerHonorsContextDeadline(t *testing.T) {
 
 func TestEventResendMailerReturnsTypedNonSuccessResponse(t *testing.T) {
 	mailer := &ResendMailer{
-		APIKey: "resend-api-key",
+		APIKey:  "resend-api-key",
+		SiteURL: "https://campusgamingnetwork.com",
 		Client: &http.Client{Transport: eventRoundTripFunc(func(*http.Request) (*http.Response, error) {
 			return &http.Response{
 				StatusCode: http.StatusTooManyRequests,
@@ -108,6 +111,7 @@ func TestResendMailerSendsRSVPConfirmationWithCalendarAttachment(t *testing.T) {
 		To          []string     `json:"to"`
 		Subject     string       `json:"subject"`
 		HTML        string       `json:"html"`
+		Text        string       `json:"text"`
 		Attachments []attachment `json:"attachments"`
 	}
 
@@ -175,14 +179,28 @@ func TestResendMailerSendsRSVPConfirmationWithCalendarAttachment(t *testing.T) {
 	if payload.Subject != "You're going to Rocket League Finals" {
 		t.Fatalf("subject = %q, want RSVP confirmation subject", payload.Subject)
 	}
-	if !strings.Contains(payload.HTML, "Your RSVP is confirmed.") {
-		t.Fatalf("HTML = %q, want RSVP confirmation copy", payload.HTML)
+	// The start is shown in the event's own time zone.
+	message := emaillayout.Message{
+		Preview:    "Your RSVP is confirmed.",
+		Heading:    "You're going to Rocket League Finals",
+		Paragraphs: []string{"Your RSVP is confirmed. The attached invite adds the event to your calendar."},
+		Details: []emaillayout.Detail{
+			{Label: "When", Value: "Sat, Aug 15, 2026, 1:00 PM PDT"},
+			{Label: "Where", Value: "Student Union"},
+			{Label: "Who it's for", Value: "Members only"},
+		},
+		Action: &emaillayout.Action{Label: "View event", URL: "https://campusgamingnetwork.com/events/rocket-league-finals"},
+		Reason: "You received this email because you RSVPed yes to this event.",
 	}
-	if !strings.Contains(payload.HTML, "<p><strong>When:</strong> Sat, Aug 15, 2026, 1:00 PM PDT</p>") {
-		t.Fatalf("HTML = %q, want the start time in the event's time zone", payload.HTML)
+	if got := rsvpConfirmationMessage(event, "https://campusgamingnetwork.com/events/rocket-league-finals"); !reflect.DeepEqual(got, message) {
+		t.Fatalf("RSVP message = %+v, want %+v", got, message)
 	}
-	if !strings.Contains(payload.HTML, "<p><strong>Who it's for:</strong> Members only</p>") {
-		t.Fatalf("HTML = %q, want the event audience", payload.HTML)
+	wantHTML, err := emaillayout.HTML(message)
+	if err != nil {
+		t.Fatalf("render RSVP email: %v", err)
+	}
+	if payload.HTML != wantHTML || payload.Text != emaillayout.Text(message) {
+		t.Fatalf("RSVP email = %q / %q, want the shared layout", payload.HTML, payload.Text)
 	}
 	if len(payload.Attachments) != 1 {
 		t.Fatalf("attachments = %d, want one calendar attachment", len(payload.Attachments))
@@ -210,16 +228,16 @@ func TestEventURLTrimsTrailingSlash(t *testing.T) {
 	}
 }
 
-func TestEventCancellationHTMLEscapesDetails(t *testing.T) {
-	html := eventCancellationHTML(
-		Event{Title: "Smash <Night>"},
-		"https://campusgamingnetwork.com/events/smash-night",
-	)
-	if strings.Contains(html, "<Night>") || !strings.Contains(html, "Smash &lt;Night&gt;") {
-		t.Fatalf("cancellation HTML = %q, want escaped title", html)
+func TestEventCancellationMessage(t *testing.T) {
+	want := emaillayout.Message{
+		Preview:    "Smash <Night> was cancelled.",
+		Heading:    "Event cancelled",
+		Paragraphs: []string{"Smash <Night> has been cancelled by the organizer."},
+		Action:     &emaillayout.Action{Label: "Find other events", URL: "https://campusgamingnetwork.com/events"},
+		Reason:     "You received this email because you RSVPed to this event.",
 	}
-	if !strings.Contains(html, "Event cancelled") || strings.Contains(html, "You're going to") {
-		t.Fatalf("cancellation HTML = %q, want cancellation copy", html)
+	if got := cancellationMessage(Event{Title: "Smash <Night>"}, "https://campusgamingnetwork.com/events"); !reflect.DeepEqual(got, want) {
+		t.Fatalf("cancellation message = %+v, want %+v", got, want)
 	}
 }
 
@@ -245,19 +263,39 @@ func TestResendMailerSendsOrganizerInvites(t *testing.T) {
 		}
 	}
 
-	notice := `<p>Sign in with this email address to accept. The link expires in seven days. If you weren't expecting this, you can ignore it.</p>`
+	render := func(message emaillayout.Message) string {
+		t.Helper()
+		body, err := emaillayout.HTML(message)
+		if err != nil {
+			t.Fatalf("render: %v", err)
+		}
+		return body
+	}
 	subject := "You're invited to co-organize an event on Campus Gaming Network"
+	notes := []string{
+		"Sign in with this email address to accept. The link expires in seven days.",
+		"If you weren't expecting this, you can ignore it.",
+	}
+	reason := "You received this email because an event organizer entered this address."
+	titled := emaillayout.Message{
+		Preview:    "Ana & Bo invited you to co-organize an event.",
+		Heading:    "You're invited to co-organize",
+		Paragraphs: []string{"Ana & Bo invited you to help organize Smash <Night> on Campus Gaming Network. Co-organizers can edit the event."},
+		Action:     &emaillayout.Action{Label: "Accept the invitation", URL: "https://cgn.example/organizer-invite?token=a%2Bb"},
+		Notes:      notes,
+		Reason:     reason,
+	}
+	untitled := emaillayout.Message{
+		Preview:    "Ana invited you to co-organize an event.",
+		Heading:    "You're invited to co-organize",
+		Paragraphs: []string{"Ana invited you to help organize an event on Campus Gaming Network. Co-organizers can edit the event."},
+		Action:     &emaillayout.Action{Label: "Accept the invitation", URL: "https://cgn.example/organizer-invite?token=c"},
+		Notes:      notes,
+		Reason:     reason,
+	}
 	want := []map[string]any{
-		{
-			"from": "CGN <hi@example.test>", "to": []any{"guest@example.test"}, "subject": subject,
-			"html": `<h1>You're invited to co-organize</h1><p>Ana &amp; Bo invited you to help organize <strong>Smash &lt;Night&gt;</strong> on Campus Gaming Network. Co-organizers can edit the event.</p>` +
-				`<p><a href="https://cgn.example/organizer-invite?token=a%2Bb">Accept the invitation</a></p>` + notice,
-		},
-		{
-			"from": "CGN <hi@example.test>", "to": []any{"guest@example.test"}, "subject": subject,
-			"html": `<h1>You're invited to co-organize</h1><p>Ana invited you to help organize an event on Campus Gaming Network. Co-organizers can edit the event.</p>` +
-				`<p><a href="https://cgn.example/organizer-invite?token=c">Accept the invitation</a></p>` + notice,
-		},
+		{"from": "CGN <hi@example.test>", "to": []any{"guest@example.test"}, "subject": subject, "html": render(titled), "text": emaillayout.Text(titled)},
+		{"from": "CGN <hi@example.test>", "to": []any{"guest@example.test"}, "subject": subject, "html": render(untitled), "text": emaillayout.Text(untitled)},
 	}
 	if !reflect.DeepEqual(bodies, want) {
 		t.Fatalf("emails = %#v\nwant %#v", bodies, want)

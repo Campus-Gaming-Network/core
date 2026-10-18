@@ -1,7 +1,6 @@
 package events
 
 import (
-	"strings"
 	"testing"
 	"time"
 )
@@ -100,7 +99,7 @@ func TestLifecycleAtBoundaryInstants(t *testing.T) {
 	}
 }
 
-func TestEventConfirmationHTMLShowsStartInEventTimezone(t *testing.T) {
+func TestRSVPConfirmationShowsStartInEventTimezone(t *testing.T) {
 	startsAt := time.Date(2026, time.November, 2, 1, 0, 0, 0, time.UTC)
 	for _, test := range []struct {
 		name     string
@@ -114,9 +113,9 @@ func TestEventConfirmationHTMLShowsStartInEventTimezone(t *testing.T) {
 		{name: "unusable zone falls back to UTC", startsAt: startsAt, timezone: "Not/AZone", want: "Mon, Nov 2, 2026, 1:00 AM UTC"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			body := eventConfirmationHTML(Event{Title: "Game night", StartsAt: test.startsAt, Timezone: test.timezone}, "https://example.test/events/game-night")
-			if !strings.Contains(body, "<strong>When:</strong> "+test.want+"</p>") {
-				t.Fatalf("eventConfirmationHTML() = %q, want When line %q", body, test.want)
+			message := rsvpConfirmationMessage(Event{Title: "Game night", StartsAt: test.startsAt, Timezone: test.timezone}, "https://example.test/events/game-night")
+			if got := message.Details[0]; got.Label != "When" || got.Value != test.want {
+				t.Fatalf("rsvpConfirmationMessage() When = %+v, want %q", got, test.want)
 			}
 		})
 	}
