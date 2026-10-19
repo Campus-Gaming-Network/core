@@ -19,6 +19,8 @@ func TestSiteAdminCapabilities(t *testing.T) {
 		CapabilitySupportManage,
 		CapabilitySchoolsRead,
 		CapabilitySchoolsManage,
+		CapabilityClubsRead,
+		CapabilityClubsManage,
 		CapabilitySchoolLogosManage,
 		CapabilityGamesManage,
 		CapabilityUsersRead,

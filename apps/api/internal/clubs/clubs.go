@@ -115,8 +115,29 @@ const gameColumns = `
 	                   ORDER BY g.name, g.id) FILTER (WHERE g.id IS NOT NULL), ARRAY[]::boolean[])`
 
 // GetBySlug returns the published club with slug, with its school, games,
-// and links. A hidden, deleted, or missing club is ErrClubNotFound.
+// and links. A slug the club used before a rename finds it too; the returned
+// club carries its current slug, so a caller can redirect. A hidden, deleted,
+// or missing club is ErrClubNotFound.
 func (r *PostgresRepository) GetBySlug(ctx context.Context, slug string) (Club, error) {
+	club, err := r.getByCurrentSlug(ctx, slug)
+	if !errors.Is(err, ErrClubNotFound) {
+		return club, err
+	}
+	var current string
+	err = r.pool.QueryRow(ctx, `
+		SELECT c.slug FROM club_slug_redirects r JOIN clubs c ON c.id = r.club_id
+		WHERE r.old_slug = $1
+	`, strings.TrimSpace(slug)).Scan(&current)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return Club{}, ErrClubNotFound
+	}
+	if err != nil {
+		return Club{}, fmt.Errorf("follow club slug redirect: %w", err)
+	}
+	return r.getByCurrentSlug(ctx, current)
+}
+
+func (r *PostgresRepository) getByCurrentSlug(ctx context.Context, slug string) (Club, error) {
 	var club Club
 	var confirmedSource *string
 	var gameIDs, gameNames, gameSlugs []string

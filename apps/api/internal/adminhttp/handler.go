@@ -129,7 +129,7 @@ var routes = append([]routePolicy{
 	{Method: http.MethodPatch, Path: "/admin/v1/support-tickets/{id}", Control: controlCapability, Capability: adminaccess.CapabilitySupportManage, Mutation: true, Operation: operationPatchSupport},
 	{Method: http.MethodGet, Path: "/admin/v1/support-tickets/{id}/audit", Control: controlCapability, Capability: adminaccess.CapabilityAuditRead, Operation: operationListSupportAudit},
 	{Method: http.MethodGet, Path: "/admin/v1/system", Control: controlCapability, Capability: adminaccess.CapabilitySystemRead, Operation: operationGetSystem},
-}, catalogRoutes...)
+}, append(catalogRoutes, clubRoutes...)...)
 
 type Handler struct {
 	config       Config
@@ -646,7 +646,7 @@ func validRouteOperation(policy routePolicy) bool {
 	}
 	definition, ok := expected[policy.Operation]
 	if !ok {
-		for _, candidate := range catalogRoutes {
+		for _, candidate := range append(catalogRoutes, clubRoutes...) {
 			if candidate.Operation == policy.Operation {
 				definition, ok = candidate, true
 				break

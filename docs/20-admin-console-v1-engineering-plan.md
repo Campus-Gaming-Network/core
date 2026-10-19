@@ -241,6 +241,8 @@ capabilities so later roles cannot accidentally inherit the whole surface.
 | `schools.read`         | Read active/inactive/deleted school administration data        |
 | `schools.manage`       | Create/edit/deactivate/reactivate/soft-delete schools          |
 | `school_logos.manage`  | Upload/remove validated school logos                           |
+| `clubs.read`           | Read published and hidden clubs                                |
+| `clubs.manage`         | Create/edit clubs, replace links, hide/unhide, mark as checked |
 | `school_grants.manage` | Grant/revoke school-admin access                               |
 | `games.manage`         | Manage the curated game catalog                                |
 | `users.read`           | Bounded user search/detail for administrative work             |
@@ -443,6 +445,27 @@ applicable.
 | POST   | `/admin/v1/schools/:id/admin-grants`                  | `school_grants.manage` | Grant by user id with reason          |
 | POST   | `/admin/v1/schools/:id/admin-grants/:grant_id/revoke` | `school_grants.manage` | Soft-revoke with reason               |
 | GET    | `/admin/v1/schools/:id/admin-grants/:grant_id/audit`  | `audit.read`           | School-admin grant history            |
+
+### Clubs
+
+| Method | Path                               | Capability     | Purpose                                          |
+| ------ | ---------------------------------- | -------------- | ------------------------------------------------ |
+| GET    | `/admin/v1/clubs`                  | `clubs.read`   | Search by name or slug; `school` (a school ID)   |
+| POST   | `/admin/v1/clubs`                  | `clubs.manage` | Create a published, unclaimed club at a school   |
+| GET    | `/admin/v1/clubs/:id`              | `clubs.read`   | Admin detail, games, links, and version          |
+| PATCH  | `/admin/v1/clubs/:id`              | `clubs.manage` | Edit name, slug, type, text, and games           |
+| POST   | `/admin/v1/clubs/:id/links`        | `clubs.manage` | Replace the club's links, in order               |
+| POST   | `/admin/v1/clubs/:id/hide`         | `clubs.manage` | Take the club off the public site                |
+| POST   | `/admin/v1/clubs/:id/unhide`       | `clubs.manage` | Publish a hidden club again                      |
+| POST   | `/admin/v1/clubs/:id/mark-checked` | `clubs.manage` | Record that CGN re-checked the public source now |
+| GET    | `/admin/v1/clubs/:id/audit`        | `audit.read`   | Club change history                              |
+
+Each club command takes a reason and, after create, the record's
+`expected_updated_at`. A club's school is chosen at create and never changes. A
+new slug keeps the old one as a redirect on the public site until another club
+takes it; a slug another club uses now is `409 admin_record_already_exists`. A
+school with clubs cannot be deleted (`409 catalog_dependencies_exist`). Claim
+review arrives with #117.
 
 ### Games, users, and site grants
 

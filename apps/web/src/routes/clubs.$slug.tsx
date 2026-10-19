@@ -1,4 +1,9 @@
-import { Link, createFileRoute, notFound } from "@tanstack/react-router";
+import {
+  Link,
+  createFileRoute,
+  notFound,
+  redirect,
+} from "@tanstack/react-router";
 import { ArrowUpRight } from "lucide-react";
 import { BreadcrumbLink, Breadcrumbs } from "../components/breadcrumbs";
 import { DetailHero } from "../components/detail-hero";
@@ -26,6 +31,15 @@ export const Route = createFileRoute("/clubs/$slug")({
     if (result.status === "not_found") throw notFound();
     if (result.status !== "found")
       throw new Error("Club detail is unavailable");
+    // A slug from before a rename finds the club; send the visitor to its
+    // current address so links and search results settle on one URL.
+    if (result.club.slug !== params.slug) {
+      throw redirect({
+        to: "/clubs/$slug",
+        params: { slug: result.club.slug },
+        statusCode: 301,
+      });
+    }
     return { club: result.club, publicOrigin: context.publicOrigin };
   },
   staleTime: 0,

@@ -150,6 +150,11 @@ club_links
   position, created_at, updated_at
   -- information only; none is the way to join
 
+club_slug_redirects
+  old_slug (primary key), club_id, created_at
+  -- a renamed club's earlier slugs, so old links still reach it; a slug is in
+  -- clubs.slug or here, never both
+
 -- club_members (owner|editor|member) and club_claims arrive with #117, #118,
 -- and #262
 ```

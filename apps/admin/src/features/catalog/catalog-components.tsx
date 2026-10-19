@@ -11,6 +11,12 @@ import {
 } from "react";
 import { FieldError } from "../moderation/moderation-components";
 import {
+  clubLinkTypeLabels,
+  clubLinkTypes,
+  clubTypeLabels,
+  clubTypes,
+  maximumClubLinks,
+  type AdminClub,
   catalogCommands,
   catalogNotices,
   logoErrorMessages,
@@ -28,6 +34,8 @@ import {
 } from "./contracts";
 import {
   runCatalogCommand,
+  saveClub,
+  saveClubLinks,
   saveGame,
   saveSchool,
   uploadSchoolLogo,
@@ -348,6 +356,197 @@ export function SchoolForm({ school }: { school?: AdminSchool }) {
  * Corrects a stored game. Admins never create games: users add them from
  * IGDB in the event and team forms.
  */
+/**
+ * Creates a club under `schoolID`, or edits `club`. The club's games show as
+ * checkboxes to keep; more are added by typing their names, which the server
+ * matches to the catalog.
+ */
+export function ClubForm({
+  club,
+  schoolID,
+}: {
+  club?: AdminClub;
+  schoolID?: string;
+}) {
+  const runSave = useServerFn(saveClub);
+  const { submit, pending, version, feedback } = useCatalogSubmit(
+    runSave,
+    club?.updated_at ?? "",
+  );
+  const errors = feedback.fieldErrors;
+
+  return (
+    <form
+      action={saveClub.url}
+      className="moderation-form"
+      method="post"
+      onSubmit={submit}
+    >
+      <FormFeedback message={feedback.message} />
+      <input name="id" type="hidden" value={club?.id ?? ""} />
+      <input
+        name="school_id"
+        type="hidden"
+        value={club ? "" : (schoolID ?? "")}
+      />
+      <input name="expected_updated_at" type="hidden" value={version} />
+      <div className="form-grid">
+        <TextField
+          errors={errors.name}
+          label="Name"
+          name="name"
+          required
+          value={club?.name}
+          maxLength={120}
+        />
+        <TextField
+          errors={errors.slug}
+          help="Lowercase letters, numbers, and single hyphens. Changing it keeps the old address working."
+          label="Slug"
+          name="slug"
+          required
+          value={club?.slug}
+          maxLength={120}
+        />
+        <label>
+          Type
+          <select
+            aria-describedby={errors.type?.length ? "type-error" : undefined}
+            defaultValue={club?.type ?? ""}
+            name="type"
+            required
+          >
+            <option value="">Choose a type</option>
+            {clubTypes.map((type) => (
+              <option key={type} value={type}>
+                {clubTypeLabels[type]}
+              </option>
+            ))}
+          </select>
+          <span className="field-help">
+            Neither type implies the university endorses the club.
+          </span>
+          <FieldError id="type-error" messages={errors.type} />
+        </label>
+      </div>
+      <TextAreaField
+        errors={errors.summary}
+        help="What the club is. Leave blank if the source does not say."
+        label="Summary"
+        maxLength={2000}
+        name="summary"
+        value={club?.summary}
+      />
+      <TextAreaField
+        errors={errors.how_to_join}
+        help="The club's own process for becoming a member, such as a form, a tryout, or a meeting. Leave blank if the source does not say."
+        label="How to join"
+        maxLength={2000}
+        name="how_to_join"
+        value={club?.how_to_join}
+      />
+      <fieldset className="checkbox-group">
+        <legend>Games</legend>
+        {club?.games.length ? (
+          club.games.map((game) => (
+            <label className="checkbox-field" key={game.id}>
+              <input
+                defaultChecked
+                name="game_ids"
+                type="checkbox"
+                value={game.id}
+              />
+              {game.name}
+            </label>
+          ))
+        ) : (
+          <p className="field-help">No games yet.</p>
+        )}
+        <span className="field-help">Clear a box to remove that game.</span>
+      </fieldset>
+      <TextField
+        errors={errors.add_games}
+        help="Game names from the catalog, separated by commas."
+        label="Add games"
+        name="add_games"
+        maxLength={2000}
+      />
+      <ReasonField errors={errors.reason} />
+      <button type="submit" disabled={pending}>
+        {pending ? "Saving…" : club ? "Save club" : "Create club"}
+      </button>
+    </form>
+  );
+}
+
+/** Replaces a club's links: numbered rows, blank rows left out. */
+export function ClubLinksForm({ club }: { club: AdminClub }) {
+  const runSave = useServerFn(saveClubLinks);
+  const { submit, pending, version, feedback } = useCatalogSubmit(
+    runSave,
+    club.updated_at,
+  );
+  const errors = feedback.fieldErrors;
+  // Every saved link plus one empty row, up to the limit.
+  const rows = Math.min(maximumClubLinks, club.links.length + 1);
+
+  return (
+    <form
+      action={saveClubLinks.url}
+      className="moderation-form"
+      method="post"
+      onSubmit={submit}
+    >
+      <FormFeedback message={feedback.message} />
+      <input name="id" type="hidden" value={club.id} />
+      <input name="expected_updated_at" type="hidden" value={version} />
+      {Array.from({ length: rows }, (_, index) => {
+        const link = club.links[index];
+        return (
+          <fieldset className="form-grid" key={index}>
+            <legend>Link {index + 1}</legend>
+            <label>
+              Kind
+              <select
+                defaultValue={link?.type ?? "website"}
+                name={`link_type_${index}`}
+              >
+                {clubLinkTypes.map((type) => (
+                  <option key={type} value={type}>
+                    {clubLinkTypeLabels[type]}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <TextField
+              errors={errors[`link_label_${index}`]}
+              label="Label"
+              name={`link_label_${index}`}
+              value={link?.label}
+              maxLength={60}
+            />
+            <TextField
+              errors={errors[`link_url_${index}`]}
+              label="URL"
+              name={`link_url_${index}`}
+              type="url"
+              value={link?.url}
+              maxLength={500}
+            />
+          </fieldset>
+        );
+      })}
+      <p className="field-help">
+        Clear a row's label and URL to remove it. Save to add another row.
+      </p>
+      <ReasonField errors={errors.reason} idPrefix="links" />
+      <button type="submit" disabled={pending}>
+        {pending ? "Saving…" : "Save links"}
+      </button>
+    </form>
+  );
+}
+
 export function GameForm({ game }: { game: AdminGame }) {
   const runSave = useServerFn(saveGame);
   const { submit, pending, version, feedback } = useCatalogSubmit(
@@ -702,6 +901,12 @@ const auditActionLabels: Record<CatalogAuditEntry["action"], string> = {
   "site_role_grant.bootstrapped": "First site admin bootstrapped",
   "site_role_grant.granted": "Site-admin access granted",
   "site_role_grant.revoked": "Site-admin access revoked",
+  "club.created": "Club created",
+  "club.updated": "Club updated",
+  "club.links_replaced": "Links replaced",
+  "club.hidden": "Club hidden",
+  "club.unhidden": "Club published again",
+  "club.checked": "Marked as checked",
 };
 
 function stateLabel(state: string): string {
@@ -737,6 +942,39 @@ function ReasonField({
         rows={3}
       />
       <span className="field-help">Recorded in the audit trail.</span>
+      <FieldError id={errorID} messages={errors} />
+    </label>
+  );
+}
+
+function TextAreaField({
+  label,
+  name,
+  value,
+  errors,
+  help,
+  maxLength,
+}: {
+  label: string;
+  name: string;
+  value?: string;
+  errors?: string[];
+  help?: string;
+  maxLength: number;
+}) {
+  const errorID = `${name}-error`;
+  return (
+    <label>
+      {label}
+      <textarea
+        aria-describedby={errors?.length ? errorID : undefined}
+        aria-invalid={errors?.length ? true : undefined}
+        defaultValue={value ?? ""}
+        maxLength={maxLength}
+        name={name}
+        rows={4}
+      />
+      {help ? <span className="field-help">{help}</span> : null}
       <FieldError id={errorID} messages={errors} />
     </label>
   );

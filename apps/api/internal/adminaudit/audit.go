@@ -44,6 +44,12 @@ const (
 	ActionTrustChanged                 Action = "user.trust_changed"
 	ActionSchoolGrantGranted           Action = "school_admin.granted"
 	ActionSchoolGrantRevoked           Action = "school_admin.revoked"
+	ActionClubCreated                  Action = "club.created"
+	ActionClubUpdated                  Action = "club.updated"
+	ActionClubLinksReplaced            Action = "club.links_replaced"
+	ActionClubHidden                   Action = "club.hidden"
+	ActionClubUnhidden                 Action = "club.unhidden"
+	ActionClubChecked                  Action = "club.checked"
 )
 
 type EntityType string
@@ -56,6 +62,7 @@ const (
 	EntityGame          EntityType = "game"
 	EntityUser          EntityType = "user"
 	EntitySchoolGrant   EntityType = "school_admin"
+	EntityClub          EntityType = "club"
 )
 
 var (
@@ -246,7 +253,8 @@ func (input WriteInput) validate() error {
 			return ErrInvalidAudit
 		}
 	}
-	if input.EntityType == EntitySchool || input.EntityType == EntityGame || input.EntityType == EntityUser || input.EntityType == EntitySchoolGrant {
+	if input.EntityType == EntitySchool || input.EntityType == EntityGame || input.EntityType == EntityUser || input.EntityType == EntitySchoolGrant ||
+		input.EntityType == EntityClub {
 		if input.Correlation.ActorUserID == "" || input.Correlation.AdminSessionID == "" || input.Correlation.RequestID == "" || strings.TrimSpace(input.Metadata.OperatorReason) == "" {
 			return ErrInvalidAudit
 		}
@@ -269,7 +277,8 @@ func (input WriteInput) validate() error {
 	if input.EntityType == EntitySiteRoleGrant && input.Metadata.ResolutionNoteChanged {
 		return ErrInvalidAudit
 	}
-	if len(input.Metadata.EditedFields) > 0 && input.Action != ActionSchoolUpdated && input.Action != ActionGameUpdated {
+	if len(input.Metadata.EditedFields) > 0 && input.Action != ActionSchoolUpdated && input.Action != ActionGameUpdated &&
+		input.Action != ActionClubUpdated {
 		return ErrInvalidAudit
 	}
 	if len(input.Metadata.EditedFields) > maximumEditedFields {
@@ -389,6 +398,8 @@ func validActionEntity(action Action, entityType EntityType) bool {
 		return entityType == EntityUser
 	case ActionSchoolGrantGranted, ActionSchoolGrantRevoked:
 		return entityType == EntitySchoolGrant
+	case ActionClubCreated, ActionClubUpdated, ActionClubLinksReplaced, ActionClubHidden, ActionClubUnhidden, ActionClubChecked:
+		return entityType == EntityClub
 	default:
 		return false
 	}
@@ -396,7 +407,8 @@ func validActionEntity(action Action, entityType EntityType) bool {
 
 func validEntityType(entityType EntityType) bool {
 	return entityType == EntityReport || entityType == EntitySupportTicket || entityType == EntitySiteRoleGrant ||
-		entityType == EntitySchool || entityType == EntityGame || entityType == EntityUser || entityType == EntitySchoolGrant
+		entityType == EntitySchool || entityType == EntityGame || entityType == EntityUser || entityType == EntitySchoolGrant ||
+		entityType == EntityClub
 }
 
 func validState(entityType EntityType, state State, allowEmpty bool) bool {
@@ -406,7 +418,7 @@ func validState(entityType EntityType, state State, allowEmpty bool) bool {
 	case EmptyState:
 		return allowEmpty
 	case CatalogState:
-		return (entityType == EntitySchool || entityType == EntityGame) && typed.Slug != "" && !typed.UpdatedAt.IsZero()
+		return (entityType == EntitySchool || entityType == EntityGame || entityType == EntityClub) && typed.Slug != "" && !typed.UpdatedAt.IsZero()
 	case AccountState:
 		return entityType == EntityUser && (typed.Status == "active" || typed.Status == "suspended" || typed.Status == "deleted") &&
 			(typed.VerificationLevel == "basic" || typed.VerificationLevel == "verified" || typed.VerificationLevel == "staff_faculty")

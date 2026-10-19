@@ -73,6 +73,16 @@ function RecordLink({ entry }: { entry: AuditLogEntry }) {
       );
     case "user":
       return <UserLink name={label} userId={id} />;
+    case "club":
+      return (
+        <Link
+          className="entity-link"
+          params={{ clubId: id }}
+          to="/clubs/$clubId"
+        >
+          {label}
+        </Link>
+      );
   }
 }
 

@@ -142,6 +142,12 @@ export const catalogAuditEntrySchema = z
       "site_role_grant.bootstrapped",
       "site_role_grant.granted",
       "site_role_grant.revoked",
+      "club.created",
+      "club.updated",
+      "club.links_replaced",
+      "club.hidden",
+      "club.unhidden",
+      "club.checked",
     ]),
     before: z.unknown(),
     after: z.unknown(),
@@ -185,6 +191,62 @@ function auditState(value: unknown): Record<string, unknown> {
     : {};
 }
 
+// Clubs: student clubs and university programs under one school.
+export const clubTypes = ["student_club", "university_program"] as const;
+export const clubTypeLabels: Record<(typeof clubTypes)[number], string> = {
+  student_club: "Student club",
+  university_program: "University program",
+};
+export const clubLinkTypes = ["website", "discord", "social"] as const;
+export const clubLinkTypeLabels: Record<
+  (typeof clubLinkTypes)[number],
+  string
+> = { website: "Website", discord: "Discord", social: "Social" };
+/** The most links and games a club form offers, matching the Admin API. */
+export const maximumClubLinks = 10;
+
+export const adminClubSchema = z.object({
+  id: uuidSchema,
+  name: z.string().max(120),
+  slug: z.string().max(120),
+  type: z.enum(clubTypes),
+  summary: z.string().max(2000),
+  how_to_join: z.string().max(2000),
+  school: z.object({
+    id: uuidSchema,
+    name: z.string().max(300),
+    slug: z.string().max(120),
+    city: z.string().max(100).optional(),
+    state: z.string().max(80).optional(),
+  }),
+  games: z.array(
+    z.object({
+      id: uuidSchema,
+      name: z.string().max(200),
+      slug: z.string().max(120),
+    }),
+  ),
+  links: z.array(
+    z.object({
+      type: z.enum(clubLinkTypes),
+      label: z.string().max(60),
+      url: z.string().max(500),
+    }),
+  ),
+  // True for a published club, so the shared state badge reads it.
+  is_active: z.boolean(),
+  confirmed_at: timestampSchema.nullable(),
+  confirmed_source: z.enum(["club", "cgn"]).nullable(),
+  created_at: timestampSchema,
+  updated_at: timestampSchema,
+  deleted_at: timestampSchema.nullable(),
+});
+
+export const clubsPageSchema = z.object({
+  clubs: z.array(adminClubSchema),
+  ...pageCursorsSchema,
+});
+
 export const schoolsPageSchema = z.object({
   schools: z.array(adminSchoolSchema),
   ...pageCursorsSchema,
@@ -211,6 +273,7 @@ export const catalogAuditPageSchema = z.object({
 });
 
 export type AdminSchool = z.output<typeof adminSchoolSchema>;
+export type AdminClub = z.output<typeof adminClubSchema>;
 export type AdminGame = z.output<typeof adminGameSchema>;
 export type AdminUser = z.output<typeof adminUserSchema>;
 export type SchoolGrant = z.output<typeof schoolGrantSchema>;
@@ -226,6 +289,8 @@ export const catalogListKinds = {
   games: ["active", "inactive", "deleted"],
   users: ["active", "suspended", "deleted"],
   "site-admins": ["active", "revoked"],
+  // A club is published (active) or hidden (inactive).
+  clubs: ["active", "inactive"],
 } as const;
 export type CatalogListKind = keyof typeof catalogListKinds;
 
@@ -246,6 +311,8 @@ export type CatalogSearch = {
   role?: (typeof userRoleFilters)[number];
   /** Users: a verification level. */
   verification?: (typeof verificationFilters)[number];
+  /** Clubs: the ID of the school whose clubs are listed. */
+  school?: string;
   after?: string;
   before?: string;
 };
@@ -256,6 +323,7 @@ export const catalogBrowseInputSchema = z.object({
   region: z.string().max(40).optional(),
   role: z.enum(userRoleFilters).optional(),
   verification: z.enum(verificationFilters).optional(),
+  school: uuidSchema.optional(),
   after: cursorSchema.optional(),
   before: cursorSchema.optional(),
 });
@@ -274,12 +342,14 @@ export function validateCatalogSearch(kind: CatalogListKind) {
     const verification = verificationFilters.find(
       (value) => value === firstString(search.verification),
     );
+    const school = firstString(search.school);
     const accepted: CatalogSearch = {
       ...(q.length >= 2 && q.length <= 100 ? { q } : {}),
       ...(states.includes(state) ? { state } : {}),
       ...(kind === "schools" && /^[A-Z]{2}$/.test(region) ? { region } : {}),
       ...(kind === "users" && role ? { role } : {}),
       ...(kind === "users" && verification ? { verification } : {}),
+      ...(kind === "clubs" && uuidPattern.test(school) ? { school } : {}),
       ...(after && !before && after.length <= 2048 ? { after } : {}),
       ...(before && !after && before.length <= 2048 ? { before } : {}),
     };
@@ -287,7 +357,16 @@ export function validateCatalogSearch(kind: CatalogListKind) {
     // blank search box submits, and the list operation then rejects it. Clear
     // each rejected value by name.
     const rejected = Object.fromEntries(
-      ["q", "state", "region", "role", "verification", "after", "before"]
+      [
+        "q",
+        "state",
+        "region",
+        "role",
+        "verification",
+        "school",
+        "after",
+        "before",
+      ]
         .filter((key) => key in search && !(key in accepted))
         .map((key) => [key, undefined]),
     );
@@ -405,6 +484,19 @@ export const catalogNotices = {
     severity: "danger",
   },
   saved: { message: "Changes saved.", severity: "success" },
+  "links-saved": { message: "Links saved.", severity: "success" },
+  "club-hidden": {
+    message: "Club hidden. Its page and school listing are gone.",
+    severity: "success",
+  },
+  "club-published": {
+    message: "Club published again.",
+    severity: "success",
+  },
+  "club-checked": {
+    message: "Marked as checked by Campus Gaming Network today.",
+    severity: "success",
+  },
   deactivated: { message: "School deactivated.", severity: "success" },
   reactivated: { message: "Reactivated.", severity: "success" },
   deleted: { message: "Deleted.", severity: "success" },
@@ -678,6 +770,146 @@ function validateRecordForm<
   ]);
 }
 
+const clubFieldsSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, "Name is required.")
+    .max(120, "Keep the name to 120 characters or fewer."),
+  slug: slugSchema,
+  type: z.enum(clubTypes, "Choose student club or university program."),
+  summary: z
+    .string()
+    .trim()
+    .max(2000, "Keep the summary to 2,000 characters or fewer."),
+  how_to_join: z
+    .string()
+    .trim()
+    .max(2000, "Keep How to join to 2,000 characters or fewer."),
+  game_ids: z.array(uuidSchema).max(20, "A club lists at most 20 games."),
+  // Game names typed to add, which the server matches to the catalog.
+  add_games: z
+    .array(z.string().trim().min(1).max(200))
+    .max(20, "A club lists at most 20 games."),
+  reason: reasonSchema,
+});
+
+const clubTargetSchema = z.union([
+  // A new club names its school; the school never changes afterwards.
+  z.object({
+    id: z.literal(""),
+    expected_updated_at: z.literal(""),
+    school_id: uuidSchema,
+  }),
+  existingTargetSchema.extend({ school_id: z.literal("") }),
+]);
+
+export type ClubFormInput = z.output<typeof clubFieldsSchema> &
+  z.output<typeof clubTargetSchema>;
+
+export function validateClubFormInput(
+  input: FormData | object,
+): Validated<ClubFormInput> {
+  const id = inputValue(input, "id");
+  const target = clubTargetSchema.safeParse({
+    id,
+    expected_updated_at: inputValue(input, "expected_updated_at"),
+    school_id: inputValue(input, "school_id"),
+  });
+  const fields = clubFieldsSchema.safeParse({
+    name: inputValue(input, "name"),
+    slug: inputValue(input, "slug"),
+    type: inputValue(input, "type"),
+    summary: inputValue(input, "summary"),
+    how_to_join: inputValue(input, "how_to_join"),
+    game_ids: [...new Set(inputValues(input, "game_ids"))],
+    add_games: inputValue(input, "add_games")
+      .split(",")
+      .map((name) => name.trim())
+      .filter(Boolean),
+    reason: inputValue(input, "reason"),
+  });
+  if (target.success && fields.success) {
+    return { valid: true, value: { ...fields.data, ...target.data } };
+  }
+  return invalid(id, [
+    ...(target.success ? [] : target.error.issues),
+    ...(fields.success ? [] : fields.error.issues),
+  ]);
+}
+
+const clubLinkSchema = z.object({
+  type: z.enum(clubLinkTypes, "Choose website, Discord, or social."),
+  label: z
+    .string()
+    .trim()
+    .min(1, "Give each link a label.")
+    .max(60, "Keep labels to 60 characters or fewer."),
+  url: z
+    .string()
+    .trim()
+    .max(500, "Keep links to 500 characters or fewer.")
+    .refine(
+      (value) => /^https?:\/\/[^\s/]+/i.test(value),
+      "Enter an http or https URL.",
+    ),
+});
+
+export type ClubLinksInput = {
+  links: z.output<typeof clubLinkSchema>[];
+  reason: string;
+} & z.output<typeof existingTargetSchema>;
+
+/**
+ * The links form lists numbered rows (`link_type_0`, `link_label_0`,
+ * `link_url_0`, …). A row with no label and no URL is left out; the rest
+ * keep their order. Errors name the row's field, such as `link_url_2`.
+ */
+export function validateClubLinksInput(
+  input: FormData | object,
+): Validated<ClubLinksInput> {
+  const id = inputValue(input, "id");
+  const issues: z.core.$ZodIssue[] = [];
+  const links: z.output<typeof clubLinkSchema>[] = [];
+  for (let index = 0; index < maximumClubLinks; index++) {
+    const row = {
+      type: inputValue(input, `link_type_${index}`) || "website",
+      label: inputValue(input, `link_label_${index}`),
+      url: inputValue(input, `link_url_${index}`),
+    };
+    if (!row.label && !row.url) continue;
+    const parsed = clubLinkSchema.safeParse(row);
+    if (parsed.success) {
+      links.push(parsed.data);
+      continue;
+    }
+    for (const issue of parsed.error.issues) {
+      issues.push({
+        ...issue,
+        path: [`link_${String(issue.path[0])}_${index}`],
+      });
+    }
+  }
+  const target = existingTargetSchema.safeParse({
+    id,
+    expected_updated_at: inputValue(input, "expected_updated_at"),
+  });
+  const reason = reasonSchema.safeParse(inputValue(input, "reason"));
+  if (target.success && reason.success && issues.length === 0) {
+    return {
+      valid: true,
+      value: { ...target.data, links, reason: reason.data },
+    };
+  }
+  return invalid(id, [
+    ...(target.success ? [] : target.error.issues),
+    ...(reason.success
+      ? []
+      : reason.error.issues.map((issue) => ({ ...issue, path: ["reason"] }))),
+    ...issues,
+  ]);
+}
+
 // Named catalog commands. Each maps to one Admin API operation; there is no
 // generic record editor. Destructive and high-risk commands require an
 // explicit confirmation, and the step-up commands also need recent
@@ -716,6 +948,9 @@ export const catalogCommands = {
     stepUp: true,
     notice: "site-admin-revoked",
   },
+  "club.hide": { confirm: true, stepUp: false, notice: "club-hidden" },
+  "club.unhide": { confirm: false, stepUp: false, notice: "club-published" },
+  "club.check": { confirm: false, stepUp: false, notice: "club-checked" },
 } as const satisfies Record<
   string,
   { confirm: boolean; stepUp: boolean; notice: CatalogNotice }
@@ -812,11 +1047,13 @@ export function catalogCommandPage(
   }
   const collection = command.startsWith("school")
     ? "schools"
-    : command.startsWith("game")
-      ? "games"
-      : command.startsWith("user")
-        ? "users"
-        : undefined;
+    : command.startsWith("club")
+      ? "clubs"
+      : command.startsWith("game")
+        ? "games"
+        : command.startsWith("user")
+          ? "users"
+          : undefined;
   if (!collection) return "/";
   return uuidPattern.test(id) ? `/${collection}/${id}` : `/${collection}`;
 }
@@ -993,6 +1230,16 @@ function inputValue(input: FormData | object, name: string): string {
         ? Reflect.get(input, name)
         : undefined;
   return typeof value === "string" ? value.trim() : "";
+}
+
+function inputValues(input: FormData | object, name: string): string[] {
+  const values =
+    input instanceof FormData
+      ? input.getAll(name)
+      : name in input
+        ? [Reflect.get(input, name)].flat()
+        : [];
+  return values.filter((value): value is string => typeof value === "string");
 }
 
 function checkboxValue(input: FormData | object, name: string): boolean {

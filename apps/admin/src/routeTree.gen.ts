@@ -16,6 +16,9 @@ import { Route as SystemRouteImport } from './routes/system'
 import { Route as AccessSiteAdminsRouteImport } from './routes/access.site-admins'
 import { Route as ApiErrorMonitoringTestRouteImport } from './routes/api.error-monitoring-test'
 import { Route as ApiHealthRouteImport } from './routes/api.health'
+import { Route as ClubsIndexRouteImport } from './routes/clubs.index'
+import { Route as ClubsClubIdRouteImport } from './routes/clubs.$clubId'
+import { Route as ClubsNewRouteImport } from './routes/clubs.new'
 import { Route as GamesIndexRouteImport } from './routes/games.index'
 import { Route as GamesGameIdRouteImport } from './routes/games.$gameId'
 import { Route as ReportsIndexRouteImport } from './routes/reports.index'
@@ -61,6 +64,21 @@ const ApiErrorMonitoringTestRoute = ApiErrorMonitoringTestRouteImport.update({
 const ApiHealthRoute = ApiHealthRouteImport.update({
   id: '/api/health',
   path: '/api/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClubsIndexRoute = ClubsIndexRouteImport.update({
+  id: '/clubs/',
+  path: '/clubs/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClubsClubIdRoute = ClubsClubIdRouteImport.update({
+  id: '/clubs/$clubId',
+  path: '/clubs/$clubId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClubsNewRoute = ClubsNewRouteImport.update({
+  id: '/clubs/new',
+  path: '/clubs/new',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GamesIndexRoute = GamesIndexRouteImport.update({
@@ -127,12 +145,15 @@ export interface FileRoutesByFullPath {
   '/access/site-admins': typeof AccessSiteAdminsRoute
   '/api/error-monitoring-test': typeof ApiErrorMonitoringTestRoute
   '/api/health': typeof ApiHealthRoute
+  '/clubs/$clubId': typeof ClubsClubIdRoute
+  '/clubs/new': typeof ClubsNewRoute
   '/games/$gameId': typeof GamesGameIdRoute
   '/reports/$reportId': typeof ReportsReportIdRoute
   '/schools/$schoolId': typeof SchoolsSchoolIdRoute
   '/schools/new': typeof SchoolsNewRoute
   '/support-tickets/$ticketId': typeof SupportTicketsTicketIdRoute
   '/users/$userId': typeof UsersUserIdRoute
+  '/clubs/': typeof ClubsIndexRoute
   '/games/': typeof GamesIndexRoute
   '/reports/': typeof ReportsIndexRoute
   '/schools/': typeof SchoolsIndexRoute
@@ -147,12 +168,15 @@ export interface FileRoutesByTo {
   '/access/site-admins': typeof AccessSiteAdminsRoute
   '/api/error-monitoring-test': typeof ApiErrorMonitoringTestRoute
   '/api/health': typeof ApiHealthRoute
+  '/clubs/$clubId': typeof ClubsClubIdRoute
+  '/clubs/new': typeof ClubsNewRoute
   '/games/$gameId': typeof GamesGameIdRoute
   '/reports/$reportId': typeof ReportsReportIdRoute
   '/schools/$schoolId': typeof SchoolsSchoolIdRoute
   '/schools/new': typeof SchoolsNewRoute
   '/support-tickets/$ticketId': typeof SupportTicketsTicketIdRoute
   '/users/$userId': typeof UsersUserIdRoute
+  '/clubs': typeof ClubsIndexRoute
   '/games': typeof GamesIndexRoute
   '/reports': typeof ReportsIndexRoute
   '/schools': typeof SchoolsIndexRoute
@@ -168,12 +192,15 @@ export interface FileRoutesById {
   '/access/site-admins': typeof AccessSiteAdminsRoute
   '/api/error-monitoring-test': typeof ApiErrorMonitoringTestRoute
   '/api/health': typeof ApiHealthRoute
+  '/clubs/$clubId': typeof ClubsClubIdRoute
+  '/clubs/new': typeof ClubsNewRoute
   '/games/$gameId': typeof GamesGameIdRoute
   '/reports/$reportId': typeof ReportsReportIdRoute
   '/schools/$schoolId': typeof SchoolsSchoolIdRoute
   '/schools/new': typeof SchoolsNewRoute
   '/support-tickets/$ticketId': typeof SupportTicketsTicketIdRoute
   '/users/$userId': typeof UsersUserIdRoute
+  '/clubs/': typeof ClubsIndexRoute
   '/games/': typeof GamesIndexRoute
   '/reports/': typeof ReportsIndexRoute
   '/schools/': typeof SchoolsIndexRoute
@@ -190,12 +217,15 @@ export interface FileRouteTypes {
     | '/access/site-admins'
     | '/api/error-monitoring-test'
     | '/api/health'
+    | '/clubs/$clubId'
+    | '/clubs/new'
     | '/games/$gameId'
     | '/reports/$reportId'
     | '/schools/$schoolId'
     | '/schools/new'
     | '/support-tickets/$ticketId'
     | '/users/$userId'
+    | '/clubs/'
     | '/games/'
     | '/reports/'
     | '/schools/'
@@ -210,12 +240,15 @@ export interface FileRouteTypes {
     | '/access/site-admins'
     | '/api/error-monitoring-test'
     | '/api/health'
+    | '/clubs/$clubId'
+    | '/clubs/new'
     | '/games/$gameId'
     | '/reports/$reportId'
     | '/schools/$schoolId'
     | '/schools/new'
     | '/support-tickets/$ticketId'
     | '/users/$userId'
+    | '/clubs'
     | '/games'
     | '/reports'
     | '/schools'
@@ -230,12 +263,15 @@ export interface FileRouteTypes {
     | '/access/site-admins'
     | '/api/error-monitoring-test'
     | '/api/health'
+    | '/clubs/$clubId'
+    | '/clubs/new'
     | '/games/$gameId'
     | '/reports/$reportId'
     | '/schools/$schoolId'
     | '/schools/new'
     | '/support-tickets/$ticketId'
     | '/users/$userId'
+    | '/clubs/'
     | '/games/'
     | '/reports/'
     | '/schools/'
@@ -251,12 +287,15 @@ export interface RootRouteChildren {
   AccessSiteAdminsRoute: typeof AccessSiteAdminsRoute
   ApiErrorMonitoringTestRoute: typeof ApiErrorMonitoringTestRoute
   ApiHealthRoute: typeof ApiHealthRoute
+  ClubsClubIdRoute: typeof ClubsClubIdRoute
+  ClubsNewRoute: typeof ClubsNewRoute
   GamesGameIdRoute: typeof GamesGameIdRoute
   ReportsReportIdRoute: typeof ReportsReportIdRoute
   SchoolsSchoolIdRoute: typeof SchoolsSchoolIdRoute
   SchoolsNewRoute: typeof SchoolsNewRoute
   SupportTicketsTicketIdRoute: typeof SupportTicketsTicketIdRoute
   UsersUserIdRoute: typeof UsersUserIdRoute
+  ClubsIndexRoute: typeof ClubsIndexRoute
   GamesIndexRoute: typeof GamesIndexRoute
   ReportsIndexRoute: typeof ReportsIndexRoute
   SchoolsIndexRoute: typeof SchoolsIndexRoute
@@ -313,6 +352,27 @@ declare module '@tanstack/react-router' {
       path: '/api/health'
       fullPath: '/api/health'
       preLoaderRoute: typeof ApiHealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/clubs/': {
+      id: '/clubs/'
+      path: '/clubs'
+      fullPath: '/clubs/'
+      preLoaderRoute: typeof ClubsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/clubs/$clubId': {
+      id: '/clubs/$clubId'
+      path: '/clubs/$clubId'
+      fullPath: '/clubs/$clubId'
+      preLoaderRoute: typeof ClubsClubIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/clubs/new': {
+      id: '/clubs/new'
+      path: '/clubs/new'
+      fullPath: '/clubs/new'
+      preLoaderRoute: typeof ClubsNewRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/games/': {
@@ -403,12 +463,15 @@ const rootRouteChildren: RootRouteChildren = {
   AccessSiteAdminsRoute: AccessSiteAdminsRoute,
   ApiErrorMonitoringTestRoute: ApiErrorMonitoringTestRoute,
   ApiHealthRoute: ApiHealthRoute,
+  ClubsClubIdRoute: ClubsClubIdRoute,
+  ClubsNewRoute: ClubsNewRoute,
   GamesGameIdRoute: GamesGameIdRoute,
   ReportsReportIdRoute: ReportsReportIdRoute,
   SchoolsSchoolIdRoute: SchoolsSchoolIdRoute,
   SchoolsNewRoute: SchoolsNewRoute,
   SupportTicketsTicketIdRoute: SupportTicketsTicketIdRoute,
   UsersUserIdRoute: UsersUserIdRoute,
+  ClubsIndexRoute: ClubsIndexRoute,
   GamesIndexRoute: GamesIndexRoute,
   ReportsIndexRoute: ReportsIndexRoute,
   SchoolsIndexRoute: SchoolsIndexRoute,

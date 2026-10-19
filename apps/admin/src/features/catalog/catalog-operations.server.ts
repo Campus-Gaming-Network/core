@@ -5,6 +5,10 @@ import {
   type ApiClient,
 } from "../../server/api.server.js";
 import {
+  adminClubSchema,
+  clubsPageSchema,
+  type ClubFormInput,
+  type ClubLinksInput,
   adminGameSchema,
   adminSchoolDetailSchema,
   adminSchoolSchema,
@@ -90,6 +94,147 @@ export async function getSchoolDetailOperation(
     audit: audit.data,
     grants: grants?.data.grants,
   };
+}
+
+export async function listClubsOperation(
+  search: CatalogSearch,
+  { api, cookieHeader }: ReadDependencies,
+) {
+  const { data } = await api({
+    path: `/admin/v1/clubs${listQuery(search)}`,
+    cookieHeader,
+    responseSchema: clubsPageSchema,
+  });
+  return data;
+}
+
+export async function getClubDetailOperation(
+  input: DetailInput,
+  { api, cookieHeader }: ReadDependencies,
+) {
+  const id = encodeURIComponent(input.id);
+  const [club, audit] = await Promise.all([
+    api({
+      path: `/admin/v1/clubs/${id}`,
+      cookieHeader,
+      responseSchema: adminClubSchema,
+    }),
+    api({
+      path: `/admin/v1/clubs/${id}/audit${auditQuery(input)}`,
+      cookieHeader,
+      responseSchema: catalogAuditPageSchema,
+    }),
+  ]);
+  return { club: club.data, audit: audit.data };
+}
+
+/** The school a new club is created under, by its ID. */
+export async function getNewClubSchoolOperation(
+  { id }: { id: string },
+  { api, cookieHeader }: ReadDependencies,
+) {
+  const { data } = await api({
+    path: `/admin/v1/schools/${encodeURIComponent(id)}`,
+    cookieHeader,
+    responseSchema: adminSchoolSchema,
+  });
+  return { id: data.id, name: data.name, is_active: data.is_active };
+}
+
+/**
+ * Creates or edits a club. Game names typed into the form are matched to the
+ * catalog by exact name or slug, ignoring case, so an operator never handles a
+ * game ID; a name with no match is reported on the field.
+ */
+export async function saveClubOperation(
+  {
+    id,
+    expected_updated_at,
+    school_id,
+    add_games,
+    game_ids,
+    reason,
+    ...fields
+  }: ClubFormInput,
+  dependencies: MutationDependencies,
+): Promise<CatalogMutationResult> {
+  const editing = id !== "";
+  const returnPath = editing
+    ? `/clubs/${encodeURIComponent(id)}`
+    : `/clubs/new?school=${encodeURIComponent(school_id)}`;
+  const added: string[] = [];
+  const unknown: string[] = [];
+  for (const name of add_games) {
+    // Each name is its own lookup; there are at most 20.
+    // eslint-disable-next-line no-await-in-loop
+    const gameID = await gameIDForName(name, dependencies);
+    if (gameID) added.push(gameID);
+    else unknown.push(name);
+  }
+  if (unknown.length > 0) {
+    return {
+      status: "error",
+      message: "Check the highlighted fields and try again.",
+      fieldErrors: {
+        add_games: [`No game in the catalog is named ${unknown.join(", ")}.`],
+      },
+    };
+  }
+  const body = {
+    ...fields,
+    game_ids: [...new Set([...game_ids, ...added])],
+    reason,
+  };
+  return mutate(dependencies, {
+    request: {
+      path: editing
+        ? `/admin/v1/clubs/${encodeURIComponent(id)}`
+        : "/admin/v1/clubs",
+      method: editing ? "PATCH" : "POST",
+      body: editing ? { ...body, expected_updated_at } : { ...body, school_id },
+      responseSchema: adminClubSchema,
+    },
+    destination: (club) =>
+      `/clubs/${encodeURIComponent(club.id)}?notice=${editing ? "saved" : "created"}`,
+    returnPath,
+    reload: editing
+      ? { path: `/admin/v1/clubs/${encodeURIComponent(id)}` }
+      : undefined,
+  });
+}
+
+export async function saveClubLinksOperation(
+  { id, expected_updated_at, links, reason }: ClubLinksInput,
+  dependencies: MutationDependencies,
+): Promise<CatalogMutationResult> {
+  const path = `/admin/v1/clubs/${encodeURIComponent(id)}`;
+  return mutate(dependencies, {
+    request: {
+      path: `${path}/links`,
+      method: "POST",
+      body: { links, reason, expected_updated_at },
+      responseSchema: adminClubSchema,
+    },
+    destination: (club) =>
+      `/clubs/${encodeURIComponent(club.id)}?notice=links-saved`,
+    returnPath: `/clubs/${encodeURIComponent(id)}`,
+    reload: { path },
+  });
+}
+
+async function gameIDForName(
+  name: string,
+  { api, cookieHeader }: ReadDependencies,
+): Promise<string | undefined> {
+  const { data } = await api({
+    path: `/admin/v1/games?${new URLSearchParams({ limit: "25", q: name, state: "active" })}`,
+    cookieHeader,
+    responseSchema: gamesPageSchema,
+  });
+  const wanted = name.toLowerCase();
+  return data.games.find(
+    (game) => game.name.toLowerCase() === wanted || game.slug === wanted,
+  )?.id;
 }
 
 export async function listGamesOperation(
@@ -353,8 +498,21 @@ function commandRequest(input: CatalogCommandInput): {
   };
   const school = `/admin/v1/schools/${id}`;
   const user = `/admin/v1/users/${id}`;
+  const club = `/admin/v1/clubs/${id}`;
 
   switch (input.command) {
+    case "club.hide":
+    case "club.unhide":
+    case "club.check":
+      return {
+        request: {
+          path: `${club}/${{ "club.hide": "hide", "club.unhide": "unhide", "club.check": "mark-checked" }[input.command]}`,
+          method: "POST",
+          body: command,
+          responseSchema: adminClubSchema,
+        },
+        reload: { path: club },
+      };
     case "school.deactivate":
     case "school.reactivate":
       return {
@@ -484,6 +642,7 @@ const errorMessages: Record<string, string> = {
   last_site_admin:
     "This would remove the last active site admin. Grant another admin first.",
   admin_record_not_found: "That record no longer exists.",
+  club_game_not_found: "A chosen game is no longer in the catalog.",
 };
 
 async function mutate<TSchema extends z.ZodType>(
@@ -580,6 +739,7 @@ function listQuery(search: CatalogSearch): string {
   if (search.region) query.set("region", search.region);
   if (search.role) query.set("role", search.role);
   if (search.verification) query.set("verification", search.verification);
+  if (search.school) query.set("school", search.school);
   if (search.after) query.set("after", search.after);
   if (search.before) query.set("before", search.before);
   return `?${query.toString()}`;

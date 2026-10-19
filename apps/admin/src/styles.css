@@ -496,7 +496,8 @@
   }
 
   .queue-status--resolved,
-  .record-state--active {
+  .record-state--active,
+  .record-state--published {
     border-color: var(--tag-green-border);
     color: var(--tag-green-text);
     background: var(--tag-green-bg);

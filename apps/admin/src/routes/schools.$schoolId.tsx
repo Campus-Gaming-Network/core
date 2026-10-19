@@ -45,6 +45,8 @@ function SchoolDetailPage() {
     admin.status === "authenticated" ? admin.session.capabilities : [];
   const canManage = capabilities.includes("schools.manage");
   const canManageLogo = capabilities.includes("school_logos.manage");
+  const canReadClubs = capabilities.includes("clubs.read");
+  const canManageClubs = capabilities.includes("clubs.manage");
   const state = recordState(school);
   const path = `/schools/${encodeURIComponent(school.id)}`;
 
@@ -145,6 +147,34 @@ function SchoolDetailPage() {
           </>
         ) : null}
       </section>
+
+      {canReadClubs ? (
+        <section className="detail-panel" aria-labelledby="school-clubs">
+          <div className="panel-heading">
+            <div>
+              <p className="eyebrow">Public profile</p>
+              <h2 id="school-clubs">Clubs</h2>
+            </div>
+          </div>
+          <p className="field-help">
+            Student clubs and university programs at this school.
+          </p>
+          <div className="actions">
+            <Link search={{ school: school.id }} to="/clubs">
+              View clubs at {school.name}
+            </Link>
+            {canManageClubs && state === "active" ? (
+              <Link
+                className="primary-button"
+                search={{ school: school.id }}
+                to="/clubs/new"
+              >
+                <span aria-hidden="true">+</span> New club
+              </Link>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
 
       {canManage && state !== "deleted" ? (
         <section className="detail-panel" aria-labelledby="school-edit">

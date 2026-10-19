@@ -121,3 +121,5 @@ Migration `000034_clubs.up.sql` adds `clubs`, `club_games`, and `club_links`:
 public club records under a school, with a type, summary, How to join text,
 status, last-confirmed date, games, and labeled links. Apply it before
 deploying the API that serves `/clubs/{slug}` and `/schools/{slug}/clubs`.
+Migration `000035_club_admin.up.sql` adds `club_slug_redirects`, the earlier
+slugs of renamed clubs, so old club links still reach the club.

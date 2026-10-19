@@ -14,6 +14,7 @@ import (
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminaudit"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminmutation"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminsession"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/clubs"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/games"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/schools"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/users"
@@ -67,6 +68,20 @@ func (f catalogFixture) newSchool(t *testing.T, slug string) schools.AdminSchool
 		t.Fatal(err)
 	}
 	return school
+}
+
+// newClub creates a published club at the fixture school.
+func (f catalogFixture) newClub(t *testing.T, slug string) clubs.AdminClub {
+	t.Helper()
+	club, err := f.club.CreateAdmin(t.Context(), clubs.AdminCreate{
+		Command:     f.command,
+		SchoolID:    catalogSchoolID,
+		AdminFields: clubs.AdminFields{Name: "Club " + slug, Slug: slug, Type: clubs.TypeStudentClub},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return club
 }
 
 func (f catalogFixture) versioned(updatedAt time.Time) adminmutation.Command {
@@ -196,6 +211,43 @@ var mutationCases = map[routeOperation]mutationCase{
 		}{f.versioned(user.UpdatedAt), catalogTargetID}, 201))
 		return mutationRequest{"POST", "/admin/v1/site-admin-grants/" + granted.ID + "/revoke", f.versioned(granted.GrantedAt)}
 	}},
+	"clubs.create": {adminaudit.ActionClubCreated, func(t *testing.T, f catalogFixture) mutationRequest {
+		return mutationRequest{"POST", "/admin/v1/clubs", clubs.AdminCreate{
+			Command:     f.command,
+			SchoolID:    catalogSchoolID,
+			AdminFields: clubs.AdminFields{Name: "Created Club", Slug: "created-club", Type: clubs.TypeUniversityProgram, HowToJoin: "Come to a Tuesday meeting."},
+		}}
+	}},
+	"clubs.update": {adminaudit.ActionClubUpdated, func(t *testing.T, f catalogFixture) mutationRequest {
+		club := f.newClub(t, "update-club")
+		return mutationRequest{"PATCH", "/admin/v1/clubs/" + club.ID, clubs.AdminEdit{
+			Command:     f.versioned(club.UpdatedAt),
+			AdminFields: clubs.AdminFields{Name: "Renamed Club", Slug: "renamed-club", Type: clubs.TypeStudentClub},
+		}}
+	}},
+	"clubs.links": {adminaudit.ActionClubLinksReplaced, func(t *testing.T, f catalogFixture) mutationRequest {
+		club := f.newClub(t, "links-club")
+		return mutationRequest{"POST", "/admin/v1/clubs/" + club.ID + "/links", clubs.LinksEdit{
+			Command: f.versioned(club.UpdatedAt),
+			Links:   []clubs.Link{{Type: clubs.LinkDiscord, Label: "Discord", URL: "https://discord.example.test/club"}},
+		}}
+	}},
+	"clubs.hide": {adminaudit.ActionClubHidden, func(t *testing.T, f catalogFixture) mutationRequest {
+		club := f.newClub(t, "hide-club")
+		return mutationRequest{"POST", "/admin/v1/clubs/" + club.ID + "/hide", f.versioned(club.UpdatedAt)}
+	}},
+	"clubs.unhide": {adminaudit.ActionClubUnhidden, func(t *testing.T, f catalogFixture) mutationRequest {
+		club := f.newClub(t, "unhide-club")
+		hidden, err := f.club.HideAdmin(t.Context(), club.ID, f.versioned(club.UpdatedAt))
+		if err != nil {
+			t.Fatal(err)
+		}
+		return mutationRequest{"POST", "/admin/v1/clubs/" + club.ID + "/unhide", f.versioned(hidden.UpdatedAt)}
+	}},
+	"clubs.check": {adminaudit.ActionClubChecked, func(t *testing.T, f catalogFixture) mutationRequest {
+		club := f.newClub(t, "check-club")
+		return mutationRequest{"POST", "/admin/v1/clubs/" + club.ID + "/mark-checked", f.versioned(club.UpdatedAt)}
+	}},
 	operationPatchReport: {adminaudit.ActionReportUpdated, func(t *testing.T, f catalogFixture) mutationRequest {
 		id, updatedAt := f.insertQueueRow(t, "reports")
 		return mutationRequest{"PATCH", "/admin/v1/reports/" + id, map[string]any{"expected_updated_at": updatedAt, "status": "in_review"}}
@@ -229,7 +281,7 @@ func (f catalogFixture) send(t *testing.T, request mutationRequest) (*httptest.R
 func (f catalogFixture) domainDigest(t *testing.T) map[string]string {
 	t.Helper()
 	digests := map[string]string{}
-	for _, table := range []string{"schools", "games", "users", "reports", "support_tickets", "audit_logs", "site_role_grants", "school_admins"} {
+	for _, table := range []string{"schools", "games", "users", "reports", "support_tickets", "audit_logs", "site_role_grants", "school_admins", "clubs", "club_games", "club_links", "club_slug_redirects"} {
 		var digest string
 		if err := f.pool.QueryRow(t.Context(), `SELECT MD5(COALESCE(STRING_AGG(row_data, '' ORDER BY row_data), '')) FROM (SELECT t::text AS row_data FROM `+table+` t) rows`).Scan(&digest); err != nil {
 			t.Fatal(err)

@@ -222,6 +222,7 @@ func (r *PostgresRepository) changeAdmin(ctx context.Context, id string, command
 		err = tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM users WHERE home_school_id=$1::uuid)
 		 OR EXISTS(SELECT 1 FROM events WHERE host_school_id=$1::uuid)
 		 OR EXISTS(SELECT 1 FROM teams WHERE school_id=$1::uuid)
+		 OR EXISTS(SELECT 1 FROM clubs WHERE school_id=$1::uuid)
 		 OR EXISTS(SELECT 1 FROM user_school_follows WHERE school_id=$1::uuid AND deleted_at IS NULL)
 		 OR EXISTS(SELECT 1 FROM school_admins WHERE school_id=$1::uuid AND deleted_at IS NULL)`, id).Scan(&dependencies)
 		if err != nil {

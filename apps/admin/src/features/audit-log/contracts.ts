@@ -34,6 +34,12 @@ export const auditLogActionLabels = {
   "site_role_grant.bootstrapped": "First site admin bootstrapped",
   "site_role_grant.granted": "Site-admin access granted",
   "site_role_grant.revoked": "Site-admin access revoked",
+  "club.created": "Club created",
+  "club.updated": "Club updated",
+  "club.links_replaced": "Club links replaced",
+  "club.hidden": "Club hidden",
+  "club.unhidden": "Club published again",
+  "club.checked": "Club marked as checked",
 } as const;
 
 // The kinds of change the log can be narrowed to, by the Admin API's entity
@@ -45,6 +51,7 @@ export const auditLogEntityLabels = {
   school_admin: "School-admin access",
   game: "Games",
   user: "Accounts",
+  club: "Clubs",
   site_role_grant: "Site-admin access",
 } as const;
 
@@ -63,7 +70,14 @@ export const auditLogEntrySchema = z
         auditLogActionLabels,
       ) as (keyof typeof auditLogActionLabels)[],
     ),
-    target_type: z.enum(["report", "support_ticket", "school", "game", "user"]),
+    target_type: z.enum([
+      "report",
+      "support_ticket",
+      "school",
+      "game",
+      "user",
+      "club",
+    ]),
     target_id: uuidSchema.optional(),
     target_name: z.string().optional(),
     before: z.unknown(),

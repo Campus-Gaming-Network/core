@@ -105,6 +105,7 @@ const navigationSections: {
       | "/reports"
       | "/support-tickets"
       | "/schools"
+      | "/clubs"
       | "/games"
       | "/users"
       | "/access/site-admins"
@@ -149,6 +150,12 @@ const navigationSections: {
         label: "Schools",
         icon: "M1.5 6 8 3l6.5 3L8 9zM4 7.5v3.5c1 1 2.5 1.5 4 1.5s3-.5 4-1.5V7.5",
         capability: "schools.read",
+      },
+      {
+        to: "/clubs",
+        label: "Clubs",
+        icon: "M5.5 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM11 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM1.5 13c0-2 1.8-3.5 4-3.5s4 1.5 4 3.5M9.5 9.6c.5-.1 1-.1 1.5-.1 2.2 0 3.5 1.5 3.5 3.5",
+        capability: "clubs.read",
       },
       {
         to: "/games",

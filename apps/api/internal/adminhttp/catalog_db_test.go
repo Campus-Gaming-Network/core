@@ -22,6 +22,7 @@ import (
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminsecurity"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminsession"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/auth"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/clubs"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/emailoutbox"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/games"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/migrate"
@@ -43,6 +44,7 @@ type catalogFixture struct {
 	pool       *pgxpool.Pool
 	handler    *Handler
 	school     *schools.PostgresRepository
+	club       *clubs.PostgresRepository
 	game       *games.PostgresRepository
 	user       *users.PostgresRepository
 	grants     *adminaccess.PostgresRepository
@@ -99,7 +101,7 @@ func newCatalogFixture(t *testing.T) catalogFixture {
 			t.Fatal(err)
 		}
 	}
-	f := catalogFixture{pool: pool, school: schools.NewPostgresRepository(pool), game: games.NewPostgresRepository(pool), user: users.NewPostgresRepository(pool), grants: adminaccess.NewPostgresRepository(pool)}
+	f := catalogFixture{pool: pool, school: schools.NewPostgresRepository(pool), club: clubs.NewPostgresRepository(pool), game: games.NewPostgresRepository(pool), user: users.NewPostgresRepository(pool), grants: adminaccess.NewPostgresRepository(pool)}
 	f.actorGrant, err = f.grants.BootstrapSiteAdmin(ctx, adminaccess.BootstrapInput{UserID: catalogActorID, OperatorIdentity: "operator@example.test", Reason: "Test bootstrap"})
 	if err != nil {
 		t.Fatal(err)
@@ -131,7 +133,7 @@ func newCatalogFixture(t *testing.T) catalogFixture {
 		Grants: f.grants, Sessions: f.sessions, Security: adminsecurity.NewPostgresStore(pool),
 		Operations: operations.NewPostgresRepository(pool),
 		System:     &SystemDependencies{Outbox: emailoutbox.NewPostgresStore(pool)},
-		Catalog:    &CatalogDependencies{Schools: f.school, Games: f.game, Users: f.user, SiteGrants: f.grants, Cache: f.cache, Audit: adminaudit.NewPostgresStore(pool), IGDB: games.NewIGDBService(f.game, f.igdb.client)},
+		Catalog:    &CatalogDependencies{Schools: f.school, Clubs: f.club, Games: f.game, Users: f.user, SiteGrants: f.grants, Cache: f.cache, Audit: adminaudit.NewPostgresStore(pool), IGDB: games.NewIGDBService(f.game, f.igdb.client)},
 	})
 	return f
 }

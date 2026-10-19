@@ -222,7 +222,7 @@ func NewRouter(cfg config.Config, pools ...*pgxpool.Pool) http.Handler {
 				Catalog: &adminhttp.CatalogDependencies{
 					Schools: schools.NewPostgresRepository(router.db), Games: games.NewPostgresRepository(router.db),
 					Users: users.NewPostgresRepository(router.db), SiteGrants: adminaccess.NewPostgresRepository(router.db),
-					Cache: router.catalog, Audit: adminaudit.NewPostgresStore(router.db), Logos: logos, IGDB: adminImports,
+					Cache: router.catalog, Audit: adminaudit.NewPostgresStore(router.db), Clubs: clubs.NewPostgresRepository(router.db), Logos: logos, IGDB: adminImports,
 					AssetOrigin: strings.TrimRight(cfg.R2PublicAssetOrigin, "/"),
 				},
 			}

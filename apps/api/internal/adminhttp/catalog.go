@@ -66,6 +66,7 @@ type AuditReader interface {
 }
 type CatalogDependencies struct {
 	Schools    AdminSchools
+	Clubs      AdminClubs
 	Games      AdminGames
 	Users      AdminUsers
 	SiteGrants AdminSiteGrants

@@ -9,6 +9,8 @@ const capabilitySchema = z.enum([
   "schools.read",
   "schools.manage",
   "school_logos.manage",
+  "clubs.read",
+  "clubs.manage",
   "games.manage",
   "users.read",
   "users.manage_status",

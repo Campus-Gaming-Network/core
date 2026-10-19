@@ -15,11 +15,18 @@ import {
   validateGameFormInput,
   validateLogoUploadInput,
   validateSchoolFormInput,
+  validateClubFormInput,
+  validateClubLinksInput,
   type CatalogMutationResult,
   type Validated,
 } from "./contracts.js";
 import {
+  getClubDetailOperation,
   getGameDetailOperation,
+  getNewClubSchoolOperation,
+  listClubsOperation,
+  saveClubLinksOperation,
+  saveClubOperation,
   getSchoolDetailOperation,
   getUserDetailOperation,
   listGamesOperation,
@@ -62,6 +69,48 @@ export const getSchoolDetail = createServerFn({ method: "GET" })
       ),
     };
   });
+
+export const getClubs = createServerFn({ method: "GET" })
+  .validator(catalogBrowseInputSchema)
+  .handler(({ data }) => listClubsOperation(data, currentAdminRequest(false)));
+
+export const getClubDetail = createServerFn({ method: "GET" })
+  .validator(catalogDetailInputSchema)
+  .handler(({ data }) =>
+    orNotFound(getClubDetailOperation(data, currentAdminRequest(false))),
+  );
+
+export const getNewClubSchool = createServerFn({ method: "GET" })
+  .validator(z.object({ id: z.string().uuid() }))
+  .handler(({ data }) =>
+    orNotFound(getNewClubSchoolOperation(data, currentAdminRequest(false))),
+  );
+
+export const saveClub = createServerFn({
+  method: "POST",
+  strict: { input: false },
+})
+  .validator((input: FormData | object) => validateClubFormInput(input))
+  .handler(({ data }) =>
+    respond(
+      data,
+      (id) => (id ? `/clubs/${id}` : "/clubs"),
+      (value) => saveClubOperation(value, currentAdminRequest(true)),
+    ),
+  );
+
+export const saveClubLinks = createServerFn({
+  method: "POST",
+  strict: { input: false },
+})
+  .validator((input: FormData | object) => validateClubLinksInput(input))
+  .handler(({ data }) =>
+    respond(
+      data,
+      (id) => (id ? `/clubs/${id}` : "/clubs"),
+      (value) => saveClubLinksOperation(value, currentAdminRequest(true)),
+    ),
+  );
 
 export const getGames = createServerFn({ method: "GET" })
   .validator(catalogBrowseInputSchema)

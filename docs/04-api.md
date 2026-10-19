@@ -175,9 +175,9 @@ there is no per-list privacy setting.
 
 ### Clubs
 
-| Method | Path           | Notes                                                                                   |
-| ------ | -------------- | --------------------------------------------------------------------------------------- |
-| GET    | `/clubs/:slug` | Public; one published club. `404 club_not_found` for a hidden, deleted, or missing club |
+| Method | Path           | Notes                                                                                                                                                                                                   |
+| ------ | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/clubs/:slug` | Public; one published club. A slug the club had before a rename returns the club with its current `slug`, and the web page redirects there. `404 club_not_found` for a hidden, deleted, or missing club |
 
 A club is `{"id", "name", "slug", "type", "summary", "how_to_join", "school", "games", "links", "claimed", "confirmed_at", "confirmed_source"}`.
 `type` is `student_club` or `university_program`; neither implies university
@@ -188,7 +188,7 @@ with `type` `website`, `discord`, or `social`, in the club's order, and only
 is `false` while CGN maintains the club (until claims ship, always).
 `confirmed_at` and `confirmed_source` (`club` or `cgn`) are omitted until the
 details have been confirmed. Each game carries `has_cover`, as on events.
-Site admins create and edit clubs through the Admin API (#116); claims (#117),
+Site admins create and edit clubs through the [Admin API](./20-admin-console-v1-engineering-plan.md#clubs); claims (#117),
 owner and editor operations (#118), and joining on CGN (#262) add their routes
 when they ship.
 

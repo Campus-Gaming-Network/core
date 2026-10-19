@@ -45,6 +45,8 @@ const (
 	CapabilitySchoolsRead        Capability = "schools.read"
 	CapabilitySchoolsManage      Capability = "schools.manage"
 	CapabilitySchoolLogosManage  Capability = "school_logos.manage"
+	CapabilityClubsRead          Capability = "clubs.read"
+	CapabilityClubsManage        Capability = "clubs.manage"
 	CapabilityGamesManage        Capability = "games.manage"
 	CapabilityUsersRead          Capability = "users.read"
 	CapabilityUsersManageStatus  Capability = "users.manage_status"
@@ -64,6 +66,8 @@ var siteAdminCapabilities = []Capability{
 	CapabilitySchoolsRead,
 	CapabilitySchoolsManage,
 	CapabilitySchoolLogosManage,
+	CapabilityClubsRead,
+	CapabilityClubsManage,
 	CapabilityGamesManage,
 	CapabilityUsersRead,
 	CapabilityUsersManageStatus,

@@ -106,9 +106,11 @@ type Filter struct {
 	Region       string
 	Role         string
 	Verification string
-	Limit        int
-	After        *pagecursor.Cursor
-	Before       *pagecursor.Cursor
+	// School narrows a list to one school's records by its ID.
+	School string
+	Limit  int
+	After  *pagecursor.Cursor
+	Before *pagecursor.Cursor
 }
 
 func (filter Filter) Validate() error {
@@ -117,6 +119,9 @@ func (filter Filter) Validate() error {
 	}
 	if !Text(filter.Region, 40, false) || !Text(filter.Verification, 40, false) {
 		return apperror.Validation("invalid admin list filter")
+	}
+	if filter.School != "" && !UUID(filter.School) {
+		return apperror.Validation("invalid admin school filter")
 	}
 	if filter.Role != "" && filter.Role != "site_admin" && filter.Role != "school_admin" {
 		return apperror.Validation("invalid admin role filter")
