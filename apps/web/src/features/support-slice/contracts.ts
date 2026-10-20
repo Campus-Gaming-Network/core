@@ -77,22 +77,29 @@ export function validateSupportTicketServerInput(
 
 export type SupportSearch = {
   support?: "failed" | "submitted";
-  /** `privacy` starts the form as a privacy request. */
-  topic?: "privacy";
+  /**
+   * `privacy` starts the form as a privacy request; `club` as a request to
+   * add a club or to run one's page.
+   */
+  topic?: SupportTopic;
 };
 
-/** The subject a privacy request starts with, so support can sort it. */
-export const privacyRequestSubject = "Privacy request";
+export type SupportTopic = "privacy" | "club";
+
+/** The subject each topic starts with, so support can sort the tickets. */
+export const supportTopicSubjects: Record<SupportTopic, string> = {
+  privacy: "Privacy request",
+  club: "Club request",
+};
 
 export function validateSupportSearch(
   search: Record<string, unknown>,
 ): SupportSearch {
   const value = firstString(search.support);
+  const topic = firstString(search.topic);
   return {
     ...(value === "failed" || value === "submitted" ? { support: value } : {}),
-    ...(firstString(search.topic) === "privacy"
-      ? { topic: "privacy" as const }
-      : {}),
+    ...(topic === "privacy" || topic === "club" ? { topic } : {}),
   };
 }
 

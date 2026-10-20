@@ -1,8 +1,9 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
+import { Callout } from "../components/callout";
 import { newIdempotencyKey } from "../components/idempotency-key";
 import { publicPageHead } from "../components/public-page-head";
 import {
-  privacyRequestSubject,
+  supportTopicSubjects,
   validateSupportSearch,
 } from "../features/support-slice/contracts";
 import { SupportTicketForm } from "../features/support-slice/support-ticket-form";
@@ -44,18 +45,26 @@ function SupportPage() {
         </div>
       </section>
       {search.topic === "privacy" ? (
-        <p>
-          Tell us what you want corrected or what you want to know about your
-          data. Use the email address on your account so we can match the
-          request to it. You can download your own data from{" "}
-          <Link to="/settings/data">Your data</Link>.
-        </p>
+        <Callout icon="shield">
+          <strong>Privacy request.</strong> Tell us what you want corrected or
+          what you want to know about your data. Use the email address on your
+          account so we can match the request to it. You can download your own
+          data from <Link to="/settings/data">Your data</Link>.
+        </Callout>
+      ) : search.topic === "club" ? (
+        <Callout>
+          <strong>Adding or claiming a club.</strong> Tell us the club&apos;s
+          name and school, and whether you want it added or you run it. Link to
+          its page on your school&apos;s website or give an officer contact we
+          can check; a school email address alone does not show that you run a
+          club.
+        </Callout>
       ) : null}
       <SupportTicketForm
         idempotencyKey={idempotencyKey}
         initialStatus={search.support}
         initialSubject={
-          search.topic === "privacy" ? privacyRequestSubject : undefined
+          search.topic ? supportTopicSubjects[search.topic] : undefined
         }
       />
     </main>

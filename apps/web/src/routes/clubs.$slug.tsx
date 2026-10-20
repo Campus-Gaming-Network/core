@@ -137,6 +137,15 @@ function ClubPage() {
                 : []),
             ]}
           />
+          {club.claimed ? null : (
+            <p className="club-claim">
+              Run this club?{" "}
+              <Link to="/support" search={{ topic: "club" }}>
+                Let support know
+              </Link>
+              ; officers will be able to manage their club&apos;s page soon.
+            </p>
+          )}
         </aside>
       </div>
     </main>

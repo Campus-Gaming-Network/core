@@ -184,6 +184,17 @@ test("support API and contract failures are safe and never serialize submitted c
   );
 });
 
+test("a support topic starts the form for that kind of request", () => {
+  assert.deepEqual(
+    [
+      validateSupportSearch({ topic: "club" }),
+      validateSupportSearch({ topic: "privacy" }),
+      validateSupportSearch({ topic: "billing" }),
+    ],
+    [{ topic: "club" }, { topic: "privacy" }, {}],
+  );
+});
+
 test("native support notices accept only the first known enum", () => {
   assert.deepEqual(
     validateSupportSearch({

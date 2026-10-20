@@ -4,9 +4,12 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/clubs"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/pagecursor"
 )
 
 // fakeClubs serves one club at one school.
@@ -26,6 +29,21 @@ func (fakeClubs) ListBySchool(_ context.Context, schoolSlug string) ([]clubs.Lis
 	return []clubs.ListItem{{ID: "club-1", Name: "Esports Program", Slug: "esports-program", Type: clubs.TypeUniversityProgram, Games: []clubs.GameSummary{}}}, nil
 }
 
+// List answers with two clubs from two schools and records what it was asked.
+func (fakeClubs) List(_ context.Context, params clubs.ListParams) ([]clubs.ListItem, error) {
+	listed = append(listed, params)
+	all := []clubs.ListItem{
+		{ID: "11111111-1111-1111-1111-111111111111", Name: "Esports Program", Slug: "esports-program", Type: clubs.TypeUniversityProgram, Games: []clubs.GameSummary{}, School: &clubs.SchoolSummary{ID: "school-1", Name: "Club University", Slug: "club-university"}, SortKey: "esports program"},
+		{ID: "22222222-2222-2222-2222-222222222222", Name: "Smash Club", Slug: "smash-club", Type: clubs.TypeStudentClub, Games: []clubs.GameSummary{}, School: &clubs.SchoolSummary{ID: "school-2", Name: "Quiet College", Slug: "quiet-college"}, SortKey: "smash club"},
+	}
+	if params.Limit < len(all) {
+		return all[:params.Limit], nil
+	}
+	return all, nil
+}
+
+var listed []clubs.ListParams
+
 func TestClubRoutes(t *testing.T) {
 	router := &Router{mux: http.NewServeMux(), clubs: fakeClubs{}}
 	router.registerPublicRoutes()
@@ -39,11 +57,37 @@ func TestClubRoutes(t *testing.T) {
 		{http.MethodPost, "/clubs/esports-program", http.StatusMethodNotAllowed, ""},
 		{http.MethodGet, "/schools/club-university/clubs", http.StatusOK, `{"clubs":[{"id":"club-1","name":"Esports Program","slug":"esports-program","type":"university_program","summary":"","games":[],"claimed":false}]}` + "\n"},
 		{http.MethodGet, "/schools/no-such-school/clubs", http.StatusNotFound, `{"error":"school_not_found"}` + "\n"},
+		{http.MethodGet, "/clubs", http.StatusOK, `{"clubs":[{"id":"11111111-1111-1111-1111-111111111111","name":"Esports Program","slug":"esports-program","type":"university_program","summary":"","games":[],"claimed":false,"school":{"id":"school-1","name":"Club University","slug":"club-university"}},{"id":"22222222-2222-2222-2222-222222222222","name":"Smash Club","slug":"smash-club","type":"student_club","summary":"","games":[],"claimed":false,"school":{"id":"school-2","name":"Quiet College","slug":"quiet-college"}}],"has_more":false,"has_previous":false,"limit":25}` + "\n"},
+		{http.MethodGet, "/clubs?type=guild", http.StatusBadRequest, `{"error":"invalid_type"}` + "\n"},
+		{http.MethodGet, "/clubs?after=not-a-cursor", http.StatusBadRequest, `{"error":"invalid_cursor"}` + "\n"},
+		{http.MethodGet, "/clubs?limit=0", http.StatusBadRequest, `{"error":"invalid_limit"}` + "\n"},
+		{http.MethodGet, "/clubs?q=" + strings.Repeat("a", 101), http.StatusBadRequest, `{"error":"invalid_query"}` + "\n"},
+		{http.MethodPost, "/clubs", http.StatusMethodNotAllowed, ""},
 	} {
 		response := httptest.NewRecorder()
 		router.mux.ServeHTTP(response, httptest.NewRequest(test.method, test.path, nil))
 		if response.Code != test.status || (test.body != "" && response.Body.String() != test.body) {
 			t.Errorf("%s %s = %d %s, want %d %s", test.method, test.path, response.Code, response.Body.String(), test.status, test.body)
 		}
+	}
+}
+
+func TestClubDirectoryPassesFiltersAndPages(t *testing.T) {
+	router := &Router{mux: http.NewServeMux(), clubs: fakeClubs{}}
+	router.registerPublicRoutes()
+	listed = nil
+
+	response := httptest.NewRecorder()
+	router.mux.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/clubs?q=+smash+&school=quiet-college&type=student_club&game=melee&limit=1", nil))
+	if response.Code != http.StatusOK {
+		t.Fatalf("GET /clubs = %d %s", response.Code, response.Body.String())
+	}
+	want := []clubs.ListParams{{Query: "smash", SchoolSlug: "quiet-college", Type: clubs.TypeStudentClub, GameSlug: "melee", Limit: 2}}
+	if !reflect.DeepEqual(listed, want) {
+		t.Fatalf("List() params = %+v, want %+v", listed, want)
+	}
+	next := pagecursor.EncodeKey("esports program", "11111111-1111-1111-1111-111111111111")
+	if !strings.Contains(response.Body.String(), `"has_more":true`) || !strings.Contains(response.Body.String(), `"next_cursor":"`+next+`"`) {
+		t.Fatalf("GET /clubs?limit=1 = %s, want has_more and the first club's cursor", response.Body.String())
 	}
 }

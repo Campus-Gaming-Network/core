@@ -38,6 +38,15 @@ export function clubConfirmedLine(
     : `Checked by Campus Gaming Network on ${date}`;
 }
 
+export function clubsHead(publicOrigin?: string) {
+  return pageHead(publicOrigin, {
+    title: "Clubs",
+    description:
+      "Gaming clubs and esports programs at colleges across the United States, and how to join them.",
+    path: "/clubs",
+  });
+}
+
 export function clubHead(club: ClubDTO | undefined, publicOrigin?: string) {
   if (!club) {
     return {

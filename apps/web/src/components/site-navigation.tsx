@@ -90,6 +90,11 @@ export function SiteNavigation() {
           </Link>
         </li>
         <li>
+          <Link onClick={closeAfterLink} to="/clubs">
+            Clubs
+          </Link>
+        </li>
+        <li>
           <Link onClick={closeAfterLink} to="/schools">
             Schools
           </Link>

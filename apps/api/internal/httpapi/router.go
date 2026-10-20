@@ -282,6 +282,7 @@ func (r *Router) registerPublicRoutes() {
 	r.mux.HandleFunc("/internal/error-monitoring/test", requireMethod(http.MethodPost, r.handleErrorMonitoringTest))
 	r.mux.HandleFunc("/events", r.handleEvents)
 	r.mux.HandleFunc("/events/", r.handleEventPath)
+	r.mux.HandleFunc("/clubs", requireMethod(http.MethodGet, r.handleClubs))
 	r.mux.HandleFunc("/clubs/{slug}", requireMethod(http.MethodGet, r.handleClub))
 	r.mux.HandleFunc("/teams", r.handleTeams)
 	r.mux.HandleFunc("/teams/", r.handleTeamPath)

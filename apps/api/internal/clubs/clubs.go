@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/apperror"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/pagecursor"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -51,7 +52,7 @@ type Club struct {
 	ConfirmedSource string     `json:"confirmed_source,omitempty"`
 }
 
-// ListItem is a club as a school page lists it.
+// ListItem is a club as a school page or the clubs directory lists it.
 type ListItem struct {
 	ID      string        `json:"id"`
 	Name    string        `json:"name"`
@@ -60,7 +61,28 @@ type ListItem struct {
 	Summary string        `json:"summary"`
 	Games   []GameSummary `json:"games"`
 	Claimed bool          `json:"claimed"`
+	// School is set in the directory, which lists clubs from every school.
+	School *SchoolSummary `json:"school,omitempty"`
+	// SortKey is the club's place in the directory's name order, for paging.
+	SortKey string `json:"-"`
 }
+
+// ListParams filters and pages the clubs directory. An empty filter matches
+// every club.
+type ListParams struct {
+	// Query matches part of the club's name, ignoring case.
+	Query      string
+	SchoolSlug string
+	Type       string
+	GameSlug   string
+	Limit      int
+	After      *pagecursor.KeyCursor
+	Before     *pagecursor.KeyCursor
+}
+
+// maximumListLimit is the largest page the directory reads, including the
+// one extra row that tells a page whether another follows it.
+const maximumListLimit = 101
 
 // SchoolSummary identifies the club's school.
 type SchoolSummary struct {
@@ -91,6 +113,7 @@ type Link struct {
 type Repository interface {
 	GetBySlug(ctx context.Context, slug string) (Club, error)
 	ListBySchool(ctx context.Context, schoolSlug string) ([]ListItem, error)
+	List(ctx context.Context, params ListParams) ([]ListItem, error)
 }
 
 // PostgresRepository reads clubs from Postgres.
@@ -238,6 +261,83 @@ func (r *PostgresRepository) ListBySchool(ctx context.Context, schoolSlug string
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("iterate school clubs: %w", err)
+	}
+	return clubs, nil
+}
+
+// List returns one page of published clubs at active schools, by name. An
+// unknown school or game matches no clubs. A page read backward queries in
+// reverse order and is reversed again, like the people lists.
+func (r *PostgresRepository) List(ctx context.Context, params ListParams) ([]ListItem, error) {
+	if params.After != nil && params.Before != nil {
+		return nil, pagecursor.ErrInvalid
+	}
+	if params.Limit < 1 || params.Limit > maximumListLimit {
+		params.Limit = maximumListLimit
+	}
+
+	arguments := []any{
+		strings.TrimSpace(params.Query),
+		strings.TrimSpace(params.SchoolSlug),
+		strings.TrimSpace(params.Type),
+		strings.TrimSpace(params.GameSlug),
+	}
+	where := publishedClub + `
+		AND ($1 = '' OR c.name ILIKE '%' || $1 || '%')
+		AND ($2 = '' OR s.slug = $2)
+		AND ($3 = '' OR c.type = $3)
+		AND ($4 = '' OR EXISTS (
+			SELECT 1 FROM club_games fg JOIN games fgame ON fgame.id = fg.game_id AND fgame.deleted_at IS NULL
+			WHERE fg.club_id = c.id AND fgame.slug = $4))`
+	order := `ORDER BY LOWER(c.name), c.id`
+	if params.After != nil {
+		where += fmt.Sprintf(" AND (LOWER(c.name), c.id) > ($%d, $%d::uuid)", len(arguments)+1, len(arguments)+2)
+		arguments = append(arguments, params.After.Key, params.After.ID)
+	}
+	if params.Before != nil {
+		where += fmt.Sprintf(" AND (LOWER(c.name), c.id) < ($%d, $%d::uuid)", len(arguments)+1, len(arguments)+2)
+		arguments = append(arguments, params.Before.Key, params.Before.ID)
+		order = `ORDER BY LOWER(c.name) DESC, c.id DESC`
+	}
+	arguments = append(arguments, params.Limit)
+
+	rows, err := r.pool.Query(ctx, `
+		SELECT c.id::text, c.name, c.slug, c.type, c.summary, LOWER(c.name),
+		       s.id::text, s.name, s.slug, COALESCE(s.city, ''), COALESCE(s.state, ''),
+		       `+gameColumns+`
+		FROM clubs c
+		JOIN schools s ON s.id = c.school_id AND s.deleted_at IS NULL AND s.is_active = TRUE
+		LEFT JOIN club_games cg ON cg.club_id = c.id
+		LEFT JOIN games g ON g.id = cg.game_id AND g.deleted_at IS NULL
+		WHERE `+where+`
+		GROUP BY c.id, s.id
+		`+order+fmt.Sprintf(" LIMIT $%d", len(arguments)), arguments...)
+	if err != nil {
+		return nil, fmt.Errorf("list clubs: %w", err)
+	}
+	defer rows.Close()
+	clubs := []ListItem{}
+	for rows.Next() {
+		var item ListItem
+		var school SchoolSummary
+		var gameIDs, gameNames, gameSlugs []string
+		var gameCovers []bool
+		if err := rows.Scan(&item.ID, &item.Name, &item.Slug, &item.Type, &item.Summary, &item.SortKey,
+			&school.ID, &school.Name, &school.Slug, &school.City, &school.State,
+			&gameIDs, &gameNames, &gameSlugs, &gameCovers); err != nil {
+			return nil, fmt.Errorf("scan club: %w", err)
+		}
+		item.School = &school
+		item.Games = games(gameIDs, gameNames, gameSlugs, gameCovers)
+		clubs = append(clubs, item)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate clubs: %w", err)
+	}
+	if params.Before != nil {
+		for left, right := 0, len(clubs)-1; left < right; left, right = left+1, right-1 {
+			clubs[left], clubs[right] = clubs[right], clubs[left]
+		}
 	}
 	return clubs, nil
 }

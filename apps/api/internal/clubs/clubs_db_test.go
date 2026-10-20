@@ -9,6 +9,7 @@ import (
 
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/dbtest"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/migrate"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/pagecursor"
 )
 
 func TestPostgresRepositoryReadsPublishedClubs(t *testing.T) {
@@ -140,6 +141,83 @@ func TestClubLinksAcceptOnlyHTTPURLs(t *testing.T) {
 		`, clubID, url)
 		if (err == nil) != wantOK {
 			t.Errorf("link %q: error = %v, want accepted = %v", url, err, wantOK)
+		}
+	}
+}
+
+func TestPostgresRepositoryListsTheClubsDirectory(t *testing.T) {
+	ctx := context.Background()
+	pool := dbtest.NewSchemaPool(t, "clubs_directory")
+	if err := migrate.Run(ctx, pool, "../../../../db/migrations"); err != nil {
+		t.Fatalf("migrate schema: %v", err)
+	}
+	insert := func(query string, args ...any) string {
+		t.Helper()
+		var id string
+		if err := pool.QueryRow(ctx, query+" RETURNING id::text", args...).Scan(&id); err != nil {
+			t.Fatalf("insert %q: %v", query, err)
+		}
+		return id
+	}
+	clubU := insert(`INSERT INTO schools (name, slug, city, state) VALUES ('Club University', 'club-university', 'Irvine', 'CA')`)
+	quiet := insert(`INSERT INTO schools (name, slug) VALUES ('Quiet College', 'quiet-college')`)
+	closed := insert(`INSERT INTO schools (name, slug, is_active) VALUES ('Closed College', 'closed-college', FALSE)`)
+	melee := insert(`INSERT INTO games (name, slug) VALUES ('Melee', 'melee')`)
+
+	insert(`INSERT INTO clubs (school_id, name, slug, type) VALUES ($1::uuid, 'Esports Program', 'esports-program', 'university_program')`, clubU)
+	smash := insert(`INSERT INTO clubs (school_id, name, slug, type) VALUES ($1::uuid, 'Smash Club', 'smash-club', 'student_club')`, quiet)
+	arcade := insert(`INSERT INTO clubs (school_id, name, slug, type) VALUES ($1::uuid, 'arcade society', 'arcade-society', 'student_club')`, clubU)
+	insert(`INSERT INTO clubs (school_id, name, slug, type, status) VALUES ($1::uuid, 'Hidden Guild', 'hidden-guild', 'student_club', 'hidden')`, clubU)
+	insert(`INSERT INTO clubs (school_id, name, slug, type, deleted_at) VALUES ($1::uuid, 'Old Club', 'old-club', 'student_club', NOW())`, quiet)
+	insert(`INSERT INTO clubs (school_id, name, slug, type) VALUES ($1::uuid, 'Closed Club', 'closed-club', 'student_club')`, closed)
+	if _, err := pool.Exec(ctx, `INSERT INTO club_games (club_id, game_id) VALUES ($1::uuid, $2::uuid)`, smash, melee); err != nil {
+		t.Fatalf("insert club game: %v", err)
+	}
+
+	repository := NewPostgresRepository(pool)
+	slugs := func(params ListParams) []string {
+		t.Helper()
+		items, err := repository.List(ctx, params)
+		if err != nil {
+			t.Fatalf("List(%+v) error = %v", params, err)
+		}
+		result := []string{}
+		for _, item := range items {
+			result = append(result, item.Slug)
+		}
+		return result
+	}
+
+	all, err := repository.List(ctx, ListParams{Limit: 10})
+	if err != nil {
+		t.Fatalf("List() error = %v", err)
+	}
+	first := ListItem{
+		ID: arcade, Name: "arcade society", Slug: "arcade-society", Type: TypeStudentClub, Games: []GameSummary{},
+		School:  &SchoolSummary{ID: clubU, Name: "Club University", Slug: "club-university", City: "Irvine", State: "CA"},
+		SortKey: "arcade society",
+	}
+	if len(all) != 3 || !reflect.DeepEqual(all[0], first) {
+		t.Fatalf("List() = %+v, want three clubs starting with %+v", all, first)
+	}
+
+	for name, test := range map[string]struct {
+		params ListParams
+		want   []string
+	}{
+		"every published club at an active school, by name": {ListParams{}, []string{"arcade-society", "esports-program", "smash-club"}},
+		"name search ignores case":                          {ListParams{Query: "CLUB"}, []string{"smash-club"}},
+		"school":                                            {ListParams{SchoolSlug: "club-university"}, []string{"arcade-society", "esports-program"}},
+		"type":                                              {ListParams{Type: TypeUniversityProgram}, []string{"esports-program"}},
+		"game":                                              {ListParams{GameSlug: "melee"}, []string{"smash-club"}},
+		"filters combine":                                   {ListParams{SchoolSlug: "club-university", Type: TypeStudentClub}, []string{"arcade-society"}},
+		"an unknown school matches nothing":                 {ListParams{SchoolSlug: "no-such-school"}, []string{}},
+		"an inactive school's club is left out":             {ListParams{SchoolSlug: "closed-college"}, []string{}},
+		"forward from a cursor":                             {ListParams{After: &pagecursor.KeyCursor{Key: "arcade society", ID: arcade}}, []string{"esports-program", "smash-club"}},
+		"backward from a cursor":                            {ListParams{Before: &pagecursor.KeyCursor{Key: "smash club", ID: smash}, Limit: 1}, []string{"esports-program"}},
+	} {
+		if got := slugs(test.params); !reflect.DeepEqual(got, test.want) {
+			t.Errorf("%s: List() = %v, want %v", name, got, test.want)
 		}
 	}
 }

@@ -10,7 +10,7 @@ import {
 } from "react";
 import { filterFormSearch } from "./directory-filters";
 
-type DirectoryPath = "/events" | "/teams" | "/schools";
+type DirectoryPath = "/events" | "/teams" | "/clubs" | "/schools";
 
 // The directories share one link shape; the router types each route's search
 // separately, so the filter links go through this looser view.

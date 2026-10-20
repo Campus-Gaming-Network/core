@@ -2,9 +2,19 @@ import { createServerFn } from "@tanstack/react-start";
 import { goBFFForCurrentRequest } from "../../server/request-boundary.server.js";
 import {
   clubDetailOperation,
+  clubsBrowsePageOperation,
   schoolClubsOperation,
 } from "./club-operations.server.js";
-import { clubSlugInputSchema } from "./contracts.js";
+import {
+  clubsBrowsePageInputSchema,
+  clubSlugInputSchema,
+} from "./contracts.js";
+
+export const getClubsBrowsePage = createServerFn({ method: "GET" })
+  .validator(clubsBrowsePageInputSchema)
+  .handler(async ({ data }) =>
+    clubsBrowsePageOperation(data, { api: goBFFForCurrentRequest() }),
+  );
 
 export const getClubDetail = createServerFn({ method: "GET" })
   .validator(clubSlugInputSchema)

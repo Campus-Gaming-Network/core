@@ -2,8 +2,13 @@ import assert from "node:assert/strict";
 import { test } from "vite-plus/test";
 import {
   clubDetailOperation,
+  clubsBrowsePageOperation,
   schoolClubsOperation,
 } from "../src/features/club-slice/club-operations.server.js";
+import {
+  clubsBrowsePageInput,
+  validateClubsSearch,
+} from "../src/features/club-slice/contracts.js";
 import {
   clubConfirmedLine,
   clubManagedBy,
@@ -166,5 +171,114 @@ test("a club page says who keeps it and when it was last confirmed", () => {
       "Confirmed by the club on Mar 4, 2031",
       undefined,
     ],
+  );
+});
+
+test("the clubs directory keeps its filters in the query string and drops bad values", () => {
+  assert.deepEqual(
+    [
+      validateClubsSearch({
+        q: "  smash ",
+        school: "club-university",
+        type: "student_club",
+        game: "melee",
+        school_q: "club",
+        after: "cursor-a",
+        before: "cursor-b",
+      }),
+      validateClubsSearch({
+        q: "x".repeat(101),
+        type: "guild",
+        school: ["first", "second"],
+        game: 7,
+      }),
+      validateClubsSearch({ before: "cursor-b" }),
+    ],
+    [
+      {
+        q: "smash",
+        school: "club-university",
+        type: "student_club",
+        game: "melee",
+        school_q: "club",
+        after: "cursor-a",
+      },
+      { school: "first" },
+      { before: "cursor-b" },
+    ],
+  );
+  assert.deepEqual(clubsBrowsePageInput({ type: "university_program" }), {
+    q: "",
+    school: "",
+    type: "university_program",
+    game: "",
+    after: "",
+    before: "",
+    schoolQuery: "",
+    gameQuery: "",
+  });
+});
+
+test("the clubs directory asks for one filtered page, and a failure leaves the page up", async () => {
+  const requested: string[] = [];
+  const listed = await clubsBrowsePageOperation(
+    {
+      ...clubsBrowsePageInput({ q: "esports", type: "university_program" }),
+      after: "cursor-a",
+    },
+    {
+      api: client(async (input) => {
+        requested.push(requestURL(input));
+        return Response.json({
+          clubs: [
+            {
+              id: club.id,
+              name: club.name,
+              slug: club.slug,
+              type: club.type,
+              summary: club.summary,
+              games: club.games,
+              claimed: false,
+              school: club.school,
+            },
+          ],
+          limit: 25,
+          has_more: true,
+          has_previous: true,
+          next_cursor: "cursor-b",
+          previous_cursor: "cursor-c",
+        });
+      }),
+    },
+  );
+  const failed = await clubsBrowsePageOperation(clubsBrowsePageInput({}), {
+    api: client(async () => {
+      throw new Error("offline");
+    }),
+    reportError: () => {},
+  });
+
+  assert.deepEqual(
+    {
+      requested,
+      slugs: listed.clubs.map((item) => item.slug),
+      paging: [
+        listed.has_more,
+        listed.has_previous,
+        listed.next_cursor,
+        listed.previous_cursor,
+      ],
+      unavailable: [listed.clubsUnavailable, failed.clubsUnavailable],
+      failedClubs: failed.clubs,
+    },
+    {
+      requested: [
+        "http://api:8080/clubs?q=esports&type=university_program&limit=25&after=cursor-a",
+      ],
+      slugs: ["esports-program"],
+      paging: [true, true, "cursor-b", "cursor-c"],
+      unavailable: [false, true],
+      failedClubs: [],
+    },
   );
 });

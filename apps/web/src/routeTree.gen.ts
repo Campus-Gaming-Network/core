@@ -37,6 +37,7 @@ import { Route as ApiHealthRouteImport } from './routes/api.health'
 import { Route as ApiSchoolsRouteImport } from './routes/api.schools'
 import { Route as AuthResetPasswordRouteImport } from './routes/auth.reset-password'
 import { Route as AuthVerifyEmailRouteImport } from './routes/auth.verify-email'
+import { Route as ClubsIndexRouteImport } from './routes/clubs.index'
 import { Route as ClubsSlugRouteImport } from './routes/clubs.$slug'
 import { Route as EventsIndexRouteImport } from './routes/events.index'
 import { Route as EventsSlugRouteImport } from './routes/events.$slug'
@@ -202,6 +203,11 @@ const AuthResetPasswordRoute = AuthResetPasswordRouteImport.update({
 const AuthVerifyEmailRoute = AuthVerifyEmailRouteImport.update({
   id: '/auth/verify-email',
   path: '/auth/verify-email',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClubsIndexRoute = ClubsIndexRouteImport.update({
+  id: '/clubs/',
+  path: '/clubs/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ClubsSlugRoute = ClubsSlugRouteImport.update({
@@ -376,6 +382,7 @@ export interface FileRoutesByFullPath {
   '/teams/$slug': typeof TeamsSlugRoute
   '/teams/new': typeof TeamsNewRoute
   '/users/$id': typeof UsersIdRoute
+  '/clubs/': typeof ClubsIndexRoute
   '/events/': typeof EventsIndexRoute
   '/schools/': typeof SchoolsIndexRoute
   '/settings/': typeof SettingsIndexRoute
@@ -428,6 +435,7 @@ export interface FileRoutesByTo {
   '/teams/$slug': typeof TeamsSlugRoute
   '/teams/new': typeof TeamsNewRoute
   '/users/$id': typeof UsersIdRoute
+  '/clubs': typeof ClubsIndexRoute
   '/events': typeof EventsIndexRoute
   '/schools': typeof SchoolsIndexRoute
   '/settings': typeof SettingsIndexRoute
@@ -485,6 +493,7 @@ export interface FileRoutesById {
   '/teams/$slug': typeof TeamsSlugRoute
   '/teams/new': typeof TeamsNewRoute
   '/users/$id': typeof UsersIdRoute
+  '/clubs/': typeof ClubsIndexRoute
   '/events/': typeof EventsIndexRoute
   '/schools/': typeof SchoolsIndexRoute
   '/settings/': typeof SettingsIndexRoute
@@ -543,6 +552,7 @@ export interface FileRouteTypes {
     | '/teams/$slug'
     | '/teams/new'
     | '/users/$id'
+    | '/clubs/'
     | '/events/'
     | '/schools/'
     | '/settings/'
@@ -595,6 +605,7 @@ export interface FileRouteTypes {
     | '/teams/$slug'
     | '/teams/new'
     | '/users/$id'
+    | '/clubs'
     | '/events'
     | '/schools'
     | '/settings'
@@ -651,6 +662,7 @@ export interface FileRouteTypes {
     | '/teams/$slug'
     | '/teams/new'
     | '/users/$id'
+    | '/clubs/'
     | '/events/'
     | '/schools/'
     | '/settings/'
@@ -699,6 +711,7 @@ export interface RootRouteChildren {
   AuthVerifyEmailRoute: typeof AuthVerifyEmailRoute
   ClubsSlugRoute: typeof ClubsSlugRoute
   UsersIdRoute: typeof UsersIdRoute
+  ClubsIndexRoute: typeof ClubsIndexRoute
   ApiAccountExportRoute: typeof ApiAccountExportRoute
   ApiAvatarsIdRoute: typeof ApiAvatarsIdRoute
   ApiGamesCatalogSearchRoute: typeof ApiGamesCatalogSearchRoute
@@ -904,6 +917,13 @@ declare module '@tanstack/react-router' {
       path: '/auth/verify-email'
       fullPath: '/auth/verify-email'
       preLoaderRoute: typeof AuthVerifyEmailRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/clubs/': {
+      id: '/clubs/'
+      path: '/clubs'
+      fullPath: '/clubs/'
+      preLoaderRoute: typeof ClubsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/clubs/$slug': {
@@ -1192,6 +1212,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthVerifyEmailRoute: AuthVerifyEmailRoute,
   ClubsSlugRoute: ClubsSlugRoute,
   UsersIdRoute: UsersIdRoute,
+  ClubsIndexRoute: ClubsIndexRoute,
   ApiAccountExportRoute: ApiAccountExportRoute,
   ApiAvatarsIdRoute: ApiAvatarsIdRoute,
   ApiGamesCatalogSearchRoute: ApiGamesCatalogSearchRoute,
