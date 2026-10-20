@@ -3640,6 +3640,11 @@ main.auth-page > a.button {
   list-style: none;
 }
 
+/* A button row, not a bullet list: no prose spacing between items. */
+.faq-topics li + li {
+  margin-top: 0;
+}
+
 .faq-topics li {
   margin: 0;
 }
