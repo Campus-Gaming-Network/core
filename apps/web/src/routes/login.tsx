@@ -12,6 +12,7 @@ import { authPageHead } from "../features/auth-flow-slice/presentation";
 import { login } from "../features/event-slice/auth.functions";
 import { safeLocalPath } from "../safe-local-path";
 import "../features/auth-flow-slice/auth-flow.css";
+import { formString } from "../components/form-string";
 
 type LoginSearch = {
   error?: "login-failed" | "account-suspended";
@@ -107,8 +108,8 @@ function LoginForm({
     await mutation.execute(() =>
       runLogin({
         data: {
-          email: String(form.get("email") ?? ""),
-          password: String(form.get("password") ?? ""),
+          email: formString(form, "email"),
+          password: formString(form, "password"),
           ...(next ? { next } : {}),
         },
       }),

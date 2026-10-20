@@ -23,6 +23,7 @@ import {
   settingsNotices,
   settingsProfileHead,
 } from "../features/account-slice/presentation";
+import { formString } from "../components/form-string";
 
 // The API accepts at most three social links; rows are numbered from zero.
 const socialLinkSlots = [0, 1, 2];
@@ -108,18 +109,18 @@ function ProfileForm({
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     const socialLinks = socialLinkSlots.flatMap((index) => {
-      const label = String(form.get(`social_label_${index}`) ?? "");
-      const url = String(form.get(`social_url_${index}`) ?? "");
+      const label = formString(form, `social_label_${index}`);
+      const url = formString(form, `social_url_${index}`);
       return label || url ? [{ label, url }] : [];
     });
     await mutation.execute(() =>
       runUpdate({
         data: {
-          name: String(form.get("name") ?? ""),
-          bio: String(form.get("bio") ?? ""),
-          timezone: String(form.get("timezone") ?? ""),
+          name: formString(form, "name"),
+          bio: formString(form, "bio"),
+          timezone: formString(form, "timezone"),
           social_links: socialLinks,
-          discord_username: String(form.get("discord_username") ?? ""),
+          discord_username: formString(form, "discord_username"),
           // A "false" input comes before the checkbox, so the last value is
           // the checkbox when it is checked and the "false" when it is not.
           show_in_lists: form.getAll("show_in_lists").at(-1) === "true",

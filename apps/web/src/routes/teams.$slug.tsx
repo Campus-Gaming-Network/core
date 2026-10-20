@@ -60,6 +60,7 @@ import {
 } from "../features/team-slice/presentation";
 import { schoolLocation } from "../features/school-slice/presentation";
 import teamCSS from "../features/team-slice/teams.css?url";
+import { formString } from "../components/form-string";
 
 type TeamRouteData = {
   team: TeamDTO;
@@ -384,7 +385,7 @@ function TeamJoinForm({ slug }: { slug: string }) {
       runJoinTeam({
         data: {
           slug,
-          password: String(form.get("password") ?? ""),
+          password: formString(form, "password"),
         },
       }),
     );
@@ -653,7 +654,7 @@ function TransferOwnershipForm({
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     if (!confirming) {
-      const selectedID = String(form.get("new_owner_user_id") ?? "");
+      const selectedID = formString(form, "new_owner_user_id");
       setSelectedOwnerName(
         members.find((member) => member.user_id === selectedID)?.name ??
           "this member",
@@ -667,7 +668,7 @@ function TransferOwnershipForm({
       result = await runTransferTeamOwnership({
         data: {
           slug,
-          new_owner_user_id: String(form.get("new_owner_user_id") ?? ""),
+          new_owner_user_id: formString(form, "new_owner_user_id"),
         },
       });
     } catch {

@@ -1,5 +1,6 @@
 import * as z from "zod";
 import type { WithSchoolLogo } from "../school-slice/contracts.js";
+import { formString } from "../../components/form-string.js";
 
 const identifierSchema = z.string().trim().min(1);
 const timestampSchema = z.iso.datetime({ offset: true });
@@ -285,11 +286,6 @@ function validationFailure(error: z.ZodError): ValidatedAccountInput<never> {
     message: "Check the highlighted fields and try again.",
     fieldErrors,
   };
-}
-
-function formString(form: FormData, name: string): string {
-  const value = form.get(name);
-  return typeof value === "string" ? value : "";
 }
 
 function isHTTPURL(value: string): boolean {

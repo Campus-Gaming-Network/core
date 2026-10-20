@@ -1,6 +1,7 @@
 import * as z from "zod";
 import type { PageNotice } from "../../components/page-notice.js";
 import { pageHead } from "../../components/public-page-head.js";
+import { formString } from "../../components/form-string.js";
 
 /**
  * The email-and-password settings page: its inputs, and the notice codes a
@@ -209,9 +210,4 @@ function validated<T>(schema: z.ZodType<T>, candidate: unknown): Validated<T> {
     message: "Check the highlighted fields and try again.",
     fieldErrors,
   };
-}
-
-function formString(form: FormData, name: string): string {
-  const value = form.get(name);
-  return typeof value === "string" ? value : "";
 }

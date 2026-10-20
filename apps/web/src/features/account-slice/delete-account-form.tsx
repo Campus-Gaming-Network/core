@@ -8,6 +8,7 @@ import {
 import { FormField } from "../../components/form-field";
 import { FormSection } from "../../components/form-section";
 import { deleteAccount } from "./account.functions";
+import { formString } from "../../components/form-string";
 
 /**
  * Deleting the account, set apart as the settings' danger zone: a red-edged
@@ -29,7 +30,7 @@ export function DeleteAccountForm() {
       return;
     }
     await mutation.execute(() =>
-      runDelete({ data: { confirm: String(form.get("confirm") ?? "") } }),
+      runDelete({ data: { confirm: formString(form, "confirm") } }),
     );
   }
   const errors = mutation.fieldErrors.confirm;

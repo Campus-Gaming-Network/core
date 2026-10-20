@@ -36,6 +36,7 @@ import {
   safeHTTPURL,
   verificationLabel,
 } from "../features/public-profile/presentation";
+import { formString } from "../components/form-string";
 
 export type PublicProfileRouteData = {
   profile: PublicProfileDTO;
@@ -317,7 +318,7 @@ function ReportUserForm({ userID }: { userID: string }) {
       const next = await runReportUser({
         data: {
           userID,
-          reason: String(formData.get("reason") ?? ""),
+          reason: formString(formData, "reason"),
           idempotency_key: idempotency.key,
         },
       });

@@ -89,6 +89,7 @@ import {
 } from "../features/people-slice/people-views";
 import { verificationDetail } from "../features/people-slice/presentation";
 import { schoolMonogram, schoolTone } from "../components/school-identity";
+import { formString } from "../components/form-string";
 
 type EventRouteData = {
   event: EventDetailDTO;
@@ -724,7 +725,7 @@ function ReportEventForm({ slug }: { slug: string }) {
       const result = await runReportEvent({
         data: {
           slug,
-          reason: String(form.get("reason") ?? ""),
+          reason: formString(form, "reason"),
           idempotency_key: idempotency.key,
         },
       });
@@ -791,7 +792,7 @@ function UnlockEventForm({ slug }: { slug: string }) {
       runUnlockEvent({
         data: {
           slug,
-          password: String(form.get("password") ?? ""),
+          password: formString(form, "password"),
         },
       }),
     );

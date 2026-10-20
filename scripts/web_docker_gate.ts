@@ -328,7 +328,7 @@ try {
 
 if (failure) {
   process.stderr.write(
-    `Web production Docker gate failed: ${failure instanceof Error ? failure.message : String(failure)}\n`,
+    `Web production Docker gate failed: ${failure instanceof Error ? failure.message : JSON.stringify(failure)}\n`,
   );
   process.exitCode = 1;
 }

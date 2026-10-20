@@ -221,7 +221,9 @@ async function collect(): Promise<void> {
       metadata = JSON.parse(await readFile(metadataFile, "utf8"));
     } catch {
       metadata = (await (
-        await request(`https://commons.wikimedia.org/w/api.php?${params}`)
+        await request(
+          `https://commons.wikimedia.org/w/api.php?${params.toString()}`,
+        )
       ).json()) as CommonsResponse;
       if (metadata.error || !metadata.query)
         throw new Error(metadata.error?.info ?? "Missing metadata");
@@ -533,7 +535,7 @@ async function collectAthletics(): Promise<void> {
     while (next) {
       const data = (await (
         await request(
-          `https://en.wikipedia.org/w/api.php?${new URLSearchParams({ action: "query", format: "json", ...params, ...next })}`,
+          `https://en.wikipedia.org/w/api.php?${new URLSearchParams({ action: "query", format: "json", ...params, ...next }).toString()}`,
         )
       ).json()) as WikiResponse & { continue?: Record<string, string> };
       pages.push(...Object.values(data.query?.pages ?? {}));

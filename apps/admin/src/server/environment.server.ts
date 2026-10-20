@@ -419,7 +419,7 @@ function validCookieName(value: string): boolean {
   const separators = '()<>@,;:\\"/[]?={} \t';
   return (
     value.length > 0 &&
-    [...value].every((character) => {
+    Array.from(value).every((character) => {
       const codePoint = character.codePointAt(0) ?? 0;
       return (
         codePoint >= 0x21 &&
