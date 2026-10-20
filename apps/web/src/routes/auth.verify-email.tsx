@@ -5,7 +5,10 @@ import {
 } from "../features/auth-flow-slice/auth-forms";
 import { validateVerifyEmailSearch } from "../features/auth-flow-slice/contracts";
 import { establishPrivateAuthPage } from "../features/auth-flow-slice/auth-flow.functions";
-import { authPageHead } from "../features/auth-flow-slice/presentation";
+import {
+  authPageHead,
+  verifyEmailCopy,
+} from "../features/auth-flow-slice/presentation";
 import "../features/auth-flow-slice/auth-flow.css";
 
 const description = "Confirm your email address for Campus Gaming Network.";
@@ -32,50 +35,31 @@ export const Route = createFileRoute("/auth/verify-email")({
 
 function VerifyEmailPage() {
   const search = Route.useSearch();
-  const verified = search.verified === "complete";
-  const hasUsableToken = Boolean(search.token) && !search.error;
-  const bareVisit = !search.token && !search.error;
+  const copy = verifyEmailCopy(search);
 
   return (
     <main className="auth-page">
       <header className="auth-heading">
-        <h1>
-          {verified
-            ? "Your email is verified"
-            : hasUsableToken
-              ? "Confirm your email"
-              : bareVisit
-                ? "Send a new verification email"
-                : "We could not verify that link"}
-        </h1>
+        <h1>{copy.heading}</h1>
       </header>
-      {verified ? (
+      {search.verified === "complete" ? (
         <>
-          <p role="status">Your email is verified. You can log in now.</p>
+          <p role="status">{copy.message.text}</p>
           <Link className="button button--primary" to="/login">
             Log in
           </Link>
         </>
-      ) : hasUsableToken && search.token ? (
+      ) : search.token && !search.error ? (
         <>
-          <p className="lede">
-            Almost there. Select Verify email to confirm your address.
-          </p>
+          <p className="lede">{copy.message.text}</p>
           <VerifyEmailForm token={search.token} />
         </>
       ) : (
         <>
-          {bareVisit ? (
-            <p className="lede">
-              Enter the email you signed up with and we will send another
-              verification link.
-            </p>
+          {copy.message.role === "alert" ? (
+            <p role="alert">{copy.message.text}</p>
           ) : (
-            <p role="alert">
-              {search.error
-                ? "That link is invalid or has expired. Enter your email to get a new one."
-                : "This verification link is incomplete. Enter your email to get a new one."}
-            </p>
+            <p className="lede">{copy.message.text}</p>
           )}
           <ResendVerificationForm initialStatus={search.resend} />
         </>

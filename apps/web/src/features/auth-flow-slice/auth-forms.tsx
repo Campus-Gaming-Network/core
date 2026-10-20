@@ -28,6 +28,7 @@ import {
   verifyEmail,
 } from "./auth-flow.functions";
 import { emailInputProps, passwordHint, passwordRules } from "./field-props";
+import { resendVerificationMessage } from "./presentation";
 import { SchoolSearchSelect } from "../../components/school-search-select";
 import { detectTimeZone } from "./timezone";
 import { useAuthMutation } from "./use-auth-mutation";
@@ -438,12 +439,7 @@ export function ResendVerificationForm({
     await mutation.execute(() => runResend({ data: form }));
   }
 
-  const initialMessage =
-    initialStatus === "sent"
-      ? "If that account needs verification, another email is on the way."
-      : initialStatus === "failed"
-        ? "We could not resend verification. Please try again."
-        : "";
+  const initialMessage = resendVerificationMessage(initialStatus);
 
   return (
     <form

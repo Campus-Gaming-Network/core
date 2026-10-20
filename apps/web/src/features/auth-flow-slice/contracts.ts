@@ -188,7 +188,7 @@ export function validateResetPasswordSearch(
   };
 }
 
-type VerifyEmailSearch = {
+export type VerifyEmailSearch = {
   token?: string;
   error?: "invalid-link";
   resend?: "sent" | "failed";
