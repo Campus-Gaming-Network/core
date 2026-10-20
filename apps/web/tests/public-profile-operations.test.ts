@@ -23,6 +23,7 @@ import { bodyText, requestURL } from "./fetch-stub.js";
 const idempotencyKey = "5b0e7f5c-3f4d-4d8e-9a71-6c2b1e0f9d34";
 const publicProfile = {
   id: "user/e2e",
+  public_id: "Pq2rSt3uVw",
   name: "Player One",
   bio: "Campus competitor",
   verification_level: "verified",
@@ -52,6 +53,7 @@ const publicProfile = {
 
 const viewerProfile = {
   id: "viewer-private-id",
+  public_id: "Ab3dEf5hJk",
   email: "viewer-private@example.test",
   verification_level: "basic",
   name: "Private Viewer",
@@ -84,6 +86,7 @@ test("public profile is a no-store public allowlist and skips /me without the co
     status: "found",
     profile: {
       id: "user/e2e",
+      public_id: "Pq2rSt3uVw",
       name: "Player One",
       bio: "Campus competitor",
       verification_level: "verified",

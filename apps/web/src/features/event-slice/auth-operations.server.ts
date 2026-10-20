@@ -63,6 +63,7 @@ export async function getNavigationSessionOperation({
       authenticated: true,
       user: {
         id: profile.id,
+        publicId: profile.public_id,
         name: profile.name,
         ...(school
           ? { homeSchool: { name: school.name, slug: school.slug } }

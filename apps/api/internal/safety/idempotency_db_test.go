@@ -28,6 +28,7 @@ func TestPostgresRepositoryReplaysIdempotencyKeys(t *testing.T) {
 	suffix := fmt.Sprint(time.Now().UnixNano())
 	var schoolID string
 	userIDs := make([]string, 3)
+	publicIDs := make([]string, 3)
 	keys := make([]string, 2)
 	t.Cleanup(func() {
 		cleanupContext := context.Background()
@@ -50,8 +51,8 @@ func TestPostgresRepositoryReplaysIdempotencyKeys(t *testing.T) {
 		if err := pool.QueryRow(ctx, `
 			INSERT INTO users (email, password_hash, name, home_school_id, age_confirmed_at)
 			VALUES ($1, 'hash', 'Idempotent Safety User', $2::uuid, NOW())
-			RETURNING id::text
-		`, fmt.Sprintf("idempotent-safety-%d-%s@example.test", index, suffix), schoolID).Scan(&userIDs[index]); err != nil {
+			RETURNING id::text, public_id
+		`, fmt.Sprintf("idempotent-safety-%d-%s@example.test", index, suffix), schoolID).Scan(&userIDs[index], &publicIDs[index]); err != nil {
 			t.Fatalf("insert user: %v", err)
 		}
 	}
@@ -98,7 +99,7 @@ func TestPostgresRepositoryReplaysIdempotencyKeys(t *testing.T) {
 	})
 
 	t.Run("user report", func(t *testing.T) {
-		reporterID, targetID, otherTargetID := userIDs[0], userIDs[1], userIDs[2]
+		reporterID, targetID, otherTargetID := userIDs[0], publicIDs[1], publicIDs[2]
 		created, err := repository.ReportUser(ctx, reporterID, targetID, "Harassment", keys[1])
 		if err != nil {
 			t.Fatalf("first ReportUser() error = %v", err)

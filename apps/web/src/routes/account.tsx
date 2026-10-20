@@ -59,7 +59,7 @@ function AccountPage() {
                 <Link
                   className="link"
                   to="/users/$id"
-                  params={{ id: data.profile.id }}
+                  params={{ id: data.profile.public_id }}
                 >
                   View public profile
                 </Link>

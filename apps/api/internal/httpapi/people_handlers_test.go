@@ -382,9 +382,9 @@ func TestSchoolMembersRequireAnExistingSchool(t *testing.T) {
 func TestTeamMembersCarryEachMembersRole(t *testing.T) {
 	fixture := newPeopleFixture(testEvent(eventstore.VisibilityPublic))
 	fixture.people.listed = []people.Person{
-		{ID: testUserID, Name: "Team Owner", VerificationLevel: "staff_faculty", RoleIndicators: []string{"school_admin", "staff_faculty"}, Role: teamstore.RoleOwner, SortKey: "0team owner"},
-		{ID: testTeamCaptainID, Name: "Team Captain", VerificationLevel: "verified", Role: teamstore.RoleCaptain, SortKey: "1team captain"},
-		{ID: testTeamMemberID, Name: "Team Member", VerificationLevel: "basic", Role: teamstore.RoleMember, SortKey: "2team member"},
+		{ID: testUserID, PublicID: testUserPublicID, Name: "Team Owner", VerificationLevel: "staff_faculty", RoleIndicators: []string{"school_admin", "staff_faculty"}, Role: teamstore.RoleOwner, SortKey: "0team owner"},
+		{ID: testTeamCaptainID, PublicID: "Cd4eFg6hKm", Name: "Team Captain", VerificationLevel: "verified", Role: teamstore.RoleCaptain, SortKey: "1team captain"},
+		{ID: testTeamMemberID, PublicID: "Ef5gHj7kLn", Name: "Team Member", VerificationLevel: "basic", Role: teamstore.RoleMember, SortKey: "2team member"},
 	}
 
 	response := fixture.get("/teams/"+testTeamSlug+"/members", true)
@@ -395,9 +395,9 @@ func TestTeamMembersCarryEachMembersRole(t *testing.T) {
 	}
 	want := map[string]any{
 		"people": []any{
-			map[string]any{"id": testUserID, "name": "Team Owner", "verification_level": "staff_faculty", "role_indicators": []any{"school_admin", "staff_faculty"}, "role": "owner"},
-			map[string]any{"id": testTeamCaptainID, "name": "Team Captain", "verification_level": "verified", "role": "captain"},
-			map[string]any{"id": testTeamMemberID, "name": "Team Member", "verification_level": "basic", "role": "member"},
+			map[string]any{"id": testUserID, "public_id": testUserPublicID, "name": "Team Owner", "verification_level": "staff_faculty", "role_indicators": []any{"school_admin", "staff_faculty"}, "role": "owner"},
+			map[string]any{"id": testTeamCaptainID, "public_id": "Cd4eFg6hKm", "name": "Team Captain", "verification_level": "verified", "role": "captain"},
+			map[string]any{"id": testTeamMemberID, "public_id": "Ef5gHj7kLn", "name": "Team Member", "verification_level": "basic", "role": "member"},
 		},
 		"limit":        float64(25),
 		"has_more":     false,

@@ -47,6 +47,7 @@ const school = {
 };
 const profile = {
   id: "user-1",
+  public_id: "Ab3dEf5hJk",
   email: "player@example.com",
   verification_level: "basic",
   name: "Player One",

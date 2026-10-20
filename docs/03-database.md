@@ -29,7 +29,9 @@ Do **not** create first-pass tables for tournaments, user activity history, feat
 
 ```text
 users
-  id, email, password_hash,
+  id,                         -- UUID; internal only, the target of every foreign key
+  public_id,                  -- 10 base58 characters, unique, generated on insert, never changes
+  email, password_hash,
   email_verified_at,          -- set when user clicks verification email link
   verification_level,         -- basic (email verified) | verified (.edu) | staff_faculty
   name,                       -- single public name field
@@ -39,7 +41,7 @@ users
   age_confirmed_at,           -- signup checkbox: 18+
   show_in_lists,              -- boolean, default true; false hides the user from event, school, and team people lists
   created_at, updated_at, deleted_at
-  -- profile URL: /users/:id (database id); no usernames
+  -- profile URL: /users/:public_id; no usernames
   -- on delete account: scrub PII; name becomes "Deleted User"
 
 user_social_links

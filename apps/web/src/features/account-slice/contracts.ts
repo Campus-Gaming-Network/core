@@ -44,6 +44,8 @@ const socialLinkSchema = z.union([
 
 export const accountProfileDtoSchema = z.object({
   id: identifierSchema,
+  /** The ID in the public profile's URL, `/users/{public_id}`. */
+  public_id: identifierSchema,
   email: z.email(),
   email_verified_at: timestampSchema.optional(),
   verification_level: identifierSchema,

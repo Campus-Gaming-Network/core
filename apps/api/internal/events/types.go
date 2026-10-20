@@ -116,6 +116,7 @@ type Event struct {
 // Organizer is a user who manages an event.
 type Organizer struct {
 	ID                string   `json:"id"`
+	PublicID          string   `json:"public_id"`
 	Name              string   `json:"name"`
 	Role              string   `json:"role"`
 	VerificationLevel string   `json:"verification_level"`

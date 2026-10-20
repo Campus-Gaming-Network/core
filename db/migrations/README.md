@@ -123,3 +123,8 @@ status, last-confirmed date, games, and labeled links. Apply it before
 deploying the API that serves `/clubs/{slug}` and `/schools/{slug}/clubs`.
 Migration `000035_club_admin.up.sql` adds `club_slug_redirects`, the earlier
 slugs of renamed clubs, so old club links still reach the club.
+Migration `000036_user_public_id.up.sql` adds `users.public_id`, a unique,
+permanent ten-character base58 ID that the database generates on insert and a
+trigger keeps from changing. Existing users get one. The UUID `id` stays the
+primary key. Apply it before deploying the API that serves
+`/users/{public_id}`.

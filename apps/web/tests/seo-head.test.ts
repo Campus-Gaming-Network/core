@@ -47,6 +47,7 @@ const baseEvent: EventDTO = {
   organizers: [
     {
       id: "user-1",
+      public_id: "Ab3dEf5hJk",
       name: "Private Organizer",
       role: "creator",
       verification_level: "verified",
@@ -399,6 +400,7 @@ test("a public profile head is generic and noindex so it cannot expose someone w
   const loaderData = {
     profile: {
       id: "user-1",
+      public_id: "Cd4eFg6hKm",
       name: "Hidden Student",
       bio: "Secret bio",
       home_school: { name: "Example University" },
@@ -409,7 +411,7 @@ test("a public profile head is generic and noindex so it cannot expose someone w
   const serialized = JSON.stringify(head);
 
   assert.equal(metaContent(head, "robots"), "noindex,nofollow");
-  assert.equal(metaContent(head, "og:url"), `${origin}/users/user-1`);
+  assert.equal(metaContent(head, "og:url"), `${origin}/users/Cd4eFg6hKm`);
   for (const leaked of ["Hidden Student", "Secret bio", "Example University"]) {
     assert.equal(serialized.includes(leaked), false, leaked);
   }

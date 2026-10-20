@@ -35,7 +35,7 @@ SiteAnnouncement ── global banner                        (later)
 | Email verification  | Signup sends verification email; link click sets email verified                                                                                            |
 | Age gate            | Must confirm **18+** at signup (checkbox); store acceptance timestamp                                                                                      |
 | Name                | Single public name field (no usernames; no first/last/display split)                                                                                       |
-| Profile URL         | `/users/:id` (database id)                                                                                                                                 |
+| Profile URL         | `/users/:public_id`: a permanent 10-character base58 ID, separate from the internal UUID                                                                   |
 | Verification level  | `basic` (email verified) \| `verified` (`.edu`) \| `staff_faculty`                                                                                         |
 | Avatar              | Boring Avatars Beam drawn by this site from the user id; initials show when the picture cannot load                                                        |
 | Bio, social links   | Profile; a social link is a URL with a label, or a Discord username                                                                                        |

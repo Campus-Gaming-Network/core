@@ -470,7 +470,7 @@ func (r *Router) handleUserPath(w http.ResponseWriter, req *http.Request) {
 			methodNotAllowed(w, http.MethodPost)
 			return
 		}
-		if !looksLikeUUID(parts[0]) {
+		if !users.IsPublicID(parts[0]) {
 			writeError(w, http.StatusBadRequest, "invalid_id")
 			return
 		}
@@ -489,12 +489,12 @@ func (r *Router) handleUserPath(w http.ResponseWriter, req *http.Request) {
 		methodNotAllowed(w, http.MethodGet)
 		return
 	}
-	id := parts[0]
-	if !looksLikeUUID(id) {
+	publicID := parts[0]
+	if !users.IsPublicID(publicID) {
 		writeError(w, http.StatusBadRequest, "invalid_id")
 		return
 	}
-	profile, err := r.account.GetPublicProfile(req.Context(), id)
+	profile, err := r.account.GetPublicProfile(req.Context(), publicID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		err = apperror.Wrap(apperror.KindNotFound, "user_not_found", err)
 	}
@@ -506,7 +506,7 @@ func (r *Router) handleUserPath(w http.ResponseWriter, req *http.Request) {
 	// profile sees them.
 	response := publicProfileResponse{PublicProfile: profile}
 	if r.userGames != nil {
-		if response.Games, err = r.userLists(req.Context(), id); err != nil {
+		if response.Games, err = r.userLists(req.Context(), profile.ID); err != nil {
 			writeError(w, http.StatusInternalServerError, "profile_unavailable")
 			return
 		}

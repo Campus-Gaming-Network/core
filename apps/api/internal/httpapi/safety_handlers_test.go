@@ -168,7 +168,7 @@ func TestHandleReportEventRateLimitsSubmissions(t *testing.T) {
 func TestHandleReportUserCreatesReport(t *testing.T) {
 	repository := &fakeSafetyRepository{}
 	handler := authenticatedUserReportHandler(repository)
-	request := withIdempotencyKey(authenticatedEventRequest(http.MethodPost, "/users/22222222-2222-2222-2222-222222222222/report", `{"reason":"Harassment"}`))
+	request := withIdempotencyKey(authenticatedEventRequest(http.MethodPost, "/users/Zx9yWv8uTs/report", `{"reason":"Harassment"}`))
 	response := httptest.NewRecorder()
 
 	handler.ServeHTTP(response, request)
@@ -180,7 +180,7 @@ func TestHandleReportUserCreatesReport(t *testing.T) {
 		t.Fatal("ReportUser was not called")
 	}
 	if repository.reportUserReporter != testUserID ||
-		repository.reportUserTarget != "22222222-2222-2222-2222-222222222222" ||
+		repository.reportUserTarget != "Zx9yWv8uTs" ||
 		repository.reportUserReason != "Harassment" {
 		t.Fatalf("ReportUser call = reporter %q target %q reason %q",
 			repository.reportUserReporter,
@@ -192,7 +192,7 @@ func TestHandleReportUserCreatesReport(t *testing.T) {
 func TestHandleReportUserMapsSelfReport(t *testing.T) {
 	repository := &fakeSafetyRepository{err: safety.ErrCannotReportSelf}
 	handler := authenticatedUserReportHandler(repository)
-	request := withIdempotencyKey(authenticatedEventRequest(http.MethodPost, "/users/22222222-2222-2222-2222-222222222222/report", `{"reason":"Oops"}`))
+	request := withIdempotencyKey(authenticatedEventRequest(http.MethodPost, "/users/Zx9yWv8uTs/report", `{"reason":"Oops"}`))
 	response := httptest.NewRecorder()
 
 	handler.ServeHTTP(response, request)

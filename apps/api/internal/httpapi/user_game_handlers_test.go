@@ -19,12 +19,14 @@ const listedGameID = "44444444-4444-4444-4444-444444444444"
 
 // fakeUserGames records each change and fails it with err when set.
 type fakeUserGames struct {
-	lists   games.UserLists
-	err     error
-	changes []string
+	lists    games.UserLists
+	listsFor string
+	err      error
+	changes  []string
 }
 
-func (f *fakeUserGames) UserLists(context.Context, string) (games.UserLists, error) {
+func (f *fakeUserGames) UserLists(_ context.Context, userID string) (games.UserLists, error) {
+	f.listsFor = userID
 	return f.lists, nil
 }
 
@@ -149,20 +151,21 @@ func TestUserGameRoutesAddRemoveAndMoveTheViewersGames(t *testing.T) {
 
 func TestPublicProfileShowsTheOwnersGameLists(t *testing.T) {
 	store := newProfileFakeUsers(true)
+	lists := &fakeUserGames{lists: games.UserLists{
+		Favorite:   []games.Game{{ID: listedGameID, Name: "Rocket League", Slug: "rocket-league", HasCover: true}},
+		Like:       []games.Game{},
+		WantToPlay: []games.Game{{ID: "55555555-5555-5555-5555-555555555555", Name: "Campus Kart", Slug: "campus-kart"}},
+	}}
 	router := &Router{
 		cfg: config.Config{SiteURL: "https://cgn.example"},
 		account: auth.NewAccountService(
 			store, passV0ContractSchools{}, passV0ContractSessions{}, passV0ContractTokens{},
 			time.Hour, time.Hour, time.Hour,
 		),
-		userGames: &fakeUserGames{lists: games.UserLists{
-			Favorite:   []games.Game{{ID: listedGameID, Name: "Rocket League", Slug: "rocket-league", HasCover: true}},
-			Like:       []games.Game{},
-			WantToPlay: []games.Game{{ID: "55555555-5555-5555-5555-555555555555", Name: "Campus Kart", Slug: "campus-kart"}},
-		}},
+		userGames: lists,
 	}
 	response := httptest.NewRecorder()
-	router.handleUserPath(response, httptest.NewRequest(http.MethodGet, "/users/"+testUserID, nil))
+	router.handleUserPath(response, httptest.NewRequest(http.MethodGet, "/users/"+testUserPublicID, nil))
 
 	if response.Code != http.StatusOK {
 		t.Fatalf("status = %d; body = %s", response.Code, response.Body.String())
@@ -181,5 +184,23 @@ func TestPublicProfileShowsTheOwnersGameLists(t *testing.T) {
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("profile = %#v, want %#v", got, want)
+	}
+	if lists.listsFor != testUserID {
+		t.Fatalf("game lists read for %q, want the internal ID %q", lists.listsFor, testUserID)
+	}
+}
+
+// A profile URL names the user by public ID. The internal UUID is not a
+// profile address.
+func TestPublicProfileRejectsTheInternalID(t *testing.T) {
+	router := &Router{account: auth.NewAccountService(
+		newProfileFakeUsers(true), passV0ContractSchools{}, passV0ContractSessions{}, passV0ContractTokens{},
+		time.Hour, time.Hour, time.Hour,
+	)}
+	response := httptest.NewRecorder()
+	router.handleUserPath(response, httptest.NewRequest(http.MethodGet, "/users/"+testUserID, nil))
+
+	if response.Code != http.StatusBadRequest || !strings.Contains(response.Body.String(), "invalid_id") {
+		t.Fatalf("status = %d; body = %s; want 400 invalid_id", response.Code, response.Body.String())
 	}
 }

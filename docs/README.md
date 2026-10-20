@@ -105,7 +105,7 @@ would add a second description of each endpoint to maintain.
 - **Event visibility** — `public` · `unlisted` · `private` (blurred/gated + password modal).
 - **RSVP vs interested** — RSVP = yes/no/maybe; interested = favorite (separate).
 - **Capacity** — optional; counts **RSVP yes only**; full blocks new yes; no waitlist yet.
-- **Names** — single `name` field; profile at `/users/:id`.
+- **Names** — single `name` field; profile at `/users/:public_id`.
 - **Schools** — user selects one home school on signup, may follow more schools later; import all 6,243 seed rows (1,300 branches) as active; branch campuses use the same UI/UX as other schools; `unitid` optional.
 - **Paid events** — allowed as informational/off-site payment only; organizers handle payment outside the product.
 - **Games** — imported from IGDB when users pick them; site admins only correct, hide, and delete them. There is no hand-made launch list. Covers are stored in Postgres and the FAQ page credits IGDB.com.

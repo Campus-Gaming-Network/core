@@ -22,6 +22,7 @@ const maximumLimit = 101
 // state only, never an email address or any private account field.
 type Person struct {
 	ID                string   `json:"id"`
+	PublicID          string   `json:"public_id"`
 	Name              string   `json:"name"`
 	VerificationLevel string   `json:"verification_level"`
 	RoleIndicators    []string `json:"role_indicators,omitempty"`
@@ -144,7 +145,7 @@ func (r *PostgresRepository) list(ctx context.Context, spec listSpec, params Lis
 	arguments = append(arguments, params.Limit)
 
 	query := `
-		SELECT u.id::text, u.name, u.verification_level,
+		SELECT u.id::text, u.public_id, u.name, u.verification_level,
 		       ` + users.RoleIndicatorsSQL("u") + `,
 		       ` + spec.role + `,
 		       ` + spec.sortKey + `
@@ -160,7 +161,7 @@ func (r *PostgresRepository) list(ctx context.Context, spec listSpec, params Lis
 	result := make([]Person, 0, params.Limit)
 	for rows.Next() {
 		var person Person
-		if err := rows.Scan(&person.ID, &person.Name, &person.VerificationLevel, &person.RoleIndicators, &person.Role, &person.SortKey); err != nil {
+		if err := rows.Scan(&person.ID, &person.PublicID, &person.Name, &person.VerificationLevel, &person.RoleIndicators, &person.Role, &person.SortKey); err != nil {
 			return nil, fmt.Errorf("scan person: %w", err)
 		}
 		result = append(result, person)

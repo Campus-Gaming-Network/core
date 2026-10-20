@@ -97,7 +97,7 @@ func (r *Router) handleReportEvent(w http.ResponseWriter, req *http.Request, slu
 	writeJSON(w, http.StatusCreated, report)
 }
 
-func (r *Router) handleReportUser(w http.ResponseWriter, req *http.Request, targetUserID string) {
+func (r *Router) handleReportUser(w http.ResponseWriter, req *http.Request, targetPublicID string) {
 	if r.safety == nil {
 		writeError(w, http.StatusServiceUnavailable, "database_unavailable")
 		return
@@ -120,7 +120,7 @@ func (r *Router) handleReportUser(w http.ResponseWriter, req *http.Request, targ
 	if !decodeJSON(w, req, &request) {
 		return
 	}
-	report, err := r.safety.ReportUser(req.Context(), userID, targetUserID, request.Reason, key)
+	report, err := r.safety.ReportUser(req.Context(), userID, targetPublicID, request.Reason, key)
 	if err != nil {
 		writeApplicationError(w, err, "report_failed")
 		return

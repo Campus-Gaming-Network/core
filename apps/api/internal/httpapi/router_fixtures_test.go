@@ -19,6 +19,7 @@ import (
 
 const (
 	testUserID        = "11111111-1111-1111-1111-111111111111"
+	testUserPublicID  = "Ab3dEf5hJk"
 	testTeamMemberID  = "66666666-6666-6666-6666-666666666666"
 	testTeamCaptainID = "77777777-7777-7777-7777-777777777777"
 )
@@ -95,6 +96,16 @@ func (r *fakeUserRepository) FindByID(_ context.Context, id string) (users.Profi
 	return r.profile, nil
 }
 
+func (r *fakeUserRepository) FindByPublicID(_ context.Context, publicID string) (users.Profile, error) {
+	if r.err != nil {
+		return users.Profile{}, r.err
+	}
+	if r.profile.PublicID != publicID {
+		return users.Profile{}, pgx.ErrNoRows
+	}
+	return r.profile, nil
+}
+
 func (r *fakeUserRepository) FindByEmail(context.Context, string) (users.Profile, error) {
 	return users.Profile{}, nil
 }
@@ -149,10 +160,10 @@ func (r *fakeSafetyRepository) ReportEvent(_ context.Context, reporterUserID str
 	return r.reportOrDefault(safety.ReportTargetEvent)
 }
 
-func (r *fakeSafetyRepository) ReportUser(_ context.Context, reporterUserID string, targetUserID string, reason string, idempotencyKey string) (safety.Report, error) {
+func (r *fakeSafetyRepository) ReportUser(_ context.Context, reporterUserID string, targetPublicID string, reason string, idempotencyKey string) (safety.Report, error) {
 	r.reportUserCalled = true
 	r.reportUserReporter = reporterUserID
-	r.reportUserTarget = targetUserID
+	r.reportUserTarget = targetPublicID
 	r.reportUserReason = reason
 	r.reportUserKey = idempotencyKey
 	if r.err != nil {

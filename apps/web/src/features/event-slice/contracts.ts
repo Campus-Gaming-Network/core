@@ -80,6 +80,7 @@ const eventGameDtoSchema = gameSummaryDtoSchema.extend({
 
 const eventOrganizerSchema = z.object({
   id: identifierSchema,
+  public_id: identifierSchema,
   name: z.string(),
   role: z.enum(["creator", "organizer"]),
   verification_level: identifierSchema,
@@ -416,6 +417,8 @@ export type GetEventDetailResult =
 /** The viewer's own name and id, for the header's account menu. Nothing else. */
 export type NavigationViewer = {
   id: string;
+  /** The ID in the viewer's profile URL. */
+  publicId: string;
   name: string;
   /** The viewer's home school, for the account menu's Your school link. */
   homeSchool?: { name: string; slug: string };

@@ -79,7 +79,11 @@ function SettingsProfilePage() {
             Show other players who you are and what you play.
           </p>
         </div>
-        <Link className="link" to="/users/$id" params={{ id: profile.id }}>
+        <Link
+          className="link"
+          to="/users/$id"
+          params={{ id: profile.public_id }}
+        >
           View public profile
         </Link>
       </section>

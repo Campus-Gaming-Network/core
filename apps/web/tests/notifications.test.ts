@@ -16,6 +16,7 @@ import { requestURL } from "./fetch-stub.js";
 const notificationID = "77777777-7777-4777-8777-777777777777";
 const profile = {
   id: "user-1",
+  public_id: "Ab3dEf5hJk",
   email: "player@example.com",
   verification_level: "basic",
   name: "Player One",
@@ -177,9 +178,17 @@ test("the header carries the unread count, and leaves it out when it cannot be r
     [
       {
         authenticated: true,
-        user: { id: "user-1", name: "Player One", unreadNotifications: 4 },
+        user: {
+          id: "user-1",
+          publicId: "Ab3dEf5hJk",
+          name: "Player One",
+          unreadNotifications: 4,
+        },
       },
-      { authenticated: true, user: { id: "user-1", name: "Player One" } },
+      {
+        authenticated: true,
+        user: { id: "user-1", publicId: "Ab3dEf5hJk", name: "Player One" },
+      },
     ],
   );
 });

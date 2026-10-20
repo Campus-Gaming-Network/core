@@ -49,7 +49,7 @@ func idempotentCreateCases() []idempotentCreateCase {
 		{
 			name:     "user report",
 			handler:  authenticatedUserReportHandler(userReports),
-			target:   "/users/22222222-2222-2222-2222-222222222222/report",
+			target:   "/users/Zx9yWv8uTs/report",
 			body:     `{"reason":"Harassment"}`,
 			received: func() string { return userReports.reportUserKey },
 		},

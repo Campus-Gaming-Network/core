@@ -30,6 +30,7 @@ var ErrDuplicateEmail = apperror.New(
 
 type Profile struct {
 	ID                string       `json:"id"`
+	PublicID          string       `json:"public_id"`
 	Email             string       `json:"email"`
 	EmailVerifiedAt   *time.Time   `json:"email_verified_at,omitempty"`
 	VerificationLevel string       `json:"verification_level"`
@@ -47,6 +48,7 @@ type Profile struct {
 
 type PublicProfile struct {
 	ID                string       `json:"id"`
+	PublicID          string       `json:"public_id"`
 	Name              string       `json:"name"`
 	Bio               string       `json:"bio,omitempty"`
 	VerificationLevel string       `json:"verification_level"`
@@ -127,6 +129,7 @@ type ProfileUpdate struct {
 type Repository interface {
 	Create(ctx context.Context, params CreateParams) (Profile, error)
 	FindByID(ctx context.Context, id string) (Profile, error)
+	FindByPublicID(ctx context.Context, publicID string) (Profile, error)
 	FindByEmail(ctx context.Context, email string) (Profile, error)
 	UpdateProfile(ctx context.Context, id string, update ProfileUpdate) (Profile, error)
 }
@@ -152,6 +155,7 @@ type AccountRepository interface {
 func (p Profile) Public() PublicProfile {
 	return PublicProfile{
 		ID:                p.ID,
+		PublicID:          p.PublicID,
 		Name:              p.Name,
 		Bio:               p.Bio,
 		VerificationLevel: p.VerificationLevel,
@@ -160,6 +164,23 @@ func (p Profile) Public() PublicProfile {
 		SocialLinks:       p.SocialLinks,
 		RoleIndicators:    p.RoleIndicators,
 	}
+}
+
+// publicIDAlphabet is base58: digits and letters without 0, O, I, and l.
+const publicIDAlphabet = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
+
+// IsPublicID reports whether value has the form of a user public ID: ten
+// base58 characters. Migration 000036 generates them.
+func IsPublicID(value string) bool {
+	if len(value) != 10 {
+		return false
+	}
+	for _, character := range value {
+		if !strings.ContainsRune(publicIDAlphabet, character) {
+			return false
+		}
+	}
+	return true
 }
 
 // NormalizeEmail trims and lowercases an email address.
@@ -287,10 +308,11 @@ func (r *PostgresRepository) Create(ctx context.Context, params CreateParams) (P
 	err := r.pool.QueryRow(ctx, `
 		INSERT INTO users (email, password_hash, name, timezone, home_school_id, age_confirmed_at)
 		VALUES ($1, $2, $3, $4, $5::uuid, $6)
-		RETURNING id::text, email::text, email_verified_at, verification_level,
+		RETURNING id::text, public_id, email::text, email_verified_at, verification_level,
 		          name, COALESCE(bio, ''), timezone, home_school_id::text, show_in_lists
 	`, NormalizeEmail(params.Email), params.PasswordHash, strings.TrimSpace(params.Name), timezone, params.HomeSchoolID, params.AgeConfirmedAt).Scan(
 		&profile.ID,
+		&profile.PublicID,
 		&profile.Email,
 		&profile.EmailVerifiedAt,
 		&profile.VerificationLevel,
@@ -313,6 +335,11 @@ func (r *PostgresRepository) FindByID(ctx context.Context, id string) (Profile, 
 	return r.find(ctx, `u.id = $1::uuid`, id)
 }
 
+// FindByPublicID returns the active user whose public ID is publicID.
+func (r *PostgresRepository) FindByPublicID(ctx context.Context, publicID string) (Profile, error) {
+	return r.find(ctx, `u.public_id = $1`, publicID)
+}
+
 func (r *PostgresRepository) FindByEmail(ctx context.Context, email string) (Profile, error) {
 	return r.find(ctx, `u.email = $1`, NormalizeEmail(email))
 }
@@ -320,7 +347,7 @@ func (r *PostgresRepository) FindByEmail(ctx context.Context, email string) (Pro
 func (r *PostgresRepository) find(ctx context.Context, predicate string, arg any) (Profile, error) {
 	var profile Profile
 	err := r.pool.QueryRow(ctx, `
-		SELECT u.id::text, u.email::text, u.email_verified_at, u.verification_level,
+		SELECT u.id::text, u.public_id, u.email::text, u.email_verified_at, u.verification_level,
 		       u.name, COALESCE(u.bio, ''), u.timezone, u.home_school_id::text, u.show_in_lists
 		FROM users u
 		WHERE `+predicate+`
@@ -328,6 +355,7 @@ func (r *PostgresRepository) find(ctx context.Context, predicate string, arg any
 		  AND u.account_status = 'active'
 	`, arg).Scan(
 		&profile.ID,
+		&profile.PublicID,
 		&profile.Email,
 		&profile.EmailVerifiedAt,
 		&profile.VerificationLevel,
@@ -349,10 +377,11 @@ func (r *PostgresRepository) UpdateProfile(ctx context.Context, id string, updat
 		UPDATE users
 		SET name = $2, bio = NULLIF($3, ''), timezone = $4, show_in_lists = $5
 		WHERE id = $1::uuid AND deleted_at IS NULL AND account_status = 'active'
-		RETURNING id::text, email::text, email_verified_at, verification_level,
+		RETURNING id::text, public_id, email::text, email_verified_at, verification_level,
 		          name, COALESCE(bio, ''), timezone, home_school_id::text, show_in_lists
 	`, id, strings.TrimSpace(update.Name), strings.TrimSpace(update.Bio), strings.TrimSpace(update.Timezone), update.ShowInLists).Scan(
 		&profile.ID,
+		&profile.PublicID,
 		&profile.Email,
 		&profile.EmailVerifiedAt,
 		&profile.VerificationLevel,

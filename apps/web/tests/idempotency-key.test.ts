@@ -130,6 +130,7 @@ function recordingApi() {
       if (path === "/me") {
         return Response.json({
           id: "viewer-1",
+          public_id: "Ab3dEf5hJk",
           email: "viewer@example.test",
           verification_level: "verified_student",
           name: "Viewer",

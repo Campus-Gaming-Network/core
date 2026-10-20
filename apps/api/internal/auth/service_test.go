@@ -52,6 +52,10 @@ func (f *fakeUsers) FindByID(_ context.Context, _ string) (users.Profile, error)
 	return f.profile, nil
 }
 
+func (f *fakeUsers) FindByPublicID(_ context.Context, _ string) (users.Profile, error) {
+	return f.profile, nil
+}
+
 func (f *fakeUsers) FindByEmail(_ context.Context, email string) (users.Profile, error) {
 	f.findEmail = email
 	return f.profile, f.findEmailErr

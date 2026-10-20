@@ -308,7 +308,7 @@ function VisibleEventView({
           ) : organizer ? (
             <>
               Organized by{" "}
-              <Link to="/users/$id" params={{ id: organizer.id }}>
+              <Link to="/users/$id" params={{ id: organizer.public_id }}>
                 {organizer.name}
               </Link>
               {" · "}
@@ -505,7 +505,7 @@ function VisibleEventView({
                     <Person
                       detail={verificationDetail(organizer)}
                       id={organizer.id}
-                      linked
+                      profileId={organizer.public_id}
                       name={organizer.name}
                     />
                   </li>

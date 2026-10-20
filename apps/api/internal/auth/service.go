@@ -224,8 +224,10 @@ func (s *AccountService) GetProfile(ctx context.Context, userID string) (users.P
 	return s.Users.FindByID(ctx, userID)
 }
 
-func (s *AccountService) GetPublicProfile(ctx context.Context, userID string) (users.PublicProfile, error) {
-	profile, err := s.Users.FindByID(ctx, userID)
+// GetPublicProfile returns the public profile of the user whose public ID is
+// publicID.
+func (s *AccountService) GetPublicProfile(ctx context.Context, publicID string) (users.PublicProfile, error) {
+	profile, err := s.Users.FindByPublicID(ctx, publicID)
 	if err != nil {
 		return users.PublicProfile{}, err
 	}

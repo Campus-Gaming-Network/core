@@ -21,6 +21,7 @@ const cookieHeader = "cgn_session=viewer-session";
 
 const person = {
   id: "user-1",
+  public_id: "Ab3dEf5hJk",
   name: "Ada Player",
   verification_level: "verified",
   role_indicators: ["school_admin"],

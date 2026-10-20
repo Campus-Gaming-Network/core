@@ -3,6 +3,7 @@ import { ApiError, type ApiClient } from "./api.server.js";
 
 export const profileDtoSchema = z.object({
   id: z.string().min(1),
+  public_id: z.string().min(1),
   email: z.email(),
   email_verified_at: z.iso.datetime({ offset: true }).optional(),
   verification_level: z.string().min(1),

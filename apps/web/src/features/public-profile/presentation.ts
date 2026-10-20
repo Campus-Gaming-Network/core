@@ -19,13 +19,13 @@ export type ReportUserNotice = keyof typeof reportUserNotices;
  * be listed. Every profile gets the same generic card and stays out of search.
  */
 export function publicProfileHead(loaderData?: {
-  profile: { id: string };
+  profile: { public_id: string };
   publicOrigin: string;
 }) {
   return pageHead(loaderData?.publicOrigin, {
     title: "Player profile",
     description: `A player on ${siteName}. Open the link to see their profile.`,
-    path: `/users/${encodeURIComponent(loaderData?.profile.id ?? "")}`,
+    path: `/users/${encodeURIComponent(loaderData?.profile.public_id ?? "")}`,
     noIndex: true,
   });
 }

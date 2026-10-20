@@ -73,7 +73,7 @@ export function OrganizersPanel({
         {organizers.map((organizer) => (
           <li key={organizer.id}>
             <span>
-              <Link to="/users/$id" params={{ id: organizer.id }}>
+              <Link to="/users/$id" params={{ id: organizer.public_id }}>
                 {organizer.name}
               </Link>
               <small>

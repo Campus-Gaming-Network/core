@@ -24,6 +24,7 @@ import { bodyText, requestURL } from "./fetch-stub.js";
 
 const profile = {
   id: "user-1",
+  public_id: "Ab3dEf5hJk",
   email: "new@example.test",
   verification_level: "basic",
   name: "New Player",

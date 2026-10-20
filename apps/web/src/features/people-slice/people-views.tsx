@@ -24,7 +24,7 @@ export function PersonList({
           <Person
             detail={personDetail(person)}
             id={person.id}
-            linked
+            profileId={person.public_id}
             name={person.name}
           />
         </li>

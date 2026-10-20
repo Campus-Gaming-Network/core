@@ -277,6 +277,7 @@ func TestListedPeopleCarryTheirProfilesVerificationAndRoleIndicators(t *testing.
 		}
 		want := Person{
 			ID:                profile.ID,
+			PublicID:          profile.PublicID,
 			Name:              profile.Name,
 			VerificationLevel: profile.VerificationLevel,
 			RoleIndicators:    profile.RoleIndicators,

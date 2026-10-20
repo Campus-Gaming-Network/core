@@ -70,7 +70,8 @@ type ReportInput struct {
 type Repository interface {
 	CreateSupportTicket(ctx context.Context, input SupportTicketInput) (SupportTicket, error)
 	ReportEvent(ctx context.Context, reporterUserID string, eventSlug string, reason string, idempotencyKey string) (Report, error)
-	ReportUser(ctx context.Context, reporterUserID string, targetUserID string, reason string, idempotencyKey string) (Report, error)
+	// ReportUser reports the active user whose public ID is targetPublicID.
+	ReportUser(ctx context.Context, reporterUserID string, targetPublicID string, reason string, idempotencyKey string) (Report, error)
 }
 
 type PostgresRepository struct {
@@ -223,14 +224,14 @@ func (r *PostgresRepository) ReportEvent(ctx context.Context, reporterUserID str
 	})
 }
 
-func (r *PostgresRepository) ReportUser(ctx context.Context, reporterUserID string, targetUserID string, reason string, idempotencyKey string) (Report, error) {
+func (r *PostgresRepository) ReportUser(ctx context.Context, reporterUserID string, targetPublicID string, reason string, idempotencyKey string) (Report, error) {
 	reporterUserID = strings.TrimSpace(reporterUserID)
-	targetUserID = strings.TrimSpace(targetUserID)
+	targetUserID, err := r.activeUserID(ctx, targetPublicID)
+	if err != nil {
+		return Report{}, err
+	}
 	if reporterUserID == targetUserID {
 		return Report{}, ErrCannotReportSelf
-	}
-	if err := r.ensureActiveUser(ctx, targetUserID); err != nil {
-		return Report{}, err
 	}
 	return r.createReport(ctx, ReportInput{
 		ReporterUserID: reporterUserID,
@@ -317,23 +318,24 @@ func (r *PostgresRepository) eventIDBySlug(ctx context.Context, slug string) (st
 	return eventID, nil
 }
 
-func (r *PostgresRepository) ensureActiveUser(ctx context.Context, id string) error {
-	var exists bool
-	if err := r.pool.QueryRow(ctx, `
-		SELECT EXISTS (
-			SELECT 1
-			FROM users
-			WHERE id = $1::uuid
-			  AND deleted_at IS NULL
-			  AND account_status = 'active'
-		)
-	`, strings.TrimSpace(id)).Scan(&exists); err != nil {
-		return fmt.Errorf("check report user target: %w", err)
+// activeUserID returns the internal ID of the active user whose public ID is
+// publicID, or ErrReportTargetNotFound.
+func (r *PostgresRepository) activeUserID(ctx context.Context, publicID string) (string, error) {
+	var id string
+	err := r.pool.QueryRow(ctx, `
+		SELECT id::text
+		FROM users
+		WHERE public_id = $1
+		  AND deleted_at IS NULL
+		  AND account_status = 'active'
+	`, strings.TrimSpace(publicID)).Scan(&id)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", ErrReportTargetNotFound
 	}
-	if !exists {
-		return ErrReportTargetNotFound
+	if err != nil {
+		return "", fmt.Errorf("find report user target: %w", err)
 	}
-	return nil
+	return id, nil
 }
 
 func normalizeSupportTicket(input SupportTicketInput) SupportTicketInput {

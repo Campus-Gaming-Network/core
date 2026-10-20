@@ -14,6 +14,7 @@ import type {
  */
 export const exampleViewer: NavigationViewer = {
   id: "00000000-0000-4000-8000-000000000001",
+  publicId: "Mx7aYk2Qf9",
   name: "Maya Okafor",
 };
 

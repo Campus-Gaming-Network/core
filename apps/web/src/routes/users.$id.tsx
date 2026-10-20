@@ -251,7 +251,7 @@ function PublicProfilePage() {
         </aside>
       </div>
 
-      <ProfileSafety profileID={profile.id} viewer={viewer} />
+      <ProfileSafety profileID={profile.public_id} viewer={viewer} />
     </main>
   );
 }

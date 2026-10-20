@@ -17,6 +17,7 @@ export const peoplePreviewSize = 8;
  */
 export const personDtoSchema = z.object({
   id: identifierSchema,
+  public_id: identifierSchema,
   name: z.string(),
   verification_level: identifierSchema,
   role_indicators: z.array(z.string()).optional(),

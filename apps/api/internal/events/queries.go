@@ -304,6 +304,7 @@ func (r *PostgresRepository) GetBySlug(ctx context.Context, slug string) (Event,
 func (r *PostgresRepository) populateOrganizers(ctx context.Context, event *Event) error {
 	rows, err := r.pool.Query(ctx, `
 		SELECT u.id::text,
+		       u.public_id,
 		       u.name,
 		       eo.role,
 		       u.verification_level,
@@ -331,7 +332,7 @@ func (r *PostgresRepository) populateOrganizers(ctx context.Context, event *Even
 	organizers := make([]Organizer, 0)
 	for rows.Next() {
 		var organizer Organizer
-		if err := rows.Scan(&organizer.ID, &organizer.Name, &organizer.Role, &organizer.VerificationLevel, &organizer.RoleIndicators); err != nil {
+		if err := rows.Scan(&organizer.ID, &organizer.PublicID, &organizer.Name, &organizer.Role, &organizer.VerificationLevel, &organizer.RoleIndicators); err != nil {
 			return fmt.Errorf("scan event organizer: %w", err)
 		}
 		organizers = append(organizers, organizer)

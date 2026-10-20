@@ -446,6 +446,7 @@ var profileContractKeys = []string{
 	"home_school_id",
 	"id",
 	"name",
+	"public_id",
 	"show_in_lists",
 	"timezone",
 	"verification_level",
@@ -651,6 +652,10 @@ func (r *passV0ContractUsers) Create(_ context.Context, params users.CreateParam
 }
 
 func (r *passV0ContractUsers) FindByID(context.Context, string) (users.Profile, error) {
+	return users.Profile{}, pgx.ErrNoRows
+}
+
+func (r *passV0ContractUsers) FindByPublicID(context.Context, string) (users.Profile, error) {
 	return users.Profile{}, pgx.ErrNoRows
 }
 

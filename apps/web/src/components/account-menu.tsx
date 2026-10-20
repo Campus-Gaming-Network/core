@@ -101,7 +101,7 @@ export function AccountMenu({
         <Link
           className="account-menu__item"
           onClick={closeAfterLink}
-          params={{ id: viewer.id }}
+          params={{ id: viewer.publicId }}
           to="/users/$id"
         >
           View profile

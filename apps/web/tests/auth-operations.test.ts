@@ -14,6 +14,7 @@ import { validateLoginServerInput } from "../src/features/event-slice/contracts.
 
 const profile = {
   id: "user-1",
+  public_id: "Ab3dEf5hJk",
   email: "player@example.com",
   verification_level: "basic",
   name: "Player One",
@@ -75,12 +76,13 @@ test("navigation session is a no-store viewer read and degrades safely", async (
   // the profile (no email, bio, or school details) reaches the header.
   assert.deepEqual(authenticated, {
     authenticated: true,
-    user: { id: "user-1", name: "Player One" },
+    user: { id: "user-1", publicId: "Ab3dEf5hJk", name: "Player One" },
   });
   assert.deepEqual(withSchool, {
     authenticated: true,
     user: {
       id: "user-1",
+      publicId: "Ab3dEf5hJk",
       name: "Player One",
       homeSchool: { name: "Example University", slug: "example-university" },
     },

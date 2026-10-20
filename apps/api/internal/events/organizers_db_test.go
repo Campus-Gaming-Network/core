@@ -123,10 +123,26 @@ func TestPostgresRepositoryGetBySlugPopulatesOrganizersAndHostScopedRoles(t *tes
 		t.Fatalf("GetBySlug() organizers = %#v, want 3", event.Organizers)
 	}
 
+	publicIDs := map[string]string{}
+	rows, err := pool.Query(ctx, `SELECT id::text, public_id FROM users WHERE id = ANY($1::uuid[])`, []string{creatorID, hostAdminID, otherAdminID})
+	if err != nil {
+		t.Fatalf("read public IDs: %v", err)
+	}
+	for rows.Next() {
+		var id, publicID string
+		if err := rows.Scan(&id, &publicID); err != nil {
+			t.Fatalf("scan public ID: %v", err)
+		}
+		publicIDs[id] = publicID
+	}
+	if err := rows.Err(); err != nil {
+		t.Fatalf("read public IDs: %v", err)
+	}
+
 	want := []Organizer{
-		{ID: creatorID, Name: "Creator", Role: "creator", VerificationLevel: "staff_faculty", RoleIndicators: []string{"staff_faculty"}},
-		{ID: hostAdminID, Name: "Host Admin", Role: "organizer", VerificationLevel: "basic", RoleIndicators: []string{"school_admin"}},
-		{ID: otherAdminID, Name: "Other Admin", Role: "organizer", VerificationLevel: "verified", RoleIndicators: []string{}},
+		{ID: creatorID, PublicID: publicIDs[creatorID], Name: "Creator", Role: "creator", VerificationLevel: "staff_faculty", RoleIndicators: []string{"staff_faculty"}},
+		{ID: hostAdminID, PublicID: publicIDs[hostAdminID], Name: "Host Admin", Role: "organizer", VerificationLevel: "basic", RoleIndicators: []string{"school_admin"}},
+		{ID: otherAdminID, PublicID: publicIDs[otherAdminID], Name: "Other Admin", Role: "organizer", VerificationLevel: "verified", RoleIndicators: []string{}},
 	}
 	if !reflect.DeepEqual(event.Organizers, want) {
 		t.Fatalf("GetBySlug() organizers = %#v, want %#v", event.Organizers, want)

@@ -384,7 +384,7 @@ These screens can be implemented against existing routes and contracts:
 | Team directory        | `/teams`                             | Search/filter, empty, unavailable, pagination                                                                |
 | Team page             | `/teams/:slug`                       | Public, member, joinable, management controls                                                                |
 | Authentication        | `/login`, `/signup`, password routes | Default, validation, pending, recovery, verification                                                         |
-| Public profile        | `/users/:id`                         | Populated, minimal, unavailable, not found                                                                   |
+| Public profile        | `/users/:public_id`                  | Populated, minimal, unavailable, not found                                                                   |
 | Account               | `/account`                           | Dashboard sections, deletion confirmation                                                                    |
 | Edit profile          | `/settings/profile`                  | Default, validation, saved, unavailable                                                                      |
 | Your data             | `/settings/data`                     | Download (wrong password, rate limited, failed), correction links                                            |

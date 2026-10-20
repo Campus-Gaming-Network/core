@@ -466,6 +466,7 @@ test("team metadata is dynamic, indexable, and built from the same safe DTO", ()
 
 const profile = {
   id: "viewer-1",
+  public_id: "Ab3dEf5hJk",
   email: "viewer@example.test",
   email_verified_at: "2037-08-01T12:00:00Z",
   verification_level: "verified_student",

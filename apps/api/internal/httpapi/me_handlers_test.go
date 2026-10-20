@@ -34,6 +34,13 @@ func (r *profileFakeUsers) FindByID(_ context.Context, id string) (users.Profile
 	return r.profile, nil
 }
 
+func (r *profileFakeUsers) FindByPublicID(_ context.Context, publicID string) (users.Profile, error) {
+	if publicID != r.profile.PublicID {
+		return users.Profile{}, pgx.ErrNoRows
+	}
+	return r.profile, nil
+}
+
 func (r *profileFakeUsers) UpdateProfileWithSocialLinks(_ context.Context, _ string, update users.ProfileUpdate, links []users.SocialLink) (users.Profile, error) {
 	r.updateCalls++
 	r.update = update
@@ -49,6 +56,7 @@ func (r *profileFakeUsers) UpdateProfileWithSocialLinks(_ context.Context, _ str
 func newProfileFakeUsers(showInLists bool) *profileFakeUsers {
 	return &profileFakeUsers{profile: users.Profile{
 		ID:                testUserID,
+		PublicID:          testUserPublicID,
 		Email:             "player@example.com",
 		VerificationLevel: "verified",
 		Name:              "Player One",
