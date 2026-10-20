@@ -241,8 +241,11 @@
   justify-items: center;
   border: 1px solid var(--color-border-strong);
   border-top: 4px solid var(--color-danger);
-  /* The red top edge stays straight: only the bottom corners round. */
+  /* The red top edge stays straight: only the bottom corners round. The
+     tile clips its contents, so the today/now label at the bottom follows
+     the inside of the border's curve exactly. */
   border-radius: 0 0 var(--radius-small) var(--radius-small);
+  overflow: hidden;
   padding: 0.25rem 0 0.3125rem;
   color: var(--color-text);
   background: var(--color-surface);
@@ -2537,7 +2540,6 @@ form .form-help {
 .calendar-date--soon .calendar-date__weekday {
   justify-self: stretch;
   margin-bottom: -0.3125rem;
-  border-radius: 0 0 var(--radius-small) var(--radius-small);
   padding: 0.1875rem 0 0.25rem;
   color: var(--color-identity-text);
   background: var(--color-primary);
