@@ -100,7 +100,7 @@ drawn as placeholders: see #61, #62, #246-#272, and #215-#216.
   Online, Nationwide), then "Events this week" and "More events" beside popular schools, "Popular
   games" (hidden when no game has an upcoming public event), and a "Host
   something" panel. The school page's side column shows "Popular games at
-  <school>" under About, on the same terms. Its header shows the school's
+  \<school>" under About, on the same terms. Its header shows the school's
   teams, upcoming events, and members under the location, or nothing when the
   counts cannot be read. A visitor gets no left column. There is no
   marketing hero or "How it works" row.

@@ -197,7 +197,7 @@ the team when creating or editing the event, from the teams they own or
 captain. The team stays on the event if the organizer later leaves it or stops
 being a captain; only choosing a different team needs the role. A recurring
 series copies the team to each occurrence. The event page reads "Hosted by
-<team>" for a team's event and "Organized by <person>" otherwise; the host
+\<team>" for a team's event and "Organized by \<person>" otherwise; the host
 school is shown beside either as the school the event belongs to, never as its
 host. A team's event is listed and filtered like any other public event, so
 players from other schools find it the same way, and the team's page lists its

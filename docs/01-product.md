@@ -199,8 +199,8 @@ club on CGN, which lists them as members here.
 - **Member list:** signed-in people see a club's members with their roles; see
   [People lists](#people-lists). Signed-out visitors see the count
 - **Last confirmed:** a club page shows when its details were last confirmed and
-  by whom: "Confirmed by the club on <date>" or "Checked by Campus Gaming
-  Network on <date>". After 90 days it reads "Needs confirmation", which never
+  by whom: "Confirmed by the club on \<date>" or "Checked by Campus Gaming
+  Network on \<date>". After 90 days it reads "Needs confirmation", which never
   says or implies the club is inactive
 - **Events:** a club's owners and editors can host an event as the club, as a
   team's owners and captains can host as the team; an event has at most one
@@ -245,8 +245,8 @@ club on CGN, which lists them as members here.
 - Physical address + optional mini Google Map
 - Description with character limit; **default banner/background placeholder** (custom uploads later with moderation)
 - Show the organizer, or the hosting team: an organizer who owns or captains a
-  team may host the event as that team. The page reads "Hosted by <team>" or
-  "Organized by <person>", with the school beside it; a school is never shown
+  team may host the event as that team. The page reads "Hosted by \<team>" or
+  "Organized by \<person>", with the school beside it; a school is never shown
   as the host of a student's event. Team pages list their upcoming events
 - RSVP: **yes / no / maybe**
 - Interested: separate favorite/bookmark (not an RSVP answer)
