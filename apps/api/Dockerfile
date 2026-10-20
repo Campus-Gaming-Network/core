@@ -20,8 +20,10 @@ RUN apk add --no-cache ca-certificates \
     && adduser -S cgn -G cgn
 USER cgn
 
-# One copy, one layer: each layer costs time to export and push.
-COPY --from=build /out/ /usr/local/bin/
+COPY --from=build /out/cgn-api /usr/local/bin/cgn-api
+COPY --from=build /out/cgn-migrate /usr/local/bin/cgn-migrate
+COPY --from=build /out/cgn-seed /usr/local/bin/cgn-seed
+COPY --from=build /out/cgn-admin /usr/local/bin/cgn-admin
 COPY db/migrations /migrations
 COPY data/schools_seed.csv /data/schools_seed.csv
 
