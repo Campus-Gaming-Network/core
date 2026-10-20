@@ -13,9 +13,16 @@ import {
   RouteErrorView,
   RoutePending,
 } from "../components/route-boundaries";
+import { ButtonLink } from "../components/button-link";
+import { PageNoticeView } from "../components/page-notice-view";
 import { StatusLabel } from "../components/status-label";
+import { ClubCommandForm } from "../features/club-slice/club-command-form";
 import { getClubDetail } from "../features/club-slice/club.functions";
-import type { ClubDTO } from "../features/club-slice/contracts";
+import {
+  clubNotices,
+  validateClubManageSearch,
+  type ClubDTO,
+} from "../features/club-slice/contracts";
 import {
   clubConfirmedLine,
   clubHead,
@@ -26,6 +33,7 @@ import { schoolLocation } from "../features/school-slice/presentation";
 import clubCSS from "../features/club-slice/clubs.css?url";
 
 export const Route = createFileRoute("/clubs/$slug")({
+  validateSearch: validateClubManageSearch,
   loader: async ({ context, params }) => {
     const result = await getClubDetail({ data: { slug: params.slug } });
     if (result.status === "not_found") throw notFound();
@@ -58,6 +66,7 @@ export const Route = createFileRoute("/clubs/$slug")({
 
 function ClubPage() {
   const { club } = Route.useLoaderData();
+  const search = Route.useSearch();
   const location = schoolLocation(club.school, "");
   const confirmed = clubConfirmedLine(club);
 
@@ -68,6 +77,9 @@ function ClubPage() {
           {club.school.name}
         </BreadcrumbLink>
       </Breadcrumbs>
+      <PageNoticeView
+        notice={search.club ? clubNotices[search.club] : undefined}
+      />
       <DetailHero initial={club.name} logoURL={club.school.logo_url}>
         <h1>{club.name}</h1>
         <p className="detail-hero__meta">
@@ -137,6 +149,7 @@ function ClubPage() {
                 : []),
             ]}
           />
+          <ClubViewerActions club={club} />
           {club.claimed ? null : (
             <p className="club-claim">
               Run this club?{" "}
@@ -151,6 +164,69 @@ function ClubPage() {
     </main>
   );
 }
+
+/**
+ * What a signed-in person in the club can do here: officers manage it, an
+ * offered member answers the offer, and anyone in it can leave.
+ */
+function ClubViewerActions({ club }: { club: ClubDTO }) {
+  const role = club.viewer?.role;
+  if (!role && !club.viewer?.ownership_offered) return null;
+  return (
+    <section className="detail-card" aria-labelledby="club-you-title">
+      <h2 id="club-you-title">You and this club</h2>
+      <div className="detail-card-body form-stack">
+        {role ? <p>You are {roleLabels[role]} of this club.</p> : null}
+        {role === "owner" || role === "editor" ? (
+          <ButtonLink
+            params={{ slug: club.slug }}
+            to="/clubs/$slug/manage"
+            variant="primary"
+          >
+            Manage club
+          </ButtonLink>
+        ) : null}
+        {club.viewer?.ownership_offered ? (
+          <>
+            <p>
+              An owner offered to make you this club&apos;s owner. If you
+              accept, they become an editor.
+            </p>
+            <ClubCommandForm
+              command="accept-offer"
+              page="club"
+              slug={club.slug}
+              submitLabel="Accept ownership"
+            />
+            <ClubCommandForm
+              command="cancel-offer"
+              page="club"
+              slug={club.slug}
+              submitLabel="Decline"
+              variant="secondary"
+            />
+          </>
+        ) : null}
+        {role ? (
+          <ClubCommandForm
+            command="leave"
+            page="club"
+            slug={club.slug}
+            submitLabel="Leave club"
+            pendingLabel="Leaving…"
+            variant="secondary"
+          />
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
+const roleLabels = {
+  owner: "an owner",
+  editor: "an editor",
+  member: "a member",
+};
 
 /** The club's own process for becoming a member, written by the club or CGN. */
 function HowToJoin({ club }: { club: ClubDTO }) {

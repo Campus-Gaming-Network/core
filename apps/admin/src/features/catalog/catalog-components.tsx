@@ -947,6 +947,17 @@ const auditActionLabels: Record<CatalogAuditEntry["action"], string> = {
   "club.hidden": "Club hidden",
   "club.unhidden": "Club published again",
   "club.checked": "Marked as checked",
+  "club.profile_edited": "Club details edited by an officer",
+  "club.links_edited": "Club links edited by an officer",
+  "club.editor_invited": "Club editor invited",
+  "club.editor_invite_revoked": "Club editor invite withdrawn",
+  "club.editor_added": "Club editor joined",
+  "club.member_removed": "Removed from the club",
+  "club.member_left": "Left the club",
+  "club.ownership_offered": "Club ownership offered",
+  "club.ownership_offer_cancelled":
+    "Club ownership offer withdrawn or declined",
+  "club.ownership_transferred": "Club ownership transferred",
   "club_claim.approved": "Claim approved",
   "club_claim.rejected": "Claim rejected",
 };

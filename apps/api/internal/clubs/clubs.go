@@ -50,6 +50,8 @@ type Club struct {
 	Claimed         bool       `json:"claimed"`
 	ConfirmedAt     *time.Time `json:"confirmed_at,omitempty"`
 	ConfirmedSource string     `json:"confirmed_source,omitempty"`
+	// Viewer is set for a signed-in viewer.
+	Viewer *Viewer `json:"viewer,omitempty"`
 }
 
 // ListItem is a club as a school page or the clubs directory lists it.

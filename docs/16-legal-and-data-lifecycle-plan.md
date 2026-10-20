@@ -98,9 +98,11 @@ The current deletion transaction:
       verification/reset tokens.
 - [x] Deletes personally scoped social links, school follows, team memberships,
       event RSVPs/interests, event-organizer membership, and notifications.
-- [x] Deletes the account's club roles, so a club it owned returns to
-      unclaimed with its page intact, and its club claims and requests with
-      their evidence. Claim decisions stay in the audit history.
+- [x] Passes a club the account was the last owner of to its longest-serving
+      active editor, then member, or leaves it unclaimed with its page intact;
+      then deletes the account's club roles, ownership offers, editor invites
+      sent to its address, and its club claims and requests with their
+      evidence. Claim decisions stay in the audit history.
 - [x] Transfers an owned team to the longest-tenured captain, then member, or
       soft-deletes a team with no successor.
 - [x] Transfers a future created event to the longest-tenured other active

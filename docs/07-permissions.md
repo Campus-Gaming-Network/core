@@ -165,10 +165,19 @@ The two past-event rows are the intended rule; neither is enforced yet, so organ
   `clubs.read` (queue and detail) and `clubs.manage` (approve and reject); a
   claim on a club that already has an owner is not approved, and disputes go
   through support. Claims and club requests share a per-account rate limit
-- **Owners** and **editors** edit the club profile and remove members.
-  **Owners** also invite and remove editors and transfer ownership; a transfer
-  takes effect when the recipient accepts, and the previous owner becomes an
-  editor. The last owner cannot leave or be removed
+- **Owners** and **editors** edit the club profile, games, and links from the
+  Manage club page, and remove members. **Owners** also invite editors by
+  email (a single-use link for the invited address), withdraw invites, remove
+  editors, and offer the club to another editor or member; the transfer takes
+  effect only when the recipient accepts, and the previous owner becomes an
+  editor. The recipient may decline. No one removes an owner, and the last
+  owner cannot leave. Every check runs on the server against the person's role
+  in that club, so an officer of one club cannot change another
+- Anyone in a club may leave it. Removing someone or changing a role never
+  deletes the club or anything it published
+- When an owner deletes their account, the club passes to its longest-serving
+  active editor, then member; with no one left it returns to unclaimed and its
+  page stays up
 - **School admins** may edit clubs at their school; they do not review claims
 - Any signed-in user with a verified email **joins** a club on CGN directly and
   may leave. A removed member may join again. Joining on CGN grants nothing in

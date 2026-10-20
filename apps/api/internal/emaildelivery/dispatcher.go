@@ -128,6 +128,28 @@ func (d *Dispatcher) Send(ctx context.Context, message emailoutbox.Message) (str
 		}
 		providerID, err := send(ctx, message.Recipient, payload, message.IdempotencyKey)
 		return providerID, classifyProviderError(err)
+	case emailoutbox.KindClubEditorInvite:
+		var payload clubs.EditorInvitePayload
+		if json.Unmarshal(message.Payload, &payload) != nil || strings.TrimSpace(payload.Token) == "" ||
+			strings.TrimSpace(payload.ClubName) == "" || strings.TrimSpace(payload.InviterName) == "" {
+			return "", emailoutbox.Permanent(errors.New("invalid club editor invite email payload"))
+		}
+		if d.Clubs == nil {
+			return "", errors.New("club mailer unavailable")
+		}
+		providerID, err := d.Clubs.SendEditorInvite(ctx, message.Recipient, payload, message.IdempotencyKey)
+		return providerID, classifyProviderError(err)
+	case emailoutbox.KindClubOwnershipOffered:
+		var payload clubs.OwnershipOfferPayload
+		if json.Unmarshal(message.Payload, &payload) != nil || strings.TrimSpace(payload.ClubName) == "" ||
+			strings.TrimSpace(payload.ClubSlug) == "" || strings.TrimSpace(payload.OwnerName) == "" {
+			return "", emailoutbox.Permanent(errors.New("invalid club ownership offer email payload"))
+		}
+		if d.Clubs == nil {
+			return "", errors.New("club mailer unavailable")
+		}
+		providerID, err := d.Clubs.SendOwnershipOffered(ctx, message.Recipient, payload, message.IdempotencyKey)
+		return providerID, classifyProviderError(err)
 	default:
 		return "", emailoutbox.Permanent(fmt.Errorf("unsupported email kind %q", message.Kind))
 	}

@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as AccountRouteImport } from './routes/account'
+import { Route as ClubEditorInviteRouteImport } from './routes/club-editor-invite'
 import { Route as ConfirmEmailChangeRouteImport } from './routes/confirm-email-change'
 import { Route as EventsRouteImport } from './routes/events'
 import { Route as FaqRouteImport } from './routes/faq'
@@ -59,6 +60,7 @@ import { Route as ApiGamesCatalogSearchRouteImport } from './routes/api.games.ca
 import { Route as ApiGamesIgdbSearchRouteImport } from './routes/api.games.igdb-search'
 import { Route as ApiIgdbCoversImageIdRouteImport } from './routes/api.igdb-covers.$imageId'
 import { Route as ClubsSlugClaimRouteImport } from './routes/clubs.$slug_.claim'
+import { Route as ClubsSlugManageRouteImport } from './routes/clubs.$slug_.manage'
 import { Route as EventsSlugEditRouteImport } from './routes/events.$slug_.edit'
 import { Route as EventsSlugPeopleRouteImport } from './routes/events.$slug_.people'
 import { Route as SchoolsSlugPeopleRouteImport } from './routes/schools.$slug_.people'
@@ -80,6 +82,11 @@ const AboutRoute = AboutRouteImport.update({
 const AccountRoute = AccountRouteImport.update({
   id: '/account',
   path: '/account',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClubEditorInviteRoute = ClubEditorInviteRouteImport.update({
+  id: '/club-editor-invite',
+  path: '/club-editor-invite',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ConfirmEmailChangeRoute = ConfirmEmailChangeRouteImport.update({
@@ -317,6 +324,11 @@ const ClubsSlugClaimRoute = ClubsSlugClaimRouteImport.update({
   path: '/clubs/$slug/claim',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ClubsSlugManageRoute = ClubsSlugManageRouteImport.update({
+  id: '/clubs/$slug_/manage',
+  path: '/clubs/$slug/manage',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const EventsSlugEditRoute = EventsSlugEditRouteImport.update({
   id: '/$slug_/edit',
   path: '/$slug/edit',
@@ -358,6 +370,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/account': typeof AccountRoute
+  '/club-editor-invite': typeof ClubEditorInviteRoute
   '/confirm-email-change': typeof ConfirmEmailChangeRoute
   '/events': typeof EventsRouteWithChildren
   '/faq': typeof FaqRoute
@@ -405,6 +418,7 @@ export interface FileRoutesByFullPath {
   '/api/games/igdb-search': typeof ApiGamesIgdbSearchRoute
   '/api/igdb-covers/$imageId': typeof ApiIgdbCoversImageIdRoute
   '/clubs/$slug/claim': typeof ClubsSlugClaimRoute
+  '/clubs/$slug/manage': typeof ClubsSlugManageRoute
   '/events/$slug/edit': typeof EventsSlugEditRoute
   '/events/$slug/people': typeof EventsSlugPeopleRoute
   '/schools/$slug/people': typeof SchoolsSlugPeopleRoute
@@ -417,6 +431,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/account': typeof AccountRoute
+  '/club-editor-invite': typeof ClubEditorInviteRoute
   '/confirm-email-change': typeof ConfirmEmailChangeRoute
   '/faq': typeof FaqRoute
   '/forgot-password': typeof ForgotPasswordRoute
@@ -460,6 +475,7 @@ export interface FileRoutesByTo {
   '/api/games/igdb-search': typeof ApiGamesIgdbSearchRoute
   '/api/igdb-covers/$imageId': typeof ApiIgdbCoversImageIdRoute
   '/clubs/$slug/claim': typeof ClubsSlugClaimRoute
+  '/clubs/$slug/manage': typeof ClubsSlugManageRoute
   '/events/$slug/edit': typeof EventsSlugEditRoute
   '/events/$slug/people': typeof EventsSlugPeopleRoute
   '/schools/$slug/people': typeof SchoolsSlugPeopleRoute
@@ -473,6 +489,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/account': typeof AccountRoute
+  '/club-editor-invite': typeof ClubEditorInviteRoute
   '/confirm-email-change': typeof ConfirmEmailChangeRoute
   '/events': typeof EventsRouteWithChildren
   '/faq': typeof FaqRoute
@@ -520,6 +537,7 @@ export interface FileRoutesById {
   '/api/games/igdb-search': typeof ApiGamesIgdbSearchRoute
   '/api/igdb-covers/$imageId': typeof ApiIgdbCoversImageIdRoute
   '/clubs/$slug_/claim': typeof ClubsSlugClaimRoute
+  '/clubs/$slug_/manage': typeof ClubsSlugManageRoute
   '/events/$slug_/edit': typeof EventsSlugEditRoute
   '/events/$slug_/people': typeof EventsSlugPeopleRoute
   '/schools/$slug_/people': typeof SchoolsSlugPeopleRoute
@@ -534,6 +552,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/account'
+    | '/club-editor-invite'
     | '/confirm-email-change'
     | '/events'
     | '/faq'
@@ -581,6 +600,7 @@ export interface FileRouteTypes {
     | '/api/games/igdb-search'
     | '/api/igdb-covers/$imageId'
     | '/clubs/$slug/claim'
+    | '/clubs/$slug/manage'
     | '/events/$slug/edit'
     | '/events/$slug/people'
     | '/schools/$slug/people'
@@ -593,6 +613,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/account'
+    | '/club-editor-invite'
     | '/confirm-email-change'
     | '/faq'
     | '/forgot-password'
@@ -636,6 +657,7 @@ export interface FileRouteTypes {
     | '/api/games/igdb-search'
     | '/api/igdb-covers/$imageId'
     | '/clubs/$slug/claim'
+    | '/clubs/$slug/manage'
     | '/events/$slug/edit'
     | '/events/$slug/people'
     | '/schools/$slug/people'
@@ -648,6 +670,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/account'
+    | '/club-editor-invite'
     | '/confirm-email-change'
     | '/events'
     | '/faq'
@@ -695,6 +718,7 @@ export interface FileRouteTypes {
     | '/api/games/igdb-search'
     | '/api/igdb-covers/$imageId'
     | '/clubs/$slug_/claim'
+    | '/clubs/$slug_/manage'
     | '/events/$slug_/edit'
     | '/events/$slug_/people'
     | '/schools/$slug_/people'
@@ -708,6 +732,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
   AccountRoute: typeof AccountRoute
+  ClubEditorInviteRoute: typeof ClubEditorInviteRoute
   ConfirmEmailChangeRoute: typeof ConfirmEmailChangeRoute
   EventsRoute: typeof EventsRouteWithChildren
   FaqRoute: typeof FaqRoute
@@ -742,6 +767,7 @@ export interface RootRouteChildren {
   ApiGamesIgdbSearchRoute: typeof ApiGamesIgdbSearchRoute
   ApiIgdbCoversImageIdRoute: typeof ApiIgdbCoversImageIdRoute
   ClubsSlugClaimRoute: typeof ClubsSlugClaimRoute
+  ClubsSlugManageRoute: typeof ClubsSlugManageRoute
   ApiEventsSlugCalendarDoticsRoute: typeof ApiEventsSlugCalendarDoticsRoute
   ApiGamesSlugCoverRoute: typeof ApiGamesSlugCoverRoute
 }
@@ -767,6 +793,13 @@ declare module '@tanstack/react-router' {
       path: '/account'
       fullPath: '/account'
       preLoaderRoute: typeof AccountRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/club-editor-invite': {
+      id: '/club-editor-invite'
+      path: '/club-editor-invite'
+      fullPath: '/club-editor-invite'
+      preLoaderRoute: typeof ClubEditorInviteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/confirm-email-change': {
@@ -1098,6 +1131,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ClubsSlugClaimRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/clubs/$slug_/manage': {
+      id: '/clubs/$slug_/manage'
+      path: '/clubs/$slug/manage'
+      fullPath: '/clubs/$slug/manage'
+      preLoaderRoute: typeof ClubsSlugManageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/events/$slug_/edit': {
       id: '/events/$slug_/edit'
       path: '/$slug/edit'
@@ -1226,6 +1266,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
   AccountRoute: AccountRoute,
+  ClubEditorInviteRoute: ClubEditorInviteRoute,
   ConfirmEmailChangeRoute: ConfirmEmailChangeRoute,
   EventsRoute: EventsRouteWithChildren,
   FaqRoute: FaqRoute,
@@ -1260,6 +1301,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiGamesIgdbSearchRoute: ApiGamesIgdbSearchRoute,
   ApiIgdbCoversImageIdRoute: ApiIgdbCoversImageIdRoute,
   ClubsSlugClaimRoute: ClubsSlugClaimRoute,
+  ClubsSlugManageRoute: ClubsSlugManageRoute,
   ApiEventsSlugCalendarDoticsRoute: ApiEventsSlugCalendarDoticsRoute,
   ApiGamesSlugCoverRoute: ApiGamesSlugCoverRoute,
 }

@@ -812,3 +812,58 @@ func TestDeleteAccountAuditsEachQueueItemItUnassigns(t *testing.T) {
 		t.Fatalf("other report assignee = %q, want %q", otherAssignee, otherID)
 	}
 }
+
+func TestDeleteAccountPassesAClubToItsLongestServingEditorOrLeavesItUnclaimed(t *testing.T) {
+	pool, schoolID := newDeletionFixture(t)
+	ctx := context.Background()
+	owner := insertUser(t, pool, schoolID, "club-owner@example.test")
+	member := insertUser(t, pool, schoolID, "club-member@example.test")
+	editor := insertUser(t, pool, schoolID, "club-editor@example.test")
+	later := insertUser(t, pool, schoolID, "club-later-editor@example.test")
+	var keptID, soloID string
+	if err := pool.QueryRow(ctx, `
+		WITH kept AS (INSERT INTO clubs (school_id, name, slug, type) VALUES ($1::uuid, 'Kept Club', 'kept-club', 'student_club') RETURNING id),
+		     solo AS (INSERT INTO clubs (school_id, name, slug, type) VALUES ($1::uuid, 'Solo Club', 'solo-club', 'student_club') RETURNING id),
+		     roles AS (
+		         INSERT INTO club_members (club_id, user_id, role, created_at)
+		         SELECT kept.id, $2::uuid, 'owner', NOW() - INTERVAL '4 days' FROM kept
+		         UNION ALL SELECT kept.id, $3::uuid, 'member', NOW() - INTERVAL '3 days' FROM kept
+		         UNION ALL SELECT kept.id, $4::uuid, 'editor', NOW() - INTERVAL '2 days' FROM kept
+		         UNION ALL SELECT kept.id, $5::uuid, 'editor', NOW() - INTERVAL '1 day' FROM kept
+		         UNION ALL SELECT solo.id, $2::uuid, 'owner', NOW() FROM solo),
+		     offer AS (INSERT INTO club_ownership_offers (club_id, from_user_id, to_user_id) SELECT id, $2::uuid, $3::uuid FROM kept)
+		SELECT kept.id::text, solo.id::text FROM kept, solo
+	`, schoolID, owner, member, editor, later).Scan(&keptID, &soloID); err != nil {
+		t.Fatalf("insert clubs: %v", err)
+	}
+
+	if err := NewPostgresRepository(pool).DeleteAccount(ctx, owner); err != nil {
+		t.Fatalf("DeleteAccount() error = %v", err)
+	}
+
+	rows, err := pool.Query(ctx, `
+		SELECT c.slug || ':' || COALESCE(u.email::text, '') || ':' || COALESCE(m.role, '')
+		FROM clubs c LEFT JOIN club_members m ON m.club_id = c.id LEFT JOIN users u ON u.id = m.user_id
+		WHERE c.deleted_at IS NULL AND c.status = 'published'
+		ORDER BY 1`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := pgx.CollectRows(rows, pgx.RowTo[string])
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []string{
+		"kept-club:club-editor@example.test:owner",
+		"kept-club:club-later-editor@example.test:editor",
+		"kept-club:club-member@example.test:member",
+		"solo-club::",
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("clubs after deletion = %v, want %v", got, want)
+	}
+	var offers int
+	if err := pool.QueryRow(ctx, `SELECT COUNT(*) FROM club_ownership_offers`).Scan(&offers); err != nil || offers != 0 {
+		t.Fatalf("ownership offers = %d, %v; want 0", offers, err)
+	}
+}

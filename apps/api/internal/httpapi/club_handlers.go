@@ -20,6 +20,16 @@ func (r *Router) handleClub(w http.ResponseWriter, req *http.Request) {
 		writeApplicationError(w, err, "club_unavailable")
 		return
 	}
+	// A signed-in viewer also learns their place in the club.
+	if userID, signedIn := auth.UserID(req.Context()); signedIn && r.clubOfficers != nil {
+		viewer, err := r.clubOfficers.Viewer(req.Context(), club.ID, userID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "club_unavailable")
+			return
+		}
+		club.Viewer = &viewer
+		w.Header().Set("Cache-Control", "private, no-store")
+	}
 	writeJSON(w, http.StatusOK, club)
 }
 

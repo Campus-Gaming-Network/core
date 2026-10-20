@@ -38,6 +38,11 @@ const (
 	// a site admin decided their club claim or request.
 	KindClubClaimApproved = "club_claim_approved"
 	KindClubClaimRejected = "club_claim_rejected"
+	// KindClubEditorInvite carries the link that accepts an invite to edit
+	// a club; KindClubOwnershipOffered tells a member an owner offered them
+	// the club.
+	KindClubEditorInvite     = "club_editor_invite"
+	KindClubOwnershipOffered = "club_ownership_offered"
 )
 
 const (

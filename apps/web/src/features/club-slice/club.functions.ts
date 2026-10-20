@@ -5,10 +5,14 @@ import {
   goBFFForCurrentRequest,
   isNativeFormPost,
   setPrivateNoStoreResponse,
+  setViewerResponseCache,
 } from "../../server/request-boundary.server.js";
 import { optionalViewerProfile } from "../../server/viewer.server.js";
 import {
+  acceptEditorInviteOperation,
   clubDetailOperation,
+  clubManagementOperation,
+  runClubCommandOperation,
   clubsBrowsePageOperation,
   schoolClubsOperation,
   submitClubClaimOperation,
@@ -16,12 +20,16 @@ import {
 } from "./club-operations.server.js";
 import {
   clubClaimPage,
+  clubCommandPage,
   clubRequestPage,
   clubsBrowsePageInputSchema,
   clubSlugInputSchema,
   validateClubClaimServerInput,
+  validateClubCommandInput,
   validateClubRequestServerInput,
+  validateEditorInviteSearch,
   type ClaimSubmitResult,
+  type ClubCommandResult,
   type Validated,
 } from "./contracts.js";
 
@@ -33,9 +41,84 @@ export const getClubsBrowsePage = createServerFn({ method: "GET" })
 
 export const getClubDetail = createServerFn({ method: "GET" })
   .validator(clubSlugInputSchema)
-  .handler(async ({ data }) =>
-    clubDetailOperation(data, { api: goBFFForCurrentRequest() }),
-  );
+  .handler(async ({ data }) => {
+    // A signed-in viewer's page says where they stand in the club, so it is
+    // never shared.
+    const request = currentSessionRequest();
+    setViewerResponseCache(Boolean(request.sessionCookieValue));
+    return clubDetailOperation(data, {
+      api: request.api,
+      cookieHeader: request.cookieHeader,
+    });
+  });
+
+export const getClubManagement = createServerFn({ method: "GET" })
+  .validator(clubSlugInputSchema)
+  .handler(async ({ data }) => {
+    setPrivateNoStoreResponse();
+    return clubManagementOperation(data, currentSessionRequest());
+  });
+
+export const runClubCommand = createServerFn({
+  method: "POST",
+  strict: { input: false },
+})
+  .validator((input: FormData | object) => validateClubCommandInput(input))
+  .handler(async ({ data }): Promise<ClubCommandResult> => {
+    setPrivateNoStoreResponse();
+    const nativeForm = isNativeFormPost();
+    if (!data.valid) {
+      if (nativeForm) {
+        nativeRedirect(clubCommandPage(data.slug, data.page, "failed"));
+      }
+      return {
+        status: "error",
+        notice: "failed",
+        message: data.message,
+        fieldErrors: data.fieldErrors,
+      };
+    }
+    const result = await runClubCommandOperation(
+      data.value,
+      data.page,
+      currentSessionRequest(),
+    );
+    if (nativeForm) {
+      nativeRedirect(
+        result.status === "success"
+          ? result.redirectTo
+          : clubCommandPage(data.value.slug, data.page, result.notice),
+      );
+    }
+    return result;
+  });
+
+export const acceptClubEditorInvite = createServerFn({
+  method: "POST",
+  strict: { input: false },
+})
+  .validator((input: FormData | object) =>
+    validateEditorInviteSearch({
+      token:
+        input instanceof FormData
+          ? input.get("token")
+          : Reflect.get(input, "token"),
+    }),
+  )
+  .handler(async ({ data }) => {
+    setPrivateNoStoreResponse();
+    const result = data.token
+      ? await acceptEditorInviteOperation(
+          { token: data.token },
+          currentSessionRequest(),
+        )
+      : {
+          status: "success" as const,
+          redirectTo: "/club-editor-invite?result=invalid",
+        };
+    if (isNativeFormPost()) nativeRedirect(result.redirectTo);
+    return result;
+  });
 
 export const getSchoolClubs = createServerFn({ method: "GET" })
   .validator(clubSlugInputSchema)

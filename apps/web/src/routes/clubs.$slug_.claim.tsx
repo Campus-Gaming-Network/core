@@ -1,6 +1,7 @@
 import { createFileRoute, notFound, redirect } from "@tanstack/react-router";
 import { BreadcrumbLink, Breadcrumbs } from "../components/breadcrumbs";
 import { ButtonLink } from "../components/button-link";
+import { Callout } from "../components/callout";
 import { pageHead } from "../components/public-page-head";
 import { RouteErrorView, RoutePending } from "../components/route-boundaries";
 import {
@@ -85,10 +86,10 @@ function ClaimClubPage() {
         </>
       ) : club.claimed ? (
         <>
-          <p className="notice">
+          <Callout>
             {club.name} is already managed by its officers. If you run it and
             cannot reach them, contact support.
-          </p>
+          </Callout>
           <div className="form-actions">{back}</div>
         </>
       ) : (

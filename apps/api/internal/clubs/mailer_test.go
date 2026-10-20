@@ -61,3 +61,41 @@ func TestResendMailerSendsClaimDecisions(t *testing.T) {
 		t.Fatalf("emails = %#v, want %#v", bodies, want)
 	}
 }
+
+func TestResendMailerSendsOfficerEmails(t *testing.T) {
+	var bodies []map[string]any
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Errorf("decode email: %v", err)
+		}
+		bodies = append(bodies, body)
+		_, _ = w.Write([]byte(`{"id":"provider-id"}`))
+	}))
+	t.Cleanup(server.Close)
+	mailer := &ResendMailer{APIKey: "key", From: "CGN <notices@example.test>", Endpoint: server.URL, SiteURL: "https://cgn.example/"}
+
+	if _, err := mailer.SendEditorInvite(t.Context(), "editor@example.test", EditorInvitePayload{Token: "a b", ClubName: "Smash Club", InviterName: "Jo"}, "invite-key"); err != nil {
+		t.Fatalf("SendEditorInvite() error = %v", err)
+	}
+	if _, err := mailer.SendOwnershipOffered(t.Context(), "member@example.test", OwnershipOfferPayload{ClubName: "Smash Club", ClubSlug: "smash-club", OwnerName: "Jo"}, "offer-key"); err != nil {
+		t.Fatalf("SendOwnershipOffered() error = %v", err)
+	}
+	render := func(message emaillayout.Message) string {
+		t.Helper()
+		body, err := emaillayout.HTML(message)
+		if err != nil {
+			t.Fatalf("render: %v", err)
+		}
+		return body
+	}
+	invite := editorInviteMessage(EditorInvitePayload{ClubName: "Smash Club", InviterName: "Jo"}, "https://cgn.example/club-editor-invite?token=a+b")
+	offer := ownershipOfferedMessage(OwnershipOfferPayload{ClubName: "Smash Club", OwnerName: "Jo"}, "https://cgn.example/clubs/smash-club")
+	want := []map[string]any{
+		{"from": "CGN <notices@example.test>", "to": []any{"editor@example.test"}, "subject": "Help run Smash Club on Campus Gaming Network", "html": render(invite), "text": emaillayout.Text(invite)},
+		{"from": "CGN <notices@example.test>", "to": []any{"member@example.test"}, "subject": "Jo offered you Smash Club", "html": render(offer), "text": emaillayout.Text(offer)},
+	}
+	if !reflect.DeepEqual(bodies, want) {
+		t.Fatalf("emails = %#v, want %#v", bodies, want)
+	}
+}

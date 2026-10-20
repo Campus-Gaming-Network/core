@@ -195,7 +195,8 @@ club on CGN, which lists them as members here.
   claim makes the applicant the club's owner, and the page then reads "Managed
   by the club"
 - **Roles:** **owner**, **editor**, and **member**. Owners and editors edit the
-  club's profile and remove members. Owners also invite and remove editors and
+  club's profile, games, and links on a Manage club page linked from the club
+  page, and remove members. Owners also invite and remove editors and
   hand ownership to another member, which takes effect when that person
   accepts. A claimed club always keeps at least one owner: the last owner
   cannot leave or be removed

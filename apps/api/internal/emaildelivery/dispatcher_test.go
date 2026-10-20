@@ -208,6 +208,44 @@ func (m *clubMailerStub) SendClaimRejected(_ context.Context, recipient string, 
 	return "provider-id", nil
 }
 
+func (m *clubMailerStub) SendEditorInvite(_ context.Context, recipient string, invite clubs.EditorInvitePayload, _ string) (string, error) {
+	m.sent = append(m.sent, "editor:"+recipient+":"+invite.ClubName)
+	return "provider-id", nil
+}
+
+func (m *clubMailerStub) SendOwnershipOffered(_ context.Context, recipient string, offer clubs.OwnershipOfferPayload, _ string) (string, error) {
+	m.sent = append(m.sent, "offered:"+recipient+":"+offer.ClubName)
+	return "provider-id", nil
+}
+
+func TestDispatcherSendsClubOfficerEmailsAndQuarantinesBadOnes(t *testing.T) {
+	mailer := &clubMailerStub{}
+	dispatcher := &Dispatcher{Clubs: mailer}
+	send := func(kind string, payload string) error {
+		_, err := dispatcher.Send(t.Context(), emailoutbox.Message{
+			Kind: kind, Recipient: "officer@example.com", IdempotencyKey: "officer-key", Payload: json.RawMessage(payload),
+		})
+		return err
+	}
+	if err := send(emailoutbox.KindClubEditorInvite, `{"token":"raw","club_name":"Smash Club","inviter_name":"Jo"}`); err != nil {
+		t.Fatalf("Send(editor invite) error = %v", err)
+	}
+	if err := send(emailoutbox.KindClubOwnershipOffered, `{"club_name":"Smash Club","club_slug":"smash-club","owner_name":"Jo"}`); err != nil {
+		t.Fatalf("Send(ownership offered) error = %v", err)
+	}
+	for _, bad := range []struct{ kind, payload string }{
+		{emailoutbox.KindClubEditorInvite, `{"club_name":"Smash Club","inviter_name":"Jo"}`},
+		{emailoutbox.KindClubOwnershipOffered, `{"club_name":"Smash Club","owner_name":"Jo"}`},
+	} {
+		if err := send(bad.kind, bad.payload); !emailoutbox.IsPermanent(err) {
+			t.Fatalf("Send(%s, %s) error = %v, want permanent", bad.kind, bad.payload, err)
+		}
+	}
+	if want := []string{"editor:officer@example.com:Smash Club", "offered:officer@example.com:Smash Club"}; !reflect.DeepEqual(mailer.sent, want) {
+		t.Fatalf("sent = %v, want %v", mailer.sent, want)
+	}
+}
+
 func TestDispatcherSendsClubClaimDecisionsAndQuarantinesBadOnes(t *testing.T) {
 	mailer := &clubMailerStub{}
 	dispatcher := &Dispatcher{Clubs: mailer}

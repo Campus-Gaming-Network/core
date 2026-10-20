@@ -260,8 +260,33 @@ func (r *PostgresRepository) DeleteAccount(ctx context.Context, userID string) e
 	for _, statement := range []string{
 		`DELETE FROM team_members WHERE user_id = $1::uuid`,
 		`DELETE FROM event_organizers WHERE user_id = $1::uuid`,
-		// A club the account owned returns to unclaimed; its page stays up.
+		// A club the account was the last owner of passes to its
+		// longest-serving active editor, then member, as an event passes to
+		// its longest-serving organizer. With no one left it returns to
+		// unclaimed; its page stays up either way.
+		`WITH sole AS (
+		     SELECT m.club_id FROM club_members m
+		     WHERE m.user_id = $1::uuid AND m.role = 'owner'
+		       AND NOT EXISTS (
+		           SELECT 1 FROM club_members o JOIN users u ON u.id = o.user_id
+		           WHERE o.club_id = m.club_id AND o.role = 'owner' AND o.user_id <> $1::uuid
+		             AND u.deleted_at IS NULL AND u.account_status = 'active')),
+		 successor AS (
+		     SELECT DISTINCT ON (c.club_id) c.club_id, c.user_id
+		     FROM club_members c
+		     JOIN sole ON sole.club_id = c.club_id
+		     JOIN users u ON u.id = c.user_id AND u.deleted_at IS NULL AND u.account_status = 'active'
+		     WHERE c.user_id <> $1::uuid
+		     ORDER BY c.club_id, CASE c.role WHEN 'editor' THEN 0 ELSE 1 END, c.created_at, c.user_id)
+		 UPDATE club_members m SET role = 'owner'
+		 FROM successor
+		 WHERE m.club_id = successor.club_id AND m.user_id = successor.user_id`,
+		`DELETE FROM club_ownership_offers WHERE from_user_id = $1::uuid OR to_user_id = $1::uuid`,
 		`DELETE FROM club_members WHERE user_id = $1::uuid`,
+		// Invites to edit a club hold the address; they cannot be accepted
+		// once the account is gone.
+		`DELETE FROM club_editor_invites
+		 WHERE email = (SELECT email FROM users WHERE id = $1::uuid)`,
 		// Claims hold the applicant's evidence. Their decisions stay in the
 		// audit history.
 		`DELETE FROM club_claims WHERE applicant_user_id = $1::uuid`,

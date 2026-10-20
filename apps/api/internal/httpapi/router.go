@@ -79,6 +79,7 @@ type Router struct {
 	events            eventstore.Repository
 	teams             teamstore.Repository
 	clubs             clubs.Repository
+	clubOfficers      clubOfficers
 	safety            safety.Repository
 	users             users.Repository
 	people            people.Repository
@@ -147,7 +148,9 @@ func NewRouter(cfg config.Config, pools ...*pgxpool.Pool) http.Handler {
 		router.organizers = eventRepository
 		router.inbox = notifications.NewPostgresRepository(router.db)
 		router.teams = teamstore.NewPostgresRepository(router.db)
-		router.clubs = clubs.NewPostgresRepository(router.db)
+		clubRepository := clubs.NewPostgresRepository(router.db)
+		router.clubs = clubRepository
+		router.clubOfficers = clubRepository
 		router.sitemap = sitemap.NewPostgresRepository(router.db)
 		router.people = people.NewPostgresRepository(router.db)
 		router.safety = safety.NewPostgresRepository(router.db)
@@ -285,6 +288,7 @@ func (r *Router) registerPublicRoutes() {
 	r.mux.HandleFunc("/clubs", requireMethod(http.MethodGet, r.handleClubs))
 	r.mux.HandleFunc("/clubs/{slug}", requireMethod(http.MethodGet, r.handleClub))
 	r.mux.HandleFunc("/clubs/{slug}/claims", requireMethod(http.MethodPost, r.handleClubClaim))
+	r.registerClubOfficerRoutes()
 	r.mux.HandleFunc("/teams", r.handleTeams)
 	r.mux.HandleFunc("/teams/", r.handleTeamPath)
 	r.mux.HandleFunc("/support-tickets", r.handleSupportTickets)

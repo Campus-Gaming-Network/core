@@ -138,3 +138,9 @@ clubs and requests for new ones with their evidence and review, plus the
 deploying the API that serves `POST /clubs/{slug}/claims`,
 `POST /schools/{slug}/club-requests`, and `/admin/v1/club-claims`; the public
 club reads also join `club_members`.
+Migration `000039_club_officers.up.sql` adds `club_editor_invites`, an owner's
+single-use, expiring invites to edit a club, and `club_ownership_offers`, an
+owner's pending offer of the club to another member, plus the
+`club_editor_invite` and `club_ownership_offered` email kinds. Apply it before
+deploying the API that serves `/clubs/{slug}/manage` and the club officer
+commands.

@@ -40,8 +40,8 @@ is done. Engineering work comes from the open
 
 ## Next tasks
 
-1. Clubs, in the order in [05](./05-roadmap.md#phase-6a--clubs): owners and
-   editors (#118), then joining clubs on CGN (#262).
+1. Clubs, in the order in [05](./05-roadmap.md#phase-6a--clubs): joining
+   clubs on CGN (#262), then #119 and #124.
 2. Finish what `AC-014` still owes, none of which needs code: the independent
    security review, then the staging penetration pass, drills, and deployment
    smoke checks on staging

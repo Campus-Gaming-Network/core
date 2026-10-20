@@ -160,9 +160,20 @@ club_slug_redirects
 club_members
   club_id, user_id (primary key together), role (owner|editor|member),
   created_at, updated_at
-  -- a club with an owner is claimed; claims write only owners until #118
-  -- (editors) and #262 (members); account deletion removes the rows, so a club
-  -- whose owner leaves returns to unclaimed
+  -- a club with an owner is claimed; claims write owners, editor invites
+  -- write editors, and #262 adds members. On account deletion a club whose
+  -- last owner leaves passes to its longest-serving active editor, then
+  -- member, or returns to unclaimed
+
+club_editor_invites
+  id, club_id, invited_by_user_id nullable, email, token_hash (unique),
+  expires_at, accepted_at nullable, accepted_by_user_id nullable,
+  revoked_at nullable, created_at, updated_at
+  -- one pending invite per club and address; only the token's hash is stored
+
+club_ownership_offers
+  club_id (primary key), from_user_id, to_user_id, created_at
+  -- at most one offer per club; nothing changes until the recipient accepts
 
 club_claims
   id, club_id nullable, school_id, requested_name nullable,

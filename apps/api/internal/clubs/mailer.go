@@ -31,6 +31,8 @@ type DecisionPayload struct {
 type Mailer interface {
 	SendClaimApproved(ctx context.Context, recipient string, decision DecisionPayload, idempotencyKey string) (string, error)
 	SendClaimRejected(ctx context.Context, recipient string, decision DecisionPayload, idempotencyKey string) (string, error)
+	SendEditorInvite(ctx context.Context, recipient string, invite EditorInvitePayload, idempotencyKey string) (string, error)
+	SendOwnershipOffered(ctx context.Context, recipient string, offer OwnershipOfferPayload, idempotencyKey string) (string, error)
 }
 
 // ResendMailer sends club emails through Resend. Without an API key it logs
@@ -62,6 +64,47 @@ func (m *ResendMailer) SendClaimRejected(ctx context.Context, recipient string, 
 	return m.sendMessage(ctx, recipient, subject,
 		claimRejectedMessage(decision, strings.TrimRight(m.SiteURL, "/")+"/support?topic=club"),
 		"club claim rejected", idempotencyKey)
+}
+
+// SendEditorInvite sends the link that accepts an invite to edit a club and
+// returns the provider message ID.
+func (m *ResendMailer) SendEditorInvite(ctx context.Context, recipient string, invite EditorInvitePayload, idempotencyKey string) (string, error) {
+	link := strings.TrimRight(m.SiteURL, "/") + "/club-editor-invite?token=" + url.QueryEscape(invite.Token)
+	return m.sendMessage(ctx, recipient, "Help run "+invite.ClubName+" on Campus Gaming Network",
+		editorInviteMessage(invite, link), "club editor invite", idempotencyKey)
+}
+
+// SendOwnershipOffered tells a member that an owner offered them the club and
+// returns the provider message ID.
+func (m *ResendMailer) SendOwnershipOffered(ctx context.Context, recipient string, offer OwnershipOfferPayload, idempotencyKey string) (string, error) {
+	return m.sendMessage(ctx, recipient, offer.OwnerName+" offered you "+offer.ClubName,
+		ownershipOfferedMessage(offer, strings.TrimRight(m.SiteURL, "/")+"/clubs/"+url.PathEscape(offer.ClubSlug)),
+		"club ownership offered", idempotencyKey)
+}
+
+func editorInviteMessage(invite EditorInvitePayload, link string) emaillayout.Message {
+	return emaillayout.Message{
+		Preview:    invite.InviterName + " invited you to edit " + invite.ClubName + ".",
+		Heading:    "Help run a club",
+		Paragraphs: []string{invite.InviterName + " invited you to edit " + invite.ClubName + "'s page on Campus Gaming Network."},
+		Action:     &emaillayout.Action{Label: "Accept invitation", URL: link},
+		Notes: []string{
+			"Sign in with this email address to accept. The link works once and expires in 7 days.",
+			"If you did not expect this, you can ignore it.",
+		},
+		Reason: "You received this email because a club owner entered your address.",
+	}
+}
+
+func ownershipOfferedMessage(offer OwnershipOfferPayload, link string) emaillayout.Message {
+	return emaillayout.Message{
+		Preview:    offer.OwnerName + " offered to make you the owner of " + offer.ClubName + ".",
+		Heading:    "Take over a club",
+		Paragraphs: []string{offer.OwnerName + " offered to make you the owner of " + offer.ClubName + " on Campus Gaming Network. Nothing changes until you accept on the club's page."},
+		Action:     &emaillayout.Action{Label: "View club", URL: link},
+		Notes:      []string{"When you accept, " + offer.OwnerName + " becomes an editor. You can also decline."},
+		Reason:     "You received this email because you are in this club.",
+	}
 }
 
 func claimApprovedMessage(decision DecisionPayload, link string) emaillayout.Message {

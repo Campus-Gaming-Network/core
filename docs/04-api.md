@@ -188,11 +188,22 @@ there is no per-list privacy setting.
 
 ### Clubs
 
-| Method | Path                  | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                |
-| ------ | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| GET    | `/clubs`              | Public; the clubs directory: published clubs at active schools, by name. `q` (part of the name, ignoring case; at most 100 characters), `school` and `game` slugs, `type`, `limit`, and opaque `after`/`before` cursors; response includes `has_more` and `has_previous`. `400 invalid_type`, `invalid_query`, `invalid_limit`, or `invalid_cursor`                                                                                  |
-| GET    | `/clubs/:slug`        | Public; one published club. A slug the club had before a rename returns the club with its current `slug`, and the web page redirects there. `404 club_not_found` for a hidden, deleted, or missing club                                                                                                                                                                                                                              |
-| POST   | `/clubs/:slug/claims` | Signed in, verified email; claim a published club for site-admin review. Body `{"evidence_text", "evidence_url"}`; returns `201 {"status": "pending"}`. `401 authentication_required`, `403 email_verification_required`, `404 club_not_found`, `409 club_already_claimed` (the club has an owner) or `club_claim_pending` (this user already has a pending claim on it), `429` past the per-account limit shared with club requests |
+| Method | Path                                  | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| ------ | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| GET    | `/clubs`                              | Public; the clubs directory: published clubs at active schools, by name. `q` (part of the name, ignoring case; at most 100 characters), `school` and `game` slugs, `type`, `limit`, and opaque `after`/`before` cursors; response includes `has_more` and `has_previous`. `400 invalid_type`, `invalid_query`, `invalid_limit`, or `invalid_cursor`                                                                                  |
+| GET    | `/clubs/:slug`                        | Public; one published club. A slug the club had before a rename returns the club with its current `slug`, and the web page redirects there. `404 club_not_found` for a hidden, deleted, or missing club                                                                                                                                                                                                                              |
+| GET    | `/clubs/:slug/manage`                 | Owner or editor; `{"club", "role", "members": [{"user_id", "public_id", "name", "role", "joined_at"}], "invites": [{"id", "email", "expires_at", "created_at"}], "ownership_offer"?: {"user_id", "name", "created_at"}}`. `invites` is empty for an editor. `403 not_club_officer` for anyone else                                                                                                                                   |
+| POST   | `/clubs/:slug/profile`                | Owner or editor; `{"name", "type", "summary", "how_to_join", "game_ids"}` replaces the club's details and games (at most 20). The slug, school, status, and confirmation stay with site admins. `204`; `400` for invalid fields or blocked language, `422 club_game_not_found`                                                                                                                                                       |
+| POST   | `/clubs/:slug/links`                  | Owner or editor; `{"links": [{"type", "label", "url"}]}` replaces the links in order (at most 10, `http`/`https` only). `204`                                                                                                                                                                                                                                                                                                        |
+| POST   | `/clubs/:slug/editor-invites`         | Owner; `{"email"}`. Emails a link that works once, expires in 7 days, and only for a signed-in account with that address; answers the same whether or not the address has an account, and inviting it again replaces its pending invite. `201` with the invite; `409 editor_invite_limit_reached` past 10 pending, `429` past the per-account limit                                                                                  |
+| DELETE | `/clubs/:slug/editor-invites/:id`     | Owner; withdraws a pending invite. `204`; `404 editor_invite_not_found`                                                                                                                                                                                                                                                                                                                                                              |
+| POST   | `/club-editor-invites/accept`         | Auth; `{"token"}` from the invite email; returns `{"club_slug"}`. A member becomes an editor; an owner or editor keeps their role. `403 editor_invite_wrong_account` for another account, `404 editor_invite_not_found` for a used, withdrawn, or expired link                                                                                                                                                                       |
+| POST   | `/clubs/:slug/remove-member`          | Owner or editor; `{"user_id"}`. Owners remove editors and members, editors remove members, and no one removes an owner (`409 club_owner_cannot_be_removed`). The club and what it published are unchanged. `204`                                                                                                                                                                                                                     |
+| POST   | `/clubs/:slug/leave`                  | Anyone in the club; `204`. `409 last_club_owner` for the last owner                                                                                                                                                                                                                                                                                                                                                                  |
+| POST   | `/clubs/:slug/ownership-offer`        | Owner; `{"user_id"}` of an editor or member, who is emailed. Nothing changes until they accept; a new offer replaces the old one. `204`                                                                                                                                                                                                                                                                                              |
+| DELETE | `/clubs/:slug/ownership-offer`        | An owner withdraws the offer, or its recipient declines it. `204`; `404 ownership_offer_not_found`                                                                                                                                                                                                                                                                                                                                   |
+| POST   | `/clubs/:slug/ownership-offer/accept` | The offer's recipient becomes an owner, and the owner who made it becomes an editor. `204`; `404 ownership_offer_not_found`                                                                                                                                                                                                                                                                                                          |
+| POST   | `/clubs/:slug/claims`                 | Signed in, verified email; claim a published club for site-admin review. Body `{"evidence_text", "evidence_url"}`; returns `201 {"status": "pending"}`. `401 authentication_required`, `403 email_verification_required`, `404 club_not_found`, `409 club_already_claimed` (the club has an owner) or `club_claim_pending` (this user already has a pending claim on it), `429` past the per-account limit shared with club requests |
 
 A club is `{"id", "name", "slug", "type", "summary", "how_to_join", "school", "games", "links", "claimed", "confirmed_at", "confirmed_source"}`.
 `type` is `student_club` or `university_program`; neither implies university
@@ -201,7 +212,19 @@ is omitted when the club has not said. `links` are `{"type", "label", "url"}`
 with `type` `website`, `discord`, or `social`, in the club's order, and only
 `http` or `https` URLs; they are information, not the way to join. `claimed`
 is `true` once a site admin approves a claim and the club has an owner, and
-`false` while CGN maintains it.
+`false` while CGN maintains it. For a signed-in viewer the club also carries
+`viewer`: `{"role"?, "ownership_offered"?}`, their role (`owner`, `editor`, or
+`member`) and whether an owner offered them the club; that response is
+`Cache-Control: private, no-store`.
+
+Each club command above checks the person's role in that club on the server,
+needs a signed-in user (`401 authentication_required`), and writes an audit
+record on the club (`club.profile_edited`, `club.links_edited`,
+`club.editor_invited`, `club.editor_invite_revoked`, `club.editor_added`,
+`club.member_removed`, `club.member_left`, `club.ownership_offered`,
+`club.ownership_offer_cancelled`, `club.ownership_transferred`). Audit states
+hold user IDs and roles only. `403 not_club_officer` or `not_club_owner` when
+the role is missing.
 `confirmed_at` and `confirmed_source` (`club` or `cgn`) are omitted until the
 details have been confirmed. Each game carries `has_cover`, as on events.
 
@@ -215,7 +238,7 @@ evidence, the applicant's email, and the review note appear only in the Admin
 API; the public responses carry nothing but the receipt. Site admins create
 and edit clubs, and approve or reject claims, through the
 [Admin API](./20-admin-console-v1-engineering-plan.md#clubs); owner and editor
-operations (#118) and joining on CGN (#262) add their routes when they ship.
+and joining on CGN (#262) adds its routes when it ships.
 
 ### Schools
 
@@ -618,6 +641,8 @@ Bulk IGDB sync, impersonation, feature flags, and site announcements are later.
 | Team member joined                 | To the team's owner, with a link to the team — from `notifications@campusgamingnetwork.com`                                               |
 | Team ownership transferred         | To the new owner, with a link to the team — from `notifications@campusgamingnetwork.com`                                                  |
 | Support / report follow-up (later) | From `support@campusgamingnetwork.com`                                                                                                    |
+| Club editor invite                 | Accept link, to the invited address — from `notifications@campusgamingnetwork.com`                                                        |
+| Club ownership offered             | To the member offered the club, with a link to the club page — from `notifications@campusgamingnetwork.com`                               |
 | Club claim approved or rejected    | To the applicant, with a link to the club or to support; never the evidence or review note — from `notifications@campusgamingnetwork.com` |
 | (Future) team invite links         | As needed                                                                                                                                 |
 
