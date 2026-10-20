@@ -1,6 +1,6 @@
 /* The notifications page: one row per notice, newest first. An unread
-   notice says "New" in words and has a tinted edge, so its state never
-   rests on color alone. */
+   notice says "New" in words and has a tinted border and background, so its
+   state never rests on color alone. */
 .inbox-page {
   display: grid;
   gap: var(--space-4);
@@ -38,7 +38,7 @@
 }
 
 .inbox-item--unread {
-  border-left: 4px solid var(--color-primary);
+  border-color: var(--color-primary);
   background: var(--color-primary-soft);
 }
 
