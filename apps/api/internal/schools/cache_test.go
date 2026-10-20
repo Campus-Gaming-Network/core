@@ -298,3 +298,17 @@ func TestPopularRankingNeedsASourceThatCanRank(t *testing.T) {
 		t.Fatal("a source that cannot rank answered a ranking")
 	}
 }
+
+func TestCacheSearchIgnoresAccentsAndCase(t *testing.T) {
+	cache, _ := loadedCache(t, []School{
+		{ID: "1", Name: "Université de Montréal", Slug: "montreal", State: "QC", City: "A"},
+		{ID: "2", Name: "Plain College", Alias: "Señor Tech", Slug: "plain", State: "NY", City: "B"},
+	})
+
+	for _, query := range []string{"universite de montreal", "UNIVERSITÉ", "  Montréal  ", "senor"} {
+		got, _ := cache.List(context.Background(), ListParams{Query: query})
+		if len(got) != 1 {
+			t.Fatalf("query %q matched %d schools, want 1", query, len(got))
+		}
+	}
+}

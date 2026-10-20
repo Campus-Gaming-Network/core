@@ -7,6 +7,11 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode"
+
+	"golang.org/x/text/runes"
+	"golang.org/x/text/transform"
+	"golang.org/x/text/unicode/norm"
 )
 
 // DefaultRefreshInterval is how often the cached catalog reloads when no
@@ -54,6 +59,7 @@ type popularEntry struct {
 
 type snapshot struct {
 	ordered  []School
+	folded   []foldedSchool
 	byID     map[string]School
 	bySlug   map[string]School
 	loadedAt time.Time
@@ -92,11 +98,13 @@ func (c *CachedRepository) Refresh(ctx context.Context) error {
 
 	next := &snapshot{
 		ordered:  all,
+		folded:   make([]foldedSchool, len(all)),
 		byID:     make(map[string]School, len(all)),
 		bySlug:   make(map[string]School, len(all)),
 		loadedAt: time.Now(),
 	}
-	for _, school := range all {
+	for i, school := range all {
+		next.folded[i] = foldedSchool{name: foldSearch(school.Name), alias: foldSearch(school.Alias)}
 		next.byID[school.ID] = school
 		next.bySlug[school.Slug] = school
 	}
@@ -160,7 +168,7 @@ func (c *CachedRepository) current() *snapshot {
 }
 
 // List filters, sorts, and pages the cached catalog. The result matches what the
-// SQL query returns: a case-insensitive substring match on name or alias, an
+// SQL query returns: a case- and accent-insensitive substring match on name or alias, an
 // exact state match, ordered by name, city, id.
 func (c *CachedRepository) List(ctx context.Context, params ListParams) ([]School, error) {
 	current := c.current()
@@ -169,15 +177,15 @@ func (c *CachedRepository) List(ctx context.Context, params ListParams) ([]Schoo
 	}
 	params = NormalizeListParams(params)
 
-	query := strings.ToLower(params.Query)
+	query := foldSearch(params.Query)
 	matches := make([]School, 0, params.Limit)
 	skipped := 0
 
-	for _, school := range current.ordered {
+	for i, school := range current.ordered {
 		if params.State != "" && school.State != params.State {
 			continue
 		}
-		if query != "" && !matchesQuery(school, query) {
+		if query != "" && !current.folded[i].matches(query) {
 			continue
 		}
 		if skipped < params.Offset {
@@ -193,9 +201,23 @@ func (c *CachedRepository) List(ctx context.Context, params ListParams) ([]Schoo
 	return matches, nil
 }
 
-func matchesQuery(school School, lowerQuery string) bool {
-	return strings.Contains(strings.ToLower(school.Name), lowerQuery) ||
-		strings.Contains(strings.ToLower(school.Alias), lowerQuery)
+// foldedSchool is a school's name and alias folded for searching.
+type foldedSchool struct{ name, alias string }
+
+func (f foldedSchool) matches(foldedQuery string) bool {
+	return strings.Contains(f.name, foldedQuery) || strings.Contains(f.alias, foldedQuery)
+}
+
+// foldSearch lower-cases text and strips combining marks so "Universite de
+// Montreal" matches "Université de Montréal". Only the cached catalog folds;
+// the SQL fallback used before the first load still matches accents exactly.
+func foldSearch(text string) string {
+	folder := transform.Chain(norm.NFD, runes.Remove(runes.In(unicode.Mn)), norm.NFC)
+	folded, _, err := transform.String(folder, text)
+	if err != nil {
+		folded = text
+	}
+	return strings.ToLower(folded)
 }
 
 // GetByID returns the cached school with the given ID.
