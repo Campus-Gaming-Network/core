@@ -1,3 +1,4 @@
+import { adminTitle } from "../components/page-title";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import type { QueueCounts } from "../features/moderation/contracts";
 import { getQueueCounts } from "../features/moderation/moderation.functions";
@@ -11,7 +12,7 @@ export const Route = createFileRoute("/")({
       : { reports: undefined, support: undefined },
   staleTime: 0,
   head: () => ({
-    meta: [{ title: "Overview | CGN Admin Console" }],
+    meta: [{ title: adminTitle("Overview") }],
   }),
   component: AdminOverview,
 });

@@ -1,3 +1,4 @@
+import { adminTitle } from "../components/page-title";
 import { Timestamp } from "../components/timestamp";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import {
@@ -26,7 +27,7 @@ export const Route = createFileRoute("/access/site-admins")({
   }),
   loader: ({ deps }) => getSiteGrants({ data: deps }),
   staleTime: 0,
-  head: () => ({ meta: [{ title: "Site admins | CGN Admin Console" }] }),
+  head: () => ({ meta: [{ title: adminTitle("Site admins") }] }),
   component: SiteAdminsPage,
 });
 

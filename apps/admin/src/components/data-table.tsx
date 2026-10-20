@@ -8,7 +8,7 @@ import {
   type ColumnDef,
   type RowData,
 } from "@tanstack/react-table";
-import type { ReactNode } from "react";
+import { useId, type ReactNode } from "react";
 
 const features = tableFeatures({
   rowSortingFeature,
@@ -55,17 +55,33 @@ export function DataTable<TData extends RowData>({
   data,
   getRowId,
   label,
+  rowHeader,
 }: {
   columns: DataTableColumn<TData>[];
   data: TData[];
   getRowId: (row: TData) => string;
   label: string;
+  /** Id of the column that names each record; its cells become row headers. */
+  rowHeader?: string;
 }): ReactNode {
   const table = useTable({ features, columns, data, getRowId });
+  const rowCount = `${data.length} ${data.length === 1 ? "row" : "rows"} on this page`;
+  const labelId = `${useId()}-label`;
 
   return (
-    <div className="data-table-wrap">
-      <table className="data-table" aria-label={label}>
+    <div
+      aria-labelledby={labelId}
+      className="data-table-wrap"
+      role="region"
+      tabIndex={0}
+    >
+      <p aria-live="polite" className="sr-only" role="status">
+        {label}: {rowCount}
+      </p>
+      <table className="data-table">
+        <caption className="sr-only" id={labelId}>
+          {label}
+        </caption>
         <thead>
           {table.getHeaderGroups().map((group) => (
             <tr key={group.id}>
@@ -102,11 +118,17 @@ export function DataTable<TData extends RowData>({
         <tbody>
           {table.getRowModel().rows.map((row) => (
             <tr key={row.id}>
-              {row.getAllCells().map((cell) => (
-                <td key={cell.id}>
-                  <table.FlexRender cell={cell} />
-                </td>
-              ))}
+              {row.getAllCells().map((cell) =>
+                cell.column.id === rowHeader ? (
+                  <th key={cell.id} scope="row">
+                    <table.FlexRender cell={cell} />
+                  </th>
+                ) : (
+                  <td key={cell.id}>
+                    <table.FlexRender cell={cell} />
+                  </td>
+                ),
+              )}
             </tr>
           ))}
         </tbody>

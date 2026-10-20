@@ -1,3 +1,4 @@
+import { adminTitle } from "../components/page-title";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import {
   CatalogNoticeView,
@@ -7,7 +8,7 @@ import { validateCatalogDetailSearch } from "../features/catalog/contracts";
 
 export const Route = createFileRoute("/schools/new")({
   validateSearch: validateCatalogDetailSearch,
-  head: () => ({ meta: [{ title: "New school | CGN Admin Console" }] }),
+  head: () => ({ meta: [{ title: adminTitle("New school") }] }),
   component: NewSchoolPage,
 });
 

@@ -1,3 +1,4 @@
+import { adminTitle } from "../components/page-title";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { DataTable, dataColumn } from "../components/data-table";
 import {
@@ -18,7 +19,7 @@ export const Route = createFileRoute("/users/")({
   loaderDeps: ({ search }) => search,
   loader: ({ deps }) => getUsers({ data: deps }),
   staleTime: 0,
-  head: () => ({ meta: [{ title: "Users | CGN Admin Console" }] }),
+  head: () => ({ meta: [{ title: adminTitle("Users") }] }),
   component: UsersPage,
 });
 
@@ -118,10 +119,15 @@ function UsersPage() {
           data={page.users}
           getRowId={(user) => user.id}
           label="Users"
+          rowHeader="name"
         />
       ) : (
         <section className="empty-panel">
-          <h2>No users match this search</h2>
+          <h2>
+            {search.q
+              ? `No users match "${search.q}"`
+              : "No users match this search"}
+          </h2>
           <p>Search needs at least two characters of an email or name.</p>
         </section>
       )}

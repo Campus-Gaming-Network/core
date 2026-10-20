@@ -1,8 +1,18 @@
 import { Timestamp } from "../../components/timestamp";
+import {
+  focusFormError,
+  useUnsavedChangesGuard,
+} from "../../components/unsaved-changes";
 import { UserLink } from "../../components/user-link";
 import { useRouteContext, useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useState, type FormEvent, type ReactNode } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from "react";
 import { auditLogActionLabels } from "../audit-log/contracts";
 import { updateQueueItem } from "./moderation.functions";
 import type {
@@ -103,14 +113,22 @@ export function QueuePagination({
   return (
     <nav className="pagination" aria-label="Queue pages">
       {previousCursor ? (
-        <a href={queuePageURL(path, search, "before", previousCursor)}>
+        <a
+          aria-label="Previous page"
+          href={queuePageURL(path, search, "before", previousCursor)}
+        >
           Previous
         </a>
       ) : (
         <span />
       )}
       {nextCursor ? (
-        <a href={queuePageURL(path, search, "after", nextCursor)}>Next</a>
+        <a
+          aria-label="Next page"
+          href={queuePageURL(path, search, "after", nextCursor)}
+        >
+          Next
+        </a>
       ) : (
         <span />
       )}
@@ -164,7 +182,12 @@ export function QueueMutationForm({
   });
   const [assignee, setAssignee] = useState(item.assigned_to_user_id ?? "");
   const router = useRouter();
+  const { formRef } = useUnsavedChangesGuard();
+  const banner = useRef<HTMLParagraphElement>(null);
   const [pending, setPending] = useState(false);
+  // State updates are asynchronous, so the ref stops a second click in the
+  // same frame from sending the update twice.
+  const inFlight = useRef(false);
   const [feedback, setFeedback] = useState<{
     message: string;
     fieldErrors: ModerationFieldErrors;
@@ -174,6 +197,8 @@ export function QueueMutationForm({
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (inFlight.current) return;
+    inFlight.current = true;
     setPending(true);
     setFeedback({ message: "", fieldErrors: {} });
     setConflict(undefined);
@@ -203,9 +228,18 @@ export function QueueMutationForm({
         fieldErrors: {},
       });
     } finally {
+      inFlight.current = false;
       setPending(false);
     }
   }
+
+  // Move focus to the first invalid field, or to the message above the form.
+  useEffect(() => {
+    if (!feedback.message) return;
+    if (formRef.current?.querySelector('[aria-invalid="true"]'))
+      focusFormError(formRef.current);
+    else banner.current?.focus();
+  }, [feedback, formRef]);
 
   return (
     <section className="detail-panel" aria-labelledby="workflow-heading">
@@ -217,7 +251,12 @@ export function QueueMutationForm({
       </div>
 
       {feedback.message ? (
-        <p className="notice notice--error" role="alert" aria-live="polite">
+        <p
+          className="notice notice--error"
+          ref={banner}
+          role="alert"
+          tabIndex={-1}
+        >
           {feedback.message}
         </p>
       ) : null}
@@ -225,9 +264,11 @@ export function QueueMutationForm({
 
       <form
         action={updateQueueItem.url}
+        aria-busy={pending || undefined}
         className="moderation-form"
         method="post"
         onSubmit={submit}
+        ref={formRef}
       >
         <input name="kind" type="hidden" value={kind} />
         <input name="id" type="hidden" value={item.id} />
@@ -314,7 +355,11 @@ export function QueueMutationForm({
             messages={feedback.fieldErrors.resolution_note}
           />
         </label>
-        <button type="submit" disabled={pending}>
+        <button
+          aria-busy={pending || undefined}
+          disabled={pending}
+          type="submit"
+        >
           {pending ? "Saving…" : "Save changes"}
         </button>
       </form>

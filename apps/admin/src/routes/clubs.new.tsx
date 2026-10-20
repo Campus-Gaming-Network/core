@@ -1,3 +1,4 @@
+import { adminTitle } from "../components/page-title";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import {
   CatalogNoticeView,
@@ -24,7 +25,7 @@ export const Route = createFileRoute("/clubs/new")({
   loaderDeps: ({ search }) => ({ school: search.school }),
   loader: ({ deps }) =>
     deps.school ? getNewClubSchool({ data: { id: deps.school } }) : null,
-  head: () => ({ meta: [{ title: "New club | CGN Admin Console" }] }),
+  head: () => ({ meta: [{ title: adminTitle("New club") }] }),
   component: NewClubPage,
 });
 

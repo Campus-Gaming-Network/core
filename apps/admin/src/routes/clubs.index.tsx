@@ -1,3 +1,4 @@
+import { adminTitle } from "../components/page-title";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { DataTable, dataColumn } from "../components/data-table";
 import {
@@ -18,7 +19,7 @@ export const Route = createFileRoute("/clubs/")({
   loaderDeps: ({ search }) => search,
   loader: ({ deps }) => getClubs({ data: deps }),
   staleTime: 0,
-  head: () => ({ meta: [{ title: "Clubs | CGN Admin Console" }] }),
+  head: () => ({ meta: [{ title: adminTitle("Clubs") }] }),
   component: ClubsPage,
 });
 
@@ -109,10 +110,15 @@ function ClubsPage() {
           data={page.clubs}
           getRowId={(club) => club.id}
           label="Clubs"
+          rowHeader="name"
         />
       ) : (
         <section className="empty-panel">
-          <h2>No clubs match this search</h2>
+          <h2>
+            {search.q
+              ? `No clubs match "${search.q}"`
+              : "No clubs match this search"}
+          </h2>
           <p>
             Try another name, or add a club from its school's page in Schools.
           </p>

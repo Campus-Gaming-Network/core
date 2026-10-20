@@ -1,3 +1,4 @@
+import { adminTitle } from "../components/page-title";
 import { Timestamp } from "../components/timestamp";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { UserLink } from "../components/user-link";
@@ -21,8 +22,15 @@ export const Route = createFileRoute("/support-tickets/$ticketId")({
   loader: ({ params, deps }) =>
     getSupportDetail({ data: { id: params.ticketId, ...deps } }),
   staleTime: 0,
-  head: () => ({
-    meta: [{ title: "Support ticket detail | CGN Admin Console" }],
+  head: ({ loaderData }) => ({
+    meta: [
+      {
+        title: adminTitle(
+          loaderData?.ticket.subject ?? "Support ticket",
+          "Support tickets",
+        ),
+      },
+    ],
   }),
   component: SupportTicketDetailPage,
 });

@@ -1,3 +1,4 @@
+import { adminTitle } from "../components/page-title";
 import { Timestamp } from "../components/timestamp";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { CopyIdButton } from "../components/copy-id-button";
@@ -37,7 +38,9 @@ export const Route = createFileRoute("/users/$userId")({
       },
     }),
   staleTime: 0,
-  head: () => ({ meta: [{ title: "User detail | CGN Admin Console" }] }),
+  head: ({ loaderData }) => ({
+    meta: [{ title: adminTitle(loaderData?.user.name ?? "User", "Users") }],
+  }),
   component: UserDetailPage,
 });
 

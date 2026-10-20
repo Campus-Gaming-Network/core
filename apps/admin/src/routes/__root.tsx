@@ -1,3 +1,5 @@
+import { adminTitle } from "../components/page-title";
+import { RouteAnnouncer } from "../components/route-announcer";
 import { Timestamp } from "../components/timestamp";
 import {
   HeadContent,
@@ -28,6 +30,7 @@ export const Route = createRootRoute({
   head: () => ({
     meta: [
       { charSet: "utf-8" },
+      { title: adminTitle() },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { name: "application-name", content: "CGN Admin Console" },
       { name: "robots", content: "noindex,nofollow,noarchive,nosnippet" },
@@ -287,6 +290,7 @@ function AuthenticatedShell({
           </div>
         </div>
       </aside>
+      <RouteAnnouncer />
       <main id="main-content" className="main-content" tabIndex={-1}>
         <Outlet />
       </main>
@@ -345,6 +349,7 @@ function AccessState({
 }) {
   return (
     <main className="state-page">
+      <title>{adminTitle(eyebrow)}</title>
       <ThemeToggle />
       <p className="eyebrow">{eyebrow}</p>
       <h1>{heading}</h1>

@@ -1,3 +1,4 @@
+import { adminTitle } from "../components/page-title";
 import { Timestamp } from "../components/timestamp";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { DataTable, dataColumn } from "../components/data-table";
@@ -15,7 +16,7 @@ export const Route = createFileRoute("/audit-log")({
   loaderDeps: ({ search }) => search,
   loader: ({ deps }) => getAuditLog({ data: deps }),
   staleTime: 0,
-  head: () => ({ meta: [{ title: "Audit log | CGN Admin Console" }] }),
+  head: () => ({ meta: [{ title: adminTitle("Audit log") }] }),
   component: AuditLogPage,
 });
 
@@ -184,6 +185,7 @@ function AuditLogPage() {
           data={page.audit_entries}
           getRowId={(entry) => entry.id}
           label="Audit log"
+          rowHeader="created_at"
         />
       ) : (
         <section className="empty-panel">

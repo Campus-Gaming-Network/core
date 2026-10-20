@@ -1,3 +1,4 @@
+import { adminTitle } from "../components/page-title";
 import { Timestamp } from "../components/timestamp";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import {
@@ -19,7 +20,7 @@ export const Route = createFileRoute("/reports/")({
   loader: ({ deps }) => getReportQueue({ data: deps }),
   staleTime: 0,
   head: () => ({
-    meta: [{ title: "Reports | CGN Admin Console" }],
+    meta: [{ title: adminTitle("Reports") }],
   }),
   component: ReportsPage,
 });
@@ -110,6 +111,7 @@ function ReportsPage() {
           data={reports.reports}
           getRowId={(report) => report.id}
           label="Report queue"
+          rowHeader="target_type"
         />
       ) : (
         <section className="empty-panel">

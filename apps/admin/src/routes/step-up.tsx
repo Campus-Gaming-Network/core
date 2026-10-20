@@ -1,3 +1,4 @@
+import { adminTitle } from "../components/page-title";
 import { createFileRoute } from "@tanstack/react-router";
 import { safeReturnPath } from "../features/catalog/contracts";
 import { completeStepUp } from "../server/step-up.server";
@@ -12,7 +13,7 @@ export const Route = createFileRoute("/step-up")({
       POST: ({ request }) => completeStepUp(request),
     },
   },
-  head: () => ({ meta: [{ title: "Confirm identity | CGN Admin Console" }] }),
+  head: () => ({ meta: [{ title: adminTitle("Confirm identity") }] }),
   component: StepUpPage,
 });
 

@@ -1,3 +1,4 @@
+import { adminTitle } from "../components/page-title";
 import { Timestamp } from "../components/timestamp";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { UserLink } from "../components/user-link";
@@ -21,8 +22,17 @@ export const Route = createFileRoute("/reports/$reportId")({
   loader: ({ params, deps }) =>
     getReportDetail({ data: { id: params.reportId, ...deps } }),
   staleTime: 0,
-  head: () => ({
-    meta: [{ title: "Report detail | CGN Admin Console" }],
+  head: ({ loaderData }) => ({
+    meta: [
+      {
+        title: adminTitle(
+          loaderData
+            ? `Report from ${loaderData.report.reporter_name ?? "unknown reporter"}`
+            : "Report",
+          "Reports",
+        ),
+      },
+    ],
   }),
   component: ReportDetailPage,
 });

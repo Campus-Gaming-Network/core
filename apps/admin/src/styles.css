@@ -607,6 +607,10 @@
     margin-inline: calc(var(--admin-gutter) * -1);
   }
 
+  .data-table-wrap:focus-visible {
+    outline-offset: -2px;
+  }
+
   .data-table {
     @apply w-full min-w-176 border-collapse text-left;
     line-height: 1.2;
@@ -616,6 +620,13 @@
     @apply border-b border-admin-border px-3 text-left align-middle font-normal whitespace-nowrap text-admin-subtle;
     height: 38px;
     font-size: 12px;
+  }
+
+  .data-table tbody th {
+    @apply px-3 align-middle font-normal whitespace-normal text-admin-ink;
+    border-bottom: 0;
+    height: 42px;
+    font-size: inherit;
   }
 
   .data-table td {
@@ -1063,5 +1074,227 @@
   *::after {
     scroll-behavior: auto !important;
     transition: none !important;
+  }
+}
+
+/* Windows High Contrast and other forced-colors modes drop box-shadow and
+   background colors, so anything drawn with them needs a real border, outline,
+   or system color. Status badges also carry their meaning in text. */
+@media (forced-colors: active) {
+  :focus-visible,
+  input:focus,
+  select:focus,
+  textarea:focus {
+    outline: 3px solid Highlight;
+    outline-offset: 2px;
+    box-shadow: none;
+  }
+
+  .sidebar nav a:focus-visible,
+  .data-table__primary:focus-visible {
+    outline-offset: -3px;
+  }
+
+  /* Raised surfaces are drawn with a shadow ring; give them a border. */
+  button,
+  .secondary-button,
+  .primary-button,
+  .button,
+  .pagination a,
+  .brand-mark,
+  .summary-card,
+  .empty-panel,
+  .detail-panel,
+  .record-list > li {
+    border: 1px solid ButtonText;
+  }
+
+  button:disabled {
+    border-color: GrayText;
+    color: GrayText;
+    opacity: 1;
+  }
+
+  /* The current page is a background tint and a shadow; mark it with a
+     heavier border. */
+  .sidebar nav a[aria-current="page"] {
+    border: 2px solid Highlight;
+  }
+
+  /* Badges and notices rely on a tinted background; keep a visible border and
+     vary its style so the states differ without color. */
+  .count-badge,
+  .queue-status,
+  .notice,
+  .conflict-panel {
+    border: 1px solid CanvasText;
+    forced-color-adjust: none;
+    color: CanvasText;
+    background: Canvas;
+  }
+
+  .queue-status--resolved,
+  .record-state--active,
+  .record-state--published,
+  .notice--success {
+    border-width: 2px;
+  }
+
+  .queue-status--in_review,
+  .conflict-panel {
+    border-style: dashed;
+  }
+
+  .record-state--suspended,
+  .record-state--deleted,
+  .notice--error {
+    border-width: 3px;
+    border-style: double;
+  }
+
+  .form-error {
+    color: CanvasText;
+    font-weight: 600;
+  }
+
+  input[type="checkbox"],
+  input[type="radio"] {
+    accent-color: auto;
+  }
+
+  .audit-marker {
+    background: CanvasText;
+    forced-color-adjust: none;
+  }
+
+  .logo-preview {
+    background: Canvas;
+    border-color: CanvasText;
+  }
+
+  .app-shell--non-production {
+    border-top-color: CanvasText;
+  }
+}
+
+/* Printing a record page: keep the content, drop the chrome and controls. */
+@media print {
+  @page {
+    margin: 16mm 14mm;
+  }
+
+  html,
+  body {
+    background: #fff !important;
+    color: #000 !important;
+    font-size: 11pt;
+  }
+
+  *,
+  *::before,
+  *::after {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  .skip-link,
+  .sidebar,
+  .back-link,
+  .pagination,
+  .filter-panel,
+  .command-panel,
+  .moderation-form,
+  .related-actions,
+  .assign-to-me,
+  .copy-id,
+  .theme-toggle,
+  .page-header > .primary-button,
+  button,
+  .button {
+    display: none !important;
+  }
+
+  .app-shell {
+    display: block;
+    min-height: 0;
+  }
+
+  .app-shell--non-production {
+    border-top: 0;
+  }
+
+  .page-stack,
+  .detail-page {
+    display: block;
+    max-width: none;
+    padding-inline: 0;
+  }
+
+  .page-header {
+    margin-inline: 0;
+    padding-inline: 0;
+  }
+
+  .data-table-wrap {
+    overflow: visible;
+    margin-inline: 0;
+  }
+
+  .data-table {
+    min-width: 0;
+  }
+
+  .data-table th,
+  .data-table td {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .data-table thead {
+    display: table-header-group;
+  }
+
+  .data-table tr,
+  .summary-card,
+  .detail-panel,
+  .record-list > li,
+  .audit-list li,
+  .stored-content {
+    break-inside: avoid;
+  }
+
+  .summary-card,
+  .empty-panel,
+  .detail-panel,
+  .record-list > li,
+  .stored-content {
+    border: 1px solid #999;
+  }
+
+  .detail-panel,
+  .stored-content {
+    margin-bottom: 12pt;
+  }
+
+  .count-badge,
+  .queue-status {
+    border-color: #000;
+    color: #000;
+    background: none;
+  }
+
+  h1,
+  h2,
+  h3 {
+    break-after: avoid;
+  }
+
+  /* Show where a link goes, except in-page and script links. */
+  .detail-facts a[href^="http"]::after,
+  .record-list a[href^="http"]::after,
+  .stored-content a[href^="http"]::after {
+    content: " (" attr(href) ")";
+    font-size: 9pt;
+    overflow-wrap: anywhere;
   }
 }

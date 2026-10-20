@@ -1,3 +1,4 @@
+import { adminTitle } from "../components/page-title";
 import { Timestamp } from "../components/timestamp";
 import { createFileRoute } from "@tanstack/react-router";
 import { DetailFact } from "../features/moderation/moderation-components";
@@ -11,7 +12,7 @@ import { getSystem } from "../features/system/system.functions";
 export const Route = createFileRoute("/system")({
   loader: () => getSystem(),
   staleTime: 0,
-  head: () => ({ meta: [{ title: "System | CGN Admin Console" }] }),
+  head: () => ({ meta: [{ title: adminTitle("System") }] }),
   component: SystemPage,
 });
 

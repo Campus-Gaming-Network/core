@@ -1,3 +1,4 @@
+import { adminTitle } from "../components/page-title";
 import { Timestamp } from "../components/timestamp";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import {
@@ -19,7 +20,7 @@ export const Route = createFileRoute("/support-tickets/")({
   loader: ({ deps }) => getSupportQueue({ data: deps }),
   staleTime: 0,
   head: () => ({
-    meta: [{ title: "Support tickets | CGN Admin Console" }],
+    meta: [{ title: adminTitle("Support tickets") }],
   }),
   component: SupportTicketsPage,
 });
@@ -111,6 +112,7 @@ function SupportTicketsPage() {
           data={tickets.support_tickets}
           getRowId={(ticket) => ticket.id}
           label="Support ticket queue"
+          rowHeader="subject"
         />
       ) : (
         <section className="empty-panel">

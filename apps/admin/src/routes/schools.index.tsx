@@ -1,3 +1,4 @@
+import { adminTitle } from "../components/page-title";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { DataTable, dataColumn } from "../components/data-table";
 import {
@@ -18,7 +19,7 @@ export const Route = createFileRoute("/schools/")({
   loaderDeps: ({ search }) => search,
   loader: ({ deps }) => getSchools({ data: deps }),
   staleTime: 0,
-  head: () => ({ meta: [{ title: "Schools | CGN Admin Console" }] }),
+  head: () => ({ meta: [{ title: adminTitle("Schools") }] }),
   component: SchoolsPage,
 });
 
@@ -107,10 +108,15 @@ function SchoolsPage() {
           data={page.schools}
           getRowId={(school) => school.id}
           label="Schools"
+          rowHeader="name"
         />
       ) : (
         <section className="empty-panel">
-          <h2>No schools match this search</h2>
+          <h2>
+            {search.q
+              ? `No schools match "${search.q}"`
+              : "No schools match this search"}
+          </h2>
           <p>Try another name, or clear the state filter.</p>
         </section>
       )}

@@ -1,4 +1,8 @@
 import { Timestamp } from "../../components/timestamp";
+import {
+  focusFormError,
+  useUnsavedChangesGuard,
+} from "../../components/unsaved-changes";
 import { UserLink } from "../../components/user-link";
 import { useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
@@ -129,11 +133,19 @@ export function CursorPagination({
   return (
     <nav className="pagination" aria-label={label}>
       {previousCursor ? (
-        <a href={pageURL("before", previousCursor)}>Previous</a>
+        <a aria-label="Previous page" href={pageURL("before", previousCursor)}>
+          Previous
+        </a>
       ) : (
         <span />
       )}
-      {nextCursor ? <a href={pageURL("after", nextCursor)}>Next</a> : <span />}
+      {nextCursor ? (
+        <a aria-label="Next page" href={pageURL("after", nextCursor)}>
+          Next
+        </a>
+      ) : (
+        <span />
+      )}
     </nav>
   );
 }
@@ -166,7 +178,11 @@ function useCatalogSubmit(
   initialVersion: string,
 ) {
   const router = useRouter();
+  const { formRef } = useUnsavedChangesGuard();
   const [pending, setPending] = useState(false);
+  // State updates are asynchronous, so a second click in the same frame
+  // could slip past `pending`; the ref closes that gap.
+  const inFlight = useRef(false);
   const [version, setVersion] = useState(initialVersion);
   // Follow the record version the page shows. A save reloads the page with a
   // new version; a stale-write response advances it explicitly below.
@@ -182,6 +198,8 @@ function useCatalogSubmit(
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (inFlight.current) return;
+    inFlight.current = true;
     const form = event.currentTarget;
     setPending(true);
     setFeedback({ message: "", fieldErrors: {} });
@@ -218,16 +236,22 @@ function useCatalogSubmit(
         fieldErrors: {},
       });
     } finally {
+      inFlight.current = false;
       setPending(false);
     }
   }
 
-  return { submit, pending, version, feedback };
+  // Move focus to the problem once the error is on screen.
+  useEffect(() => {
+    if (feedback.message) focusFormError(formRef.current);
+  }, [feedback, formRef]);
+
+  return { submit, pending, version, feedback, formRef };
 }
 
 export function SchoolForm({ school }: { school?: AdminSchool }) {
   const runSave = useServerFn(saveSchool);
-  const { submit, pending, version, feedback } = useCatalogSubmit(
+  const { submit, pending, version, feedback, formRef } = useCatalogSubmit(
     runSave,
     school?.updated_at ?? "",
   );
@@ -237,8 +261,10 @@ export function SchoolForm({ school }: { school?: AdminSchool }) {
     <form
       action={saveSchool.url}
       className="moderation-form"
+      aria-busy={pending || undefined}
       method="post"
       onSubmit={submit}
+      ref={formRef}
     >
       <FormFeedback message={feedback.message} />
       <input name="id" type="hidden" value={school?.id ?? ""} />
@@ -345,7 +371,7 @@ export function SchoolForm({ school }: { school?: AdminSchool }) {
         </label>
       </div>
       <ReasonField errors={errors.reason} />
-      <button type="submit" disabled={pending}>
+      <button aria-busy={pending || undefined} disabled={pending} type="submit">
         {pending ? "Saving…" : school ? "Save school" : "Create school"}
       </button>
     </form>
@@ -369,7 +395,7 @@ export function ClubForm({
   schoolID?: string;
 }) {
   const runSave = useServerFn(saveClub);
-  const { submit, pending, version, feedback } = useCatalogSubmit(
+  const { submit, pending, version, feedback, formRef } = useCatalogSubmit(
     runSave,
     club?.updated_at ?? "",
   );
@@ -379,8 +405,10 @@ export function ClubForm({
     <form
       action={saveClub.url}
       className="moderation-form"
+      aria-busy={pending || undefined}
       method="post"
       onSubmit={submit}
+      ref={formRef}
     >
       <FormFeedback message={feedback.message} />
       <input name="id" type="hidden" value={club?.id ?? ""} />
@@ -472,7 +500,7 @@ export function ClubForm({
         maxLength={2000}
       />
       <ReasonField errors={errors.reason} />
-      <button type="submit" disabled={pending}>
+      <button aria-busy={pending || undefined} disabled={pending} type="submit">
         {pending ? "Saving…" : club ? "Save club" : "Create club"}
       </button>
     </form>
@@ -482,7 +510,7 @@ export function ClubForm({
 /** Replaces a club's links: numbered rows, blank rows left out. */
 export function ClubLinksForm({ club }: { club: AdminClub }) {
   const runSave = useServerFn(saveClubLinks);
-  const { submit, pending, version, feedback } = useCatalogSubmit(
+  const { submit, pending, version, feedback, formRef } = useCatalogSubmit(
     runSave,
     club.updated_at,
   );
@@ -494,8 +522,10 @@ export function ClubLinksForm({ club }: { club: AdminClub }) {
     <form
       action={saveClubLinks.url}
       className="moderation-form"
+      aria-busy={pending || undefined}
       method="post"
       onSubmit={submit}
+      ref={formRef}
     >
       <FormFeedback message={feedback.message} />
       <input name="id" type="hidden" value={club.id} />
@@ -540,7 +570,7 @@ export function ClubLinksForm({ club }: { club: AdminClub }) {
         Clear a row's label and URL to remove it. Save to add another row.
       </p>
       <ReasonField errors={errors.reason} idPrefix="links" />
-      <button type="submit" disabled={pending}>
+      <button aria-busy={pending || undefined} disabled={pending} type="submit">
         {pending ? "Saving…" : "Save links"}
       </button>
     </form>
@@ -549,7 +579,7 @@ export function ClubLinksForm({ club }: { club: AdminClub }) {
 
 export function GameForm({ game }: { game: AdminGame }) {
   const runSave = useServerFn(saveGame);
-  const { submit, pending, version, feedback } = useCatalogSubmit(
+  const { submit, pending, version, feedback, formRef } = useCatalogSubmit(
     runSave,
     game.updated_at,
   );
@@ -559,8 +589,10 @@ export function GameForm({ game }: { game: AdminGame }) {
     <form
       action={saveGame.url}
       className="moderation-form"
+      aria-busy={pending || undefined}
       method="post"
       onSubmit={submit}
+      ref={formRef}
     >
       <FormFeedback message={feedback.message} />
       <input name="id" type="hidden" value={game.id} />
@@ -602,7 +634,7 @@ export function GameForm({ game }: { game: AdminGame }) {
         </label>
       </div>
       <ReasonField errors={errors.reason} />
-      <button type="submit" disabled={pending}>
+      <button aria-busy={pending || undefined} disabled={pending} type="submit">
         {pending ? "Saving…" : "Save game"}
       </button>
     </form>
@@ -650,7 +682,7 @@ export function BundledLogoPreview({
  */
 export function LogoUploadForm({ school }: { school: AdminSchool }) {
   const runUpload = useServerFn(uploadSchoolLogo);
-  const { submit, pending, version, feedback } = useCatalogSubmit(
+  const { submit, pending, version, feedback, formRef } = useCatalogSubmit(
     runUpload,
     school.updated_at,
   );
@@ -662,7 +694,9 @@ export function LogoUploadForm({ school }: { school: AdminSchool }) {
       action={uploadSchoolLogo.url}
       className="moderation-form"
       encType="multipart/form-data"
+      aria-busy={pending || undefined}
       method="post"
+      ref={formRef}
       onSubmit={(event) => {
         if (sizeError) {
           event.preventDefault();
@@ -699,7 +733,7 @@ export function LogoUploadForm({ school }: { school: AdminSchool }) {
         <FieldError id="logo-file-error" messages={fileErrors} />
       </label>
       <ReasonField errors={feedback.fieldErrors.reason} idPrefix="logo" />
-      <button type="submit" disabled={pending}>
+      <button aria-busy={pending || undefined} disabled={pending} type="submit">
         {pending ? "Uploading…" : "Upload logo"}
       </button>
     </form>
@@ -735,7 +769,7 @@ export function CommandForm({
   children?: ReactNode;
 }) {
   const runCommand = useServerFn(runCatalogCommand);
-  const { submit, pending, version, feedback } = useCatalogSubmit(
+  const { submit, pending, version, feedback, formRef } = useCatalogSubmit(
     runCommand,
     expectedUpdatedAt ?? "",
   );
@@ -761,8 +795,10 @@ export function CommandForm({
         <form
           action={runCatalogCommand.url}
           className="moderation-form"
+          aria-busy={pending || undefined}
           method="post"
           onSubmit={submit}
+          ref={formRef}
         >
           <FormFeedback message={feedback.message} />
           <input name="command" type="hidden" value={command} />
@@ -795,8 +831,9 @@ export function CommandForm({
           />
           <button
             className={policy.confirm ? "danger-button" : undefined}
-            type="submit"
+            aria-busy={pending || undefined}
             disabled={pending}
+            type="submit"
           >
             {pending ? "Saving…" : submitLabel}
           </button>
@@ -916,7 +953,12 @@ function stateLabel(state: string): string {
 function FormFeedback({ message }: { message: string }) {
   if (!message) return null;
   return (
-    <p className="notice notice--error" role="alert" aria-live="polite">
+    <p
+      className="notice notice--error"
+      data-form-feedback
+      role="alert"
+      tabIndex={-1}
+    >
       {message}
     </p>
   );

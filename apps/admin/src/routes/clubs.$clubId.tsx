@@ -1,3 +1,4 @@
+import { adminTitle } from "../components/page-title";
 import { Timestamp } from "../components/timestamp";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { CopyIdButton } from "../components/copy-id-button";
@@ -26,7 +27,9 @@ export const Route = createFileRoute("/clubs/$clubId")({
   loader: ({ params, deps }) =>
     getClubDetail({ data: { id: params.clubId, ...deps } }),
   staleTime: 0,
-  head: () => ({ meta: [{ title: "Club detail | CGN Admin Console" }] }),
+  head: ({ loaderData }) => ({
+    meta: [{ title: adminTitle(loaderData?.club.name ?? "Club", "Clubs") }],
+  }),
   component: ClubDetailPage,
 });
 
