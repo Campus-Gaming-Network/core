@@ -18,16 +18,20 @@ CMD ["pnpm", "run", "dev", "--", "--port", "3002"]
 
 FROM deps AS build
 COPY apps/admin ./apps/admin
-RUN pnpm --filter @campus-gaming-network/admin run build
+RUN pnpm --filter @campus-gaming-network/admin run build \
+    && mkdir -p /dist/src/server \
+    && cp -R apps/admin/.output /dist/.output \
+    && cp apps/admin/src/production-preflight.ts /dist/src/ \
+    && cp apps/admin/src/server/environment.server.ts /dist/src/server/
 
 FROM base AS runner
 ENV NODE_ENV=production \
     DEPLOYMENT_ENV=production \
     HOST=0.0.0.0 \
     PORT=3002
-COPY --from=build --chown=node:node /app/apps/admin/.output ./apps/admin/.output
-COPY --from=build --chown=node:node /app/apps/admin/src/production-preflight.ts ./apps/admin/src/production-preflight.ts
-COPY --from=build --chown=node:node /app/apps/admin/src/server/environment.server.ts ./apps/admin/src/server/environment.server.ts
+# The build stage gathers what runs into /dist, so this is one copy and one
+# layer: each layer costs time to export and push.
+COPY --from=build --chown=node:node /dist ./apps/admin
 WORKDIR /app/apps/admin
 USER node
 EXPOSE 3002
