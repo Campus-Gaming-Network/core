@@ -41,11 +41,14 @@ const schoolSlug = "smoke-test-university";
 const missingSchoolSlug = "missing-smoke-school";
 const teamSlug = "smoke-arena-team";
 const missingTeamSlug = "missing-smoke-team";
-const publicProfileID = "public-smoke-user";
-const missingPublicProfileID = "missing-smoke-user";
+// Profile URLs name a user by public ID: ten base58 characters.
+const publicProfileID = "PubSmoke42";
+const missingPublicProfileID = "MissSmoke9";
 const eventPassword = "SmokeEventPassword123!";
 const unlockToken = "smoke-private-event-unlock-token";
 const sessionToken = "smoke-session-token";
+// The smoke player's profile URL ID: ten base58 characters, as the API sends.
+const smokePublicID = "Smoke7Pay9";
 const outageSessionToken = "smoke-outage-session-token";
 const privateEventSecrets = {
   title: "Midnight Strategy Session",
@@ -2301,6 +2304,7 @@ function visibleEvent({
     organizers: [
       {
         id: "user-smoke",
+        public_id: smokePublicID,
         name: "Smoke Player",
         role: "creator",
         verification_level: "verified_student",
@@ -2382,6 +2386,7 @@ function fakeTeam() {
 function fakeProfile() {
   return {
     id: "user-smoke",
+    public_id: smokePublicID,
     email: "player@example.test",
     email_verified_at: "2037-08-01T12:00:00Z",
     verification_level: "verified_student",
@@ -2423,7 +2428,8 @@ function fakeSchool() {
 
 function fakePublicProfile() {
   return {
-    id: publicProfileID,
+    id: "public-smoke-user",
+    public_id: publicProfileID,
     name: "Public Smoke Player",
     avatar_url: "https://images.example.test/public-smoke-player.png",
     bio: "Public campus competitor",
