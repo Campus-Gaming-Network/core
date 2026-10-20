@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { publicPageHead } from "../components/public-page-head";
 
 const description =
-  "How Campus Gaming Network connects collegiate gamers with events, teams, and campus activity.";
+  "How Campus Gaming Network connects collegiate gamers with events, teams, clubs, and campus activity.";
 
 export const Route = createFileRoute("/about")({
   loader: ({ context }) => context.publicOrigin,
@@ -19,7 +19,8 @@ function AboutPage() {
           <h1>About Campus Gaming Network</h1>
           <p className="lede">
             One place for college gamers in the United States to find events,
-            teams, and other players at their own school and at other campuses.
+            teams, clubs, and other players at their own school and at other
+            campuses.
           </p>
         </div>
       </section>
@@ -29,8 +30,8 @@ function AboutPage() {
           Gaming on a campus is usually spread across group chats, club pages,
           and flyers. If you are new, or your school has no club for your game,
           it is hard to know who is playing and when. Campus Gaming Network puts
-          each school’s events and teams on one page, for casual and competitive
-          players alike.
+          each school’s events, teams, and clubs on one page, for casual and
+          competitive players alike.
         </p>
       </section>
       <section aria-labelledby="about-what" className="about-section">
@@ -42,16 +43,24 @@ function AboutPage() {
           </li>
           <li>
             <Link to="/events">Browse events</Link>, RSVP, and add them to your
-            calendar, or create your own.
+            calendar, or host your own with friends helping you run it.
           </li>
           <li>
             <Link to="/teams">Start or join a team</Link> for the games you
             play.
           </li>
+          <li>
+            <Link to="/clubs">Find your school’s gaming clubs</Link> and esports
+            programs, and see how to join them.
+          </li>
+          <li>
+            Show the games you play on your profile, and see what is popular at
+            your school.
+          </li>
         </ul>
         <p>
-          You can browse schools and events without an account. The{" "}
-          <Link to="/faq">FAQ</Link> covers how each of these works.
+          You can browse schools, events, teams, and clubs without an account.
+          The <Link to="/faq">FAQ</Link> covers how each of these works.
         </p>
       </section>
       <section aria-labelledby="about-who" className="about-section">
@@ -86,8 +95,12 @@ function AboutPage() {
         <h2 id="about-contact">Get in touch</h2>
         <p>
           Questions, feedback, or a school that is missing? Send a{" "}
-          <Link to="/support">support request</Link>. You do not need an
-          account.
+          <Link to="/support">support request</Link>. Run a club that is not
+          listed? Send a{" "}
+          <Link to="/support" search={{ topic: "club" }}>
+            club request
+          </Link>
+          . You do not need an account.
         </p>
       </section>
     </main>

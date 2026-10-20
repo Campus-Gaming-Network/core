@@ -9,7 +9,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { publicPageHead } from "../components/public-page-head";
 
 const description =
-  "Answers to common questions about accounts, events, teams, and schools on Campus Gaming Network.";
+  "Answers to common questions about accounts, events, teams, clubs, and schools on Campus Gaming Network.";
 
 type FAQ = {
   /** The answer's anchor. Support replies link to it, so it never changes
@@ -36,9 +36,10 @@ const groups: FAQGroup[] = [
         answer: (
           <>
             A place for college gamers in the United States to find events,
-            teams, and other players at their own school and at other campuses.
-            You can <Link to="/schools">browse schools</Link> and{" "}
-            <Link to="/events">events</Link> without an account.
+            teams, clubs, and other players at their own school and at other
+            campuses. You can browse <Link to="/schools">schools</Link>,{" "}
+            <Link to="/events">events</Link>, <Link to="/teams">teams</Link>,
+            and <Link to="/clubs">clubs</Link> without an account.
           </>
         ),
       },
@@ -118,6 +119,31 @@ const groups: FAQGroup[] = [
         ),
       },
       {
+        id: "change-email-password",
+        question: "How do I change my email or password?",
+        answer: (
+          <>
+            Open <Link to="/settings/security">Email and password</Link> in your
+            account settings. Both changes ask for your current password. A new
+            email address takes effect once you follow the link we send to it,
+            and we tell your old address about the change. Changing your
+            password signs you out on your other devices.
+          </>
+        ),
+      },
+      {
+        id: "notifications",
+        question: "Where do I see updates about my events?",
+        answer: (
+          <>
+            On <Link to="/notifications">Notifications</Link>, linked from the
+            header with a count of anything unread. It tells you when an event
+            you are going to is cancelled, and when someone accepts your invite
+            to help run an event.
+          </>
+        ),
+      },
+      {
         id: "member-lists",
         question: "Who can see that I am going to an event or on a team?",
         answer: (
@@ -127,6 +153,22 @@ const groups: FAQGroup[] = [
             only the counts. To hide yourself from every list, turn off “Show me
             in member lists” in <Link to="/settings/profile">Edit profile</Link>
             . Your RSVPs and memberships stay as they are.
+          </>
+        ),
+      },
+      {
+        id: "download-data",
+        question: "Can I get a copy of my data?",
+        answer: (
+          <>
+            Yes. <Link to="/settings/data">Your data</Link> downloads a file
+            with your account, profile, schools, game lists, teams, events, and
+            other activity, after you enter your password. To correct something,
+            edit your profile or send a{" "}
+            <Link to="/support" search={{ topic: "privacy" }}>
+              privacy request
+            </Link>
+            .
           </>
         ),
       },
@@ -200,6 +242,18 @@ const groups: FAQGroup[] = [
         ),
       },
       {
+        id: "find-events",
+        question: "How do I find events?",
+        answer: (
+          <>
+            <Link to="/events">Browse events</Link> to search event titles and
+            narrow the list by game, school, format, type, audience, cost, and
+            dates. The tabs jump to events at your school, online events, and
+            tournaments.
+          </>
+        ),
+      },
+      {
         id: "event-visibility",
         question:
           "What is the difference between public, unlisted, and private events?",
@@ -239,8 +293,23 @@ const groups: FAQGroup[] = [
         question: "Can I change or cancel an event I created?",
         answer: (
           <>
-            Yes. Only the organizer can edit or cancel an event. When an event
-            is cancelled, we email everyone who answered yes or maybe.
+            Yes. You and any co-organizers can edit it, and only you, as its
+            creator, can cancel it. When an event is cancelled, we email
+            everyone who answered yes or maybe, and it shows in their
+            notifications.
+          </>
+        ),
+      },
+      {
+        id: "co-organizers",
+        question: "Can other people help me run an event?",
+        answer: (
+          <>
+            Yes. From your event’s page, invite up to nine co-organizers by
+            email. The link works for seven days, and they accept by signing in
+            with that address. Co-organizers can edit the event and can step
+            down at any time. Only you can cancel the event or manage its
+            co-organizers, and you can hand the event to one of them.
           </>
         ),
       },
@@ -286,6 +355,53 @@ const groups: FAQGroup[] = [
     ],
   },
   {
+    id: "clubs",
+    heading: "Clubs",
+    items: [
+      {
+        id: "club-vs-team",
+        question: "What is the difference between a club and a team?",
+        answer: (
+          <>
+            A club is a school’s gaming club or esports program, and it belongs
+            to that school. A team is a group anyone can start, at one school or
+            across campuses, and people join it with a password. You can{" "}
+            <Link to="/clubs">browse clubs</Link> without an account.
+          </>
+        ),
+      },
+      {
+        id: "join-club",
+        question: "How do I join a club?",
+        answer: (
+          <>
+            Clubs are not run by Campus Gaming Network, so each one decides how
+            people join. A club’s page has a How to join section, such as an
+            interest form, a tryout, or a meeting to attend, when the club has
+            said.
+          </>
+        ),
+      },
+      {
+        id: "add-claim-club",
+        question: "My club is missing, or I run one. What do I do?",
+        answer: (
+          <>
+            Send a{" "}
+            <Link to="/support" search={{ topic: "club" }}>
+              club request
+            </Link>{" "}
+            with the club’s name and school. If you run it, link to its page on
+            your school’s website or give an officer contact we can check; a
+            school email address alone does not show that you run a club. We add
+            missing clubs, and officers will be able to manage their club’s page
+            soon.
+          </>
+        ),
+      },
+    ],
+  },
+  {
     id: "games",
     heading: "Games",
     items: [
@@ -294,8 +410,10 @@ const groups: FAQGroup[] = [
         question: "Where does the list of games come from?",
         answer: (
           <>
-            Games and their cover art come from IGDB. Events and teams are
-            tagged with the games they play, so you can filter by game.
+            Games and their cover art come from IGDB. Events, teams, and clubs
+            are tagged with the games they play, so you can filter by game. The
+            home page and each school’s page show popular games, ranked by
+            upcoming events.
           </>
         ),
       },
@@ -307,6 +425,17 @@ const groups: FAQGroup[] = [
             When you create an event or a team, search for the game and add it,
             or type its name. Neither needs approval. A game added from search
             is then listed for everyone.
+          </>
+        ),
+      },
+      {
+        id: "profile-games",
+        question: "Can I show the games I play?",
+        answer: (
+          <>
+            Yes. On <Link to="/settings/profile">Edit profile</Link>, add games
+            to Favorite games (up to five), Games I like, or Want to play. Your
+            lists appear on your public profile.
           </>
         ),
       },

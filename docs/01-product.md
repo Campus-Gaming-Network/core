@@ -124,7 +124,7 @@ Signup also requires confirming **age 18+**. Alumni can participate. Faculty who
 - Event audience says who may come: **open** (anyone), **collegiate** (students at any school), **campus** (students and staff of the host school), or **members** (members of the hosting group). Organizers must choose one. It is shown on the event page and event cards and can be filtered in browse. It is information for attendees and does not change who can see the page or RSVP
 - Private events: page content is **not visible/inspectable** until unlocked; show blurred shell + **password modal** (share URL + password manually)
 - Optional **capacity** on events; counts **RSVP yes only**; when full, no more yes RSVPs
-- One organizer per event, its creator; co-organizer management comes after the first release
+- The creator can invite co-organizers by email, who can edit the event; see [Events](#events)
 - Transfer team ownership; assign captains
 
 ### Trust & safety
@@ -238,7 +238,7 @@ club on CGN, which lists them as members here.
 
 ### Events
 
-- Created by users or schools; the creator is the only organizer until co-organizer management ships; **no approval needed** to create
+- Created by users or schools; the creator can invite up to nine co-organizers, who edit the event, while only the creator cancels it, manages co-organizers, and can hand it to one of them; **no approval needed** to create
 - Slug = `slugify(title) + "-" +` first **8** Base64URL chars of SHA-256(creatorId + createdDate + title)
 - Online, in-person, or hybrid; recurring supported
 - Paid events are allowed as informational/off-site-payment events only; no checkout, money handling, refunds, tax, or payout logic on CGN
