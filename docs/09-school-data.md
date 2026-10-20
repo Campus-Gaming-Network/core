@@ -85,13 +85,13 @@ schools
   created_at, updated_at, deleted_at
 ```
 
-Logos are **not** in Scorecard and **cannot** be uploaded from the main site. An approved Admin Console upload takes precedence over the bundled collection described below. Removing an uploaded logo restores the bundled logo when available, otherwise the initial.
+Logos are **not** in Scorecard and **cannot** be uploaded from the main site. An approved Admin Console upload takes precedence over the bundled collection described below. Removing an uploaded logo restores the bundled logo when available, otherwise the monogram.
 
 ## Institutional logos
 
 The main site's home cards, school directory, and school pages use local institutional SVG/PNG/JPG assets in `apps/web/public/school-logos/`. By default they are served from the web app itself and require no third-party image requests or R2 configuration; [they can be served from the logo bucket instead](#serving-bundled-logos-from-r2). The BFF matches the catalog's exact `unitid` and seed `slug`; it never guesses by name or inherits a logo from a main campus. The Go API applies the same rule for the Admin Console: an athletics mark replaces the institutional logo for the same `unitid`, and the seed `slug` must match the entry's. It reads a slim lookup, `apps/api/internal/schools/bundled_logos.json` (`unitid`, `slug`, `asset`, and whether the entry is an athletics mark), embedded in the API because `embed` cannot read `apps/web`. `scripts/collect_school_logos.ts` writes it whenever it writes the manifest, and `--check` fails when it differs from the manifest. The Go test suite, which CI runs, fails the same way. The school details response carries the result as `bundled_logo_url` in the logo bucket, so the Admin Console shows the logo the main site shows for a school without an upload. It shows the school-page logo, including a wide wordmark that small marks on the main site leave out. Unknown or changed identities show the initial. A failed image also reveals the initial after hydration. Most bundled institutional logos are wide wordmarks that are unreadable in a square mark, so a bundled logo wider than 3:2 gets a wider mark on the school page. Small marks (home cards, the directory, and the inline logos below) leave out an institutional logo wider than 3:2 and an athletics mark wider than 2:1, which is usually a picture rather than a line of text; those schools keep the initial or the name alone.
 
-Other places that name a school show the same bundled logo in front of the name: event cards and event pages (the host school), team pages, public profiles (the home school), the account dashboard, and a school's people page. Those API responses carry a school summary with a slug and no `unitid` or `logo_url`, so the BFF matches the seed slug alone, leaves out the same too-wide logos, and does not show an Admin Console upload there. A school without a match shows its name only.
+Other places that name a school show the same bundled logo: the event page header (the host school), public profiles (the home school, before its name), the account dashboard, the directory sidebar, and a school's people page. Those API responses carry a school summary with a slug and no `unitid` or `logo_url`, so the BFF matches the seed slug alone, leaves out the same too-wide logos, and does not show an Admin Console upload there. A school without a match shows its monogram where the page draws a tile, and its name alone where the logo sits before the name.
 
 ### Serving bundled logos from R2
 
@@ -107,14 +107,14 @@ The research joins [Wikidata P1771 (IPEDS ID)](https://www.wikidata.org/wiki/Pro
 
 Coverage of institutional logos for the October 9, 2026 UTC collection (athletics marks are counted in their own section below):
 
-| Measure                                                  |       Schools |
-| -------------------------------------------------------- | ------------: |
-| Seed catalog                                             |         6,243 |
-| Identifier-matched logo candidates                       |         1,225 |
-| Bundled and validated logos                              | 1,118 (17.9%) |
-| Candidate schools withheld or rejected                   |           107 |
-| Schools without an indexed logo match                    |         5,018 |
-| Schools using the initial unless an admin uploads a logo |         5,125 |
+| Measure                                                   |       Schools |
+| --------------------------------------------------------- | ------------: |
+| Seed catalog                                              |         6,243 |
+| Identifier-matched logo candidates                        |         1,225 |
+| Bundled and validated logos                               | 1,118 (17.9%) |
+| Candidate schools withheld or rejected                    |           107 |
+| Schools without an indexed logo match                     |         5,018 |
+| Schools using the monogram unless an admin uploads a logo |         5,125 |
 
 The bundle contains 429 SVGs, 624 PNGs, and 65 JPGs, totaling about 31.2 MiB after downscaling. Source terms record 1,030 public-domain files, 9 CC0 files, 11 CC BY files, and 68 CC BY-SA files. The exclusion ledger contains 108 schools: the 107 rejected candidates plus UCF, whose known brand-policy exception is recorded despite having no indexed candidate. Coverage includes only individually matched schools; sharing a system or parent institution does not confer a logo match.
 

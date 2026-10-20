@@ -140,7 +140,7 @@ Signup also requires confirming **age 18+**. Alumni can participate. Faculty who
 ### Schools
 
 - Search and browse schools (including while logged out); popular schools (high event volume)
-- School cards and pages show an approved Admin Console logo (PNG/JPG ≤5 MB), otherwise the school's bundled athletics mark, otherwise an identifier-matched bundled institutional logo, otherwise the school initial. Failed images reveal the initial. A wide bundled wordmark appears on the school page only; cards keep the initial. Bundled logos include source and license credits; see [School data](./09-school-data.md#institutional-logos). Slug URLs get numeric suffixes for duplicate names.
+- School cards and pages show an approved Admin Console logo (PNG/JPG ≤5 MB), otherwise the school's bundled athletics mark, otherwise an identifier-matched bundled institutional logo, otherwise the school's monogram: the first letters of the first two words that name it (after a leading "University of" and the like) on one of ten pale tones fixed by its slug. The tones are not the school's colors, and none is red or green. Failed images reveal the monogram. A wide bundled wordmark appears on the school page only; cards keep the monogram. Bundled logos include source and license credits; see [School data](./09-school-data.md#institutional-logos). Slug URLs get numeric suffixes for duplicate names.
 - School names need not be unique
 - School catalog bootstrapped **once** from College Scorecard — import **all** seed rows (main + branch), `is_active=true`; branch campuses use the same UI/UX as other schools; review/deactivate later in the Admin Console
 - Afterward only site admins create/edit/delete schools via the Admin Console (users cannot create schools); `unitid` optional
@@ -166,6 +166,13 @@ club on CGN, which lists them as members here.
   club page does not imply that the university endorses the club
 - **One school:** every club belongs to exactly one school, and the school page
   lists its clubs
+- **Directory:** `/clubs`, linked from the header, lists published clubs from
+  every school by name, with a name search and school, type, and game filters.
+  It invites officers to ask for a missing club to be added or to claim one
+- **Until claims ship:** the directory and every unclaimed club's page point
+  officers to support (`/support?topic=club`), which starts a "Club request"
+  ticket asking for the club's name, school, and evidence they run it. Site
+  admins add missing clubs from it; claims themselves wait for the claim flow
 - **Profile:** name, URL slug, type, summary, games, **how to join**, and
   optional labeled links (website, Discord, social)
 - **How to join:** a short plain-text section, written by the club (or by CGN
@@ -356,7 +363,7 @@ visitors see counts only; the API answers them with 401.
 ### Admin Console (in progress, release-gated)
 
 - Separate **TanStack Start** app in `apps/admin` at **admin.campusgamingnetwork.com**, released after the first public release; ticket status lives in [20 — Admin Console v1 engineering plan](./20-admin-console-v1-engineering-plan.md)
-- Manage schools, users, ACLs, games (no raw DB required)
+- Manage schools, clubs, users, ACLs, games (no raw DB required)
 - Site admins create/edit schools (after one-time Scorecard seed)
 - View **reports** and **support tickets**
 - Impersonate (“mimic”) users to see their permissions (later)
@@ -384,6 +391,7 @@ visitors see counts only; the API answers them with 401.
 - Mobile-friendly; no IE
 - Prefer CSS over extra JS
 - Server rendering important; code-split routes
+- Voice: page introductions and empty states sound like the community and invite people in; the rules for an action (passwords, roles, visibility) sit beside that action, not in the introduction. Navigation and button labels stay explicit
 - Event lifecycle copy: upcoming date/time → “happening now” → “ended” (no more signups)
 - Missing/deleted event → dedicated not-found style page. The same branded not-found page covers missing schools, teams, and profiles, and answers HTTP 404 rather than a soft 404.
 

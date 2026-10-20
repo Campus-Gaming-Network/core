@@ -553,7 +553,7 @@ The Admin Console v1 may ship only when all gates are true:
 
 | Gate              | Measurable requirement                                                                                                                                    |
 | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Automated tests   | `npm run test:api`, Admin TypeScript unit tests, Admin Playwright tests, and real-stack security tests all pass with zero retries hiding failures.        |
+| Automated tests   | `pnpm run test:api`, Admin TypeScript unit tests, Admin Playwright tests, and real-stack security tests all pass with zero retries hiding failures.       |
 | Route coverage    | 100% of runtime `/admin/v1/*` routes appear in the capability registry and actor/capability test table.                                                   |
 | Mutation coverage | 100% of admin mutation routes have exact-origin CSRF, capability, recent-auth (where required), rate-limit, success-audit, and audit-rollback assertions. |
 | Session coverage  | Idle and absolute boundaries, rotation, logout, grant revocation, account security changes, and replay are automated with an injected clock.              |

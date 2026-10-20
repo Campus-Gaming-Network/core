@@ -44,6 +44,7 @@ See [14 — Architecture diagrams](./14-architecture-diagrams.md) for Mermaid vi
 | Layer            | Choice                                                        | Notes                                                                                                        |
 | ---------------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
 | Frontend         | TanStack Start + React + TypeScript                           | TanStack Router, Vite, Nitro SSR, code-split routes                                                          |
+| Build and test   | Vite+ (`vp`): Vite, Vitest, Oxlint, Oxfmt                     | Settings in each `vite.config.ts`; see [11](./11-implementation-decisions.md)                                |
 | UI               | Semantic React + application CSS                              | Keep the runtime dependency surface small and accessible                                                     |
 | BFF validation   | Zod                                                           | Runtime Go-response contracts and server-function/native-form input errors; server-only operations           |
 | A11y / patterns  | GOV.UK Design System (reference)                              | Prefer accessible, clear components                                                                          |

@@ -99,9 +99,9 @@ would add a second description of each endpoint to maintain.
 ## Conventions
 
 - **US launch only** — international schools are out of scope at launch.
-- **Not yet scheduled** — clubs, tournaments, on-site payments, usernames, waitlists, invite links, feature flags, near-you, custom event banners. Admin Console v1 is in progress and release-gated: it runs on staging and is not deployed to production.
+- **Not yet scheduled** — tournaments, on-site payments, usernames, waitlists, invite links, feature flags, near-you, custom event banners. Admin Console v1 is in progress and release-gated: it runs on staging and is not deployed to production.
 - **Events ≠ tournaments** — events are things you attend; tournaments (later) are competitions you enter. An event's `tournament` type is a label for browse only: it adds no brackets, entries, or standings and is not the Tournaments entity.
-- **Clubs ≠ teams** — clubs (later) belong to schools; teams are supported now (public pages; password to join).
+- **Clubs ≠ teams** — clubs belong to schools and are being built ([05 — Phase 6a](./05-roadmap.md#phase-6a--clubs)): club pages, a clubs directory, and Admin Console club management exist; claims and joining come next. Teams are supported now (public pages; password to join).
 - **Event visibility** — `public` · `unlisted` · `private` (blurred/gated + password modal).
 - **RSVP vs interested** — RSVP = yes/no/maybe; interested = favorite (separate).
 - **Capacity** — optional; counts **RSVP yes only**; full blocks new yes; no waitlist yet.
@@ -109,7 +109,7 @@ would add a second description of each endpoint to maintain.
 - **Schools** — user selects one home school on signup, may follow more schools later; import all 6,243 seed rows (1,300 branches) as active; branch campuses use the same UI/UX as other schools; `unitid` optional.
 - **Paid events** — allowed as informational/off-site payment only; organizers handle payment outside the product.
 - **Games** — imported from IGDB when users pick them; site admins only correct, hide, and delete them. There is no hand-made launch list. Covers are stored in Postgres and the FAQ page credits IGDB.com.
-- **Images** — event banners use the default placeholder; school logos use approved uploads, bundled institutional assets, or an initial. See [School data](./09-school-data.md#institutional-logos).
+- **Images** — event banners use the default placeholder; school logos use approved uploads or bundled institutional assets; a school without one shows a two-letter monogram on one of ten pale tones. See [School data](./09-school-data.md#institutional-logos).
 - **Event slugs** — `slugify(title)-` + 8-char Base64URL(SHA-256(…)).
 - **Recurring events** — weekly, biweekly, or monthly; max one year; occurrences are independent event rows with independent RSVPs and cancellation.
 - **Cancellation email** — best-effort email to active yes/maybe RSVPs after soft cancellation; delivery failure does not undo cancellation.

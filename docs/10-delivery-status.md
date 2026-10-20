@@ -14,7 +14,7 @@ Work is grouped **Now** (building toward the first public release), **Next** (pl
 2. Lightweight moderation and operations: reports/support queue, deactivation tools, audit history, and notifications.
 3. Expand trust and safety beyond the first role and content-filtering pass.
 4. Production-readiness hardening: monitoring, legal content, performance, and launch checks.
-5. Clubs and tournaments after the current event loop has been validated with real users.
+5. Clubs, now in progress ([05 — Phase 6a](./05-roadmap.md#phase-6a--clubs)); tournaments after the event loop has been validated with real users.
 
 **First release slice:** auth → home school on signup → schools search/follow → events + games → teams → dashboard.
 
@@ -218,7 +218,8 @@ Tracked ticket by ticket in [20 — Admin Console v1 engineering plan](./20-admi
 
 ### Larger feature areas
 
-- [ ] Clubs
+- [ ] Clubs (in progress; see [05 — Phase 6a](./05-roadmap.md#phase-6a--clubs))
+
 - [ ] Tournaments
 - [ ] On-site payments
 - [ ] Waitlists

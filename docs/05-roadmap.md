@@ -130,7 +130,8 @@ feeling unfinished.
 **Goal:** Grow the game catalog without one-at-a-time imports.
 
 - Bulk or scheduled IGDB sync (single-game refresh via the Admin Console is implemented)
-- Popular games by school
+- **Implemented:** popular games on the home page and by school
+
 - Events/teams keep game associations
 
 **Exit:** Catalog can grow without user-editable games.
@@ -142,14 +143,14 @@ students join on CGN. See [01 — Product](./01-product.md#clubs).
 
 In order (each issue names its own "Done when"):
 
-1. #114 — Clubs spec (this model)
-2. #115 — Schema, public API, club pages, and a Clubs section on school pages
-3. #116 — Site admins create and manage unclaimed clubs in the Admin Console
+1. **Done:** #114 — Clubs spec (this model)
+2. **Done:** #115 — Schema, public API, club pages, and a Clubs section on school pages
+3. **Done:** #116 — Site admins create and manage unclaimed clubs in the Admin Console
 4. #117 — Officers claim or request a club; site admins review
 5. #118 — Owners and editors: edit, invite editors, transfer ownership
 6. #262 — Students join clubs and see the member list
-7. Then, in any order: #119 (last confirmed), #124 (clubs host events), #261
-   (clubs directory)
+7. Then, in any order: #119 (last confirmed), #124 (clubs host events), and
+   **done:** #261 (clubs directory)
 
 Later: assigning teams to clubs (Varsity, JV), join approval, co-hosted events.
 
@@ -170,8 +171,7 @@ Later: assigning teams to clubs (Varsity, JV), join approval, co-hosted events.
 **Goal:** Safe to run with real users at scale.
 
 - Expanded backup retention / point-in-time recovery beyond the launch baseline
-- Extend the database-backed audit foundation across more domains; add
-  user-visible activity history and the notification API/inbox
+- Extend the database-backed audit foundation across more domains; add user-visible activity history (**implemented:** the notification API and inbox)
 - Broader rate limiting
 - Impersonation for site admins (audited)
 - Past-event edit restrictions enforced

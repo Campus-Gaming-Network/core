@@ -6,15 +6,22 @@ Quick re-entry point for Campus Gaming Network. Read this first after time away;
 the detailed product and engineering context remains in the other documents in
 this folder.
 
-**Last updated:** 2026-10-16
+**Last updated:** 2026-10-19
 
 ## Where we are
 
-The first-release product is implemented locally: authentication, profiles,
-schools, an IGDB-imported game catalog, events, teams, dashboard, support, and baseline safety
-intake are in place. TanStack Start is now the canonical main frontend in
-`apps/web`; the temporary parity application has been folded into that path and
-the Next.js source has been removed.
+The first-release product is implemented: authentication with email and
+password changes, profiles with game lists, schools, an IGDB-imported game
+catalog with popular games, events with co-organizers and keyword search,
+teams, the dashboard, a notification inbox, data export, support, and
+baseline safety intake. Clubs have begun: club records, club pages, a Clubs
+section on school pages, a `/clubs` directory that points officers to support,
+and Admin Console club management are in place.
+
+The web app and the Admin Console are TanStack Start apps in `apps/web` and
+`apps/admin`. The JavaScript toolchain is Vite+ (`vp`), which runs builds,
+Vitest unit tests, Oxlint, and Oxfmt; see
+[11 — Implementation decisions](./11-implementation-decisions.md).
 
 A Railway staging environment is running, with the Admin Console as a separate
 service ([13 — Deployment plan](./13-deployment-plan.md)). Production is not
@@ -23,22 +30,25 @@ deployment are intentionally deferred while product work continues.
 
 ## Current milestone
 
-Make the existing events-and-teams product polished and reliable enough for
-real users. Production deployment will be revisited later.
+Make the events-and-teams product polished and reliable enough for real users,
+and build out clubs ([05 — Roadmap, Phase 6a](./05-roadmap.md#phase-6a--clubs)).
+Production deployment will be revisited later.
 
 Every item in [17 — Codebase review action plan](./17-codebase-review-action-plan.md)
-is done. Engineering work now comes from the open items in
-[10 — Delivery status](./10-delivery-status.md) and the Admin Console tickets in
-[20 — Admin Console v1 engineering plan](./20-admin-console-v1-engineering-plan.md).
+is done. Engineering work comes from the open
+[GitHub Issues](https://github.com/Campus-Gaming-Network/core/issues).
 
 ## Next tasks
 
-1. Finish what `AC-014` still owes, none of which needs code: the independent
+1. Clubs, in the order in [05](./05-roadmap.md#phase-6a--clubs): club claims
+   (#117), then owners and editors (#118), then joining clubs on CGN (#262).
+2. Finish what `AC-014` still owes, none of which needs code: the independent
    security review, then the staging penetration pass, drills, and deployment
    smoke checks on staging
    ([24](./24-admin-console-security-review.md#still-owed-before-production-is-enabled)).
-2. Clear the P1 launch gates that need outside input: legal copy and the
+3. Clear the P1 launch gates that need outside input: legal copy and the
    external launch rehearsal.
+4. Bring back the paused Playwright suites before launch (#244).
 
 Admin Console work continues under
 [20 — Admin Console v1 engineering plan](./20-admin-console-v1-engineering-plan.md).
@@ -50,8 +60,7 @@ Admin Console work continues under
   launch geography, provider, and sale/share decisions. Engineering retention
   targets are recorded in [16 — Legal and data-lifecycle plan](./16-legal-and-data-lifecycle-plan.md)
   pending legal review.
-- Clubs and tournaments remain later expansion work until the current event loop
-  is polished and exercised by real users.
+- Tournaments remain later work; their spec is #215.
 - Product and technical questions that are intentionally unresolved are tracked
   in [08 — Open questions](./08-open-questions.md).
 

@@ -33,15 +33,15 @@ Decisions to resolve before or during implementation. Until answered, implemente
 
 ### Content & safety
 
-16. **Rich text** — Plain text only, or limited Markdown?
+16. **Rich text** — **Decided:** plain text with newlines (see the table below).
 17. **Support ticket fields** — Which fields are required on the public form?
 
 ### Technical
 
-18. **Go API style** — REST only, or RPC (Connect/gRPC) behind the BFF?
+18. **Go API style** — **Decided:** REST/JSON behind the BFF ([11](./11-implementation-decisions.md)).
 19. **Analytics** — Plausible vs Cloudflare Web Analytics vs other?
 20. **Activity log vs audit log** — One table with `kind`, or two tables?
-21. **Friends / notifications / i18n** — timing and depth after the first release?
+21. **Friends / i18n** — timing and depth after the first release? (Notifications are decided: an in-app inbox; see [01](./01-product.md#notifications--email).)
 
 ---
 
