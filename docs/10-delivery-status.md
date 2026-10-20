@@ -224,7 +224,6 @@ Tracked ticket by ticket in [20 — Admin Console v1 engineering plan](./20-admi
 - [ ] On-site payments
 - [ ] Waitlists
 - [ ] Team invite-link tokens
-- [ ] Usernames / first+last+display split
 - [ ] Feature flags
 - [ ] **Near you** / geo discovery
 - [ ] **Custom event banner uploads** (with strict moderation)

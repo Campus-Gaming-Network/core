@@ -6,7 +6,7 @@ Phased delivery for a single developer. Each phase should be shippable. Do not p
 
 **Infra:** Railway (TanStack Start web, Go API, PostgreSQL) · Cloudflare DNS/protection · Resend email (`events@` / `account@`) · game catalog imported from IGDB. `notifications@` and `support@` workflows, plus Cloudflare R2 for Admin Console logo uploads, are later.
 
-**Not yet scheduled:** tournaments, on-site payments, usernames, waitlists, team invite links, feature flags, near-you, custom event banner uploads. Admin Console v1 is in progress and release-gated: it runs on staging and is not deployed to production.
+**Not yet scheduled:** tournaments, on-site payments, waitlists, team invite links, feature flags, near-you, custom event banner uploads. Admin Console v1 is in progress and release-gated: it runs on staging and is not deployed to production.
 
 **School seed:** import all 6,243 operating schools (4,943 main · 1,300 branch) as `is_active=true`; branch campuses use the same UI/UX; review later in the Admin Console.
 
@@ -193,7 +193,6 @@ Later: assigning teams to clubs (Varsity, JV), join approval, co-hosted events.
 - On-site payments
 - Waitlists
 - Team invite-link tokens
-- Usernames / first+last+display split
 - Near you / geo discovery
 - Custom event banner uploads (with strict moderation)
 - Feature flags

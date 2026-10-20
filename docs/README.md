@@ -99,7 +99,7 @@ would add a second description of each endpoint to maintain.
 ## Conventions
 
 - **US launch only** — international schools are out of scope at launch.
-- **Not yet scheduled** — tournaments, on-site payments, usernames, waitlists, invite links, feature flags, near-you, custom event banners. Admin Console v1 is in progress and release-gated: it runs on staging and is not deployed to production.
+- **Not yet scheduled** — tournaments, on-site payments, waitlists, invite links, feature flags, near-you, custom event banners. Admin Console v1 is in progress and release-gated: it runs on staging and is not deployed to production.
 - **Events ≠ tournaments** — events are things you attend; tournaments (later) are competitions you enter. An event's `tournament` type is a label for browse only: it adds no brackets, entries, or standings and is not the Tournaments entity.
 - **Clubs ≠ teams** — clubs belong to schools and are being built ([05 — Phase 6a](./05-roadmap.md#phase-6a--clubs)): club pages, a clubs directory, and Admin Console club management exist; claims and joining come next. Teams are supported now (public pages; password to join).
 - **Event visibility** — `public` · `unlisted` · `private` (blurred/gated + password modal).

@@ -22,7 +22,7 @@
 - Live updates via WebSockets
 - Custom user avatars (the drawn Boring Avatars identity comes first)
 - Custom event banner uploads (default placeholder for now; moderated uploads later)
-- Usernames or split first/last/display — single **name** field only
+- Usernames or split first/last/display — not planned; profiles use a single **name** field and a permanent public ID
 - Google Analytics
 - Internet Explorer support
 - Heavy user-generated content on the homepage (keep it simple until content exists)
