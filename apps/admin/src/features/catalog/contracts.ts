@@ -249,6 +249,17 @@ export const adminClubSchema = z.object({
   is_active: z.boolean(),
   // True once an officer's claim made someone the club's owner.
   claimed: z.boolean(),
+  // On the detail only: everyone in the club, owners first.
+  members: z
+    .array(
+      z.object({
+        user_id: uuidSchema,
+        name: z.string().max(200),
+        role: z.enum(["owner", "editor", "member"]),
+        joined_at: timestampSchema,
+      }),
+    )
+    .optional(),
   confirmed_at: timestampSchema.nullable(),
   confirmed_source: z.enum(["club", "cgn"]).nullable(),
   created_at: timestampSchema,
@@ -553,6 +564,10 @@ export const catalogNotices = {
   },
   "club-checked": {
     message: "Marked as checked by Campus Gaming Network today.",
+    severity: "success",
+  },
+  "club-member-removed": {
+    message: "Removed from the club. They may join again.",
     severity: "success",
   },
   "claim-approved": {
@@ -1027,6 +1042,11 @@ export const catalogCommands = {
   "club.hide": { confirm: true, stepUp: false, notice: "club-hidden" },
   "club.unhide": { confirm: false, stepUp: false, notice: "club-published" },
   "club.check": { confirm: false, stepUp: false, notice: "club-checked" },
+  "club.remove_member": {
+    confirm: true,
+    stepUp: false,
+    notice: "club-member-removed",
+  },
   "club_claim.approve": {
     confirm: false,
     stepUp: false,
@@ -1087,7 +1107,11 @@ const catalogCommandSchema = z
         message: "Reload the page and try again.",
       });
     }
-    if (input.command === "site_grant.grant" && input.user_id === "") {
+    if (
+      (input.command === "site_grant.grant" ||
+        input.command === "club.remove_member") &&
+      input.user_id === ""
+    ) {
       context.addIssue({
         code: "custom",
         path: ["user_id"],

@@ -2,6 +2,7 @@ import { adminTitle } from "../components/page-title";
 import { Timestamp } from "../components/timestamp";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { CopyIdButton } from "../components/copy-id-button";
+import { UserLink } from "../components/user-link";
 import {
   CatalogAuditPanel,
   CatalogNoticeView,
@@ -17,6 +18,8 @@ import {
   validateCatalogDetailSearch,
 } from "../features/catalog/contracts";
 import { DetailFact } from "../features/moderation/moderation-components";
+
+const clubRoleLabels = { owner: "Owner", editor: "Editor", member: "Member" };
 
 export const Route = createFileRoute("/clubs/$clubId")({
   validateSearch: validateCatalogDetailSearch,
@@ -134,6 +137,42 @@ function ClubDetailPage() {
               </div>
             </div>
             <ClubLinksForm club={club} key={club.updated_at} />
+          </section>
+
+          <section className="detail-panel" aria-labelledby="club-people">
+            <div className="panel-heading">
+              <div>
+                <p className="eyebrow">Joined on CGN</p>
+                <h2 id="club-people">People</h2>
+              </div>
+            </div>
+            {club.members?.length ? (
+              <ul className="club-member-list">
+                {club.members.map((member) => (
+                  <li key={member.user_id}>
+                    <UserLink name={member.name} userId={member.user_id} />{" "}
+                    <span className="field-help">
+                      {clubRoleLabels[member.role]}, joined{" "}
+                      <Timestamp value={member.joined_at} />
+                    </span>
+                    {member.role === "owner" ? null : (
+                      <CommandForm
+                        command="club.remove_member"
+                        description="They come off the club's people list and lose any editor role. They may join again; the club and what it published stay as they are."
+                        expectedUpdatedAt={club.updated_at}
+                        hiddenFields={{ user_id: member.user_id }}
+                        id={club.id}
+                        returnPath={path}
+                        submitLabel={`Remove ${member.name}`}
+                        title={`Remove ${member.name}`}
+                      />
+                    )}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="field-help">No one has joined this club yet.</p>
+            )}
           </section>
 
           <section className="detail-panel" aria-labelledby="club-actions">

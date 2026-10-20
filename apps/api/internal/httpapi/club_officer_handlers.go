@@ -18,6 +18,7 @@ const clubEditorInviteTTL = 7 * 24 * time.Hour
 // Every check happens in the store, against the person's role in the club.
 type clubOfficers interface {
 	Viewer(ctx context.Context, clubID, userID string) (clubs.Viewer, error)
+	Join(ctx context.Context, slug, userID string) error
 	Manage(ctx context.Context, slug, userID string) (clubs.Management, error)
 	EditProfile(ctx context.Context, slug, userID string, edit clubs.ProfileEdit) error
 	EditLinks(ctx context.Context, slug, userID string, links []clubs.Link) error
@@ -45,7 +46,9 @@ func (r *Router) registerClubOfficerRoutes() {
 	r.mux.HandleFunc("/clubs/{slug}/editor-invites/{id}", requireMethod(http.MethodDelete, r.handleRevokeClubEditorInvite))
 	r.mux.HandleFunc("/club-editor-invites/accept", requireMethod(http.MethodPost, r.handleAcceptClubEditorInvite))
 	r.mux.HandleFunc("/clubs/{slug}/remove-member", requireMethod(http.MethodPost, r.handleRemoveClubMember))
+	r.mux.HandleFunc("/clubs/{slug}/join", requireMethod(http.MethodPost, r.handleJoinClub))
 	r.mux.HandleFunc("/clubs/{slug}/leave", requireMethod(http.MethodPost, r.handleLeaveClub))
+	r.mux.HandleFunc("/clubs/{slug}/members", r.handleClubMembers)
 	r.mux.HandleFunc("/clubs/{slug}/ownership-offer", r.handleClubOwnershipOffer)
 	r.mux.HandleFunc("/clubs/{slug}/ownership-offer/accept", requireMethod(http.MethodPost, r.handleAcceptClubOwnership))
 }
@@ -207,6 +210,25 @@ func (r *Router) handleRemoveClubMember(w http.ResponseWriter, req *http.Request
 	}
 	if err := r.clubOfficers.RemoveMember(req.Context(), req.PathValue("slug"), userID, request.UserID); err != nil {
 		writeApplicationError(w, err, "club_member_remove_failed")
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// handleJoinClub answers POST /clubs/{slug}/join: a signed-in user with a
+// verified email lists themselves on the club. It grants nothing in the club
+// itself.
+func (r *Router) handleJoinClub(w http.ResponseWriter, req *http.Request) {
+	userID, ok := r.clubOfficer(w, req)
+	if !ok {
+		return
+	}
+	if !r.allowAccount("club-join", userID) {
+		rateLimitExceeded(w, r)
+		return
+	}
+	if err := r.clubOfficers.Join(req.Context(), req.PathValue("slug"), userID); err != nil {
+		writeApplicationError(w, err, "club_join_failed")
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)

@@ -163,6 +163,31 @@ func (r *Router) handleSchoolMembers(w http.ResponseWriter, req *http.Request, s
 	writePeopleList(w, list, result)
 }
 
+// handleClubMembers answers GET /clubs/{slug}/members with the club's people
+// and their roles. The club page itself is public; only this list needs a
+// session.
+func (r *Router) handleClubMembers(w http.ResponseWriter, req *http.Request) {
+	list, ok := r.startPeopleList(w, req)
+	if !ok {
+		return
+	}
+	if r.clubs == nil {
+		writeError(w, http.StatusServiceUnavailable, "database_unavailable")
+		return
+	}
+	club, err := r.clubs.GetBySlug(req.Context(), req.PathValue("slug"))
+	if err != nil {
+		writeApplicationError(w, err, "club_unavailable")
+		return
+	}
+	result, err := r.people.ListClubMembers(req.Context(), club.ID, list.params)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "people_unavailable")
+		return
+	}
+	writePeopleList(w, list, result)
+}
+
 // handleTeamMembers answers GET /teams/{slug}/members with the team's members
 // and their roles. The team page itself is public; only this list needs a
 // session. The owner's roster inside the team detail is a separate, unfiltered

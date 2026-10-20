@@ -65,7 +65,7 @@ func TestClubRoutes(t *testing.T) {
 		status       int
 		body         string
 	}{
-		{http.MethodGet, "/clubs/esports-program", http.StatusOK, `{"id":"club-1","name":"Esports Program","slug":"esports-program","type":"university_program","summary":"","school":{"id":"","name":"","slug":""},"games":[],"links":[],"claimed":false}` + "\n"},
+		{http.MethodGet, "/clubs/esports-program", http.StatusOK, `{"id":"club-1","name":"Esports Program","slug":"esports-program","type":"university_program","summary":"","school":{"id":"","name":"","slug":""},"games":[],"links":[],"claimed":false,"member_count":0}` + "\n"},
 		{http.MethodGet, "/clubs/hidden-guild", http.StatusNotFound, `{"error":"club_not_found"}` + "\n"},
 		{http.MethodPost, "/clubs/esports-program", http.StatusMethodNotAllowed, ""},
 		{http.MethodGet, "/schools/club-university/clubs", http.StatusOK, `{"clubs":[{"id":"club-1","name":"Esports Program","slug":"esports-program","type":"university_program","summary":"","games":[],"claimed":false}]}` + "\n"},

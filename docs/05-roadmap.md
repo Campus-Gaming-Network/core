@@ -148,7 +148,7 @@ In order (each issue names its own "Done when"):
 3. **Done:** #116 — Site admins create and manage unclaimed clubs in the Admin Console
 4. **Done:** #117 — Officers claim or request a club; site admins review
 5. **Done:** #118 — Owners and editors: edit, invite editors, transfer ownership
-6. #262 — Students join clubs and see the member list
+6. **Done:** #262 — Students join clubs and see the member list
 7. Then, in any order: #119 (last confirmed), #124 (clubs host events), and
    **done:** #261 (clubs directory)
 

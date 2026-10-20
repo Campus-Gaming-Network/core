@@ -4,7 +4,16 @@ import {
   notFound,
   redirect,
 } from "@tanstack/react-router";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowRight, ArrowUpRight } from "lucide-react";
+import {
+  peoplePreviewSize,
+  type PeopleListResult,
+} from "../features/people-slice/contracts";
+import { getClubMembers } from "../features/people-slice/people.functions";
+import {
+  PeoplePreview,
+  PeopleSignedOut,
+} from "../features/people-slice/people-views";
 import { BreadcrumbLink, Breadcrumbs } from "../components/breadcrumbs";
 import { DetailHero } from "../components/detail-hero";
 import { KeyInformation } from "../components/key-information";
@@ -35,7 +44,12 @@ import clubCSS from "../features/club-slice/clubs.css?url";
 export const Route = createFileRoute("/clubs/$slug")({
   validateSearch: validateClubManageSearch,
   loader: async ({ context, params }) => {
-    const result = await getClubDetail({ data: { slug: params.slug } });
+    // The members read is for signed-in viewers; a visitor's answers
+    // "signed_out" without reaching the API.
+    const [result, members] = await Promise.all([
+      getClubDetail({ data: { slug: params.slug } }),
+      getClubMembers({ data: { slug: params.slug, limit: peoplePreviewSize } }),
+    ]);
     if (result.status === "not_found") throw notFound();
     if (result.status !== "found")
       throw new Error("Club detail is unavailable");
@@ -48,7 +62,7 @@ export const Route = createFileRoute("/clubs/$slug")({
         statusCode: 301,
       });
     }
-    return { club: result.club, publicOrigin: context.publicOrigin };
+    return { club: result.club, members, publicOrigin: context.publicOrigin };
   },
   staleTime: 0,
   head: ({ loaderData }) => {
@@ -65,7 +79,7 @@ export const Route = createFileRoute("/clubs/$slug")({
 });
 
 function ClubPage() {
-  const { club } = Route.useLoaderData();
+  const { club, members } = Route.useLoaderData();
   const search = Route.useSearch();
   const location = schoolLocation(club.school, "");
   const confirmed = clubConfirmedLine(club);
@@ -112,6 +126,7 @@ function ClubPage() {
               {club.name} has not added a description or how to join yet.
             </p>
           ) : null}
+          <ClubPeople club={club} members={members} />
         </div>
 
         <aside className="layout-detail__aside" aria-label="About this club">
@@ -149,6 +164,9 @@ function ClubPage() {
                 : []),
             ]}
           />
+          {members.status === "signed_out" || !club.viewer?.role ? (
+            <JoinOnCGN club={club} signedIn={members.status !== "signed_out"} />
+          ) : null}
           <ClubViewerActions club={club} />
           {club.claimed ? null : (
             <p className="club-claim">
@@ -218,6 +236,96 @@ function ClubViewerActions({ club }: { club: ClubDTO }) {
           />
         ) : null}
       </div>
+    </section>
+  );
+}
+
+/**
+ * Joining on CGN lists a person on the club's page here. It is not membership
+ * in the club itself, and the card says so beside the button.
+ */
+function JoinOnCGN({ club, signedIn }: { club: ClubDTO; signedIn: boolean }) {
+  const note = (
+    <p className="club-join-note">
+      Joining lists you on Campus Gaming Network. It does not make you a member
+      of the club itself
+      {club.how_to_join?.trim() ? (
+        <>
+          ; for that, see <a href="#club-join-title">How to join</a>.
+        </>
+      ) : (
+        "; the club decides that."
+      )}
+    </p>
+  );
+  return (
+    <section className="detail-card" aria-labelledby="club-join-cgn-title">
+      <h2 id="club-join-cgn-title">Join on CGN</h2>
+      <div className="detail-card-body form-stack">
+        {signedIn ? (
+          <ClubCommandForm
+            command="join"
+            page="club"
+            pendingLabel="Joining…"
+            slug={club.slug}
+            submitLabel="Join on CGN"
+          />
+        ) : (
+          <ButtonLink
+            search={{ next: `/clubs/${club.slug}` }}
+            to="/login"
+            variant="primary"
+          >
+            Log in to join
+          </ButtonLink>
+        )}
+        {note}
+      </div>
+    </section>
+  );
+}
+
+/**
+ * The club's people on CGN. Signed-in viewers see who, with roles; visitors
+ * see how many.
+ */
+function ClubPeople({
+  club,
+  members,
+}: {
+  club: ClubDTO;
+  members: PeopleListResult;
+}) {
+  const count = `${club.member_count} ${club.member_count === 1 ? "person has" : "people have"} joined ${club.name} on CGN.`;
+  if (members.status === "signed_out") {
+    return (
+      <section aria-labelledby="club-people-title">
+        <h2 id="club-people-title">People</h2>
+        <PeopleSignedOut
+          message={`${count} Log in to see who.`}
+          next={`/clubs/${club.slug}`}
+        />
+      </section>
+    );
+  }
+  return (
+    <section className="detail-card" aria-labelledby="club-people-title">
+      <h2 id="club-people-title">People</h2>
+      <p className="detail-card-body muted">{count}</p>
+      <PeoplePreview empty="No one has joined yet." result={members} />
+      {members.status === "found" && members.list.people.length > 0 ? (
+        <div className="detail-card-body">
+          <Link
+            aria-label={`See everyone in ${club.name}`}
+            className="link with-arrow"
+            params={{ slug: club.slug }}
+            to="/clubs/$slug/people"
+          >
+            See everyone
+            <ArrowRight aria-hidden="true" size={14} strokeWidth={2.25} />
+          </Link>
+        </div>
+      ) : null}
     </section>
   );
 }

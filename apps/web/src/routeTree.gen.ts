@@ -61,6 +61,7 @@ import { Route as ApiGamesIgdbSearchRouteImport } from './routes/api.games.igdb-
 import { Route as ApiIgdbCoversImageIdRouteImport } from './routes/api.igdb-covers.$imageId'
 import { Route as ClubsSlugClaimRouteImport } from './routes/clubs.$slug_.claim'
 import { Route as ClubsSlugManageRouteImport } from './routes/clubs.$slug_.manage'
+import { Route as ClubsSlugPeopleRouteImport } from './routes/clubs.$slug_.people'
 import { Route as EventsSlugEditRouteImport } from './routes/events.$slug_.edit'
 import { Route as EventsSlugPeopleRouteImport } from './routes/events.$slug_.people'
 import { Route as SchoolsSlugPeopleRouteImport } from './routes/schools.$slug_.people'
@@ -329,6 +330,11 @@ const ClubsSlugManageRoute = ClubsSlugManageRouteImport.update({
   path: '/clubs/$slug/manage',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ClubsSlugPeopleRoute = ClubsSlugPeopleRouteImport.update({
+  id: '/clubs/$slug_/people',
+  path: '/clubs/$slug/people',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const EventsSlugEditRoute = EventsSlugEditRouteImport.update({
   id: '/$slug_/edit',
   path: '/$slug/edit',
@@ -419,6 +425,7 @@ export interface FileRoutesByFullPath {
   '/api/igdb-covers/$imageId': typeof ApiIgdbCoversImageIdRoute
   '/clubs/$slug/claim': typeof ClubsSlugClaimRoute
   '/clubs/$slug/manage': typeof ClubsSlugManageRoute
+  '/clubs/$slug/people': typeof ClubsSlugPeopleRoute
   '/events/$slug/edit': typeof EventsSlugEditRoute
   '/events/$slug/people': typeof EventsSlugPeopleRoute
   '/schools/$slug/people': typeof SchoolsSlugPeopleRoute
@@ -476,6 +483,7 @@ export interface FileRoutesByTo {
   '/api/igdb-covers/$imageId': typeof ApiIgdbCoversImageIdRoute
   '/clubs/$slug/claim': typeof ClubsSlugClaimRoute
   '/clubs/$slug/manage': typeof ClubsSlugManageRoute
+  '/clubs/$slug/people': typeof ClubsSlugPeopleRoute
   '/events/$slug/edit': typeof EventsSlugEditRoute
   '/events/$slug/people': typeof EventsSlugPeopleRoute
   '/schools/$slug/people': typeof SchoolsSlugPeopleRoute
@@ -538,6 +546,7 @@ export interface FileRoutesById {
   '/api/igdb-covers/$imageId': typeof ApiIgdbCoversImageIdRoute
   '/clubs/$slug_/claim': typeof ClubsSlugClaimRoute
   '/clubs/$slug_/manage': typeof ClubsSlugManageRoute
+  '/clubs/$slug_/people': typeof ClubsSlugPeopleRoute
   '/events/$slug_/edit': typeof EventsSlugEditRoute
   '/events/$slug_/people': typeof EventsSlugPeopleRoute
   '/schools/$slug_/people': typeof SchoolsSlugPeopleRoute
@@ -601,6 +610,7 @@ export interface FileRouteTypes {
     | '/api/igdb-covers/$imageId'
     | '/clubs/$slug/claim'
     | '/clubs/$slug/manage'
+    | '/clubs/$slug/people'
     | '/events/$slug/edit'
     | '/events/$slug/people'
     | '/schools/$slug/people'
@@ -658,6 +668,7 @@ export interface FileRouteTypes {
     | '/api/igdb-covers/$imageId'
     | '/clubs/$slug/claim'
     | '/clubs/$slug/manage'
+    | '/clubs/$slug/people'
     | '/events/$slug/edit'
     | '/events/$slug/people'
     | '/schools/$slug/people'
@@ -719,6 +730,7 @@ export interface FileRouteTypes {
     | '/api/igdb-covers/$imageId'
     | '/clubs/$slug_/claim'
     | '/clubs/$slug_/manage'
+    | '/clubs/$slug_/people'
     | '/events/$slug_/edit'
     | '/events/$slug_/people'
     | '/schools/$slug_/people'
@@ -768,6 +780,7 @@ export interface RootRouteChildren {
   ApiIgdbCoversImageIdRoute: typeof ApiIgdbCoversImageIdRoute
   ClubsSlugClaimRoute: typeof ClubsSlugClaimRoute
   ClubsSlugManageRoute: typeof ClubsSlugManageRoute
+  ClubsSlugPeopleRoute: typeof ClubsSlugPeopleRoute
   ApiEventsSlugCalendarDoticsRoute: typeof ApiEventsSlugCalendarDoticsRoute
   ApiGamesSlugCoverRoute: typeof ApiGamesSlugCoverRoute
 }
@@ -1138,6 +1151,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ClubsSlugManageRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/clubs/$slug_/people': {
+      id: '/clubs/$slug_/people'
+      path: '/clubs/$slug/people'
+      fullPath: '/clubs/$slug/people'
+      preLoaderRoute: typeof ClubsSlugPeopleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/events/$slug_/edit': {
       id: '/events/$slug_/edit'
       path: '/$slug/edit'
@@ -1302,6 +1322,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiIgdbCoversImageIdRoute: ApiIgdbCoversImageIdRoute,
   ClubsSlugClaimRoute: ClubsSlugClaimRoute,
   ClubsSlugManageRoute: ClubsSlugManageRoute,
+  ClubsSlugPeopleRoute: ClubsSlugPeopleRoute,
   ApiEventsSlugCalendarDoticsRoute: ApiEventsSlugCalendarDoticsRoute,
   ApiGamesSlugCoverRoute: ApiGamesSlugCoverRoute,
 }

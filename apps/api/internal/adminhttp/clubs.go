@@ -23,6 +23,7 @@ type AdminClubs interface {
 	HideAdmin(context.Context, string, adminmutation.Command) (clubs.AdminClub, error)
 	UnhideAdmin(context.Context, string, adminmutation.Command) (clubs.AdminClub, error)
 	MarkCheckedAdmin(context.Context, string, adminmutation.Command) (clubs.AdminClub, error)
+	RemoveMemberAdmin(context.Context, string, clubs.MemberRemoval) (clubs.AdminClub, error)
 	ListClaims(context.Context, string, adminmutation.Filter) ([]clubs.AdminClaimSummary, error)
 	GetClaim(context.Context, string) (clubs.AdminClaim, error)
 	ApproveClaim(context.Context, string, clubs.ClaimApproval) (clubs.AdminClaim, error)
@@ -37,6 +38,7 @@ var clubRoutes = []routePolicy{
 	{Method: "POST", Path: "/admin/v1/clubs/{id}/links", Control: controlCapability, Capability: adminaccess.CapabilityClubsManage, Mutation: true, Operation: "clubs.links"},
 	{Method: "POST", Path: "/admin/v1/clubs/{id}/hide", Control: controlCapability, Capability: adminaccess.CapabilityClubsManage, Mutation: true, Operation: "clubs.hide"},
 	{Method: "POST", Path: "/admin/v1/clubs/{id}/unhide", Control: controlCapability, Capability: adminaccess.CapabilityClubsManage, Mutation: true, Operation: "clubs.unhide"},
+	{Method: "POST", Path: "/admin/v1/clubs/{id}/remove-member", Control: controlCapability, Capability: adminaccess.CapabilityClubsManage, Mutation: true, Operation: "clubs.remove_member"},
 	{Method: "POST", Path: "/admin/v1/clubs/{id}/mark-checked", Control: controlCapability, Capability: adminaccess.CapabilityClubsManage, Mutation: true, Operation: "clubs.check"},
 	{Method: "GET", Path: "/admin/v1/clubs/{id}/audit", Control: controlCapability, Capability: adminaccess.CapabilityAuditRead, Operation: "clubs.audit"},
 	{Method: "GET", Path: "/admin/v1/club-claims", Control: controlCapability, Capability: adminaccess.CapabilityClubsRead, Operation: "club_claims.list"},
@@ -91,6 +93,13 @@ func (handler *Handler) clubsHandler(operation routeOperation, id string) http.H
 			}
 			input.Correlation = correlation
 			result, err = deps.Clubs.ReplaceLinks(req.Context(), id, input)
+		case "clubs.remove_member":
+			var input clubs.MemberRemoval
+			if err = decodeAdminJSON(w, req, &input); err != nil {
+				break
+			}
+			input.Correlation = correlation
+			result, err = deps.Clubs.RemoveMemberAdmin(req.Context(), id, input)
 		case "clubs.hide", "clubs.unhide", "clubs.check":
 			var command adminmutation.Command
 			if err = decodeAdminJSON(w, req, &command); err != nil {

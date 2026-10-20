@@ -50,8 +50,11 @@ const (
 	ActionClubHidden                   Action = "club.hidden"
 	ActionClubUnhidden                 Action = "club.unhidden"
 	ActionClubChecked                  Action = "club.checked"
-	ActionClubClaimApproved            Action = "club_claim.approved"
-	ActionClubClaimRejected            Action = "club_claim.rejected"
+	// ActionClubMemberRemoved shares its name with the removal an officer
+	// makes on the public site; a site admin's carries a reason.
+	ActionClubMemberRemoved Action = "club.member_removed"
+	ActionClubClaimApproved Action = "club_claim.approved"
+	ActionClubClaimRejected Action = "club_claim.rejected"
 )
 
 type EntityType string
@@ -142,6 +145,15 @@ type SchoolGrantState struct {
 }
 
 func (SchoolGrantState) auditState() {}
+
+// ClubMemberState is one person's role in a club; an empty role means they
+// are no longer in it.
+type ClubMemberState struct {
+	UserID string `json:"user_id"`
+	Role   string `json:"role"`
+}
+
+func (ClubMemberState) auditState() {}
 
 // ClubClaimState is a claim's review state. The evidence, the applicant, and
 // the review note stay out of the audit; the note is the operator reason.
@@ -412,7 +424,8 @@ func validActionEntity(action Action, entityType EntityType) bool {
 		return entityType == EntityUser
 	case ActionSchoolGrantGranted, ActionSchoolGrantRevoked:
 		return entityType == EntitySchoolGrant
-	case ActionClubCreated, ActionClubUpdated, ActionClubLinksReplaced, ActionClubHidden, ActionClubUnhidden, ActionClubChecked:
+	case ActionClubCreated, ActionClubUpdated, ActionClubLinksReplaced, ActionClubHidden, ActionClubUnhidden, ActionClubChecked,
+		ActionClubMemberRemoved:
 		return entityType == EntityClub
 	case ActionClubClaimApproved, ActionClubClaimRejected:
 		return entityType == EntityClubClaim
@@ -440,6 +453,9 @@ func validState(entityType EntityType, state State, allowEmpty bool) bool {
 			(typed.VerificationLevel == "basic" || typed.VerificationLevel == "verified" || typed.VerificationLevel == "staff_faculty")
 	case SchoolGrantState:
 		return entityType == EntitySchoolGrant && validUUID(typed.SchoolID) && validUUID(typed.UserID) && !typed.UpdatedAt.IsZero()
+	case ClubMemberState:
+		return entityType == EntityClub && validUUID(typed.UserID) &&
+			(typed.Role == "" || typed.Role == "owner" || typed.Role == "editor" || typed.Role == "member")
 	case ClubClaimState:
 		return entityType == EntityClubClaim && (typed.Status == "pending" || typed.Status == "approved" || typed.Status == "rejected") &&
 			validOptionalUUIDPointer(typed.ClubID) && !typed.UpdatedAt.IsZero()

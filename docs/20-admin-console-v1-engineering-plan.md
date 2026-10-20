@@ -457,6 +457,7 @@ applicable.
 | POST   | `/admin/v1/clubs/:id/links`         | `clubs.manage` | Replace the club's links, in order                    |
 | POST   | `/admin/v1/clubs/:id/hide`          | `clubs.manage` | Take the club off the public site                     |
 | POST   | `/admin/v1/clubs/:id/unhide`        | `clubs.manage` | Publish a hidden club again                           |
+| POST   | `/admin/v1/clubs/:id/remove-member` | `clubs.manage` | Take an editor or member out; `{"user_id"}`           |
 | POST   | `/admin/v1/clubs/:id/mark-checked`  | `clubs.manage` | Record that CGN re-checked the public source now      |
 | GET    | `/admin/v1/clubs/:id/audit`         | `audit.read`   | Club change history                                   |
 | GET    | `/admin/v1/club-claims`             | `clubs.read`   | Claims and requests, newest first; `status`           |
@@ -469,7 +470,11 @@ Each club command takes a reason and, after create, the record's
 `expected_updated_at`. A club's school is chosen at create and never changes. A
 new slug keeps the old one as a redirect on the public site until another club
 takes it; a slug another club uses now is `409 admin_record_already_exists`. A
-school with clubs cannot be deleted (`409 catalog_dependencies_exist`).
+school with clubs cannot be deleted (`409 catalog_dependencies_exist`). The
+club detail lists its people (`members`: `{"user_id", "name", "role",
+"joined_at"}`, owners first). Removing someone audits `club.member_removed`
+with the role they held; an owner is not removed this way
+(`409 club_owner_cannot_be_removed`), and a removed member may join again.
 
 A claim is pending, approved, or rejected; only a pending one can be decided,
 and each decision takes the claim's `expected_updated_at` and a reason, which

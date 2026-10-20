@@ -47,7 +47,10 @@ type Club struct {
 	Links     []Link        `json:"links"`
 	// Claimed reports whether officers manage the club. An unclaimed club is
 	// maintained by CGN.
-	Claimed         bool       `json:"claimed"`
+	Claimed bool `json:"claimed"`
+	// MemberCount counts everyone in the club on CGN, owners and editors
+	// included, whether or not they show in people lists.
+	MemberCount     int        `json:"member_count"`
 	ConfirmedAt     *time.Time `json:"confirmed_at,omitempty"`
 	ConfirmedSource string     `json:"confirmed_source,omitempty"`
 	// Viewer is set for a signed-in viewer.
@@ -175,6 +178,7 @@ func (r *PostgresRepository) getByCurrentSlug(ctx context.Context, slug string) 
 	err := r.pool.QueryRow(ctx, `
 		SELECT c.id::text, c.name, c.slug, c.type, c.summary, c.how_to_join,
 		       c.confirmed_at, c.confirmed_source, `+claimedColumn+`,
+		       (SELECT COUNT(*) FROM club_members m WHERE m.club_id = c.id)::int,
 		       s.id::text, s.name, s.slug, COALESCE(s.city, ''), COALESCE(s.state, ''),
 		       `+gameColumns+`
 		FROM clubs c
@@ -185,7 +189,7 @@ func (r *PostgresRepository) getByCurrentSlug(ctx context.Context, slug string) 
 		GROUP BY c.id, s.id
 	`, strings.TrimSpace(slug)).Scan(
 		&club.ID, &club.Name, &club.Slug, &club.Type, &club.Summary, &club.HowToJoin,
-		&club.ConfirmedAt, &confirmedSource, &club.Claimed,
+		&club.ConfirmedAt, &confirmedSource, &club.Claimed, &club.MemberCount,
 		&club.School.ID, &club.School.Name, &club.School.Slug, &club.School.City, &club.School.State,
 		&gameIDs, &gameNames, &gameSlugs, &gameCovers,
 	)

@@ -169,3 +169,48 @@ test("the claim queue filters by status", async () => {
     state: undefined,
   });
 });
+
+test("removing a club member names the person and needs confirmation", async () => {
+  const clubID = "44444444-4444-4444-8444-444444444444";
+  const userID = "22222222-2222-4222-8222-222222222222";
+  const fields = {
+    command: "club.remove_member",
+    id: clubID,
+    expected_updated_at: version,
+    reason: "Spam account",
+    user_id: userID,
+  };
+  const unconfirmed = validateCatalogCommandInput(form(fields));
+  assert.deepEqual(unconfirmed.valid ? {} : unconfirmed.fieldErrors, {
+    confirmed: ["Confirm that you intend to make this change."],
+  });
+  const validated = validateCatalogCommandInput(
+    form({ ...fields, confirmed: "on" }),
+  );
+  assert.ok(validated.valid);
+  const { api, calls } = recordingApi(() => ({ id: clubID }));
+  const result = await runCatalogCommandOperation(validated.value, {
+    api,
+    ...mutation,
+  });
+  assert.deepEqual(
+    { result, calls },
+    {
+      result: {
+        status: "success",
+        redirectTo: `/clubs/${clubID}?notice=club-member-removed`,
+      },
+      calls: [
+        {
+          path: `/admin/v1/clubs/${clubID}/remove-member`,
+          method: "POST",
+          body: {
+            expected_updated_at: version,
+            reason: "Spam account",
+            user_id: userID,
+          },
+        },
+      ],
+    },
+  );
+});

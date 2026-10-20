@@ -323,6 +323,8 @@ export async function runClubCommandOperation(
           path: `${club}/ownership-offer/accept`,
           method: "POST" as const,
         };
+      case "join":
+        return { path: `${club}/join`, method: "POST" as const };
       case "leave":
         return { path: `${club}/leave`, method: "POST" as const };
     }
@@ -333,7 +335,7 @@ export async function runClubCommandOperation(
     const destination =
       command.command === "accept-offer"
         ? "manage"
-        : command.command === "leave"
+        : command.command === "leave" || command.command === "join"
           ? "club"
           : page;
     return {
@@ -354,6 +356,8 @@ export async function runClubCommandOperation(
           : "failed";
     const messages: Record<string, string> = {
       authentication_required: "Sign in again, then try once more.",
+      email_verification_required:
+        "Verify your email address first, then try once more.",
       club_member_not_found: "That person is no longer in the club.",
       club_owner_cannot_be_removed: "An owner cannot be removed.",
       editor_invite_limit_reached:

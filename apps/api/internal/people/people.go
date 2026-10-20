@@ -1,4 +1,5 @@
-// Package people lists the people attached to an event, a school, or a team.
+// Package people lists the people attached to an event, a school, a team, or
+// a club.
 //
 // The lists are for signed-in visitors. Only accounts that are active,
 // verified, and not opted out of lists (users.show_in_lists) appear; an
@@ -26,7 +27,8 @@ type Person struct {
 	Name              string   `json:"name"`
 	VerificationLevel string   `json:"verification_level"`
 	RoleIndicators    []string `json:"role_indicators,omitempty"`
-	// Role is the person's role on a team. It is empty in other lists.
+	// Role is the person's role on a team or in a club. It is empty in other
+	// lists.
 	Role string `json:"role,omitempty"`
 	// SortKey is the value the list is ordered by, as the database computed it.
 	// A cursor carries it so the next page resumes at the same position.
@@ -53,6 +55,9 @@ type Repository interface {
 	// ListTeamMembers lists a team's members: the owner, then captains, then
 	// members, each group ordered by name, with the role of each person.
 	ListTeamMembers(ctx context.Context, teamID string, params ListParams) ([]Person, error)
+	// ListClubMembers lists a club's people: owners, then editors, then
+	// members, each group ordered by name, with the role of each person.
+	ListClubMembers(ctx context.Context, clubID string, params ListParams) ([]Person, error)
 }
 
 type PostgresRepository struct {
@@ -116,6 +121,16 @@ func (r *PostgresRepository) ListTeamMembers(ctx context.Context, teamID string,
 		// The leading digit orders owner, captains, then members, so the role
 		// groups and the names inside them page as one keyset.
 		sortKey: `(CASE m.role WHEN 'owner' THEN '0' WHEN 'captain' THEN '1' ELSE '2' END || lower(u.name))`,
+		role:    `m.role`,
+	}, params)
+}
+
+func (r *PostgresRepository) ListClubMembers(ctx context.Context, clubID string, params ListParams) ([]Person, error) {
+	return r.list(ctx, listSpec{
+		from:    `club_members m JOIN users u ON u.id = m.user_id`,
+		where:   `m.club_id = $1::uuid`,
+		args:    []any{clubID},
+		sortKey: `(CASE m.role WHEN 'owner' THEN '0' WHEN 'editor' THEN '1' ELSE '2' END || lower(u.name))`,
 		role:    `m.role`,
 	}, params)
 }

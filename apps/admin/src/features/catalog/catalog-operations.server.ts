@@ -564,6 +564,16 @@ function commandRequest(input: CatalogCommandInput): {
         reload: { path: claim },
       };
     }
+    case "club.remove_member":
+      return {
+        request: {
+          path: `${club}/remove-member`,
+          method: "POST",
+          body: { ...command, user_id: input.user_id },
+          responseSchema: adminClubSchema,
+        },
+        reload: { path: club },
+      };
     case "club.hide":
     case "club.unhide":
     case "club.check":

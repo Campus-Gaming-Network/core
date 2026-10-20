@@ -35,6 +35,7 @@ type fakePeopleRepository struct {
 	response string
 	schoolID string
 	teamID   string
+	clubID   string
 	params   people.ListParams
 }
 
@@ -53,6 +54,12 @@ func (r *fakePeopleRepository) ListSchoolMembers(_ context.Context, schoolID str
 func (r *fakePeopleRepository) ListTeamMembers(_ context.Context, teamID string, params people.ListParams) ([]people.Person, error) {
 	r.calls++
 	r.teamID, r.params = teamID, params
+	return r.listed, r.err
+}
+
+func (r *fakePeopleRepository) ListClubMembers(_ context.Context, clubID string, params people.ListParams) ([]people.Person, error) {
+	r.calls++
+	r.clubID, r.params = clubID, params
 	return r.listed, r.err
 }
 

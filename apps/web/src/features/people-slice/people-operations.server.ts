@@ -10,6 +10,7 @@ import {
   type PeopleListResult,
   type SchoolMembersInput,
   type TeamMembersInput,
+  type ClubMembersInput,
 } from "./contracts.js";
 
 type Dependencies = {
@@ -59,6 +60,17 @@ export async function teamMembersOperation(
 ): Promise<PeopleListResult> {
   return readPeople(
     `/teams/${encodeURIComponent(slug)}/members`,
+    { limit, after, before },
+    dependencies,
+  );
+}
+
+export async function clubMembersOperation(
+  { slug, limit, after, before }: ClubMembersInput,
+  dependencies: Dependencies,
+): Promise<PeopleListResult> {
+  return readPeople(
+    `/clubs/${encodeURIComponent(slug)}/members`,
     { limit, after, before },
     dependencies,
   );

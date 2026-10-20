@@ -10,6 +10,7 @@ import (
 
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/auth"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/clubs"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/people"
 )
 
 // fakeClubOfficers records each command as name:slug:argument and refuses
@@ -26,6 +27,10 @@ func (f fakeClubOfficers) record(name, slug, argument string) error {
 
 func (f fakeClubOfficers) Viewer(_ context.Context, clubID, _ string) (clubs.Viewer, error) {
 	return clubs.Viewer{Role: clubs.RoleEditor}, f.record("viewer", clubID, "")
+}
+
+func (f fakeClubOfficers) Join(_ context.Context, slug, _ string) error {
+	return f.record("join", slug, "")
 }
 
 func (f fakeClubOfficers) Manage(_ context.Context, slug, _ string) (clubs.Management, error) {
@@ -97,6 +102,7 @@ func TestClubOfficerRoutesNeedASignedInUserAndPassThroughTheirArguments(t *testi
 		{http.MethodPost, "/club-editor-invites/accept", `{"token":"raw-token"}`, http.StatusOK},
 		{http.MethodPost, "/clubs/smash-club/remove-member", `{"user_id":"` + memberID + `"}`, http.StatusNoContent},
 		{http.MethodPost, "/clubs/smash-club/remove-member", `{"user_id":"someone"}`, http.StatusBadRequest},
+		{http.MethodPost, "/clubs/smash-club/join", "", http.StatusNoContent},
 		{http.MethodPost, "/clubs/smash-club/leave", "", http.StatusNoContent},
 		{http.MethodPost, "/clubs/smash-club/ownership-offer", `{"user_id":"` + memberID + `"}`, http.StatusNoContent},
 		{http.MethodDelete, "/clubs/smash-club/ownership-offer", "", http.StatusNoContent},
@@ -116,7 +122,7 @@ func TestClubOfficerRoutesNeedASignedInUserAndPassThroughTheirArguments(t *testi
 		"manage:smash-club:", "profile:smash-club:Smash", "profile:chess-club:Chess",
 		"links:smash-club:https://smash.example.test", "invite:smash-club:editor@example.test",
 		"revoke:smash-club:" + memberID, "accept-invite::raw-token", "remove:smash-club:" + memberID,
-		"leave:smash-club:", "offer:smash-club:" + memberID, "cancel-offer:smash-club:", "accept-offer:smash-club:",
+		"join:smash-club:", "leave:smash-club:", "offer:smash-club:" + memberID, "cancel-offer:smash-club:", "accept-offer:smash-club:",
 		"viewer:club-1:",
 	}
 	if !reflect.DeepEqual(calls, want) {
@@ -127,5 +133,35 @@ func TestClubOfficerRoutesNeedASignedInUserAndPassThroughTheirArguments(t *testi
 	handler.ServeHTTP(response, httptest.NewRequest(http.MethodPost, "/clubs/smash-club/leave", nil))
 	if response.Code != http.StatusUnauthorized {
 		t.Fatalf("signed-out leave = %d, want 401", response.Code)
+	}
+}
+
+func TestClubMembersAreForSignedInViewersOnly(t *testing.T) {
+	peopleStore := &fakePeopleRepository{listed: []people.Person{
+		{ID: testUserID, PublicID: testUserPublicID, Name: "Club Owner", VerificationLevel: "basic", Role: clubs.RoleOwner, SortKey: "0club owner"},
+	}}
+	router := &Router{mux: http.NewServeMux(), clubs: fakeClubs{}, people: peopleStore}
+	router.registerPublicRoutes()
+	handler := signedIn(router.mux.ServeHTTP)
+
+	signedOut := httptest.NewRecorder()
+	handler.ServeHTTP(signedOut, httptest.NewRequest(http.MethodGet, "/clubs/esports-program/members", nil))
+	missing := httptest.NewRecorder()
+	handler.ServeHTTP(missing, authenticatedEventRequest(http.MethodGet, "/clubs/hidden-guild/members", ""))
+	found := httptest.NewRecorder()
+	handler.ServeHTTP(found, authenticatedEventRequest(http.MethodGet, "/clubs/esports-program/members", ""))
+
+	got := []string{
+		strings.TrimSpace(signedOut.Body.String()),
+		strings.TrimSpace(missing.Body.String()),
+		strings.TrimSpace(found.Body.String()),
+	}
+	want := []string{
+		`{"error":"authentication_required"}`,
+		`{"error":"club_not_found"}`,
+		`{"has_more":false,"has_previous":false,"limit":25,"people":[{"id":"` + testUserID + `","public_id":"` + testUserPublicID + `","name":"Club Owner","verification_level":"basic","role":"owner"}]}`,
+	}
+	if !reflect.DeepEqual(got, want) || peopleStore.clubID != "club-1" || found.Header().Get("Cache-Control") != "private, no-store" {
+		t.Fatalf("responses = %v (club %q), want %v", got, peopleStore.clubID, want)
 	}
 }

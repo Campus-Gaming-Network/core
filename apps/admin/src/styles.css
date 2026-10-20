@@ -982,6 +982,10 @@
     @apply m-0;
   }
 
+  .club-member-list {
+    @apply m-0 grid list-none gap-4 p-0;
+  }
+
   .moderation-form label.checkbox-field {
     @apply flex self-end items-center gap-2 text-admin-ink;
     min-height: 36px;

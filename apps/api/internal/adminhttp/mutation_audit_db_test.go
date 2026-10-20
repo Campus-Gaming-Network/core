@@ -248,6 +248,20 @@ var mutationCases = map[routeOperation]mutationCase{
 		club := f.newClub(t, "check-club")
 		return mutationRequest{"POST", "/admin/v1/clubs/" + club.ID + "/mark-checked", f.versioned(club.UpdatedAt)}
 	}},
+	"clubs.remove_member": {adminaudit.ActionClubMemberRemoved, func(t *testing.T, f catalogFixture) mutationRequest {
+		claimID, version := f.newClaim(t, "member-club", catalogTargetID)
+		approved := decodeCatalog[clubs.AdminClaim](t, f.request(t, "POST", "/admin/v1/club-claims/"+claimID+"/approve",
+			clubs.ClaimApproval{Command: f.versioned(version)}, http.StatusOK))
+		f.insertApplicant(t, secondApplicantID, "member@example.edu", true)
+		if err := f.club.Join(t.Context(), "member-club", secondApplicantID); err != nil {
+			t.Fatal(err)
+		}
+		club, err := f.club.GetAdmin(t.Context(), *approved.ClubID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return mutationRequest{"POST", "/admin/v1/clubs/" + club.ID + "/remove-member", clubs.MemberRemoval{Command: f.versioned(club.UpdatedAt), UserID: secondApplicantID}}
+	}},
 	"club_claims.approve": {adminaudit.ActionClubClaimApproved, func(t *testing.T, f catalogFixture) mutationRequest {
 		id, updatedAt := f.newClaim(t, "approve-claim-club", catalogTargetID)
 		return mutationRequest{"POST", "/admin/v1/club-claims/" + id + "/approve", clubs.ClaimApproval{Command: f.versioned(updatedAt)}}

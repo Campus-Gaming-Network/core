@@ -283,6 +283,8 @@ func TestARemovedMemberLosesAccessAndTheClubStays(t *testing.T) {
 	if _, err := f.repository.Manage(ctx, "smash-club", editor); !errors.Is(err, ErrNotClubOfficer) {
 		t.Fatalf("Manage(removed editor) error = %v, want ErrNotClubOfficer", err)
 	}
+	// Only the count of people changes.
+	published.MemberCount -= 2
 	after, err := f.repository.GetBySlug(ctx, "smash-club")
 	if err != nil || !reflect.DeepEqual(after, published) {
 		t.Fatalf("club after removals = %+v, %v; want it unchanged %+v", after, err, published)
@@ -292,5 +294,61 @@ func TestARemovedMemberLosesAccessAndTheClubStays(t *testing.T) {
 	}
 	if got, want := f.auditActions(t, clubID), []string{ActionProfileEdited, ActionLinksEdited, ActionMemberRemoved, ActionMemberRemoved}; !reflect.DeepEqual(got, want) {
 		t.Fatalf("audit = %v, want %v", got, want)
+	}
+}
+
+func TestAVerifiedUserJoinsLeavesAndAfterRemovalJoinsAgain(t *testing.T) {
+	f := newOfficerFixture(t)
+	ctx := context.Background()
+	owner, editor, student, outsider := f.user(t, "owner"), f.user(t, "editor"), f.user(t, "student"), f.user(t, "outsider")
+	unverified := f.insert(t, `
+		INSERT INTO users (email, password_hash, name, home_school_id, age_confirmed_at)
+		VALUES ('unverified@example.test', 'hash', 'Unverified', $1::uuid, NOW())
+	`, f.schoolID)
+	clubID := f.club(t, "smash-club", [2]string{owner, RoleOwner}, [2]string{editor, RoleEditor})
+
+	if err := f.repository.Join(ctx, "smash-club", unverified); !errors.Is(err, ErrEmailUnverified) {
+		t.Fatalf("Join(unverified) error = %v, want ErrEmailUnverified", err)
+	}
+	if err := f.repository.Join(ctx, "smash-club", student); err != nil {
+		t.Fatalf("Join() error = %v", err)
+	}
+	// Joining again changes nothing, and an officer who joins keeps their role.
+	if err := f.repository.Join(ctx, "smash-club", student); err != nil {
+		t.Fatalf("Join(again) error = %v", err)
+	}
+	if err := f.repository.Join(ctx, "smash-club", editor); err != nil {
+		t.Fatalf("Join(editor) error = %v", err)
+	}
+	if got, want := f.roles(t, clubID), map[string]string{owner: RoleOwner, editor: RoleEditor, student: RoleMember}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("roles after joining = %v, want %v", got, want)
+	}
+	club, err := f.repository.GetBySlug(ctx, "smash-club")
+	if err != nil || club.MemberCount != 3 {
+		t.Fatalf("member count = %d, %v; want 3", club.MemberCount, err)
+	}
+
+	if err := f.repository.Leave(ctx, "smash-club", student); err != nil {
+		t.Fatalf("Leave() error = %v", err)
+	}
+	if err := f.repository.Join(ctx, "smash-club", student); err != nil {
+		t.Fatal(err)
+	}
+	// Someone outside the club removes no one; an editor removes the member,
+	// who may join again.
+	if err := f.repository.RemoveMember(ctx, "smash-club", outsider, student); !errors.Is(err, ErrNotClubOfficer) {
+		t.Fatalf("RemoveMember(outsider) error = %v, want ErrNotClubOfficer", err)
+	}
+	if err := f.repository.RemoveMember(ctx, "smash-club", editor, student); err != nil {
+		t.Fatalf("RemoveMember(editor) error = %v", err)
+	}
+	if got := f.roles(t, clubID)[student]; got != "" {
+		t.Fatalf("removed member's role = %q, want none", got)
+	}
+	if err := f.repository.Join(ctx, "smash-club", student); err != nil {
+		t.Fatalf("Join(after removal) error = %v", err)
+	}
+	if got := f.roles(t, clubID)[student]; got != RoleMember {
+		t.Fatalf("role after joining again = %q, want member", got)
 	}
 }

@@ -367,3 +367,40 @@ func TestPostgresRepositoryRejectsTwoCursors(t *testing.T) {
 		t.Fatalf("ListSchoolMembers() error = %v, want %v", err, pagecursor.ErrInvalid)
 	}
 }
+
+func TestListClubMembersOrdersByRoleAndLeavesOutHiddenPeople(t *testing.T) {
+	fixture := newPeopleFixture(t)
+	ctx := context.Background()
+	var clubID string
+	if err := fixture.pool.QueryRow(ctx, `
+		INSERT INTO clubs (school_id, name, slug, type) VALUES ($1::uuid, 'People Club', $2, 'student_club') RETURNING id::text
+	`, fixture.schoolID, "people-club-"+fixture.teamSlug).Scan(&clubID); err != nil {
+		t.Fatalf("insert club: %v", err)
+	}
+	t.Cleanup(func() {
+		_, _ = fixture.pool.Exec(context.Background(), `DELETE FROM clubs WHERE id = $1::uuid`, clubID)
+	})
+	for name, role := range map[string]string{
+		"Zed": "owner", "Cy": "editor", "Bea": "member", "adam": "member",
+		"Hidden": "member", "Unverified": "member", "Suspended": "member", "Deleted": "member",
+	} {
+		if _, err := fixture.pool.Exec(ctx, `
+			INSERT INTO club_members (club_id, user_id, role) VALUES ($1::uuid, $2::uuid, $3)
+		`, clubID, fixture.ids[name], role); err != nil {
+			t.Fatalf("insert club member %s: %v", name, err)
+		}
+	}
+
+	listed, err := fixture.repository.ListClubMembers(ctx, clubID, ListParams{Limit: 10})
+	if err != nil {
+		t.Fatalf("ListClubMembers() error = %v", err)
+	}
+	got := make([]string, 0, len(listed))
+	for _, person := range listed {
+		got = append(got, person.Name+":"+person.Role)
+	}
+	want := []string{"Zed:owner", "Cy:editor", "adam:member", "Bea:member"}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("club members = %v, want %v", got, want)
+	}
+}

@@ -44,6 +44,7 @@ export const clubDtoSchema = z.object({
   games: z.array(clubGameSchema),
   links: z.array(clubLinkSchema),
   claimed: z.boolean(),
+  member_count: z.number().int().nonnegative(),
   confirmed_at: z.iso.datetime({ offset: true }).optional(),
   confirmed_source: z.enum(["club", "cgn"]).optional(),
   // A signed-in viewer's place in the club.
@@ -499,6 +500,7 @@ const clubCommandSchema = z.discriminatedUnion("command", [
   z.object({ command: z.literal("offer"), ...slugField, ...userField }),
   z.object({ command: z.literal("cancel-offer"), ...slugField }),
   z.object({ command: z.literal("accept-offer"), ...slugField }),
+  z.object({ command: z.literal("join"), ...slugField }),
   z.object({ command: z.literal("leave"), ...slugField }),
 ]);
 
@@ -515,6 +517,11 @@ export const clubNotices = {
   },
   "invite-withdrawn": { message: "Invitation withdrawn.", severity: "success" },
   removed: { message: "Removed from the club.", severity: "success" },
+  joined: {
+    message:
+      "You joined this club on Campus Gaming Network. To become a member of the club itself, follow its How to join.",
+    severity: "success",
+  },
   left: { message: "You left the club.", severity: "success" },
   offered: {
     message: "Ownership offered. Nothing changes until they accept.",
@@ -555,6 +562,7 @@ export const clubCommandNotices: Record<ClubCommandName, ClubNotice> = {
   offer: "offered",
   "cancel-offer": "offer-withdrawn",
   "accept-offer": "owner",
+  join: "joined",
   leave: "left",
 };
 

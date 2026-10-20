@@ -180,7 +180,9 @@ The two past-event rows are the intended rule; neither is enforced yet, so organ
   page stays up
 - **School admins** may edit clubs at their school; they do not review claims
 - Any signed-in user with a verified email **joins** a club on CGN directly and
-  may leave. A removed member may join again. Joining on CGN grants nothing in
+  may leave. Owners, editors, and site admins (`clubs.manage`, with a reason)
+  remove members; no one removes an owner, and a removed member may join
+  again. Joining on CGN grants nothing in
   the club itself; the club's own process (How to join) decides that
 - Signed-in people see the member list (see the People lists rules in
   [01 — Product](./01-product.md#people-lists)); visitors see the count

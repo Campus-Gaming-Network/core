@@ -86,3 +86,9 @@
 .club-people > li .form-stack {
   gap: 0;
 }
+
+.club-join-note {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: var(--text-sm);
+}

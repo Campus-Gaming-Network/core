@@ -8,11 +8,13 @@ import {
   eventAttendeesInputSchema,
   schoolMembersInputSchema,
   teamMembersInputSchema,
+  clubMembersInputSchema,
 } from "./contracts.js";
 import {
   eventAttendeesOperation,
   schoolMembersOperation,
   teamMembersOperation,
+  clubMembersOperation,
 } from "./people-operations.server.js";
 
 // Lists belong to the viewer's session, so the responses are never cached. A
@@ -51,6 +53,18 @@ export const getTeamMembers = createServerFn({ method: "GET" })
     if (request.sessionCookieValue) setPrivateNoStoreResponse();
 
     return teamMembersOperation(data, {
+      api: request.api,
+      cookieHeader: request.cookieHeader,
+    });
+  });
+
+export const getClubMembers = createServerFn({ method: "GET" })
+  .validator(clubMembersInputSchema)
+  .handler(async ({ data }) => {
+    const request = currentSessionRequest();
+    if (request.sessionCookieValue) setPrivateNoStoreResponse();
+
+    return clubMembersOperation(data, {
       api: request.api,
       cookieHeader: request.cookieHeader,
     });

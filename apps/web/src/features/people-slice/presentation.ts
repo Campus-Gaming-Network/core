@@ -22,9 +22,13 @@ export function verificationDetail({
   ].join(" · ");
 }
 
-/** The line under a person in a list: their team role, else their verification. */
+/**
+ * The line under a person in a list: their team or club role, else their
+ * verification.
+ */
 export function personDetail(person: PersonDTO): string {
-  return person.role ? teamRoleLabel(person.role) : verificationDetail(person);
+  if (!person.role) return verificationDetail(person);
+  return person.role === "editor" ? "Editor" : teamRoleLabel(person.role);
 }
 
 /**

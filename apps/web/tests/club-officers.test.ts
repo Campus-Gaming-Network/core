@@ -6,6 +6,8 @@ import {
   runClubCommandOperation,
 } from "../src/features/club-slice/club-operations.server.js";
 import { validateClubCommandInput } from "../src/features/club-slice/contracts.js";
+import { clubMembersOperation } from "../src/features/people-slice/people-operations.server.js";
+import { personDetail } from "../src/features/people-slice/presentation.js";
 import { createApiClient, type Fetcher } from "../src/server/api.server.js";
 import { requestURL } from "./fetch-stub.js";
 
@@ -292,5 +294,96 @@ test("the Manage page needs a session and an owner or editor", async () => {
       ),
     ]),
     [{ status: "unauthenticated" }, { status: "forbidden" }],
+  );
+});
+
+test("joining on CGN posts with the session and returns to the club page", async () => {
+  const { api, sent } = recordingClient(
+    () => new Response(null, { status: 204 }),
+  );
+  const join = command({ command: "join", slug: "smash-club", page: "club" });
+  const joined = await runClubCommandOperation(join.value, join.page, {
+    api,
+    cookieHeader: "cgn_session=student",
+  });
+  const unverified = await runClubCommandOperation(join.value, join.page, {
+    api: recordingClient(() =>
+      Response.json({ error: "email_verification_required" }, { status: 403 }),
+    ).api,
+    cookieHeader: "cgn_session=new",
+    reportError: () => {},
+  });
+  assert.deepEqual(
+    { joined, unverified, sent },
+    {
+      joined: {
+        status: "success",
+        redirectTo: "/clubs/smash-club?club=joined",
+      },
+      unverified: {
+        status: "error",
+        notice: "not-allowed",
+        message: "Verify your email address first, then try once more.",
+      },
+      sent: [
+        {
+          url: "http://api:8080/clubs/smash-club/join",
+          method: "POST",
+          cookie: "cgn_session=student",
+        },
+      ],
+    },
+  );
+});
+
+test("a club's people list needs a session and shows each person's club role", async () => {
+  const { api, sent } = recordingClient(() =>
+    Response.json({
+      people: [
+        {
+          id: "u1",
+          public_id: "Ab3cDe5fGh",
+          name: "Owner",
+          verification_level: "basic",
+          role: "owner",
+          email: "strip@example.test",
+        },
+        {
+          id: "u2",
+          public_id: "Cd4eFg6hKm",
+          name: "Editor",
+          verification_level: "verified",
+          role: "editor",
+        },
+      ],
+      limit: 8,
+      has_more: false,
+      has_previous: false,
+    }),
+  );
+  const signedOut = await clubMembersOperation(
+    { slug: "smash-club", limit: 8 },
+    { api, cookieHeader: "" },
+  );
+  const found = await clubMembersOperation(
+    { slug: "smash-club", limit: 8 },
+    { api, cookieHeader: "cgn_session=x" },
+  );
+  assert.equal(signedOut.status, "signed_out");
+  assert.ok(found.status === "found");
+  assert.deepEqual(
+    found.list.people.map((person) => [
+      person.name,
+      personDetail(person),
+      "email" in person,
+    ]),
+    [
+      ["Owner", "Owner", false],
+      ["Editor", "Editor", false],
+    ],
+  );
+  assert.deepEqual(
+    sent.map((request) => request.url),
+    ["http://api:8080/clubs/smash-club/members?limit=8"],
   );
 });

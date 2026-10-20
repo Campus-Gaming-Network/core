@@ -40,6 +40,7 @@ const club = {
     { type: "discord", label: "Discord", url: "https://discord.example.test" },
   ],
   claimed: false,
+  member_count: 2,
   confirmed_at: "2031-03-04T12:00:00Z",
   confirmed_source: "cgn",
 };

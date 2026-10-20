@@ -54,6 +54,22 @@ type AdminClub struct {
 	CreatedAt       time.Time  `json:"created_at"`
 	UpdatedAt       time.Time  `json:"updated_at"`
 	DeletedAt       *time.Time `json:"deleted_at"`
+	// Members is set on the detail only: everyone in the club, owners first.
+	Members []AdminMember `json:"members,omitempty"`
+}
+
+// AdminMember is one person in a club as the Admin Console shows them.
+type AdminMember struct {
+	UserID   string    `json:"user_id"`
+	Name     string    `json:"name"`
+	Role     string    `json:"role"`
+	JoinedAt time.Time `json:"joined_at"`
+}
+
+// MemberRemoval takes one person out of a club.
+type MemberRemoval struct {
+	adminmutation.Command
+	UserID string `json:"user_id"`
 }
 
 // AdminCreate creates a club under a school.
@@ -232,7 +248,73 @@ func (r *PostgresRepository) GetAdmin(ctx context.Context, id string) (AdminClub
 	if err != nil {
 		return AdminClub{}, err
 	}
-	return withDetails(ctx, r.pool, club)
+	if club, err = withDetails(ctx, r.pool, club); err != nil {
+		return AdminClub{}, err
+	}
+	rows, err := r.pool.Query(ctx, `
+		SELECT m.user_id::text, u.name, m.role, m.created_at
+		FROM club_members m JOIN users u ON u.id = m.user_id
+		WHERE m.club_id = $1::uuid
+		ORDER BY CASE m.role WHEN 'owner' THEN 0 WHEN 'editor' THEN 1 ELSE 2 END, LOWER(u.name), m.user_id
+		LIMIT 500
+	`, id)
+	if err != nil {
+		return AdminClub{}, err
+	}
+	club.Members, err = pgx.CollectRows(rows, func(row pgx.CollectableRow) (AdminMember, error) {
+		var member AdminMember
+		err := row.Scan(&member.UserID, &member.Name, &member.Role, &member.JoinedAt)
+		return member, err
+	})
+	return club, err
+}
+
+// RemoveMemberAdmin takes an editor or member out of a club and audits the
+// role they held. An owner is not removed here; a dispute over a club goes
+// through support. The club and what it published stay as they are.
+func (r *PostgresRepository) RemoveMemberAdmin(ctx context.Context, id string, input MemberRemoval) (AdminClub, error) {
+	if !adminmutation.UUID(id) {
+		return AdminClub{}, adminmutation.ErrNotFound
+	}
+	if err := input.Command.Validate(true); err != nil {
+		return AdminClub{}, err
+	}
+	if !adminmutation.UUID(input.UserID) {
+		return AdminClub{}, ErrClubMemberNotFound
+	}
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return AdminClub{}, err
+	}
+	defer tx.Rollback(ctx)
+	current, err := loadForUpdate(ctx, tx, id)
+	if err != nil {
+		return AdminClub{}, err
+	}
+	if !current.UpdatedAt.Equal(input.ExpectedUpdatedAt) {
+		return AdminClub{}, adminmutation.ErrConflict
+	}
+	role, err := memberRole(ctx, tx, id, input.UserID)
+	if err != nil {
+		return AdminClub{}, err
+	}
+	if role == RoleOwner {
+		return AdminClub{}, ErrOwnerCannotBeRemoved
+	}
+	if err := removeMember(ctx, tx, id, input.UserID); err != nil {
+		return AdminClub{}, err
+	}
+	if err := touch(ctx, tx, id); err != nil {
+		return AdminClub{}, err
+	}
+	if err := input.Audit(ctx, tx, adminaudit.ActionClubMemberRemoved, adminaudit.EntityClub, id,
+		adminaudit.ClubMemberState{UserID: input.UserID, Role: role}, adminaudit.ClubMemberState{UserID: input.UserID}); err != nil {
+		return AdminClub{}, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return AdminClub{}, err
+	}
+	return r.GetAdmin(ctx, id)
 }
 
 // CreateAdmin creates a published, unclaimed club under an active school and

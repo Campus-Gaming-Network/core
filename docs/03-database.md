@@ -161,7 +161,7 @@ club_members
   club_id, user_id (primary key together), role (owner|editor|member),
   created_at, updated_at
   -- a club with an owner is claimed; claims write owners, editor invites
-  -- write editors, and #262 adds members. On account deletion a club whose
+  -- write editors, and joining on CGN writes members. On account deletion a club whose
   -- last owner leaves passes to its longest-serving active editor, then
   -- member, or returns to unclaimed
 

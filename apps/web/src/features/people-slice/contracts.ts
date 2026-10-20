@@ -21,8 +21,8 @@ export const personDtoSchema = z.object({
   name: z.string(),
   verification_level: identifierSchema,
   role_indicators: z.array(z.string()).optional(),
-  /** Present in team lists only. */
-  role: teamRoleSchema.optional(),
+  /** Present in team and club lists only. */
+  role: z.union([teamRoleSchema, z.literal("editor")]).optional(),
 });
 
 export const peopleListDtoSchema = z.object({
@@ -55,6 +55,10 @@ export const teamMembersInputSchema = peoplePageInputSchema.extend({
   slug: identifierSchema,
 });
 
+export const clubMembersInputSchema = peoplePageInputSchema.extend({
+  slug: identifierSchema,
+});
+
 export type PersonDTO = z.output<typeof personDtoSchema>;
 export type PeopleListDTO = z.output<typeof peopleListDtoSchema>;
 export type EventRSVPListResponse = z.output<
@@ -63,6 +67,7 @@ export type EventRSVPListResponse = z.output<
 export type EventAttendeesInput = z.output<typeof eventAttendeesInputSchema>;
 export type SchoolMembersInput = z.output<typeof schoolMembersInputSchema>;
 export type TeamMembersInput = z.output<typeof teamMembersInputSchema>;
+export type ClubMembersInput = z.output<typeof clubMembersInputSchema>;
 
 /**
  * One list read. Failures are told apart only as far as the page needs: a

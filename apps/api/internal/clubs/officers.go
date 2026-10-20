@@ -205,6 +205,27 @@ func memberState(userID, role string) map[string]string {
 	return map[string]string{"user_id": userID, "role": role}
 }
 
+// Join lists userID on the published club with slug as a member. Joining on
+// CGN needs a verified email and grants nothing in the club itself. Someone
+// already in the club keeps their role, and a removed member may join again.
+func (r *PostgresRepository) Join(ctx context.Context, slug, userID string) error {
+	if err := r.requireVerified(ctx, userID); err != nil {
+		return err
+	}
+	return r.officerChange(ctx, slug, userID, func(tx pgx.Tx, ref clubRef) error {
+		if ref.role != "" {
+			return nil
+		}
+		if _, err := tx.Exec(ctx, `
+			INSERT INTO club_members (club_id, user_id, role) VALUES ($1::uuid, $2::uuid, 'member')
+			ON CONFLICT (club_id, user_id) DO NOTHING
+		`, ref.id, userID); err != nil {
+			return fmt.Errorf("join club: %w", err)
+		}
+		return nil
+	})
+}
+
 // Viewer returns userID's role in the club with clubID, and whether an owner
 // has offered them the club.
 func (r *PostgresRepository) Viewer(ctx context.Context, clubID, userID string) (Viewer, error) {

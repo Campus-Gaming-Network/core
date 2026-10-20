@@ -219,3 +219,36 @@ func TestClubRequestApprovalCreatesTheClub(t *testing.T) {
 		t.Fatalf("request audit = %v", got)
 	}
 }
+
+func TestASiteAdminRemovesAMemberButNotAnOwner(t *testing.T) {
+	f := newCatalogFixture(t)
+	claimID, version := f.newClaim(t, "admin-member-club", catalogTargetID)
+	approved := decodeCatalog[clubs.AdminClaim](t, f.request(t, "POST", "/admin/v1/club-claims/"+claimID+"/approve",
+		clubs.ClaimApproval{Command: f.versioned(version)}, http.StatusOK))
+	f.insertApplicant(t, secondApplicantID, "member@example.edu", true)
+	if err := f.club.Join(t.Context(), "admin-member-club", secondApplicantID); err != nil {
+		t.Fatal(err)
+	}
+	club := decodeCatalog[clubs.AdminClub](t, f.request(t, "GET", "/admin/v1/clubs/"+*approved.ClubID, nil, http.StatusOK))
+	roles := map[string]string{}
+	for _, member := range club.Members {
+		roles[member.UserID] = member.Role
+	}
+	if want := map[string]string{catalogTargetID: clubs.RoleOwner, secondApplicantID: clubs.RoleMember}; !reflect.DeepEqual(roles, want) {
+		t.Fatalf("admin members = %v, want %v", roles, want)
+	}
+
+	if code := f.errorCode(t, "POST", "/admin/v1/clubs/"+club.ID+"/remove-member",
+		clubs.MemberRemoval{Command: f.versioned(club.UpdatedAt), UserID: catalogTargetID}, http.StatusConflict); code != "club_owner_cannot_be_removed" {
+		t.Fatalf("removing the owner = %q", code)
+	}
+	removed := decodeCatalog[clubs.AdminClub](t, f.request(t, "POST", "/admin/v1/clubs/"+club.ID+"/remove-member",
+		clubs.MemberRemoval{Command: f.versioned(club.UpdatedAt), UserID: secondApplicantID}, http.StatusOK))
+	if len(removed.Members) != 1 || removed.Members[0].UserID != catalogTargetID {
+		t.Fatalf("members after removal = %+v, want only the owner", removed.Members)
+	}
+	// A removed member may join again.
+	if err := f.club.Join(t.Context(), "admin-member-club", secondApplicantID); err != nil {
+		t.Fatalf("Join(after removal) error = %v", err)
+	}
+}
