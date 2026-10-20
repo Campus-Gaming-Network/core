@@ -237,6 +237,7 @@ export function SearchFilter({
               placeholder={placeholder}
               ref={inputRef}
               role="combobox"
+              enterKeyHint="search"
               type="search"
               value={query}
             />

@@ -4,6 +4,7 @@ import {
   previewText,
   siteName,
 } from "../../components/public-page-head.js";
+import { firstGameCoverUrl } from "../seo-slice/preview.js";
 import type { ClubDTO, ClubType } from "./contracts.js";
 
 export const clubTypeLabels: Record<ClubType, string> = {
@@ -53,16 +54,30 @@ export function clubHead(club: ClubDTO | undefined, publicOrigin?: string) {
       `A ${clubTypeLabels[club.type].toLowerCase()} at ${club.school.name}.`,
   );
   const path = `/clubs/${encodeURIComponent(club.slug)}` as const;
+  const cover = firstGameCoverUrl(publicOrigin, club.games);
   return pageHead(publicOrigin, {
     title: `${club.name} · ${club.school.name}`,
     description,
     path,
+    breadcrumbs: [
+      {
+        name: club.school.name,
+        path: `/schools/${encodeURIComponent(club.school.slug)}`,
+      },
+    ],
+    ...(cover
+      ? {
+          image: cover,
+          imageAlt: `${club.games.find((g) => g.has_cover)?.name} cover art`,
+        }
+      : {}),
     jsonLd: {
       "@context": "https://schema.org",
       "@type": "Organization",
       name: club.name,
       url: absoluteUrl(publicOrigin, path),
       description,
+      ...(cover ? { image: cover } : {}),
       parentOrganization: {
         "@type": "CollegeOrUniversity",
         name: club.school.name,

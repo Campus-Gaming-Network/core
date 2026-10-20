@@ -1,5 +1,5 @@
 import type { SearchFilterOption } from "../../components/search-filter";
-import { SchoolLogo } from "../../components/school-logo";
+import { SchoolMark } from "../../components/school-mark";
 import { schoolsResponseDtoSchema, type SchoolFilterOption } from "./contracts";
 import { schoolLocation } from "./presentation";
 
@@ -12,13 +12,13 @@ export function schoolFilterOption(
     label: school.name,
     detail: schoolLocation(school, "") || undefined,
     mark: (
-      <span
-        aria-hidden="true"
-        className="school-directory-mark search-filter__mark"
-      >
-        {school.name.slice(0, 1).toUpperCase()}
-        <SchoolLogo logoURL={school.logo_url} size={32} />
-      </span>
+      <SchoolMark
+        className="search-filter__mark"
+        logoURL={school.logo_url}
+        name={school.name}
+        size={32}
+        slug={school.slug}
+      />
     ),
   };
 }

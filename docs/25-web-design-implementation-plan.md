@@ -27,11 +27,14 @@ drawn as placeholders: see #61, #62, #246-#272, and #215-#216.
   blue underlined links (`#1a68ac`), a yellow focus ring with a near-black
   outer edge, green for success states only, and red for errors and
   destructive actions. A flat navy (`--color-identity`) is the generated
-  identity color for banners and initial tiles.
+  identity color for banners and team tiles. A school without a logo shows a
+  two-letter monogram (`schoolMonogram`) on one of ten pale tones fixed by its
+  slug (`schoolTone`, `data-school-tone`). The tones are not the school's
+  colors, and none is red or green.
 - Spacing is a 4px scale (`--space-1` to `--space-7`); type is 16px body,
   14px secondary, 19px section headings, and 26-32px page titles
-  (`--text-*`). Controls, panels, and tags use 4px corners; identity tiles
-  use 6px. There are no gradients, and shadows only on menus and dialogs.
+  (`--text-*`). Panels use 8px corners, controls and identity tiles 6px, and
+  tags 4px. There are no gradients, and shadows only on menus and dialogs.
 - A colored edge accent (a current item's left bar, a notice's left edge, the
   calendar tile's red top) always sits on square corners, so it is a straight
   line rather than a curve: the element has no radius on that side.
@@ -61,12 +64,12 @@ drawn as placeholders: see #61, #62, #246-#272, and #215-#216.
   reduced motion). After Previous or Next the region scrolls into view and takes
   focus, and "/" outside a text field focuses the first search field.
 - **Directory row** (`DirectoryRow`): an identity tile (calendar date, team
-  initial, or school logo; the calendar date is a white tile with a red top
+  initial, or school logo or monogram; the calendar date is a white tile with a red top
   edge), on event rows the first game's portrait cover at a
   fixed 3:4 size or a controller tile (it stands for the games, so event rows
   list no game names as tags; its alt text names them; team rows show the
   same picture as decoration beside their game tags), the name as a blue underlined link, a
-  time line, a muted line with the host and the place's name (the street address is left to the detail page; a school's own page leaves out the host), tags, counts ("0 interested" is left out; school rows show teams, upcoming events, and members, zeros included, and leave all three out when they cannot be read), and a small blue
+  time line, a muted line with the host and the place's name (the street address is left to the detail page; a school's own page leaves out the host), tags, counts ("0 interested" is left out; school rows show teams, upcoming events, and members, each with an icon, leave out any count that is zero, and show none when they cannot be read; the school page header follows the same rule), and a small blue
   action link with an arrow ("View event →"). The whole row is one link. Event times give the date once for a
   one-day event, the year only outside the current year, and the time zone
   once unless it changes during the event. It lays out by the width of its list: in

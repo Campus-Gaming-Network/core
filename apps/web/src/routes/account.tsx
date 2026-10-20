@@ -13,7 +13,7 @@ import { accountHead } from "../features/account-slice/presentation";
 import { Avatar } from "../components/avatar";
 import { PageHeading } from "../components/page-heading";
 import { RouteErrorView, RoutePending } from "../components/route-boundaries";
-import { SchoolLogo } from "../components/school-logo";
+import { SchoolMark } from "../components/school-mark";
 import { StatusLabel } from "../components/status-label";
 import { schoolLocation } from "../features/school-slice/presentation";
 import accountCSS from "../features/account-slice/account.css?url";
@@ -110,7 +110,7 @@ function AccountPage() {
             sectionId="events"
             empty={
               <>
-                <p>You have no upcoming yes or maybe RSVPs.</p>
+                <p>No plans yet. Find a game night or tournament to go to.</p>
                 <ButtonLink to="/events" variant="secondary">
                   Browse events
                 </ButtonLink>
@@ -143,7 +143,7 @@ function AccountPage() {
             sectionId="following"
             empty={
               <>
-                <p>No upcoming public events from followed schools yet.</p>
+                <p>Nothing coming up at the schools you follow yet.</p>
                 <ButtonLink to="/schools" variant="secondary">
                   Find schools to follow
                 </ButtonLink>
@@ -176,13 +176,12 @@ function AccountPage() {
                     <DirectoryRow
                       action="View school"
                       identity={
-                        <span
-                          aria-hidden="true"
-                          className="school-directory-mark"
-                        >
-                          {school.name.slice(0, 1).toUpperCase()}
-                          <SchoolLogo logoURL={school.logo_url} size={44} />
-                        </span>
+                        <SchoolMark
+                          logoURL={school.logo_url}
+                          name={school.name}
+                          size={44}
+                          slug={school.slug}
+                        />
                       }
                       meta={[schoolLocation(school)]}
                       name={school.name}
@@ -192,7 +191,10 @@ function AccountPage() {
               </div>
             ) : (
               <div className="empty-state">
-                <p>You are not following any additional schools yet.</p>
+                <p>
+                  You are not following any other schools yet. Follow one from
+                  its page to see its events here.
+                </p>
                 <ButtonLink to="/schools" variant="secondary">
                   Find schools
                 </ButtonLink>

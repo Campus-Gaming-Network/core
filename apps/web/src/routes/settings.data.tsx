@@ -68,6 +68,8 @@ function DataSettingsPage() {
             Current password
             <input
               autoComplete="current-password"
+              enterKeyHint="go"
+              maxLength={256}
               name="current_password"
               required
               type="password"

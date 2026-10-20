@@ -201,9 +201,11 @@
     margin-top: 0;
   }
 
-  /* A column the row leaves out keeps its track, so rows line up. */
+  /* A column the row leaves out keeps its track, so rows line up. Without
+     tags, the counts take the tags' track too, so "12 upcoming events" stays
+     on one line. */
   .directory-row:not(:has(.directory-row__tags)) .directory-row__counts {
-    grid-column: -3;
+    grid-column: -4 / -2;
   }
 
   .directory-row:not(:has(.directory-row__counts)) .directory-row__action {
@@ -320,10 +322,16 @@
   overflow: hidden;
   border: 2px solid rgb(255 255 255 / 85%);
   border-radius: var(--radius-media);
-  color: var(--color-identity);
-  background: var(--color-surface);
+  /* A school's tile takes its tone (styles.css); any other tile is white. */
+  color: var(--school-tone-text, var(--color-identity));
+  background: var(--school-tone, var(--color-surface));
   font-size: 2.25rem;
   font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.detail-hero__tile:has(.school-logo) {
+  background: var(--color-surface);
 }
 
 .detail-hero__tile .school-logo {
@@ -854,7 +862,7 @@
   display: block;
   overflow-x: auto;
   border: 1px solid var(--color-control-border);
-  border-radius: var(--radius-small);
+  border-radius: var(--radius-control);
   padding: var(--space-2) var(--space-3);
   background: var(--color-subtle);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -2616,7 +2624,7 @@ form .form-help {
   max-height: 16rem;
   overflow-y: auto;
   border: 1px solid var(--color-control-border);
-  border-radius: var(--radius-small);
+  border-radius: var(--radius-panel);
   background: var(--color-surface);
   box-shadow: var(--shadow-window);
 }

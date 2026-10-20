@@ -9,6 +9,7 @@ import { EventCounts } from "../../components/event-counts";
 import type { EventBrowseItemDTO } from "./contracts.js";
 import { EventFacts } from "./event-facts";
 import { EventGameThumb } from "./event-game-thumb";
+import { useRenderedAt } from "./event-relative-day";
 import {
   eventLifecycleLabel,
   eventPlace,
@@ -30,6 +31,7 @@ export function EventCard({
   /** Off on the hosting team's own page, where the team goes without saying. */
   showTeam?: boolean;
 }) {
+  const renderedAt = useRenderedAt();
   return (
     <Link
       className={directoryRowClassName}
@@ -45,7 +47,7 @@ export function EventCard({
           />
         }
         // The calendar tile shows the date, so the text gives the time.
-        detail={eventTimeRange(event, undefined, { startDate: false })}
+        detail={eventTimeRange(event, renderedAt, { startDate: false })}
         identity={
           <CalendarDate
             inProgress={event.lifecycle === "happening_now"}

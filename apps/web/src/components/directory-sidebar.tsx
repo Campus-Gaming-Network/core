@@ -3,6 +3,7 @@ import { ArrowRight, School } from "lucide-react";
 import type { DirectorySidebarResult } from "../features/account-slice/contracts";
 import { schoolLocation } from "../features/school-slice/presentation";
 import { SchoolLogo } from "./school-logo";
+import { SchoolMark } from "./school-mark";
 
 /**
  * The home page's left column (reference sheet 12): the viewer's home school
@@ -49,10 +50,12 @@ function SchoolBlocks({
             params={{ slug: sidebar.homeSchool.slug }}
             title={sidebar.homeSchool.name}
           >
-            <span aria-hidden="true" className="school-directory-mark">
-              {sidebar.homeSchool.name.slice(0, 1).toUpperCase()}
-              <SchoolLogo logoURL={sidebar.homeSchool.logo_url} size={36} />
-            </span>
+            <SchoolMark
+              logoURL={sidebar.homeSchool.logo_url}
+              name={sidebar.homeSchool.name}
+              size={36}
+              slug={sidebar.homeSchool.slug}
+            />
             <span>
               <strong>{sidebar.homeSchool.name}</strong>
               <small>{schoolLocation(sidebar.homeSchool, "")}</small>

@@ -70,8 +70,7 @@ function SignupPage() {
       <header className="auth-heading">
         <h1>Create an account</h1>
         <p className="lede">
-          You need to be 18 or older, choose an active home school, and verify
-          your email before logging in.
+          Find the players, teams, and game nights at your school.
         </p>
       </header>
 
@@ -84,6 +83,7 @@ function SignupPage() {
               name="q"
               placeholder="Search by school name"
               required
+              enterKeyHint="search"
               type="search"
             />
           </label>

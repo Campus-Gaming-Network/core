@@ -228,3 +228,20 @@ export const exampleFormSections = [
   { id: "styleguide-form-visibility", label: "Who can see it" },
   { id: "styleguide-form-limits", label: "Limits" },
 ];
+
+/**
+ * Schools without a logo for the tile specimen: "University of" and "College
+ * of the" names, a campus, and a Spanish name, so each monogram rule shows.
+ */
+export const exampleTileSchools: { name: string; slug: string }[] = [
+  { name: "Summit Ridge University", slug: "summit-ridge" },
+  { name: "University of Northern Plains", slug: "northern-plains" },
+  { name: "Lakeshore State College", slug: "lakeshore-state" },
+  { name: "College of the Pines", slug: "college-of-the-pines" },
+  { name: "Harbor Point Institute of Technology", slug: "harbor-point" },
+  { name: "Quiet Valley Community College", slug: "quiet-valley" },
+  { name: "Universidad del Valle Verde", slug: "valle-verde" },
+  { name: "Cedar Bluff College-North Campus", slug: "cedar-bluff-north" },
+  { name: "Saint Brendan University", slug: "saint-brendan" },
+  { name: "Red Mesa Technical College", slug: "red-mesa" },
+];

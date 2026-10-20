@@ -1,4 +1,4 @@
-import { useImageFailure } from "./use-image-failure";
+import { useImageFailure } from "./use-image-failure.js";
 
 /**
  * A verified school logo. Missing or failed images reveal the caller's initial.

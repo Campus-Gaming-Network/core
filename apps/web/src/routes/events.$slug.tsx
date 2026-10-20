@@ -57,6 +57,7 @@ import { getEventViewerSession } from "../features/event-slice/auth.functions";
 import { EventTypeTag } from "../features/event-slice/event-facts";
 import { EventGameCover } from "../features/event-slice/event-game-cover";
 import { EventFacts } from "../features/event-slice/event-facts";
+import { useRenderedAt } from "../features/event-slice/event-relative-day";
 import { EventTimeText } from "../features/event-slice/event-time-text";
 import type {
   EventDTO,
@@ -87,6 +88,7 @@ import {
   PeopleSignedOut,
 } from "../features/people-slice/people-views";
 import { verificationDetail } from "../features/people-slice/presentation";
+import { schoolMonogram, schoolTone } from "../components/school-identity";
 
 type EventRouteData = {
   event: EventDetailDTO;
@@ -210,7 +212,7 @@ function LockedEventView({
       <DetailHero tile={<Lock size={36} strokeWidth={2} />}>
         <h1>This event is private.</h1>
         <p className="detail-hero__meta">
-          Enter the event password to reveal the details.
+          Enter the password the organizer shared with you to see the details.
         </p>
       </DetailHero>
       <Callout icon="lock">
@@ -251,6 +253,7 @@ function VisibleEventView({
   notice?: EventSearch["event"];
   publicOrigin: string;
 }) {
+  const renderedAt = useRenderedAt();
   const paymentURL = safeExternalEventUrl(event.payment_url);
   const onlineURL = safeExternalEventUrl(event.online_url);
   const primaryGame = event.games[0];
@@ -274,8 +277,9 @@ function VisibleEventView({
             ? `/api/games/${encodeURIComponent(primaryGame.slug)}/cover`
             : undefined
         }
-        initial={event.host_school.name}
         logoURL={event.host_school.logo_url}
+        tile={schoolMonogram(event.host_school.name)}
+        tone={schoolTone(event.host_school.slug)}
       >
         {/* A running event says so as loudly as the green "Now" band on its
             directory tile, not as one more chip in the tag list. */}
@@ -332,7 +336,9 @@ function VisibleEventView({
             <CalendarDays aria-hidden="true" size={20} strokeWidth={1.75} />
             <div>
               <strong>
-                <EventTimeText range={eventTimeRange(event)} />
+                <time dateTime={event.starts_at}>
+                  <EventTimeText range={eventTimeRange(event, renderedAt)} />
+                </time>
               </strong>
               <small>{event.timezone.replaceAll("_", " ")}</small>
               <a
@@ -430,7 +436,8 @@ function VisibleEventView({
           )}
           <p className="rsvp-help">
             <Mail aria-hidden="true" size={14} strokeWidth={1.75} />
-            Going RSVPs get a confirmation email with a calendar file.
+            Answer yes and we will email you a confirmation with a calendar
+            file.
           </p>
         </section>
       </div>

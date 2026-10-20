@@ -95,8 +95,8 @@ function NewTeamPage() {
             <div>
               <h1>Create team</h1>
               <p className="lede">
-                Start with public team details. The join password is used for
-                member access.
+                Give your team a name, pick the games you play, and invite your
+                people.
               </p>
             </div>
           </section>
@@ -188,7 +188,7 @@ function CreateTeamForm({
         <FormSection
           id="team-basics"
           title="Team basics"
-          description="Introduce the team to players browsing the public directory."
+          description="Tell players what your team is about."
         >
           <FormField
             errorId="team-name-error"
@@ -270,7 +270,7 @@ function CreateTeamForm({
         <FormSection
           id="team-access"
           title="Member access"
-          description="Team pages are public. This password is only for joining the team."
+          description="Share this password with the people you want on the team. Anyone can see the team page; only people with the password can join."
         >
           <FormField
             errorId="team-password-error"
@@ -278,7 +278,7 @@ function CreateTeamForm({
             label="Join password"
           >
             <PasswordInput
-              autoComplete="new-password"
+              autoComplete="off"
               minLength={8}
               maxLength={200}
               name="password"

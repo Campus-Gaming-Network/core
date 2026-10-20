@@ -211,7 +211,7 @@ test("school counts that cannot be read leave the rows and the page without them
   );
 });
 
-test("school counts read as CGN activity and show a zero as zero", () => {
+test("school counts read as CGN activity and leave out zeros", () => {
   assert.deepEqual(
     [
       schoolActivityCounts({
@@ -226,10 +226,24 @@ test("school counts read as CGN activity and show a zero as zero", () => {
         teams: 1,
         upcoming_events: 0,
       }),
+      schoolActivityCounts({
+        slug: "c",
+        members: 0,
+        teams: 0,
+        upcoming_events: 0,
+      }),
     ],
     [
-      ["18 teams", "42 upcoming events", "1,310 members"],
-      ["1 team", "0 upcoming events", "1 member"],
+      [
+        { kind: "teams", label: "18 teams" },
+        { kind: "upcoming_events", label: "42 upcoming events" },
+        { kind: "members", label: "1,310 members" },
+      ],
+      [
+        { kind: "teams", label: "1 team" },
+        { kind: "members", label: "1 member" },
+      ],
+      [],
     ],
   );
 });

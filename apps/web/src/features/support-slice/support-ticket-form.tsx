@@ -7,6 +7,7 @@ import { FormErrorSummary } from "../../components/enhanced-mutation";
 import { FormField, RequiredFieldsNote } from "../../components/form-field";
 import { FormSection } from "../../components/form-section";
 import { useIdempotencyKey } from "../../components/idempotency-key";
+import { emailInputProps } from "../auth-flow-slice/field-props";
 import type { SupportFieldErrors } from "./contracts";
 import { submitSupportTicket } from "./support.functions";
 
@@ -138,10 +139,8 @@ export function SupportTicketForm({
           >
             <input
               name="contact_email"
-              type="email"
-              autoComplete="email"
-              autoCapitalize="none"
-              spellCheck={false}
+              {...emailInputProps}
+              enterKeyHint="next"
               required
             />
           </FormField>
@@ -152,7 +151,12 @@ export function SupportTicketForm({
             optional
             characterCount
           >
-            <input name="name" autoComplete="name" maxLength={120} />
+            <input
+              name="name"
+              autoComplete="name"
+              enterKeyHint="next"
+              maxLength={120}
+            />
           </FormField>
         </div>
       </FormSection>

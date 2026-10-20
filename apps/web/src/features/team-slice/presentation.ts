@@ -5,6 +5,7 @@ import {
   previewText,
   siteName,
 } from "../../components/public-page-head.js";
+import { firstGameCoverUrl } from "../seo-slice/preview.js";
 import type { TeamDTO, TeamRole } from "./contracts.js";
 
 // Native team forms redirect failures to the team page, or to the browse page
@@ -80,10 +81,18 @@ export function teamHead(team: TeamDTO | undefined, publicOrigin?: string) {
   );
   const path = `/teams/${encodeURIComponent(team.slug)}` as const;
   // The roster is never part of the head: a team page names its school only.
+  const cover = firstGameCoverUrl(publicOrigin, team.games);
   return pageHead(publicOrigin, {
     title: team.name,
     description,
     path,
+    breadcrumbs: [{ name: "Teams", path: "/teams" }],
+    ...(cover
+      ? {
+          image: cover,
+          imageAlt: `${team.games.find((game) => game.has_cover)?.name} cover art`,
+        }
+      : {}),
     jsonLd: {
       "@context": "https://schema.org",
       "@type": "SportsTeam",
@@ -91,6 +100,7 @@ export function teamHead(team: TeamDTO | undefined, publicOrigin?: string) {
       url: absoluteUrl(publicOrigin, path),
       description,
       sport: "Esports",
+      ...(cover ? { image: cover } : {}),
       ...(team.school
         ? {
             parentOrganization: {

@@ -72,7 +72,14 @@ export function DeleteAccountForm() {
               errors={errors}
               label="Type DELETE to confirm"
             >
-              <input name="confirm" autoComplete="off" required />
+              <input
+                autoCapitalize="characters"
+                autoComplete="off"
+                enterKeyHint="go"
+                name="confirm"
+                required
+                spellCheck={false}
+              />
             </FormField>
           </FormSection>
           <div className="form-actions">

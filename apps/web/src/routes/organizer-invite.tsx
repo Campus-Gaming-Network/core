@@ -81,11 +81,7 @@ function OrganizerInvitePage() {
       />
       {usable && search.token ? (
         <>
-          <p className="lede">
-            You were invited to help organize an event. Co-organizers can edit
-            the event; its creator can remove you, and you can step down at any
-            time.
-          </p>
+          <p className="lede">You have been asked to help run an event.</p>
           <form
             action={acceptOrganizerInvite.url}
             className="form-stack"
@@ -93,6 +89,10 @@ function OrganizerInvitePage() {
             onSubmit={submit}
           >
             <input name="token" type="hidden" value={search.token} />
+            <p className="form-help">
+              As a co-organizer you can edit the event. Its creator can remove
+              you, and you can step down at any time.
+            </p>
             <div className="form-actions">
               <button disabled={mutation.pending} type="submit">
                 Accept invitation

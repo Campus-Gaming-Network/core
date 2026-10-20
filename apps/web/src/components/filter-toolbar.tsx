@@ -358,6 +358,7 @@ export function NoScriptFilterSearch({
               defaultValue={field.query ?? ""}
               name={field.name}
               placeholder="Type a name"
+              enterKeyHint="search"
               type="search"
             />
           </label>

@@ -13,9 +13,20 @@ import { eventRelativeDay } from "./presentation";
 export function useEventRelativeDay(
   event: Pick<EventBrowseItemDTO, "starts_at" | "timezone">,
 ): string | undefined {
-  const renderedAt = useLoaderData({
-    from: rootRouteId,
-    select: (data) => data.renderedAt,
-  });
-  return eventRelativeDay(event, new Date(renderedAt));
+  return eventRelativeDay(event, useRenderedAt());
+}
+
+/**
+ * The moment the page was rendered, from the root loader. Unlike
+ * `new Date()`, the server and the hydrating browser read the same value, so
+ * anything derived from it (such as whether a year shows in a date) cannot
+ * differ between the server HTML and hydration.
+ */
+export function useRenderedAt(): Date {
+  return new Date(
+    useLoaderData({
+      from: rootRouteId,
+      select: (data) => data.renderedAt,
+    }),
+  );
 }

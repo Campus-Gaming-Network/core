@@ -258,6 +258,7 @@ export function GameSelect({
           placeholder="Search for a game"
           ref={inputRef}
           role="combobox"
+          enterKeyHint="search"
           type="search"
           value={query}
         />

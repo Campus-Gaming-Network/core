@@ -3,7 +3,14 @@ import {
   useDirectoryResults,
 } from "../components/directory-results";
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { ArrowLeft, ArrowRight, Search } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  CalendarDays,
+  Search,
+  Shield,
+  Users,
+} from "lucide-react";
 import { ButtonLink } from "../components/button-link";
 import {
   DirectoryRow,
@@ -22,7 +29,7 @@ import {
 } from "../components/directory-filters";
 import { PageNoticeView } from "../components/page-notice-view";
 import { ListUnavailable, RoutePending } from "../components/route-boundaries";
-import { SchoolLogo } from "../components/school-logo";
+import { SchoolMark } from "../components/school-mark";
 import { getSchoolsCatalog } from "../features/school-slice/catalog.functions";
 import {
   catalogClientStaleTime,
@@ -38,6 +45,13 @@ import {
   schoolsHead,
 } from "../features/school-slice/presentation";
 import { usStates } from "../features/school-slice/us-states";
+
+// Each count's icon in a school row; team rows use the same people icon.
+const activityIcons = {
+  teams: Shield,
+  upcoming_events: CalendarDays,
+  members: Users,
+} as const;
 
 export const Route = createFileRoute("/schools/")({
   validateSearch: validateSchoolsSearch,
@@ -89,8 +103,8 @@ function SchoolsPage() {
         <div>
           <h1>Schools</h1>
           <p className="lede">
-            Find your campus, see what is happening there, and follow it for
-            updates.
+            Find your campus and see who is playing there. Follow a school to
+            keep up with its events and teams.
           </p>
         </div>
       </section>
@@ -124,6 +138,7 @@ function SchoolsPage() {
                 id="schools-search"
                 name="q"
                 placeholder="Search by school name"
+                enterKeyHint="search"
                 type="search"
               />
               <button className="filter-search__submit" type="submit">
@@ -182,29 +197,35 @@ function SchoolsPage() {
                       action="View school"
                       counts={
                         stats
-                          ? schoolActivityCounts(stats).map((count) => (
-                              <small
-                                className="directory-row__count"
-                                key={count}
-                              >
-                                {count}
-                              </small>
-                            ))
+                          ? schoolActivityCounts(stats).map(
+                              ({ kind, label }) => {
+                                const Icon = activityIcons[kind];
+                                return (
+                                  <small
+                                    className="directory-row__count"
+                                    key={kind}
+                                  >
+                                    <Icon
+                                      aria-hidden="true"
+                                      size={14}
+                                      strokeWidth={1.75}
+                                    />
+                                    {label}
+                                  </small>
+                                );
+                              },
+                            )
                           : undefined
                       }
                       identity={
-                        <span
-                          aria-hidden="true"
-                          className="school-directory-mark"
-                        >
-                          {school.name.slice(0, 1).toUpperCase()}
-                          <SchoolLogo
-                            logoURL={
-                              school.logo_wordmark ? undefined : school.logo_url
-                            }
-                            size={44}
-                          />
-                        </span>
+                        <SchoolMark
+                          logoURL={
+                            school.logo_wordmark ? undefined : school.logo_url
+                          }
+                          name={school.name}
+                          size={44}
+                          slug={school.slug}
+                        />
                       }
                       meta={[schoolShortName(school), schoolLocation(school)]}
                       name={school.name}

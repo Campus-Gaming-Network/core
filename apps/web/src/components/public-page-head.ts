@@ -16,9 +16,15 @@ export type PageHeadOptions = {
   /** An absolute image that stands for this page. A logo gets the small card;
    * the default image gets the large one. */
   image?: string;
+  /** What the image shows, for chat apps that read it aloud. */
+  imageAlt?: string;
+  /** The pages above this one, outermost first; the home page is added. */
+  breadcrumbs?: Array<{ name: string; path: `/${string}` }>;
   /** schema.org data for crawlers; ignored on a noindex page. */
   jsonLd?: Record<string, unknown>;
 };
+
+const defaultPreviewImageAlt = `${siteName}: find campus gaming events, teams, and clubs near you`;
 
 export type MetaTag = Record<string, unknown>;
 
@@ -40,6 +46,8 @@ export function pageHead(
     bareTitle = false,
     description,
     image,
+    imageAlt,
+    breadcrumbs,
     jsonLd,
     noIndex = false,
     path,
@@ -53,6 +61,21 @@ export function pageHead(
     image ??
     (noIndex ? undefined : absoluteUrl(publicOrigin, defaultPreviewImagePath));
   const largeCard = image === undefined && !noIndex;
+  const previewAlt = image === undefined ? defaultPreviewImageAlt : imageAlt;
+  const imageTags = previewImage
+    ? [
+        { property: "og:image", content: previewImage },
+        ...(previewAlt
+          ? [{ property: "og:image:alt", content: previewAlt }]
+          : []),
+        ...(image === undefined
+          ? [
+              { property: "og:image:width", content: "1200" },
+              { property: "og:image:height", content: "630" },
+            ]
+          : []),
+      ]
+    : [];
 
   return {
     meta: [
@@ -64,9 +87,7 @@ export function pageHead(
       { property: "og:title", content: fullTitle },
       { property: "og:description", content: description },
       { property: "og:url", content: url },
-      ...(previewImage
-        ? [{ property: "og:image", content: previewImage }]
-        : []),
+      ...imageTags,
       {
         name: "twitter:card",
         content: largeCard ? "summary_large_image" : "summary",
@@ -76,9 +97,40 @@ export function pageHead(
       ...(previewImage
         ? [{ name: "twitter:image", content: previewImage }]
         : []),
+      ...(previewImage && previewAlt
+        ? [{ name: "twitter:image:alt", content: previewAlt }]
+        : []),
       ...(jsonLd && !noIndex ? [{ "script:ld+json": jsonLd }] : []),
+      ...(breadcrumbs && !noIndex
+        ? [
+            {
+              "script:ld+json": breadcrumbList(publicOrigin, [
+                { name: "Home", path: "" },
+                ...breadcrumbs,
+                { name: title, path },
+              ]),
+            },
+          ]
+        : []),
     ],
     links: noIndex ? [] : [{ rel: "canonical", href: url }],
+  };
+}
+
+/** schema.org BreadcrumbList for a trail of pages, outermost first. */
+function breadcrumbList(
+  publicOrigin: string | undefined,
+  trail: Array<{ name: string; path: "" | `/${string}` }>,
+): Record<string, unknown> {
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: trail.map((item, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      name: item.name,
+      item: absoluteUrl(publicOrigin, item.path),
+    })),
   };
 }
 

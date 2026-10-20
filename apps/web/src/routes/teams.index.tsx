@@ -151,8 +151,8 @@ function TeamsPage() {
         <div>
           <h1>Teams</h1>
           <p className="lede">
-            Team pages are public. Joining uses a team password, and owners can
-            assign captains or transfer ownership.
+            Find players who share your games. Build a team at your school or
+            across campuses.
           </p>
         </div>
         {authenticated ? (
@@ -283,7 +283,10 @@ function TeamsPage() {
                 {filters.map((f) => `${f.name}: ${f.label}`).join(", ")}.
               </p>
             ) : (
-              <p>Check again when more teams are available.</p>
+              <p>
+                No one has started a team yet. Start one and invite the people
+                you play with.
+              </p>
             )}
             {chips.length > 0 ? (
               <div className="actions">

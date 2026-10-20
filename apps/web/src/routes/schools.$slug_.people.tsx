@@ -21,7 +21,7 @@ import {
   peopleHead,
   unavailablePeopleHead,
 } from "../features/people-slice/presentation";
-import { SchoolLogo } from "../components/school-logo";
+import { SchoolMark } from "../components/school-mark";
 import peopleCSS from "../features/people-slice/people.css?url";
 import { getSchoolCatalog } from "../features/school-slice/catalog.functions";
 
@@ -114,12 +114,12 @@ function SchoolPeoplePage() {
         </BreadcrumbLink>
       </Breadcrumbs>
       <header className="people-heading people-page__heading">
-        <span className="school-directory-mark">
-          <span aria-hidden="true">
-            {school.name.slice(0, 1).toUpperCase()}
-          </span>
-          <SchoolLogo logoURL={school.logoURL} size={44} />
-        </span>
+        <SchoolMark
+          logoURL={school.logoURL}
+          name={school.name}
+          size={44}
+          slug={school.slug}
+        />
         <div>
           <h1>{`People at ${school.name}`}</h1>
           <p className="lede">

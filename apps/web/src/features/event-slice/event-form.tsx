@@ -255,7 +255,7 @@ export function EventForm({
         <FormSection
           id="event-basics"
           title="Event basics"
-          description="Give people enough information to understand the event at a glance."
+          description="Tell people what is happening and why they should come."
         >
           <FormField
             errorId="event-title-error"
@@ -755,7 +755,7 @@ export function EventForm({
               label="Private event password"
             >
               <PasswordInput
-                autoComplete="new-password"
+                autoComplete="off"
                 maxLength={256}
                 minLength={8}
                 name="private_password"

@@ -62,6 +62,7 @@ import type { PopularGamesResult } from "../features/popular-games/contracts";
 import { getPopularGames } from "../features/popular-games/popular-games.functions";
 import { PopularGamesPanel } from "../features/popular-games/popular-games-panel";
 import schoolPageCSS from "../features/school-slice/school-page.css?url";
+import { schoolMonogram, schoolTone } from "../components/school-identity";
 
 type SchoolRouteData = {
   school: SchoolDTO;
@@ -142,6 +143,7 @@ function SchoolPage() {
     Route.useLoaderData();
   const search = Route.useSearch();
   const website = safeSchoolWebsite(school.website_url);
+  const activity = stats ? schoolActivityCounts(stats) : [];
   const tab = search.tab;
   const location = schoolLocation(school);
   const activityUnavailable =
@@ -178,7 +180,8 @@ function SchoolPage() {
             </ButtonLink>
           )
         }
-        initial={school.name}
+        tile={schoolMonogram(school.name)}
+        tone={schoolTone(school.slug)}
         // A wordmark is unreadable in the square tile.
         logoURL={school.logo_wordmark ? undefined : school.logo_url}
       >
@@ -195,9 +198,9 @@ function SchoolPage() {
             </>
           ) : null}
         </p>
-        {stats ? (
+        {activity.length > 0 ? (
           <p className="detail-hero__meta">
-            {schoolActivityCounts(stats).join(" · ")}
+            {activity.map(({ label }) => label).join(" · ")}
           </p>
         ) : null}
       </DetailHero>
@@ -253,8 +256,8 @@ function SchoolPage() {
             >
               <h2 id="school-empty-heading">No activity here yet</h2>
               <p>
-                Be the first to bring this campus community together. Publish a
-                casual meetup or start a team in a few minutes.
+                Be the first. Host a game night or start a team; it takes a few
+                minutes.
               </p>
               <div className="actions">
                 <ButtonLink variant="primary" to="/events/new">
@@ -266,8 +269,8 @@ function SchoolPage() {
               </div>
               {!viewer.authenticated ? (
                 <p className="school-empty-note">
-                  Not ready to organize? Log in and follow the school to see new
-                  activity on your dashboard.
+                  Not ready to host? Log in and follow the school to see its new
+                  events on your account page.
                 </p>
               ) : null}
             </section>
@@ -301,7 +304,7 @@ function SchoolPage() {
                     </div>
                   ) : (
                     <div className="panel__body school-page__empty">
-                      <p className="muted">No public events yet.</p>
+                      <p className="muted">No events here yet.</p>
                       <Link className="with-arrow" to="/events/new">
                         Create the first event
                         <ArrowRight
@@ -361,7 +364,7 @@ function SchoolPage() {
                     </div>
                   ) : (
                     <div className="panel__body school-page__empty">
-                      <p className="muted">No teams have formed yet.</p>
+                      <p className="muted">No teams here yet.</p>
                       <Link className="with-arrow" to="/teams/new">
                         Start a team
                         <ArrowRight

@@ -75,7 +75,7 @@ function SettingsProfilePage() {
         <div>
           <h1>Edit profile</h1>
           <p className="lede">
-            Update the information other players see on your public profile.
+            Show other players who you are and what you play.
           </p>
         </div>
         <Link className="link" to="/users/$id" params={{ id: profile.id }}>

@@ -7,13 +7,18 @@ import {
   privateEventPreview,
   restrictedEventPreview,
 } from "../src/features/event-slice/event-head.js";
-import { pageHead } from "../src/components/public-page-head.js";
+import {
+  pageHead,
+  type PageHeadOptions,
+} from "../src/components/public-page-head.js";
 import { schoolHead } from "../src/features/school-slice/presentation.js";
 import { teamHead } from "../src/features/team-slice/presentation.js";
 import type { TeamDTO } from "../src/features/team-slice/contracts.js";
 import { publicProfileHead } from "../src/features/public-profile/presentation.js";
 
 const origin = "https://cgn.example";
+const defaultAlt =
+  "Campus Gaming Network: find campus gaming events, teams, and clubs near you";
 
 const baseEvent: EventDTO = {
   id: "event-1",
@@ -74,10 +79,14 @@ test("a public page head has canonical, Open Graph, and large Twitter card tags"
         { property: "og:description", content: "About us." },
         { property: "og:url", content: `${origin}/about` },
         { property: "og:image", content: `${origin}/og-default.png` },
+        { property: "og:image:alt", content: defaultAlt },
+        { property: "og:image:width", content: "1200" },
+        { property: "og:image:height", content: "630" },
         { name: "twitter:card", content: "summary_large_image" },
         { name: "twitter:title", content: "About | Campus Gaming Network" },
         { name: "twitter:description", content: "About us." },
         { name: "twitter:image", content: `${origin}/og-default.png` },
+        { name: "twitter:image:alt", content: defaultAlt },
       ],
       links: [{ rel: "canonical", href: `${origin}/about` }],
     },
@@ -121,7 +130,10 @@ test("a public open event gets a full preview and schema.org Event data", () => 
     metaContent(head, "og:title"),
     "Open Night | Campus Gaming Network",
   );
-  assert.equal(metaContent(head, "description"), "Bring a controller.");
+  assert.equal(
+    metaContent(head, "description"),
+    "Thu, May 1, 7:00 PM to 10:00 PM PDT at Student Union. Bring a controller.",
+  );
   assert.equal(metaContent(head, "robots"), undefined);
   assert.deepEqual(head.links, [
     { rel: "canonical", href: `${origin}/events/open-night` },
@@ -401,4 +413,104 @@ test("a public profile head is generic and noindex so it cannot expose someone w
   for (const leaked of ["Hidden Student", "Secret bio", "Example University"]) {
     assert.equal(serialized.includes(leaked), false, leaked);
   }
+});
+
+test("an event with a host logo uses it as the preview image, and a long event names both days", () => {
+  const head = eventDetailHead({
+    event: {
+      ...baseEvent,
+      format: "hybrid",
+      ends_at: "2031-05-03T05:00:00Z",
+      host_school: {
+        ...baseEvent.host_school,
+        logo_url: "/school-logos/example.png",
+      },
+    },
+    publicOrigin: origin,
+  });
+
+  assert.deepEqual(
+    ["description", "og:image", "og:image:alt", "twitter:card"].map((key) =>
+      metaContent(head, key),
+    ),
+    [
+      "Thu, May 1, 7:00 PM to Fri, May 2, 10:00 PM PDT at Student Union and online. Bring a controller.",
+      `${origin}/school-logos/example.png`,
+      "Example University logo",
+      "summary",
+    ],
+  );
+});
+
+test("a page with breadcrumbs adds a BreadcrumbList that ends at the page, and noindex pages get none", () => {
+  const options: PageHeadOptions = {
+    title: "Example University",
+    description: "A school.",
+    path: "/schools/example-university",
+    breadcrumbs: [{ name: "Schools", path: "/schools" }],
+  };
+
+  assert.deepEqual(
+    pageHead(origin, options).meta.filter((tag) => "script:ld+json" in tag),
+    [
+      {
+        "script:ld+json": {
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          itemListElement: [
+            {
+              "@type": "ListItem",
+              position: 1,
+              name: "Home",
+              item: origin,
+            },
+            {
+              "@type": "ListItem",
+              position: 2,
+              name: "Schools",
+              item: `${origin}/schools`,
+            },
+            {
+              "@type": "ListItem",
+              position: 3,
+              name: "Example University",
+              item: `${origin}/schools/example-university`,
+            },
+          ],
+        },
+      },
+    ],
+  );
+  assert.deepEqual(
+    pageHead(origin, { ...options, noIndex: true }).meta.filter(
+      (tag) => "script:ld+json" in tag,
+    ),
+    [],
+  );
+});
+
+test("a team uses its first game cover as the preview image, with alt text", () => {
+  const team: TeamDTO = {
+    id: "team-1",
+    name: "Night Owls",
+    slug: "night-owls",
+    description: "",
+    member_count: 3,
+    games: [
+      { id: "g1", name: "No Cover", slug: "no-cover", has_cover: false },
+      { id: "g2", name: "Rocket Arena", slug: "rocket-arena", has_cover: true },
+    ],
+  };
+  const head = teamHead(team, origin);
+
+  assert.deepEqual(
+    ["og:image", "og:image:alt", "twitter:card"].map((key) =>
+      metaContent(head, key),
+    ),
+    [
+      `${origin}/api/games/rocket-arena/cover`,
+      "Rocket Arena cover art",
+      "summary",
+    ],
+  );
 });

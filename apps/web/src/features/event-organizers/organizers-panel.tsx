@@ -167,10 +167,14 @@ function InviteSection({
         <label>
           Email address
           <input
+            autoCapitalize="none"
             autoComplete="off"
+            enterKeyHint="send"
+            inputMode="email"
             maxLength={254}
             name="email"
             required
+            spellCheck={false}
             type="email"
           />
         </label>

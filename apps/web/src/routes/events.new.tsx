@@ -94,8 +94,8 @@ function NewEventPage() {
             <div>
               <h1>Create event</h1>
               <p className="lede">
-                Host a gaming event for your campus. Add the basics now; you can
-                edit the details after you create it.
+                Get people playing together. Start with the basics; you can fill
+                in the details after you create it.
               </p>
             </div>
           </section>

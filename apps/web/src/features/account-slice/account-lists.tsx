@@ -15,6 +15,7 @@ import {
   eventRSVPTone,
   eventTimeRange,
 } from "../event-slice/presentation";
+import { useRenderedAt } from "../event-slice/event-relative-day";
 import { teamRoleLabel } from "../team-slice/presentation";
 import {
   dashboardEventLimit,
@@ -51,6 +52,7 @@ export function AccountEventSection({
   showAll?: boolean;
   variant: "followed" | "interested" | "rsvp";
 }) {
+  const renderedAt = useRenderedAt();
   const shown = showAll ? events : events.slice(0, dashboardPreviewCount);
   // The API cuts each list off at its limit, so a full list may be longer.
   const total =
@@ -82,7 +84,7 @@ export function AccountEventSection({
                     />
                   }
                   // The calendar tile shows the date, so the text gives the time.
-                  detail={eventTimeRange(event, undefined, {
+                  detail={eventTimeRange(event, renderedAt, {
                     startDate: false,
                   })}
                   identity={
@@ -174,10 +176,7 @@ export function AccountTeamList({ teams }: { teams: AccountTeamDTO[] }) {
     </div>
   ) : (
     <div className="empty-state">
-      <p>
-        You have not joined any teams yet. Join with a team password or create
-        your first team.
-      </p>
+      <p>No teams yet. Find one that plays your games, or start your own.</p>
       <ButtonLink to="/teams" variant="secondary">
         Find teams
       </ButtonLink>

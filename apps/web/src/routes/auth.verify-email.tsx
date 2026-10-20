@@ -59,7 +59,7 @@ function VerifyEmailPage() {
       ) : hasUsableToken && search.token ? (
         <>
           <p className="lede">
-            Select Verify email to finish confirming your address.
+            Almost there. Select Verify email to confirm your address.
           </p>
           <VerifyEmailForm token={search.token} />
         </>

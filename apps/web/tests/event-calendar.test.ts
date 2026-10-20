@@ -75,6 +75,24 @@ test("an event becomes one escaped UTC VCALENDAR entry", () => {
   );
 });
 
+test("an event across the November 2026 fall-back keeps its UTC instants", () => {
+  const lines = eventICS(
+    {
+      ...event,
+      starts_at: "2026-11-01T05:30:00Z",
+      ends_at: "2026-11-01T07:30:00Z",
+      timezone: "America/New_York",
+    },
+    "https://cgn.test/e",
+    now,
+  ).split("\r\n");
+
+  assert.deepEqual(
+    lines.filter((line) => /^DT(START|END)/.test(line)),
+    ["DTSTART:20261101T053000Z", "DTEND:20261101T073000Z"],
+  );
+});
+
 test("the location follows the event format and is left out when empty", () => {
   assert.deepEqual(
     [

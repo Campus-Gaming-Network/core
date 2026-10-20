@@ -117,6 +117,7 @@ export function SignupForm({
           <input
             name="email"
             {...emailInputProps}
+            autoComplete="username"
             enterKeyHint="next"
             required
           />

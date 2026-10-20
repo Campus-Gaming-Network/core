@@ -4,7 +4,8 @@ import { SchoolLogo } from "./school-logo";
 
 /**
  * The header of an event, school, or team page: a flat navy band with the
- * identity tile (a school logo, else an initial or a custom tile), the page's
+ * identity tile (a school logo, else an initial or a custom tile on the
+ * school's tone, when there is one), the page's
  * own heading and supporting lines (`children`, which hold the one `h1`), and
  * on the right either a game's portrait cover at its own size or the page's
  * actions. The heading lives here and nowhere else on the page, so nothing is
@@ -17,6 +18,7 @@ export function DetailHero({
   initial,
   logoURL,
   tile,
+  tone,
 }: {
   /** Controls at the right of the band, such as Follow. */
   actions?: ReactNode;
@@ -26,12 +28,18 @@ export function DetailHero({
   /** The letter in the tile when there is no logo or `tile`. */
   initial?: string;
   logoURL?: string;
-  /** Replaces the initial, such as a lock icon or a team mark letter. */
+  /** Replaces the initial, such as a lock icon or a school's monogram. */
   tile?: ReactNode;
+  /** A school's tone (`schoolTone`) behind the tile when there is no logo. */
+  tone?: number;
 }) {
   return (
     <header className="detail-hero">
-      <span aria-hidden="true" className="detail-hero__tile">
+      <span
+        aria-hidden="true"
+        className="detail-hero__tile"
+        data-school-tone={tone}
+      >
         {tile ?? initial?.trim().charAt(0).toUpperCase()}
         {logoURL ? <SchoolLogo eager logoURL={logoURL} size={88} /> : null}
       </span>

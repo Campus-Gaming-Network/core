@@ -54,11 +54,11 @@
   --color-identity: #12326b;
   --color-identity-text: #ffffff;
 
-  /* Shape and elevation: square-ish controls, restrained elevation. */
+  /* Shape and elevation: softly rounded panels and controls, restrained elevation. */
   --shadow-window: 0 8px 24px rgba(11, 12, 12, 0.14);
   --radius-small: 0.25rem;
-  --radius-control: 0.25rem;
-  --radius-panel: 0.25rem;
+  --radius-control: 0.375rem;
+  --radius-panel: 0.5rem;
   --radius-media: 0.375rem;
 
   /* Spacing on a 4px scale. */
@@ -989,6 +989,17 @@ button.button--destructive {
   .button--small {
     min-height: 2.5rem;
   }
+
+  .pagination a,
+  .account-menu .account-menu__item,
+  .picker__remove {
+    min-height: 2.75rem;
+  }
+
+  .search-filter__clear {
+    width: 2.75rem;
+    height: 2.75rem;
+  }
 }
 
 /* ==== Panels, cards, and lists ==== */
@@ -1271,7 +1282,61 @@ p.empty-state {
 
 /* ==== Identity marks ==== */
 
-/* A school's logo on a white tile, or its initial when there is no logo. */
+/* A school without a logo: its monogram on one of ten pale tones, chosen by
+   `schoolTone` (school-identity.ts). They are not the school's colors, so
+   they stay quiet, and none is red or green, which mean error and success.
+   Each letter color is at least 6.3:1 on its tone. */
+[data-school-tone="0"] {
+  --school-tone: #e4ecf8;
+  --school-tone-text: #12326b;
+}
+
+[data-school-tone="1"] {
+  --school-tone: #dff0f0;
+  --school-tone-text: #0b5c63;
+}
+
+[data-school-tone="2"] {
+  --school-tone: #e0ecf3;
+  --school-tone-text: #24597a;
+}
+
+[data-school-tone="3"] {
+  --school-tone: #efe4f3;
+  --school-tone-text: #5b2a6e;
+}
+
+[data-school-tone="4"] {
+  --school-tone: #f6e3f1;
+  --school-tone-text: #86266f;
+}
+
+[data-school-tone="5"] {
+  --school-tone: #e7ebf0;
+  --school-tone-text: #3a4a5c;
+}
+
+[data-school-tone="6"] {
+  --school-tone: #f6e2e8;
+  --school-tone-text: #7a1f3d;
+}
+
+[data-school-tone="7"] {
+  --school-tone: #e6e7f7;
+  --school-tone-text: #3b3f99;
+}
+
+[data-school-tone="8"] {
+  --school-tone: #eeefd9;
+  --school-tone-text: #4f5418;
+}
+
+[data-school-tone="9"] {
+  --school-tone: #f2e8de;
+  --school-tone-text: #6b3f1d;
+}
+
+/* A school's logo on a white tile, or its monogram when there is no logo. */
 .school-directory-mark {
   position: relative;
   display: inline-grid;
@@ -1282,15 +1347,16 @@ p.empty-state {
   overflow: hidden;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-media);
-  color: var(--color-identity-text);
-  background: var(--color-identity);
+  color: var(--school-tone-text, var(--color-identity-text));
+  background: var(--school-tone, var(--color-identity));
   font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
 .school-directory-mark:has(.school-logo) {
   background: var(--color-surface);
-  /* If the image fails to load, the initial still reads on the white tile. */
-  color: var(--color-identity);
+  /* If the image fails to load, the monogram still reads on the white tile. */
+  color: var(--school-tone-text, var(--color-identity));
 }
 
 .school-directory-mark .school-logo {
@@ -1529,7 +1595,7 @@ textarea {
   min-width: 0;
   min-height: 2.5rem;
   border: 1px solid var(--color-control-border);
-  border-radius: var(--radius-small);
+  border-radius: var(--radius-control);
   padding: 0.5rem 0.75rem;
   color: var(--color-text);
   background: var(--color-surface);

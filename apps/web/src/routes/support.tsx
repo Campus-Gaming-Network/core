@@ -38,8 +38,8 @@ function SupportPage() {
         <div>
           <h1>Get support</h1>
           <p className="lede">
-            Send a support ticket and include enough detail for the team to
-            investigate. Never send passwords or payment information.
+            Stuck on something, or found a problem? Tell us what happened and we
+            will help.
           </p>
         </div>
       </section>

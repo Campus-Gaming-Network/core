@@ -4,6 +4,7 @@ import {
   pageHead,
   siteName,
 } from "../../components/public-page-head.js";
+import { previewImageUrl } from "../seo-slice/preview.js";
 import type { SchoolDTO, SchoolStatsDTO } from "./contracts.js";
 
 export { siteName };
@@ -38,16 +39,40 @@ export function schoolLocation(
   return [school.city, school.state].filter(Boolean).join(", ") || fallback;
 }
 
+/** Which of a school's counts a phrase is, so a list can give it an icon. */
+export type SchoolActivityKind = "teams" | "upcoming_events" | "members";
+
 /**
- * A school's CGN activity as short phrases, such as "3 teams". A zero is
- * shown as zero, never hidden or rounded up.
+ * A school's CGN activity as short phrases, such as "3 teams". Only counts
+ * above zero are listed, so a school with nothing yet lists nothing rather
+ * than a row of zeros; a count is never rounded up.
  */
-export function schoolActivityCounts(stats: SchoolStatsDTO): string[] {
+export function schoolActivityCounts(
+  stats: SchoolStatsDTO,
+): { kind: SchoolActivityKind; label: string }[] {
   return [
-    counted(stats.teams, "team", "teams"),
-    counted(stats.upcoming_events, "upcoming event", "upcoming events"),
-    counted(stats.members, "member", "members"),
-  ];
+    {
+      kind: "teams" as const,
+      label: counted(stats.teams, "team", "teams"),
+      count: stats.teams,
+    },
+    {
+      kind: "upcoming_events" as const,
+      label: counted(
+        stats.upcoming_events,
+        "upcoming event",
+        "upcoming events",
+      ),
+      count: stats.upcoming_events,
+    },
+    {
+      kind: "members" as const,
+      label: counted(stats.members, "member", "members"),
+      count: stats.members,
+    },
+  ]
+    .filter(({ count }) => count > 0)
+    .map(({ kind, label }) => ({ kind, label }));
 }
 
 function counted(count: number, one: string, many: string): string {
@@ -125,14 +150,15 @@ export function schoolHead(
   const location = schoolLocation(school);
   const description = `Campus gaming events, teams, and activity at ${school.name} in ${location}.`;
   const path = `/schools/${encodeURIComponent(school.slug)}` as const;
-  const logo = safeSchoolWebsite(school.logo_url);
+  const logo = previewImageUrl(publicOrigin, school.logo_url);
   const website = safeSchoolWebsite(school.website_url);
 
   return pageHead(publicOrigin, {
     title: school.name,
     description,
     path,
-    ...(logo ? { image: logo } : {}),
+    breadcrumbs: [{ name: "Schools", path: "/schools" }],
+    ...(logo ? { image: logo, imageAlt: `${school.name} logo` } : {}),
     jsonLd: {
       "@context": "https://schema.org",
       "@type": "CollegeOrUniversity",

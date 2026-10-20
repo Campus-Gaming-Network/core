@@ -35,7 +35,7 @@ import { PageNoticeView } from "../components/page-notice-view";
 import { Person } from "../components/person";
 import { publicPageHead } from "../components/public-page-head";
 import { ListUnavailable } from "../components/route-boundaries";
-import { SchoolLogo } from "../components/school-logo";
+import { SchoolMark } from "../components/school-mark";
 import { StatusLabel } from "../components/status-label";
 import { TabLink, Tabs } from "../components/tabs";
 import accountCSS from "../features/account-slice/account.css?url";
@@ -57,6 +57,7 @@ import {
   examplePeople,
   exampleSchools,
   exampleTeams,
+  exampleTileSchools,
   exampleViewer,
 } from "../features/styleguide/fixtures";
 import {
@@ -534,8 +535,9 @@ function StyleguidePage() {
           <h2 id="styleguide-marks-title">Marks</h2>
         </div>
         <p className="styleguide-intro">
-          Each mark has text underneath its image: initials for a person, the
-          first letter for a school or team. If the image fails, the text shows.
+          Each mark has text underneath its image: initials for a person, a
+          two-letter monogram on the school&apos;s tone for a school, the first
+          letter for a team. If the image fails, the text shows.
         </p>
         <div className="styleguide-row styleguide-row--marks">
           {(["large", "medium", "small"] as const).map((size) => (
@@ -555,36 +557,38 @@ function StyleguidePage() {
             </div>
           ))}
           <div className="styleguide-mark">
-            <span
-              aria-hidden="true"
-              className="school-directory-mark school-directory-mark--large"
-            >
-              S
-            </span>
+            <SchoolMark
+              className="school-directory-mark--large"
+              name={exampleSchools[0].name}
+              size={88}
+              slug={exampleSchools[0].slug}
+            />
             <span className="styleguide-label">
               School mark, large
               <br />
               <span className="styleguide-label__file">
-                .school-directory-mark
+                src/components/school-mark.tsx
               </span>
             </span>
           </div>
           <div className="styleguide-mark">
-            <span aria-hidden="true" className="school-directory-mark">
-              S
-            </span>
+            <SchoolMark
+              name={exampleSchools[0].name}
+              size={44}
+              slug={exampleSchools[0].slug}
+            />
             <span className="styleguide-label">School mark</span>
           </div>
           <div className="styleguide-mark">
-            <span
-              aria-hidden="true"
-              className="school-directory-mark school-directory-mark--large"
-            >
-              S
-              <SchoolLogo logoURL={exampleLogoURL} size={88} />
-            </span>
+            <SchoolMark
+              className="school-directory-mark--large"
+              logoURL={exampleLogoURL}
+              name={exampleSchools[0].name}
+              size={88}
+              slug={exampleSchools[0].slug}
+            />
             <span className="styleguide-label">
-              School mark with SchoolLogo
+              School mark with a logo
               <br />
               <span className="styleguide-label__file">
                 src/components/school-logo.tsx
@@ -592,15 +596,15 @@ function StyleguidePage() {
             </span>
           </div>
           <div className="styleguide-mark">
-            <span
-              aria-hidden="true"
-              className="school-directory-mark school-directory-mark--large"
-            >
-              S
-              <SchoolLogo logoURL={brokenImageURL} size={88} />
-            </span>
+            <SchoolMark
+              className="school-directory-mark--large"
+              logoURL={brokenImageURL}
+              name={exampleSchools[0].name}
+              size={88}
+              slug={exampleSchools[0].slug}
+            />
             <span className="styleguide-label">
-              SchoolLogo, failed: the letter shows
+              SchoolLogo, failed: the monogram shows
             </span>
           </div>
           <div className="styleguide-mark">
@@ -676,6 +680,26 @@ function StyleguidePage() {
           load is dropped in the same way for the logo (above) and the banner
           cover (under Detail page header).
         </SpecimenNote>
+        <h3 className="styleguide-sub">Schools without a logo</h3>
+        <p className="styleguide-intro">
+          The monogram is the first letters of the first two words that name the
+          school, after a leading &ldquo;University of&rdquo; or &ldquo;College
+          of the&rdquo;. The tone is one of ten, fixed by the school&apos;s
+          slug: not the school&apos;s color, and never red or green.
+        </p>
+        <Specimen
+          file="src/components/school-identity.ts"
+          name="SchoolMark, schoolMonogram, schoolTone"
+        >
+          <ul className="styleguide-tile-row">
+            {exampleTileSchools.map((school) => (
+              <li key={school.slug}>
+                <SchoolMark name={school.name} size={44} slug={school.slug} />
+                <span className="styleguide-label">{school.name}</span>
+              </li>
+            ))}
+          </ul>
+        </Specimen>
         <h3 className="styleguide-sub">People</h3>
         <Specimen file="src/components/person.tsx" name="Person, .people-list">
           <ul className="people-list">

@@ -281,7 +281,7 @@ function TeamActions({
       <>
         <h2 className="team-panel__title">Join this team</h2>
         <p className="form-help">
-          Joining requires logging in and entering the team password.
+          Log in, then enter the password the team shared with you.
         </p>
         <ButtonLink
           variant="primary"
@@ -402,7 +402,8 @@ function TeamJoinForm({ slug }: { slug: string }) {
       <input name="slug" type="hidden" value={slug} />
       <h2 className="team-panel__title">Join this team</h2>
       <p className="form-help">
-        Team pages are public. The password is checked only when you join.
+        Enter the password the team shared with you. You only need it to join;
+        anyone can see this page.
       </p>
       <FormErrorSummary
         fieldErrors={mutation.fieldErrors}
@@ -416,7 +417,7 @@ function TeamJoinForm({ slug }: { slug: string }) {
         label="Team password"
       >
         <PasswordInput
-          autoComplete="current-password"
+          autoComplete="off"
           minLength={8}
           maxLength={200}
           name="password"

@@ -22,6 +22,7 @@ export function EventGameCover({
       <img
         alt=""
         className="event-game-cover"
+        decoding="async"
         height={64}
         loading="lazy"
         onError={onError}

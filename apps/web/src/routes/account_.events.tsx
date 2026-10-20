@@ -64,7 +64,7 @@ function YourEventsPage() {
           <AccountEventSection
             empty={
               <>
-                <p>You are not going to any upcoming events yet.</p>
+                <p>No plans yet. Find a game night or tournament to go to.</p>
                 {browse}
               </>
             }

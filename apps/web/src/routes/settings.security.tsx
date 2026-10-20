@@ -56,7 +56,7 @@ function SecuritySettingsPage() {
       {/* Each answer remounts the forms, so a saved password does not stay
           typed in. */}
       <div className="security-forms" key={security ?? "fresh"}>
-        <ChangePasswordForm notice={security} />
+        <ChangePasswordForm currentEmail={email} notice={security} />
         <ChangeEmailForm currentEmail={email} notice={security} />
       </div>
     </>

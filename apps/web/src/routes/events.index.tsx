@@ -167,8 +167,8 @@ function EventsPage() {
         <div>
           <h1>Events</h1>
           <p className="lede">
-            Discover gaming events at your school and beyond. Unlisted events
-            open by direct link, and private events stay locked until unlocked.
+            Game nights, tournaments, and LAN parties at your school and beyond.
+            Find one to show up to, or host your own.
           </p>
         </div>
         {authenticated ? (
@@ -249,6 +249,7 @@ function EventsPage() {
                   maxLength={100}
                   name="q"
                   placeholder="Search event titles"
+                  enterKeyHint="search"
                   type="search"
                 />
                 <button className="filter-search__submit" type="submit">

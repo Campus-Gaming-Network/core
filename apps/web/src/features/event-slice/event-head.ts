@@ -4,6 +4,7 @@ import {
   previewText,
   siteName,
 } from "../../components/public-page-head.js";
+import { eventWhen, previewImageUrl } from "../seo-slice/preview.js";
 import type { EventDTO, EventDetailDTO } from "./contracts.js";
 
 /** Shown for an event whose details must not leave the page. */
@@ -76,19 +77,38 @@ export function eventDetailHead(
 
   const path = eventPath(event.slug);
   const indexable = event.visibility === "public";
+  const logo = previewImageUrl(publicOrigin, event.host_school.logo_url);
   return withLinks(
     pageHead(publicOrigin, {
       title: event.title,
-      description: previewText(
-        event.description ||
-          `A campus gaming event hosted by ${event.host_school.name}.`,
-      ),
+      description: eventPreviewDescription(event),
       path,
+      breadcrumbs: [{ name: "Events", path: "/events" }],
+      ...(logo
+        ? { image: logo, imageAlt: `${event.host_school.name} logo` }
+        : {}),
       noIndex: !indexable,
       ...(indexable ? { jsonLd: eventJsonLd(event, publicOrigin) } : {}),
     }),
     extraLinks,
   );
+}
+
+/**
+ * When and where first, then the host's own words, cut to a chat preview.
+ * The street address stays on the page and in structured data.
+ */
+export function eventPreviewDescription(event: EventDTO): string {
+  const place = {
+    online: "Online",
+    in_person: event.location_name || event.host_school.name,
+    hybrid: `${event.location_name || event.host_school.name} and online`,
+  }[event.format];
+  const when = eventWhen(event.starts_at, event.ends_at, event.timezone);
+  const about =
+    event.description.trim() ||
+    `A campus gaming event hosted by ${event.host_school.name}.`;
+  return previewText(`${when} at ${place}. ${about}`);
 }
 
 /**
@@ -139,7 +159,10 @@ function eventJsonLd(
         `/schools/${encodeURIComponent(event.host_school.slug)}`,
       ),
     },
-    image: [absoluteUrl(publicOrigin, "/og-default.png")],
+    image: [
+      previewImageUrl(publicOrigin, event.host_school.logo_url) ??
+        absoluteUrl(publicOrigin, "/og-default.png"),
+    ],
     ...(event.cost === "free" ? { isAccessibleForFree: true } : {}),
   };
 }

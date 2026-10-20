@@ -44,7 +44,13 @@ const fieldIds = (prefix: string, fields: string[]) =>
     fields.map((field) => [field, `${prefix}-${field}-error`]),
   );
 
-export function ChangePasswordForm({ notice }: { notice?: SecurityNoticeKey }) {
+export function ChangePasswordForm({
+  currentEmail,
+  notice,
+}: {
+  currentEmail: string;
+  notice?: SecurityNoticeKey;
+}) {
   const runChangePassword = useServerFn(changePassword);
   const { mutation, message, fieldErrors } = useSecurityFeedback(
     "password",
@@ -75,6 +81,17 @@ export function ChangePasswordForm({ notice }: { notice?: SecurityNoticeKey }) {
         title="Change password"
         description="Enter your current password, then the new one. Other devices signed in to your account will be signed out."
       >
+        {/* Lets a password manager pair the new password with this account. */}
+        <input
+          aria-hidden="true"
+          autoComplete="username"
+          className="visually-hidden"
+          defaultValue={currentEmail}
+          name="username"
+          readOnly
+          tabIndex={-1}
+          type="email"
+        />
         <FormField
           errorId="password-current_password-error"
           errors={fieldErrors.current_password}
@@ -152,7 +169,13 @@ export function ChangeEmailForm({
           errors={fieldErrors.new_email}
           label="New email"
         >
-          <input {...emailInputProps} name="new_email" required />
+          <input
+            {...emailInputProps}
+            autoComplete="off"
+            enterKeyHint="next"
+            name="new_email"
+            required
+          />
         </FormField>
         <FormField
           errorId="email-current_password-error"

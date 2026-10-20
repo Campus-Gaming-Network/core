@@ -14,7 +14,7 @@ import {
 } from "../features/school-slice/contracts";
 import { schoolLocation } from "../features/school-slice/presentation";
 import { isListboxKey, nextActiveIndex } from "./listbox-navigation";
-import { SchoolLogo } from "./school-logo";
+import { SchoolMark } from "./school-mark";
 import { schoolSearchMessage } from "./school-search-status";
 import type { SearchFilterState } from "./search-filter-status";
 
@@ -25,19 +25,6 @@ export type SchoolOption = Pick<
   SchoolDTO,
   "id" | "name" | "slug" | "city" | "state" | "logo_url"
 >;
-
-/** A school's logo on a small tile, or its initial when it has none. */
-function SchoolMark({ school }: { school: SchoolOption }) {
-  return (
-    <span
-      aria-hidden="true"
-      className="school-directory-mark school-select__mark"
-    >
-      {school.name.slice(0, 1).toUpperCase()}
-      <SchoolLogo logoURL={school.logo_url} size={32} />
-    </span>
-  );
-}
 
 type Props = {
   /** The form field the select submits. */
@@ -273,7 +260,13 @@ export function SchoolSearchSelect({
             <span className="picker__label">{label}</span>
             <div className="school-select__card">
               {chosenSchool ? (
-                <SchoolMark school={chosenSchool} />
+                <SchoolMark
+                  className="school-select__mark"
+                  logoURL={chosenSchool.logo_url}
+                  name={chosenSchool.name}
+                  size={32}
+                  slug={chosenSchool.slug}
+                />
               ) : (
                 <GraduationCap
                   aria-hidden="true"
@@ -332,6 +325,7 @@ export function SchoolSearchSelect({
               }
               ref={inputRef}
               role="combobox"
+              enterKeyHint="search"
               type="search"
               value={query}
             />
@@ -369,7 +363,13 @@ export function SchoolSearchSelect({
                     onMouseMove={() => setActiveIndex(index)}
                     role="option"
                   >
-                    <SchoolMark school={school} />
+                    <SchoolMark
+                      className="school-select__mark"
+                      logoURL={school.logo_url}
+                      name={school.name}
+                      size={32}
+                      slug={school.slug}
+                    />
                     <span className="picker__option-text">
                       <strong>{school.name}</strong>
                       {schoolLocation(school, "") ? (
@@ -424,6 +424,7 @@ export function NoScriptSchoolSearch({
             name="school_q"
             placeholder="Search by school name"
             required
+            enterKeyHint="search"
             type="search"
           />
         </label>

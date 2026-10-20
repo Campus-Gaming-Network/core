@@ -5,7 +5,7 @@ import { useViewer } from "../components/viewer";
 import { pageNoticeKey } from "../components/page-notice";
 import { PageNoticeView } from "../components/page-notice-view";
 import { homeAccountNotices } from "../features/account-slice/presentation";
-import { SchoolLogo } from "../components/school-logo";
+import { SchoolMark } from "../components/school-mark";
 import { EventCard } from "../features/event-slice/event-card";
 import type { EventBrowseItemDTO } from "../features/event-slice/contracts";
 import { loadDirectorySidebar } from "../features/account-slice/account.functions";
@@ -201,18 +201,14 @@ function HomePage() {
                         to="/schools/$slug"
                         params={{ slug: school.slug }}
                       >
-                        <span
-                          aria-hidden="true"
-                          className="school-directory-mark"
-                        >
-                          {school.name.slice(0, 1).toUpperCase()}
-                          <SchoolLogo
-                            logoURL={
-                              school.logo_wordmark ? undefined : school.logo_url
-                            }
-                            size={40}
-                          />
-                        </span>
+                        <SchoolMark
+                          logoURL={
+                            school.logo_wordmark ? undefined : school.logo_url
+                          }
+                          name={school.name}
+                          size={40}
+                          slug={school.slug}
+                        />
                         <span className="home-school__copy">
                           <strong>{school.name}</strong>
                           <small>{schoolLocation(school)}</small>

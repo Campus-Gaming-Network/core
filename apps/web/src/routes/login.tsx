@@ -66,8 +66,7 @@ function LoginPage() {
       <header className="auth-heading">
         <h1>Log in</h1>
         <p className="lede">
-          Use the email and password you signed up with. Your email must be
-          verified first.
+          Welcome back. Use the email and password you signed up with.
         </p>
       </header>
       <LoginForm
@@ -171,7 +170,13 @@ function LoginForm({
         </p>
       ) : null}
       <FormField errorId="login-email-error" errors={emailErrors} label="Email">
-        <input name="email" {...emailInputProps} enterKeyHint="next" required />
+        <input
+          name="email"
+          {...emailInputProps}
+          autoComplete="username"
+          enterKeyHint="next"
+          required
+        />
       </FormField>
       <FormField
         errorId="login-password-error"

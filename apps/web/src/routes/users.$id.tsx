@@ -1,4 +1,5 @@
 import { SchoolLogo } from "../components/school-logo";
+import { SchoolMark } from "../components/school-mark";
 import { Link, createFileRoute, notFound } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { Flag, ShieldCheck } from "lucide-react";
@@ -215,15 +216,12 @@ function PublicProfilePage() {
                     to="/schools/$slug"
                     params={{ slug: profile.home_school.slug }}
                   >
-                    <span className="school-directory-mark">
-                      <span aria-hidden="true">
-                        {profile.home_school.name.slice(0, 1).toUpperCase()}
-                      </span>
-                      <SchoolLogo
-                        logoURL={profile.home_school.logo_url}
-                        size={36}
-                      />
-                    </span>
+                    <SchoolMark
+                      logoURL={profile.home_school.logo_url}
+                      name={profile.home_school.name}
+                      size={36}
+                      slug={profile.home_school.slug}
+                    />
                     <span>{homeSchool.name}</span>
                   </Link>
                 ) : (
