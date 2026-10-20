@@ -593,6 +593,17 @@ main {
   max-width: var(--measure-width);
 }
 
+/* A note above a form, such as a support topic's guidance, stands apart from
+   the form instead of touching its top edge. */
+.prose > .callout {
+  margin-bottom: var(--space-5);
+}
+
+/* The page's paragraph spacing would pad the note's own text. */
+.prose > .callout p {
+  margin: 0;
+}
+
 .site-footer {
   border-top: 1px solid var(--color-border);
   color: var(--color-muted);
@@ -1530,6 +1541,14 @@ p.empty-state {
 
 .sectioned-form .form-section > .form-help {
   margin: 0;
+}
+
+/* The action bar closes the form, so its filled background follows the form's
+   rounded bottom corners, inside the 1px border. The form cannot clip it
+   instead: that would also clip the school and game pickers' open lists. */
+.form-stack.sectioned-form > .form-actions:last-child {
+  border-radius: 0 0 calc(var(--radius-panel) - 1px)
+    calc(var(--radius-panel) - 1px);
 }
 
 .form-stack.sectioned-form > .required-fields-note {
