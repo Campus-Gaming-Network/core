@@ -2020,6 +2020,13 @@ input[type="radio"] {
   min-width: 0;
 }
 
+/* A keyword search carries its own Search button, so it gets a wider column
+   than the school and game pickers beside it. */
+.filter-toolbar__search:has(> .filter-search:first-child) {
+  grid-template-columns: minmax(0, 1.6fr);
+  max-width: 52rem;
+}
+
 /* A school a tab has set needs only its own width. */
 .filter-toolbar__search > .filter-pill--locked {
   justify-self: start;
