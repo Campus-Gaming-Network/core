@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import { test } from "vite-plus/test";
 import { getNavigationSessionOperation } from "../src/features/event-slice/auth-operations.server.js";
 import {
   validateInboxSearch,
@@ -11,6 +11,7 @@ import {
   markReadOperation,
 } from "../src/features/notifications/notifications-operations.server.js";
 import { createApiClient, type Fetcher } from "../src/server/api.server.js";
+import { requestURL } from "./fetch-stub.js";
 
 const notificationID = "77777777-7777-4777-8777-777777777777";
 const profile = {
@@ -36,7 +37,7 @@ function client(fetcher: Fetcher) {
 
 function routed(routes: Record<string, () => Response>): Fetcher {
   return async (input) => {
-    const url = new URL(String(input));
+    const url = new URL(requestURL(input));
     const route = routes[url.pathname + url.search];
     if (!route) throw new Error(`unexpected request ${url.pathname}`);
     return route();
@@ -108,8 +109,8 @@ test("the inbox shows each notice in the viewer's own time zone", async () => {
 test("opening a notice marks it read and goes to its event; marking all returns to the inbox", async () => {
   const calls: Array<{ method?: string; url: string }> = [];
   const api = client(async (input, init) => {
-    calls.push({ method: init?.method, url: String(input) });
-    return String(input).endsWith("/read-all")
+    calls.push({ method: init?.method, url: requestURL(input) });
+    return requestURL(input).endsWith("/read-all")
       ? Response.json({ marked: 2 })
       : Response.json({ ...notification, read_at: "2026-10-17T18:00:00Z" });
   });

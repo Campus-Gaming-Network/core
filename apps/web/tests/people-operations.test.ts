@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import { test } from "vite-plus/test";
 import { createApiClient, type Fetcher } from "../src/server/api.server.js";
 import {
   eventPeopleInput,
@@ -15,6 +15,7 @@ import {
   personDetail,
   verificationDetail,
 } from "../src/features/people-slice/presentation.js";
+import { requestURL } from "./fetch-stub.js";
 
 const cookieHeader = "cgn_session=viewer-session";
 
@@ -61,7 +62,7 @@ test("event attendees are read with the viewer's session, the unlock proof, and 
     { slug: "late/night lan", response: "maybe", after: "after+cursor" },
     {
       api: client(async (input, init) => {
-        calls.push({ init, url: String(input) });
+        calls.push({ init, url: requestURL(input) });
         return Response.json(apiList);
       }),
       cookieHeader,
@@ -90,7 +91,7 @@ test("event attendees are read with the viewer's session, the unlock proof, and 
 test("school and team lists use their own paths, a requested limit, and team roles", async () => {
   const urls: string[] = [];
   const api = client(async (input) => {
-    urls.push(String(input));
+    urls.push(requestURL(input));
     return Response.json({
       people: [{ ...apiPerson, role: "captain" }],
       limit: 8,

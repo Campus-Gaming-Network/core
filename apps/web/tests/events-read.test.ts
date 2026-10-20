@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import { test } from "vite-plus/test";
 import {
   eventsBrowseInput,
   validateEventsSearch,
@@ -21,6 +21,7 @@ import {
   safeExternalEventUrl,
 } from "../src/features/event-slice/presentation.js";
 import { createApiClient, type Fetcher } from "../src/server/api.server.js";
+import { requestURL } from "./fetch-stub.js";
 
 function client(fetcher: Fetcher) {
   return createApiClient({ baseUrl: "http://api:8080", fetcher });
@@ -147,7 +148,7 @@ test("event browse reads public no-store DTOs and strips viewer/private fields",
     },
     {
       api: client(async (input, init) => {
-        const url = String(input);
+        const url = requestURL(input);
         requests.push({ url, init });
         return Response.json({
           events: [browseEvent],
@@ -251,7 +252,7 @@ test("the home page previews this week's events and the ones after it, split at 
   const result = await homeEventsOperation({
     now: () => new Date("2031-01-10T12:34:56.789Z"),
     api: client(async (input) => {
-      requested.push(String(input));
+      requested.push(requestURL(input));
       return Response.json({
         events: [browseEvent],
         limit: 6,
@@ -286,7 +287,7 @@ test("a team page reads the events that team hosts, and survives a failure", asy
     { slug: "red/team" },
     {
       api: client(async (input) => {
-        requested.push(String(input));
+        requested.push(requestURL(input));
         return Response.json({
           events: [hosted],
           limit: 6,

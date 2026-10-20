@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import { test } from "vite-plus/test";
 import type { EventDTO } from "../src/features/event-slice/contracts.js";
 import {
   eventDetailHead,

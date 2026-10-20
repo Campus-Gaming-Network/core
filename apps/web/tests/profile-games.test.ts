@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import { test } from "vite-plus/test";
 import { createApiClient, type Fetcher } from "../src/server/api.server.js";
 import {
   validateAddProfileGamesInput,
@@ -13,6 +13,7 @@ import {
   profileGamesPageOperation,
   removeProfileGameOperation,
 } from "../src/features/profile-games/profile-games-operations.server.js";
+import { bodyText, requestURL } from "./fetch-stub.js";
 
 const gameID = "44444444-4444-4444-8444-444444444444";
 const lists = {
@@ -35,7 +36,7 @@ function client(fetcher: Fetcher) {
 test("the profile games page reads the viewer's lists and the catalog", async () => {
   const calls: Array<{ cookie: string | null; url: string }> = [];
   const api = client(async (input, init) => {
-    const url = String(input);
+    const url = requestURL(input);
     calls.push({ cookie: new Headers(init?.headers).get("cookie"), url });
     if (url.endsWith("/me/games")) return Response.json({ ...lists, extra: 1 });
     return Response.json({
@@ -69,9 +70,9 @@ test("profile game changes call the named endpoints and return to the settings p
   const calls: Array<{ body: unknown; method?: string; url: string }> = [];
   const api = client(async (input, init) => {
     calls.push({
-      body: init?.body ? JSON.parse(String(init.body)) : undefined,
+      body: init?.body ? JSON.parse(bodyText(init)) : undefined,
       method: init?.method,
-      url: String(input),
+      url: requestURL(input),
     });
     return Response.json(lists);
   });

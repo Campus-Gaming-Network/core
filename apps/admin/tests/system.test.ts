@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import { test } from "vite-plus/test";
 import { systemSchema } from "../src/features/system/contracts.js";
 import { getSystemOperation } from "../src/features/system/system-operations.server.js";
 import type { ApiClient } from "../src/server/api.server.js";

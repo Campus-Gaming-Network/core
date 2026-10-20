@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import { test } from "vite-plus/test";
 import { loginProblem } from "../src/features/auth-flow-slice/login-help.js";
 
 test("loginProblem sorts the login messages the web shows", () => {

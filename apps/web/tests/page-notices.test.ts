@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import { test } from "vite-plus/test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createElement } from "react";
 import {

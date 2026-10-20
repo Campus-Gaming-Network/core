@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import { test } from "vite-plus/test";
 import {
   forgotPasswordOperation,
   resendVerificationOperation,
@@ -20,6 +20,7 @@ import {
 } from "../src/features/auth-flow-slice/contracts.js";
 import { signupSchoolSearchOperation } from "../src/features/auth-flow-slice/signup-school-operations.server.js";
 import { createApiClient, type Fetcher } from "../src/server/api.server.js";
+import { bodyText, requestURL } from "./fetch-stub.js";
 
 const profile = {
   id: "user-1",
@@ -176,7 +177,7 @@ test("signup posts only its validated contract and strips the upstream profile",
   let init: RequestInit | undefined;
   const result = await signupOperation(signupInput, {
     api: client(async (input, requestInit) => {
-      url = String(input);
+      url = requestURL(input);
       init = requestInit;
       return Response.json(
         {
@@ -192,7 +193,7 @@ test("signup posts only its validated contract and strips the upstream profile",
   assert.equal(url, "http://api:8080/auth/signup");
   assert.equal(init?.method, "POST");
   assert.equal(init?.cache, "no-store");
-  assert.deepEqual(JSON.parse(String(init?.body)), {
+  assert.deepEqual(JSON.parse(bodyText(init)), {
     email: "new@example.test",
     password: "Password123!",
     name: "New Player",
@@ -217,7 +218,7 @@ test("signup posts only its validated contract and strips the upstream profile",
 test("forgot and resend responses are enumeration-safe and contract checked", async () => {
   const requests: string[] = [];
   const api = client(async (input) => {
-    requests.push(String(input));
+    requests.push(requestURL(input));
     return Response.json(
       { status: "if_account_exists_email_sent", private: "strip" },
       {
@@ -270,7 +271,7 @@ test("reset and verification keep secrets out of results and map used links safe
     { token: "reset-secret", password: "Password123!" },
     {
       api: client(async (_input, init) => {
-        resetBody = String(init?.body);
+        resetBody = bodyText(init);
         return new Response(null, { status: 204 });
       }),
     },
@@ -311,7 +312,7 @@ test("signup school search keeps the exact threshold, limit, DTO, and safe failu
   let requested = "";
   const api = client(async (input) => {
     calls += 1;
-    requested = String(input);
+    requested = requestURL(input);
     return Response.json({
       schools: [
         {
@@ -368,7 +369,7 @@ test("current policy versions are read from the API and signup is unavailable wi
   assert.deepEqual(
     await currentPoliciesOperation({
       api: client(async (input) => {
-        url = String(input);
+        url = requestURL(input);
         return Response.json(published);
       }),
     }),

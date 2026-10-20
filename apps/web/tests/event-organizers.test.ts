@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import { test } from "vite-plus/test";
 import { createApiClient, type Fetcher } from "../src/server/api.server.js";
 import {
   validateAcceptOrganizerInviteSearch,
@@ -16,6 +16,7 @@ import {
   revokeOrganizerInviteOperation,
   transferCreatorOperation,
 } from "../src/features/event-organizers/organizer-operations.server.js";
+import { bodyText, requestURL } from "./fetch-stub.js";
 
 const userID = "55555555-5555-4555-8555-555555555555";
 const inviteID = "66666666-6666-4666-8666-666666666666";
@@ -34,17 +35,17 @@ test("organizer changes call the named endpoints and return to the edit page or 
   const calls: Array<{ body?: unknown; method?: string; url: string }> = [];
   const api = client(async (input, init) => {
     calls.push({
-      ...(init?.body ? { body: JSON.parse(String(init.body)) } : {}),
+      ...(init?.body ? { body: JSON.parse(bodyText(init)) } : {}),
       method: init?.method,
-      url: String(input),
+      url: requestURL(input),
     });
-    if (String(input).endsWith("/organizer-invites")) {
+    if (requestURL(input).endsWith("/organizer-invites")) {
       return Response.json(
         init?.method === "POST" ? invite : { invites: [invite] },
         { status: init?.method === "POST" ? 201 : 200 },
       );
     }
-    if (String(input).endsWith("/accept")) {
+    if (requestURL(input).endsWith("/accept")) {
       return Response.json({ event_slug: "campus-chess" });
     }
     return new Response(null, { status: 204 });

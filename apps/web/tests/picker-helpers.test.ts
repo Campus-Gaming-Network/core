@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import { test } from "vite-plus/test";
 import { nextActiveIndex } from "../src/components/listbox-navigation.js";
 import { schoolSearchMessage } from "../src/components/school-search-status.js";
 import {

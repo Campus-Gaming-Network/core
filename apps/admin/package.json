@@ -7,12 +7,12 @@
     "node": "24.x"
   },
   "scripts": {
-    "dev": "vite dev --host 0.0.0.0",
-    "build": "vite build && node src/build-check.ts",
+    "dev": "vp dev --host 0.0.0.0",
+    "build": "vp build && node src/build-check.ts",
     "start": "node src/production-preflight.ts",
     "typecheck": "tsc --noEmit",
-    "lint": "oxlint .",
-    "test": "tsc -p tsconfig.test.json && node --test .test-build/tests/*.test.js",
+    "lint": "vp lint .",
+    "test": "tsc -p tsconfig.test.json && vp test run",
     "test:e2e": "playwright test"
   },
   "dependencies": {
@@ -35,9 +35,9 @@
     "@vitejs/plugin-react": "6.1.1",
     "esbuild": "0.28.2",
     "nitro": "3.0.260903-beta",
-    "oxlint": "1.77.0",
     "tailwindcss": "4.3.3",
     "typescript": "7.0.2",
-    "vite": "8.2.2"
+    "vite": "catalog:",
+    "vite-plus": "catalog:"
   }
 }

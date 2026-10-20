@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import { test } from "vite-plus/test";
 import { anchoredSections } from "../src/components/policy-sections.js";
 
 test("sections keep their own id, else a slug of the heading, and never share one", () => {

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import { test } from "vite-plus/test";
 import { slugSearchWords } from "../src/components/slug-search.js";
 
 test("slugSearchWords turns slugs into search words", () => {

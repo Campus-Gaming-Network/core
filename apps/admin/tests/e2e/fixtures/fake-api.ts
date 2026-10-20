@@ -1158,7 +1158,7 @@ async function uploadLogo(
   const school = schools.get(id);
   const file = form.get("file");
   const reason = form.get("reason");
-  if (!reason || !(file instanceof Blob)) {
+  if (typeof reason !== "string" || !reason || !(file instanceof Blob)) {
     respond(response, 400, { error: "invalid_request" });
     return;
   }
@@ -1190,7 +1190,7 @@ async function uploadLogo(
     "school.logo_updated",
     before,
     { logo_url: school.logo_url },
-    String(reason),
+    reason,
   );
   respond(response, 200, school);
 }

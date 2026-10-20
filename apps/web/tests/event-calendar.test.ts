@@ -1,13 +1,14 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { basename, join } from "node:path";
-import test from "node:test";
+import { test } from "vite-plus/test";
 import type { EventDTO } from "../src/features/event-slice/contracts.js";
 import {
   eventCalendarResponse,
   eventICS,
 } from "../src/features/event-slice/event-calendar.server.js";
 import { createApiClient, type Fetcher } from "../src/server/api.server.js";
+import { requestURL } from "./fetch-stub.js";
 
 const currentDirectory = process.cwd();
 const appRoot =
@@ -147,7 +148,7 @@ test("an event request carries only the session and unlock cookies upstream", as
     api: client(async (input, init) => {
       const headers = new Headers(init?.headers);
       requests.push({
-        url: String(input),
+        url: requestURL(input),
         cookie: headers.get("cookie"),
         unlock: headers.get("x-cgn-event-unlock"),
       });
@@ -233,7 +234,7 @@ test("locked, missing, and unavailable events never produce a calendar", async (
   const dependencies = {
     api: client(async (input) => {
       upstreamCalls += 1;
-      const slug = String(input).split("/").pop() ?? "";
+      const slug = requestURL(input).split("/").pop() ?? "";
       return upstream[slug]!();
     }),
     publicOrigin: "https://cgn.test",

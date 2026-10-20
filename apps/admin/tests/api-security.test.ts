@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import { test } from "vite-plus/test";
 import * as z from "zod";
 import {
   AdminApiContractError,
@@ -28,7 +28,11 @@ test("the Admin API client replaces browser-supplied trust headers", async () =>
     headers: { "X-CGN-Admin-Proxy-Secret": "browser-controlled" },
   });
 
-  assert.equal(String(request?.input), "http://api.internal/admin/v1/session");
+  const input = request?.input;
+  assert.equal(
+    input instanceof Request ? input.url : String(input),
+    "http://api.internal/admin/v1/session",
+  );
   const headers = new Headers(request?.init?.headers);
   assert.equal(headers.get("X-CGN-Admin-Proxy-Secret"), "server-owned-secret");
   assert.equal(request?.init?.cache, "no-store");

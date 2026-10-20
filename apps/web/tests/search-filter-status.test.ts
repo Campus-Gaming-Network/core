@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import { test } from "vite-plus/test";
 import { searchFilterMessage } from "../src/components/search-filter-status.js";
 
 test("search filter messages hint, show progress, and report the outcome", () => {

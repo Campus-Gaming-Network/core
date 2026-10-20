@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import { test } from "vite-plus/test";
 import { socialSite } from "../src/features/public-profile/social-sites.js";
 
 test("profile links are matched to known sites by host", () => {

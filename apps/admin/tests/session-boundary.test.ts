@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import { test } from "vite-plus/test";
 import { AccessAssertionError } from "../src/server/access-assertion.server.js";
 import { AdminApiError, type ApiClient } from "../src/server/api.server.js";
 import type { CookieMutation } from "../src/server/cookies.server.js";

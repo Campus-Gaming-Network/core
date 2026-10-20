@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import { test } from "vite-plus/test";
 import {
   schoolFollowInputSchema,
   validateSchoolFollowServerInput,
@@ -15,6 +15,7 @@ import {
   createApiClient,
   type Fetcher,
 } from "../src/server/api.server.js";
+import { requestURL } from "./fetch-stub.js";
 
 function client(fetcher: Fetcher) {
   return createApiClient({ baseUrl: "http://api:8080", fetcher });
@@ -90,7 +91,7 @@ test("follow and unfollow use exact Go endpoints with server-derived cookies", a
       cache: init?.cache,
       cookie: new Headers(init?.headers).get("cookie"),
       method: init?.method,
-      url: String(input),
+      url: requestURL(input),
     });
     return new Response(null, { status: 204 });
   });

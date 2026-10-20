@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import { test } from "vite-plus/test";
 import {
   changeEmailOperation,
   changePasswordOperation,
@@ -11,6 +11,7 @@ import {
   validateChangePasswordInput,
 } from "../src/features/account-slice/security.js";
 import { createApiClient, type Fetcher } from "../src/server/api.server.js";
+import { bodyText, requestURL } from "./fetch-stub.js";
 
 function client(fetcher: Fetcher) {
   return createApiClient({ baseUrl: "http://api:8080", fetcher });
@@ -80,11 +81,11 @@ test("changes send the session cookie to the right endpoint and land on a notice
   const calls: Array<{ path: string; cookie: string | null; body: unknown }> =
     [];
   const api = client(async (input, init) => {
-    const path = new URL(String(input)).pathname;
+    const path = new URL(requestURL(input)).pathname;
     calls.push({
       path,
       cookie: new Headers(init?.headers).get("cookie"),
-      body: JSON.parse(String(init?.body)),
+      body: JSON.parse(bodyText(init)),
     });
     return path === "/me/password"
       ? new Response(null, { status: 204 })
@@ -222,7 +223,7 @@ test("confirming a new email sends only the token, never a session", async () =>
       api: client(async (_input, init) => {
         sent.push({
           cookie: new Headers(init?.headers).get("cookie"),
-          body: JSON.parse(String(init?.body)),
+          body: JSON.parse(bodyText(init)),
         });
         return Response.json({ status: "email_changed" });
       }),

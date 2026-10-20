@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { generateKeyPairSync, createSign } from "node:crypto";
-import test, { beforeEach } from "node:test";
+import { beforeEach, test } from "vite-plus/test";
 import {
   AccessAssertionError,
   clearAccessKeyCache,

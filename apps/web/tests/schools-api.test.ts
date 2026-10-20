@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createServer, type Server } from "node:http";
-import test from "node:test";
+import { test } from "vite-plus/test";
 import {
   schoolsApiResponse,
   schoolsMethodNotAllowedResponse,
@@ -10,6 +10,7 @@ import {
   type ApiClient,
   type Fetcher,
 } from "../src/server/api.server.js";
+import { requestURL } from "./fetch-stub.js";
 
 const school = {
   id: "school-1",
@@ -28,7 +29,7 @@ function client(fetcher: Fetcher): ApiClient {
 test("school API validates and clamps its query over real HTTP", async () => {
   let upstreamURL = "";
   const api = client(async (input) => {
-    upstreamURL = String(input);
+    upstreamURL = requestURL(input);
     return Response.json({
       schools: [{ ...school, private_note: "strip-me" }],
       limit: 50,

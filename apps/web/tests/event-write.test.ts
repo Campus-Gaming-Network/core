@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import { test } from "vite-plus/test";
 import {
   validateCreateEventServerInput,
   validateEventInterestServerInput,
@@ -19,6 +19,7 @@ import {
   updateEventOperation,
 } from "../src/features/event-slice/event-operations.server.js";
 import { createApiClient, type Fetcher } from "../src/server/api.server.js";
+import { bodyText, requestURL } from "./fetch-stub.js";
 
 const school = {
   id: "school-1",
@@ -278,7 +279,8 @@ test("new-event page data enforces auth then loads default profile and catalogs"
     {
       api: client(async (input, init) => {
         const path =
-          new URL(String(input)).pathname + new URL(String(input)).search;
+          new URL(requestURL(input)).pathname +
+          new URL(requestURL(input)).search;
         calls.push({ path, cookie: new Headers(init?.headers).get("cookie") });
         if (path === "/me") {
           return Response.json({
@@ -356,7 +358,7 @@ test("new-event catalogs keep school failure inline and make game failure fatal"
     { schoolQuery: "Example" },
     {
       api: client(async (input) => {
-        const path = new URL(String(input)).pathname;
+        const path = new URL(requestURL(input)).pathname;
         if (path === "/me") {
           return Response.json({
             id: "viewer-1",
@@ -386,7 +388,7 @@ test("new-event catalogs keep school failure inline and make game failure fatal"
     { schoolQuery: "" },
     {
       api: client(async (input) =>
-        new URL(String(input)).pathname === "/me"
+        new URL(requestURL(input)).pathname === "/me"
           ? Response.json({
               id: "viewer-1",
               home_school_id: school.id,
@@ -414,7 +416,7 @@ test("edit page distinguishes missing, locked, forbidden, and editable events", 
       { slug: "campus/tournament", schoolQuery: "" },
       {
         api: client(async (input) => {
-          const path = new URL(String(input)).pathname;
+          const path = new URL(requestURL(input)).pathname;
           calls.push(path);
           if (path === "/me") {
             return Response.json({
@@ -488,11 +490,11 @@ test("event writes forward exact auth, method, payload, and safe returned DTOs",
     [];
   const api = client(async (input, init) => {
     requests.push({
-      path: new URL(String(input)).pathname,
+      path: new URL(requestURL(input)).pathname,
       init,
-      body: init?.body ? JSON.parse(String(init.body)) : undefined,
+      body: init?.body ? JSON.parse(bodyText(init)) : undefined,
     });
-    const path = new URL(String(input)).pathname;
+    const path = new URL(requestURL(input)).pathname;
     if (path.endsWith("/report")) return Response.json({ id: "report-1" });
     if (init?.method === "DELETE" && !path.endsWith("/interest")) {
       return new Response(null, { status: 204 });

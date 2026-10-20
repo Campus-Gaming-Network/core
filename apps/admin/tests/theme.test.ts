@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import { test } from "vite-plus/test";
 import { themeFromCookie } from "../src/features/theme.js";
 
 test("the persisted Admin Console theme accepts only exact theme values", () => {

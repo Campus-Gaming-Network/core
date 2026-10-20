@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import { test } from "vite-plus/test";
 import {
   catalogGameSearchApiResponse,
   loadGameFilterChoices,
 } from "../src/features/game-picker/game-filter.server.js";
 import { createApiClient, type Fetcher } from "../src/server/api.server.js";
+import { requestURL } from "./fetch-stub.js";
 
 const game = {
   id: "game-1",
@@ -20,7 +21,7 @@ function client(fetcher: Fetcher) {
 test("game filter choices name the chosen game and search by query", async () => {
   const requested: string[] = [];
   const api = client(async (input) => {
-    const url = String(input);
+    const url = requestURL(input);
     requested.push(url);
     return url.includes("?q=")
       ? Response.json({ games: [game] })

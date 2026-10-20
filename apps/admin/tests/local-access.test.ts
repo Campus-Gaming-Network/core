@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import { test } from "vite-plus/test";
 import { validateAccessAssertion } from "../src/server/access-assertion.server.js";
 import type { AdminEnvironment } from "../src/server/environment.server.js";
 import {

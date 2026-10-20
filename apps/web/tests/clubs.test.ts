@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import { test } from "vite-plus/test";
 import {
   clubDetailOperation,
   schoolClubsOperation,
@@ -9,6 +9,7 @@ import {
   clubManagedBy,
 } from "../src/features/club-slice/presentation.js";
 import { createApiClient, type Fetcher } from "../src/server/api.server.js";
+import { requestURL } from "./fetch-stub.js";
 
 function client(fetcher: Fetcher) {
   return createApiClient({ baseUrl: "http://api:8080", fetcher });
@@ -39,7 +40,7 @@ test("a club page reads one club, and a hidden or missing club is not found", as
     { slug: "esports/program" },
     {
       api: client(async (input) => {
-        requested.push(String(input));
+        requested.push(requestURL(input));
         return Response.json({ ...club, internal_note: "strip" });
       }),
     },
@@ -100,7 +101,7 @@ test("a school page lists its clubs, and a failure leaves the page up", async ()
     { slug: "club/university" },
     {
       api: client(async (input) => {
-        requested.push(String(input));
+        requested.push(requestURL(input));
         return Response.json({
           clubs: [
             {

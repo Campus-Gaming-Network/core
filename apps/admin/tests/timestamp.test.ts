@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import { test } from "vite-plus/test";
 import { formatTimestamp } from "../src/components/format-timestamp.js";
 
 test("a timestamp reads in the admin's time zone and names the zone", () => {

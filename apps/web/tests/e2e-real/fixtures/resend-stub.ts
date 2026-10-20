@@ -48,10 +48,10 @@ const server = createServer(async (request, response) => {
     const id = `stub-message-${messages.length + 1}`;
     messages.push({
       id,
-      from: String(payload.from ?? ""),
+      from: typeof payload.from === "string" ? payload.from : "",
       to: payload.to.map(String),
       subject: payload.subject,
-      html: String(payload.html ?? ""),
+      html: typeof payload.html === "string" ? payload.html : "",
       attachments: Array.isArray(payload.attachments)
         ? payload.attachments
         : [],

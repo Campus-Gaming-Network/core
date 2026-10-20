@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import { test } from "vite-plus/test";
 import { createApiClient, type Fetcher } from "../src/server/api.server.js";
 import {
   publicProfileDtoSchema,
@@ -18,6 +18,7 @@ import {
   userInitials,
   verificationLabel,
 } from "../src/features/public-profile/presentation.js";
+import { bodyText, requestURL } from "./fetch-stub.js";
 
 const idempotencyKey = "5b0e7f5c-3f4d-4d8e-9a71-6c2b1e0f9d34";
 const publicProfile = {
@@ -68,7 +69,7 @@ test("public profile is a no-store public allowlist and skips /me without the co
     { id: "user/e2e" },
     {
       api: client(async (input, init) => {
-        calls.push({ init, url: String(input) });
+        calls.push({ init, url: requestURL(input) });
         return Response.json(publicProfile);
       }),
       cookieHeader: "unrelated=present",
@@ -124,9 +125,9 @@ test("viewer lookup forwards only server-side cookie state and serializes only t
     { id: "user/e2e" },
     {
       api: client(async (input, init) => {
-        calls.push({ init, url: String(input) });
+        calls.push({ init, url: requestURL(input) });
         return Response.json(
-          String(input).endsWith("/me") ? viewerProfile : publicProfile,
+          requestURL(input).endsWith("/me") ? viewerProfile : publicProfile,
         );
       }),
       cookieHeader: "cgn_session=server-only-value; unrelated=present",
@@ -158,7 +159,7 @@ test("viewer relationship identifies self without serializing a second profile",
     {
       api: client(async (input) =>
         Response.json(
-          String(input).endsWith("/me")
+          requestURL(input).endsWith("/me")
             ? { ...viewerProfile, id: "user/e2e" }
             : publicProfile,
         ),
@@ -184,7 +185,7 @@ test("an upstream 401 is the only viewer failure treated as anonymous", async ()
     { id: "user/e2e" },
     {
       api: client(async (input) =>
-        String(input).endsWith("/me")
+        requestURL(input).endsWith("/me")
           ? Response.json({ error: "authentication_required" }, { status: 401 })
           : Response.json(publicProfile),
       ),
@@ -241,7 +242,7 @@ test("viewer outages and response-contract failures are generic errors, never an
     { id: "user/e2e" },
     {
       api: client(async (input) =>
-        String(input).endsWith("/me")
+        requestURL(input).endsWith("/me")
           ? Response.json(
               { error: "sensitive_upstream_detail" },
               { status: 503 },
@@ -375,11 +376,11 @@ test("report-user mutation encodes its target and forwards only server-derived a
     {
       api: client(async (input, init) => {
         request = {
-          body: JSON.parse(String(init?.body)),
+          body: JSON.parse(bodyText(init)),
           cookie: new Headers(init?.headers).get("cookie"),
           idempotencyKey: new Headers(init?.headers).get("idempotency-key"),
           method: init?.method,
-          url: String(input),
+          url: requestURL(input),
         };
         return Response.json({
           id: "report-1",

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import { test } from "vite-plus/test";
 import {
   validateSupportSearch,
   validateSupportTicketServerInput,
@@ -11,6 +11,7 @@ import {
   proxySecretHeader,
   visitorIPHeader,
 } from "../src/server/visitor-identity.server.js";
+import { bodyText, requestURL } from "./fetch-stub.js";
 
 const validInput = {
   contact_email: "player@example.test",
@@ -70,11 +71,11 @@ test("support validation returns bounded accessible errors without echoing PII",
 });
 
 test("support operation works anonymously and strips its upstream response", async () => {
-  let requestURL = "";
+  let sentURL = "";
   let requestInit: RequestInit | undefined;
   const result = await submitSupportTicketOperation(validInput, {
     api: client(async (input, init) => {
-      requestURL = String(input);
+      sentURL = requestURL(input);
       requestInit = init;
       return Response.json(
         {
@@ -89,7 +90,7 @@ test("support operation works anonymously and strips its upstream response", asy
     cookieHeader: "",
   });
 
-  assert.equal(requestURL, "http://api:8080/support-tickets");
+  assert.equal(sentURL, "http://api:8080/support-tickets");
   assert.equal(requestInit?.method, "POST");
   assert.equal(requestInit?.cache, "no-store");
   assert.equal(new Headers(requestInit?.headers).get("cookie"), null);
@@ -98,7 +99,7 @@ test("support operation works anonymously and strips its upstream response", asy
     new Headers(requestInit?.headers).get("idempotency-key"),
     idempotencyKey,
   );
-  assert.deepEqual(JSON.parse(String(requestInit?.body)), ticket);
+  assert.deepEqual(JSON.parse(bodyText(requestInit)), ticket);
   assert.deepEqual(result, {
     status: "success",
     message: "Support ticket submitted. We will review it soon.",

@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import { test } from "vite-plus/test";
 import { dataExportResponse } from "../src/features/account-slice/data-export.server.js";
 import { validateSupportSearch } from "../src/features/support-slice/contracts.js";
 import { createApiClient, type Fetcher } from "../src/server/api.server.js";
+import { bodyText, requestURL } from "./fetch-stub.js";
 
 const origin = "https://cgn.example";
 const exported = {
@@ -63,9 +64,9 @@ test("the download sends the password to the API and saves its answer as a dated
     [];
   const result = await respond(exportRequest(), async (input, init) => {
     calls.push({
-      body: JSON.parse(String(init?.body)),
+      body: JSON.parse(bodyText(init)),
       cookie: new Headers(init?.headers).get("cookie"),
-      url: String(input),
+      url: requestURL(input),
     });
     return Response.json({ ...exported, internal_note: "strip" });
   });

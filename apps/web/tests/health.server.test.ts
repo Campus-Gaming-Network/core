@@ -1,14 +1,15 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import { test } from "vite-plus/test";
 
 import { apiHealthResponse } from "../src/server/health.server.js";
+import { requestURL } from "./fetch-stub.js";
 
 test("health route preserves the healthy public response contract", async () => {
   let requestedURL = "";
   const response = await apiHealthResponse({
     apiBaseURL: "http://api.internal",
     fetcher: async (input) => {
-      requestedURL = String(input);
+      requestedURL = requestURL(input);
       return Response.json({
         service: "campus-gaming-network-api",
         status: "ok",

@@ -7,7 +7,6 @@
 .pnpm-store
 **/.next
 **/.output
-**/.test-build
 **/.vite
 **/node_modules
 **/tsconfig.tsbuildinfo

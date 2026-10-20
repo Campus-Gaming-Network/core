@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import { test } from "vite-plus/test";
 import { createApiClient, type Fetcher } from "../src/server/api.server.js";
 import {
   validateCreateTeamServerInput,
@@ -34,6 +34,7 @@ import {
   teamRoleLabel,
   teamsHead,
 } from "../src/features/team-slice/presentation.js";
+import { bodyText, requestURL } from "./fetch-stub.js";
 
 const idempotencyKey = "5b0e7f5c-3f4d-4d8e-9a71-6c2b1e0f9d34";
 const team = {
@@ -87,7 +88,7 @@ test("team browse preserves encoded filters/cursors, uses no-store, and strips p
     },
     {
       api: client(async (input, init) => {
-        const url = String(input);
+        const url = requestURL(input);
         calls.push({ init, url });
         return Response.json({
           teams: [team],
@@ -171,7 +172,7 @@ test("team browse page names the filtered school and game and loads their search
     },
     {
       api: client(async (input) => {
-        const url = String(input);
+        const url = requestURL(input);
         calls.push(url);
         if (url === "http://api:8080/schools/example-university") {
           return Response.json({
@@ -242,7 +243,7 @@ test("team browse page treats an unknown school or game as unnamed and reports f
     },
     {
       api: client(async (input) => {
-        const url = String(input);
+        const url = requestURL(input);
         if (url.includes("/schools/")) {
           return Response.json({ error: "school_not_found" }, { status: 404 });
         }
@@ -479,7 +480,7 @@ test("new team page requires a server-derived session and bounds its catalog DTO
     { schoolQuery: "Example / University" },
     {
       api: client(async (input, init) => {
-        const url = String(input);
+        const url = requestURL(input);
         calls.push({ init, url });
         if (url.endsWith("/me")) return Response.json(profile);
         if (url.endsWith("/games")) {
@@ -549,7 +550,7 @@ test("new team page skips catalogs without a session and degrades school search 
     { schoolQuery: "Example" },
     {
       api: client(async (input) => {
-        const url = String(input);
+        const url = requestURL(input);
         if (url.endsWith("/me")) return Response.json(profile);
         if (url.endsWith("/games")) return Response.json({ games: [] });
         return Response.json({ error: "sensitive_detail" }, { status: 503 });
@@ -647,10 +648,10 @@ test("team mutations use exact Go endpoints, request cookies, and minimal respon
     url: string;
   }> = [];
   const api = client(async (input, init) => {
-    const url = String(input);
+    const url = requestURL(input);
     if (url.endsWith("/me")) return Response.json(profile);
     calls.push({
-      body: init?.body ? JSON.parse(String(init.body)) : undefined,
+      body: init?.body ? JSON.parse(bodyText(init)) : undefined,
       cookie: new Headers(init?.headers).get("cookie"),
       idempotencyKey: new Headers(init?.headers).get("idempotency-key"),
       method: init?.method,
@@ -765,7 +766,7 @@ test("team writes authorize independently and leave owner checks to Go", async (
     { slug: "team-a", new_owner_user_id: "forged-member" },
     {
       api: client(async (input) => {
-        const url = String(input);
+        const url = requestURL(input);
         if (url.endsWith("/me")) return Response.json(profile);
         forbiddenCalls.push(url);
         return Response.json(
@@ -833,7 +834,7 @@ test("an owner who tries to leave is told to transfer ownership first", async ()
     { slug: "team-a" },
     {
       api: client(async (input) =>
-        String(input).endsWith("/me")
+        requestURL(input).endsWith("/me")
           ? Response.json(profile)
           : Response.json(
               { error: "team_owner_cannot_leave" },

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import { test } from "vite-plus/test";
 import logoManifest from "../public/school-logos/manifest.json" with { type: "json" };
 import { withBundledSchoolLogo } from "../src/features/school-slice/school-logos.server.js";
 import {
@@ -28,6 +28,7 @@ import {
   createApiClient,
   type Fetcher,
 } from "../src/server/api.server.js";
+import { requestURL } from "./fetch-stub.js";
 
 const school = {
   id: "school-1",
@@ -86,7 +87,7 @@ test("home catalog loads the popular schools without the game catalog", async ()
   const requests: Array<{ path: string; cache?: RequestCache }> = [];
   const api = client(async (input, init) => {
     const path =
-      new URL(String(input)).pathname + new URL(String(input)).search;
+      new URL(requestURL(input)).pathname + new URL(requestURL(input)).search;
     requests.push({ path, cache: init?.cache });
     if (path === "/schools?sort=popular&limit=6") {
       return Response.json({
@@ -126,8 +127,8 @@ test("school browse builds encoded pagination requests and falls back to an empt
     { query: "Cal State", state: "CA", page: 3 },
     {
       api: client(async (input) => {
-        requested.push(String(input));
-        if (String(input).includes("/school-stats")) {
+        requested.push(requestURL(input));
+        if (requestURL(input).includes("/school-stats")) {
           return Response.json({ stats: [stats] });
         }
         return Response.json({
@@ -175,7 +176,7 @@ test("school counts that cannot be read leave the rows and the page without them
   const reported: unknown[] = [];
   const page = { schools: [school], limit: 25, offset: 0, has_more: false };
   const failingStats = client(async (input) =>
-    String(input).includes("/school-stats")
+    requestURL(input).includes("/school-stats")
       ? Response.json({ error: "school_stats_unavailable" }, { status: 500 })
       : Response.json(page),
   );
@@ -254,7 +255,7 @@ test("school detail strips additive data and distinguishes a true upstream 404",
     {
       api: client(async (input, init) => {
         assert.equal(
-          String(input),
+          requestURL(input),
           "http://api:8080/schools/example%20university",
         );
         assert.equal(new Headers(init?.headers).has("cookie"), false);
@@ -300,7 +301,7 @@ test("viewer follow state is request-scoped, minimal, and skips anonymous upstre
     { schoolId: school.id },
     {
       api: client(async (input, init) => {
-        const path = new URL(String(input)).pathname;
+        const path = new URL(requestURL(input)).pathname;
         calls.push({
           path,
           cache: init?.cache,
@@ -575,7 +576,7 @@ test("the home page advertises popular schools and falls back to the alphabetica
     cases.map(async ({ popular }) => {
       const requests: string[] = [];
       const api = client(async (input) => {
-        const path = String(input).replace("http://api:8080", "");
+        const path = requestURL(input).replace("http://api:8080", "");
         if (path.startsWith("/games")) return Response.json({ games: [] });
         requests.push(path);
         return path.includes("sort=popular") ? popular() : page([alphabetical]);
@@ -602,7 +603,7 @@ test("the home page advertises popular schools and falls back to the alphabetica
 test("the home page says schools are unavailable only when neither list can be read", async () => {
   const result = await homeCatalogOperation({
     api: client(async (input) =>
-      String(input).includes("/games")
+      requestURL(input).includes("/games")
         ? Response.json({ games: [] })
         : Response.json({ error: "schools_unavailable" }, { status: 503 }),
     ),
@@ -651,7 +652,7 @@ test("school summaries get a bundled logo by seed slug, except a wordmark", () =
 test("school filter choices name the chosen school and search by query", async () => {
   const requested: string[] = [];
   const api = client(async (input) => {
-    const url = String(input);
+    const url = requestURL(input);
     requested.push(url);
     return url.includes("?q=")
       ? Response.json({ schools: [school] })

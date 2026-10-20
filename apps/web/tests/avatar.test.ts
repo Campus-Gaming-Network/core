@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import { test } from "vite-plus/test";
 import { avatarResponse } from "../src/server/avatar.server.js";
 
 const userID = "5b0e7f5c-3f4d-4d8e-9a71-6c2b1e0f9d34";

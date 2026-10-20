@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import { test } from "vite-plus/test";
 import { describeTimeZone } from "../src/features/auth-flow-slice/timezone.js";
 
 test("describeTimeZone names a zone the way a person would", () => {

@@ -5,9 +5,7 @@
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "allowImportingTsExtensions": false,
-    "noEmit": false,
-    "outDir": ".test-build",
-    "rootDir": "."
+    "noEmit": true
   },
   "include": ["src/server/**/*.ts", "tests/**/*.ts"]
 }

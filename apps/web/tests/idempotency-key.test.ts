@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import { test } from "vite-plus/test";
 import { newIdempotencyKey } from "../src/components/idempotency-key.js";
 import {
   validateCreateEventServerInput,
@@ -16,6 +16,7 @@ import { submitSupportTicketOperation } from "../src/features/support-slice/supp
 import { validateCreateTeamServerInput } from "../src/features/team-slice/contracts.js";
 import { createTeamOperation } from "../src/features/team-slice/team-operations.server.js";
 import { createApiClient, type ApiClient } from "../src/server/api.server.js";
+import { bodyText, requestURL } from "./fetch-stub.js";
 
 type Validation =
   | { valid: true }
@@ -125,7 +126,7 @@ function recordingApi() {
   const api = createApiClient({
     baseUrl: "http://api:8080",
     fetcher: async (input, init) => {
-      const path = new URL(String(input)).pathname;
+      const path = new URL(requestURL(input)).pathname;
       if (path === "/me") {
         return Response.json({
           id: "viewer-1",
@@ -139,7 +140,7 @@ function recordingApi() {
       requests.push({
         path,
         idempotencyKey: new Headers(init?.headers).get("idempotency-key"),
-        bodyHasKey: "idempotency_key" in JSON.parse(String(init?.body)),
+        bodyHasKey: "idempotency_key" in JSON.parse(bodyText(init)),
       });
       return Response.json({ id: "record-1" }, { status: 201 });
     },

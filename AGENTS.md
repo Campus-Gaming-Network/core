@@ -31,9 +31,9 @@
 - After making any code changes, run `pnpm run fmt` before validation or
   committing. Use `pnpm run fmt:check` when a non-writing check is needed.
 - Do not format dependencies, generated sources, build artifacts, or test
-  output. Keep `.oxfmtrc.json` ignore patterns aligned with `.gitignore`,
-  including `node_modules`, generated `routeTree.gen.ts` files, build output,
-  coverage output, and Playwright artifacts.
+  output. Keep the `fmt.ignorePatterns` in the root `vite.config.ts` aligned
+  with `.gitignore`, including `node_modules`, generated `routeTree.gen.ts`
+  files, build output, coverage output, and Playwright artifacts.
 - For Go code, also run `pnpm run fmt:api` because Oxfmt does not format Go.
 
 ## TypeScript

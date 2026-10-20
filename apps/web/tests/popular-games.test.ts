@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import { test } from "vite-plus/test";
 import { createApiClient, type Fetcher } from "../src/server/api.server.js";
 import { popularGamesOperation } from "../src/features/popular-games/popular-games-operations.server.js";
+import { requestURL } from "./fetch-stub.js";
 
 function client(fetcher: Fetcher) {
   return createApiClient({ baseUrl: "http://api:8080", fetcher });
@@ -10,7 +11,7 @@ function client(fetcher: Fetcher) {
 test("popular games read the ranking overall and for one school", async () => {
   const urls: string[] = [];
   const api = client(async (input) => {
-    urls.push(String(input));
+    urls.push(requestURL(input));
     return Response.json({
       games: [
         {

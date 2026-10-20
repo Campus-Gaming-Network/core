@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { basename, join } from "node:path";
-import test from "node:test";
+import { test } from "vite-plus/test";
 import { policyDocument, validatePolicySearch } from "../src/policies/index.js";
 
 const currentDirectory = process.cwd();

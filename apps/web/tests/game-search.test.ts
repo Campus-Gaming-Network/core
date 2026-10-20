@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import { test } from "vite-plus/test";
 import { gameSearchApiResponse } from "../src/features/game-picker/game-search-api.server.js";
 import { ApiError, type ApiClient } from "../src/server/api.server.js";
 

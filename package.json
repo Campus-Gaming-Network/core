@@ -9,9 +9,9 @@
   "devDependencies": {
     "@playwright/test": "1.62.1",
     "@types/node": "24.13.3",
-    "oxfmt": "0.68.0",
     "typescript": "7.0.2",
-    "vue": "3.5.42"
+    "vue": "3.5.42",
+    "vite-plus": "catalog:"
   },
   "scripts": {
     "check:apps-compose": "node scripts/check_apps_compose.ts",
@@ -24,8 +24,8 @@
     "compose:up:admin": "node scripts/run_admin_dev.ts",
     "seed:demo": "docker compose --profile demo run --rm --build seed-demo",
     "seed:demo:reset": "docker compose --profile demo run --rm --build seed-demo cgn-seed -csv /data/schools_seed.csv -demo -demo-reset",
-    "fmt": "oxfmt .",
-    "fmt:check": "oxfmt --check .",
+    "fmt": "vp fmt .",
+    "fmt:check": "vp fmt --check .",
     "dev:docs": "pnpm --filter @campus-gaming-network/docs run start",
     "build:docs": "pnpm --filter @campus-gaming-network/docs run build",
     "serve:docs": "pnpm --filter @campus-gaming-network/docs run serve",

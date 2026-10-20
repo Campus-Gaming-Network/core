@@ -143,7 +143,7 @@ Each layer sets its headers once, as defaults a route can replace.
 - **Go API** (`withSecurityHeaders`): `Cache-Control: no-store`,
   `Content-Security-Policy: default-src 'none'; frame-ancestors 'none'`,
   `X-Content-Type-Options`, `X-Frame-Options`, and `Referrer-Policy:
-no-referrer` on every response. A handler that serves cacheable public data
+  no-referrer` on every response. A handler that serves cacheable public data
   or an image replaces `Cache-Control` or the policy itself.
 - `pnpm run smoke:web` asserts the web headers and the nonce on every script
   against the production build. The Admin Console's `security-headers`

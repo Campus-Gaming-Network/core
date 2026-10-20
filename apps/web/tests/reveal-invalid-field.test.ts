@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import { test } from "vite-plus/test";
 import { revealFirstInvalidField } from "../src/components/reveal-invalid-field.js";
 
 function control(name: string, valid: boolean, calls: string[]) {
