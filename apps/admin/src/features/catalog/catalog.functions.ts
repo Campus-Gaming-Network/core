@@ -21,7 +21,9 @@ import {
   type Validated,
 } from "./contracts.js";
 import {
+  getClubClaimDetailOperation,
   getClubDetailOperation,
+  listClubClaimsOperation,
   getGameDetailOperation,
   getNewClubSchoolOperation,
   listClubsOperation,
@@ -73,6 +75,18 @@ export const getSchoolDetail = createServerFn({ method: "GET" })
 export const getClubs = createServerFn({ method: "GET" })
   .validator(catalogBrowseInputSchema)
   .handler(({ data }) => listClubsOperation(data, currentAdminRequest(false)));
+
+export const getClubClaims = createServerFn({ method: "GET" })
+  .validator(catalogBrowseInputSchema)
+  .handler(({ data }) =>
+    listClubClaimsOperation(data, currentAdminRequest(false)),
+  );
+
+export const getClubClaimDetail = createServerFn({ method: "GET" })
+  .validator(catalogDetailInputSchema)
+  .handler(({ data }) =>
+    orNotFound(getClubClaimDetailOperation(data, currentAdminRequest(false))),
+  );
 
 export const getClubDetail = createServerFn({ method: "GET" })
   .validator(catalogDetailInputSchema)

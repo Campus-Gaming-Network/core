@@ -5,8 +5,12 @@ import {
   type ApiClient,
 } from "../../server/api.server.js";
 import {
+  adminClubClaimSchema,
   adminClubSchema,
+  catalogNotices,
+  clubClaimsPageSchema,
   clubsPageSchema,
+  type CatalogNotice,
   type ClubFormInput,
   type ClubLinksInput,
   adminGameSchema,
@@ -126,6 +130,43 @@ export async function getClubDetailOperation(
     }),
   ]);
   return { club: club.data, audit: audit.data };
+}
+
+/** One page of club claims, newest first, narrowed by status. */
+export async function listClubClaimsOperation(
+  search: CatalogSearch,
+  { api, cookieHeader }: ReadDependencies,
+) {
+  const query = new URLSearchParams({ limit: "25" });
+  if (search.state) query.set("status", search.state);
+  if (search.after) query.set("after", search.after);
+  if (search.before) query.set("before", search.before);
+  const { data } = await api({
+    path: `/admin/v1/club-claims?${query.toString()}`,
+    cookieHeader,
+    responseSchema: clubClaimsPageSchema,
+  });
+  return data;
+}
+
+export async function getClubClaimDetailOperation(
+  input: DetailInput,
+  { api, cookieHeader }: ReadDependencies,
+) {
+  const id = encodeURIComponent(input.id);
+  const [claim, audit] = await Promise.all([
+    api({
+      path: `/admin/v1/club-claims/${id}`,
+      cookieHeader,
+      responseSchema: adminClubClaimSchema,
+    }),
+    api({
+      path: `/admin/v1/club-claims/${id}/audit${auditQuery(input)}`,
+      cookieHeader,
+      responseSchema: catalogAuditPageSchema,
+    }),
+  ]);
+  return { claim: claim.data, audit: audit.data };
 }
 
 /** The school a new club is created under, by its ID. */
@@ -501,6 +542,28 @@ function commandRequest(input: CatalogCommandInput): {
   const club = `/admin/v1/clubs/${id}`;
 
   switch (input.command) {
+    case "club_claim.approve":
+    case "club_claim.reject": {
+      const claim = `/admin/v1/club-claims/${id}`;
+      return {
+        request: {
+          path: `${claim}/${input.command === "club_claim.approve" ? "approve" : "reject"}`,
+          method: "POST",
+          // A request names the club its approval creates.
+          body:
+            input.command === "club_claim.approve" && input.club_slug
+              ? {
+                  ...command,
+                  name: input.club_name,
+                  slug: input.club_slug,
+                  type: input.club_type,
+                }
+              : command,
+          responseSchema: adminClubClaimSchema,
+        },
+        reload: { path: claim },
+      };
+    }
     case "club.hide":
     case "club.unhide":
     case "club.check":
@@ -643,7 +706,16 @@ const errorMessages: Record<string, string> = {
     "This would remove the last active site admin. Grant another admin first.",
   admin_record_not_found: "That record no longer exists.",
   club_game_not_found: "A chosen game is no longer in the catalog.",
+  club_already_claimed: catalogNotices["club-already-claimed"].message,
+  club_claim_applicant_unavailable:
+    catalogNotices["applicant-unavailable"].message,
 };
+
+// Claim refusals a no-JavaScript form reports by name.
+const claimErrorNotices = {
+  club_already_claimed: "club-already-claimed",
+  club_claim_applicant_unavailable: "applicant-unavailable",
+} as const satisfies Record<string, CatalogNotice>;
 
 async function mutate<TSchema extends z.ZodType>(
   {
@@ -711,7 +783,9 @@ async function mutate<TSchema extends z.ZodType>(
         ? logoErrorNotices[error.code as keyof typeof logoErrorNotices]
         : Object.hasOwn(igdbErrorNotices, error.code)
           ? igdbErrorNotices[error.code as keyof typeof igdbErrorNotices]
-          : undefined;
+          : Object.hasOwn(claimErrorNotices, error.code)
+            ? claimErrorNotices[error.code as keyof typeof claimErrorNotices]
+            : undefined;
       return {
         status: "error",
         message: errorMessages[error.code],

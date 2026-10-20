@@ -284,6 +284,7 @@ func (r *Router) registerPublicRoutes() {
 	r.mux.HandleFunc("/events/", r.handleEventPath)
 	r.mux.HandleFunc("/clubs", requireMethod(http.MethodGet, r.handleClubs))
 	r.mux.HandleFunc("/clubs/{slug}", requireMethod(http.MethodGet, r.handleClub))
+	r.mux.HandleFunc("/clubs/{slug}/claims", requireMethod(http.MethodPost, r.handleClubClaim))
 	r.mux.HandleFunc("/teams", r.handleTeams)
 	r.mux.HandleFunc("/teams/", r.handleTeamPath)
 	r.mux.HandleFunc("/support-tickets", r.handleSupportTickets)
@@ -512,6 +513,15 @@ func (r *Router) handleSchoolPath(w http.ResponseWriter, req *http.Request) {
 			return
 		}
 		r.handleSchoolClubs(w, req, slug)
+		return
+	}
+
+	if len(parts) == 2 && parts[1] == "club-requests" {
+		slug, ok := pathSlug(w, parts[0], "invalid_school_slug")
+		if !ok {
+			return
+		}
+		r.handleClubRequest(w, req, slug)
 		return
 	}
 

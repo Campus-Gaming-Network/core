@@ -89,25 +89,30 @@ SiteAnnouncement ── global banner                        (later)
 
 ### Club
 
-| Field / concept | Notes                                                                                                    |
-| --------------- | -------------------------------------------------------------------------------------------------------- |
-| School          | **Required** — a club belongs to exactly one school                                                      |
-| Type            | `student_club` or `university_program`; neither implies university endorsement                           |
-| Name, slug      | Name need not be unique; slug is the URL identity                                                        |
-| Summary         | Short description of what the club is                                                                    |
-| How to join     | Optional plain text: the club's own process for becoming a member (form, tryout, meeting)                |
-| Games           | Any number                                                                                               |
-| Links           | Optional labeled links (website, Discord, social)                                                        |
-| Status          | `published` or `hidden`; a hidden club is absent everywhere and its page is a 404                        |
-| Claimed         | Unclaimed ("Maintained by Campus Gaming Network") until a site admin approves a claim                    |
-| Members         | Role `owner`, `editor`, or `member`                                                                      |
-| Last confirmed  | Date and source: the club (an owner or editor confirmed) or CGN (a site admin checked the public source) |
+| Field / concept | Notes                                                                                                                |
+| --------------- | -------------------------------------------------------------------------------------------------------------------- |
+| School          | **Required** — a club belongs to exactly one school                                                                  |
+| Type            | `student_club` or `university_program`; neither implies university endorsement                                       |
+| Name, slug      | Name need not be unique; slug is the URL identity                                                                    |
+| Summary         | Short description of what the club is                                                                                |
+| How to join     | Optional plain text: the club's own process for becoming a member (form, tryout, meeting)                            |
+| Games           | Any number                                                                                                           |
+| Links           | Optional labeled links (website, Discord, social)                                                                    |
+| Status          | `published` or `hidden`; a hidden club is absent everywhere and its page is a 404                                    |
+| Claimed         | Unclaimed ("Maintained by Campus Gaming Network") until a site admin approves a claim; claimed while it has an owner |
+| Claims          | Pending, approved, or rejected; a claim names the club, a request names the club it asks for                         |
+| Members         | Role `owner`, `editor`, or `member`                                                                                  |
+| Last confirmed  | Date and source: the club (an owner or editor confirmed) or CGN (a site admin checked the public source)             |
 
 **Rules**
 
-- Site admins create unclaimed clubs. A user claims an existing club or
-  requests a new one; site admins approve or reject each in the Admin Console.
-  Approval makes the applicant the owner, and for a request creates the club
+- Site admins create unclaimed clubs. A user with a verified email claims an
+  existing club or requests a new one, with evidence that they run it; site
+  admins approve or reject each in the Admin Console. Approval makes the
+  applicant the owner, and for a request creates the club. A user has at most
+  one pending claim per club; a club that has an owner takes no new claims,
+  and a competing claim on it is rejected. Rejection needs a review note. The
+  applicant is emailed either way
 - Owners and editors edit the profile and remove members; owners also manage
   editors and transfer ownership (accepted by the recipient). A claimed club
   always has at least one owner

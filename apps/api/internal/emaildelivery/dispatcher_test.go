@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/clubs"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/emailoutbox"
 	eventstore "github.com/Campus-Gaming-Network/core/apps/api/internal/events"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/mailhttp"
@@ -188,6 +189,50 @@ func TestDispatcherSendsTeamNoticesAndQuarantinesBadOnes(t *testing.T) {
 		}
 	}
 	if want := []string{"joined:player@example.com:night-owls", "transferred:player@example.com:night-owls"}; !reflect.DeepEqual(mailer.sent, want) {
+		t.Fatalf("sent = %v, want %v", mailer.sent, want)
+	}
+}
+
+type clubMailerStub struct {
+	// sent names each call as method:recipient:club name.
+	sent []string
+}
+
+func (m *clubMailerStub) SendClaimApproved(_ context.Context, recipient string, decision clubs.DecisionPayload, _ string) (string, error) {
+	m.sent = append(m.sent, "approved:"+recipient+":"+decision.ClubName)
+	return "provider-id", nil
+}
+
+func (m *clubMailerStub) SendClaimRejected(_ context.Context, recipient string, decision clubs.DecisionPayload, _ string) (string, error) {
+	m.sent = append(m.sent, "rejected:"+recipient+":"+decision.ClubName)
+	return "provider-id", nil
+}
+
+func TestDispatcherSendsClubClaimDecisionsAndQuarantinesBadOnes(t *testing.T) {
+	mailer := &clubMailerStub{}
+	dispatcher := &Dispatcher{Clubs: mailer}
+	send := func(kind string, payload string) error {
+		_, err := dispatcher.Send(t.Context(), emailoutbox.Message{
+			Kind: kind, Recipient: "officer@example.com", IdempotencyKey: "claim-key", Payload: json.RawMessage(payload),
+		})
+		return err
+	}
+	if err := send(emailoutbox.KindClubClaimApproved, `{"club_name":"Smash Club","school_name":"Fixture U","club_slug":"smash-club"}`); err != nil {
+		t.Fatalf("Send(approved) error = %v", err)
+	}
+	if err := send(emailoutbox.KindClubClaimRejected, `{"club_name":"Chess Club","school_name":"Fixture U","request":true}`); err != nil {
+		t.Fatalf("Send(rejected) error = %v", err)
+	}
+	for _, bad := range []struct{ kind, payload string }{
+		{emailoutbox.KindClubClaimApproved, `{"club_name":"Smash Club","school_name":"Fixture U"}`},
+		{emailoutbox.KindClubClaimRejected, `{"school_name":"Fixture U"}`},
+		{emailoutbox.KindClubClaimRejected, `null`},
+	} {
+		if err := send(bad.kind, bad.payload); !emailoutbox.IsPermanent(err) {
+			t.Fatalf("Send(%s, %s) error = %v, want permanent", bad.kind, bad.payload, err)
+		}
+	}
+	if want := []string{"approved:officer@example.com:Smash Club", "rejected:officer@example.com:Chess Club"}; !reflect.DeepEqual(mailer.sent, want) {
 		t.Fatalf("sent = %v, want %v", mailer.sent, want)
 	}
 }

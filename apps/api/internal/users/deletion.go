@@ -260,6 +260,11 @@ func (r *PostgresRepository) DeleteAccount(ctx context.Context, userID string) e
 	for _, statement := range []string{
 		`DELETE FROM team_members WHERE user_id = $1::uuid`,
 		`DELETE FROM event_organizers WHERE user_id = $1::uuid`,
+		// A club the account owned returns to unclaimed; its page stays up.
+		`DELETE FROM club_members WHERE user_id = $1::uuid`,
+		// Claims hold the applicant's evidence. Their decisions stay in the
+		// audit history.
+		`DELETE FROM club_claims WHERE applicant_user_id = $1::uuid`,
 		// Administrative grants are revoked rather than deleted so their
 		// audited history stays addressable.
 		`UPDATE school_admins SET deleted_at = NOW() WHERE user_id = $1::uuid AND deleted_at IS NULL`,

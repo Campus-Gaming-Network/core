@@ -489,7 +489,8 @@
     background: var(--tag-blue-bg);
   }
 
-  .queue-status--in_review {
+  .queue-status--in_review,
+  .record-state--pending {
     border-color: var(--tag-amber-border);
     color: var(--tag-amber-text);
     background: var(--tag-amber-bg);
@@ -497,14 +498,16 @@
 
   .queue-status--resolved,
   .record-state--active,
-  .record-state--published {
+  .record-state--published,
+  .record-state--approved {
     border-color: var(--tag-green-border);
     color: var(--tag-green-text);
     background: var(--tag-green-bg);
   }
 
   .record-state--suspended,
-  .record-state--deleted {
+  .record-state--deleted,
+  .record-state--rejected {
     border-color: var(--tag-red-border);
     color: var(--tag-red-text);
     background: var(--tag-red-bg);
@@ -1136,17 +1139,20 @@
   .queue-status--resolved,
   .record-state--active,
   .record-state--published,
+  .record-state--approved,
   .notice--success {
     border-width: 2px;
   }
 
   .queue-status--in_review,
+  .record-state--pending,
   .conflict-panel {
     border-style: dashed;
   }
 
   .record-state--suspended,
   .record-state--deleted,
+  .record-state--rejected,
   .notice--error {
     border-width: 3px;
     border-style: double;

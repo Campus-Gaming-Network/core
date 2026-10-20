@@ -77,6 +77,9 @@ func (handler *Handler) operationHandler(operation routeOperation, entityID stri
 		if strings.HasPrefix(string(operation), "clubs.") {
 			return handler.clubsHandler(operation, entityID)
 		}
+		if strings.HasPrefix(string(operation), "club_claims.") {
+			return handler.clubClaimsHandler(operation, entityID)
+		}
 		return handler.catalogHandler(operation, entityID)
 	}
 }

@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/auth"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/clubs"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/emailoutbox"
 	eventstore "github.com/Campus-Gaming-Network/core/apps/api/internal/events"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/mailhttp"
@@ -20,6 +21,7 @@ type Dispatcher struct {
 	Account auth.Mailer
 	Events  eventstore.RSVPMailer
 	Teams   teamstore.Mailer
+	Clubs   clubs.Mailer
 }
 
 type tokenPayload struct {
@@ -107,6 +109,22 @@ func (d *Dispatcher) Send(ctx context.Context, message emailoutbox.Message) (str
 		send := d.Teams.SendMemberJoined
 		if message.Kind == emailoutbox.KindTeamOwnershipTransferred {
 			send = d.Teams.SendOwnershipTransferred
+		}
+		providerID, err := send(ctx, message.Recipient, payload, message.IdempotencyKey)
+		return providerID, classifyProviderError(err)
+	case emailoutbox.KindClubClaimApproved, emailoutbox.KindClubClaimRejected:
+		var payload clubs.DecisionPayload
+		if json.Unmarshal(message.Payload, &payload) != nil || strings.TrimSpace(payload.ClubName) == "" ||
+			strings.TrimSpace(payload.SchoolName) == "" ||
+			(message.Kind == emailoutbox.KindClubClaimApproved && strings.TrimSpace(payload.ClubSlug) == "") {
+			return "", emailoutbox.Permanent(errors.New("invalid club claim email payload"))
+		}
+		if d.Clubs == nil {
+			return "", errors.New("club mailer unavailable")
+		}
+		send := d.Clubs.SendClaimRejected
+		if message.Kind == emailoutbox.KindClubClaimApproved {
+			send = d.Clubs.SendClaimApproved
 		}
 		providerID, err := send(ctx, message.Recipient, payload, message.IdempotencyKey)
 		return providerID, classifyProviderError(err)

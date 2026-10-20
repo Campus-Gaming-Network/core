@@ -109,11 +109,13 @@ type Link struct {
 	URL   string `json:"url"`
 }
 
-// Repository reads public club records.
+// Repository reads public club records and takes claims and requests.
 type Repository interface {
 	GetBySlug(ctx context.Context, slug string) (Club, error)
 	ListBySchool(ctx context.Context, schoolSlug string) ([]ListItem, error)
 	List(ctx context.Context, params ListParams) ([]ListItem, error)
+	SubmitClaim(ctx context.Context, input ClaimInput) (ClaimReceipt, error)
+	SubmitRequest(ctx context.Context, input RequestInput) (ClaimReceipt, error)
 }
 
 // PostgresRepository reads clubs from Postgres.
@@ -128,6 +130,9 @@ func NewPostgresRepository(pool *pgxpool.Pool) *PostgresRepository {
 
 // publishedClub is the condition every public read applies.
 const publishedClub = `c.deleted_at IS NULL AND c.status = 'published'`
+
+// claimedColumn reports whether club c has an owner, which makes it claimed.
+const claimedColumn = `EXISTS (SELECT 1 FROM club_members m WHERE m.club_id = c.id AND m.role = 'owner')`
 
 // gameColumns aggregates a club's visible games, ordered by name.
 const gameColumns = `
@@ -167,7 +172,7 @@ func (r *PostgresRepository) getByCurrentSlug(ctx context.Context, slug string) 
 	var gameCovers []bool
 	err := r.pool.QueryRow(ctx, `
 		SELECT c.id::text, c.name, c.slug, c.type, c.summary, c.how_to_join,
-		       c.confirmed_at, c.confirmed_source,
+		       c.confirmed_at, c.confirmed_source, `+claimedColumn+`,
 		       s.id::text, s.name, s.slug, COALESCE(s.city, ''), COALESCE(s.state, ''),
 		       `+gameColumns+`
 		FROM clubs c
@@ -178,7 +183,7 @@ func (r *PostgresRepository) getByCurrentSlug(ctx context.Context, slug string) 
 		GROUP BY c.id, s.id
 	`, strings.TrimSpace(slug)).Scan(
 		&club.ID, &club.Name, &club.Slug, &club.Type, &club.Summary, &club.HowToJoin,
-		&club.ConfirmedAt, &confirmedSource,
+		&club.ConfirmedAt, &confirmedSource, &club.Claimed,
 		&club.School.ID, &club.School.Name, &club.School.Slug, &club.School.City, &club.School.State,
 		&gameIDs, &gameNames, &gameSlugs, &gameCovers,
 	)
@@ -234,7 +239,7 @@ func (r *PostgresRepository) ListBySchool(ctx context.Context, schoolSlug string
 	}
 
 	rows, err := r.pool.Query(ctx, `
-		SELECT c.id::text, c.name, c.slug, c.type, c.summary,
+		SELECT c.id::text, c.name, c.slug, c.type, c.summary, `+claimedColumn+`,
 		       `+gameColumns+`
 		FROM clubs c
 		LEFT JOIN club_games cg ON cg.club_id = c.id
@@ -252,7 +257,7 @@ func (r *PostgresRepository) ListBySchool(ctx context.Context, schoolSlug string
 		var item ListItem
 		var gameIDs, gameNames, gameSlugs []string
 		var gameCovers []bool
-		if err := rows.Scan(&item.ID, &item.Name, &item.Slug, &item.Type, &item.Summary,
+		if err := rows.Scan(&item.ID, &item.Name, &item.Slug, &item.Type, &item.Summary, &item.Claimed,
 			&gameIDs, &gameNames, &gameSlugs, &gameCovers); err != nil {
 			return nil, fmt.Errorf("scan school club: %w", err)
 		}
@@ -302,7 +307,7 @@ func (r *PostgresRepository) List(ctx context.Context, params ListParams) ([]Lis
 	arguments = append(arguments, params.Limit)
 
 	rows, err := r.pool.Query(ctx, `
-		SELECT c.id::text, c.name, c.slug, c.type, c.summary, LOWER(c.name),
+		SELECT c.id::text, c.name, c.slug, c.type, c.summary, `+claimedColumn+`, LOWER(c.name),
 		       s.id::text, s.name, s.slug, COALESCE(s.city, ''), COALESCE(s.state, ''),
 		       `+gameColumns+`
 		FROM clubs c
@@ -322,7 +327,7 @@ func (r *PostgresRepository) List(ctx context.Context, params ListParams) ([]Lis
 		var school SchoolSummary
 		var gameIDs, gameNames, gameSlugs []string
 		var gameCovers []bool
-		if err := rows.Scan(&item.ID, &item.Name, &item.Slug, &item.Type, &item.Summary, &item.SortKey,
+		if err := rows.Scan(&item.ID, &item.Name, &item.Slug, &item.Type, &item.Summary, &item.Claimed, &item.SortKey,
 			&school.ID, &school.Name, &school.Slug, &school.City, &school.State,
 			&gameIDs, &gameNames, &gameSlugs, &gameCovers); err != nil {
 			return nil, fmt.Errorf("scan club: %w", err)

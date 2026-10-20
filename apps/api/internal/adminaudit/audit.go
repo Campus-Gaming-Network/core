@@ -50,6 +50,8 @@ const (
 	ActionClubHidden                   Action = "club.hidden"
 	ActionClubUnhidden                 Action = "club.unhidden"
 	ActionClubChecked                  Action = "club.checked"
+	ActionClubClaimApproved            Action = "club_claim.approved"
+	ActionClubClaimRejected            Action = "club_claim.rejected"
 )
 
 type EntityType string
@@ -63,6 +65,7 @@ const (
 	EntityUser          EntityType = "user"
 	EntitySchoolGrant   EntityType = "school_admin"
 	EntityClub          EntityType = "club"
+	EntityClubClaim     EntityType = "club_claim"
 )
 
 var (
@@ -139,6 +142,17 @@ type SchoolGrantState struct {
 }
 
 func (SchoolGrantState) auditState() {}
+
+// ClubClaimState is a claim's review state. The evidence, the applicant, and
+// the review note stay out of the audit; the note is the operator reason.
+type ClubClaimState struct {
+	Status string `json:"status"`
+	// ClubID is the claimed club, or the club an approved request created.
+	ClubID    *string   `json:"club_id"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+func (ClubClaimState) auditState() {}
 
 // Metadata is closed so queue text, request bodies, and arbitrary values
 // cannot be copied into durable audit history.
@@ -254,7 +268,7 @@ func (input WriteInput) validate() error {
 		}
 	}
 	if input.EntityType == EntitySchool || input.EntityType == EntityGame || input.EntityType == EntityUser || input.EntityType == EntitySchoolGrant ||
-		input.EntityType == EntityClub {
+		input.EntityType == EntityClub || input.EntityType == EntityClubClaim {
 		if input.Correlation.ActorUserID == "" || input.Correlation.AdminSessionID == "" || input.Correlation.RequestID == "" || strings.TrimSpace(input.Metadata.OperatorReason) == "" {
 			return ErrInvalidAudit
 		}
@@ -400,6 +414,8 @@ func validActionEntity(action Action, entityType EntityType) bool {
 		return entityType == EntitySchoolGrant
 	case ActionClubCreated, ActionClubUpdated, ActionClubLinksReplaced, ActionClubHidden, ActionClubUnhidden, ActionClubChecked:
 		return entityType == EntityClub
+	case ActionClubClaimApproved, ActionClubClaimRejected:
+		return entityType == EntityClubClaim
 	default:
 		return false
 	}
@@ -408,7 +424,7 @@ func validActionEntity(action Action, entityType EntityType) bool {
 func validEntityType(entityType EntityType) bool {
 	return entityType == EntityReport || entityType == EntitySupportTicket || entityType == EntitySiteRoleGrant ||
 		entityType == EntitySchool || entityType == EntityGame || entityType == EntityUser || entityType == EntitySchoolGrant ||
-		entityType == EntityClub
+		entityType == EntityClub || entityType == EntityClubClaim
 }
 
 func validState(entityType EntityType, state State, allowEmpty bool) bool {
@@ -424,6 +440,9 @@ func validState(entityType EntityType, state State, allowEmpty bool) bool {
 			(typed.VerificationLevel == "basic" || typed.VerificationLevel == "verified" || typed.VerificationLevel == "staff_faculty")
 	case SchoolGrantState:
 		return entityType == EntitySchoolGrant && validUUID(typed.SchoolID) && validUUID(typed.UserID) && !typed.UpdatedAt.IsZero()
+	case ClubClaimState:
+		return entityType == EntityClubClaim && (typed.Status == "pending" || typed.Status == "approved" || typed.Status == "rejected") &&
+			validOptionalUUIDPointer(typed.ClubID) && !typed.UpdatedAt.IsZero()
 	case QueueState:
 		return (entityType == EntityReport || entityType == EntitySupportTicket) &&
 			validQueueStatus(typed.Status) && validOptionalUUIDPointer(typed.AssignedToUserID)

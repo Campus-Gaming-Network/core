@@ -44,6 +44,11 @@ func TestExportHoldsEveryPartOfOneAccountAndNoOneElses(t *testing.T) {
 		 INSERT INTO user_games (user_id, game_id, list, position, created_at) SELECT $1::uuid, id, 'favorite', 0, $2 FROM game`,
 		`WITH team AS (INSERT INTO teams (owner_user_id, name, slug, password_hash) VALUES ($1::uuid, 'Knights', 'knights', 'hash') RETURNING id)
 		 INSERT INTO team_members (team_id, user_id, role, created_at) SELECT id, $1::uuid, 'owner', $2 FROM team`,
+		`WITH club AS (
+		   INSERT INTO clubs (school_id, name, slug, type) SELECT id, 'Chess Club', 'chess-club', 'student_club' FROM schools WHERE slug = 'home-u' RETURNING id, school_id),
+		 member AS (INSERT INTO club_members (club_id, user_id, role, created_at) SELECT id, $1::uuid, 'owner', $2 FROM club)
+		 INSERT INTO club_claims (club_id, school_id, applicant_user_id, evidence_text, evidence_url, created_at)
+		 SELECT id, school_id, $1::uuid, 'I am the president', 'https://home-u.example.test/chess', $2 FROM club`,
 		`WITH event AS (
 		   INSERT INTO events (creator_user_id, host_school_id, title, slug, description, visibility, format, starts_at, ends_at, timezone)
 		   SELECT $1::uuid, home_school_id, 'Chess Night', 'chess-night', '', 'public', 'online', $2, $2::timestamptz + INTERVAL '1 hour', 'UTC'
@@ -110,6 +115,11 @@ func TestExportHoldsEveryPartOfOneAccountAndNoOneElses(t *testing.T) {
 		"site_roles":         []any{map[string]any{"role": "site_admin", "granted_at": at, "revoked_at": nil}},
 		"game_lists":         []any{map[string]any{"list": "favorite", "position": float64(0), "game_name": "Chess", "game_slug": "chess", "added_at": at}},
 		"teams":              []any{map[string]any{"name": "Knights", "slug": "knights", "role": "owner", "joined_at": at}},
+		"clubs":              []any{map[string]any{"name": "Chess Club", "slug": "chess-club", "role": "owner", "joined_at": at}},
+		"club_claims": []any{map[string]any{
+			"club_name": "Chess Club", "school_name": "Home U", "kind": "claim", "evidence_text": "I am the president",
+			"evidence_url": "https://home-u.example.test/chess", "status": "pending", "created_at": at, "reviewed_at": nil,
+		}},
 		"events_organized": []any{map[string]any{
 			"title": "Chess Night", "slug": "chess-night", "role": "creator", "visibility": "public",
 			"starts_at": at, "ends_at": "2026-10-01T13:00:00+00:00", "organizer_since": at, "cancelled_at": nil,

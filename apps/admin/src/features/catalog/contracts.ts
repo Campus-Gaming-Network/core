@@ -148,6 +148,8 @@ export const catalogAuditEntrySchema = z
       "club.hidden",
       "club.unhidden",
       "club.checked",
+      "club_claim.approved",
+      "club_claim.rejected",
     ]),
     before: z.unknown(),
     after: z.unknown(),
@@ -235,6 +237,8 @@ export const adminClubSchema = z.object({
   ),
   // True for a published club, so the shared state badge reads it.
   is_active: z.boolean(),
+  // True once an officer's claim made someone the club's owner.
+  claimed: z.boolean(),
   confirmed_at: timestampSchema.nullable(),
   confirmed_source: z.enum(["club", "cgn"]).nullable(),
   created_at: timestampSchema,
@@ -244,6 +248,47 @@ export const adminClubSchema = z.object({
 
 export const clubsPageSchema = z.object({
   clubs: z.array(adminClubSchema),
+  ...pageCursorsSchema,
+});
+
+export const clubClaimStatuses = ["pending", "approved", "rejected"] as const;
+
+const clubClaimSummarySchema = z.object({
+  id: uuidSchema,
+  // A claim on a listed club, or a request for a new one.
+  kind: z.enum(["claim", "request"]),
+  club_id: uuidSchema.nullable(),
+  // The club's current name, or the name a request asked for.
+  club_name: z.string().max(120),
+  school: z.object({
+    id: uuidSchema,
+    name: z.string().max(300),
+    slug: z.string().max(120),
+  }),
+  applicant_user_id: uuidSchema,
+  applicant_name: z.string().max(200),
+  status: z.enum(clubClaimStatuses),
+  created_at: timestampSchema,
+  updated_at: timestampSchema,
+});
+
+export const adminClubClaimSchema = clubClaimSummarySchema.extend({
+  requested_name: z.string().max(120).nullable(),
+  requested_type: z.enum(clubTypes).nullable(),
+  club_slug: z.string().max(120).nullable(),
+  club_claimed: z.boolean(),
+  applicant_email: z.string().max(320),
+  evidence_text: z.string().max(2000),
+  evidence_url: z.string().max(500),
+  reviewer_user_id: uuidSchema.nullable(),
+  reviewer_name: z.string().max(200).nullable(),
+  review_note: z.string().max(1000).nullable(),
+  reviewed_at: timestampSchema.nullable(),
+  other_pending_claims: z.array(clubClaimSummarySchema),
+});
+
+export const clubClaimsPageSchema = z.object({
+  claims: z.array(clubClaimSummarySchema),
   ...pageCursorsSchema,
 });
 
@@ -274,6 +319,8 @@ export const catalogAuditPageSchema = z.object({
 
 export type AdminSchool = z.output<typeof adminSchoolSchema>;
 export type AdminClub = z.output<typeof adminClubSchema>;
+export type ClubClaimSummary = z.output<typeof clubClaimSummarySchema>;
+export type AdminClubClaim = z.output<typeof adminClubClaimSchema>;
 export type AdminGame = z.output<typeof adminGameSchema>;
 export type AdminUser = z.output<typeof adminUserSchema>;
 export type SchoolGrant = z.output<typeof schoolGrantSchema>;
@@ -288,6 +335,7 @@ export const catalogListKinds = {
   schools: ["active", "inactive", "deleted"],
   games: ["active", "inactive", "deleted"],
   users: ["active", "suspended", "deleted"],
+  club_claims: clubClaimStatuses,
   "site-admins": ["active", "revoked"],
   // A club is published (active) or hidden (inactive).
   clubs: ["active", "inactive"],
@@ -496,6 +544,24 @@ export const catalogNotices = {
   "club-checked": {
     message: "Marked as checked by Campus Gaming Network today.",
     severity: "success",
+  },
+  "claim-approved": {
+    message: "Claim approved. The applicant owns the club and was emailed.",
+    severity: "success",
+  },
+  "claim-rejected": {
+    message: "Claim rejected. The applicant was emailed.",
+    severity: "success",
+  },
+  "club-already-claimed": {
+    message:
+      "The club already has an owner, so this claim cannot be approved. Reject it instead.",
+    severity: "danger",
+  },
+  "applicant-unavailable": {
+    message:
+      "The applicant's account is suspended, deleted, or unverified, so it cannot own a club.",
+    severity: "danger",
   },
   deactivated: { message: "School deactivated.", severity: "success" },
   reactivated: { message: "Reactivated.", severity: "success" },
@@ -951,6 +1017,16 @@ export const catalogCommands = {
   "club.hide": { confirm: true, stepUp: false, notice: "club-hidden" },
   "club.unhide": { confirm: false, stepUp: false, notice: "club-published" },
   "club.check": { confirm: false, stepUp: false, notice: "club-checked" },
+  "club_claim.approve": {
+    confirm: false,
+    stepUp: false,
+    notice: "claim-approved",
+  },
+  "club_claim.reject": {
+    confirm: false,
+    stepUp: false,
+    notice: "claim-rejected",
+  },
 } as const satisfies Record<
   string,
   { confirm: boolean; stepUp: boolean; notice: CatalogNotice }
@@ -971,6 +1047,14 @@ const catalogCommandSchema = z
     user_email: z.union([z.email().max(320), z.literal("")]),
     expected_updated_at: z.union([timestampSchema, z.literal("")]),
     staff_faculty: z.enum(["true", "false", ""]),
+    // The club an approved request creates.
+    club_name: z
+      .string()
+      .trim()
+      .max(120, "Keep the name to 120 characters.")
+      .optional(),
+    club_slug: z.union([slugSchema, z.literal("")]).optional(),
+    club_type: z.union([z.enum(clubTypes), z.literal("")]).optional(),
     confirmed: z.boolean(),
     reason: reasonSchema,
   })
@@ -1018,6 +1102,26 @@ const catalogCommandSchema = z
         message: "Reload the page and try again.",
       });
     }
+    const newClub = [
+      input.club_name ?? "",
+      input.club_slug ?? "",
+      input.club_type ?? "",
+    ];
+    if (
+      input.command === "club_claim.approve" &&
+      newClub.some((value) => value !== "") &&
+      newClub.some((value) => value === "")
+    ) {
+      for (const [index, path, message] of [
+        [0, "club_name", "Enter the club's name."],
+        [1, "club_slug", "Enter the club's page address."],
+        [2, "club_type", "Choose the club's type."],
+      ] as const) {
+        if (newClub[index] === "") {
+          context.addIssue({ code: "custom", path: [path], message });
+        }
+      }
+    }
     if (input.command === "user.trust" && input.staff_faculty === "") {
       context.addIssue({
         code: "custom",
@@ -1047,13 +1151,15 @@ export function catalogCommandPage(
   }
   const collection = command.startsWith("school")
     ? "schools"
-    : command.startsWith("club")
-      ? "clubs"
-      : command.startsWith("game")
-        ? "games"
-        : command.startsWith("user")
-          ? "users"
-          : undefined;
+    : command.startsWith("club_claim")
+      ? "club-claims"
+      : command.startsWith("club")
+        ? "clubs"
+        : command.startsWith("game")
+          ? "games"
+          : command.startsWith("user")
+            ? "users"
+            : undefined;
   if (!collection) return "/";
   return uuidPattern.test(id) ? `/${collection}/${id}` : `/${collection}`;
 }
@@ -1070,6 +1176,9 @@ export function validateCatalogCommandInput(
     user_email: inputValue(input, "user_email").trim().toLowerCase(),
     expected_updated_at: inputValue(input, "expected_updated_at"),
     staff_faculty: inputValue(input, "staff_faculty"),
+    club_name: inputValue(input, "club_name"),
+    club_slug: inputValue(input, "club_slug"),
+    club_type: inputValue(input, "club_type"),
     confirmed: checkboxValue(input, "confirmed"),
     reason: inputValue(input, "reason"),
   });

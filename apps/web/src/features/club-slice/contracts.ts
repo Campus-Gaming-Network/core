@@ -210,3 +210,171 @@ function tolerantSearchValue(value: unknown, maximumLength: number): string {
   const normalized = candidate.trim();
   return normalized.length <= maximumLength ? normalized : "";
 }
+
+function requiredText(label: string, maximum: number) {
+  return z
+    .string()
+    .trim()
+    .min(1, `${label} is required.`)
+    .max(maximum, `${label} must be ${maximum} characters or fewer.`);
+}
+
+/** How an applicant shows they run the club; the API checks the same rules. */
+const claimEvidenceSchema = z.object({
+  evidence_text: requiredText("Evidence", 2000),
+  evidence_url: z
+    .string()
+    .trim()
+    .max(500, "The link must be 500 characters or fewer.")
+    .refine(
+      (value) => value === "" || /^https?:\/\/[^\s/]+/i.test(value),
+      "Enter a link that starts with http:// or https://.",
+    ),
+});
+
+export const clubClaimInputSchema = claimEvidenceSchema.extend({
+  slug: identifierSchema,
+});
+
+export const clubRequestInputSchema = claimEvidenceSchema.extend({
+  school_slug: identifierSchema,
+  name: requiredText("Club name", 120),
+  type: z.enum(clubTypeSchema.options, "Choose a club type."),
+});
+
+export const claimReceiptDtoSchema = z.object({ status: z.literal("pending") });
+
+export type ClubClaimInput = z.output<typeof clubClaimInputSchema>;
+export type ClubRequestInput = z.output<typeof clubRequestInputSchema>;
+export type ClaimFieldErrors = Record<string, string[] | undefined>;
+
+/**
+ * How a claim or request ended. A native form post returns to its page with
+ * this in the query string; an enhanced one shows the failures in place.
+ */
+export const claimOutcomes = [
+  "submitted",
+  "failed",
+  "pending",
+  "claimed",
+  "listed",
+] as const;
+export type ClaimOutcome = (typeof claimOutcomes)[number];
+
+/** What each failed outcome tells the applicant. */
+export const claimFailureMessages: Record<
+  Exclude<ClaimOutcome, "submitted">,
+  string
+> = {
+  failed: "We could not send that. Please try again.",
+  pending:
+    "You already asked about this club. A site admin will review it and email you.",
+  claimed:
+    "This club is already managed by its officers. If you run it and cannot reach them, contact support.",
+  listed:
+    "A club with that name is already listed at this school. Open its page and claim it instead.",
+};
+
+export type ClaimSubmitResult =
+  | { status: "success"; redirectTo: string }
+  | {
+      status: "error";
+      outcome: Exclude<ClaimOutcome, "submitted">;
+      message: string;
+      fieldErrors?: ClaimFieldErrors;
+    };
+
+export type Validated<T> =
+  | { valid: true; value: T }
+  | {
+      valid: false;
+      /** Where a native post returns: the form's page, when it is known. */
+      page: string;
+      message: "Check the highlighted fields and try again.";
+      fieldErrors: ClaimFieldErrors;
+    };
+
+export function validateClubClaimServerInput(
+  input: FormData | object,
+): Validated<ClubClaimInput> {
+  const slug = inputValue(input, "slug");
+  return validated(
+    clubClaimInputSchema.safeParse({
+      slug,
+      evidence_text: inputValue(input, "evidence_text"),
+      evidence_url: inputValue(input, "evidence_url"),
+    }),
+    clubClaimPage(slug),
+  );
+}
+
+export function validateClubRequestServerInput(
+  input: FormData | object,
+): Validated<ClubRequestInput> {
+  const schoolSlug = inputValue(input, "school_slug");
+  return validated(
+    clubRequestInputSchema.safeParse({
+      school_slug: schoolSlug,
+      name: inputValue(input, "name"),
+      type: inputValue(input, "type"),
+      evidence_text: inputValue(input, "evidence_text"),
+      evidence_url: inputValue(input, "evidence_url"),
+    }),
+    clubRequestPage(schoolSlug),
+  );
+}
+
+/** The claim form's page; an unusable slug falls back to the directory. */
+export function clubClaimPage(slug: string): string {
+  return identifierSchema.safeParse(slug).success
+    ? `/clubs/${encodeURIComponent(slug)}/claim`
+    : "/clubs";
+}
+
+/** The request form's page; an unusable slug falls back to the directory. */
+export function clubRequestPage(schoolSlug: string): string {
+  return identifierSchema.safeParse(schoolSlug).success
+    ? `/schools/${encodeURIComponent(schoolSlug)}/request-club`
+    : "/clubs";
+}
+
+export type ClaimSearch = { claim?: ClaimOutcome };
+
+export function validateClaimSearch(
+  search: Record<string, unknown>,
+): ClaimSearch {
+  const value = Array.isArray(search.claim) ? search.claim[0] : search.claim;
+  return claimOutcomes.includes(value as ClaimOutcome)
+    ? { claim: value as ClaimOutcome }
+    : {};
+}
+
+function validated<T>(
+  parsed: { success: true; data: T } | { success: false; error: z.ZodError },
+  page: string,
+): Validated<T> {
+  if (parsed.success) return { valid: true, value: parsed.data };
+  const fieldErrors: ClaimFieldErrors = {};
+  for (const issue of parsed.error.issues) {
+    const field = typeof issue.path[0] === "string" ? issue.path[0] : "_form";
+    const messages = fieldErrors[field] ?? [];
+    if (!messages.includes(issue.message)) messages.push(issue.message);
+    fieldErrors[field] = messages;
+  }
+  return {
+    valid: false,
+    page,
+    message: "Check the highlighted fields and try again.",
+    fieldErrors,
+  };
+}
+
+function inputValue(input: FormData | object, name: string): string {
+  const value =
+    input instanceof FormData
+      ? input.get(name)
+      : name in input
+        ? Reflect.get(input, name)
+        : undefined;
+  return typeof value === "string" ? value.trim() : "";
+}

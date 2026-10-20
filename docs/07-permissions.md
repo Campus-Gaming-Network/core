@@ -161,7 +161,10 @@ The two past-event rows are the intended rule; neither is enforced yet, so organ
   **requests** a new one. Site admins review each; a school admin is not
   needed, and a school email alone is not evidence of running a club. Approval
   makes the applicant the owner. Evidence, the applicant's email, and review
-  notes never appear publicly
+  notes never appear publicly. Claims are reviewed in the Admin Console under
+  `clubs.read` (queue and detail) and `clubs.manage` (approve and reject); a
+  claim on a club that already has an owner is not approved, and disputes go
+  through support. Claims and club requests share a per-account rate limit
 - **Owners** and **editors** edit the club profile and remove members.
   **Owners** also invite and remove editors and transfer ownership; a transfer
   takes effect when the recipient accepts, and the previous owner becomes an

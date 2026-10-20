@@ -53,11 +53,13 @@ function SupportPage() {
         </Callout>
       ) : search.topic === "club" ? (
         <Callout>
-          <strong>Adding or claiming a club.</strong> Tell us the club&apos;s
-          name and school, and whether you want it added or you run it. Link to
-          its page on your school&apos;s website or give an officer contact we
-          can check; a school email address alone does not show that you run a
-          club.
+          <strong>A club you run.</strong> To claim a listed club, use Claim
+          this club on its page; to add one, use Request a club on your
+          school&apos;s page. Write here when a claim was not approved or
+          someone else manages your club&apos;s page. Tell us the club&apos;s
+          name and school, and link to its page on your school&apos;s website or
+          give an officer contact we can check; a school email address alone
+          does not show that you run a club.
         </Callout>
       ) : null}
       <SupportTicketForm

@@ -89,7 +89,9 @@ function ClubDetailPage() {
               : "None"}
           </DetailFact>
           <DetailFact label="Page">
-            Maintained by Campus Gaming Network (unclaimed)
+            {club.claimed
+              ? "Managed by the club (claimed)"
+              : "Maintained by Campus Gaming Network (unclaimed)"}
           </DetailFact>
           <DetailFact label="Last checked">
             {club.confirmed_at ? (

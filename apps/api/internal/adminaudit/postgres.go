@@ -190,7 +190,7 @@ func (store *PostgresStore) ListLog(ctx context.Context, params LogParams) ([]Lo
 		           WHEN log.entity_type = 'school_admin' THEN school_admins.school_id
 		           ELSE log.entity_id
 		       END::text,
-		       COALESCE(target_users.name, schools.name, games.name, clubs.name)
+		       COALESCE(target_users.name, schools.name, games.name, clubs.name, claimed_clubs.name, club_claims.requested_name)
 		FROM (
 		    SELECT *
 		    FROM audit_logs
@@ -221,6 +221,10 @@ func (store *PostgresStore) ListLog(ctx context.Context, params LogParams) ([]Lo
 		    ON log.entity_type = 'game' AND games.id = log.entity_id
 		LEFT JOIN clubs
 		    ON log.entity_type = 'club' AND clubs.id = log.entity_id
+		LEFT JOIN club_claims
+		    ON log.entity_type = 'club_claim' AND club_claims.id = log.entity_id
+		LEFT JOIN clubs AS claimed_clubs
+		    ON claimed_clubs.id = club_claims.club_id
 		ORDER BY log.created_at DESC, log.id DESC
 	`, string(params.EntityType), cursorTime, cursorID, before, limit)
 	if err != nil {

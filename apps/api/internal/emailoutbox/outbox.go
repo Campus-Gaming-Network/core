@@ -34,6 +34,10 @@ const (
 	// KindTeamOwnershipTransferred tells a member the team is now theirs.
 	KindTeamMemberJoined         = "team_member_joined"
 	KindTeamOwnershipTransferred = "team_ownership_transferred"
+	// KindClubClaimApproved and KindClubClaimRejected tell an applicant how
+	// a site admin decided their club claim or request.
+	KindClubClaimApproved = "club_claim_approved"
+	KindClubClaimRejected = "club_claim_rejected"
 )
 
 const (

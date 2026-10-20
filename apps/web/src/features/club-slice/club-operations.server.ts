@@ -7,11 +7,18 @@ import { loadGameFilterChoices } from "../game-picker/game-filter.server.js";
 import { loadSchoolFilterChoices } from "../school-slice/school-filter.server.js";
 import { withBundledSchoolLogo } from "../school-slice/school-logos.server.js";
 import {
+  claimFailureMessages,
+  claimReceiptDtoSchema,
+  clubClaimPage,
   clubDtoSchema,
+  clubRequestPage,
   clubsPageSize,
   clubsResponseDtoSchema,
   schoolClubsResponseDtoSchema,
+  type ClaimSubmitResult,
+  type ClubClaimInput,
   type ClubDetailResult,
+  type ClubRequestInput,
   type ClubsBrowsePageInput,
   type ClubsBrowsePageResult,
   type SchoolClubsResult,
@@ -121,6 +128,82 @@ export async function clubsBrowsePageOperation(
     loadGameFilterChoices(api, { game: input.game, gameQuery }, reportError),
   ]);
   return { ...list, ...schoolFilter, ...gameFilter };
+}
+
+type SessionDependencies = PublicDependencies & { cookieHeader: string };
+
+/** Sends a claim on a listed club for site admins to review. */
+export async function submitClubClaimOperation(
+  { slug, ...evidence }: ClubClaimInput,
+  {
+    api,
+    cookieHeader,
+    reportError = defaultErrorReporter,
+  }: SessionDependencies,
+): Promise<ClaimSubmitResult> {
+  const page = clubClaimPage(slug);
+  try {
+    await api({
+      path: `/clubs/${encodeURIComponent(slug)}/claims`,
+      method: "POST",
+      cookieHeader,
+      body: evidence,
+      responseSchema: claimReceiptDtoSchema,
+    });
+    return { status: "success", redirectTo: `${page}?claim=submitted` };
+  } catch (error) {
+    reportError(error);
+    return claimFailure(error);
+  }
+}
+
+/** Sends a request for a club the school does not list yet. */
+export async function submitClubRequestOperation(
+  { school_slug, ...request }: ClubRequestInput,
+  {
+    api,
+    cookieHeader,
+    reportError = defaultErrorReporter,
+  }: SessionDependencies,
+): Promise<ClaimSubmitResult> {
+  const page = clubRequestPage(school_slug);
+  try {
+    await api({
+      path: `/schools/${encodeURIComponent(school_slug)}/club-requests`,
+      method: "POST",
+      cookieHeader,
+      body: request,
+      responseSchema: claimReceiptDtoSchema,
+    });
+    return { status: "success", redirectTo: `${page}?claim=submitted` };
+  } catch (error) {
+    reportError(error);
+    return claimFailure(error);
+  }
+}
+
+function claimFailure(error: unknown): ClaimSubmitResult {
+  const outcomes: Record<string, keyof typeof claimFailureMessages> = {
+    club_claim_pending: "pending",
+    club_already_claimed: "claimed",
+    club_already_listed: "listed",
+  };
+  const outcome =
+    error instanceof ApiError ? (outcomes[error.code] ?? "failed") : "failed";
+  const messages: Record<string, string> = {
+    authentication_required: "Sign in again, then send the form.",
+    email_verification_required:
+      "Verify your email address first, then send the form.",
+    rate_limited: "Too many attempts. Please try again later.",
+    invalid_request: "Check the form fields and try again.",
+  };
+  return {
+    status: "error",
+    outcome,
+    message:
+      (error instanceof ApiError ? messages[error.code] : undefined) ??
+      claimFailureMessages[outcome],
+  };
 }
 
 // Logs what failed without the response body, like the other slices.

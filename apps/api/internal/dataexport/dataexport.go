@@ -37,6 +37,8 @@ type Export struct {
 	SiteRoles         json.RawMessage `json:"site_roles"`
 	GameLists         json.RawMessage `json:"game_lists"`
 	Teams             json.RawMessage `json:"teams"`
+	Clubs             json.RawMessage `json:"clubs"`
+	ClubClaims        json.RawMessage `json:"club_claims"`
 	EventsOrganized   json.RawMessage `json:"events_organized"`
 	RSVPs             json.RawMessage `json:"rsvps"`
 	InterestedEvents  json.RawMessage `json:"interested_events"`
@@ -133,6 +135,25 @@ var sections = []section{
 			FROM team_members m JOIN teams t ON t.id = m.team_id
 			WHERE m.user_id = $1::uuid AND m.deleted_at IS NULL AND t.deleted_at IS NULL
 			ORDER BY m.created_at, t.slug`),
+	},
+	{
+		name:   "clubs",
+		target: func(e *Export) *json.RawMessage { return &e.Clubs },
+		query: list(`to_jsonb(entry)`, `
+			SELECT c.name, c.slug, m.role, m.created_at AS joined_at
+			FROM club_members m JOIN clubs c ON c.id = m.club_id
+			WHERE m.user_id = $1::uuid AND c.deleted_at IS NULL
+			ORDER BY m.created_at, c.slug`),
+	},
+	{
+		name:   "club claims",
+		target: func(e *Export) *json.RawMessage { return &e.ClubClaims },
+		query: list(`to_jsonb(entry)`, `
+			SELECT COALESCE(c.name, cc.requested_name) AS club_name, s.name AS school_name,
+			       CASE WHEN cc.requested_name IS NULL THEN 'claim' ELSE 'request' END AS kind,
+			       cc.evidence_text, cc.evidence_url, cc.status, cc.created_at, cc.reviewed_at
+			FROM club_claims cc JOIN schools s ON s.id = cc.school_id LEFT JOIN clubs c ON c.id = cc.club_id
+			WHERE cc.applicant_user_id = $1::uuid ORDER BY cc.created_at, cc.id`),
 	},
 	{
 		name:   "events organized",

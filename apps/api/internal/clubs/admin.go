@@ -37,21 +37,23 @@ type AdminFields struct {
 // IsActive is true for a published club, so the console's shared state badge
 // reads it like a school's.
 type AdminClub struct {
-	ID              string        `json:"id"`
-	Name            string        `json:"name"`
-	Slug            string        `json:"slug"`
-	Type            string        `json:"type"`
-	Summary         string        `json:"summary"`
-	HowToJoin       string        `json:"how_to_join"`
-	School          SchoolSummary `json:"school"`
-	Games           []GameSummary `json:"games"`
-	Links           []Link        `json:"links"`
-	IsActive        bool          `json:"is_active"`
-	ConfirmedAt     *time.Time    `json:"confirmed_at"`
-	ConfirmedSource *string       `json:"confirmed_source"`
-	CreatedAt       time.Time     `json:"created_at"`
-	UpdatedAt       time.Time     `json:"updated_at"`
-	DeletedAt       *time.Time    `json:"deleted_at"`
+	ID        string        `json:"id"`
+	Name      string        `json:"name"`
+	Slug      string        `json:"slug"`
+	Type      string        `json:"type"`
+	Summary   string        `json:"summary"`
+	HowToJoin string        `json:"how_to_join"`
+	School    SchoolSummary `json:"school"`
+	Games     []GameSummary `json:"games"`
+	Links     []Link        `json:"links"`
+	IsActive  bool          `json:"is_active"`
+	// Claimed reports whether the club has an owner.
+	Claimed         bool       `json:"claimed"`
+	ConfirmedAt     *time.Time `json:"confirmed_at"`
+	ConfirmedSource *string    `json:"confirmed_source"`
+	CreatedAt       time.Time  `json:"created_at"`
+	UpdatedAt       time.Time  `json:"updated_at"`
+	DeletedAt       *time.Time `json:"deleted_at"`
 }
 
 // AdminCreate creates a club under a school.
@@ -116,13 +118,13 @@ func validateLinks(links []Link) error {
 
 const adminClubColumns = `c.id::text, c.name, c.slug, c.type, c.summary, c.how_to_join,
 	s.id::text, s.name, s.slug, COALESCE(s.city, ''), COALESCE(s.state, ''),
-	c.status = 'published', c.confirmed_at, c.confirmed_source, c.created_at, c.updated_at, c.deleted_at`
+	c.status = 'published', ` + claimedColumn + `, c.confirmed_at, c.confirmed_source, c.created_at, c.updated_at, c.deleted_at`
 
 func scanAdminClub(row pgx.Row) (AdminClub, error) {
 	var club AdminClub
 	err := row.Scan(&club.ID, &club.Name, &club.Slug, &club.Type, &club.Summary, &club.HowToJoin,
 		&club.School.ID, &club.School.Name, &club.School.Slug, &club.School.City, &club.School.State,
-		&club.IsActive, &club.ConfirmedAt, &club.ConfirmedSource, &club.CreatedAt, &club.UpdatedAt, &club.DeletedAt)
+		&club.IsActive, &club.Claimed, &club.ConfirmedAt, &club.ConfirmedSource, &club.CreatedAt, &club.UpdatedAt, &club.DeletedAt)
 	return club, adminmutation.Error(err)
 }
 

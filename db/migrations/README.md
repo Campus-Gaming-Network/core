@@ -131,3 +131,10 @@ primary key. Apply it before deploying the API that serves
 Migration `000037_team_notice_emails.up.sql` adds the `team_member_joined`
 and `team_ownership_transferred` email kinds. Apply it before deploying the
 API that queues them, or team joins and ownership transfers fail.
+Migration `000038_club_claims.up.sql` adds `club_members`, the people with a
+role in a club (claims write owners), and `club_claims`, the claims on listed
+clubs and requests for new ones with their evidence and review, plus the
+`club_claim_approved` and `club_claim_rejected` email kinds. Apply it before
+deploying the API that serves `POST /clubs/{slug}/claims`,
+`POST /schools/{slug}/club-requests`, and `/admin/v1/club-claims`; the public
+club reads also join `club_members`.

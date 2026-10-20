@@ -4,9 +4,14 @@ import {
   clubDetailOperation,
   clubsBrowsePageOperation,
   schoolClubsOperation,
+  submitClubClaimOperation,
+  submitClubRequestOperation,
 } from "../src/features/club-slice/club-operations.server.js";
 import {
   clubsBrowsePageInput,
+  validateClaimSearch,
+  validateClubClaimServerInput,
+  validateClubRequestServerInput,
   validateClubsSearch,
 } from "../src/features/club-slice/contracts.js";
 import {
@@ -280,5 +285,174 @@ test("the clubs directory asks for one filtered page, and a failure leaves the p
       unavailable: [false, true],
       failedClubs: [],
     },
+  );
+});
+
+test("a claim and a request send the evidence with the session and return to their pages", async () => {
+  const sent: Array<{
+    url: string;
+    method?: string;
+    cookie: string | null;
+    body: unknown;
+  }> = [];
+  const api = client(async (input, init) => {
+    sent.push({
+      url: requestURL(input),
+      method: init?.method,
+      cookie: new Headers(init?.headers).get("cookie"),
+      body: JSON.parse(String(init?.body)),
+    });
+    return Response.json({ status: "pending" }, { status: 201 });
+  });
+  const dependencies = { api, cookieHeader: "session=abc" };
+
+  const claim = await submitClubClaimOperation(
+    {
+      slug: "smash/club",
+      evidence_text: "I am the president.",
+      evidence_url: "",
+    },
+    dependencies,
+  );
+  const request = await submitClubRequestOperation(
+    {
+      school_slug: "club-university",
+      name: "Chess Club",
+      type: "student_club",
+      evidence_text: "I am the treasurer.",
+      evidence_url: "https://club.example.edu/chess",
+    },
+    dependencies,
+  );
+
+  assert.deepEqual(
+    [claim, request],
+    [
+      {
+        status: "success",
+        redirectTo: "/clubs/smash%2Fclub/claim?claim=submitted",
+      },
+      {
+        status: "success",
+        redirectTo: "/schools/club-university/request-club?claim=submitted",
+      },
+    ],
+  );
+  assert.deepEqual(sent, [
+    {
+      url: "http://api:8080/clubs/smash%2Fclub/claims",
+      method: "POST",
+      cookie: "session=abc",
+      body: { evidence_text: "I am the president.", evidence_url: "" },
+    },
+    {
+      url: "http://api:8080/schools/club-university/club-requests",
+      method: "POST",
+      cookie: "session=abc",
+      body: {
+        name: "Chess Club",
+        type: "student_club",
+        evidence_text: "I am the treasurer.",
+        evidence_url: "https://club.example.edu/chess",
+      },
+    },
+  ]);
+});
+
+test("a refused claim names why, so a native post can return with the reason", async () => {
+  const refuse = (status: number, error: string) =>
+    submitClubClaimOperation(
+      { slug: "smash-club", evidence_text: "I run it.", evidence_url: "" },
+      {
+        api: client(async () => Response.json({ error }, { status })),
+        cookieHeader: "session=abc",
+        reportError: () => {},
+      },
+    );
+
+  assert.deepEqual(
+    await Promise.all([
+      refuse(409, "club_claim_pending"),
+      refuse(409, "club_already_claimed"),
+      refuse(409, "club_already_listed"),
+      refuse(403, "email_verification_required"),
+      refuse(500, "club_claim_failed"),
+    ]),
+    [
+      {
+        status: "error",
+        outcome: "pending",
+        message:
+          "You already asked about this club. A site admin will review it and email you.",
+      },
+      {
+        status: "error",
+        outcome: "claimed",
+        message:
+          "This club is already managed by its officers. If you run it and cannot reach them, contact support.",
+      },
+      {
+        status: "error",
+        outcome: "listed",
+        message:
+          "A club with that name is already listed at this school. Open its page and claim it instead.",
+      },
+      {
+        status: "error",
+        outcome: "failed",
+        message: "Verify your email address first, then send the form.",
+      },
+      {
+        status: "error",
+        outcome: "failed",
+        message: "We could not send that. Please try again.",
+      },
+    ],
+  );
+});
+
+test("claim and request forms are checked before they reach the API", () => {
+  const claim = new FormData();
+  claim.set("slug", "smash-club");
+  claim.set("evidence_text", "  ");
+  claim.set("evidence_url", "javascript:alert(1)");
+  const request = new FormData();
+  request.set("school_slug", "club-university");
+  request.set("name", " Chess Club ");
+  request.set("type", "guild");
+  request.set("evidence_text", "I am the treasurer.");
+
+  assert.deepEqual(validateClubClaimServerInput(claim), {
+    valid: false,
+    page: "/clubs/smash-club/claim",
+    message: "Check the highlighted fields and try again.",
+    fieldErrors: {
+      evidence_text: ["Evidence is required."],
+      evidence_url: ["Enter a link that starts with http:// or https://."],
+    },
+  });
+  assert.deepEqual(validateClubRequestServerInput(request), {
+    valid: false,
+    page: "/schools/club-university/request-club",
+    message: "Check the highlighted fields and try again.",
+    fieldErrors: { type: ["Choose a club type."] },
+  });
+  request.set("type", "university_program");
+  assert.deepEqual(validateClubRequestServerInput(request), {
+    valid: true,
+    value: {
+      school_slug: "club-university",
+      name: "Chess Club",
+      type: "university_program",
+      evidence_text: "I am the treasurer.",
+      evidence_url: "",
+    },
+  });
+  assert.deepEqual(
+    [
+      validateClaimSearch({ claim: "submitted" }),
+      validateClaimSearch({ claim: "approved" }),
+    ],
+    [{ claim: "submitted" }, {}],
   );
 });

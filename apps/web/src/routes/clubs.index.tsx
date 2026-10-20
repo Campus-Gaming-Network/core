@@ -154,18 +154,13 @@ function ClubsPage() {
 
       <Callout
         action={
-          <ButtonLink
-            variant="secondary"
-            to="/support"
-            search={{ topic: "club" }}
-          >
-            Add or claim a club
+          <ButtonLink variant="secondary" to="/schools">
+            Find your school
           </ButtonLink>
         }
       >
-        Run a gaming club or esports program? If it is missing, contact support
-        and we will add it. If you run a club listed here, let us know too;
-        officers will be able to manage their club&apos;s page soon.
+        Run a gaming club or esports program? Claim it from its page here. If it
+        is missing, request it from your school&apos;s page.
       </Callout>
 
       <NoScriptFilterSearch
@@ -332,12 +327,8 @@ function ClubsPage() {
                   </ButtonLink>
                 </>
               ) : (
-                <ButtonLink
-                  variant="primary"
-                  to="/support"
-                  search={{ topic: "club" }}
-                >
-                  Add or claim a club
+                <ButtonLink variant="primary" to="/schools">
+                  Request a club from your school&apos;s page
                 </ButtonLink>
               )}
             </div>

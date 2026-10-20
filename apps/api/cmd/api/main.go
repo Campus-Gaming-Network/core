@@ -13,6 +13,7 @@ import (
 
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminsecurity"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/auth"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/clubs"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/config"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/db"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/emaildelivery"
@@ -113,6 +114,11 @@ func run() int {
 				Client: mailClient, Logger: slog.Default(),
 			},
 			Teams: &teamstore.ResendMailer{
+				APIKey: cfg.ResendAPIKey, From: cfg.NotificationsEmailFrom,
+				Endpoint: cfg.ResendAPIURL, SiteURL: cfg.SiteURL,
+				Client: mailClient, Logger: slog.Default(),
+			},
+			Clubs: &clubs.ResendMailer{
 				APIKey: cfg.ResendAPIKey, From: cfg.NotificationsEmailFrom,
 				Endpoint: cfg.ResendAPIURL, SiteURL: cfg.SiteURL,
 				Client: mailClient, Logger: slog.Default(),

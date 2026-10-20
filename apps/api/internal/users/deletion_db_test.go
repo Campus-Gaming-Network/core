@@ -181,6 +181,14 @@ func TestDeleteAccountScrubsIdentifyingData(t *testing.T) {
 		VALUES ($1::uuid, 'scrub@example.test', '\xfd'::bytea, NOW() + INTERVAL '1 day')`, inviteEventID); err != nil {
 		t.Fatalf("insert organizer invite: %v", err)
 	}
+	if _, err := pool.Exec(ctx, `
+		WITH club AS (
+			INSERT INTO clubs (school_id, name, slug, type) VALUES ($2::uuid, 'Scrub Club', 'scrub-club', 'student_club') RETURNING id),
+		member AS (INSERT INTO club_members (club_id, user_id, role) SELECT id, $1::uuid, 'owner' FROM club)
+		INSERT INTO club_claims (club_id, school_id, applicant_user_id, evidence_text)
+		SELECT id, $2::uuid, $1::uuid, 'Personal evidence' FROM club`, userID, schoolID); err != nil {
+		t.Fatalf("insert club role and claim: %v", err)
+	}
 	if err := NewPostgresRepository(pool).DeleteAccount(ctx, userID); err != nil {
 		t.Fatalf("DeleteAccount() error = %v", err)
 	}
@@ -226,6 +234,8 @@ func TestDeleteAccountScrubsIdentifyingData(t *testing.T) {
 		{"school follows", `SELECT COUNT(*) FROM user_school_follows WHERE user_id = $1::uuid`},
 		{"profile game lists", `SELECT COUNT(*) FROM user_games WHERE user_id = $1::uuid`},
 		{"notifications", `SELECT COUNT(*) FROM notifications WHERE user_id = $1::uuid`},
+		{"club roles", `SELECT COUNT(*) FROM club_members WHERE user_id = $1::uuid`},
+		{"club claims", `SELECT COUNT(*) FROM club_claims WHERE applicant_user_id = $1::uuid`},
 		{"live sessions", `SELECT COUNT(*) FROM auth_sessions WHERE user_id = $1::uuid AND revoked_at IS NULL`},
 	} {
 		var count int

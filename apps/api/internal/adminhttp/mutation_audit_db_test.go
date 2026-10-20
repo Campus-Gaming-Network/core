@@ -248,6 +248,14 @@ var mutationCases = map[routeOperation]mutationCase{
 		club := f.newClub(t, "check-club")
 		return mutationRequest{"POST", "/admin/v1/clubs/" + club.ID + "/mark-checked", f.versioned(club.UpdatedAt)}
 	}},
+	"club_claims.approve": {adminaudit.ActionClubClaimApproved, func(t *testing.T, f catalogFixture) mutationRequest {
+		id, updatedAt := f.newClaim(t, "approve-claim-club", catalogTargetID)
+		return mutationRequest{"POST", "/admin/v1/club-claims/" + id + "/approve", clubs.ClaimApproval{Command: f.versioned(updatedAt)}}
+	}},
+	"club_claims.reject": {adminaudit.ActionClubClaimRejected, func(t *testing.T, f catalogFixture) mutationRequest {
+		id, updatedAt := f.newClaim(t, "reject-claim-club", catalogTargetID)
+		return mutationRequest{"POST", "/admin/v1/club-claims/" + id + "/reject", f.versioned(updatedAt)}
+	}},
 	operationPatchReport: {adminaudit.ActionReportUpdated, func(t *testing.T, f catalogFixture) mutationRequest {
 		id, updatedAt := f.insertQueueRow(t, "reports")
 		return mutationRequest{"PATCH", "/admin/v1/reports/" + id, map[string]any{"expected_updated_at": updatedAt, "status": "in_review"}}
@@ -281,7 +289,7 @@ func (f catalogFixture) send(t *testing.T, request mutationRequest) (*httptest.R
 func (f catalogFixture) domainDigest(t *testing.T) map[string]string {
 	t.Helper()
 	digests := map[string]string{}
-	for _, table := range []string{"schools", "games", "users", "reports", "support_tickets", "audit_logs", "site_role_grants", "school_admins", "clubs", "club_games", "club_links", "club_slug_redirects"} {
+	for _, table := range []string{"schools", "games", "users", "reports", "support_tickets", "audit_logs", "site_role_grants", "school_admins", "clubs", "club_games", "club_links", "club_slug_redirects", "club_members", "club_claims", "email_outbox"} {
 		var digest string
 		if err := f.pool.QueryRow(t.Context(), `SELECT MD5(COALESCE(STRING_AGG(row_data, '' ORDER BY row_data), '')) FROM (SELECT t::text AS row_data FROM `+table+` t) rows`).Scan(&digest); err != nil {
 			t.Fatal(err)

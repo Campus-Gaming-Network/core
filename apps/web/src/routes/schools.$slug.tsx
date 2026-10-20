@@ -380,10 +380,9 @@ function SchoolPage() {
             </>
           )}
 
-          {/* Clubs show on the overview once the school has any; a school
-              without clubs gets no empty panel. */}
-          {tab === undefined &&
-          (clubs.unavailable || clubs.clubs.length > 0) ? (
+          {/* Clubs show on the overview. A school without clubs keeps the
+              panel so officers can request theirs. */}
+          {tab === undefined ? (
             <section
               aria-labelledby="school-clubs-heading"
               className="panel panel--flush"
@@ -391,10 +390,21 @@ function SchoolPage() {
             >
               <div className="panel__header">
                 <h2 id="school-clubs-heading">Clubs at {school.name}</h2>
+                <Link
+                  to="/schools/$slug/request-club"
+                  params={{ slug: school.slug }}
+                >
+                  Request a club
+                </Link>
               </div>
               {clubs.unavailable ? (
                 <p className="panel__body muted">
                   Clubs are unavailable right now. Please check back soon.
+                </p>
+              ) : clubs.clubs.length === 0 ? (
+                <p className="panel__body muted">
+                  No clubs are listed yet. Run one? Request it, and it gets a
+                  page once we confirm you run it.
                 </p>
               ) : (
                 <div className="list directory-list school-page__rows">

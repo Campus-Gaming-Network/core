@@ -168,11 +168,15 @@ club on CGN, which lists them as members here.
   lists its clubs
 - **Directory:** `/clubs`, linked from the header, lists published clubs from
   every school by name, with a name search and school, type, and game filters.
-  It invites officers to ask for a missing club to be added or to claim one
-- **Until claims ship:** the directory and every unclaimed club's page point
-  officers to support (`/support?topic=club`), which starts a "Club request"
-  ticket asking for the club's name, school, and evidence they run it. Site
-  admins add missing clubs from it; claims themselves wait for the claim flow
+  It tells officers to claim a listed club from its page and to request a
+  missing one from their school's page
+- **Claim and request forms:** an unclaimed club's page links to "Claim this
+  club" (`/clubs/:slug/claim`); every school page's Clubs section links to
+  "Request a club" (`/schools/:slug/request-club`) and stays on the overview
+  even before the school has a club. Both forms need a signed-in, verified
+  account, ask how the applicant can be confirmed as an officer, and say that
+  a school email alone is not enough. Support (`/support?topic=club`) handles
+  rejected claims and disputes over a club someone else manages
 - **Profile:** name, URL slug, type, summary, games, **how to join**, and
   optional labeled links (website, Discord, social)
 - **How to join:** a short plain-text section, written by the club (or by CGN

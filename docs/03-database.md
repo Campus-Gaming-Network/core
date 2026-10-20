@@ -157,8 +157,25 @@ club_slug_redirects
   -- a renamed club's earlier slugs, so old links still reach it; a slug is in
   -- clubs.slug or here, never both
 
--- club_members (owner|editor|member) and club_claims arrive with #117, #118,
--- and #262
+club_members
+  club_id, user_id (primary key together), role (owner|editor|member),
+  created_at, updated_at
+  -- a club with an owner is claimed; claims write only owners until #118
+  -- (editors) and #262 (members); account deletion removes the rows, so a club
+  -- whose owner leaves returns to unclaimed
+
+club_claims
+  id, club_id nullable, school_id, requested_name nullable,
+  requested_type nullable (student_club|university_program),
+  applicant_user_id, evidence_text, evidence_url ('' or http/https),
+  status (pending|approved|rejected), reviewer_user_id nullable,
+  review_note nullable, reviewed_at nullable, created_at, updated_at
+  -- a claim names club_id; a request names requested_name and requested_type,
+  -- and approving it creates the club and sets club_id
+  -- one pending claim per user per club, and one pending request per user per
+  -- name at a school; a rejection needs a review note
+  -- evidence, review_note, and the applicant stay out of public responses;
+  -- account deletion removes the applicant's claims (decisions stay audited)
 ```
 
 ### Teams

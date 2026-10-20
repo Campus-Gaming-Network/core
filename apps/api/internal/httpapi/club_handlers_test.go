@@ -44,6 +44,19 @@ func (fakeClubs) List(_ context.Context, params clubs.ListParams) ([]clubs.ListI
 
 var listed []clubs.ListParams
 
+// SubmitClaim and SubmitRequest record what they were sent and accept it.
+func (fakeClubs) SubmitClaim(_ context.Context, input clubs.ClaimInput) (clubs.ClaimReceipt, error) {
+	submitted = append(submitted, input)
+	return clubs.ClaimReceipt{Status: clubs.ClaimPending}, nil
+}
+
+func (fakeClubs) SubmitRequest(_ context.Context, input clubs.RequestInput) (clubs.ClaimReceipt, error) {
+	submitted = append(submitted, input)
+	return clubs.ClaimReceipt{Status: clubs.ClaimPending}, nil
+}
+
+var submitted []any
+
 func TestClubRoutes(t *testing.T) {
 	router := &Router{mux: http.NewServeMux(), clubs: fakeClubs{}}
 	router.registerPublicRoutes()
@@ -89,5 +102,36 @@ func TestClubDirectoryPassesFiltersAndPages(t *testing.T) {
 	next := pagecursor.EncodeKey("esports program", "11111111-1111-1111-1111-111111111111")
 	if !strings.Contains(response.Body.String(), `"has_more":true`) || !strings.Contains(response.Body.String(), `"next_cursor":"`+next+`"`) {
 		t.Fatalf("GET /clubs?limit=1 = %s, want has_more and the first club's cursor", response.Body.String())
+	}
+}
+
+func TestClubClaimsNeedASignedInUser(t *testing.T) {
+	router := &Router{mux: http.NewServeMux(), clubs: fakeClubs{}}
+	router.registerPublicRoutes()
+	submitted = nil
+	handler := signedIn(router.mux.ServeHTTP)
+	for _, test := range []struct {
+		request *http.Request
+		status  int
+		body    string
+	}{
+		{httptest.NewRequest(http.MethodPost, "/clubs/esports-program/claims", strings.NewReader(`{"evidence_text":"I am the president"}`)), http.StatusUnauthorized, `{"error":"authentication_required"}`},
+		{httptest.NewRequest(http.MethodPost, "/schools/club-university/club-requests", strings.NewReader(`{"name":"Chess Club"}`)), http.StatusUnauthorized, `{"error":"authentication_required"}`},
+		{authenticatedEventRequest(http.MethodPost, "/clubs/esports-program/claims", `{"evidence_text":"I am the president","evidence_url":"https://example.edu/esports"}`), http.StatusCreated, `{"status":"pending"}`},
+		{authenticatedEventRequest(http.MethodPost, "/schools/club-university/club-requests", `{"name":"Chess Club","type":"student_club","evidence_text":"I am the treasurer"}`), http.StatusCreated, `{"status":"pending"}`},
+		{authenticatedEventRequest(http.MethodGet, "/schools/club-university/club-requests", ""), http.StatusMethodNotAllowed, ""},
+	} {
+		response := httptest.NewRecorder()
+		handler.ServeHTTP(response, test.request)
+		if response.Code != test.status || (test.body != "" && strings.TrimSpace(response.Body.String()) != test.body) {
+			t.Errorf("%s %s = %d %s, want %d %s", test.request.Method, test.request.URL.Path, response.Code, response.Body.String(), test.status, test.body)
+		}
+	}
+	want := []any{
+		clubs.ClaimInput{UserID: testUserID, ClubSlug: "esports-program", ClaimEvidence: clubs.ClaimEvidence{Text: "I am the president", URL: "https://example.edu/esports"}},
+		clubs.RequestInput{UserID: testUserID, SchoolSlug: "club-university", Name: "Chess Club", Type: clubs.TypeStudentClub, ClaimEvidence: clubs.ClaimEvidence{Text: "I am the treasurer"}},
+	}
+	if !reflect.DeepEqual(submitted, want) {
+		t.Fatalf("submitted = %+v, want %+v", submitted, want)
 	}
 }

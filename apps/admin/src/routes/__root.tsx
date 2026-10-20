@@ -107,6 +107,7 @@ const navigationSections: {
       | "/"
       | "/reports"
       | "/support-tickets"
+      | "/club-claims"
       | "/schools"
       | "/clubs"
       | "/games"
@@ -142,6 +143,12 @@ const navigationSections: {
         label: "Support tickets",
         icon: "M2.5 3.5h11v7.5H7L4 13.5V11H2.5z",
         capability: "support.read",
+      },
+      {
+        to: "/club-claims",
+        label: "Club claims",
+        icon: "M3 2.5h10v11H3zM5.5 8l1.75 1.75L10.5 6.5",
+        capability: "clubs.read",
       },
     ],
   },

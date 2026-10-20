@@ -84,6 +84,16 @@ function RecordLink({ entry }: { entry: AuditLogEntry }) {
           {label}
         </Link>
       );
+    case "club_claim":
+      return (
+        <Link
+          className="entity-link"
+          params={{ claimId: id }}
+          to="/club-claims/$claimId"
+        >
+          {label}
+        </Link>
+      );
   }
 }
 

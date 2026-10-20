@@ -58,9 +58,11 @@ import { Route as ApiAvatarsIdRouteImport } from './routes/api.avatars.$id'
 import { Route as ApiGamesCatalogSearchRouteImport } from './routes/api.games.catalog-search'
 import { Route as ApiGamesIgdbSearchRouteImport } from './routes/api.games.igdb-search'
 import { Route as ApiIgdbCoversImageIdRouteImport } from './routes/api.igdb-covers.$imageId'
+import { Route as ClubsSlugClaimRouteImport } from './routes/clubs.$slug_.claim'
 import { Route as EventsSlugEditRouteImport } from './routes/events.$slug_.edit'
 import { Route as EventsSlugPeopleRouteImport } from './routes/events.$slug_.people'
 import { Route as SchoolsSlugPeopleRouteImport } from './routes/schools.$slug_.people'
+import { Route as SchoolsSlugRequestClubRouteImport } from './routes/schools.$slug_.request-club'
 import { Route as TeamsSlugPeopleRouteImport } from './routes/teams.$slug_.people'
 import { Route as ApiEventsSlugCalendarDoticsRouteImport } from './routes/api.events.$slug.calendar[.]ics'
 import { Route as ApiGamesSlugCoverRouteImport } from './routes/api.games.$slug.cover'
@@ -310,6 +312,11 @@ const ApiIgdbCoversImageIdRoute = ApiIgdbCoversImageIdRouteImport.update({
   path: '/api/igdb-covers/$imageId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ClubsSlugClaimRoute = ClubsSlugClaimRouteImport.update({
+  id: '/clubs/$slug_/claim',
+  path: '/clubs/$slug/claim',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const EventsSlugEditRoute = EventsSlugEditRouteImport.update({
   id: '/$slug_/edit',
   path: '/$slug/edit',
@@ -323,6 +330,11 @@ const EventsSlugPeopleRoute = EventsSlugPeopleRouteImport.update({
 const SchoolsSlugPeopleRoute = SchoolsSlugPeopleRouteImport.update({
   id: '/$slug_/people',
   path: '/$slug/people',
+  getParentRoute: () => SchoolsRoute,
+} as any)
+const SchoolsSlugRequestClubRoute = SchoolsSlugRequestClubRouteImport.update({
+  id: '/$slug_/request-club',
+  path: '/$slug/request-club',
   getParentRoute: () => SchoolsRoute,
 } as any)
 const TeamsSlugPeopleRoute = TeamsSlugPeopleRouteImport.update({
@@ -392,9 +404,11 @@ export interface FileRoutesByFullPath {
   '/api/games/catalog-search': typeof ApiGamesCatalogSearchRoute
   '/api/games/igdb-search': typeof ApiGamesIgdbSearchRoute
   '/api/igdb-covers/$imageId': typeof ApiIgdbCoversImageIdRoute
+  '/clubs/$slug/claim': typeof ClubsSlugClaimRoute
   '/events/$slug/edit': typeof EventsSlugEditRoute
   '/events/$slug/people': typeof EventsSlugPeopleRoute
   '/schools/$slug/people': typeof SchoolsSlugPeopleRoute
+  '/schools/$slug/request-club': typeof SchoolsSlugRequestClubRoute
   '/teams/$slug/people': typeof TeamsSlugPeopleRoute
   '/api/events/$slug/calendar.ics': typeof ApiEventsSlugCalendarDoticsRoute
   '/api/games/$slug/cover': typeof ApiGamesSlugCoverRoute
@@ -445,9 +459,11 @@ export interface FileRoutesByTo {
   '/api/games/catalog-search': typeof ApiGamesCatalogSearchRoute
   '/api/games/igdb-search': typeof ApiGamesIgdbSearchRoute
   '/api/igdb-covers/$imageId': typeof ApiIgdbCoversImageIdRoute
+  '/clubs/$slug/claim': typeof ClubsSlugClaimRoute
   '/events/$slug/edit': typeof EventsSlugEditRoute
   '/events/$slug/people': typeof EventsSlugPeopleRoute
   '/schools/$slug/people': typeof SchoolsSlugPeopleRoute
+  '/schools/$slug/request-club': typeof SchoolsSlugRequestClubRoute
   '/teams/$slug/people': typeof TeamsSlugPeopleRoute
   '/api/events/$slug/calendar.ics': typeof ApiEventsSlugCalendarDoticsRoute
   '/api/games/$slug/cover': typeof ApiGamesSlugCoverRoute
@@ -503,9 +519,11 @@ export interface FileRoutesById {
   '/api/games/catalog-search': typeof ApiGamesCatalogSearchRoute
   '/api/games/igdb-search': typeof ApiGamesIgdbSearchRoute
   '/api/igdb-covers/$imageId': typeof ApiIgdbCoversImageIdRoute
+  '/clubs/$slug_/claim': typeof ClubsSlugClaimRoute
   '/events/$slug_/edit': typeof EventsSlugEditRoute
   '/events/$slug_/people': typeof EventsSlugPeopleRoute
   '/schools/$slug_/people': typeof SchoolsSlugPeopleRoute
+  '/schools/$slug_/request-club': typeof SchoolsSlugRequestClubRoute
   '/teams/$slug_/people': typeof TeamsSlugPeopleRoute
   '/api/events/$slug/calendar.ics': typeof ApiEventsSlugCalendarDoticsRoute
   '/api/games/$slug/cover': typeof ApiGamesSlugCoverRoute
@@ -562,9 +580,11 @@ export interface FileRouteTypes {
     | '/api/games/catalog-search'
     | '/api/games/igdb-search'
     | '/api/igdb-covers/$imageId'
+    | '/clubs/$slug/claim'
     | '/events/$slug/edit'
     | '/events/$slug/people'
     | '/schools/$slug/people'
+    | '/schools/$slug/request-club'
     | '/teams/$slug/people'
     | '/api/events/$slug/calendar.ics'
     | '/api/games/$slug/cover'
@@ -615,9 +635,11 @@ export interface FileRouteTypes {
     | '/api/games/catalog-search'
     | '/api/games/igdb-search'
     | '/api/igdb-covers/$imageId'
+    | '/clubs/$slug/claim'
     | '/events/$slug/edit'
     | '/events/$slug/people'
     | '/schools/$slug/people'
+    | '/schools/$slug/request-club'
     | '/teams/$slug/people'
     | '/api/events/$slug/calendar.ics'
     | '/api/games/$slug/cover'
@@ -672,9 +694,11 @@ export interface FileRouteTypes {
     | '/api/games/catalog-search'
     | '/api/games/igdb-search'
     | '/api/igdb-covers/$imageId'
+    | '/clubs/$slug_/claim'
     | '/events/$slug_/edit'
     | '/events/$slug_/people'
     | '/schools/$slug_/people'
+    | '/schools/$slug_/request-club'
     | '/teams/$slug_/people'
     | '/api/events/$slug/calendar.ics'
     | '/api/games/$slug/cover'
@@ -717,6 +741,7 @@ export interface RootRouteChildren {
   ApiGamesCatalogSearchRoute: typeof ApiGamesCatalogSearchRoute
   ApiGamesIgdbSearchRoute: typeof ApiGamesIgdbSearchRoute
   ApiIgdbCoversImageIdRoute: typeof ApiIgdbCoversImageIdRoute
+  ClubsSlugClaimRoute: typeof ClubsSlugClaimRoute
   ApiEventsSlugCalendarDoticsRoute: typeof ApiEventsSlugCalendarDoticsRoute
   ApiGamesSlugCoverRoute: typeof ApiGamesSlugCoverRoute
 }
@@ -1066,6 +1091,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiIgdbCoversImageIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/clubs/$slug_/claim': {
+      id: '/clubs/$slug_/claim'
+      path: '/clubs/$slug/claim'
+      fullPath: '/clubs/$slug/claim'
+      preLoaderRoute: typeof ClubsSlugClaimRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/events/$slug_/edit': {
       id: '/events/$slug_/edit'
       path: '/$slug/edit'
@@ -1085,6 +1117,13 @@ declare module '@tanstack/react-router' {
       path: '/$slug/people'
       fullPath: '/schools/$slug/people'
       preLoaderRoute: typeof SchoolsSlugPeopleRouteImport
+      parentRoute: typeof SchoolsRoute
+    }
+    '/schools/$slug_/request-club': {
+      id: '/schools/$slug_/request-club'
+      path: '/$slug/request-club'
+      fullPath: '/schools/$slug/request-club'
+      preLoaderRoute: typeof SchoolsSlugRequestClubRouteImport
       parentRoute: typeof SchoolsRoute
     }
     '/teams/$slug_/people': {
@@ -1134,12 +1173,14 @@ interface SchoolsRouteChildren {
   SchoolsSlugRoute: typeof SchoolsSlugRoute
   SchoolsIndexRoute: typeof SchoolsIndexRoute
   SchoolsSlugPeopleRoute: typeof SchoolsSlugPeopleRoute
+  SchoolsSlugRequestClubRoute: typeof SchoolsSlugRequestClubRoute
 }
 
 const SchoolsRouteChildren: SchoolsRouteChildren = {
   SchoolsSlugRoute: SchoolsSlugRoute,
   SchoolsIndexRoute: SchoolsIndexRoute,
   SchoolsSlugPeopleRoute: SchoolsSlugPeopleRoute,
+  SchoolsSlugRequestClubRoute: SchoolsSlugRequestClubRoute,
 }
 
 const SchoolsRouteWithChildren =
@@ -1218,6 +1259,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiGamesCatalogSearchRoute: ApiGamesCatalogSearchRoute,
   ApiGamesIgdbSearchRoute: ApiGamesIgdbSearchRoute,
   ApiIgdbCoversImageIdRoute: ApiIgdbCoversImageIdRoute,
+  ClubsSlugClaimRoute: ClubsSlugClaimRoute,
   ApiEventsSlugCalendarDoticsRoute: ApiEventsSlugCalendarDoticsRoute,
   ApiGamesSlugCoverRoute: ApiGamesSlugCoverRoute,
 }

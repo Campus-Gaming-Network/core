@@ -40,6 +40,8 @@ export const auditLogActionLabels = {
   "club.hidden": "Club hidden",
   "club.unhidden": "Club published again",
   "club.checked": "Club marked as checked",
+  "club_claim.approved": "Club claim approved",
+  "club_claim.rejected": "Club claim rejected",
 } as const;
 
 // The kinds of change the log can be narrowed to, by the Admin API's entity
@@ -52,6 +54,7 @@ export const auditLogEntityLabels = {
   game: "Games",
   user: "Accounts",
   club: "Clubs",
+  club_claim: "Club claims",
   site_role_grant: "Site-admin access",
 } as const;
 
@@ -77,6 +80,7 @@ export const auditLogEntrySchema = z
       "game",
       "user",
       "club",
+      "club_claim",
     ]),
     target_id: uuidSchema.optional(),
     target_name: z.string().optional(),

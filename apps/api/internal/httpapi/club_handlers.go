@@ -5,6 +5,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/auth"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/clubs"
 )
 
@@ -103,3 +104,74 @@ func (r *Router) handleClubs(w http.ResponseWriter, req *http.Request) {
 
 // maximumClubQueryLength bounds the directory's name search, in characters.
 const maximumClubQueryLength = 100
+
+type clubRequestRequest struct {
+	Name string `json:"name"`
+	Type string `json:"type"`
+	clubs.ClaimEvidence
+}
+
+// handleClubClaim answers POST /clubs/{slug}/claims: a signed-in officer
+// claims a published, unclaimed club for site admins to review.
+func (r *Router) handleClubClaim(w http.ResponseWriter, req *http.Request) {
+	userID, ok := r.clubClaimant(w, req)
+	if !ok {
+		return
+	}
+	var evidence clubs.ClaimEvidence
+	if !decodeJSON(w, req, &evidence) {
+		return
+	}
+	receipt, err := r.clubs.SubmitClaim(req.Context(), clubs.ClaimInput{
+		UserID: userID, ClubSlug: req.PathValue("slug"), ClaimEvidence: evidence,
+	})
+	if err != nil {
+		writeApplicationError(w, err, "club_claim_failed")
+		return
+	}
+	writeJSON(w, http.StatusCreated, receipt)
+}
+
+// handleClubRequest answers POST /schools/{slug}/club-requests: a signed-in
+// officer asks for a club the school does not list yet.
+func (r *Router) handleClubRequest(w http.ResponseWriter, req *http.Request, schoolSlug string) {
+	if req.Method != http.MethodPost {
+		methodNotAllowed(w, http.MethodPost)
+		return
+	}
+	userID, ok := r.clubClaimant(w, req)
+	if !ok {
+		return
+	}
+	var request clubRequestRequest
+	if !decodeJSON(w, req, &request) {
+		return
+	}
+	receipt, err := r.clubs.SubmitRequest(req.Context(), clubs.RequestInput{
+		UserID: userID, SchoolSlug: schoolSlug, Name: request.Name, Type: request.Type, ClaimEvidence: request.ClaimEvidence,
+	})
+	if err != nil {
+		writeApplicationError(w, err, "club_request_failed")
+		return
+	}
+	writeJSON(w, http.StatusCreated, receipt)
+}
+
+// clubClaimant returns the signed-in user, within the per-account limit that
+// claims and requests share.
+func (r *Router) clubClaimant(w http.ResponseWriter, req *http.Request) (string, bool) {
+	if r.clubs == nil {
+		writeError(w, http.StatusServiceUnavailable, "database_unavailable")
+		return "", false
+	}
+	userID, err := auth.RequireUser(req.Context())
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, "authentication_required")
+		return "", false
+	}
+	if !r.allowAccount("club-claim", userID) {
+		rateLimitExceeded(w, r)
+		return "", false
+	}
+	return userID, true
+}

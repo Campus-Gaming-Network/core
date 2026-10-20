@@ -448,24 +448,41 @@ applicable.
 
 ### Clubs
 
-| Method | Path                               | Capability     | Purpose                                          |
-| ------ | ---------------------------------- | -------------- | ------------------------------------------------ |
-| GET    | `/admin/v1/clubs`                  | `clubs.read`   | Search by name or slug; `school` (a school ID)   |
-| POST   | `/admin/v1/clubs`                  | `clubs.manage` | Create a published, unclaimed club at a school   |
-| GET    | `/admin/v1/clubs/:id`              | `clubs.read`   | Admin detail, games, links, and version          |
-| PATCH  | `/admin/v1/clubs/:id`              | `clubs.manage` | Edit name, slug, type, text, and games           |
-| POST   | `/admin/v1/clubs/:id/links`        | `clubs.manage` | Replace the club's links, in order               |
-| POST   | `/admin/v1/clubs/:id/hide`         | `clubs.manage` | Take the club off the public site                |
-| POST   | `/admin/v1/clubs/:id/unhide`       | `clubs.manage` | Publish a hidden club again                      |
-| POST   | `/admin/v1/clubs/:id/mark-checked` | `clubs.manage` | Record that CGN re-checked the public source now |
-| GET    | `/admin/v1/clubs/:id/audit`        | `audit.read`   | Club change history                              |
+| Method | Path                                | Capability     | Purpose                                               |
+| ------ | ----------------------------------- | -------------- | ----------------------------------------------------- |
+| GET    | `/admin/v1/clubs`                   | `clubs.read`   | Search by name or slug; `school` (a school ID)        |
+| POST   | `/admin/v1/clubs`                   | `clubs.manage` | Create a published, unclaimed club at a school        |
+| GET    | `/admin/v1/clubs/:id`               | `clubs.read`   | Admin detail, games, links, and version               |
+| PATCH  | `/admin/v1/clubs/:id`               | `clubs.manage` | Edit name, slug, type, text, and games                |
+| POST   | `/admin/v1/clubs/:id/links`         | `clubs.manage` | Replace the club's links, in order                    |
+| POST   | `/admin/v1/clubs/:id/hide`          | `clubs.manage` | Take the club off the public site                     |
+| POST   | `/admin/v1/clubs/:id/unhide`        | `clubs.manage` | Publish a hidden club again                           |
+| POST   | `/admin/v1/clubs/:id/mark-checked`  | `clubs.manage` | Record that CGN re-checked the public source now      |
+| GET    | `/admin/v1/clubs/:id/audit`         | `audit.read`   | Club change history                                   |
+| GET    | `/admin/v1/club-claims`             | `clubs.read`   | Claims and requests, newest first; `status`           |
+| GET    | `/admin/v1/club-claims/:id`         | `clubs.read`   | Evidence, applicant, review, competing claims         |
+| POST   | `/admin/v1/club-claims/:id/approve` | `clubs.manage` | Make the applicant the owner; create a requested club |
+| POST   | `/admin/v1/club-claims/:id/reject`  | `clubs.manage` | Close the claim; the reason is the review note        |
+| GET    | `/admin/v1/club-claims/:id/audit`   | `audit.read`   | Claim decision history                                |
 
 Each club command takes a reason and, after create, the record's
 `expected_updated_at`. A club's school is chosen at create and never changes. A
 new slug keeps the old one as a redirect on the public site until another club
 takes it; a slug another club uses now is `409 admin_record_already_exists`. A
-school with clubs cannot be deleted (`409 catalog_dependencies_exist`). Claim
-review arrives with #117.
+school with clubs cannot be deleted (`409 catalog_dependencies_exist`).
+
+A claim is pending, approved, or rejected; only a pending one can be decided,
+and each decision takes the claim's `expected_updated_at` and a reason, which
+is stored as the review note. Approving a claim on a listed club makes the
+applicant its owner; a club that already has one is
+`409 club_already_claimed`, and the competing claim is rejected instead.
+Approving a request also takes the new club's `name`, `slug`, and `type`, and
+creates it published at the requested school, audited as `club.created`. An
+applicant whose account is deleted, suspended, or unverified cannot be
+approved (`409 club_claim_applicant_unavailable`). Each decision queues an
+email to the applicant and writes one `club_claim.approved` or
+`club_claim.rejected` audit entry; the claim detail also lists the other
+pending claims on the same club, or for the same name at the same school.
 
 ### Games, users, and site grants
 

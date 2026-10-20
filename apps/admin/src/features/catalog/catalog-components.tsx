@@ -66,7 +66,8 @@ export function CatalogFilters({
   children,
 }: {
   action: string;
-  label: string;
+  /** The name search's label; a list without a name search leaves it out. */
+  label?: string;
   search: CatalogSearch;
   states: readonly string[];
   /** Extra filter fields for lists that support them. */
@@ -86,17 +87,19 @@ export function CatalogFilters({
         </select>
       </label>
       {children}
-      <label>
-        {label}
-        <input
-          defaultValue={search.q ?? ""}
-          maxLength={100}
-          minLength={2}
-          name="q"
-          spellCheck={false}
-          type="search"
-        />
-      </label>
+      {label ? (
+        <label>
+          {label}
+          <input
+            defaultValue={search.q ?? ""}
+            maxLength={100}
+            minLength={2}
+            name="q"
+            spellCheck={false}
+            type="search"
+          />
+        </label>
+      ) : null}
       <div className="filter-actions">
         <button type="submit">Search</button>
         <a className="secondary-button" href={action}>
@@ -944,6 +947,8 @@ const auditActionLabels: Record<CatalogAuditEntry["action"], string> = {
   "club.hidden": "Club hidden",
   "club.unhidden": "Club published again",
   "club.checked": "Marked as checked",
+  "club_claim.approved": "Claim approved",
+  "club_claim.rejected": "Claim rejected",
 };
 
 function stateLabel(state: string): string {
