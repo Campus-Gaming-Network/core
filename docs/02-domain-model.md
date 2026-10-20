@@ -238,6 +238,9 @@ unchanged.
 - Creating an event requires **no approval**
 - Cancelling soft-deletes the event and sends a best-effort email to active
   `yes`/`maybe` RSVPs; cancellation does not fail if email delivery fails
+- A cancelled event's page stays readable for 24 hours after the cancellation,
+  with no RSVPs; a cancelled private event is not found
+- An event that has ended cannot be edited or cancelled
 - Recurring event creation expands into normal event rows. The series root
   stores the recurrence rule and end date; generated occurrences point to the
   root and have independent RSVPs, URLs, and cancellation behavior

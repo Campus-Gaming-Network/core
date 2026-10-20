@@ -11,6 +11,7 @@ import (
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/emailoutbox"
 	eventstore "github.com/Campus-Gaming-Network/core/apps/api/internal/events"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/mailhttp"
+	teamstore "github.com/Campus-Gaming-Network/core/apps/api/internal/teams"
 )
 
 type accountMailerStub struct {
@@ -147,5 +148,46 @@ func TestDispatcherSendsOrganizerInvitesAndQuarantinesBadOnes(t *testing.T) {
 	}
 	if want := []eventstore.OrganizerInvitePayload{{Token: "invite-secret", EventTitle: "Chess Night", InviterName: "Ana"}}; !reflect.DeepEqual(mailer.sent, want) {
 		t.Fatalf("sent = %+v, want %+v", mailer.sent, want)
+	}
+}
+
+type teamMailerStub struct {
+	// sent names each call as method:recipient:team slug.
+	sent []string
+}
+
+func (m *teamMailerStub) SendMemberJoined(_ context.Context, recipient string, notice teamstore.NoticePayload, _ string) (string, error) {
+	m.sent = append(m.sent, "joined:"+recipient+":"+notice.TeamSlug)
+	return "provider-id", nil
+}
+
+func (m *teamMailerStub) SendOwnershipTransferred(_ context.Context, recipient string, notice teamstore.NoticePayload, _ string) (string, error) {
+	m.sent = append(m.sent, "transferred:"+recipient+":"+notice.TeamSlug)
+	return "provider-id", nil
+}
+
+func TestDispatcherSendsTeamNoticesAndQuarantinesBadOnes(t *testing.T) {
+	mailer := &teamMailerStub{}
+	dispatcher := &Dispatcher{Teams: mailer}
+	send := func(kind string, payload string) error {
+		_, err := dispatcher.Send(t.Context(), emailoutbox.Message{
+			Kind: kind, Recipient: "player@example.com", IdempotencyKey: "team-key", Payload: json.RawMessage(payload),
+		})
+		return err
+	}
+	good := `{"team_name":"Night Owls","team_slug":"night-owls","person_name":"Jo"}`
+	if err := send(emailoutbox.KindTeamMemberJoined, good); err != nil {
+		t.Fatalf("Send(joined) error = %v", err)
+	}
+	if err := send(emailoutbox.KindTeamOwnershipTransferred, good); err != nil {
+		t.Fatalf("Send(transferred) error = %v", err)
+	}
+	for _, payload := range []string{`{"team_name":"Night Owls","team_slug":"night-owls"}`, `{"team_slug":"x","person_name":"Jo"}`, `null`} {
+		if err := send(emailoutbox.KindTeamMemberJoined, payload); !emailoutbox.IsPermanent(err) {
+			t.Fatalf("Send(%s) error = %v, want permanent", payload, err)
+		}
+	}
+	if want := []string{"joined:player@example.com:night-owls", "transferred:player@example.com:night-owls"}; !reflect.DeepEqual(mailer.sent, want) {
+		t.Fatalf("sent = %v, want %v", mailer.sent, want)
 	}
 }

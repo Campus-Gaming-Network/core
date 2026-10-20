@@ -12,6 +12,7 @@ import {
 } from "../school-slice/school-logos.server.js";
 import {
   accountProfileDtoSchema,
+  createdEventsDtoSchema,
   dashboardEventLimit,
   dashboardEventsDtoSchema,
   followedSchoolsDtoSchema,
@@ -21,6 +22,7 @@ import {
   type DirectorySidebarResult,
   type AccountMutationResult,
   type AccountProfileResult,
+  type CreatedEventsResult,
   type DeleteAccountInput,
   type UpdateProfileInput,
 } from "./contracts.js";
@@ -138,6 +140,32 @@ export async function accountDashboardOperation(
       teams: teams.unavailable,
     },
   };
+}
+
+/** A page of the events the viewer created, from `/me/created-events`. */
+export async function createdEventsOperation(
+  { after }: { after?: string },
+  { api, cookieHeader, reportError = defaultErrorReporter }: ReadDependencies,
+): Promise<CreatedEventsResult> {
+  try {
+    const { data } = await api({
+      path: `/me/created-events${after ? `?${new URLSearchParams({ after })}` : ""}`,
+      cookieHeader,
+      cache: "no-store",
+      responseSchema: createdEventsDtoSchema,
+    });
+    return {
+      status: "found",
+      events: data.events.map(withHostSchoolLogo),
+      nextCursor: data.next_cursor,
+    };
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 401) {
+      return { status: "unauthenticated" };
+    }
+    reportError(error);
+    return { status: "unavailable" };
+  }
 }
 
 /**

@@ -146,6 +146,7 @@ export function safeApiErrorMessage(error: unknown): string {
     authentication_required: "Please log in to continue.",
     database_unavailable: "The service is starting up. Try again in a moment.",
     email_not_verified: "Please verify your email before logging in.",
+    event_ended: "That event has ended, so it can no longer be changed.",
     event_full: "That event is full.",
     event_not_found: "That event could not be found.",
     ...gamePickerErrorMessages,

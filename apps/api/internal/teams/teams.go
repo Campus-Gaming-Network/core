@@ -12,6 +12,8 @@ import (
 	"time"
 
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/apperror"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/emailoutbox"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/notifications"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/pagecursor"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/safety"
 	"github.com/jackc/pgx/v5"
@@ -353,8 +355,8 @@ func (r *PostgresRepository) PasswordHash(ctx context.Context, slug string) (str
 	return hash, nil
 }
 
-// Join adds the user to the team as a member. Joining a team the user already
-// belongs to is not an error.
+// Join adds the user to the team as a member and tells the owner. Joining a
+// team the user already belongs to is not an error and tells no one.
 func (r *PostgresRepository) Join(ctx context.Context, slug string, userID string) (Team, error) {
 	slug = strings.TrimSpace(slug)
 	userID = strings.TrimSpace(userID)
@@ -366,20 +368,102 @@ func (r *PostgresRepository) Join(ctx context.Context, slug string, userID strin
 	if err != nil {
 		return Team{}, err
 	}
-	if _, err := r.pool.Exec(ctx, `
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return Team{}, fmt.Errorf("begin join team: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	// An active member's row is left as it is and returns nothing, so only a
+	// membership that starts here produces a notice. Its time keeps each
+	// join's email apart from an earlier one's.
+	var joinedAt time.Time
+	err = tx.QueryRow(ctx, `
 		INSERT INTO team_members (team_id, user_id, role)
 		VALUES ($1::uuid, $2::uuid, 'member')
 		ON CONFLICT (team_id, user_id)
-		DO UPDATE SET role = CASE
-		                  WHEN team_members.deleted_at IS NULL THEN team_members.role
-		                  ELSE 'member'
-		              END,
-		              deleted_at = NULL
-	`, teamID, userID); err != nil {
+		DO UPDATE SET role = 'member', deleted_at = NULL
+		WHERE team_members.deleted_at IS NOT NULL
+		RETURNING NOW()
+	`, teamID, userID).Scan(&joinedAt)
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		return Team{}, fmt.Errorf("join team: %w", err)
+	}
+	if err == nil {
+		owner, err := teamNoticeRecipient(ctx, tx, teamID, "", userID)
+		if err != nil {
+			return Team{}, err
+		}
+		if owner.UserID != userID {
+			if err := notifications.Insert(ctx, tx, notifications.Input{
+				UserID: owner.UserID,
+				Type:   notifications.TypeTeamMemberJoined,
+				Title:  "New team member",
+				Body:   owner.Notice.PersonName + " joined " + owner.Notice.TeamName + ".",
+				TeamID: teamID,
+			}); err != nil {
+				return Team{}, err
+			}
+			if err := owner.enqueue(ctx, tx, emailoutbox.KindTeamMemberJoined,
+				fmt.Sprintf("team-member-joined:%s:%s:%d", teamID, userID, joinedAt.UnixNano())); err != nil {
+				return Team{}, err
+			}
+		}
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return Team{}, fmt.Errorf("commit join team: %w", err)
 	}
 
 	return r.teamForViewer(ctx, slug, userID)
+}
+
+// noticeRecipient is who a team notice goes to, and what it says.
+type noticeRecipient struct {
+	UserID string
+	// Email is empty when the recipient's account cannot receive email.
+	Email  string
+	Notice NoticePayload
+}
+
+// teamNoticeRecipient reads the recipient of a notice about teamID, which is
+// recipientUserID or, when that is empty, the team's owner. personUserID is
+// the person the notice is about.
+func teamNoticeRecipient(ctx context.Context, tx pgx.Tx, teamID string, recipientUserID string, personUserID string) (noticeRecipient, error) {
+	var recipient noticeRecipient
+	err := tx.QueryRow(ctx, `
+		SELECT recipient.id::text,
+		       CASE WHEN recipient.deleted_at IS NULL AND recipient.account_status = 'active'
+		            THEN recipient.email::text ELSE '' END,
+		       t.name, t.slug, person.name
+		FROM teams t
+		JOIN users recipient ON recipient.id = COALESCE(NULLIF($2, '')::uuid, t.owner_user_id)
+		JOIN users person ON person.id = $3::uuid
+		WHERE t.id = $1::uuid
+	`, teamID, recipientUserID, personUserID).Scan(
+		&recipient.UserID, &recipient.Email,
+		&recipient.Notice.TeamName, &recipient.Notice.TeamSlug, &recipient.Notice.PersonName,
+	)
+	if err != nil {
+		return noticeRecipient{}, fmt.Errorf("load team notice: %w", err)
+	}
+	return recipient, nil
+}
+
+// enqueue queues the notice email of kind, unless the recipient cannot
+// receive email.
+func (r noticeRecipient) enqueue(ctx context.Context, tx pgx.Tx, kind string, idempotencyKey string) error {
+	if r.Email == "" {
+		return nil
+	}
+	if err := emailoutbox.Enqueue(ctx, tx, emailoutbox.Intent{
+		Kind:           kind,
+		Recipient:      r.Email,
+		Payload:        r.Notice,
+		IdempotencyKey: idempotencyKey,
+	}); err != nil {
+		return fmt.Errorf("enqueue %s email: %w", kind, err)
+	}
+	return nil
 }
 
 // MembershipRole returns the user's role on the team, or "" when the user is
@@ -583,6 +667,27 @@ func (r *PostgresRepository) TransferOwnership(ctx context.Context, slug string,
 		  AND deleted_at IS NULL
 	`, teamID, newOwnerUserID, ownerUserID); err != nil {
 		return Team{}, fmt.Errorf("update team ownership roles: %w", err)
+	}
+	newOwner, err := teamNoticeRecipient(ctx, tx, teamID, newOwnerUserID, ownerUserID)
+	if err != nil {
+		return Team{}, err
+	}
+	if err := notifications.Insert(ctx, tx, notifications.Input{
+		UserID: newOwnerUserID,
+		Type:   notifications.TypeTeamOwnershipTransferred,
+		Title:  "You own a team",
+		Body:   newOwner.Notice.PersonName + " made you the owner of " + newOwner.Notice.TeamName + ".",
+		TeamID: teamID,
+	}); err != nil {
+		return Team{}, err
+	}
+	var transferredAt time.Time
+	if err := tx.QueryRow(ctx, `SELECT NOW()`).Scan(&transferredAt); err != nil {
+		return Team{}, fmt.Errorf("read transfer time: %w", err)
+	}
+	if err := newOwner.enqueue(ctx, tx, emailoutbox.KindTeamOwnershipTransferred,
+		fmt.Sprintf("team-ownership-transferred:%s:%s:%d", teamID, newOwnerUserID, transferredAt.UnixNano())); err != nil {
+		return Team{}, err
 	}
 	if err := tx.Commit(ctx); err != nil {
 		return Team{}, fmt.Errorf("commit transfer team ownership: %w", err)

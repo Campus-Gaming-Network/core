@@ -409,7 +409,7 @@ test("new-event catalogs keep school failure inline and make game failure fatal"
   assert.equal(reported.length, 4);
 });
 
-test("edit page distinguishes missing, locked, forbidden, and editable events", async () => {
+test("edit page distinguishes missing, locked, cancelled, forbidden, ended, and editable events", async () => {
   async function editWith(detailResponse: Response) {
     const calls: string[] = [];
     const result = await editEventPageOperation(
@@ -457,6 +457,15 @@ test("edit page distinguishes missing, locked, forbidden, and editable events", 
   );
   assert.deepEqual(forbidden.result, { status: "denied", reason: "forbidden" });
   assert.deepEqual(forbidden.calls, ["/me", "/events/campus%2Ftournament"]);
+
+  const cancelled = await editWith(
+    Response.json({ ...event, cancelled_at: "2031-05-01T12:00:00Z" }),
+  );
+  assert.deepEqual(cancelled.result, { status: "denied", reason: "cancelled" });
+
+  const ended = await editWith(Response.json({ ...event, lifecycle: "ended" }));
+  assert.deepEqual(ended.result, { status: "denied", reason: "ended" });
+  assert.deepEqual(ended.calls, ["/me", "/events/campus%2Ftournament"]);
 
   const editable = await editWith(
     Response.json({ ...event, internal_note: "strip" }),

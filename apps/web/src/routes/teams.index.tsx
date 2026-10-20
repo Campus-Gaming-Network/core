@@ -48,7 +48,6 @@ import {
   teamBrowseNotices,
   teamsHead,
 } from "../features/team-slice/presentation";
-import { schoolLocation } from "../features/school-slice/presentation";
 import teamCSS from "../features/team-slice/teams.css?url";
 
 export const Route = createFileRoute("/teams/")({
@@ -263,11 +262,7 @@ function TeamsPage() {
                     </span>
                   }
                   media={<EventGameThumb decorative games={team.games} />}
-                  meta={
-                    team.school
-                      ? [team.school.name, schoolLocation(team.school, "")]
-                      : ["Independent team"]
-                  }
+                  meta={[team.school?.name ?? "Independent team"]}
                   name={team.name}
                   tags={team.games.map((game) => game.name)}
                 />

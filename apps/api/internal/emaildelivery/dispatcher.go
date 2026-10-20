@@ -13,11 +13,13 @@ import (
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/emailoutbox"
 	eventstore "github.com/Campus-Gaming-Network/core/apps/api/internal/events"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/mailhttp"
+	teamstore "github.com/Campus-Gaming-Network/core/apps/api/internal/teams"
 )
 
 type Dispatcher struct {
 	Account auth.Mailer
 	Events  eventstore.RSVPMailer
+	Teams   teamstore.Mailer
 }
 
 type tokenPayload struct {
@@ -92,6 +94,21 @@ func (d *Dispatcher) Send(ctx context.Context, message emailoutbox.Message) (str
 			return "", errors.New("event mailer unavailable")
 		}
 		providerID, err := d.Events.SendOrganizerInvite(ctx, message.Recipient, payload, message.IdempotencyKey)
+		return providerID, classifyProviderError(err)
+	case emailoutbox.KindTeamMemberJoined, emailoutbox.KindTeamOwnershipTransferred:
+		var payload teamstore.NoticePayload
+		if json.Unmarshal(message.Payload, &payload) != nil || strings.TrimSpace(payload.TeamName) == "" ||
+			strings.TrimSpace(payload.TeamSlug) == "" || strings.TrimSpace(payload.PersonName) == "" {
+			return "", emailoutbox.Permanent(errors.New("invalid team notice email payload"))
+		}
+		if d.Teams == nil {
+			return "", errors.New("team mailer unavailable")
+		}
+		send := d.Teams.SendMemberJoined
+		if message.Kind == emailoutbox.KindTeamOwnershipTransferred {
+			send = d.Teams.SendOwnershipTransferred
+		}
+		providerID, err := send(ctx, message.Recipient, payload, message.IdempotencyKey)
 		return providerID, classifyProviderError(err)
 	default:
 		return "", emailoutbox.Permanent(fmt.Errorf("unsupported email kind %q", message.Kind))

@@ -3,6 +3,7 @@ import { test } from "vite-plus/test";
 import { ApiError, type ApiClient } from "../src/server/api.server.js";
 import {
   accountDashboardOperation,
+  createdEventsOperation,
   deleteAccountOperation,
   directorySidebarOperation,
   updateProfileOperation,
@@ -11,6 +12,7 @@ import {
   accountProfileDtoSchema,
   validateDeleteAccountInput,
   validateUpdateProfileInput,
+  validateYourEventsSearch,
 } from "../src/features/account-slice/contracts.js";
 
 const profile = {
@@ -357,6 +359,68 @@ function profileForm() {
   form.set("timezone", "America/Los_Angeles");
   return form;
 }
+
+test("created events read a page by cursor and degrade to unavailable", async () => {
+  const createdEvent = {
+    id: "event-1",
+    title: "Past Night",
+    slug: "past-night",
+    starts_at: "2031-03-01T19:00:00Z",
+    ends_at: "2031-03-01T20:00:00Z",
+    timezone: "UTC",
+    lifecycle: "ended",
+    host_school: { name: "Example University", slug: "example-university" },
+    games: [],
+    rsvp_yes_count: 0,
+    interest_count: 0,
+  } as const;
+  const paths: string[] = [];
+  const api = (async ({ path }) => {
+    paths.push(path);
+    return result({
+      events: [createdEvent],
+      next_cursor: "next",
+    });
+  }) as ApiClient;
+  const failing = (async () => {
+    throw new ApiError(503, "events_unavailable");
+  }) as ApiClient;
+  const signedOut = (async () => {
+    throw new ApiError(401, "authentication_required");
+  }) as ApiClient;
+  const reported: unknown[] = [];
+  const dependencies = {
+    cookieHeader: "cgn_session=value",
+    reportError: (error: unknown) => reported.push(error),
+  };
+
+  assert.deepEqual(
+    [
+      await createdEventsOperation({ after: "a b" }, { ...dependencies, api }),
+      await createdEventsOperation({}, { ...dependencies, api: signedOut }),
+      await createdEventsOperation({}, { ...dependencies, api: failing }),
+    ],
+    [
+      {
+        status: "found",
+        events: [createdEvent],
+        nextCursor: "next",
+      },
+      { status: "unauthenticated" },
+      { status: "unavailable" },
+    ],
+  );
+  assert.deepEqual(paths, ["/me/created-events?after=a+b"]);
+  assert.equal(reported.length, 1);
+  assert.deepEqual(
+    [
+      validateYourEventsSearch({ created: " cursor " }),
+      validateYourEventsSearch({ created: "" }),
+      validateYourEventsSearch({}),
+    ],
+    [{ created: "cursor" }, {}, {}],
+  );
+});
 
 function result<T>(data: T) {
   return {

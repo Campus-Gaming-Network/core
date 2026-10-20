@@ -37,6 +37,7 @@ export function AccountEventSection({
   sectionId,
   empty,
   events,
+  footer,
   moreLink = true,
   showAll = false,
   variant,
@@ -46,11 +47,13 @@ export function AccountEventSection({
   sectionId: string;
   empty: ReactNode;
   events: DashboardEventDTO[];
+  /** Shown under the list, such as links to its other pages. */
+  footer?: ReactNode;
   /** Offer "See all your events" when the preview is cut short. */
   moreLink?: boolean;
   /** List every event read, not a short preview. */
   showAll?: boolean;
-  variant: "followed" | "interested" | "rsvp";
+  variant: "created" | "followed" | "interested" | "rsvp";
 }) {
   const renderedAt = useRenderedAt();
   const shown = showAll ? events : events.slice(0, dashboardPreviewCount);
@@ -135,6 +138,7 @@ export function AccountEventSection({
       ) : (
         <div className="empty-state">{empty}</div>
       )}
+      {footer}
     </section>
   );
 }

@@ -21,6 +21,9 @@ var (
 	ErrOrganizerRequired  = apperror.New(apperror.KindAuthorization, "not_event_organizer", "event organizer required")
 	ErrEventFull          = apperror.New(apperror.KindConflict, "event_full", "event is full")
 	ErrRSVPClosed         = apperror.New(apperror.KindConflict, "event_rsvp_closed", "event rsvp is closed")
+	// ErrEventEnded reports an edit or cancellation of an event that has
+	// already ended.
+	ErrEventEnded = apperror.New(apperror.KindConflict, "event_ended", "event has ended")
 	// ErrIdempotencyKeyReused reports a key whose original event belongs to
 	// another creator or has since been cancelled.
 	ErrIdempotencyKeyReused = apperror.New(apperror.KindConflict, "idempotency_key_reused", "idempotency key was used by another request")
@@ -111,6 +114,26 @@ type Event struct {
 	// ViewerIsCreator is set for the event's creator, who alone cancels it
 	// and manages its co-organizers.
 	ViewerIsCreator bool `json:"viewer_is_creator,omitempty"`
+	// CancelledAt is when the event was cancelled. Only GetPageBySlug sets
+	// it; every other read leaves cancelled events out.
+	CancelledAt *time.Time `json:"cancelled_at,omitempty"`
+}
+
+// CancelledEventVisibility is how long a cancelled event's page stays up,
+// marked cancelled, before it is not found.
+const CancelledEventVisibility = 24 * time.Hour
+
+// Page sizes for the list of events a user created.
+const (
+	DefaultCreatedLimit = 20
+	MaximumCreatedLimit = 50
+)
+
+// CreatedPage is a run of the events a user created, latest start first.
+// NextCursor reads the earlier ones and is empty on the last page.
+type CreatedPage struct {
+	Events     []Event `json:"events"`
+	NextCursor string  `json:"next_cursor"`
 }
 
 // Organizer is a user who manages an event.
@@ -281,6 +304,8 @@ type Repository interface {
 	ListFollowedSchoolEvents(ctx context.Context, userID string, limit int) ([]Event, error)
 	ListPublic(ctx context.Context, params ListParams) ([]Event, error)
 	GetBySlug(ctx context.Context, slug string) (Event, error)
+	GetPageBySlug(ctx context.Context, slug string) (Event, error)
+	ListCreated(ctx context.Context, userID string, after *pagecursor.Cursor, limit int) (CreatedPage, error)
 }
 
 // PostgresRepository stores events in Postgres.

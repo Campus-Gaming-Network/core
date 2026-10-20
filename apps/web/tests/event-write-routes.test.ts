@@ -24,7 +24,7 @@ test("edit-event route preserves auth redirect, true 404, generic denial, and sa
   assert.match(route, /result\.status === "not_found"/);
   assert.match(route, /throw notFound\(\)/);
   assert.match(route, /data\.status === "denied"/);
-  assert.match(route, /data\.reason === "locked"/);
+  assert.match(route, /editDenials\[data\.reason\]/);
   assert.match(route, /Only an event organizer can change it/);
   assert.match(route, /head: \(\) =>/);
   assert.match(route, /title: "Edit event \| Campus Gaming Network"/);

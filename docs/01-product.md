@@ -231,6 +231,8 @@ club on CGN, which lists them as members here.
 - Teams reference one or more games
 - Signed-in people see a team's members with their roles; see
   [People lists](#people-lists)
+- A team directory card shows the team's school, not the school's city and
+  state
 - The team directory filters by game and school. People find a school by
   searching its name and see its name, never its slug, while the filter is
   active; the search-then-select flow works without JavaScript, and a clear
@@ -245,6 +247,13 @@ club on CGN, which lists them as members here.
 - Visibility: **public** (in search) · **unlisted** (link only) · **private** (password modal; content gated/blurred until unlocked)
 - Cancel events with a soft delete; active **yes/maybe** RSVPs receive a
   best-effort cancellation email after the event is cancelled
+- A cancelled public or unlisted event's page stays up for **24 hours** after
+  the cancellation, marked cancelled, with RSVPs, interest, the calendar link,
+  and the attendee list gone; after that it is not found. A cancelled private
+  event is not found at once
+- An event that has ended can no longer be edited or cancelled
+- **Your events** (`/account/events`) lists every event the viewer created,
+  past and upcoming, latest first, a page at a time
 - Recurring events support weekly, biweekly, and monthly schedules for up to
   one year; each occurrence is independent and can be RSVP'd to or cancelled
   separately
@@ -348,12 +357,16 @@ visitors see counts only; the API answers them with 401.
 ### Notifications & email
 
 - An in-app inbox at `/notifications`, with an unread count in the header, holds
-  a notice for each active yes/maybe attendee when an event is cancelled and
-  for an event's creator when someone accepts a co-organizer invite
+  a notice for each active yes/maybe attendee when an event is cancelled, for
+  an event's creator when someone accepts a co-organizer invite, for a team's
+  owner when someone joins the team, and for a member when a team's ownership
+  is transferred to them
 - Email after event RSVP yes (details + calendar add) from `events@campusgamingnetwork.com`
 - Email active yes/maybe RSVPs after an event is cancelled from
   `events@campusgamingnetwork.com` (best effort; no ICS attachment)
-- Basic notifications from `notifications@campusgamingnetwork.com` (later)
+- Email a team's owner when someone joins the team, and a member when a
+  team's ownership is transferred to them, from
+  `notifications@campusgamingnetwork.com`
 - Support / report follow-up email from `support@campusgamingnetwork.com` (later Admin Console workflow)
 - Account emails (verify, reset password, confirm a new email, email-changed
   notice) from `account@campusgamingnetwork.com`

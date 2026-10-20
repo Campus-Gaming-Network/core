@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/apperror"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/pagecursor"
@@ -301,6 +302,78 @@ func (r *PostgresRepository) GetBySlug(ctx context.Context, slug string) (Event,
 	return event, nil
 }
 
+// GetPageBySlug returns the event with slug as its page shows it: a live
+// event, or one cancelled less than CancelledEventVisibility ago with
+// CancelledAt set and the organizers it had when it was cancelled. It does
+// not check visibility; callers do.
+func (r *PostgresRepository) GetPageBySlug(ctx context.Context, slug string) (Event, error) {
+	var eventID string
+	var cancelledAt *time.Time
+	if err := r.pool.QueryRow(ctx, `
+		SELECT id::text, deleted_at
+		FROM events
+		WHERE slug = $1
+		  AND (deleted_at IS NULL OR deleted_at > $2)
+	`, strings.TrimSpace(slug), r.now().Add(-CancelledEventVisibility)).Scan(&eventID, &cancelledAt); err != nil {
+		return Event{}, err
+	}
+	if cancelledAt == nil {
+		return r.GetBySlug(ctx, slug)
+	}
+	event, err := scanEvent(r.pool.QueryRow(ctx, eventSelectSQL(`e.id = $1::uuid`, ``), eventID), r.now())
+	if err != nil {
+		return Event{}, err
+	}
+	event.CancelledAt = cancelledAt
+	if err := r.populateOrganizers(ctx, &event); err != nil {
+		return Event{}, err
+	}
+	return event, nil
+}
+
+// ListCreated returns the live events userID created, past and upcoming,
+// latest start first, starting after the cursor when one is given.
+func (r *PostgresRepository) ListCreated(ctx context.Context, userID string, after *pagecursor.Cursor, limit int) (CreatedPage, error) {
+	if limit < 1 || limit > MaximumCreatedLimit {
+		limit = DefaultCreatedLimit
+	}
+	var cursorTime, cursorID any
+	if after != nil {
+		cursorTime, cursorID = after.Timestamp, after.ID
+	}
+	rows, err := r.pool.Query(ctx, eventSelectSQL(`
+		e.deleted_at IS NULL
+		AND e.creator_user_id = $1::uuid
+		AND ($2::timestamptz IS NULL OR (e.starts_at, e.id) < ($2::timestamptz, $3::uuid))
+	`, `
+		ORDER BY e.starts_at DESC, e.id DESC
+		LIMIT $4
+	`), strings.TrimSpace(userID), cursorTime, cursorID, limit+1)
+	if err != nil {
+		return CreatedPage{}, fmt.Errorf("list created events: %w", err)
+	}
+	defer rows.Close()
+
+	events := make([]Event, 0, limit+1)
+	for rows.Next() {
+		event, err := scanEvent(rows, r.now())
+		if err != nil {
+			return CreatedPage{}, err
+		}
+		events = append(events, event)
+	}
+	if err := rows.Err(); err != nil {
+		return CreatedPage{}, fmt.Errorf("iterate created events: %w", err)
+	}
+	page := CreatedPage{Events: events}
+	if len(events) > limit {
+		page.Events = events[:limit]
+		last := page.Events[limit-1]
+		page.NextCursor = pagecursor.Encode(last.StartsAt, last.ID)
+	}
+	return page, nil
+}
+
 func (r *PostgresRepository) populateOrganizers(ctx context.Context, event *Event) error {
 	rows, err := r.pool.Query(ctx, `
 		SELECT u.id::text,
@@ -313,13 +386,16 @@ func (r *PostgresRepository) populateOrganizers(ctx context.Context, event *Even
 		           CASE WHEN sa.user_id IS NOT NULL THEN 'school_admin'::text END
 		       ], NULL::text)
 		FROM event_organizers eo
+		JOIN events e ON e.id = eo.event_id
 		JOIN users u ON u.id = eo.user_id
 		LEFT JOIN school_admins sa
 		       ON sa.user_id = u.id
 		      AND sa.school_id = $2::uuid
 		      AND sa.deleted_at IS NULL
 		WHERE eo.event_id = $1::uuid
-		  AND eo.deleted_at IS NULL
+		  -- A cancelled event keeps the organizers it had: cancelling ends
+		  -- their roles in the same transaction, so at the same NOW().
+		  AND (eo.deleted_at IS NULL OR eo.deleted_at = e.deleted_at)
 		  AND u.deleted_at IS NULL
 		  AND u.account_status = 'active'
 		ORDER BY CASE eo.role WHEN 'creator' THEN 0 ELSE 1 END, eo.created_at, u.id

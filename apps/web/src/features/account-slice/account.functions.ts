@@ -13,6 +13,7 @@ import {
   changeEmailOperation,
   changePasswordOperation,
   confirmEmailChangeOperation,
+  createdEventsOperation,
   deleteAccountOperation,
   directorySidebarOperation,
   updateProfileOperation,
@@ -20,6 +21,7 @@ import {
 import {
   validateDeleteAccountInput,
   validateUpdateProfileInput,
+  validateYourEventsSearch,
   type DeleteAccountInput,
   type DirectorySidebarResult,
   type UpdateProfileInput,
@@ -47,6 +49,17 @@ export const getAccountDashboard = createServerFn({ method: "GET" }).handler(
     });
   },
 );
+
+export const getCreatedEvents = createServerFn({ method: "GET" })
+  .validator((input: { created?: string }) => validateYourEventsSearch(input))
+  .handler(async ({ data }) => {
+    const request = currentSessionRequest();
+    setPrivateNoStoreResponse();
+    if (!request.sessionCookieValue) {
+      return { status: "unauthenticated" as const };
+    }
+    return createdEventsOperation({ after: data.created }, request);
+  });
 
 // A visitor's request makes no upstream call and leaves the page's caching
 // alone; a viewer's makes the page private.

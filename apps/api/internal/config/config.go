@@ -34,22 +34,25 @@ func (environment DeploymentEnvironment) Strict() bool {
 }
 
 type Config struct {
-	DeploymentEnvironment      DeploymentEnvironment
-	HTTPAddr                   string
-	DatabaseURL                string
-	DBHost                     string
-	DBPort                     string
-	DBConnectTimeout           time.Duration
-	SessionCookie              string
-	SessionTTL                 time.Duration
-	CookieSecure               bool
-	VerificationTTL            time.Duration
-	ResetTTL                   time.Duration
-	SiteURL                    string
-	ResendAPIKey               string
-	ResendAPIURL               string
-	AccountEmailFrom           string
-	EventsEmailFrom            string
+	DeploymentEnvironment DeploymentEnvironment
+	HTTPAddr              string
+	DatabaseURL           string
+	DBHost                string
+	DBPort                string
+	DBConnectTimeout      time.Duration
+	SessionCookie         string
+	SessionTTL            time.Duration
+	CookieSecure          bool
+	VerificationTTL       time.Duration
+	ResetTTL              time.Duration
+	SiteURL               string
+	ResendAPIKey          string
+	ResendAPIURL          string
+	AccountEmailFrom      string
+	EventsEmailFrom       string
+	// NotificationsEmailFrom sends notice emails that are not about an
+	// event, such as team notices.
+	NotificationsEmailFrom     string
 	AuthRateLimit              int
 	AuthRateWindow             time.Duration
 	DBMaxConns                 int32
@@ -213,6 +216,7 @@ func Load() (Config, error) {
 		ResendAPIURL:               getenv("API_RESEND_API_URL", defaultResendAPIURL),
 		AccountEmailFrom:           getenv("API_ACCOUNT_EMAIL_FROM", "account@campusgamingnetwork.com"),
 		EventsEmailFrom:            getenv("API_EVENTS_EMAIL_FROM", "events@campusgamingnetwork.com"),
+		NotificationsEmailFrom:     getenv("API_NOTIFICATIONS_EMAIL_FROM", "notifications@campusgamingnetwork.com"),
 		AuthRateLimit:              authRateLimit,
 		AuthRateWindow:             authRateWindow,
 		DBMaxConns:                 int32(dbMaxConns),
@@ -295,6 +299,9 @@ func (cfg Config) validate() error {
 	}
 	if !validSenderAddress(cfg.EventsEmailFrom) {
 		issues = append(issues, "API_EVENTS_EMAIL_FROM must be one valid sender address")
+	}
+	if !validSenderAddress(cfg.NotificationsEmailFrom) {
+		issues = append(issues, "API_NOTIFICATIONS_EMAIL_FROM must be one valid sender address")
 	}
 	resendAPIURL, resendAPIURLValid := parseHTTPURL(cfg.ResendAPIURL)
 	if !resendAPIURLValid {

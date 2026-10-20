@@ -150,8 +150,14 @@ export async function editEventPageOperation(
   if ("locked" in detail.event) {
     return { status: "denied", reason: "locked" };
   }
+  if (detail.event.cancelled_at) {
+    return { status: "denied", reason: "cancelled" };
+  }
   if (!detail.event.viewer_can_edit) {
     return { status: "denied", reason: "forbidden" };
+  }
+  if (detail.event.lifecycle === "ended") {
+    return { status: "denied", reason: "ended" };
   }
 
   const [resources, hostTeams] = await Promise.all([

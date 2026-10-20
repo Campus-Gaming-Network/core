@@ -128,3 +128,6 @@ permanent ten-character base58 ID that the database generates on insert and a
 trigger keeps from changing. Existing users get one. The UUID `id` stays the
 primary key. Apply it before deploying the API that serves
 `/users/{public_id}`.
+Migration `000037_team_notice_emails.up.sql` adds the `team_member_joined`
+and `team_ownership_transferred` email kinds. Apply it before deploying the
+API that queues them, or team joins and ownership transfers fail.

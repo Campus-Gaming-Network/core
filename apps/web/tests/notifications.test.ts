@@ -107,7 +107,7 @@ test("the inbox shows each notice in the viewer's own time zone", async () => {
   );
 });
 
-test("opening a notice marks it read and goes to its event; marking all returns to the inbox", async () => {
+test("opening a notice marks it read and goes to its event or team; marking all returns to the inbox", async () => {
   const calls: Array<{ method?: string; url: string }> = [];
   const api = client(async (input, init) => {
     calls.push({ method: init?.method, url: requestURL(input) });
@@ -123,6 +123,10 @@ test("opening a notice marks it read and goes to its event; marking all returns 
   const results = [
     await markReadOperation(
       { notification_id: notificationID, event_slug: "chess-night" },
+      dependencies,
+    ),
+    await markReadOperation(
+      { notification_id: notificationID, team_slug: "night-owls" },
       dependencies,
     ),
     await markReadOperation({ notification_id: notificationID }, dependencies),
@@ -145,10 +149,15 @@ test("opening a notice marks it read and goes to its event; marking all returns 
           method: "POST",
           url: `http://api:8080/me/notifications/${notificationID}/read`,
         },
+        {
+          method: "POST",
+          url: `http://api:8080/me/notifications/${notificationID}/read`,
+        },
         { method: "POST", url: "http://api:8080/me/notifications/read-all" },
       ],
       redirects: [
         "/events/chess-night",
+        "/teams/night-owls",
         "/notifications",
         "/notifications?notice=all-read",
         "/notifications?notice=failed",
@@ -197,10 +206,14 @@ test("inbox forms and searches keep only known values", () => {
   const open = new FormData();
   open.set("notification_id", notificationID);
   open.set("event_slug", " chess-night ");
+  const openTeam = new FormData();
+  openTeam.set("notification_id", notificationID);
+  openTeam.set("team_slug", "night-owls");
 
   assert.deepEqual(
     [
       validateMarkReadInput(open),
+      validateMarkReadInput(openTeam),
       validateMarkReadInput({ notification_id: notificationID }),
       validateMarkReadInput({ notification_id: "nope" }),
       validateInboxSearch({ after: "cursor", notice: "all-read" }),
@@ -208,6 +221,7 @@ test("inbox forms and searches keep only known values", () => {
     ],
     [
       { notification_id: notificationID, event_slug: "chess-night" },
+      { notification_id: notificationID, team_slug: "night-owls" },
       { notification_id: notificationID },
       undefined,
       { after: "cursor", notice: "all-read" },

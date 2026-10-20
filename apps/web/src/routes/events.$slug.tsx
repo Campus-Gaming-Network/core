@@ -130,11 +130,13 @@ export const Route = createFileRoute("/events/$slug")({
       throw new Error("Event viewer session is unavailable");
     }
 
-    // Who is going is for signed-in viewers only, and a locked event shows
-    // nothing. A list that cannot be read is reported in the result and never
-    // fails the page.
+    // Who is going is for signed-in viewers only, and a locked or cancelled
+    // event shows nothing. A list that cannot be read is reported in the
+    // result and never fails the page.
     const attendees =
-      session.authenticated && !isLockedEvent(detail.event)
+      session.authenticated &&
+      !isLockedEvent(detail.event) &&
+      !detail.event.cancelled_at
         ? await getEventAttendees({
             data: {
               slug: params.slug,
@@ -259,6 +261,7 @@ function VisibleEventView({
   const onlineURL = safeExternalEventUrl(event.online_url);
   const primaryGame = event.games[0];
   const organizer = event.organizers?.[0];
+  const cancelled = Boolean(event.cancelled_at);
   const hasPlace = event.format !== "online";
   const directionsURL =
     hasPlace && (event.address || event.location_name)
@@ -272,6 +275,15 @@ function VisibleEventView({
       <Breadcrumbs current={event.title}>
         <BreadcrumbLink to="/events">Events</BreadcrumbLink>
       </Breadcrumbs>
+      {cancelled ? (
+        <PageNoticeView
+          notice={{
+            message:
+              "This event was cancelled. RSVPs are closed, and this page comes down a day after the cancellation.",
+            severity: "danger",
+          }}
+        />
+      ) : null}
       <DetailHero
         coverURL={
           primaryGame?.has_cover
@@ -284,7 +296,7 @@ function VisibleEventView({
       >
         {/* A running event says so as loudly as the green "Now" band on its
             directory tile, not as one more chip in the tag list. */}
-        {event.lifecycle === "happening_now" ? (
+        {event.lifecycle === "happening_now" && !cancelled ? (
           <p className="event-now">
             <span className="event-now__label">Happening now</span>
             <span className="event-now__until">
@@ -320,7 +332,9 @@ function VisibleEventView({
         </p>
         <div className="tag-list">
           {event.event_type ? <EventTypeTag type={event.event_type} /> : null}
-          {event.lifecycle === "ended" || event.lifecycle === "full" ? (
+          {cancelled ? (
+            <StatusLabel tone="danger">Cancelled</StatusLabel>
+          ) : event.lifecycle === "ended" || event.lifecycle === "full" ? (
             <StatusLabel status={event.lifecycle}>
               {eventLifecycleLabel(event.lifecycle)}
             </StatusLabel>
@@ -342,13 +356,19 @@ function VisibleEventView({
                 </time>
               </strong>
               <small>{event.timezone.replaceAll("_", " ")}</small>
-              <a
-                className="text-action with-arrow"
-                href={`/api/events/${encodeURIComponent(event.slug)}/calendar.ics`}
-              >
-                <CalendarPlus aria-hidden="true" size={16} strokeWidth={1.75} />
-                Add to calendar
-              </a>
+              {cancelled ? null : (
+                <a
+                  className="text-action with-arrow"
+                  href={`/api/events/${encodeURIComponent(event.slug)}/calendar.ics`}
+                >
+                  <CalendarPlus
+                    aria-hidden="true"
+                    size={16}
+                    strokeWidth={1.75}
+                  />
+                  Add to calendar
+                </a>
+              )}
             </div>
           </li>
           {hasPlace ? (
@@ -421,7 +441,11 @@ function VisibleEventView({
           aria-labelledby="event-rsvp-heading"
         >
           <h2 id="event-rsvp-heading">Are you going?</h2>
-          {authenticated ? (
+          {cancelled ? (
+            <p className="rsvp-note">
+              RSVPs are closed because this event was cancelled.
+            </p>
+          ) : authenticated ? (
             <>
               <RsvpEventForm event={event} />
               <InterestEventForm event={event} />
@@ -435,26 +459,31 @@ function VisibleEventView({
               Log in to RSVP
             </ButtonLink>
           )}
-          <p className="rsvp-help">
-            <Mail aria-hidden="true" size={14} strokeWidth={1.75} />
-            Answer yes and we will email you a confirmation with a calendar
-            file.
-          </p>
+          {cancelled ? null : (
+            <p className="rsvp-help">
+              <Mail aria-hidden="true" size={14} strokeWidth={1.75} />
+              Answer yes and we will email you a confirmation with a calendar
+              file.
+            </p>
+          )}
         </section>
       </div>
 
-      <Tabs label="Event sections">
-        <TabLink current to="/events/$slug" params={{ slug: event.slug }}>
-          Overview
-        </TabLink>
-        <TabLink
-          current={false}
-          to="/events/$slug/people"
-          params={{ slug: event.slug }}
-        >
-          {`Going (${event.rsvp_yes_count})`}
-        </TabLink>
-      </Tabs>
+      {/* A cancelled event has no attendee list to show. */}
+      {cancelled ? null : (
+        <Tabs label="Event sections">
+          <TabLink current to="/events/$slug" params={{ slug: event.slug }}>
+            Overview
+          </TabLink>
+          <TabLink
+            current={false}
+            to="/events/$slug/people"
+            params={{ slug: event.slug }}
+          >
+            {`Going (${event.rsvp_yes_count})`}
+          </TabLink>
+        </Tabs>
+      )}
 
       <PageNoticeView
         notice={notice ? eventDetailNotices[notice] : undefined}
@@ -467,7 +496,7 @@ function VisibleEventView({
             <p>{event.description || "Event details are coming soon."}</p>
           </section>
 
-          {authenticated ? (
+          {cancelled ? null : authenticated ? (
             <section
               className="detail-card"
               aria-labelledby="event-people-title"
@@ -516,7 +545,8 @@ function VisibleEventView({
 
           {authenticated ? (
             <section aria-label="Event safety and management">
-              {event.viewer_can_edit ? (
+              {/* An event that has ended can no longer be changed. */}
+              {event.viewer_can_edit && event.lifecycle !== "ended" ? (
                 <div className="panel event-manage">
                   <h2 id="manage-event">Manage event</h2>
                   <p className="form-help">

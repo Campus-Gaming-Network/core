@@ -70,7 +70,8 @@ function InboxPage() {
         <div>
           <h1>Notifications</h1>
           <p className="lede">
-            Updates about events you are going to and events you organize.
+            Updates about events you are going to, events you organize, and your
+            teams.
           </p>
         </div>
         {anyUnread ? (
@@ -110,8 +111,9 @@ function InboxPage() {
             {search.after ? "No older notifications" : "No notifications yet"}
           </h2>
           <p>
-            When an event you are going to is cancelled, or someone joins an
-            event you organize, it shows up here.
+            When an event you are going to is cancelled, someone joins an event
+            you organize or a team you own, or a team is handed to you, it shows
+            up here.
           </p>
         </section>
       ) : (
@@ -153,6 +155,11 @@ function InboxItem({
 }) {
   const runMarkRead = useServerFn(markNotificationRead);
   const unread = !entry.read_at;
+  const opens = entry.event_slug
+    ? "View event"
+    : entry.team_slug
+      ? "View team"
+      : undefined;
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -170,18 +177,20 @@ function InboxItem({
         <p>{entry.body}</p>
         <small>{entry.createdLabel}</small>
       </div>
-      {entry.event_slug || unread ? (
+      {opens || unread ? (
         <form action={markNotificationRead.url} method="post" onSubmit={submit}>
           <input name="notification_id" type="hidden" value={entry.id} />
           {entry.event_slug ? (
             <input name="event_slug" type="hidden" value={entry.event_slug} />
+          ) : entry.team_slug ? (
+            <input name="team_slug" type="hidden" value={entry.team_slug} />
           ) : null}
           <button
             className="button--secondary button--small"
             disabled={pending}
             type="submit"
           >
-            {entry.event_slug ? "View event" : "Mark as read"}
+            {opens ?? "Mark as read"}
             <span className="visually-hidden">: {entry.title}</span>
           </button>
         </form>

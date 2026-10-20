@@ -10,6 +10,7 @@ import (
 
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/auth"
 	eventstore "github.com/Campus-Gaming-Network/core/apps/api/internal/events"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/pagecursor"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -128,6 +129,47 @@ func (r *Router) handleMyEvents(w http.ResponseWriter, req *http.Request) {
 		FollowedSchoolEvents: followedSchoolEvents,
 		InterestedEvents:     interestedEvents,
 	})
+}
+
+// handleCreatedEvents answers GET /me/created-events: a page of the events
+// the caller created, past and upcoming, latest start first. `limit` is 1–50
+// (default 20) and `after` is the previous page's next_cursor.
+func (r *Router) handleCreatedEvents(w http.ResponseWriter, req *http.Request) {
+	if r.events == nil {
+		writeError(w, http.StatusServiceUnavailable, "database_unavailable")
+		return
+	}
+	userID, err := auth.RequireUser(req.Context())
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, "authentication_required")
+		return
+	}
+	query := req.URL.Query()
+	limit := eventstore.DefaultCreatedLimit
+	if query.Has("limit") {
+		parsed, err := strconv.Atoi(query.Get("limit"))
+		if err != nil || parsed < 1 || parsed > eventstore.MaximumCreatedLimit {
+			writeError(w, http.StatusBadRequest, "invalid_limit")
+			return
+		}
+		limit = parsed
+	}
+	var after *pagecursor.Cursor
+	if query.Has("after") {
+		cursor, err := pagecursor.Decode(query.Get("after"))
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid_cursor")
+			return
+		}
+		after = &cursor
+	}
+	page, err := r.events.ListCreated(req.Context(), userID, after, limit)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "events_unavailable")
+		return
+	}
+	w.Header().Set("Cache-Control", "private, no-store")
+	writeJSON(w, http.StatusOK, page)
 }
 
 func (r *Router) handleCreateEvent(w http.ResponseWriter, req *http.Request) {

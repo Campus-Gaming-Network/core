@@ -1,15 +1,24 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { Link, createFileRoute, redirect } from "@tanstack/react-router";
 import { ButtonLink } from "../components/button-link";
 import { PageHeading } from "../components/page-heading";
 import { RouteErrorView, RoutePending } from "../components/route-boundaries";
-import { getAccountDashboard } from "../features/account-slice/account.functions";
+import {
+  getAccountDashboard,
+  getCreatedEvents,
+} from "../features/account-slice/account.functions";
+import { validateYourEventsSearch } from "../features/account-slice/contracts";
 import { AccountEventSection } from "../features/account-slice/account-lists";
 import { yourPageHead } from "../features/account-slice/presentation";
 import accountCSS from "../features/account-slice/account.css?url";
 
 export const Route = createFileRoute("/account_/events")({
-  loader: async ({ context }) => {
-    const dashboard = await getAccountDashboard();
+  validateSearch: validateYourEventsSearch,
+  loaderDeps: ({ search }) => ({ created: search.created }),
+  loader: async ({ context, deps }) => {
+    const [dashboard, created] = await Promise.all([
+      getAccountDashboard(),
+      getCreatedEvents({ data: { created: deps.created } }),
+    ]);
     if (dashboard.status === "unauthenticated") {
       throw redirect({ to: "/login", search: { next: "/account/events" } });
     }
@@ -19,6 +28,7 @@ export const Route = createFileRoute("/account_/events")({
     return {
       events: dashboard.dashboardEvents,
       unavailable: dashboard.unavailable.dashboardEvents,
+      created,
       publicOrigin: context.publicOrigin,
     };
   },
@@ -34,9 +44,11 @@ export const Route = createFileRoute("/account_/events")({
 });
 
 // The events the viewer is going to, might go to, and is interested in,
-// each soonest first. The API sends up to its list limit of each.
+// each soonest first, up to the API's list limit of each; then every event
+// they created, latest first, a page at a time.
 function YourEventsPage() {
-  const { events, unavailable } = Route.useLoaderData();
+  const { events, unavailable, created } = Route.useLoaderData();
+  const search = Route.useSearch();
   const going = events.upcoming_rsvps.filter(
     (event) => event.viewer_rsvp === "yes",
   );
@@ -52,7 +64,7 @@ function YourEventsPage() {
   return (
     <main className="account-page your-page">
       <PageHeading
-        supporting="Upcoming events you said you are going to, might go to, or are interested in."
+        supporting="Upcoming events you said you are going to, might go to, or are interested in, and every event you created."
         title="Your events"
       />
       {unavailable ? (
@@ -102,6 +114,58 @@ function YourEventsPage() {
             variant="interested"
           />
         </>
+      )}
+      {created.status === "found" ? (
+        <AccountEventSection
+          empty={
+            <>
+              <p>
+                {search.created
+                  ? "No earlier events you created."
+                  : "Events you create show here, past and upcoming."}
+              </p>
+              <ButtonLink to="/events/new" variant="secondary">
+                Create an event
+              </ButtonLink>
+            </>
+          }
+          events={created.events}
+          footer={
+            search.created || created.nextCursor ? (
+              <nav aria-label="Created event pages" className="pagination">
+                {search.created ? (
+                  <Link hash="created" to="/account/events">
+                    Latest
+                  </Link>
+                ) : (
+                  <span />
+                )}
+                {created.nextCursor ? (
+                  <Link
+                    hash="created"
+                    search={{ created: created.nextCursor }}
+                    to="/account/events"
+                  >
+                    Earlier
+                  </Link>
+                ) : (
+                  <span />
+                )}
+              </nav>
+            ) : null
+          }
+          heading="Created"
+          headingId="your-created-title"
+          moreLink={false}
+          sectionId="created"
+          showAll
+          variant="created"
+        />
+      ) : (
+        <p role="alert">
+          The events you created are unavailable right now. Please try again in
+          a moment.
+        </p>
       )}
     </main>
   );

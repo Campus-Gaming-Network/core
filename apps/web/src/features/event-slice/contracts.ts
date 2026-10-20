@@ -127,6 +127,8 @@ export const eventDtoSchema = z.object({
   viewer_can_edit: z.boolean().optional(),
   /** The creator alone cancels the event and manages its co-organizers. */
   viewer_is_creator: z.boolean().optional(),
+  /** Set for a cancelled event, whose page stays up for a day. */
+  cancelled_at: timestampSchema.optional(),
 });
 
 const lockedEventDtoSchema = z.object({
@@ -502,7 +504,7 @@ export type EditEventPageResult =
     }
   | { status: "unauthenticated" }
   | { status: "not_found" }
-  | { status: "denied"; reason: "locked" | "forbidden" }
+  | { status: "denied"; reason: "locked" | "forbidden" | "cancelled" | "ended" }
   | { status: "error"; message: "Event editing is unavailable." };
 
 type NewEventSearch = {

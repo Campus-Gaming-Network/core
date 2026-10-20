@@ -30,6 +30,10 @@ const (
 	// KindOrganizerInvite carries the link that accepts an invite to
 	// co-organize an event.
 	KindOrganizerInvite = "event_organizer_invite"
+	// KindTeamMemberJoined tells a team's owner someone joined;
+	// KindTeamOwnershipTransferred tells a member the team is now theirs.
+	KindTeamMemberJoined         = "team_member_joined"
+	KindTeamOwnershipTransferred = "team_ownership_transferred"
 )
 
 const (

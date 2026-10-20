@@ -89,6 +89,26 @@ export const Route = createFileRoute("/events/$slug_/edit")({
   component: EditEventPage,
 });
 
+const editDenials = {
+  locked: {
+    heading: "This private event is locked.",
+    detail:
+      "Only an event organizer can load private event details for editing.",
+  },
+  forbidden: {
+    heading: "You do not have permission to edit this event.",
+    detail: "Only an event organizer can change it.",
+  },
+  cancelled: {
+    heading: "This event was cancelled.",
+    detail: "A cancelled event can no longer be changed.",
+  },
+  ended: {
+    heading: "This event has ended.",
+    detail: "An event that has ended can no longer be changed or cancelled.",
+  },
+} as const;
+
 function EditEventPage() {
   const data = Route.useLoaderData();
   const { slug } = Route.useParams();
@@ -99,16 +119,8 @@ function EditEventPage() {
       <main className="prose">
         <section className="empty-state">
           <p className="eyebrow">Edit event</p>
-          <h1>
-            {data.reason === "locked"
-              ? "This private event is locked."
-              : "You do not have permission to edit this event."}
-          </h1>
-          <p>
-            {data.reason === "locked"
-              ? "Only an event organizer can load private event details for editing."
-              : "Only an event organizer can change it."}
-          </p>
+          <h1>{editDenials[data.reason].heading}</h1>
+          <p>{editDenials[data.reason].detail}</p>
           <div className="actions">
             <ButtonLink
               variant="secondary"

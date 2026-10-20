@@ -83,6 +83,27 @@ export const dashboardEventsDtoSchema = z.object({
   interested_events: z.array(dashboardEventDtoSchema).default([]),
 });
 
+export const createdEventsDtoSchema = z.object({
+  events: z.array(dashboardEventDtoSchema),
+  next_cursor: z.string().max(512),
+});
+
+/** One page of the events the viewer created, latest start first. */
+export type CreatedEventsResult =
+  | { status: "found"; events: DashboardEventDTO[]; nextCursor: string }
+  | { status: "unauthenticated" }
+  | { status: "unavailable" };
+
+const createdCursorSchema = z.string().trim().min(1).max(512);
+
+/** The Your events page's search: `created` pages the Created list. */
+export function validateYourEventsSearch(search: Record<string, unknown>): {
+  created?: string;
+} {
+  const created = createdCursorSchema.safeParse(search.created);
+  return created.success ? { created: created.data } : {};
+}
+
 export const followedSchoolsDtoSchema = z.object({
   schools: z.array(schoolSummarySchema),
 });

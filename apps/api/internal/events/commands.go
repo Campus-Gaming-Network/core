@@ -71,7 +71,7 @@ func (r *PostgresRepository) Update(ctx context.Context, params UpdateParams) (E
 	}
 	defer tx.Rollback(ctx)
 
-	eventID, currentPrivatePasswordHash, err := lockEditableEvent(ctx, tx, params.Slug, params.EditorUserID)
+	eventID, currentPrivatePasswordHash, err := lockEditableEvent(ctx, tx, params.Slug, params.EditorUserID, r.now())
 	if err != nil {
 		return Event{}, err
 	}
@@ -196,6 +196,9 @@ func (r *PostgresRepository) Delete(ctx context.Context, slug string, userID str
 	event, err := scanEvent(tx.QueryRow(ctx, eventSelectSQL(`e.id = $1::uuid`, ``), eventID), r.now())
 	if err != nil {
 		return fmt.Errorf("load event cancellation email: %w", err)
+	}
+	if !r.now().Before(event.EndsAt) {
+		return ErrEventEnded
 	}
 	recipients, err := cancellationRecipients(ctx, tx, eventID)
 	if err != nil {

@@ -87,11 +87,11 @@ export async function unreadCountOperation({
 }
 
 /**
- * Marks one notification read. Opening a notice about an event marks it and
- * goes to the event; otherwise the inbox reloads.
+ * Marks one notification read. Opening a notice about an event or a team
+ * marks it and goes there; otherwise the inbox reloads.
  */
 export async function markReadOperation(
-  { notification_id, event_slug }: MarkReadInput,
+  { notification_id, event_slug, team_slug }: MarkReadInput,
   { api, cookieHeader, reportError = defaultErrorReporter }: Dependencies,
 ): Promise<InboxMutationResult> {
   try {
@@ -106,7 +106,9 @@ export async function markReadOperation(
       status: "success",
       redirectTo: event_slug
         ? `/events/${encodeURIComponent(event_slug)}`
-        : inboxPath,
+        : team_slug
+          ? `/teams/${encodeURIComponent(team_slug)}`
+          : inboxPath,
     };
   } catch (error) {
     reportError(error);

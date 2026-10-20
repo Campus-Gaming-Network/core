@@ -217,13 +217,17 @@ type editableEventLocker interface {
 	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
 }
 
-func lockEditableEvent(ctx context.Context, locker editableEventLocker, slug string, userID string) (string, sql.NullString, error) {
+// lockEditableEvent locks the event with slug for an edit by userID, who must
+// organize it. An event that ended before now cannot be edited.
+func lockEditableEvent(ctx context.Context, locker editableEventLocker, slug string, userID string, now time.Time) (string, sql.NullString, error) {
 	var eventID string
 	var currentPrivatePasswordHash sql.NullString
 	var organizer bool
+	var endsAt time.Time
 	err := locker.QueryRow(ctx, `
 		SELECT e.id::text,
 		       e.private_password_hash,
+		       e.ends_at,
 		       EXISTS (
 		           SELECT 1
 		           FROM event_organizers eo
@@ -235,7 +239,7 @@ func lockEditableEvent(ctx context.Context, locker editableEventLocker, slug str
 		WHERE e.slug = $1
 		  AND e.deleted_at IS NULL
 		FOR UPDATE OF e
-	`, strings.TrimSpace(slug), strings.TrimSpace(userID)).Scan(&eventID, &currentPrivatePasswordHash, &organizer)
+	`, strings.TrimSpace(slug), strings.TrimSpace(userID)).Scan(&eventID, &currentPrivatePasswordHash, &endsAt, &organizer)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return "", sql.NullString{}, ErrEventNotFound
 	}
@@ -244,6 +248,9 @@ func lockEditableEvent(ctx context.Context, locker editableEventLocker, slug str
 	}
 	if !organizer {
 		return "", sql.NullString{}, ErrOrganizerRequired
+	}
+	if !now.Before(endsAt) {
+		return "", sql.NullString{}, ErrEventEnded
 	}
 	return eventID, currentPrivatePasswordHash, nil
 }

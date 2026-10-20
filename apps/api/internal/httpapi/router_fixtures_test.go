@@ -10,6 +10,7 @@ import (
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/auth"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/config"
 	eventstore "github.com/Campus-Gaming-Network/core/apps/api/internal/events"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/pagecursor"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/safety"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/schools"
 	teamstore "github.com/Campus-Gaming-Network/core/apps/api/internal/teams"
@@ -381,6 +382,10 @@ type fakeEventRepository struct {
 	followedSchoolEvents           []eventstore.Event
 	interestedEvents               []eventstore.Event
 	detail                         eventstore.Event
+	createdPage                    eventstore.CreatedPage
+	createdListUserID              string
+	createdListAfter               *pagecursor.Cursor
+	createdListLimit               int
 	createCalled                   bool
 	createParams                   eventstore.CreateParams
 	created                        eventstore.Event
@@ -549,7 +554,17 @@ func (r *fakeEventRepository) ListFollowedSchoolEvents(_ context.Context, userID
 	return r.followedSchoolEvents, r.err
 }
 
-func (r *fakeEventRepository) GetBySlug(_ context.Context, slug string) (eventstore.Event, error) {
+func (r *fakeEventRepository) GetBySlug(ctx context.Context, slug string) (eventstore.Event, error) {
+	event, err := r.GetPageBySlug(ctx, slug)
+	if err == nil && event.CancelledAt != nil {
+		return eventstore.Event{}, pgx.ErrNoRows
+	}
+	return event, err
+}
+
+// GetPageBySlug returns detail, which a test marks cancelled by setting its
+// CancelledAt.
+func (r *fakeEventRepository) GetPageBySlug(_ context.Context, slug string) (eventstore.Event, error) {
 	if r.err != nil {
 		return eventstore.Event{}, r.err
 	}
@@ -557,6 +572,13 @@ func (r *fakeEventRepository) GetBySlug(_ context.Context, slug string) (eventst
 		return eventstore.Event{}, pgx.ErrNoRows
 	}
 	return r.detail, nil
+}
+
+func (r *fakeEventRepository) ListCreated(_ context.Context, userID string, after *pagecursor.Cursor, limit int) (eventstore.CreatedPage, error) {
+	r.createdListUserID = userID
+	r.createdListAfter = after
+	r.createdListLimit = limit
+	return r.createdPage, nil
 }
 
 func (r *fakeFollowRepository) Follow(_ context.Context, _ string, _ string) error {

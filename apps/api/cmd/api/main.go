@@ -23,6 +23,7 @@ import (
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/mailhttp"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/maintenance"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/redact"
+	teamstore "github.com/Campus-Gaming-Network/core/apps/api/internal/teams"
 )
 
 func main() {
@@ -108,6 +109,11 @@ func run() int {
 			},
 			Events: &eventstore.ResendMailer{
 				APIKey: cfg.ResendAPIKey, From: cfg.EventsEmailFrom,
+				Endpoint: cfg.ResendAPIURL, SiteURL: cfg.SiteURL,
+				Client: mailClient, Logger: slog.Default(),
+			},
+			Teams: &teamstore.ResendMailer{
+				APIKey: cfg.ResendAPIKey, From: cfg.NotificationsEmailFrom,
 				Endpoint: cfg.ResendAPIURL, SiteURL: cfg.SiteURL,
 				Client: mailClient, Logger: slog.Default(),
 			},

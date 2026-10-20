@@ -17,8 +17,10 @@ import (
 
 // Notification types the site writes.
 const (
-	TypeEventCancelled       = "event.cancelled"
-	TypeEventOrganizerJoined = "event.organizer_joined"
+	TypeEventCancelled           = "event.cancelled"
+	TypeEventOrganizerJoined     = "event.organizer_joined"
+	TypeTeamMemberJoined         = "team.member_joined"
+	TypeTeamOwnershipTransferred = "team.ownership_transferred"
 )
 
 // Page sizes for the inbox.
@@ -30,14 +32,15 @@ const (
 // ErrNotFound reports a notification that is missing or someone else's.
 var ErrNotFound = apperror.New(apperror.KindNotFound, "notification_not_found", "notification not found")
 
-// Notification is one inbox entry as its owner sees it. EventSlug links to the
-// event the notice is about while that event is still listed.
+// Notification is one inbox entry as its owner sees it. EventSlug or TeamSlug
+// links to the event or team the notice is about while it still exists.
 type Notification struct {
 	ID        string     `json:"id"`
 	Type      string     `json:"type"`
 	Title     string     `json:"title"`
 	Body      string     `json:"body"`
 	EventSlug string     `json:"event_slug,omitempty"`
+	TeamSlug  string     `json:"team_slug,omitempty"`
 	ReadAt    *time.Time `json:"read_at,omitempty"`
 	CreatedAt time.Time  `json:"created_at"`
 }
@@ -49,14 +52,15 @@ type Page struct {
 	NextCursor    string         `json:"next_cursor"`
 }
 
-// Input is a notification to leave for UserID about the event EventID, which
-// may be empty.
+// Input is a notification to leave for UserID about the event EventID or the
+// team TeamID. At most one is set; both may be empty.
 type Input struct {
 	UserID  string
 	Type    string
 	Title   string
 	Body    string
 	EventID string
+	TeamID  string
 }
 
 // Executor runs a statement, so a caller's transaction can write
@@ -72,8 +76,9 @@ func Insert(ctx context.Context, executor Executor, inputs ...Input) error {
 		if _, err := executor.Exec(ctx, `
 			INSERT INTO notifications (user_id, type, title, body, entity_type, entity_id)
 			VALUES ($1::uuid, $2, LEFT($3, 160), LEFT($4, 2000),
-			        CASE WHEN $5 = '' THEN NULL ELSE 'event' END, NULLIF($5, '')::uuid)
-		`, input.UserID, input.Type, input.Title, input.Body, input.EventID); err != nil {
+			        CASE WHEN $5 <> '' THEN 'event' WHEN $6 <> '' THEN 'team' END,
+			        NULLIF($5 || $6, '')::uuid)
+		`, input.UserID, input.Type, input.Title, input.Body, input.EventID, input.TeamID); err != nil {
 			return fmt.Errorf("insert %s notification: %w", input.Type, err)
 		}
 	}
@@ -90,15 +95,19 @@ func NewPostgresRepository(pool *pgxpool.Pool) *PostgresRepository {
 	return &PostgresRepository{pool: pool}
 }
 
+// entityJoins finds the live event or team a notification n links to.
+const entityJoins = `
+	LEFT JOIN events e ON n.entity_type = 'event' AND e.id = n.entity_id AND e.deleted_at IS NULL
+	LEFT JOIN teams t ON n.entity_type = 'team' AND t.id = n.entity_id AND t.deleted_at IS NULL`
+
 const selectColumns = `
-	SELECT n.id::text, n.type, n.title, n.body, COALESCE(e.slug, ''), n.read_at, n.created_at
-	FROM notifications n
-	LEFT JOIN events e ON n.entity_type = 'event' AND e.id = n.entity_id AND e.deleted_at IS NULL`
+	SELECT n.id::text, n.type, n.title, n.body, COALESCE(e.slug, ''), COALESCE(t.slug, ''), n.read_at, n.created_at
+	FROM notifications n` + entityJoins
 
 func scan(row pgx.Row) (Notification, error) {
 	var notification Notification
 	err := row.Scan(&notification.ID, &notification.Type, &notification.Title, &notification.Body,
-		&notification.EventSlug, &notification.ReadAt, &notification.CreatedAt)
+		&notification.EventSlug, &notification.TeamSlug, &notification.ReadAt, &notification.CreatedAt)
 	return notification, err
 }
 
@@ -154,10 +163,8 @@ func (r *PostgresRepository) MarkRead(ctx context.Context, userID string, notifi
 		    WHERE id = $1::uuid AND user_id = $2::uuid
 		    RETURNING *
 		)
-		SELECT n.id::text, n.type, n.title, n.body, COALESCE(e.slug, ''), n.read_at, n.created_at
-		FROM marked n
-		LEFT JOIN events e ON n.entity_type = 'event' AND e.id = n.entity_id AND e.deleted_at IS NULL
-	`, notificationID, userID))
+		SELECT n.id::text, n.type, n.title, n.body, COALESCE(e.slug, ''), COALESCE(t.slug, ''), n.read_at, n.created_at
+		FROM marked n`+entityJoins, notificationID, userID))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Notification{}, ErrNotFound
 	}

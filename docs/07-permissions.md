@@ -17,7 +17,7 @@ Authorization rules for the public site and the Admin Console. Enforce in **Go**
 | **Club member**        | Joins (signed in, verified email)                                   | Listed on the club member list; may leave                                                                                                    |
 | **Team owner**         | Creator or transfer                                                 | Manage team; transfer ownership; assign captains                                                                                             |
 | **Team captain**       | Owner assigns                                                       | Register team for tournaments; limited team mgmt                                                                                             |
-| **Event organizer**    | Creator, or co-organizer by accepted invite                         | Edit event (past-event limits planned); the creator alone cancels it and manages co-organizers                                               |
+| **Event organizer**    | Creator, or co-organizer by accepted invite                         | Edit event until it ends; the creator alone cancels it, until it ends, and manages co-organizers                                             |
 | **Approved organizer** | Explicit grant                                                      | Badge-eligible events                                                                                                                        |
 | **Site admin**         | Bootstrap, then Admin Console                                       | Schools; games; reports; support tickets; staff grants; impersonation and feature flags later                                                |
 
@@ -144,7 +144,7 @@ The two past-event rows are the intended rule; neither is enforced yet, so organ
   the interest, RSVP, and unlock responses unless the requester is going or
   organizes the event. The RSVP confirmation email (sent on yes) includes it.
 - Registration closes automatically; ended or full → no new yes RSVPs
-- Past events: organizers limited to minor corrections (not date/location)
+- An event that has ended cannot be edited or cancelled (`409 event_ended`)
 - Soft cancel only; active yes/maybe RSVPs receive a best-effort cancellation email
 - Basic blocked-language filtering rejects disallowed names, bios, event/team
   text, reports, and support messages before persistence

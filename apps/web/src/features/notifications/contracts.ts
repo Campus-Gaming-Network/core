@@ -13,6 +13,7 @@ export const notificationDtoSchema = z.object({
   title: z.string(),
   body: z.string(),
   event_slug: z.string().min(1).max(200).optional(),
+  team_slug: z.string().min(1).max(200).optional(),
   read_at: timestampSchema.optional(),
   created_at: timestampSchema,
 });
@@ -62,10 +63,14 @@ export function validateInboxSearch(search: Record<string, unknown>): {
 const markReadInputSchema = z.object({
   notification_id: z.uuid(),
   event_slug: z.string().trim().max(200).optional(),
+  team_slug: z.string().trim().max(200).optional(),
 });
 export type MarkReadInput = z.output<typeof markReadInputSchema>;
 
-/** The Open or Mark as read form; `event_slug` opens that event afterwards. */
+/**
+ * The Open or Mark as read form; `event_slug` or `team_slug` opens that event
+ * or team afterwards.
+ */
 export function validateMarkReadInput(
   input: object | FormData,
 ): MarkReadInput | undefined {
@@ -77,9 +82,11 @@ export function validateMarkReadInput(
     return typeof raw === "string" && raw.trim() ? raw.trim() : undefined;
   };
   const eventSlug = value("event_slug");
+  const teamSlug = value("team_slug");
   const parsed = markReadInputSchema.safeParse({
     notification_id: value("notification_id"),
     ...(eventSlug ? { event_slug: eventSlug } : {}),
+    ...(teamSlug ? { team_slug: teamSlug } : {}),
   });
   return parsed.success ? parsed.data : undefined;
 }

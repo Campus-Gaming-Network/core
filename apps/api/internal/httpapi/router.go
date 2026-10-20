@@ -301,6 +301,7 @@ func (r *Router) registerPublicRoutes() {
 	r.mux.HandleFunc("/policies/current", requireMethod(http.MethodGet, r.handleCurrentPolicies))
 	r.mux.HandleFunc("/me/policy-acceptances", requireMethod(http.MethodGet, r.handleMyPolicyAcceptances))
 	r.mux.HandleFunc("/me/events", r.handleMyEvents)
+	r.mux.HandleFunc("/me/created-events", requireMethod(http.MethodGet, r.handleCreatedEvents))
 	r.mux.HandleFunc("/me/schools", r.handleMySchools)
 	r.mux.HandleFunc("/me/teams", r.handleMyTeams)
 	r.mux.HandleFunc("/me/games", r.handleMyGames)
@@ -1037,13 +1038,19 @@ func (r *Router) handleEventPath(w http.ResponseWriter, req *http.Request) {
 		methodNotAllowed(w, http.MethodGet+", "+http.MethodPatch+", "+http.MethodDelete)
 		return
 	}
-	event, err := r.events.GetBySlug(req.Context(), slug)
+	event, err := r.events.GetPageBySlug(req.Context(), slug)
 	if errors.Is(err, pgx.ErrNoRows) {
 		writeError(w, http.StatusNotFound, "event_not_found")
 		return
 	}
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "event_unavailable")
+		return
+	}
+	// A cancelled event's page stays up for a while, but not a private one:
+	// its organizers and unlocks ended with it, so no one could be let in.
+	if event.CancelledAt != nil && event.IsPrivate() {
+		writeError(w, http.StatusNotFound, "event_not_found")
 		return
 	}
 	if event.IsPrivate() {
