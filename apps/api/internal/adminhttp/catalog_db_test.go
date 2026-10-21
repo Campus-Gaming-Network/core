@@ -25,6 +25,7 @@ import (
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/clubs"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/emailoutbox"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/games"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/metrics"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/migrate"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/operations"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/pagecursor"
@@ -133,6 +134,7 @@ func newCatalogFixture(t *testing.T) catalogFixture {
 		Grants: f.grants, Sessions: f.sessions, Security: adminsecurity.NewPostgresStore(pool),
 		Operations: operations.NewPostgresRepository(pool),
 		System:     &SystemDependencies{Outbox: emailoutbox.NewPostgresStore(pool)},
+		Metrics:    metrics.NewPostgresRepository(pool),
 		Catalog:    &CatalogDependencies{Schools: f.school, Clubs: f.club, Games: f.game, Users: f.user, SiteGrants: f.grants, Cache: f.cache, Audit: adminaudit.NewPostgresStore(pool), IGDB: games.NewIGDBService(f.game, f.igdb.client)},
 	})
 	return f

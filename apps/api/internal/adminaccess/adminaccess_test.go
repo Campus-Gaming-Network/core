@@ -30,6 +30,7 @@ func TestSiteAdminCapabilities(t *testing.T) {
 		CapabilitySiteGrantsManage,
 		CapabilityAuditRead,
 		CapabilitySystemRead,
+		CapabilityMetricsRead,
 	}
 	for _, capability := range want {
 		if !Allows(RoleSiteAdmin, capability) {

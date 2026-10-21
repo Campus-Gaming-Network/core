@@ -33,6 +33,7 @@ import (
 	eventstore "github.com/Campus-Gaming-Network/core/apps/api/internal/events"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/games"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/igdb"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/metrics"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/notifications"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/objectstore"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/operations"
@@ -223,6 +224,7 @@ func NewRouter(cfg config.Config, pools ...*pgxpool.Pool) http.Handler {
 				Transactions: adminTransactions,
 				Operations:   operations.NewPostgresRepository(router.db),
 				System:       system,
+				Metrics:      metrics.NewPostgresRepository(router.db),
 				Catalog: &adminhttp.CatalogDependencies{
 					Schools: schools.NewPostgresRepository(router.db), Games: games.NewPostgresRepository(router.db),
 					Users: users.NewPostgresRepository(router.db), SiteGrants: adminaccess.NewPostgresRepository(router.db),

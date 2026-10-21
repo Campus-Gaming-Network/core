@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuditLogRouteImport } from './routes/audit-log'
+import { Route as MetricsRouteImport } from './routes/metrics'
 import { Route as StepUpRouteImport } from './routes/step-up'
 import { Route as SystemRouteImport } from './routes/system'
 import { Route as AccessSiteAdminsRouteImport } from './routes/access.site-admins'
@@ -41,6 +42,11 @@ const IndexRoute = IndexRouteImport.update({
 const AuditLogRoute = AuditLogRouteImport.update({
   id: '/audit-log',
   path: '/audit-log',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MetricsRoute = MetricsRouteImport.update({
+  id: '/metrics',
+  path: '/metrics',
   getParentRoute: () => rootRouteImport,
 } as any)
 const StepUpRoute = StepUpRouteImport.update({
@@ -152,6 +158,7 @@ const UsersUserIdRoute = UsersUserIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/audit-log': typeof AuditLogRoute
+  '/metrics': typeof MetricsRoute
   '/step-up': typeof StepUpRoute
   '/system': typeof SystemRoute
   '/access/site-admins': typeof AccessSiteAdminsRoute
@@ -177,6 +184,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/audit-log': typeof AuditLogRoute
+  '/metrics': typeof MetricsRoute
   '/step-up': typeof StepUpRoute
   '/system': typeof SystemRoute
   '/access/site-admins': typeof AccessSiteAdminsRoute
@@ -203,6 +211,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/audit-log': typeof AuditLogRoute
+  '/metrics': typeof MetricsRoute
   '/step-up': typeof StepUpRoute
   '/system': typeof SystemRoute
   '/access/site-admins': typeof AccessSiteAdminsRoute
@@ -230,6 +239,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/audit-log'
+    | '/metrics'
     | '/step-up'
     | '/system'
     | '/access/site-admins'
@@ -255,6 +265,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/audit-log'
+    | '/metrics'
     | '/step-up'
     | '/system'
     | '/access/site-admins'
@@ -280,6 +291,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/audit-log'
+    | '/metrics'
     | '/step-up'
     | '/system'
     | '/access/site-admins'
@@ -306,6 +318,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuditLogRoute: typeof AuditLogRoute
+  MetricsRoute: typeof MetricsRoute
   StepUpRoute: typeof StepUpRoute
   SystemRoute: typeof SystemRoute
   AccessSiteAdminsRoute: typeof AccessSiteAdminsRoute
@@ -343,6 +356,13 @@ declare module '@tanstack/react-router' {
       path: '/audit-log'
       fullPath: '/audit-log'
       preLoaderRoute: typeof AuditLogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/metrics': {
+      id: '/metrics'
+      path: '/metrics'
+      fullPath: '/metrics'
+      preLoaderRoute: typeof MetricsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/step-up': {
@@ -498,6 +518,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuditLogRoute: AuditLogRoute,
+  MetricsRoute: MetricsRoute,
   StepUpRoute: StepUpRoute,
   SystemRoute: SystemRoute,
   AccessSiteAdminsRoute: AccessSiteAdminsRoute,

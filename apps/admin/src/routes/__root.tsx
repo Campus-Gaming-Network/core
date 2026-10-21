@@ -114,6 +114,7 @@ const navigationSections: {
       | "/users"
       | "/access/site-admins"
       | "/system"
+      | "/metrics"
       | "/audit-log";
     label: string;
     icon: string;
@@ -206,6 +207,12 @@ const navigationSections: {
         label: "System",
         icon: "M1.5 8h3l2-4.5 3 9 2-4.5h3",
         capability: "system.read",
+      },
+      {
+        to: "/metrics",
+        label: "Metrics",
+        icon: "M2.5 13.5h11M4.5 11V8M8 11V4.5M11.5 11V6.5",
+        capability: "metrics.read",
       },
     ],
   },
