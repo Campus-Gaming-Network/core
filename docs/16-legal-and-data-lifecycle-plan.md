@@ -147,8 +147,8 @@ supplies and confirms:
 - [ ] Initial launch geography and whether access will be limited to the United
       States and adults age 18 or older.
 - [ ] Final provider list and purposes, including Railway, Cloudflare, Resend,
-      Sentry (error monitoring), and Plausible (cookieless page analytics on
-      the public site, through the site's own origin; see
+      Sentry (error monitoring), and Plausible (cookieless page and goal
+      analytics on the public site, through the site's own origin; see
       [13 — Deployment](./13-deployment-plan.md)).
 - [ ] Whether personal information is sold or shared for cross-context
       behavioral advertising, and whether targeted advertising is planned.

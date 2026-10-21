@@ -5,6 +5,7 @@ import {
   analyticsScriptResponse,
   cleanEvent,
   resetAnalyticsScriptCache,
+  sendAnalyticsGoal,
 } from "../src/server/analytics.server.js";
 import { environmentValidationIssues } from "../src/server/environment.server.js";
 
@@ -173,4 +174,81 @@ test("PLAUSIBLE_DOMAIN must be a hostname when set", () => {
       ["PLAUSIBLE_DOMAIN must be a hostname such as campusgamingnetwork.com"],
     ],
   );
+});
+
+function visitor(referer: string) {
+  return {
+    headers: new Headers({
+      referer,
+      "user-agent": "Test Browser",
+      "cf-connecting-ip": "203.0.113.7",
+    }),
+  };
+}
+
+test("a goal names the form's page and the visitor, and is never sent unconfigured or allowed to throw", async () => {
+  const sent: Array<{
+    url: string;
+    headers: Record<string, string>;
+    body: unknown;
+  }> = [];
+  const fetcher = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    sent.push({
+      url: String(input),
+      headers: Object.fromEntries(new Headers(init?.headers)),
+      body: JSON.parse(String(init?.body)),
+    });
+    return new Response("ok", { status: 202 });
+  }) as typeof fetch;
+  await sendAnalyticsGoal(
+    { name: "RSVP", response: "yes" },
+    visitor(`${site}/events/lan-night?event=unlocked&utm_source=discord`),
+    { environment, fetcher, siteOrigin: site },
+  );
+  await sendAnalyticsGoal(
+    { name: "Signup" },
+    visitor("https://elsewhere.example/signup"),
+    { environment, fetcher, siteOrigin: site },
+  );
+  await sendAnalyticsGoal({ name: "Join club" }, visitor(`${site}/clubs/a`), {
+    environment: {},
+    fetcher,
+    siteOrigin: site,
+  });
+  await sendAnalyticsGoal({ name: "Join club" }, visitor(`${site}/clubs/a`), {
+    environment,
+    fetcher: (async () => {
+      throw new Error("offline");
+    }) as typeof fetch,
+    siteOrigin: site,
+  });
+
+  const headers = {
+    "content-type": "application/json",
+    "user-agent": "Test Browser",
+    "x-forwarded-for": "203.0.113.7",
+  };
+  assert.deepEqual(sent, [
+    {
+      url: "https://plausible.io/api/event",
+      headers,
+      body: {
+        n: "RSVP",
+        u: `${site}/events/lan-night?utm_source=discord`,
+        d: "staging.campusgamingnetwork.com",
+        r: null,
+        p: { response: "yes" },
+      },
+    },
+    {
+      url: "https://plausible.io/api/event",
+      headers,
+      body: {
+        n: "Signup",
+        u: `${site}/`,
+        d: "staging.campusgamingnetwork.com",
+        r: null,
+      },
+    },
+  ]);
 });

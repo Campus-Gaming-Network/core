@@ -101,26 +101,77 @@ export async function analyticsEventResponse(
   const event = cleanEvent(text, siteOrigin, domain);
   if (!event) return new Response(null, { status: 400 });
 
-  const headers = new Headers({ "content-type": "application/json" });
-  const userAgent = request.headers.get("user-agent");
-  if (userAgent) headers.set("user-agent", userAgent);
-  // Plausible counts unique visitors from the address and user agent, and
-  // stores neither. Cloudflare names the visitor's address in its own header.
-  const clientAddress =
-    request.headers.get("cf-connecting-ip") ??
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
-  if (clientAddress) headers.set("x-forwarded-for", clientAddress);
-
   try {
     const upstream = await fetcher(`${plausibleOrigin}/api/event`, {
       method: "POST",
-      headers,
+      headers: visitorHeaders(request.headers),
       body: JSON.stringify(event),
     });
     return new Response(null, { status: upstream.ok ? 202 : 502 });
   } catch {
     return new Response(null, { status: 502 });
   }
+}
+
+/**
+ * Goals sent from the server when a form succeeds, so they count native form
+ * posts without JavaScript. Each must also be created as a goal in Plausible.
+ */
+export type AnalyticsGoal =
+  | { name: "Signup" }
+  | { name: "Join club" }
+  | { name: "RSVP"; response: "yes" | "maybe" | "no" };
+
+/** Sends a goal once a form succeeds; operations default to sending none. */
+export type GoalSender = (goal: AnalyticsGoal) => void;
+
+/**
+ * Sends one goal for the visitor who made `request`. It names the page the
+ * form was on, from the Referer header without its query string, and the
+ * visitor's address and agent, so Plausible joins it to that visit. It never
+ * throws: a goal that cannot be sent is not worth failing the form over.
+ */
+export async function sendAnalyticsGoal(
+  goal: AnalyticsGoal,
+  request: { headers: Headers },
+  {
+    environment = process.env,
+    fetcher = fetch,
+    siteOrigin,
+  }: AnalyticsDependencies & { siteOrigin: string },
+): Promise<void> {
+  const domain = plausibleDomain(environment);
+  if (!domain || plausibleDomainIssue(environment)) return;
+  const referer = withoutQuery(request.headers.get("referer") ?? "");
+  const page =
+    referer && new URL(referer).origin === siteOrigin
+      ? referer
+      : `${siteOrigin}/`;
+  const { name, ...props } = goal;
+  const event: PlausibleEvent = { n: name, u: page, d: domain, r: null };
+  if (Object.keys(props).length) event.p = props;
+  try {
+    await fetcher(`${plausibleOrigin}/api/event`, {
+      method: "POST",
+      headers: visitorHeaders(request.headers),
+      body: JSON.stringify(event),
+    });
+  } catch {
+    // Dropped, like a page view the browser could not send.
+  }
+}
+
+function visitorHeaders(incoming: Headers): Headers {
+  const headers = new Headers({ "content-type": "application/json" });
+  const userAgent = incoming.get("user-agent");
+  if (userAgent) headers.set("user-agent", userAgent);
+  // Plausible counts unique visitors from the address and user agent, and
+  // stores neither. Cloudflare names the visitor's address in its own header.
+  const clientAddress =
+    incoming.get("cf-connecting-ip") ??
+    incoming.get("x-forwarded-for")?.split(",")[0]?.trim();
+  if (clientAddress) headers.set("x-forwarded-for", clientAddress);
+  return headers;
 }
 
 /** The event to forward, or undefined when the body is not one of ours. */
