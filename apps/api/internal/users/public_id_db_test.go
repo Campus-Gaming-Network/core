@@ -62,6 +62,14 @@ func TestPostgresRepositoryGivesEachUserAPermanentPublicID(t *testing.T) {
 	if !reflect.DeepEqual(found, created) {
 		t.Fatalf("FindByPublicID() = %#v, want %#v", found, created)
 	}
+	// Login answers with this profile, so it must be the same one.
+	credentials, err := repository.FindCredentialsByEmail(ctx, created.Email)
+	if err != nil {
+		t.Fatalf("FindCredentialsByEmail() error = %v", err)
+	}
+	if !reflect.DeepEqual(credentials.Profile, created) {
+		t.Fatalf("FindCredentialsByEmail() profile = %#v, want %#v", credentials.Profile, created)
+	}
 
 	if _, err := pool.Exec(ctx, `UPDATE users SET public_id = 'Zx9yWv8uTs' WHERE id = $1::uuid`, created.ID); err == nil {
 		t.Fatal("changing public_id succeeded, want the trigger to refuse it")
