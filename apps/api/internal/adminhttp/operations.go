@@ -73,6 +73,8 @@ func (handler *Handler) operationHandler(operation routeOperation, entityID stri
 		})
 	case operationGetSystem:
 		return http.HandlerFunc(handler.getSystem)
+	case operationGetMetrics:
+		return http.HandlerFunc(handler.getMetrics)
 	default:
 		if strings.HasPrefix(string(operation), "clubs.") {
 			return handler.clubsHandler(operation, entityID)

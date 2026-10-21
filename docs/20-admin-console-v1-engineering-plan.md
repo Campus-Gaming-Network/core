@@ -251,6 +251,7 @@ capabilities so later roles cannot accidentally inherit the whole surface.
 | `site_grants.manage`   | Grant/revoke site-admin access with step-up                    |
 | `audit.read`           | Read entity audit history and allowed security-event summaries |
 | `system.read`          | Read dependency checks and the email outbox backlog            |
+| `metrics.read`         | Read active-account and signup counts                          |
 
 The role-to-capability map lives in reviewed Go code. It is not editable through
 the database or Admin Console. Authorization middleware receives the required
@@ -426,6 +427,7 @@ applicable.
 | GET    | `/admin/v1/support-tickets/:id/audit` | `audit.read`     | Ticket change history                      |
 | GET    | `/admin/v1/audit`                     | `audit.read`     | Every audited change, newest first         |
 | GET    | `/admin/v1/system`                    | `system.read`    | Dependency checks and email outbox backlog |
+| GET    | `/admin/v1/metrics`                   | `metrics.read`   | Active-account and signup counts           |
 
 ### Schools and school grants
 

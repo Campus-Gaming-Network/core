@@ -141,6 +141,7 @@ can ship.
 | `school_grants.manage` | `GET/POST /admin/v1/schools/{id}/admin-grants`, `POST /admin/v1/schools/{id}/admin-grants/{grant_id}/revoke`                      |
 | `site_grants.manage`   | `GET/POST /admin/v1/site-admin-grants`, `POST /admin/v1/site-admin-grants/{id}/revoke`                                            |
 | `system.read`          | `GET /admin/v1/system`, which returns dependency states and outbox counts and never a probe's error text                          |
+| `metrics.read`         | `GET /admin/v1/metrics`, which returns counts and school names and never names an account                                         |
 | `audit.read`           | `GET /admin/v1/audit` using bounded entity filters and an opaque cursor                                                           |
 
 `site_grants.manage`, user-status changes, and destructive school/game actions require

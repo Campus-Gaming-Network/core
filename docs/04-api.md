@@ -569,6 +569,7 @@ capabilities, and step-up rules live in
 | Users               | List, get, `suspend`, `reactivate`, `PATCH /users/:id/trust-grants`, and `GET /users/:id/audit`                      |
 | Site admins         | `GET`/`POST /site-admin-grants`, `POST /site-admin-grants/:id/revoke`, and `GET /site-admin-grants/:id/audit`        |
 | System              | `GET /system`                                                                                                        |
+| Metrics             | `GET /metrics`                                                                                                       |
 | Audit log           | `GET /audit`                                                                                                         |
 
 `GET /system` needs `system.read`. It probes school logo storage and IGDB each
@@ -581,6 +582,16 @@ message still due to be sent, `retrying` the pending messages that have failed
 at least once, and `failed` the messages that stopped retrying in the last
 seven days. The route is read-only and cannot report an outage of the API or
 the database, since it is served by both.
+
+`GET /metrics` needs `metrics.read` and returns
+`{ "as_of", "active": { "day", "week", "month" }, "days": [{ "day", "active", "signups" }], "schools": [{ "id", "name", "active" }] }`.
+`as_of` is today's UTC date, and every day is a UTC date (`YYYY-MM-DD`).
+`active` counts distinct accounts with a signed-in request on `as_of` and in
+the 7 and 30 days ending on it, from `user_activity_days`, so today's count is
+the day so far. `days` lists the 30 days ending on `as_of`, newest first, with
+each day's active accounts and the accounts created that day, including ones
+since deleted. `schools` names up to 20 home schools by active accounts in the
+30 days, most first. It counts accounts and never names one.
 
 `GET /audit` needs `audit.read` and lists every audited change, newest first.
 It takes `limit`, one of `after` or `before`, and an optional `entity_type`

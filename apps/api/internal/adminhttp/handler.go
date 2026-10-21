@@ -68,6 +68,7 @@ type OperationsRepository interface {
 type Dependencies struct {
 	Catalog      *CatalogDependencies
 	System       *SystemDependencies
+	Metrics      MetricsReader
 	Identities   IdentityValidator
 	Users        UserFinder
 	Grants       GrantFinder
@@ -111,6 +112,7 @@ const (
 	operationCountReports     routeOperation = "count_reports"
 	operationCountSupport     routeOperation = "count_support"
 	operationGetSystem        routeOperation = "get_system"
+	operationGetMetrics       routeOperation = "get_metrics"
 )
 
 var routes = append([]routePolicy{
@@ -129,6 +131,7 @@ var routes = append([]routePolicy{
 	{Method: http.MethodPatch, Path: "/admin/v1/support-tickets/{id}", Control: controlCapability, Capability: adminaccess.CapabilitySupportManage, Mutation: true, Operation: operationPatchSupport},
 	{Method: http.MethodGet, Path: "/admin/v1/support-tickets/{id}/audit", Control: controlCapability, Capability: adminaccess.CapabilityAuditRead, Operation: operationListSupportAudit},
 	{Method: http.MethodGet, Path: "/admin/v1/system", Control: controlCapability, Capability: adminaccess.CapabilitySystemRead, Operation: operationGetSystem},
+	{Method: http.MethodGet, Path: "/admin/v1/metrics", Control: controlCapability, Capability: adminaccess.CapabilityMetricsRead, Operation: operationGetMetrics},
 }, append(catalogRoutes, clubRoutes...)...)
 
 type Handler struct {
@@ -643,6 +646,7 @@ func validRouteOperation(policy routePolicy) bool {
 		operationCountReports:     {Method: http.MethodGet, Path: "/admin/v1/report-counts", Capability: adminaccess.CapabilityReportsRead},
 		operationCountSupport:     {Method: http.MethodGet, Path: "/admin/v1/support-ticket-counts", Capability: adminaccess.CapabilitySupportRead},
 		operationGetSystem:        {Method: http.MethodGet, Path: "/admin/v1/system", Capability: adminaccess.CapabilitySystemRead},
+		operationGetMetrics:       {Method: http.MethodGet, Path: "/admin/v1/metrics", Capability: adminaccess.CapabilityMetricsRead},
 	}
 	definition, ok := expected[policy.Operation]
 	if !ok {
