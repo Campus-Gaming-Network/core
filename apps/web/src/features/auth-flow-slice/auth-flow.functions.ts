@@ -9,6 +9,7 @@ import {
   applyCookieMutation,
   goBFFForCurrentRequest,
   isNativeFormPost,
+  sendGoalForCurrentRequest,
   setPrivateNoStoreResponse,
 } from "../../server/request-boundary.server.js";
 import {
@@ -68,6 +69,7 @@ export const signup = createServerFn({
 
     const result = await signupOperation(data.value, {
       api: goBFFForCurrentRequest(),
+      sendGoal: sendGoalForCurrentRequest,
     });
     if (result.status !== "success") {
       if (nativeForm) nativeRedirect("/signup?auth=failed");

@@ -4,6 +4,7 @@ import {
   currentSessionRequest,
   goBFFForCurrentRequest,
   isNativeFormPost,
+  sendGoalForCurrentRequest,
   setPrivateNoStoreResponse,
   setViewerResponseCache,
 } from "../../server/request-boundary.server.js";
@@ -78,11 +79,10 @@ export const runClubCommand = createServerFn({
         fieldErrors: data.fieldErrors,
       };
     }
-    const result = await runClubCommandOperation(
-      data.value,
-      data.page,
-      currentSessionRequest(),
-    );
+    const result = await runClubCommandOperation(data.value, data.page, {
+      ...currentSessionRequest(),
+      sendGoal: sendGoalForCurrentRequest,
+    });
     if (nativeForm) {
       nativeRedirect(
         result.status === "success"

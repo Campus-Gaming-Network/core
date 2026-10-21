@@ -7,6 +7,7 @@ import {
   setResponseHeader,
 } from "@tanstack/react-start/server";
 import { sessionEndedHeader } from "../session-ended.js";
+import { sendAnalyticsGoal, type AnalyticsGoal } from "./analytics.server.js";
 import { type ApiClient, type Fetcher } from "./api.server.js";
 import { createGoBFFClient } from "./bff.server.js";
 import {
@@ -15,6 +16,7 @@ import {
   sessionCookieName,
   type CookieMutation,
 } from "./cookies.server.js";
+import { validatedPublicOrigin } from "./environment.server.js";
 import {
   optionalViewerProfile,
   requiredViewerProfile,
@@ -144,6 +146,16 @@ export function applyCookieMutation(mutation: CookieMutation): void {
   } else {
     setCookie(mutation.name, mutation.value, mutation.options);
   }
+}
+
+/**
+ * Sends a Plausible goal for the current visitor. The response does not wait
+ * for it, and it never fails.
+ */
+export function sendGoalForCurrentRequest(goal: AnalyticsGoal): void {
+  void sendAnalyticsGoal(goal, getRequest(), {
+    siteOrigin: validatedPublicOrigin(),
+  });
 }
 
 export function isNativeFormPost(): boolean {

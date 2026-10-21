@@ -6,6 +6,7 @@ import {
   eventUnlockHeaders,
   goBFFForCurrentRequest,
   isNativeFormPost,
+  sendGoalForCurrentRequest,
   setPrivateNoStoreResponse,
 } from "../../server/request-boundary.server.js";
 import {
@@ -344,6 +345,7 @@ export const rsvpEvent = createServerFn({
       api: request.api,
       cookieHeader: request.cookieHeader,
       unlockHeaders: eventUnlockHeaders(data.value.slug),
+      sendGoal: sendGoalForCurrentRequest,
     });
 
     if (nativeForm) {

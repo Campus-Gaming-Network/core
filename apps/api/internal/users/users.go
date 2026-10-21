@@ -403,7 +403,7 @@ func (r *PostgresRepository) UpdateProfile(ctx context.Context, id string, updat
 func (r *PostgresRepository) FindCredentialsByEmail(ctx context.Context, email string) (Credentials, error) {
 	var credentials Credentials
 	err := r.pool.QueryRow(ctx, `
-		SELECT u.id::text, u.email::text, u.password_hash, u.email_verified_at,
+		SELECT u.id::text, u.public_id, u.email::text, u.password_hash, u.email_verified_at,
 		       u.verification_level, u.name, COALESCE(u.bio, ''), u.timezone,
 		       u.home_school_id::text, u.show_in_lists,
 		       u.account_status = 'suspended'
@@ -413,6 +413,7 @@ func (r *PostgresRepository) FindCredentialsByEmail(ctx context.Context, email s
 		  AND u.account_status IN ('active', 'suspended')
 	`, NormalizeEmail(email)).Scan(
 		&credentials.Profile.ID,
+		&credentials.Profile.PublicID,
 		&credentials.Profile.Email,
 		&credentials.PasswordHash,
 		&credentials.Profile.EmailVerifiedAt,

@@ -14,6 +14,10 @@ export const metricsSchema = z.object({
       day: z.iso.date(),
       active: countSchema,
       signups: countSchema,
+      club_joins: countSchema,
+      rsvps: countSchema,
+      events_created: countSchema,
+      teams_created: countSchema,
     }),
   ),
   schools: z.array(
