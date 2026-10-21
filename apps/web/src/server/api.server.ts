@@ -31,6 +31,11 @@ export type ApiClientDependencies = {
   prepareHeaders?: (headers: Headers) => Headers;
   /** Called when the API no longer accepts the session a request carried. */
   onSessionRejected?: () => void;
+  /**
+   * Called with each response that fails its contract, before it is thrown.
+   * Callers usually catch the error, so this is where it gets reported.
+   */
+  onContractViolation?: (error: ApiContractError) => void;
 };
 
 export class ApiError extends Error {
@@ -73,6 +78,7 @@ export function createApiClient({
   fetcher = fetch,
   prepareHeaders = (headers) => headers,
   onSessionRejected,
+  onContractViolation,
 }: ApiClientDependencies): ApiClient {
   return async <TSchema extends z.ZodType>({
     path,
@@ -116,7 +122,7 @@ export function createApiClient({
 
     const parsed = responseSchema.safeParse(payload);
     if (!parsed.success) {
-      throw new ApiContractError(
+      const error = new ApiContractError(
         path,
         parsed.error.issues.map(({ code, message, path: issuePath }) => ({
           code,
@@ -124,6 +130,8 @@ export function createApiClient({
           path: issuePath,
         })),
       );
+      onContractViolation?.(error);
+      throw error;
     }
 
     return { data: parsed.data, response };

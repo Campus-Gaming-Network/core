@@ -2,7 +2,7 @@ import { timingSafeEqual } from "node:crypto";
 import * as Sentry from "@sentry/node";
 import { isNotFound, isRedirect } from "@tanstack/react-router";
 import { scrubEvent } from "../error-scrub.js";
-import { ApiError } from "./api.server.js";
+import { ApiError, type ApiContractError } from "./api.server.js";
 
 type Environment = Readonly<Record<string, string | undefined>>;
 
@@ -91,6 +91,32 @@ export function reportServerError(error: unknown): void {
   }
 
   Sentry.captureException(error);
+}
+
+/**
+ * Reports an API response the web could not accept. It is always a bug in the
+ * API or the web, and the operation that hit it usually answers with a generic
+ * error, so this is the only trace of it. The event names the API path and
+ * each failing field and issue code, never a value.
+ */
+export function reportApiContractViolation(
+  error: ApiContractError,
+  capture: typeof Sentry.captureException = Sentry.captureException,
+): void {
+  if (reported.has(error)) return;
+  reported.add(error);
+  const issues = error.issues.map(
+    (issue) => `${issue.path.map(String).join(".") || "(root)"}: ${issue.code}`,
+  );
+  // Every violation is thrown from the same line, so without a fingerprint a
+  // new one would join an old issue unnoticed. Paths name slugs, so they are
+  // grouped by their first segment.
+  const area = `/${error.path.split("/").find(Boolean) ?? ""}`;
+  capture(error, {
+    fingerprint: ["api-contract-violation", area, ...issues],
+    tags: { api_area: area },
+    contexts: { api_contract: { path: error.path, issues } },
+  });
 }
 
 // Throws on purpose so an operator can confirm that a deployment's failures

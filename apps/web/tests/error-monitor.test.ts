@@ -1,9 +1,13 @@
 import assert from "node:assert/strict";
 import { test } from "vite-plus/test";
 
+import type * as Sentry from "@sentry/node";
+import * as z from "zod";
+import { ApiContractError, createApiClient } from "../src/server/api.server.js";
 import {
   errorMonitoringConfig,
   errorMonitoringTestResponse,
+  reportApiContractViolation,
 } from "../src/server/error-monitor.server.js";
 
 test("error monitoring is disabled without a DSN", () => {
@@ -58,4 +62,58 @@ test("the test error requires the maintenance token", () => {
       ),
     new Error("error monitoring test"),
   );
+});
+
+test("an API contract violation is reported once, by area and failing field, without values", async () => {
+  const captured: unknown[][] = [];
+  const capture = ((...args: unknown[]) => {
+    captured.push(args);
+    return "event-id";
+  }) as typeof Sentry.captureException;
+  let violation: ApiContractError | undefined;
+  const api = createApiClient({
+    baseUrl: "http://api:8080",
+    fetcher: async () =>
+      Response.json({ id: "user-1", public_id: "", email: "a@example.test" }),
+    onContractViolation: (error) => {
+      violation = error;
+      reportApiContractViolation(error, capture);
+    },
+  });
+
+  await assert.rejects(
+    () =>
+      api({
+        path: "/auth/login",
+        method: "POST",
+        responseSchema: z.object({
+          id: z.string(),
+          public_id: z.string().min(1),
+          email: z.email(),
+        }),
+      }),
+    ApiContractError,
+  );
+  assert.ok(violation);
+  reportApiContractViolation(violation, capture);
+
+  assert.deepEqual(captured, [
+    [
+      violation,
+      {
+        fingerprint: [
+          "api-contract-violation",
+          "/auth",
+          "public_id: too_small",
+        ],
+        tags: { api_area: "/auth" },
+        contexts: {
+          api_contract: {
+            path: "/auth/login",
+            issues: ["public_id: too_small"],
+          },
+        },
+      },
+    ],
+  ]);
 });
