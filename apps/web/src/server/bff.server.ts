@@ -1,4 +1,10 @@
-import { createApiClient, type ApiClient, type Fetcher } from "./api.server.js";
+import {
+  createApiClient,
+  type ApiClient,
+  type ApiContractError,
+  type Fetcher,
+} from "./api.server.js";
+import { reportApiContractViolation } from "./error-monitor.server.js";
 import { headersWithTrustedVisitorIdentity } from "./visitor-identity.server.js";
 
 type HeaderReader = Pick<Headers, "get">;
@@ -11,6 +17,7 @@ export type GoBFFClientDependencies = {
   baseUrl?: string;
   fetcher?: Fetcher;
   onSessionRejected?: () => void;
+  onContractViolation?: (error: ApiContractError) => void;
 };
 
 /**
@@ -26,11 +33,13 @@ export function createGoBFFClient({
   baseUrl = process.env.API_INTERNAL_URL ?? "http://localhost:8080",
   fetcher = fetch,
   onSessionRejected,
+  onContractViolation = reportApiContractViolation,
 }: GoBFFClientDependencies): ApiClient {
   return createApiClient({
     baseUrl,
     fetcher,
     onSessionRejected,
+    onContractViolation,
     prepareHeaders: (headers) =>
       headersWithTrustedVisitorIdentity({
         incomingHeaders,
