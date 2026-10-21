@@ -643,6 +643,23 @@ main {
   color: var(--color-muted);
 }
 
+.site-social {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Each icon gets a 44px target. */
+.site-social a {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+}
+
 .site-footer a:focus-visible {
   color: var(--color-text);
 }

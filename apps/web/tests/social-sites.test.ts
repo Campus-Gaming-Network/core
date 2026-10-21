@@ -12,6 +12,7 @@ test("profile links are matched to known sites by host", () => {
       "https://m.twitch.tv/player",
       "https://discord.gg/invite",
       "https://steamcommunity.com/id/player",
+      "https://www.linkedin.com/in/player",
       "https://player.example.test/blog",
       // A known name inside another host or in the path is not that site.
       "https://notyoutube.com/player",
@@ -26,6 +27,7 @@ test("profile links are matched to known sites by host", () => {
       "twitch",
       "discord",
       "steam",
+      "linkedin",
       undefined,
       undefined,
       undefined,

@@ -12,6 +12,7 @@ import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { AccountMenu } from "../components/account-menu";
 import { RouteAnnouncer } from "../components/route-announcer";
 import { SiteNavigation } from "../components/site-navigation";
+import { SiteSocialLinks } from "../components/site-social-links";
 import { ViewerContext, type ViewerState } from "../components/viewer";
 import {
   DefaultError,
@@ -182,6 +183,7 @@ function SiteShell({
               </li>
             </ul>
           </nav>
+          <SiteSocialLinks />
         </div>
       </footer>
     </>
