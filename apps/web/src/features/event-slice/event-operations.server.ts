@@ -1,4 +1,5 @@
 import * as z from "zod";
+import type { GoalSender } from "../../server/analytics.server.js";
 import {
   ApiContractError,
   ApiError,
@@ -343,7 +344,8 @@ export async function rsvpEventOperation(
     cookieHeader,
     unlockHeaders,
     reportError = defaultErrorReporter,
-  }: ReadDependencies,
+    sendGoal = () => {},
+  }: ReadDependencies & { sendGoal?: GoalSender },
 ): Promise<RSVPEventResult> {
   try {
     const { data } = await api({
@@ -354,6 +356,7 @@ export async function rsvpEventOperation(
       body: { response },
       responseSchema: eventDtoSchema,
     });
+    sendGoal({ name: "RSVP", response });
 
     return {
       status: "success",

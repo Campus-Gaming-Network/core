@@ -4,6 +4,7 @@ import {
   ApiError,
   type ApiClient,
 } from "../../server/api.server.js";
+import type { GoalSender } from "../../server/analytics.server.js";
 import { profileDtoSchema } from "../../server/viewer.server.js";
 import {
   authStatusDtoSchema,
@@ -21,11 +22,13 @@ type Dependencies = {
   reportError?: (error: unknown) => void;
 };
 
+type SignupDependencies = Dependencies & { sendGoal?: GoalSender };
+
 export async function signupOperation(
   input: SignupInput,
-  dependencies: Dependencies,
+  { sendGoal = () => {}, ...dependencies }: SignupDependencies,
 ): Promise<AuthMutationResult> {
-  return performAuthMutation(
+  const result = await performAuthMutation(
     {
       path: "/auth/signup",
       body: {
@@ -47,6 +50,8 @@ export async function signupOperation(
     },
     dependencies,
   );
+  if (result.status === "success") sendGoal({ name: "Signup" });
+  return result;
 }
 
 /**

@@ -1,3 +1,4 @@
+import type { GoalSender } from "../../server/analytics.server.js";
 import {
   ApiContractError,
   ApiError,
@@ -278,7 +279,8 @@ export async function runClubCommandOperation(
     api,
     cookieHeader,
     reportError = defaultErrorReporter,
-  }: SessionDependencies,
+    sendGoal = () => {},
+  }: SessionDependencies & { sendGoal?: GoalSender },
 ): Promise<ClubCommandResult> {
   const club = `/clubs/${encodeURIComponent(command.slug)}`;
   const request = (() => {
@@ -331,6 +333,7 @@ export async function runClubCommandOperation(
   })();
   try {
     await api({ ...request, cookieHeader, responseSchema: z.unknown() });
+    if (command.command === "join") sendGoal({ name: "Join club" });
     // A new owner and someone who left land where they now belong.
     const destination =
       command.command === "accept-offer"

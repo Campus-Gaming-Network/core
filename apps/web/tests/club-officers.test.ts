@@ -387,3 +387,27 @@ test("a club's people list needs a session and shows each person's club role", a
     ["http://api:8080/clubs/smash-club/members?limit=8"],
   );
 });
+
+test("only a club join that succeeds sends the Join club goal", async () => {
+  const goals: unknown[] = [];
+  const join = command({ command: "join", page: "club", slug: "smash-club" });
+  const leave = command({ command: "leave", page: "club", slug: "smash-club" });
+  for (const [validated, status] of [
+    [join, 204],
+    [leave, 204],
+    [join, 403],
+  ] as const) {
+    const { api } = recordingClient(() =>
+      status === 204
+        ? new Response(null, { status })
+        : Response.json({ error: "email_verification_required" }, { status }),
+    );
+    await runClubCommandOperation(validated.value, validated.page, {
+      api,
+      cookieHeader: "cgn_session=x",
+      reportError: () => undefined,
+      sendGoal: (goal) => goals.push(goal),
+    });
+  }
+  assert.deepEqual(goals, [{ name: "Join club" }]);
+});

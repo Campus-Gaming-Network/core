@@ -407,3 +407,19 @@ test("a signup naming a version that is no longer current asks the person to rel
     },
   );
 });
+
+test("only a signup that succeeds sends the Signup goal", async () => {
+  const goals: unknown[] = [];
+  for (const status of [201, 409]) {
+    await signupOperation(signupInput, {
+      api: client(async () =>
+        status === 201
+          ? Response.json(profile, { status })
+          : Response.json({ error: "email_taken" }, { status }),
+      ),
+      reportError: () => undefined,
+      sendGoal: (goal) => goals.push(goal),
+    });
+  }
+  assert.deepEqual(goals, [{ name: "Signup" }]);
+});

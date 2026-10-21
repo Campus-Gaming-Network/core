@@ -249,3 +249,23 @@ test("event validation enforces password parity and returns field errors", () =>
     'Invalid option: expected one of "yes"|"maybe"|"no"',
   ]);
 });
+
+test("only an RSVP that succeeds sends the RSVP goal, with its response", async () => {
+  const goals: unknown[] = [];
+  for (const status of [200, 404]) {
+    await rsvpEventOperation(
+      { slug: "campus-tournament", response: "maybe" },
+      {
+        api: client(async () =>
+          status === 200
+            ? Response.json(event)
+            : Response.json({ error: "event_not_found" }, { status }),
+        ),
+        cookieHeader: "cgn_session=session-value",
+        reportError: () => undefined,
+        sendGoal: (goal) => goals.push(goal),
+      },
+    );
+  }
+  assert.deepEqual(goals, [{ name: "RSVP", response: "maybe" }]);
+});
