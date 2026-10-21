@@ -58,7 +58,7 @@ func TestDataExportNeedsTheSignedInHoldersPassword(t *testing.T) {
 	}
 
 	want := []result{
-		{http.StatusOK, "private, no-store", `{"format_version":1,"exported_at":"0001-01-01T00:00:00Z","account":{"name":"Player"},"social_links":null,"followed_schools":null,"school_admin_roles":null,"site_roles":null,"game_lists":null,"teams":null,"clubs":null,"club_claims":null,"events_organized":null,"rsvps":null,"interested_events":null,"support_tickets":null,"reports":null,"notifications":null,"policy_acceptances":null,"sessions":null}`},
+		{http.StatusOK, "private, no-store", `{"format_version":1,"exported_at":"0001-01-01T00:00:00Z","account":{"name":"Player"},"social_links":null,"followed_schools":null,"school_admin_roles":null,"site_roles":null,"game_lists":null,"teams":null,"clubs":null,"club_claims":null,"events_organized":null,"rsvps":null,"interested_events":null,"support_tickets":null,"reports":null,"notifications":null,"policy_acceptances":null,"sessions":null,"active_days":null}`},
 		{http.StatusUnprocessableEntity, "", `{"error":"invalid_current_password"}`},
 		{http.StatusUnauthorized, "", `{"error":"authentication_required"}`},
 	}

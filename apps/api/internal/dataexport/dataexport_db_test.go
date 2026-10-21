@@ -61,6 +61,7 @@ func TestExportHoldsEveryPartOfOneAccountAndNoOneElses(t *testing.T) {
 		`INSERT INTO notifications (user_id, type, title, body, created_at) VALUES ($1::uuid, 'event.cancelled', 'Cancelled', 'Chess Night was cancelled', $2)`,
 		`INSERT INTO user_policy_acceptances (user_id, policy_document_id, accepted_at, source) SELECT $1::uuid, id, $2, 'signup' FROM policy_documents WHERE document_type = 'terms'`,
 		`INSERT INTO auth_sessions (user_id, token_hash, expires_at, last_seen_at, created_at) VALUES ($1::uuid, '\x01'::bytea, $2::timestamptz + INTERVAL '30 days', $2, $2)`,
+		`INSERT INTO user_activity_days (user_id, day) VALUES ($1::uuid, $2::date), ($1::uuid, $2::date - 1)`,
 	} {
 		if _, err := pool.Exec(ctx, statement, userID, at); err != nil {
 			t.Fatalf("insert fixture %q: %v", strings.Fields(statement)[2], err)
@@ -70,6 +71,7 @@ func TestExportHoldsEveryPartOfOneAccountAndNoOneElses(t *testing.T) {
 	for _, statement := range []string{
 		`INSERT INTO user_social_links (user_id, kind, label, url) VALUES ($1::uuid, 'url', 'Theirs', 'https://other.example.test')`,
 		`INSERT INTO notifications (user_id, type, title, body) VALUES ($1::uuid, 'other', 'Not yours', 'Not yours')`,
+		`INSERT INTO user_activity_days (user_id, day) VALUES ($1::uuid, CURRENT_DATE)`,
 		`INSERT INTO support_tickets (submitter_user_id, contact_email, subject, message) VALUES ($1::uuid, 'other@example.test', 'Theirs', 'Theirs')`,
 	} {
 		if _, err := pool.Exec(ctx, statement, otherID); err != nil {
@@ -131,6 +133,7 @@ func TestExportHoldsEveryPartOfOneAccountAndNoOneElses(t *testing.T) {
 		"notifications":      []any{map[string]any{"type": "event.cancelled", "title": "Cancelled", "body": "Chess Night was cancelled", "read_at": nil, "created_at": at}},
 		"policy_acceptances": []any{map[string]any{"document_type": "terms", "version": termsVersion, "accepted_at": at, "source": "signup"}},
 		"sessions":           []any{map[string]any{"created_at": at, "last_seen_at": at, "expires_at": "2026-10-31T12:00:00+00:00", "revoked_at": nil}},
+		"active_days":        []any{"2026-09-30", "2026-10-01"},
 	}
 	if !reflect.DeepEqual(got, want) {
 		gotJSON, _ := json.MarshalIndent(got, "", "  ")

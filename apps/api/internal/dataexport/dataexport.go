@@ -47,6 +47,7 @@ type Export struct {
 	Notifications     json.RawMessage `json:"notifications"`
 	PolicyAcceptances json.RawMessage `json:"policy_acceptances"`
 	Sessions          json.RawMessage `json:"sessions"`
+	ActiveDays        json.RawMessage `json:"active_days"`
 }
 
 // PostgresRepository reads exports from Postgres.
@@ -220,6 +221,12 @@ var sections = []section{
 			SELECT created_at, last_seen_at, expires_at, revoked_at
 			FROM auth_sessions
 			WHERE user_id = $1::uuid AND deleted_at IS NULL ORDER BY created_at, id`),
+	},
+	{
+		name:   "active days",
+		target: func(e *Export) *json.RawMessage { return &e.ActiveDays },
+		query: list(`to_jsonb(entry.day)`, `
+			SELECT day FROM user_activity_days WHERE user_id = $1::uuid ORDER BY day`),
 	},
 }
 

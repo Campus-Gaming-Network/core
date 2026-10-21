@@ -130,6 +130,10 @@ func TestDeleteAccountScrubsIdentifyingData(t *testing.T) {
 		t.Fatalf("insert session: %v", err)
 	}
 	if _, err := pool.Exec(ctx, `
+		INSERT INTO user_activity_days (user_id, day) VALUES ($1::uuid, CURRENT_DATE)`, userID); err != nil {
+		t.Fatalf("insert activity day: %v", err)
+	}
+	if _, err := pool.Exec(ctx, `
 		INSERT INTO notifications (user_id, type, title, body)
 		VALUES ($1::uuid, 'account.test', 'Test', 'Personal notification')`, userID); err != nil {
 		t.Fatalf("insert notification: %v", err)
@@ -234,6 +238,7 @@ func TestDeleteAccountScrubsIdentifyingData(t *testing.T) {
 		{"school follows", `SELECT COUNT(*) FROM user_school_follows WHERE user_id = $1::uuid`},
 		{"profile game lists", `SELECT COUNT(*) FROM user_games WHERE user_id = $1::uuid`},
 		{"notifications", `SELECT COUNT(*) FROM notifications WHERE user_id = $1::uuid`},
+		{"activity days", `SELECT COUNT(*) FROM user_activity_days WHERE user_id = $1::uuid`},
 		{"club roles", `SELECT COUNT(*) FROM club_members WHERE user_id = $1::uuid`},
 		{"club claims", `SELECT COUNT(*) FROM club_claims WHERE applicant_user_id = $1::uuid`},
 		{"live sessions", `SELECT COUNT(*) FROM auth_sessions WHERE user_id = $1::uuid AND revoked_at IS NULL`},
