@@ -40,7 +40,7 @@ Decisions to resolve before or during implementation. Until answered, implemente
 
 18. **Go API style** — **Decided:** REST/JSON behind the BFF ([11](./11-implementation-decisions.md)).
 19. **Analytics** — Plausible vs Cloudflare Web Analytics vs other?
-20. **Activity log vs audit log** — One table with `kind`, or two tables?
+20. **Activity log vs audit log** — **Decided for events:** the event activity log reads `audit_logs`, with no second table ([02](./02-domain-model.md#event-activity-log)). Still open for a per-user activity history: one table with `kind`, or two tables?
 21. **Friends / i18n** — timing and depth after the first release? (Notifications are decided: an in-app inbox; see [01](./01-product.md#notifications--email).)
 
 ---

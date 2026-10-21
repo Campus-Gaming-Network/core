@@ -355,6 +355,8 @@ audit_logs
   created_at
   -- append-oriented domain history; queue mutations write before/after state
   -- shared by school, event, team, club, etc. as those workflows adopt it
+  -- events write one row per change with entity_type 'event'; the event
+  -- activity log reads them (02 — Domain model, Event activity log)
   -- indexed by (created_at DESC, id DESC) for the Admin Console audit log
 
 email_outbox

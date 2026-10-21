@@ -47,43 +47,48 @@ Verification is not a substitute for school admin or site admin.
 
 ## Permission matrix (summary)
 
-| Action                                          | Anonymous | Basic+          | School admin | Club owner/editor | Team owner | Event organizer | Site admin        |
-| ----------------------------------------------- | --------- | --------------- | ------------ | ----------------- | ---------- | --------------- | ----------------- |
-| Search/browse schools                           | ✓         | ✓               | ✓            | ✓                 | ✓          | ✓               | ✓                 |
-| View school clubs                               | ✓         | ✓               | ✓            | ✓                 | ✓          | ✓               | ✓                 |
-| Browse public events/tournaments by game        | ✓         | ✓               | ✓            | ✓                 | ✓          | ✓               | ✓                 |
-| Create event                                    |           | ✓ (no approval) | ✓            | ✓                 | ✓          | ✓               | ✓                 |
-| Badge on created event                          |           |                 | ✓            | later             |            | if approved     | ✓                 |
-| Unlock private event (password modal)           | ✓*        | ✓               | ✓            | ✓                 | ✓          | ✓               | ✓                 |
-| Mark event interested (favorite)                |           | ✓               | ✓            | ✓                 | ✓          | ✓               | ✓                 |
-| List games on own profile                       |           | ✓               | ✓            | ✓                 | ✓          | ✓               | ✓                 |
-| Create team                                     |           | ✓               | ✓            | ✓                 | ✓          | ✓               | ✓                 |
-| View team page                                  | ✓         | ✓               | ✓            | ✓                 | ✓          | ✓               | ✓                 |
-| View people lists (signed in)                   |           | ✓               | ✓            | ✓                 | ✓          | ✓               | ✓                 |
-| Join / interact with team                       |           | password        |              |                   |            |                 |                   |
-| Transfer team ownership                         |           |                 |              |                   | ✓          |                 | ✓ (break-glass)   |
-| Join / leave club                               |           | ✓               | ✓            | ✓                 | ✓          | ✓               | ✓                 |
-| Claim or request club                           |           | ✓               | ✓            | ✓                 | ✓          | ✓               | ✓                 |
-| Review club claims and requests                 |           |                 |              |                   |            |                 | ✓ (Admin Console) |
-| Create unclaimed club; edit, hide, mark checked |           |                 |              |                   |            |                 | ✓ (Admin Console) |
-| Edit club profile                               |           |                 | own school   | ✓                 |            |                 | ✓                 |
-| Remove club member                              |           |                 |              | ✓                 |            |                 | ✓                 |
-| Manage club editors; transfer ownership         |           |                 |              | owner only        |            |                 | ✓                 |
-| Host event as club                              |           |                 |              | ✓                 |            |                 |                   |
-| Assign team to club                             |           |                 |              |                   |            |                 | later             |
-| Edit school details                             |           |                 | ✓            |                   |            |                 | ✓                 |
-| Create/edit/delete school                       |           |                 |              |                   |            |                 | ✓ (Admin Console) |
-| Edit games                                      |           |                 |              |                   |            |                 | ✓ (Admin Console) |
-| Remove other school admin                       |           |                 | ✗            |                   |            |                 | ✓ only            |
-| Edit past event date/location                   |           | ✗               | ✗            | ✗                 | ✗          | ✗               | break-glass TBD   |
-| Minor edit past event                           |           |                 |              |                   |            | ✓               | ✓                 |
-| Soft-delete event                               |           |                 |              |                   |            | creator only    | ✓                 |
-| View all reports                                |           |                 |              |                   |            |                 | ✓                 |
-| Impersonate user                                |           |                 |              |                   |            |                 | ✓                 |
-| Manage feature flags                            |           |                 |              |                   |            |                 | ✓ (later)         |
-| Sync IGDB / manage games                        |           |                 |              |                   |            |                 | ✓ / cron          |
+| Action                                          | Anonymous | Basic+          | School admin | Club owner/editor | Team owner | Event organizer | Site admin          |
+| ----------------------------------------------- | --------- | --------------- | ------------ | ----------------- | ---------- | --------------- | ------------------- |
+| Search/browse schools                           | ✓         | ✓               | ✓            | ✓                 | ✓          | ✓               | ✓                   |
+| View school clubs                               | ✓         | ✓               | ✓            | ✓                 | ✓          | ✓               | ✓                   |
+| Browse public events/tournaments by game        | ✓         | ✓               | ✓            | ✓                 | ✓          | ✓               | ✓                   |
+| Create event                                    |           | ✓ (no approval) | ✓            | ✓                 | ✓          | ✓               | ✓                   |
+| Badge on created event                          |           |                 | ✓            | later             |            | if approved     | ✓                   |
+| Unlock private event (password modal)           | ✓*        | ✓               | ✓            | ✓                 | ✓          | ✓               | ✓                   |
+| Mark event interested (favorite)                |           | ✓               | ✓            | ✓                 | ✓          | ✓               | ✓                   |
+| List games on own profile                       |           | ✓               | ✓            | ✓                 | ✓          | ✓               | ✓                   |
+| Create team                                     |           | ✓               | ✓            | ✓                 | ✓          | ✓               | ✓                   |
+| View team page                                  | ✓         | ✓               | ✓            | ✓                 | ✓          | ✓               | ✓                   |
+| View people lists (signed in)                   |           | ✓               | ✓            | ✓                 | ✓          | ✓               | ✓                   |
+| Join / interact with team                       |           | password        |              |                   |            |                 |                     |
+| Transfer team ownership                         |           |                 |              |                   | ✓          |                 | ✓ (break-glass)     |
+| Join / leave club                               |           | ✓               | ✓            | ✓                 | ✓          | ✓               | ✓                   |
+| Claim or request club                           |           | ✓               | ✓            | ✓                 | ✓          | ✓               | ✓                   |
+| Review club claims and requests                 |           |                 |              |                   |            |                 | ✓ (Admin Console)   |
+| Create unclaimed club; edit, hide, mark checked |           |                 |              |                   |            |                 | ✓ (Admin Console)   |
+| Edit club profile                               |           |                 | own school   | ✓                 |            |                 | ✓                   |
+| Remove club member                              |           |                 |              | ✓                 |            |                 | ✓                   |
+| Manage club editors; transfer ownership         |           |                 |              | owner only        |            |                 | ✓                   |
+| Host event as club                              |           |                 |              | ✓                 |            |                 |                     |
+| Assign team to club                             |           |                 |              |                   |            |                 | later               |
+| Edit school details                             |           |                 | ✓            |                   |            |                 | ✓                   |
+| Create/edit/delete school                       |           |                 |              |                   |            |                 | ✓ (Admin Console)   |
+| Edit games                                      |           |                 |              |                   |            |                 | ✓ (Admin Console)   |
+| Remove other school admin                       |           |                 | ✗            |                   |            |                 | ✓ only              |
+| Edit past event date/location                   |           | ✗               | ✗            | ✗                 | ✗          | ✗               | break-glass TBD     |
+| Minor edit past event                           |           |                 |              |                   |            | ✓               | ✓                   |
+| Soft-delete event                               |           |                 |              |                   |            | creator only    | ✓                   |
+| View event activity log                         | public†   | public†         | public†      | all if hosting†   | public†    | all             | all (Admin Console) |
+| View all reports                                |           |                 |              |                   |            |                 | ✓                   |
+| Impersonate user                                |           |                 |              |                   |            |                 | ✓                   |
+| Manage feature flags                            |           |                 |              |                   |            |                 | ✓ (later)           |
+| Sync IGDB / manage games                        |           |                 |              |                   |            |                 | ✓ / cron            |
 
 The two past-event rows are the intended rule; neither is enforced yet, so organizers can currently edit every field of an ended event.
+
+† Only for an event the viewer may see, and only its public entries, without
+the name of who made each change. Owners and editors of a club hosting the event
+see every entry. See [02 — Domain model](./02-domain-model.md#event-activity-log).
 
 \* Anonymous may open a private event link and submit the password via modal; pre-unlock responses must not leak event details. Still no account mutations without login where required (e.g. RSVP). Anyone (including anonymous) may submit a support ticket.
 

@@ -271,6 +271,62 @@ slug    = slugify(eventTitle) + "-" + short
 
 - Users can report events; site admins see all reports
 
+### Event activity log
+
+Each change to an event adds one entry to its activity log in the same
+transaction as the change. An entry records when the change happened, the
+account that made it, the action, and, for an edit, each changed field. Entries
+are never edited. Events created before the log shipped start with an empty
+log; nothing is backfilled.
+
+| Action                      | Written when                                                                                                                 | Visible to       |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| `event.created`             | The event is created; each occurrence of a recurring series gets its own entry                                               | Editors          |
+| `event.updated`             | An edit changes at least one field; one entry per save lists every changed field. A save that changes nothing writes nothing | Per field, below |
+| `event.cancelled`           | The event is cancelled, including by its creator's account deletion when no co-organizer remains                             | Everyone         |
+| `event.organizer_joined`    | Someone accepts a co-organizer invite                                                                                        | Editors          |
+| `event.organizer_removed`   | The creator removes a co-organizer                                                                                           | Editors          |
+| `event.organizer_left`      | A co-organizer steps down                                                                                                    | Editors          |
+| `event.creator_transferred` | The creator hands the role to a co-organizer, or deleting the creator's account transfers it                                 | Editors          |
+
+"Editors" are the people who can edit the event: its organizers, and the owners
+and editors of a hosting club. "Everyone" is anyone who can see the event page.
+Sending and withdrawing co-organizer invites is not logged: an invite carries an
+email address, and the creator already sees pending invites.
+
+An edit entry is public when at least one of its changed fields is public, and
+a viewer who cannot edit the event sees only those fields. Public fields are the
+ones that change whether or how someone attends.
+
+| Field                        | Public | Recorded value                                         |
+| ---------------------------- | ------ | ------------------------------------------------------ |
+| Title                        | Yes    | Before and after                                       |
+| Start, end, and time zone    | Yes    | Before and after                                       |
+| Format                       | Yes    | Before and after                                       |
+| Location name and address    | Yes    | Before and after                                       |
+| Online link                  | Yes    | Changed only, so a replaced link is not kept reachable |
+| Cost                         | Yes    | Before and after                                       |
+| Payment note and payment URL | Yes    | Changed only                                           |
+| Host team                    | Yes    | Before and after team                                  |
+| Description                  | No     | Changed only                                           |
+| Visibility                   | No     | Before and after                                       |
+| Private password             | No     | Changed only; never the password or its hash           |
+| Host school                  | No     | Before and after school                                |
+| Audience and type            | No     | Before and after                                       |
+| Games                        | No     | Games added and removed                                |
+| Capacity                     | No     | Before and after                                       |
+
+Editors see who made each change. Public entries never name the account that
+made them. An entry made by an account that has since been deleted shows
+"Deleted account"; deleting an account attributes the transfer or cancellation
+it causes to that account.
+
+The log is readable wherever the event page is: a locked private event's log is
+not found, and a cancelled event's log is readable for the same 24 hours as its
+page. Entries are kept under the domain audit retention target in
+[16 — Legal and data-lifecycle plan](./16-legal-and-data-lifecycle-plan.md).
+Site admins see every entry in the Admin Console audit log.
+
 ### Tournament
 
 | Field / concept | Notes                                                                                              |
@@ -316,7 +372,8 @@ Used for: browse/filter events (and later tournaments) by game; popular games by
 ### Audit log (shared, later)
 
 - Generic polymorphic log for school, event, team, club, etc.
-- Schools/teams/events (and similar) can show what changed
+- Schools/teams/events (and similar) can show what changed; events do so
+  through their [activity log](#event-activity-log)
 - **Not** the same as system/operational logs
 
 ### Feature flag (later)
