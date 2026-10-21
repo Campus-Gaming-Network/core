@@ -43,6 +43,9 @@ export function environmentValidationIssues(
     }
   }
 
+  const analyticsIssue = plausibleDomainIssue(environment);
+  if (analyticsIssue) issues.push(analyticsIssue);
+
   const siteURLValue = configuredValue(environment, "SITE_URL");
   if (strict && !siteURLValue) {
     issues.push("SITE_URL must be set");
@@ -266,4 +269,28 @@ function isLocalHostname(value: string): boolean {
 function isRailwayPrivateHostname(value: string): boolean {
   const hostname = value.toLowerCase().replace(/\.$/, "");
   return hostname.endsWith(".railway.internal");
+}
+
+const hostnamePattern =
+  /^(?=.{1,253}$)[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$/;
+
+/**
+ * The Plausible site this deployment reports to (server/analytics.server.ts),
+ * or undefined when analytics are off.
+ */
+export function plausibleDomain(
+  environment: Environment = process.env,
+): string | undefined {
+  const value = environment.PLAUSIBLE_DOMAIN?.trim().toLowerCase();
+  return value ? value : undefined;
+}
+
+/** The configuration issue with PLAUSIBLE_DOMAIN, if any. */
+export function plausibleDomainIssue(
+  environment: Environment,
+): string | undefined {
+  const domain = plausibleDomain(environment);
+  return domain && !hostnamePattern.test(domain)
+    ? "PLAUSIBLE_DOMAIN must be a hostname such as campusgamingnetwork.com"
+    : undefined;
 }

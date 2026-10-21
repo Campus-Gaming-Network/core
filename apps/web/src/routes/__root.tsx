@@ -29,6 +29,7 @@ const siteName = "Campus Gaming Network";
 export const Route = createRootRoute({
   beforeLoad: async () => getPublicRuntimeConfig(),
   loader: ({ context }) => ({
+    analyticsDomain: context.analyticsDomain,
     errorMonitoring: context.errorMonitoring,
     hasSessionCookie: context.hasSessionCookie,
     publicOrigin: context.publicOrigin,
@@ -45,7 +46,19 @@ export const Route = createRootRoute({
       : "public, max-age=0, must-revalidate",
     vary: "Cookie",
   }),
-  head: () => ({
+  head: ({ loaderData }) => ({
+    // Plausible, served from this origin (server/analytics.server.ts). It
+    // counts visits without cookies and follows client-side navigation.
+    scripts: loaderData?.analyticsDomain
+      ? [
+          {
+            src: "/insights/script.js",
+            defer: true,
+            "data-domain": loaderData.analyticsDomain,
+            "data-api": "/insights/event",
+          },
+        ]
+      : [],
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },

@@ -271,8 +271,11 @@ CLOUDFLARE_ORIGIN_SECRET=REPLACE-WITH-STAGING-CLOUDFLARE-SECRET
 SITE_URL=https://REPLACE-WITH-STAGING-WEB-DOMAIN
 R2_PUBLIC_ASSET_ORIGIN=https://REPLACE-WITH-STAGING-ASSET-DOMAIN
 SENTRY_DSN=REPLACE-WITH-CGN-WEB-SENTRY-DSN
+PLAUSIBLE_DOMAIN=staging.campusgamingnetwork.com
 NODE_ENV=production
 ```
+
+`PLAUSIBLE_DOMAIN` turns on Plausible analytics and names the Plausible site, which is the hostname you added there; staging reports to its own site so test traffic never mixes with real visitors. Leave it unset to send nothing. The page loads Plausible's script from this origin (`/insights/script.js`) and posts events to `/insights/event`, which forwards them to Plausible, so the browser never contacts Plausible and the content security policy still allows only the site's own origin. Plausible sets no cookies. The forwarder accepts events only from the site's own pages, always names the configured site, and drops every query string except `utm_` campaign tags from the page and referrer addresses, so a token in a link (a password reset, an invite) never leaves the server. It passes the visitor's address and user agent, which Plausible uses to count unique visitors and does not store. The Admin Console loads no analytics.
 
 `SENTRY_DSN` here is the DSN of the `cgn-web` Sentry project, which is a different value from the API's. The web server and the browser both report to it, tagged `runtime:server` or `runtime:browser`, and `DEPLOYMENT_ENV` is the Sentry environment. The page receives the DSN from the server at run time, so one image serves every environment. The browser loads the SDK only when a DSN is set and contacts Sentry only to report an error; it sends no session pings or breadcrumbs, and the page address is sent without its query string. Server events carry the error and its stack trace and no request data. To confirm server reporting, set `WEB_MAINTENANCE_TOKEN` temporarily and send `POST /api/error-monitoring-test` with it as a bearer token and the site's own `Origin` header; the request answers 500. To confirm browser reporting, run `setTimeout(() => { throw new Error("test") })` in the browser console on any page. Unset the token afterwards.
 
@@ -547,6 +550,7 @@ CLOUDFLARE_ORIGIN_SECRET=REPLACE-WITH-PRODUCTION-CLOUDFLARE-SECRET
 SITE_URL=https://campusgamingnetwork.com
 R2_PUBLIC_ASSET_ORIGIN=https://REPLACE-WITH-PRODUCTION-ASSET-DOMAIN
 SENTRY_DSN=REPLACE-WITH-CGN-WEB-SENTRY-DSN
+PLAUSIBLE_DOMAIN=campusgamingnetwork.com
 NODE_ENV=production
 ```
 

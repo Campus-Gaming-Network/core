@@ -43,6 +43,8 @@ import { Route as ClubsSlugRouteImport } from './routes/clubs.$slug'
 import { Route as EventsIndexRouteImport } from './routes/events.index'
 import { Route as EventsSlugRouteImport } from './routes/events.$slug'
 import { Route as EventsNewRouteImport } from './routes/events.new'
+import { Route as InsightsEventRouteImport } from './routes/insights.event'
+import { Route as InsightsScriptDotjsRouteImport } from './routes/insights.script[.]js'
 import { Route as SchoolsIndexRouteImport } from './routes/schools.index'
 import { Route as SchoolsSlugRouteImport } from './routes/schools.$slug'
 import { Route as SettingsIndexRouteImport } from './routes/settings.index'
@@ -240,6 +242,16 @@ const EventsNewRoute = EventsNewRouteImport.update({
   path: '/new',
   getParentRoute: () => EventsRoute,
 } as any)
+const InsightsEventRoute = InsightsEventRouteImport.update({
+  id: '/insights/event',
+  path: '/insights/event',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InsightsScriptDotjsRoute = InsightsScriptDotjsRouteImport.update({
+  id: '/insights/script.js',
+  path: '/insights/script.js',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SchoolsIndexRoute = SchoolsIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -405,6 +417,8 @@ export interface FileRoutesByFullPath {
   '/clubs/$slug': typeof ClubsSlugRoute
   '/events/$slug': typeof EventsSlugRoute
   '/events/new': typeof EventsNewRoute
+  '/insights/event': typeof InsightsEventRoute
+  '/insights/script.js': typeof InsightsScriptDotjsRoute
   '/schools/$slug': typeof SchoolsSlugRoute
   '/settings/data': typeof SettingsDataRoute
   '/settings/delete-account': typeof SettingsDeleteAccountRoute
@@ -463,6 +477,8 @@ export interface FileRoutesByTo {
   '/clubs/$slug': typeof ClubsSlugRoute
   '/events/$slug': typeof EventsSlugRoute
   '/events/new': typeof EventsNewRoute
+  '/insights/event': typeof InsightsEventRoute
+  '/insights/script.js': typeof InsightsScriptDotjsRoute
   '/schools/$slug': typeof SchoolsSlugRoute
   '/settings/data': typeof SettingsDataRoute
   '/settings/delete-account': typeof SettingsDeleteAccountRoute
@@ -526,6 +542,8 @@ export interface FileRoutesById {
   '/clubs/$slug': typeof ClubsSlugRoute
   '/events/$slug': typeof EventsSlugRoute
   '/events/new': typeof EventsNewRoute
+  '/insights/event': typeof InsightsEventRoute
+  '/insights/script.js': typeof InsightsScriptDotjsRoute
   '/schools/$slug': typeof SchoolsSlugRoute
   '/settings/data': typeof SettingsDataRoute
   '/settings/delete-account': typeof SettingsDeleteAccountRoute
@@ -590,6 +608,8 @@ export interface FileRouteTypes {
     | '/clubs/$slug'
     | '/events/$slug'
     | '/events/new'
+    | '/insights/event'
+    | '/insights/script.js'
     | '/schools/$slug'
     | '/settings/data'
     | '/settings/delete-account'
@@ -648,6 +668,8 @@ export interface FileRouteTypes {
     | '/clubs/$slug'
     | '/events/$slug'
     | '/events/new'
+    | '/insights/event'
+    | '/insights/script.js'
     | '/schools/$slug'
     | '/settings/data'
     | '/settings/delete-account'
@@ -710,6 +732,8 @@ export interface FileRouteTypes {
     | '/clubs/$slug'
     | '/events/$slug'
     | '/events/new'
+    | '/insights/event'
+    | '/insights/script.js'
     | '/schools/$slug'
     | '/settings/data'
     | '/settings/delete-account'
@@ -771,6 +795,8 @@ export interface RootRouteChildren {
   AuthResetPasswordRoute: typeof AuthResetPasswordRoute
   AuthVerifyEmailRoute: typeof AuthVerifyEmailRoute
   ClubsSlugRoute: typeof ClubsSlugRoute
+  InsightsEventRoute: typeof InsightsEventRoute
+  InsightsScriptDotjsRoute: typeof InsightsScriptDotjsRoute
   UsersIdRoute: typeof UsersIdRoute
   ClubsIndexRoute: typeof ClubsIndexRoute
   ApiAccountExportRoute: typeof ApiAccountExportRoute
@@ -1024,6 +1050,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/events/new'
       preLoaderRoute: typeof EventsNewRouteImport
       parentRoute: typeof EventsRoute
+    }
+    '/insights/event': {
+      id: '/insights/event'
+      path: '/insights/event'
+      fullPath: '/insights/event'
+      preLoaderRoute: typeof InsightsEventRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/insights/script.js': {
+      id: '/insights/script.js'
+      path: '/insights/script.js'
+      fullPath: '/insights/script.js'
+      preLoaderRoute: typeof InsightsScriptDotjsRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/schools/': {
       id: '/schools/'
@@ -1313,6 +1353,8 @@ const rootRouteChildren: RootRouteChildren = {
   AuthResetPasswordRoute: AuthResetPasswordRoute,
   AuthVerifyEmailRoute: AuthVerifyEmailRoute,
   ClubsSlugRoute: ClubsSlugRoute,
+  InsightsEventRoute: InsightsEventRoute,
+  InsightsScriptDotjsRoute: InsightsScriptDotjsRoute,
   UsersIdRoute: UsersIdRoute,
   ClubsIndexRoute: ClubsIndexRoute,
   ApiAccountExportRoute: ApiAccountExportRoute,

@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getNavigationSessionOperation } from "../features/event-slice/auth-operations.server.js";
+import { plausibleDomain } from "./analytics.server.js";
 import { validatedPublicOrigin } from "./environment.server.js";
 import { errorMonitoringConfig } from "./error-monitor.server.js";
 import {
@@ -26,6 +27,8 @@ export const getPublicRuntimeConfig = createServerFn({ method: "GET" }).handler(
     });
 
     return {
+      // The Plausible site to report to, or null when analytics are off.
+      analyticsDomain: plausibleDomain() ?? null,
       errorMonitoring: errorMonitoringConfig(),
       hasSessionCookie,
       publicOrigin: validatedPublicOrigin(),
