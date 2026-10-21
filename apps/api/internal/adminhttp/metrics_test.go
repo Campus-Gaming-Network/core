@@ -36,11 +36,11 @@ func TestMetricsAnswersWithTheSummaryAsOfNow(t *testing.T) {
 			reader: &fakeMetricsReader{result: metrics.Metrics{
 				AsOf:    "2026-10-20",
 				Active:  metrics.ActiveCounts{Day: 2, Week: 5, Month: 9},
-				Days:    []metrics.DayCounts{{Day: "2026-10-20", Active: 2, Signups: 1}},
+				Days:    []metrics.DayCounts{{Day: "2026-10-20", Active: 2, Signups: 1, ClubJoins: 3, RSVPs: 4, EventsCreated: 5, TeamsCreated: 6}},
 				Schools: []metrics.SchoolCount{{ID: "11111111-1111-1111-1111-111111111111", Name: "Home U", Active: 9}},
 			}},
 			status: http.StatusOK,
-			body:   `{"as_of":"2026-10-20","active":{"day":2,"week":5,"month":9},"days":[{"day":"2026-10-20","active":2,"signups":1}],"schools":[{"id":"11111111-1111-1111-1111-111111111111","name":"Home U","active":9}]}`,
+			body:   `{"as_of":"2026-10-20","active":{"day":2,"week":5,"month":9},"days":[{"day":"2026-10-20","active":2,"signups":1,"club_joins":3,"rsvps":4,"events_created":5,"teams_created":6}],"schools":[{"id":"11111111-1111-1111-1111-111111111111","name":"Home U","active":9}]}`,
 		},
 		{
 			name:   "an unreadable summary fails the request",

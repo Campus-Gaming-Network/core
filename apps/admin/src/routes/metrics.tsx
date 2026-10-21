@@ -14,6 +14,15 @@ export const Route = createFileRoute("/metrics")({
 type Day = Metrics["days"][number];
 type School = Metrics["schools"][number];
 
+/** What people created each day, in the order the page shows it. */
+const createdRecords = [
+  { key: "signups", label: "New accounts" },
+  { key: "club_joins", label: "Club joins" },
+  { key: "rsvps", label: "RSVPs" },
+  { key: "events_created", label: "Events created" },
+  { key: "teams_created", label: "Teams created" },
+] as const;
+
 const dayColumns = [
   dataColumn<Day>({
     id: "day",
@@ -25,11 +34,9 @@ const dayColumns = [
     header: "Active accounts",
     sortValue: (row) => row.active,
   }),
-  dataColumn<Day>({
-    id: "signups",
-    header: "New accounts",
-    sortValue: (row) => row.signups,
-  }),
+  ...createdRecords.map(({ key, label }) =>
+    dataColumn<Day>({ id: key, header: label, sortValue: (row) => row[key] }),
+  ),
 ];
 
 const schoolColumns = [
@@ -56,7 +63,6 @@ const schoolColumns = [
 
 function MetricsPage() {
   const metrics = Route.useLoaderData();
-  const signups = metrics.days.reduce((total, day) => total + day.signups, 0);
 
   return (
     <div className="page-stack">
@@ -93,11 +99,27 @@ function MetricsPage() {
             <span>Today ÷ last 30 days</span>
             <strong>{stickiness(metrics.active)}</strong>
           </div>
-          <div className="summary-card">
-            <span>New accounts, last 30 days</span>
-            <strong>{signups}</strong>
-          </div>
         </div>
+      </section>
+
+      <section aria-labelledby="created-heading">
+        <div className="section-heading">
+          <h2 id="created-heading">Last 30 days</h2>
+        </div>
+        <div className="summary-grid">
+          {createdRecords.map(({ key, label }) => (
+            <div className="summary-card" key={key}>
+              <span>{label}</span>
+              <strong>
+                {metrics.days.reduce((total, day) => total + day[key], 0)}
+              </strong>
+            </div>
+          ))}
+        </div>
+        <p className="empty-copy">
+          Club joins count memberships in any role. A club someone left or an
+          account that was deleted no longer counts on past days.
+        </p>
       </section>
 
       <section aria-labelledby="days-heading">
@@ -108,7 +130,7 @@ function MetricsPage() {
           columns={dayColumns}
           data={metrics.days}
           getRowId={(row) => row.day}
-          label="Active and new accounts by day"
+          label="Active accounts and new records by day"
         />
       </section>
 

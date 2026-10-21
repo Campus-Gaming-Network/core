@@ -584,13 +584,16 @@ seven days. The route is read-only and cannot report an outage of the API or
 the database, since it is served by both.
 
 `GET /metrics` needs `metrics.read` and returns
-`{ "as_of", "active": { "day", "week", "month" }, "days": [{ "day", "active", "signups" }], "schools": [{ "id", "name", "active" }] }`.
+`{ "as_of", "active": { "day", "week", "month" }, "days": [{ "day", "active", "signups", "club_joins", "rsvps", "events_created", "teams_created" }], "schools": [{ "id", "name", "active" }] }`.
 `as_of` is today's UTC date, and every day is a UTC date (`YYYY-MM-DD`).
 `active` counts distinct accounts with a signed-in request on `as_of` and in
 the 7 and 30 days ending on it, from `user_activity_days`, so today's count is
 the day so far. `days` lists the 30 days ending on `as_of`, newest first, with
-each day's active accounts and the accounts created that day, including ones
-since deleted. `schools` names up to 20 home schools by active accounts in the
+each day's active accounts and the records created that day: accounts
+(including ones since deleted), club memberships in any role, event RSVPs,
+events, and teams. Memberships, RSVPs, events, and teams are counted while
+their rows exist, so leaving a club or deleting an account removes them from
+past days. `schools` names up to 20 home schools by active accounts in the
 30 days, most first. It counts accounts and never names one.
 
 `GET /audit` needs `audit.read` and lists every audited change, newest first.

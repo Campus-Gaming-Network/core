@@ -17,7 +17,7 @@ const TrendDays = 30
 // SchoolLimit is how many schools the by-school list names.
 const SchoolLimit = 20
 
-// Metrics is the active-account and signup summary as of one UTC day. Days
+// Metrics is the active-account and activity summary as of one UTC day. Days
 // are YYYY-MM-DD.
 type Metrics struct {
 	AsOf    string        `json:"as_of"`
@@ -34,12 +34,18 @@ type ActiveCounts struct {
 	Month int `json:"month"`
 }
 
-// DayCounts are one UTC day's active accounts and new signups. Metrics lists
-// them newest first.
+// DayCounts are one UTC day's active accounts and the records created that
+// day: accounts, club memberships, event RSVPs, events, and teams. Records are
+// counted while they exist, so a deleted account's memberships and RSVPs and
+// a club someone left drop out of past days. Metrics lists days newest first.
 type DayCounts struct {
-	Day     string `json:"day"`
-	Active  int    `json:"active"`
-	Signups int    `json:"signups"`
+	Day           string `json:"day"`
+	Active        int    `json:"active"`
+	Signups       int    `json:"signups"`
+	ClubJoins     int    `json:"club_joins"`
+	RSVPs         int    `json:"rsvps"`
+	EventsCreated int    `json:"events_created"`
+	TeamsCreated  int    `json:"teams_created"`
 }
 
 // SchoolCount is how many accounts with this home school were active in the
@@ -83,7 +89,7 @@ func (r *PostgresRepository) Metrics(ctx context.Context, asOf time.Time) (Metri
 		return Metrics{}, fmt.Errorf("count active accounts: %w", err)
 	}
 
-	// Signups are bucketed by their UTC date whatever the session time zone.
+	// Records are bucketed by their UTC date whatever the session time zone.
 	rows, err := tx.Query(ctx, `
 		WITH days AS (
 			SELECT generate_series($1::date - ($2::int - 1), $1::date, INTERVAL '1 day')::date AS day
@@ -93,16 +99,34 @@ func (r *PostgresRepository) Metrics(ctx context.Context, asOf time.Time) (Metri
 			WHERE day > $1::date - $2::int AND day <= $1::date
 			GROUP BY day
 		),
-		signups AS (
-			SELECT (created_at AT TIME ZONE 'UTC')::date AS day, COUNT(*) AS count FROM users
-			WHERE created_at >= ($1::date - ($2::int - 1))::timestamp AT TIME ZONE 'UTC'
-			  AND created_at < ($1::date + 1)::timestamp AT TIME ZONE 'UTC'
+		window_bounds AS (
+			SELECT ($1::date - ($2::int - 1))::timestamp AT TIME ZONE 'UTC' AS opens,
+			       ($1::date + 1)::timestamp AT TIME ZONE 'UTC' AS closes
+		),
+		created AS (
+			SELECT 'signup' AS kind, created_at FROM users
+			UNION ALL SELECT 'club_join', created_at FROM club_members
+			UNION ALL SELECT 'rsvp', created_at FROM event_rsvps
+			UNION ALL SELECT 'event', created_at FROM events
+			UNION ALL SELECT 'team', created_at FROM teams
+		),
+		counts AS (
+			SELECT (created_at AT TIME ZONE 'UTC')::date AS day,
+			       COUNT(*) FILTER (WHERE kind = 'signup') AS signups,
+			       COUNT(*) FILTER (WHERE kind = 'club_join') AS club_joins,
+			       COUNT(*) FILTER (WHERE kind = 'rsvp') AS rsvps,
+			       COUNT(*) FILTER (WHERE kind = 'event') AS events,
+			       COUNT(*) FILTER (WHERE kind = 'team') AS teams
+			FROM created, window_bounds
+			WHERE created_at >= opens AND created_at < closes
 			GROUP BY 1
 		)
-		SELECT days.day::text, COALESCE(active.count, 0), COALESCE(signups.count, 0)
+		SELECT days.day::text, COALESCE(active.count, 0),
+		       COALESCE(counts.signups, 0), COALESCE(counts.club_joins, 0), COALESCE(counts.rsvps, 0),
+		       COALESCE(counts.events, 0), COALESCE(counts.teams, 0)
 		FROM days
 		LEFT JOIN active ON active.day = days.day
-		LEFT JOIN signups ON signups.day = days.day
+		LEFT JOIN counts ON counts.day = days.day
 		ORDER BY days.day DESC
 	`, day, TrendDays)
 	if err != nil {
