@@ -10,7 +10,17 @@ import type { ApiClient } from "../src/server/api.server.js";
 const metrics = {
   as_of: "2026-10-20",
   active: { day: 3, week: 7, month: 12 },
-  days: [{ day: "2026-10-20", active: 3, signups: 1 }],
+  days: [
+    {
+      day: "2026-10-20",
+      active: 3,
+      signups: 1,
+      club_joins: 2,
+      rsvps: 4,
+      events_created: 1,
+      teams_created: 0,
+    },
+  ],
   schools: [
     { id: "11111111-1111-4111-8111-111111111111", name: "Home U", active: 12 },
   ],
@@ -39,7 +49,7 @@ test("a negative count fails the contract", () => {
   assert.equal(
     metricsSchema.safeParse({
       ...metrics,
-      days: [{ day: "2026-10-20", active: -1, signups: 0 }],
+      days: [{ ...metrics.days[0], rsvps: -1 }],
     }).success,
     false,
   );
