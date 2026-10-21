@@ -242,6 +242,7 @@ Railway reference-variable syntax keeps the database URL synchronized without co
 
 6. Open **Settings → Networking → Public Networking** and choose **Generate Domain**.
 7. Copy the full HTTPS origin, for example `https://cgn-staging-example.up.railway.app`. Do not include a trailing path.
+8. To serve it from your own hostname, add a custom domain to the service (Railway shows a CNAME target and a `_railway-verify` TXT record), create both records in Cloudflare with the CNAME proxied, and once the hostname answers over HTTPS set the web `SITE_URL`, the API `API_SITE_URL`, and the admin `PUBLIC_SITE_URL` to it. Staging is served at `https://staging.campusgamingnetwork.com`; the generated Railway address keeps working but is no longer canonical.
 
 Recommended web watch paths:
 
