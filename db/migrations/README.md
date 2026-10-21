@@ -144,3 +144,7 @@ owner's pending offer of the club to another member, plus the
 `club_editor_invite` and `club_ownership_offered` email kinds. Apply it before
 deploying the API that serves `/clubs/{slug}/manage` and the club officer
 commands.
+Migration `000040_user_activity_days.up.sql` adds `user_activity_days`, one
+row per account per UTC day on which it made a signed-in API request. Apply it
+before deploying the API that writes it, or every signed-in request logs a
+failed activity write.

@@ -1,8 +1,9 @@
 // Package maintenance removes rows that have aged out of usefulness.
 //
 // Sessions, verification and reset tokens, private event unlocks, event
-// organizer invites, Admin Console sessions, and finished email outbox rows are written on ordinary
-// activity and would otherwise grow without bound. Deletes run in bounded
+// organizer invites, Admin Console sessions, finished email outbox rows, and
+// account activity days are written on ordinary activity and would otherwise
+// grow without bound. Deletes run in bounded
 // batches and never touch audit history.
 package maintenance
 
@@ -23,6 +24,10 @@ const retentionGrace = 24 * time.Hour
 // row is kept for support lookups before its recipient address and payload are
 // deleted. Pending and retrying rows are never touched.
 const outboxRetention = 30 * 24 * time.Hour
+
+// activityRetentionMonths is how long a user_activity_days row is kept for
+// active-user counts and retention.
+const activityRetentionMonths = 13
 
 // batchSize bounds each DELETE so a large backlog never holds long locks.
 const batchSize = 1000
@@ -51,17 +56,20 @@ type Result struct {
 	OrganizerInvites   int64
 	AdminSessions      int64
 	EmailOutbox        int64
+	ActivityDays       int64
 }
 
 func (r Result) Total() int64 {
 	return r.Sessions + r.VerificationTokens + r.ResetTokens + r.EventUnlocks +
-		r.OrganizerInvites + r.AdminSessions + r.EmailOutbox
+		r.OrganizerInvites + r.AdminSessions + r.EmailOutbox + r.ActivityDays
 }
 
 // purge is one table's cleanup. Its where clause takes the cutoff as $1 and
-// may reference the table by its own name.
+// may reference the table by its own name. key names the columns that
+// identify a row; it is id when empty.
 type purge struct {
 	table  string
+	key    string
 	where  string
 	cutoff func(now time.Time) time.Time
 	count  func(*Result) *int64
@@ -123,6 +131,14 @@ var purges = []purge{
 		cutoff: func(now time.Time) time.Time { return now.Add(-outboxRetention) },
 		count:  func(r *Result) *int64 { return &r.EmailOutbox },
 	},
+	{
+		table: "user_activity_days",
+		key:   "user_id, day",
+		where: "day < $1",
+		// Days are UTC dates, and the cutoff day itself is kept.
+		cutoff: func(now time.Time) time.Time { return now.UTC().AddDate(0, -activityRetentionMonths, 0) },
+		count:  func(r *Result) *int64 { return &r.ActivityDays },
+	},
 }
 
 // Run performs one pass. Deletes are independent, so a failure on one table
@@ -135,9 +151,13 @@ func (s *Sweeper) Run(ctx context.Context) (Result, error) {
 	var firstErr error
 
 	for _, p := range purges {
+		key := p.key
+		if key == "" {
+			key = "id"
+		}
 		statement := fmt.Sprintf(
-			"DELETE FROM %[1]s WHERE id IN (SELECT id FROM %[1]s WHERE %[2]s ORDER BY id LIMIT %[3]d)",
-			p.table, p.where, batchSize,
+			"DELETE FROM %[1]s WHERE (%[4]s) IN (SELECT %[4]s FROM %[1]s WHERE %[2]s ORDER BY %[4]s LIMIT %[3]d)",
+			p.table, p.where, batchSize, key,
 		)
 		cutoff := p.cutoff(now)
 		var deleted int64
@@ -180,6 +200,7 @@ func (s *Sweeper) Start(ctx context.Context, interval time.Duration) {
 				"event_unlocks", result.EventUnlocks,
 				"admin_sessions", result.AdminSessions,
 				"email_outbox", result.EmailOutbox,
+				"activity_days", result.ActivityDays,
 			)
 		}
 

@@ -16,6 +16,8 @@ const exported = {
   site_roles: [],
   game_lists: [],
   teams: [],
+  clubs: [{ name: "Chess Club", slug: "chess-club", role: "owner" }],
+  club_claims: [],
   events_organized: [],
   rsvps: [],
   interested_events: [],
@@ -24,6 +26,7 @@ const exported = {
   notifications: [],
   policy_acceptances: [],
   sessions: [],
+  active_days: ["2026-10-16", "2026-10-17"],
 };
 
 function exportRequest({

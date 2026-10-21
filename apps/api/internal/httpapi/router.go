@@ -17,6 +17,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/activity"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminaccess"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminaudit"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminhttp"
@@ -251,7 +252,7 @@ func NewRouter(cfg config.Config, pools ...*pgxpool.Pool) http.Handler {
 				Secure: cfg.CookieSecure,
 				TTL:    cfg.SessionTTL,
 			},
-		)(router.mux)
+		)(activity.Middleware(activity.NewRecorder(activity.NewPostgresStore(router.db), slog.Default()))(router.mux))
 		handler = http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			if strings.HasPrefix(req.URL.Path, "/admin/") {
 				router.mux.ServeHTTP(w, req)

@@ -31,6 +31,7 @@ operational (non-legal-hold) windows:
 | `event_private_unlocks`                                               | Expired or soft-deleted more than 24 hours ago                                                                               |
 | `admin_sessions`                                                      | Idle- or absolute-expired, or revoked, more than 24 hours ago, and not referenced by `audit_logs` or `admin_security_events` |
 | `email_outbox`                                                        | Delivered or permanently failed more than 30 days ago (pending and retrying rows are never deleted)                          |
+| `user_activity_days`                                                  | The UTC day is more than 13 months before the run's UTC date                                                                 |
 
 `audit_logs` and `admin_security_events` are never purged by this job, and
 `admin_sessions` rows they reference are kept so the append-only history keeps
@@ -39,6 +40,13 @@ audit targets above are not automated: they need the legal-hold model below
 first, and the sweeper does not touch those tables. Rate-limit state is held
 in API process memory with a bounded size, so it has no table to purge. Create
 idempotency keys are columns on their records and live and die with them.
+
+`user_activity_days` holds one row per account per UTC day on which it made a
+signed-in API request, and nothing else: no page, IP address, or user agent.
+It exists to count daily, weekly, and monthly active accounts and retention.
+The API writes the row on the account's first authenticated request of the
+day and writes nothing for a deleted or suspended account. The rows are in
+the data export and are deleted with the account.
 
 No eligible record should be purged until a legal-hold check has run. An active
 investigation, appeal, dispute, preservation request, or applicable legal duty
@@ -97,7 +105,8 @@ The current deletion transaction:
       fields, marks the account deleted, revokes live sessions, and removes pending
       verification/reset tokens.
 - [x] Deletes personally scoped social links, school follows, team memberships,
-      event RSVPs/interests, event-organizer membership, and notifications.
+      event RSVPs/interests, event-organizer membership, notifications, and
+      activity days.
 - [x] Passes a club the account was the last owner of to its longest-serving
       active editor, then member, or leaves it unclaimed with its page intact;
       then deletes the account's club roles, ownership offers, editor invites
@@ -272,7 +281,8 @@ to every signed-in account, so they are part of the privacy inventory.
       covering the account and profile, school follows and admin roles, site
       roles, game lists, teams, organized events, RSVPs and interests, support
       and report submissions, notifications, policy-acceptance history, and
-      sign-in sessions ([04](./04-api.md#data-export)). It needs the current
+      sign-in sessions, and the days the account was active
+      ([04](./04-api.md#data-export)). It needs the current
       password, is rate limited, is built on request and never stored (so there
       is no file to expire), and each download writes a `user.data_exported`
       audit row.

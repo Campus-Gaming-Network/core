@@ -23,6 +23,8 @@ export const dataExportDtoSchema = z.object({
   site_roles: entries,
   game_lists: entries,
   teams: entries,
+  clubs: entries,
+  club_claims: entries,
   events_organized: entries,
   rsvps: entries,
   interested_events: entries,
@@ -31,6 +33,7 @@ export const dataExportDtoSchema = z.object({
   notifications: entries,
   policy_acceptances: entries,
   sessions: entries,
+  active_days: z.array(z.iso.date()),
 });
 
 type Dependencies = {

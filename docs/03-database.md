@@ -104,6 +104,12 @@ auth_sessions
   -- public-site sessions; only the SHA-256 token hash is stored
   -- last_seen_at is no longer maintained (CGN-012) and can be dropped later
 
+user_activity_days
+  user_id, day (UTC date); primary key (user_id, day)
+  -- one row per account per day it made a signed-in API request, for active
+  -- user counts and retention; kept 13 months, exported, deleted with the
+  -- account
+
 email_verification_tokens
   id, user_id, token_hash, expires_at, consumed_at, ...
 

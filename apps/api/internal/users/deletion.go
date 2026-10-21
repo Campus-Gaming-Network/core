@@ -302,6 +302,7 @@ func (r *PostgresRepository) DeleteAccount(ctx context.Context, userID string) e
 		`DELETE FROM event_rsvps WHERE user_id = $1::uuid`,
 		`DELETE FROM event_interests WHERE user_id = $1::uuid`,
 		`DELETE FROM notifications WHERE user_id = $1::uuid`,
+		`DELETE FROM user_activity_days WHERE user_id = $1::uuid`,
 		`DELETE FROM email_outbox
 		 WHERE recipient = (SELECT email::text FROM users WHERE id = $1::uuid)
 		    OR payload ->> 'user_id' = ($1::uuid)::text`,
