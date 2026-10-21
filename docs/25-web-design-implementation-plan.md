@@ -50,7 +50,10 @@ drawn as placeholders: see #61, #62, #246-#272, and #215-#216.
   join the list only when those pages exist (#261, #216). The label stays
   "Schools", matching the routes and data, rather than the mockups'
   "Universities".
-- A white footer with the brand and a footer navigation list.
+- A white footer with the brand, a footer navigation list, and icon links to
+  CGN's own social accounts. The accounts are one list in
+  `apps/web/src/components/site-social-links.tsx`; an empty list drops the
+  icons.
 
 ### Patterns
 

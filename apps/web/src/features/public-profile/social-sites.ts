@@ -7,6 +7,7 @@ const socialSiteHosts = {
   github: ["github.com"],
   instagram: ["instagram.com"],
   kick: ["kick.com"],
+  linkedin: ["linkedin.com"],
   reddit: ["reddit.com"],
   steam: ["steamcommunity.com", "steampowered.com"],
   tiktok: ["tiktok.com"],
