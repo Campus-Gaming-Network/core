@@ -106,15 +106,20 @@ func Event(event *sentry.Event) *sentry.Event {
 		event.Tags[key] = String(value)
 	}
 	for _, context := range event.Contexts {
-		for key, value := range context {
-			if SensitiveKey(key) {
-				context[key] = Mask
-				continue
-			}
-			context[key] = scrubValue(value)
-		}
+		scrubMap(context)
 	}
 	return event
+}
+
+// scrubMap masks the values of a map in place, descending into nested values.
+func scrubMap(values map[string]any) {
+	for key, value := range values {
+		if SensitiveKey(key) {
+			values[key] = Mask
+			continue
+		}
+		values[key] = scrubValue(value)
+	}
 }
 
 func scrubValue(value any) any {
@@ -125,6 +130,19 @@ func scrubValue(value any) any {
 		return String(typed.Error())
 	case fmt.Stringer:
 		return String(typed.String())
+	case map[string]any:
+		scrubMap(typed)
+		return typed
+	case []any:
+		for index := range typed {
+			typed[index] = scrubValue(typed[index])
+		}
+		return typed
+	case []string:
+		for index := range typed {
+			typed[index] = String(typed[index])
+		}
+		return typed
 	default:
 		return value
 	}

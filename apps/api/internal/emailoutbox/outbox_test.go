@@ -5,14 +5,18 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"reflect"
+	"strings"
 	"sync"
 	"testing"
 	"time"
+	"unicode/utf8"
 
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/mailhttp"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 type claimCall struct {
@@ -436,5 +440,110 @@ func TestReplacementWorkerReclaimsAnAbandonedLease(t *testing.T) {
 	}
 	if !store.delivered {
 		t.Fatal("message was not marked delivered by replacement worker")
+	}
+}
+
+type recordingExecer struct {
+	args []any
+	err  error
+}
+
+func (e *recordingExecer) Exec(_ context.Context, _ string, args ...any) (pgconn.CommandTag, error) {
+	e.args = args
+	return pgconn.CommandTag{}, e.err
+}
+
+func TestEnqueueValidatesIntentBeforeTouchingTheDatabase(t *testing.T) {
+	valid := Intent{Kind: KindPasswordReset, Recipient: "  to@example.invalid ", Payload: map[string]string{"a": "b"}, IdempotencyKey: "k"}
+	tests := []struct {
+		name    string
+		mutate  func(*Intent)
+		execErr error
+		wantErr bool
+		wantArg []any
+	}{
+		{name: "valid trims recipient", mutate: func(*Intent) {}, wantArg: []any{KindPasswordReset, "to@example.invalid", []byte(`{"a":"b"}`), "k"}},
+		{name: "blank kind", mutate: func(i *Intent) { i.Kind = " " }, wantErr: true},
+		{name: "blank recipient", mutate: func(i *Intent) { i.Recipient = "" }, wantErr: true},
+		{name: "blank key", mutate: func(i *Intent) { i.IdempotencyKey = "\t" }, wantErr: true},
+		{name: "unencodable payload", mutate: func(i *Intent) { i.Payload = make(chan int) }, wantErr: true},
+		{name: "database failure", mutate: func(*Intent) {}, execErr: errors.New("down"), wantErr: true, wantArg: []any{KindPasswordReset, "to@example.invalid", []byte(`{"a":"b"}`), "k"}},
+	}
+	for _, tt := range tests {
+		intent := valid
+		tt.mutate(&intent)
+		execer := &recordingExecer{err: tt.execErr}
+		err := Enqueue(context.Background(), execer, intent)
+		if (err != nil) != tt.wantErr {
+			t.Errorf("%s: Enqueue() error = %v, wantErr %v", tt.name, err, tt.wantErr)
+		}
+		if !reflect.DeepEqual(execer.args, tt.wantArg) {
+			t.Errorf("%s: exec args = %v, want %v", tt.name, execer.args, tt.wantArg)
+		}
+	}
+}
+
+func TestPermanentWrapsAndPreservesCause(t *testing.T) {
+	cause := errors.New("recipient rejected")
+	wrapped := fmt.Errorf("send: %w", Permanent(cause))
+	if !IsPermanent(wrapped) || !errors.Is(wrapped, cause) {
+		t.Errorf("wrapped permanent error lost its marker or cause: %v", wrapped)
+	}
+	if Permanent(nil) != nil || IsPermanent(cause) || IsPermanent(nil) {
+		t.Error("nil or transient errors must not be permanent")
+	}
+}
+
+func TestTruncateDetailKeepsValidUTF8WithinTheBound(t *testing.T) {
+	tests := map[string]struct{ in, want string }{
+		"short":                 {"boom", "boom"},
+		"exact bound":           {strings.Repeat("a", maximumDetailBytes), strings.Repeat("a", maximumDetailBytes)},
+		"ascii over":            {strings.Repeat("a", maximumDetailBytes+50), strings.Repeat("a", maximumDetailBytes)},
+		"multibyte split":       {strings.Repeat("a", maximumDetailBytes-1) + "é" + "tail", strings.Repeat("a", maximumDetailBytes-1)},
+		"multibyte fits":        {strings.Repeat("a", maximumDetailBytes-2) + "é" + "tail", strings.Repeat("a", maximumDetailBytes-2) + "é"},
+		"invalid bytes removed": {"bad\xffbyte", "badbyte"},
+	}
+	for name, tt := range tests {
+		got := truncateDetail(tt.in)
+		if got != tt.want || !utf8.ValidString(got) {
+			t.Errorf("%s: truncateDetail() len %d, want len %d (valid=%v)", name, len(got), len(tt.want), utf8.ValidString(got))
+		}
+	}
+}
+
+func TestTokenKeyIsKindScopedAndURLSafe(t *testing.T) {
+	hash := []byte{0xfb, 0xff, 0xfe}
+	if got, want := TokenKey(KindPasswordReset, hash), "password_reset:-__-"; got != want {
+		t.Errorf("TokenKey() = %q, want %q", got, want)
+	}
+	if TokenKey(KindPasswordReset, hash) == TokenKey(KindAccountVerification, hash) {
+		t.Error("the same hash must yield different keys per kind")
+	}
+}
+
+type failingMarkStore struct {
+	recordingStore
+	markErr error
+}
+
+func (s *failingMarkStore) MarkDelivered(context.Context, Message, string) error { return s.markErr }
+func (s *failingMarkStore) MarkFailed(context.Context, Message, time.Time, bool, string) error {
+	return s.markErr
+}
+
+func TestWorkerRunOnceReportsLostLeaseAndSkipsFailureAccounting(t *testing.T) {
+	lost := errors.New("email outbox lease lost")
+	for name, send := range map[string]func(context.Context, Message) (string, error){
+		"delivered": func(context.Context, Message) (string, error) { return "id", nil },
+		"failed":    func(context.Context, Message) (string, error) { return "", errors.New("boom") },
+	} {
+		store := &failingMarkStore{recordingStore: recordingStore{messages: []Message{{ID: "1"}}}, markErr: lost}
+		worker := NewWorker(store, dispatcherFunc(send), nil)
+		if err := worker.RunOnce(context.Background()); !errors.Is(err, lost) {
+			t.Errorf("%s: RunOnce() error = %v, want lost lease", name, err)
+		}
+		if got := worker.Stats(); got != (WorkerStats{}) {
+			t.Errorf("%s: Stats() = %+v, want zero when the row could not be marked", name, got)
+		}
 	}
 }

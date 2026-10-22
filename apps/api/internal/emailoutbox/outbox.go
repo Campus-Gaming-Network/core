@@ -12,6 +12,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+	"unicode/utf8"
 
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/mailhttp"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -174,9 +175,7 @@ func (s *PostgresStore) MarkDelivered(ctx context.Context, message Message, prov
 }
 
 func (s *PostgresStore) MarkFailed(ctx context.Context, message Message, next time.Time, terminal bool, detail string) error {
-	if len(detail) > 2000 {
-		detail = detail[:2000]
-	}
+	detail = truncateDetail(detail)
 	command, err := s.pool.Exec(ctx, `
 		UPDATE email_outbox
 		SET attempts = attempts + 1,
@@ -196,6 +195,23 @@ func (s *PostgresStore) MarkFailed(ctx context.Context, message Message, next ti
 		return errors.New("email outbox lease lost")
 	}
 	return nil
+}
+
+// maximumDetailBytes bounds the stored delivery error.
+const maximumDetailBytes = 2000
+
+// truncateDetail cuts detail to maximumDetailBytes on a rune boundary. A cut
+// through a multi-byte character would make Postgres reject the UPDATE, which
+// would leave the message unmarked and retried forever.
+func truncateDetail(detail string) string {
+	if len(detail) <= maximumDetailBytes {
+		return strings.ToValidUTF8(detail, "")
+	}
+	cut := maximumDetailBytes
+	for cut > 0 && !utf8.RuneStart(detail[cut]) {
+		cut--
+	}
+	return strings.ToValidUTF8(detail[:cut], "")
 }
 
 // Backlog summarizes the email that has not been delivered. Pending counts

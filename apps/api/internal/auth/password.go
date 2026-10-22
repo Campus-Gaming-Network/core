@@ -105,6 +105,12 @@ func decodeArgonHash(hash string) (salt, key []byte, memory, iterations uint32, 
 		return nil, nil, 0, 0, 0, errInvalidHashFormat
 	}
 
+	// argon2.IDKey panics on zero rounds or lanes, so a corrupt stored hash
+	// must be rejected here rather than crash the request.
+	if memory == 0 || iterations == 0 || lanes == 0 {
+		return nil, nil, 0, 0, 0, errInvalidHashFormat
+	}
+
 	salt, err = base64.RawStdEncoding.DecodeString(parts[4])
 	if err != nil {
 		return nil, nil, 0, 0, 0, errInvalidHashFormat

@@ -107,6 +107,12 @@ func TestComparePasswordRejectsMalformedHashes(t *testing.T) {
 		"$argon2id$v=99$m=19456,t=2,p=1$c2FsdHNhbHQ$a2V5a2V5",
 		"$argon2id$v=19$m=bad,t=2,p=1$c2FsdHNhbHQ$a2V5a2V5",
 		"$argon2id$v=19$m=19456,t=2,p=1$!!!notbase64$a2V5a2V5",
+		"$argon2id$v=19$m=19456,t=2,p=1$c2FsdHNhbHQ$!!!notbase64",
+		"$argon2id$v=19$m=19456,t=2,p=1$$a2V5a2V5",
+		"$argon2id$v=19$m=19456,t=2,p=1$c2FsdHNhbHQ$",
+		"$argon2id$v=19$m=19456,t=0,p=1$c2FsdHNhbHQ$a2V5a2V5",
+		"$argon2id$v=19$m=19456,t=2,p=0$c2FsdHNhbHQ$a2V5a2V5",
+		"$argon2id$v=19$m=0,t=2,p=1$c2FsdHNhbHQ$a2V5a2V5",
 	} {
 		if ComparePassword(hash, "a-long-enough-password") {
 			t.Fatalf("ComparePassword accepted malformed hash %q", hash)
