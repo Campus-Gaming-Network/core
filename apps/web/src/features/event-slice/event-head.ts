@@ -143,7 +143,9 @@ function eventJsonLd(
     url,
     startDate: isoWithOffset(event.starts_at, event.timezone),
     endDate: isoWithOffset(event.ends_at, event.timezone),
-    eventStatus: "https://schema.org/EventScheduled",
+    eventStatus: event.cancelled_at
+      ? "https://schema.org/EventCancelled"
+      : "https://schema.org/EventScheduled",
     eventAttendanceMode: `https://schema.org/${attendance[event.format]}`,
     location:
       event.format === "online"
@@ -164,6 +166,22 @@ function eventJsonLd(
         absoluteUrl(publicOrigin, "/og-default.png"),
     ],
     ...(event.cost === "free" ? { isAccessibleForFree: true } : {}),
+    ...(event.cost === "unspecified"
+      ? {}
+      : {
+          offers: {
+            "@type": "Offer",
+            url,
+            // The API holds no price, so only a free event states one.
+            ...(event.cost === "free"
+              ? { price: "0", priceCurrency: "USD" }
+              : {}),
+            availability:
+              event.lifecycle === "full"
+                ? "https://schema.org/SoldOut"
+                : "https://schema.org/InStock",
+          },
+        }),
   };
 }
 

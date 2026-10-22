@@ -165,9 +165,39 @@ test("a public open event gets a full preview and schema.org Event data", () => 
         },
         image: [`${origin}/og-default.png`],
         isAccessibleForFree: true,
+        offers: {
+          "@type": "Offer",
+          url: `${origin}/events/open-night`,
+          price: "0",
+          priceCurrency: "USD",
+          availability: "https://schema.org/InStock",
+        },
       },
     },
   );
+});
+
+test("a cancelled, full, paid event says so in structured data without inventing a price", () => {
+  const head = eventDetailHead({
+    event: {
+      ...baseEvent,
+      cost: "paid",
+      lifecycle: "full",
+      cancelled_at: "2031-04-01T00:00:00Z",
+    },
+    publicOrigin: origin,
+  });
+  const data = head.meta.find((tag) => "script:ld+json" in tag)?.[
+    "script:ld+json"
+  ] as Record<string, unknown>;
+
+  assert.equal(data.eventStatus, "https://schema.org/EventCancelled");
+  assert.equal(data.isAccessibleForFree, undefined);
+  assert.deepEqual(data.offers, {
+    "@type": "Offer",
+    url: `${origin}/events/open-night`,
+    availability: "https://schema.org/SoldOut",
+  });
 });
 
 test("event structured data covers online and hybrid events without the meeting link or people", () => {
