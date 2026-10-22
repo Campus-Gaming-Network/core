@@ -71,14 +71,13 @@ export async function eventCalendarResponse(
     `${publicOrigin}/events/${encodeURIComponent(event.slug)}`,
     now(),
   );
-  const filename = `${event.slug.replace(/[^A-Za-z0-9_-]/g, "_")}.ics`;
 
   return new Response(request.method === "HEAD" ? null : calendar, {
     status: 200,
     headers: {
       ...responseHeaders,
       "content-type": "text/calendar; charset=utf-8",
-      "content-disposition": `inline; filename="${filename}"`,
+      "content-disposition": contentDisposition(event),
     },
   });
 }
@@ -110,6 +109,14 @@ export function eventICS(event: EventDTO, eventURL: string, now: Date): string {
     `DTSTAMP:${icsTime(now)}`,
     `DTSTART:${icsTime(new Date(event.starts_at))}`,
     `DTEND:${icsTime(new Date(event.ends_at))}`,
+    ...(event.cancelled_at
+      ? [`LAST-MODIFIED:${icsTime(new Date(event.cancelled_at))}`]
+      : []),
+    // Cancelling is the one edit the DTO dates, so it is the one that raises
+    // SEQUENCE. The RSVP email omits SEQUENCE (0), so the cancelled copy wins.
+    `SEQUENCE:${event.cancelled_at ? 1 : 0}`,
+    `STATUS:${event.cancelled_at ? "CANCELLED" : "CONFIRMED"}`,
+    "TRANSP:OPAQUE",
     `SUMMARY:${escapeICSText(event.title)}`,
     `DESCRIPTION:${escapeICSText(description)}`,
     ...(location ? [`LOCATION:${escapeICSText(location)}`] : []),
@@ -119,6 +126,28 @@ export function eventICS(event: EventDTO, eventURL: string, now: Date): string {
   ];
 
   return `${lines.map(foldICSLine).join("\r\n")}\r\n`;
+}
+
+// RFC 6266: a quoted ASCII fallback for old clients plus an RFC 5987
+// filename* that carries the title as UTF-8.
+function contentDisposition(event: Pick<EventDTO, "title" | "slug">): string {
+  const stem = Array.from(event.title.replace(/\p{Cs}/gu, ""))
+    .slice(0, 80)
+    .join("")
+    .trim()
+    .replace(/[\p{Cc}\\/:*?"<>|]/gu, " ");
+  const ascii = stem
+    .normalize("NFKD")
+    .replace(/[^A-Za-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 80);
+  const fallback = ascii || event.slug.replace(/[^A-Za-z0-9_-]/g, "_");
+  const unicode = encodeURIComponent(stem || fallback).replace(
+    /['()*]/g,
+    (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`,
+  );
+
+  return `inline; filename="${fallback}.ics"; filename*=UTF-8''${unicode}.ics`;
 }
 
 function emptyResponse(status: number): Response {

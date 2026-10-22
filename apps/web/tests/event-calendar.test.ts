@@ -64,6 +64,9 @@ test("an event becomes one escaped UTC VCALENDAR entry", () => {
       "DTSTAMP:20370101T000000Z",
       "DTSTART:20370220T020000Z",
       "DTEND:20370220T050000Z",
+      "SEQUENCE:0",
+      "STATUS:CONFIRMED",
+      "TRANSP:OPAQUE",
       "SUMMARY:Smash\\; Rocket\\, League\\\\Night",
       "DESCRIPTION:Bring a\\ncontroller\\\\.\\n\\nWho it's for: Host campus only\\n\\nVie",
       " w event: https://cgn.test/e",
@@ -73,6 +76,98 @@ test("an event becomes one escaped UTC VCALENDAR entry", () => {
       "END:VCALENDAR",
       "",
     ].join("\r\n"),
+  );
+});
+
+test("a cancelled event is marked cancelled with a higher sequence", () => {
+  const body = eventICS(
+    {
+      ...event,
+      title: "Café Night 🎮",
+      description: "",
+      format: "in_person",
+      location_name: undefined,
+      address: undefined,
+      audience: undefined,
+      cancelled_at: "2037-01-02T03:04:05Z",
+    },
+    "https://cgn.test/e",
+    now,
+  );
+
+  assert.equal(
+    body,
+    [
+      "BEGIN:VCALENDAR",
+      "VERSION:2.0",
+      "PRODID:-//Campus Gaming Network//CGN//EN",
+      "CALSCALE:GREGORIAN",
+      "METHOD:PUBLISH",
+      "BEGIN:VEVENT",
+      "UID:7c1e2f3a-0000-4000-8000-000000000001@campusgamingnetwork.com",
+      "DTSTAMP:20370101T000000Z",
+      "DTSTART:20370220T020000Z",
+      "DTEND:20370220T050000Z",
+      "LAST-MODIFIED:20370102T030405Z",
+      "SEQUENCE:1",
+      "STATUS:CANCELLED",
+      "TRANSP:OPAQUE",
+      "SUMMARY:Café Night 🎮",
+      "DESCRIPTION:View event: https://cgn.test/e",
+      "URL:https://cgn.test/e",
+      "END:VEVENT",
+      "END:VCALENDAR",
+      "",
+    ].join("\r\n"),
+  );
+});
+
+test("folded accented and emoji text stays within 75 octets per line", () => {
+  const title = "É".repeat(40) + "🎮".repeat(20);
+  const lines = eventICS({ ...event, title }, "https://cgn.test/e", now).split(
+    "\r\n",
+  );
+  const start = lines.findIndex((line) => line.startsWith("SUMMARY:"));
+  const end = lines.findIndex((line) => line.startsWith("DESCRIPTION:"));
+
+  assert.deepEqual(lines.slice(start, end), [
+    `SUMMARY:${"É".repeat(33)}`,
+    ` ${"É".repeat(7)}${"🎮".repeat(15)}`,
+    ` ${"🎮".repeat(5)}`,
+  ]);
+});
+
+test("a unicode title gets an ASCII fallback and a filename* form", async () => {
+  const dependencies = {
+    api: client(async () =>
+      Response.json({ ...event, title: 'Café "Night" 🎮 100%' }),
+    ),
+    publicOrigin: "https://cgn.test",
+    now: () => now,
+  };
+  const response = await eventCalendarResponse(
+    new Request("https://web.test/api/events/smash-night/calendar.ics"),
+    "smash-night",
+    dependencies,
+  );
+  const emoji = await eventCalendarResponse(
+    new Request("https://web.test/api/events/smash-night/calendar.ics"),
+    "smash-night",
+    {
+      ...dependencies,
+      api: client(async () => Response.json({ ...event, title: "🎮🎮" })),
+    },
+  );
+
+  assert.deepEqual(
+    [
+      response.headers.get("content-disposition"),
+      emoji.headers.get("content-disposition"),
+    ],
+    [
+      "inline; filename=\"Cafe_Night_100.ics\"; filename*=UTF-8''Caf%C3%A9%20%20Night%20%20%F0%9F%8E%AE%20100%25.ics",
+      "inline; filename=\"smash-night.ics\"; filename*=UTF-8''%F0%9F%8E%AE%F0%9F%8E%AE.ics",
+    ],
   );
 });
 
@@ -164,7 +259,7 @@ test("an event request carries only the session and unlock cookies upstream", as
   const url = "https://web.test/api/events/smash-night/calendar.ics";
   const expectedHeaders = {
     "cache-control": "private, no-store",
-    "content-disposition": 'inline; filename="smash-night.ics"',
+    "content-disposition": `inline; filename="Smash_Rocket_League_Night.ics"; filename*=UTF-8''Smash%3B%20Rocket%2C%20League%20Night.ics`,
     "content-type": "text/calendar; charset=utf-8",
     vary: "Cookie",
     "x-content-type-options": "nosniff",
