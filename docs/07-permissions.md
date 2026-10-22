@@ -221,6 +221,9 @@ see every entry. See [02 — Domain model](./02-domain-model.md#event-activity-l
 - Users and ACL grants (school admin, staff/faculty, approved organizer, etc.)
 - **Report** queue
 - **Support ticket** queue
+- **Clubs** and club claims (`clubs.read`, `clubs.manage`)
+- **System** health (`system.read`) and **metrics** (`metrics.read`)
+- **Audit log** (`audit.read`)
 - Feature flags — **not scheduled yet**
 - Announcements (later)
 - Impersonation (later)

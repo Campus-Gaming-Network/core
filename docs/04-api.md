@@ -53,7 +53,7 @@ transactions, rate limits, content policy, and persistence validation.
 - **Rate limiting** — signup, login, verification resend, forgot and reset password, `POST /events`, private event unlocks, `POST /teams`, team joins, report endpoints, and `POST /support-tickets`. Anonymous flows are limited per visitor and per target (email address, reset token, or event) across all visitors; see [11 — Implementation decisions](./11-implementation-decisions.md)
 - **Idempotency** — `POST /events`, `POST /teams`, `POST /events/:slug/report`, `POST /users/:public_id/report`, and `POST /support-tickets` require an `Idempotency-Key` UUID header; a missing or malformed key returns `400 invalid_idempotency_key`. Repeating a key returns the record the first request created (`201`) instead of inserting another. A key whose record belongs to a different submitter or target, or was since deleted, returns `409 idempotency_key_reused`. The web app renders one key per form, so double submits and retries after a timeout do not create duplicates. RSVP, interest, follow, and join writes are upserts, and email delivery is deduplicated by `email_outbox.idempotency_key`
 - **Health** — `GET /health` (liveness) and `GET /ready` (DB connectivity)
-- **Errors** — structured error codes; no stack traces to clients
+- **Errors** — structured error codes; no stack traces to clients. Every error is `{ "error": "<code>" }`. A method a path does not accept returns `405 method_not_allowed` with an `Allow` header. A body over the size limit returns `413 request_too_large`. A negative or non-numeric `offset` returns `400 invalid_offset`, and a malformed team path returns `400 invalid_team_slug`. A wrong private event password returns `401 invalid_private_password`, and a wrong team password `401 invalid_team_password`. Actions that need an unlocked private event (RSVP and interest) return `403 private_event_locked` until the viewer unlocks it. A store that is not configured returns `503 database_unavailable`; a failed read or write returns `500` with a code that names the operation, such as `event_unavailable` or `team_create_failed`
 - **Audit/activity** — administrative changes write `audit_logs` entries in the same transaction as the change; user-facing activity history is later
 - **Feature flags** — later; when added, evaluate server-side
 
@@ -562,23 +562,23 @@ and CSRF protection on mutations. Request and response contracts,
 capabilities, and step-up rules live in
 [20 — Admin Console v1 engineering plan](./20-admin-console-v1-engineering-plan.md).
 
-| Area                | Routes                                                                                                               |
-| ------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| Session             | `POST /auth/exchange`, `POST /auth/step-up`, `GET /session`, `POST /logout`                                          |
-| Reports and support | `GET`/`PATCH` `/reports` and `/support-tickets` (list, detail, update) plus `GET …/:id/audit`                        |
-| Queue counts        | `GET /report-counts` and `GET /support-ticket-counts`                                                                |
-| Schools             | List, create, get, update, `deactivate`, `reactivate`, and delete under `/schools`, plus `GET /schools/:id/audit`    |
-| School logos        | `POST /schools/:id/logo` (multipart upload) and `DELETE /schools/:id/logo`                                           |
-| School admins       | `GET`/`POST /schools/:id/admin-grants`, `POST …/:grant_id/revoke`, and `GET …/:grant_id/audit`                       |
-| Clubs               | List, create, get, update, `links`, `hide`, `unhide`, and `mark-checked` under `/clubs`, plus `GET /clubs/:id/audit` |
-| Club claims         | `GET /club-claims`, `GET /club-claims/:id`, `POST …/:id/approve`, `POST …/:id/reject`, and `GET …/:id/audit`         |
-| Games               | List, get, update, and delete under `/games`, plus `GET /games/:id/audit`; admins never add games                    |
-| IGDB                | `POST /games/:id/refresh` and `GET /games/:id/cover`                                                                 |
-| Users               | List, get, `suspend`, `reactivate`, `PATCH /users/:id/trust-grants`, and `GET /users/:id/audit`                      |
-| Site admins         | `GET`/`POST /site-admin-grants`, `POST /site-admin-grants/:id/revoke`, and `GET /site-admin-grants/:id/audit`        |
-| System              | `GET /system`                                                                                                        |
-| Metrics             | `GET /metrics`                                                                                                       |
-| Audit log           | `GET /audit`                                                                                                         |
+| Area                | Routes                                                                                                                                |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Session             | `POST /auth/exchange`, `POST /auth/step-up`, `GET /session`, `POST /logout`                                                           |
+| Reports and support | `GET`/`PATCH` `/reports` and `/support-tickets` (list, detail, update) plus `GET …/:id/audit`                                         |
+| Queue counts        | `GET /report-counts` and `GET /support-ticket-counts`                                                                                 |
+| Schools             | List, create, get, update, `deactivate`, `reactivate`, and delete under `/schools`, plus `GET /schools/:id/audit`                     |
+| School logos        | `POST /schools/:id/logo` (multipart upload) and `DELETE /schools/:id/logo`                                                            |
+| School admins       | `GET`/`POST /schools/:id/admin-grants`, `POST …/:grant_id/revoke`, and `GET …/:grant_id/audit`                                        |
+| Clubs               | List, create, get, update, `links`, `hide`, `unhide`, `remove-member`, and `mark-checked` under `/clubs`, plus `GET /clubs/:id/audit` |
+| Club claims         | `GET /club-claims`, `GET /club-claims/:id`, `POST …/:id/approve`, `POST …/:id/reject`, and `GET …/:id/audit`                          |
+| Games               | List, get, update, and delete under `/games`, plus `GET /games/:id/audit`; admins never add games                                     |
+| IGDB                | `POST /games/:id/refresh` and `GET /games/:id/cover`                                                                                  |
+| Users               | List, get, `suspend`, `reactivate`, `PATCH /users/:id/trust-grants`, and `GET /users/:id/audit`                                       |
+| Site admins         | `GET`/`POST /site-admin-grants`, `POST /site-admin-grants/:id/revoke`, and `GET /site-admin-grants/:id/audit`                         |
+| System              | `GET /system`                                                                                                                         |
+| Metrics             | `GET /metrics`                                                                                                                        |
+| Audit log           | `GET /audit`                                                                                                                          |
 
 `GET /system` needs `system.read`. It probes school logo storage and IGDB each
 time it is called and returns
