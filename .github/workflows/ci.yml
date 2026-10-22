@@ -30,6 +30,7 @@ jobs:
   api:
     name: Go API
     runs-on: ubuntu-24.04
+    timeout-minutes: 20
     services:
       postgres:
         image: postgres:16-alpine
@@ -63,6 +64,11 @@ jobs:
         run: go version
       - name: Format check
         run: pnpm run fmt:check:api
+      - name: Migration numbering check
+        run: pnpm run check:migrations
+      - name: Module files are tidy
+        working-directory: apps/api
+        run: go mod tidy -diff
       - name: Vet
         working-directory: apps/api
         run: go vet ./...
@@ -81,6 +87,7 @@ jobs:
   web:
     name: TanStack Start web
     runs-on: ubuntu-24.04
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/setup@c9883cc79df532ad1a7b81bf9ab944ceb090d65c # v2.0.0
@@ -98,6 +105,8 @@ jobs:
         run: pnpm run fmt:check
       - name: Documentation link check
         run: pnpm run check:docs-links
+      - name: Documentation site build
+        run: pnpm run build:docs
       - name: Typecheck repository scripts
         run: pnpm run typecheck:scripts
       - name: Audit production dependencies
@@ -136,6 +145,7 @@ jobs:
     # Paused; see the note on `workflow_dispatch` at the top of this file.
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
@@ -183,6 +193,7 @@ jobs:
   admin:
     name: Admin Console
     runs-on: ubuntu-24.04
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/setup@c9883cc79df532ad1a7b81bf9ab944ceb090d65c # v2.0.0
@@ -240,6 +251,7 @@ jobs:
     # Paused; see the note on `workflow_dispatch` at the top of this file.
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
+    timeout-minutes: 20
     services:
       postgres:
         image: postgres:16-alpine

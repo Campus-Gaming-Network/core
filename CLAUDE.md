@@ -53,6 +53,7 @@ Run the checks for the area you changed.
 | Admin                  | `pnpm run typecheck:admin`, `pnpm run lint:admin`, `pnpm run test:admin` |
 | Admin, browser-visible | `pnpm run build:admin`                                                   |
 | Docs                   | `pnpm run check:docs-links`                                              |
+| Migrations             | `pnpm run check:migrations`                                              |
 | Apps or Compose        | `pnpm run check:apps-compose`                                            |
 | Scripts (`scripts/`)   | `pnpm run typecheck:scripts`                                             |
 
