@@ -1,64 +1,66 @@
-/* The notifications page: one row per notice, newest first. An unread
-   notice says "New" in words and has a tinted border and background, so its
-   state never rests on color alone. */
-.inbox-page {
-  display: grid;
-  gap: var(--space-4);
-  max-width: 48rem;
-  margin: 0 auto;
-}
+@layer features {
+  /* The notifications page: one row per notice, newest first. An unread
+     notice says "New" in words and has a tinted border and background, so
+     its state never rests on color alone. */
+  .inbox-page {
+    display: grid;
+    gap: var(--space-4);
+    max-width: 48rem;
+    margin: 0 auto;
 
-.inbox-page .page-heading {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: var(--space-3);
-}
+    .page-heading {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: var(--space-3);
+    }
+  }
 
-.inbox-list {
-  display: grid;
-  gap: var(--space-2);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
+  .inbox-list {
+    display: grid;
+    gap: var(--space-2);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
 
-.inbox-item {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-panel);
-  background: var(--color-surface);
-  overflow-wrap: anywhere;
-}
+  .inbox-item {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-panel);
+    background: var(--color-surface);
+    overflow-wrap: anywhere;
+  }
 
-.inbox-item--unread {
-  border-color: var(--color-primary);
-  background: var(--color-primary-soft);
-}
+  .inbox-item--unread {
+    border-color: var(--color-primary);
+    background: var(--color-primary-soft);
+  }
 
-.inbox-item__copy {
-  display: grid;
-  gap: var(--space-1);
-  flex: 1 1 18rem;
-}
+  .inbox-item__copy {
+    display: grid;
+    gap: var(--space-1);
+    flex: 1 1 18rem;
 
-.inbox-item__copy p {
-  margin: 0;
-}
+    p {
+      margin: 0;
+    }
+  }
 
-.inbox-item__new {
-  margin-right: var(--space-2);
-  padding: 0 var(--space-2);
-  border-radius: 999px;
-  background: var(--color-primary);
-  color: #fff;
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
+  .inbox-item__new {
+    margin-right: var(--space-2);
+    padding: 0 var(--space-2);
+    border-radius: 999px;
+    background: var(--color-primary);
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
 }

@@ -1,260 +1,269 @@
-/* Settings and account (reference sheets 06 "Profile settings" and 09 "Edit
-   profile"): a vertical settings nav at the left, then the page's heading and
-   its white panels. On a phone the nav becomes one row of links above. */
-.settings-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-5);
-  align-items: start;
-}
-
-.settings-body {
-  min-width: 0;
-}
-
-.settings-body > .page-heading .link {
-  font-size: var(--text-sm);
-}
-
-.settings-nav__heading {
-  margin: 0 0 var(--space-2);
-  color: var(--color-muted);
-  font-size: var(--text-sm);
-  font-weight: 600;
-}
-
-.settings-nav ul {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-1);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.settings-nav a {
-  display: flex;
-  min-height: 2.75rem;
-  align-items: center;
-  gap: var(--space-3);
-  border-radius: var(--radius-small);
-  padding: var(--space-2) var(--space-3);
-  color: var(--color-text);
-  font-size: var(--text-md);
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.settings-nav a svg {
-  flex: none;
-  color: var(--color-muted);
-}
-
-.settings-nav a[aria-current="page"] {
-  background: var(--color-tag);
-  color: var(--color-tag-text);
-}
-
-.settings-nav a[aria-current="page"] svg {
-  color: currentColor;
-}
-
-@media (hover: hover) {
-  .settings-nav a:not([aria-current="page"]):hover {
-    background: var(--color-subtle);
-  }
-}
-
-/* Delete account reads as destructive in the nav: red text and icon. */
-.settings-nav a.settings-nav__danger,
-.settings-nav a.settings-nav__danger svg {
-  color: var(--color-danger-dark);
-}
-
-.settings-nav a.settings-nav__danger[aria-current="page"] {
-  background: var(--color-danger-soft);
-}
-
-@media (min-width: 52rem) {
+@layer features {
+  /* Settings and account (reference sheets 06 "Profile settings" and 09
+     "Edit profile"): a vertical settings nav at the left, then the page's
+     heading and its white panels. On a phone the nav becomes one row of
+     links above. */
   .settings-layout {
-    grid-template-columns: 14rem minmax(0, 1fr);
-    gap: var(--space-6);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-5);
+    align-items: start;
+
+    @media (min-width: 52rem) {
+      grid-template-columns: 14rem minmax(0, 1fr);
+      gap: var(--space-6);
+    }
+  }
+
+  .settings-body {
+    min-width: 0;
+
+    > .page-heading .link {
+      font-size: var(--text-sm);
+    }
+  }
+
+  .settings-nav__heading {
+    margin: 0 0 var(--space-2);
+    color: var(--color-muted);
+    font-size: var(--text-sm);
+    font-weight: 600;
   }
 
   .settings-nav {
-    position: sticky;
-    top: var(--space-5);
+    @media (min-width: 52rem) {
+      position: sticky;
+      top: var(--space-5);
+    }
+
+    ul {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-1);
+      margin: 0;
+      padding: 0;
+      list-style: none;
+
+      @media (min-width: 52rem) {
+        flex-direction: column;
+      }
+
+      @media (max-width: 42rem) {
+        overflow-x: auto;
+      }
+    }
+
+    a {
+      display: flex;
+      min-height: 2.75rem;
+      align-items: center;
+      gap: var(--space-3);
+      border-radius: var(--radius-small);
+      padding: var(--space-2) var(--space-3);
+      color: var(--color-text);
+      font-size: var(--text-md);
+      font-weight: 600;
+      text-decoration: none;
+
+      @media (max-width: 42rem) {
+        white-space: nowrap;
+      }
+
+      svg {
+        flex: none;
+        color: var(--color-muted);
+      }
+
+      &[aria-current="page"] {
+        background: var(--color-tag);
+        color: var(--color-tag-text);
+
+        svg {
+          color: currentColor;
+        }
+      }
+
+      @media (hover: hover) {
+        &:not([aria-current="page"]):hover {
+          background: var(--color-subtle);
+        }
+      }
+
+      /* Delete account reads as destructive in the nav: red text and
+         icon. */
+      &.settings-nav__danger,
+      &.settings-nav__danger svg {
+        color: var(--color-danger-dark);
+      }
+
+      &.settings-nav__danger[aria-current="page"] {
+        background: var(--color-danger-soft);
+      }
+    }
   }
 
-  .settings-nav ul {
-    flex-direction: column;
-  }
-}
+  /* ==== Settings: profile form ==== */
 
-/* ==== Settings: profile form ==== */
-
-.more-social-links > summary {
-  width: fit-content;
-  color: var(--color-link);
-  font-size: var(--text-sm);
-  font-weight: 600;
-  text-decoration: underline;
-  cursor: pointer;
-}
-
-.more-social-links-fields {
-  display: grid;
-  gap: var(--space-4);
-  margin-top: var(--space-4);
-}
-
-/* ==== Account dashboard ==== */
-
-/* Sections reached from the in-page links stop a little below the top. */
-.account-page .settings-body > [id] {
-  scroll-margin-top: var(--space-5);
-}
-
-.account-page .section {
-  margin-top: var(--space-6);
-}
-
-.account-page .detail-heading .avatar--large {
-  width: 4rem;
-  height: 4rem;
-  font-size: var(--text-xl);
-}
-
-.account-page .detail-heading__actions .link {
-  font-size: var(--text-sm);
-}
-
-.account-page .settings-body > [role="alert"],
-.account-page .settings-body > .page-notice {
-  margin-bottom: var(--space-4);
-}
-
-/* The in-page links: a quiet row of links over a divider. */
-.account-nav {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--space-1) var(--space-3);
-  border-bottom: 1px solid var(--color-border);
-  padding-bottom: var(--space-3);
-  color: var(--color-muted);
-  font-size: var(--text-sm);
-}
-
-.account-nav ul {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-1) var(--space-4);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.account-nav a {
-  display: inline-flex;
-  min-height: 2rem;
-  align-items: center;
-}
-
-.account-more {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-1) var(--space-4);
-  margin: var(--space-2) 0 0;
-  color: var(--color-muted);
-  font-size: var(--text-sm);
-}
-
-.account-page .empty-state > :first-child {
-  margin-top: 0;
-}
-
-.account-page .empty-state > :last-child {
-  margin-bottom: 0;
-}
-
-/* ==== Settings: delete account ====
-   The danger zone: a heading over a white panel with a red left edge on
-   square corners, the consequences, the typed confirmation, and a red
-   button. */
-.danger-zone > h2 {
-  margin: 0 0 var(--space-3);
-  color: var(--color-danger-dark);
-}
-
-.danger-zone__body {
-  display: grid;
-  gap: var(--space-4);
-  border: 1px solid var(--color-card-border);
-  border-left: 4px solid var(--color-danger);
-  border-radius: 0;
-  padding: var(--space-5);
-  background: var(--color-surface);
-}
-
-.danger-zone__body > h3,
-.danger-zone__body > p {
-  margin: 0;
-}
-
-.danger-zone__body > p {
-  max-width: 68ch;
-  color: var(--color-muted);
-}
-
-/* The form is the panel's content, not a second panel inside it. */
-.danger-zone .form-stack.sectioned-form {
-  border: 0;
-  background: transparent;
-}
-
-.danger-zone .sectioned-form fieldset.form-section,
-.danger-zone .form-actions {
-  padding-inline: 0;
-}
-
-.danger-zone .form-actions {
-  justify-content: flex-start;
-  padding-bottom: 0;
-}
-
-@media (max-width: 42rem) {
-  .account-page .detail-heading .avatar--large {
-    width: 3rem;
-    height: 3rem;
-    font-size: 1.125rem;
+  .more-social-links > summary {
+    width: fit-content;
+    color: var(--color-link);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    text-decoration: underline;
+    cursor: pointer;
   }
 
-  .settings-nav ul {
-    overflow-x: auto;
+  .more-social-links-fields {
+    display: grid;
+    gap: var(--space-4);
+    margin-top: var(--space-4);
   }
 
-  .settings-nav a {
-    white-space: nowrap;
+  /* ==== Account dashboard ==== */
+
+  .account-page {
+    /* Sections reached from the in-page links stop a little below the
+       top. */
+    .settings-body > [id] {
+      scroll-margin-top: var(--space-5);
+    }
+
+    .section {
+      margin-top: var(--space-6);
+    }
+
+    .detail-heading .avatar--large {
+      width: 4rem;
+      height: 4rem;
+      font-size: var(--text-xl);
+
+      @media (max-width: 42rem) {
+        width: 3rem;
+        height: 3rem;
+        font-size: 1.125rem;
+      }
+    }
+
+    .detail-heading__actions .link {
+      font-size: var(--text-sm);
+    }
+
+    .settings-body > [role="alert"],
+    .settings-body > .page-notice {
+      margin-bottom: var(--space-4);
+    }
   }
-}
 
-.danger-zone .sectioned-form .form-section > legend {
-  font-size: var(--text-md);
-}
+  /* The in-page links: a quiet row of links over a divider. */
+  .account-nav {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--space-1) var(--space-3);
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: var(--space-3);
+    color: var(--color-muted);
+    font-size: var(--text-sm);
 
-/* The email-and-password page: one card per form, stacked. */
-.security-forms {
-  display: grid;
-  gap: var(--space-5);
-}
+    ul {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-1) var(--space-4);
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
 
-/* "Your data": each correctable kind of data beside where to change it. */
-.data-corrections {
-  display: grid;
-  gap: var(--space-2);
-  margin: 0;
-  padding-left: 1.25rem;
+    a {
+      display: inline-flex;
+      min-height: 2rem;
+      align-items: center;
+    }
+  }
+
+  .account-more {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-1) var(--space-4);
+    margin: var(--space-2) 0 0;
+    color: var(--color-muted);
+    font-size: var(--text-sm);
+  }
+
+  .account-page .empty-state {
+    > :first-child {
+      margin-top: 0;
+    }
+
+    > :last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  /* ==== Settings: delete account ====
+     The danger zone: a heading over a white panel with a red left edge on
+     square corners, the consequences, the typed confirmation, and a red
+     button. */
+  .danger-zone > h2 {
+    margin: 0 0 var(--space-3);
+    color: var(--color-danger-dark);
+  }
+
+  .danger-zone__body {
+    display: grid;
+    gap: var(--space-4);
+    border: 1px solid var(--color-card-border);
+    border-left: 4px solid var(--color-danger);
+    border-radius: 0;
+    padding: var(--space-5);
+    background: var(--color-surface);
+
+    > h3,
+    > p {
+      margin: 0;
+    }
+
+    > p {
+      max-width: 68ch;
+      color: var(--color-muted);
+    }
+  }
+
+  .danger-zone {
+    /* The form is the panel's content, not a second panel inside it. */
+    .form-stack.sectioned-form {
+      border: 0;
+      background: transparent;
+    }
+
+    .sectioned-form fieldset.form-section,
+    .form-actions {
+      padding-inline: 0;
+    }
+
+    .form-actions {
+      justify-content: flex-start;
+      padding-bottom: 0;
+    }
+
+    .sectioned-form .form-section > legend {
+      font-size: var(--text-md);
+    }
+  }
+
+  /* The email-and-password page: one card per form, stacked. */
+  .security-forms {
+    display: grid;
+    gap: var(--space-5);
+  }
+
+  /* "Your data": each correctable kind of data beside where to change it. */
+  .data-corrections {
+    display: grid;
+    gap: var(--space-2);
+    margin: 0;
+    padding-left: 1.25rem;
+  }
 }

@@ -1,154 +1,160 @@
-/* The team page (header, membership panel,
-   owner controls), and the create-team form's games list. Shared layouts
-   (directory rows, detail columns, form pages) live in styles.css and
-   components.css. */
+@layer features {
+  /* The team page (header, membership panel, owner controls), and the
+     create-team form's games list. Shared layouts (directory rows, detail
+     columns, form pages) live in styles.css and components.css. */
 
-/* ==== Team header ====
-   The membership panel beside the team's name and facts (reference sheets
-   06 and 11). The panel holds log in, the join form, or the viewer's role. */
-.team-header__actions {
-  display: grid;
-  gap: var(--space-3);
-  border: 1px solid var(--color-card-border);
-  border-radius: var(--radius-panel);
-  padding: var(--space-4);
-  background: var(--color-surface);
-}
+  /* ==== Team header ====
+     The membership panel beside the team's name and facts (reference sheets
+     06 and 11). The panel holds log in, the join form, or the viewer's
+     role. */
+  .team-header__actions {
+    display: grid;
+    gap: var(--space-3);
+    border: 1px solid var(--color-card-border);
+    border-radius: var(--radius-panel);
+    padding: var(--space-4);
+    background: var(--color-surface);
 
-.team-header__actions > .button {
-  width: 100%;
-}
+    > .button {
+      width: 100%;
+    }
+  }
 
-.team-header__actions .form-help,
-.team-role {
-  margin: 0;
-}
+  .team-header__actions .form-help,
+  .team-role {
+    margin: 0;
+  }
 
-.team-header__actions .form-help {
-  font-size: var(--text-sm);
-}
+  .team-header__actions .form-help {
+    font-size: var(--text-sm);
+  }
 
-.team-join-form {
-  display: grid;
-  gap: var(--space-3);
-}
+  .team-join-form {
+    display: grid;
+    gap: var(--space-3);
 
-.team-join-form > .form-help {
-  margin-top: calc(var(--space-2) * -1);
-}
+    > .form-help {
+      margin-top: calc(var(--space-2) * -1);
+    }
 
-.team-join-form > button {
-  width: 100%;
-}
+    > button {
+      width: 100%;
+    }
+  }
 
-/* ==== Team body ==== */
-.team-about h2 {
-  margin: 0 0 var(--space-3);
-}
+  /* ==== Team body ==== */
+  .team-about {
+    h2 {
+      margin: 0 0 var(--space-3);
+    }
 
-.team-about p {
-  max-width: var(--measure-width);
-  margin: 0;
-  overflow-wrap: anywhere;
-  white-space: pre-line;
-}
+    p {
+      max-width: var(--measure-width);
+      margin: 0;
+      overflow-wrap: anywhere;
+      white-space: pre-line;
+    }
+  }
 
-/* Owner controls: captains, then ownership transfer, divided by rules. */
-.team-manage h2 {
-  margin: 0 0 var(--space-4);
-}
+  /* Owner controls: captains, then ownership transfer, divided by rules. */
+  .team-manage h2 {
+    margin: 0 0 var(--space-4);
+  }
 
-.team-management-section + .team-management-section {
-  margin-top: var(--space-5);
-  border-top: 1px solid var(--color-border);
-  padding-top: var(--space-5);
-}
+  .team-management-section {
+    & + & {
+      margin-top: var(--space-5);
+      border-top: 1px solid var(--color-border);
+      padding-top: var(--space-5);
+    }
 
-.team-management-section h3 {
-  margin: 0 0 var(--space-1);
-  font-size: var(--text-md);
-}
+    h3 {
+      margin: 0 0 var(--space-1);
+      font-size: var(--text-md);
+    }
 
-.team-management-section > .form-help {
-  margin: 0 0 var(--space-3);
-}
+    > .form-help {
+      margin: 0 0 var(--space-3);
+    }
+  }
 
-.team-management-list {
-  margin: 0;
-  padding: 0;
-  border-top: 1px solid var(--color-border);
-  list-style: none;
-}
+  .team-management-list {
+    margin: 0;
+    padding: 0;
+    border-top: 1px solid var(--color-border);
+    list-style: none;
+  }
 
-.team-management-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  border-bottom: 1px solid var(--color-border);
-  padding-block: var(--space-3);
-}
+  .team-management-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    border-bottom: 1px solid var(--color-border);
+    padding-block: var(--space-3);
 
-.team-management-row form {
-  margin: 0;
-}
+    form {
+      margin: 0;
+    }
+  }
 
-/* The captain toggle and Remove sit together at the row's end. */
-.team-management-row__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-}
+  /* The captain toggle and Remove sit together at the row's end. */
+  .team-management-row__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
 
-.team-transfer-form {
-  display: grid;
-  justify-items: start;
-  gap: var(--space-3);
-  max-width: 28rem;
-}
+  .team-transfer-form {
+    display: grid;
+    justify-items: start;
+    gap: var(--space-3);
+    max-width: 28rem;
 
-.team-transfer-form > label {
-  justify-self: stretch;
-}
+    > label {
+      justify-self: stretch;
+    }
 
-.team-transfer-form > .form-help {
-  margin: 0;
-}
+    > .form-help {
+      margin: 0;
+    }
+  }
 
-/* ==== Create team ====
-   The school search, its status line, and the school select. */
-.team-school-field {
-  display: grid;
-  gap: var(--space-2);
-}
+  /* ==== Create team ====
+     The school search, its status line, and the school select. */
+  .team-school-field {
+    display: grid;
+    gap: var(--space-2);
 
-.team-school-field > p {
-  margin: 0 0 var(--space-3);
-  font-size: var(--text-sm);
-}
+    > p {
+      margin: 0 0 var(--space-3);
+      font-size: var(--text-sm);
+    }
+  }
 
-/* The games checkbox group sits inside a form section, so it only needs its
-   native fieldset chrome removed and a label-style legend. */
-.team-game-group {
-  min-width: 0;
-  margin: 0;
-  border: 0;
-  padding: 0;
-}
+  /* The games checkbox group sits inside a form section, so it only needs
+     its native fieldset chrome removed and a label-style legend. */
+  .team-game-group {
+    min-width: 0;
+    margin: 0;
+    border: 0;
+    padding: 0;
 
-.team-game-group > legend {
-  margin-bottom: var(--space-2);
-  padding: 0;
-  font-weight: 600;
-}
+    > legend {
+      margin-bottom: var(--space-2);
+      padding: 0;
+      font-weight: 600;
+    }
 
-.team-game-group .form-error {
-  margin: var(--space-2) 0 0;
-}
+    .form-error {
+      margin: var(--space-2) 0 0;
+    }
+  }
 
-.team-option-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 13rem), 1fr));
-  gap: var(--space-2) var(--space-4);
+  .team-option-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 13rem), 1fr));
+    gap: var(--space-2) var(--space-4);
+  }
 }

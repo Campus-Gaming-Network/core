@@ -1,35 +1,35 @@
-/* The full people pages: breadcrumbs, a heading like the page they belong to,
-   then everyone on one white panel. */
-.people-page .breadcrumbs {
-  margin-bottom: var(--space-5);
-}
+@layer features {
+  /* The full people pages: breadcrumbs, a heading like the page they belong
+     to, then everyone on one white panel. */
+  .people-page .breadcrumbs {
+    margin-bottom: var(--space-5);
+  }
 
-.people-list--rows {
-  grid-template-columns: minmax(0, 1fr);
-}
+  .people-list--rows {
+    grid-template-columns: minmax(0, 1fr);
+  }
 
-/* A school's members: its logo tile beside the heading. */
-.people-page__heading {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-4);
-}
-
-.people-page__heading > div {
-  min-width: 0;
-}
-
-.people-page__heading h1 {
-  overflow-wrap: anywhere;
-}
-
-.people-page__heading .school-directory-mark {
-  margin-top: 0.125rem;
-}
-
-@media (max-width: 42rem) {
+  /* A school's members: its logo tile beside the heading. */
   .people-page__heading {
-    flex-direction: column;
-    gap: var(--space-3);
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-4);
+
+    @media (max-width: 42rem) {
+      flex-direction: column;
+      gap: var(--space-3);
+    }
+
+    > div {
+      min-width: 0;
+    }
+
+    h1 {
+      overflow-wrap: anywhere;
+    }
+
+    .school-directory-mark {
+      margin-top: 0.125rem;
+    }
   }
 }

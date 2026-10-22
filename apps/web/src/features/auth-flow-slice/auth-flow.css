@@ -1,69 +1,78 @@
-/* Auth pages (reference sheets 02 and 06): one plain centered column about
-   30rem wide. The h1 and a short lede, the white form panel with labels above
-   fields and a full-width blue submit, then secondary links below. Signup is
-   a little wider because its form holds sections. */
-main.auth-page {
-  display: grid;
-  align-content: start;
-  gap: var(--space-5);
-  width: min(100%, calc(30rem + 2 * var(--gutter)));
-}
+@layer features {
+  /* Auth pages (reference sheets 02 and 06): one plain centered column about
+     30rem wide. The h1 and a short lede, the white form panel with labels
+     above fields and a full-width blue submit, then secondary links below.
+     Signup is a little wider because its form holds sections. */
+  main.auth-page {
+    display: grid;
+    align-content: start;
+    gap: var(--space-5);
+    width: min(100%, calc(30rem + 2 * var(--gutter)));
 
-main.auth-page.auth-page--wide {
-  width: min(100%, calc(38rem + 2 * var(--gutter)));
-}
+    &.auth-page--wide {
+      width: min(100%, calc(38rem + 2 * var(--gutter)));
+    }
+  }
 
-.auth-heading h1 {
-  margin: 0;
-}
+  .auth-heading {
+    h1 {
+      margin: 0;
+    }
 
-.auth-heading .lede {
-  margin: var(--space-2) 0 0;
-}
+    .lede {
+      margin: var(--space-2) 0 0;
+    }
+  }
 
-main.auth-page > .lede,
-main.auth-page > [role="alert"],
-main.auth-page > [role="status"] {
-  margin: 0;
-}
+  main.auth-page {
+    > .lede,
+    > [role="alert"],
+    > [role="status"] {
+      margin: 0;
+    }
 
-/* A status line outside a form panel reads like the in-form one. */
-main.auth-page > [role="status"] {
-  border-left: 4px solid var(--color-success);
-  padding: var(--space-3) var(--space-4);
-  background: var(--color-success-soft);
-}
+    /* A status line outside a form panel reads like the in-form one. */
+    > [role="status"] {
+      border-left: 4px solid var(--color-success);
+      padding: var(--space-3) var(--space-4);
+      background: var(--color-success-soft);
+    }
 
-main.auth-page .form-stack > button[type="submit"],
-main.auth-page .inline-form > button[type="submit"],
-main.auth-page .form-actions > button[type="submit"] {
-  width: 100%;
-  min-height: 2.75rem;
-}
+    .form-stack > button[type="submit"],
+    .inline-form > button[type="submit"],
+    .form-actions > button[type="submit"] {
+      width: 100%;
+      min-height: 2.75rem;
+    }
 
-/* A panel that holds its own form (resend verification) shows one surface. */
-main.auth-page section.form-stack h2 {
-  margin: 0;
-  font-size: var(--text-lg);
-}
+    /* A panel that holds its own form (resend verification) shows one
+       surface. */
+    section.form-stack {
+      h2 {
+        margin: 0;
+        font-size: var(--text-lg);
+      }
 
-main.auth-page section.form-stack p {
-  margin: 0;
-}
+      p {
+        margin: 0;
+      }
 
-main.auth-page section.form-stack .inline-form {
-  border: 0;
-  border-radius: 0;
-  padding: 0;
-}
+      .inline-form {
+        border: 0;
+        border-radius: 0;
+        padding: 0;
+      }
+    }
+  }
 
-.auth-footer {
-  margin: 0;
-}
+  .auth-footer {
+    margin: 0;
+  }
 
-ul.auth-footer {
-  display: grid;
-  gap: var(--space-2);
-  padding: 0;
-  list-style: none;
+  ul.auth-footer {
+    display: grid;
+    gap: var(--space-2);
+    padding: 0;
+    list-style: none;
+  }
 }

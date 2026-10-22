@@ -350,6 +350,19 @@ area's routes. When a component starts rendering in another area, move its
 rules into `components.css` rather than adding a stylesheet link to the new
 route.
 
+Every rule sits in a cascade layer. `styles.css` declares the order, lowest
+to highest: `base` (tokens and bare-element defaults), `components` (the
+shell, layouts, and shared components), `features` (a route area's own
+sheet), `overrides` (disabled and pending states and touch target sizes,
+which no route rule may undo), and `utilities` (single-purpose classes such
+as `.visually-hidden` and `.muted`). A later layer wins whatever the
+specificity, so a route's sheet overrides a shared component with a plain
+class selector. Wrap a new route stylesheet in `@layer features { ... }`; a
+rule outside every layer would outrank all of them, and
+`apps/web/tests/stylesheet-layers.test.ts` fails if one appears. Rules nest
+with native CSS nesting (`&:hover`, `@media` inside a rule); the build
+flattens it for older browsers.
+
 ### Style guide page
 
 `/styleguide` shows the tokens, type, buttons, forms, and every shared

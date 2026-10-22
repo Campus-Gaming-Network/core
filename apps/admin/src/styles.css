@@ -3,6 +3,13 @@
    also scans the browser build's output and emits a different stylesheet. */
 @import "tailwindcss" source(".");
 
+/* Cascade layers, lowest to highest: Tailwind's theme, base, components, and
+   utilities, then overrides. A rule in a later layer beats one in an earlier
+   layer whatever their specificity. Overrides holds the narrow-screen
+   layout, motion, forced-colors, and print rules, which must win over the
+   utility classes the routes use. */
+@layer theme, base, components, utilities, overrides;
+
 @theme inline {
   --font-sans:
     Geist, Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
@@ -81,51 +88,51 @@
     --tag-neutral-bg: #f2f2f2;
     --tag-neutral-border: #e0e0e0;
     --tag-neutral-text: #525252;
-  }
 
-  :root[data-theme="dark"] {
-    color-scheme: dark;
-    --admin-canvas: #161616;
-    --admin-sidebar: #171717;
-    --admin-sidebar-accent: #1b1b1b;
-    --admin-panel: #1e1e1e;
-    --admin-panel-hover: #232323;
-    --admin-surface: #2a2a2a;
-    --admin-input: #1e1e1e;
-    --admin-border: #262626;
-    --admin-border-strong: #393939;
-    --admin-ink: #f9fbff;
-    --admin-muted: #a4a4a4;
-    --admin-subtle: #969696;
-    --admin-accent-text: #aaa0ff;
-    --admin-nav-active: #2a2a2a;
-    --admin-scrollbar: rgb(255 255 255 / 0.2);
-    --admin-checker-a: #2a2a2a;
-    --admin-checker-b: #161616;
-    --admin-shadow-raised:
-      0 0 0 1px rgb(0 0 0 / 0.4), inset 0 1px 0 0 rgb(255 255 255 / 0.1),
-      inset 0 0 0 1px rgb(255 255 255 / 0.06);
-    --admin-shadow-primary:
-      0 4px 4px 0 rgb(42 42 42 / 0.32), 0 0 0 1px #0e0e0e,
-      inset 0 4px 6px 0 rgb(255 255 255 / 0.2),
-      inset 0 0 0 1px rgb(255 255 255 / 0.15),
-      inset 0 -8px 14px 0 rgb(0 0 0 / 0.15);
-    --admin-shadow-danger: var(--admin-shadow-primary);
-    --tag-blue-bg: #1d2b3e;
-    --tag-blue-border: #23354c;
-    --tag-blue-text: #bfdbfe;
-    --tag-amber-bg: #31221b;
-    --tag-amber-border: #6c4830;
-    --tag-amber-text: #fed7aa;
-    --tag-green-bg: #1f3a2d;
-    --tag-green-border: #275137;
-    --tag-green-text: #b1ebc5;
-    --tag-red-bg: #3e1d1e;
-    --tag-red-border: #4c2324;
-    --tag-red-text: #febfc6;
-    --tag-neutral-bg: #2a2a2a;
-    --tag-neutral-border: #363636;
-    --tag-neutral-text: #cfcfcf;
+    &[data-theme="dark"] {
+      color-scheme: dark;
+      --admin-canvas: #161616;
+      --admin-sidebar: #171717;
+      --admin-sidebar-accent: #1b1b1b;
+      --admin-panel: #1e1e1e;
+      --admin-panel-hover: #232323;
+      --admin-surface: #2a2a2a;
+      --admin-input: #1e1e1e;
+      --admin-border: #262626;
+      --admin-border-strong: #393939;
+      --admin-ink: #f9fbff;
+      --admin-muted: #a4a4a4;
+      --admin-subtle: #969696;
+      --admin-accent-text: #aaa0ff;
+      --admin-nav-active: #2a2a2a;
+      --admin-scrollbar: rgb(255 255 255 / 0.2);
+      --admin-checker-a: #2a2a2a;
+      --admin-checker-b: #161616;
+      --admin-shadow-raised:
+        0 0 0 1px rgb(0 0 0 / 0.4), inset 0 1px 0 0 rgb(255 255 255 / 0.1),
+        inset 0 0 0 1px rgb(255 255 255 / 0.06);
+      --admin-shadow-primary:
+        0 4px 4px 0 rgb(42 42 42 / 0.32), 0 0 0 1px #0e0e0e,
+        inset 0 4px 6px 0 rgb(255 255 255 / 0.2),
+        inset 0 0 0 1px rgb(255 255 255 / 0.15),
+        inset 0 -8px 14px 0 rgb(0 0 0 / 0.15);
+      --admin-shadow-danger: var(--admin-shadow-primary);
+      --tag-blue-bg: #1d2b3e;
+      --tag-blue-border: #23354c;
+      --tag-blue-text: #bfdbfe;
+      --tag-amber-bg: #31221b;
+      --tag-amber-border: #6c4830;
+      --tag-amber-text: #fed7aa;
+      --tag-green-bg: #1f3a2d;
+      --tag-green-border: #275137;
+      --tag-green-text: #b1ebc5;
+      --tag-red-bg: #3e1d1e;
+      --tag-red-border: #4c2324;
+      --tag-red-text: #febfc6;
+      --tag-neutral-bg: #2a2a2a;
+      --tag-neutral-border: #363636;
+      --tag-neutral-text: #cfcfcf;
+    }
   }
 
   * {
@@ -179,7 +186,8 @@
     @apply min-w-0 w-full rounded-lg border border-admin-border-strong bg-admin-input px-3 text-admin-ink;
     min-height: 36px;
     font: inherit;
-    /* iOS Safari zooms the page when a focused control's text is under 16px. */
+    /* iOS Safari zooms the page when a focused control's text is under
+       16px. */
     font-size: 1rem;
     transition: border-color 150ms;
   }
@@ -260,10 +268,10 @@
     @apply fixed top-3 left-3 z-50 rounded-full bg-admin-accent px-3.5 py-2.5 font-medium text-admin-accent-contrast shadow-lg;
     transform: translateY(-160%);
     transition: transform 150ms;
-  }
 
-  .skip-link:focus {
-    transform: translateY(0);
+    &:focus {
+      transform: translateY(0);
+    }
   }
 
   .app-shell {
@@ -297,16 +305,16 @@
   .brand-text {
     @apply grid min-w-0 gap-1;
     line-height: 1;
-  }
 
-  .brand-text strong {
-    @apply truncate font-medium;
-    letter-spacing: -0.01em;
-  }
+    strong {
+      @apply truncate font-medium;
+      letter-spacing: -0.01em;
+    }
 
-  .brand-text span {
-    @apply truncate text-admin-subtle;
-    font-size: 12px;
+    span {
+      @apply truncate text-admin-subtle;
+      font-size: 12px;
+    }
   }
 
   .environment-badge {
@@ -319,10 +327,10 @@
 
   .sidebar-section {
     @apply flex flex-col gap-1 border-b border-admin-border p-3;
-  }
 
-  .sidebar-section:last-child {
-    @apply border-b-0;
+    &:last-child {
+      @apply border-b-0;
+    }
   }
 
   .sidebar-section__title {
@@ -341,35 +349,35 @@
     height: 30px;
     line-height: 1;
     transition: color 150ms;
-  }
 
-  .sidebar nav a svg {
-    @apply h-3.5 w-3.5 shrink-0 text-admin-subtle;
-    transition: color 150ms;
-  }
-
-  @media (hover: hover) {
-    .sidebar nav a:hover {
-      @apply bg-admin-surface text-admin-ink;
+    svg {
+      @apply h-3.5 w-3.5 shrink-0 text-admin-subtle;
+      transition: color 150ms;
     }
 
-    .sidebar nav a:hover svg {
-      @apply text-admin-ink;
+    @media (hover: hover) {
+      &:hover {
+        @apply bg-admin-surface text-admin-ink;
+      }
+
+      &:hover svg {
+        @apply text-admin-ink;
+      }
     }
-  }
 
-  .sidebar nav a:focus-visible {
-    outline-offset: -2px;
-  }
+    &:focus-visible {
+      outline-offset: -2px;
+    }
 
-  .sidebar nav a[aria-current="page"] {
-    @apply bg-admin-nav-active text-admin-ink;
-    height: 32px;
-    box-shadow: var(--admin-shadow-raised);
-  }
+    &[aria-current="page"] {
+      @apply bg-admin-nav-active text-admin-ink;
+      height: 32px;
+      box-shadow: var(--admin-shadow-raised);
 
-  .sidebar nav a[aria-current="page"] svg {
-    @apply text-admin-ink;
+      svg {
+        @apply text-admin-ink;
+      }
+    }
   }
 
   .operator-card {
@@ -413,11 +421,11 @@
     @apply bg-admin-surface text-admin-ink;
     min-height: 30px;
     font-size: 12px;
-  }
 
-  @media (hover: hover) {
-    .text-button:hover {
-      @apply bg-admin-border;
+    @media (hover: hover) {
+      &:hover {
+        @apply bg-admin-border;
+      }
     }
   }
 
@@ -451,14 +459,14 @@
     @apply flex items-center justify-between gap-6 border-b border-admin-border;
     margin-inline: calc(var(--admin-gutter) * -1);
     padding: 14px var(--admin-gutter);
-  }
 
-  .page-header h1 {
-    @apply mt-2 mb-0;
-  }
+    h1 {
+      @apply mt-2 mb-0;
+    }
 
-  .page-header p:not(.eyebrow) {
-    @apply mt-2 mb-0 max-w-3xl text-admin-muted;
+    p:not(.eyebrow) {
+      @apply mt-2 mb-0 max-w-3xl text-admin-muted;
+    }
   }
 
   .eyebrow {
@@ -546,42 +554,42 @@
 
   .summary-card {
     @apply grid content-between gap-4 p-4;
-  }
 
-  .summary-card span {
-    @apply text-admin-subtle;
-    font-size: 12px;
-    line-height: 1;
-  }
+    span {
+      @apply text-admin-subtle;
+      font-size: 12px;
+      line-height: 1;
+    }
 
-  .summary-card strong {
-    @apply font-medium;
-    font-size: 16px;
+    strong {
+      @apply font-medium;
+      font-size: 16px;
+    }
   }
 
   a.summary-card {
     @apply no-underline;
     transition: background-color 150ms;
-  }
 
-  @media (hover: hover) {
-    a.summary-card:hover {
-      @apply bg-admin-panel-hover;
+    @media (hover: hover) {
+      &:hover {
+        @apply bg-admin-panel-hover;
+      }
     }
-  }
 
-  a.summary-card strong {
-    font-size: 24px;
-    line-height: 1;
-    letter-spacing: -0.01em;
+    strong {
+      font-size: 24px;
+      line-height: 1;
+      letter-spacing: -0.01em;
+    }
   }
 
   .empty-panel {
     @apply grid justify-items-center gap-2 px-6 py-12 text-center;
-  }
 
-  .empty-panel p {
-    @apply m-0 max-w-xl text-admin-muted;
+    p {
+      @apply m-0 max-w-xl text-admin-muted;
+    }
   }
 
   .filter-panel {
@@ -608,57 +616,57 @@
   .data-table-wrap {
     @apply overflow-x-auto border-y border-admin-border;
     margin-inline: calc(var(--admin-gutter) * -1);
-  }
 
-  .data-table-wrap:focus-visible {
-    outline-offset: -2px;
+    &:focus-visible {
+      outline-offset: -2px;
+    }
   }
 
   .data-table {
     @apply w-full min-w-176 border-collapse text-left;
     line-height: 1.2;
-  }
 
-  .data-table th {
-    @apply border-b border-admin-border px-3 text-left align-middle font-normal whitespace-nowrap text-admin-subtle;
-    height: 38px;
-    font-size: 12px;
-  }
+    th {
+      @apply border-b border-admin-border px-3 text-left align-middle font-normal whitespace-nowrap text-admin-subtle;
+      height: 38px;
+      font-size: 12px;
+    }
 
-  .data-table tbody th {
-    @apply px-3 align-middle font-normal whitespace-normal text-admin-ink;
-    border-bottom: 0;
-    height: 42px;
-    font-size: inherit;
-  }
+    tbody th {
+      @apply px-3 align-middle font-normal whitespace-normal text-admin-ink;
+      border-bottom: 0;
+      height: 42px;
+      font-size: inherit;
+    }
 
-  .data-table td {
-    @apply px-3 align-middle text-admin-ink;
-    height: 42px;
-  }
+    td {
+      @apply px-3 align-middle text-admin-ink;
+      height: 42px;
+    }
 
-  .data-table th:first-child,
-  .data-table td:first-child {
-    padding-left: var(--admin-gutter);
-  }
+    th:first-child,
+    td:first-child {
+      padding-left: var(--admin-gutter);
+    }
 
-  .data-table th:last-child,
-  .data-table td:last-child {
-    padding-right: var(--admin-gutter);
-  }
+    th:last-child,
+    td:last-child {
+      padding-right: var(--admin-gutter);
+    }
 
-  .data-table tbody tr {
-    @apply relative border-b border-admin-border;
-    transition: background-color 150ms;
-  }
+    tbody tr {
+      @apply relative border-b border-admin-border;
+      transition: background-color 150ms;
 
-  .data-table tbody tr:last-child {
-    @apply border-b-0;
-  }
+      &:last-child {
+        @apply border-b-0;
+      }
 
-  @media (hover: hover) {
-    .data-table tbody tr:hover {
-      @apply bg-admin-panel-hover;
+      @media (hover: hover) {
+        &:hover {
+          @apply bg-admin-panel-hover;
+        }
+      }
     }
   }
 
@@ -666,43 +674,43 @@
     @apply -mx-1.5 inline-flex w-auto cursor-pointer items-center gap-1 rounded-md bg-transparent px-1.5 font-[inherit] font-normal text-inherit shadow-none;
     min-height: 24px;
     font-size: inherit;
-  }
 
-  @media (hover: hover) {
-    .data-table__sort:hover {
-      @apply bg-admin-surface text-admin-ink;
+    @media (hover: hover) {
+      &:hover {
+        @apply bg-admin-surface text-admin-ink;
+      }
     }
-  }
 
-  .data-table__sort:focus-visible {
-    outline-offset: 1px;
+    &:focus-visible {
+      outline-offset: 1px;
+    }
   }
 
   .data-table__glyph {
     @apply opacity-60;
   }
 
-  .data-table th[aria-sort="ascending"] .data-table__sort,
-  .data-table th[aria-sort="descending"] .data-table__sort {
-    @apply text-admin-ink;
-  }
+  .data-table th:is([aria-sort="ascending"], [aria-sort="descending"]) {
+    .data-table__sort {
+      @apply text-admin-ink;
+    }
 
-  .data-table th[aria-sort="ascending"] .data-table__glyph,
-  .data-table th[aria-sort="descending"] .data-table__glyph {
-    @apply opacity-100;
+    .data-table__glyph {
+      @apply opacity-100;
+    }
   }
 
   .data-table__primary {
     @apply font-medium text-admin-ink no-underline;
-  }
 
-  .data-table__primary::after {
-    @apply absolute inset-0;
-    content: "";
-  }
+    &::after {
+      @apply absolute inset-0;
+      content: "";
+    }
 
-  .data-table__primary:focus-visible {
-    outline-offset: -2px;
+    &:focus-visible {
+      outline-offset: -2px;
+    }
   }
 
   .entity-link {
@@ -732,52 +740,52 @@
   .pagination {
     @apply flex items-center justify-between;
     min-height: 32px;
-  }
 
-  .pagination a {
-    @apply inline-flex items-center rounded-full bg-admin-panel px-3 font-medium text-admin-ink no-underline;
-    min-height: 32px;
-    font-size: 13px;
-    line-height: 1;
-    box-shadow: var(--admin-shadow-raised);
-    transition: background-color 150ms;
-  }
+    a {
+      @apply inline-flex items-center rounded-full bg-admin-panel px-3 font-medium text-admin-ink no-underline;
+      min-height: 32px;
+      font-size: 13px;
+      line-height: 1;
+      box-shadow: var(--admin-shadow-raised);
+      transition: background-color 150ms;
 
-  @media (hover: hover) {
-    .pagination a:hover {
-      @apply bg-admin-surface;
+      @media (hover: hover) {
+        &:hover {
+          @apply bg-admin-surface;
+        }
+      }
     }
   }
 
   .detail-page {
     @apply pt-4;
     max-width: 60rem;
-  }
 
-  .detail-page > .page-header {
-    @apply -mt-4;
-    margin-right: 0;
+    > .page-header {
+      @apply -mt-4;
+      margin-right: 0;
+    }
   }
 
   .detail-header {
     @apply border-b border-admin-border pb-4;
-  }
 
-  .detail-header h1 {
-    @apply mt-2 mb-3 font-medium;
-    font-size: 20px;
-    letter-spacing: -0.01em;
+    h1 {
+      @apply mt-2 mb-3 font-medium;
+      font-size: 20px;
+      letter-spacing: -0.01em;
+    }
   }
 
   .copy-id {
     @apply w-auto bg-admin-surface px-2.5 text-admin-muted shadow-none;
     min-height: 24px;
     font-size: 12px;
-  }
 
-  @media (hover: hover) {
-    .copy-id:hover {
-      @apply bg-admin-border text-admin-ink;
+    @media (hover: hover) {
+      &:hover {
+        @apply bg-admin-border text-admin-ink;
+      }
     }
   }
 
@@ -785,11 +793,11 @@
     @apply mb-4 flex w-fit items-center gap-1.5 text-admin-subtle no-underline;
     font-size: 12px;
     line-height: 1;
-  }
 
-  @media (hover: hover) {
-    .back-link:hover {
-      @apply text-admin-ink;
+    @media (hover: hover) {
+      &:hover {
+        @apply text-admin-ink;
+      }
     }
   }
 
@@ -831,27 +839,27 @@
 
   .stored-content {
     @apply rounded-lg border border-admin-border bg-admin-sidebar p-4;
-  }
 
-  .stored-content h3 {
-    @apply mt-0 mb-3 font-normal text-admin-subtle uppercase;
-    font-size: 12px;
-    line-height: 1;
-    letter-spacing: 1px;
-  }
+    h3 {
+      @apply mt-0 mb-3 font-normal text-admin-subtle uppercase;
+      font-size: 12px;
+      line-height: 1;
+      letter-spacing: 1px;
+    }
 
-  .stored-content p {
-    @apply m-0 break-words whitespace-pre-wrap text-admin-ink;
-    line-height: 1.55;
+    p {
+      @apply m-0 break-words whitespace-pre-wrap text-admin-ink;
+      line-height: 1.55;
+    }
   }
 
   .moderation-form {
     @apply grid min-w-0 gap-4;
     grid-template-columns: minmax(0, 1fr);
-  }
 
-  .moderation-form > button {
-    @apply justify-self-start;
+    > button {
+      @apply justify-self-start;
+    }
   }
 
   .form-grid {
@@ -894,27 +902,27 @@
     border-color: var(--tag-amber-border);
     color: var(--tag-amber-text);
     background: var(--tag-amber-bg);
-  }
 
-  .conflict-panel h3 {
-    @apply mt-0 mb-3;
-  }
+    h3 {
+      @apply mt-0 mb-3;
+    }
 
-  .conflict-panel dt {
-    color: inherit;
+    dt {
+      color: inherit;
+    }
   }
 
   .audit-list {
     @apply m-0 grid list-none gap-0 p-0;
-  }
 
-  .audit-list li {
-    @apply grid gap-3 pt-1 pb-5;
-    grid-template-columns: 0.5rem 1fr;
-  }
+    li {
+      @apply grid gap-3 pt-1 pb-5;
+      grid-template-columns: 0.5rem 1fr;
 
-  .audit-list li:last-child {
-    @apply pb-0;
+      &:last-child {
+        @apply pb-0;
+      }
+    }
   }
 
   .audit-marker {
@@ -941,45 +949,45 @@
   .state-page {
     @apply m-auto grid min-h-screen place-content-center justify-items-start gap-3;
     width: min(32rem, calc(100% - 2rem));
-  }
 
-  .state-page h1 {
-    @apply font-medium;
-    font-size: 20px;
-    letter-spacing: -0.01em;
-  }
+    h1 {
+      @apply font-medium;
+      font-size: 20px;
+      letter-spacing: -0.01em;
+    }
 
-  .state-page p:not(.eyebrow) {
-    @apply m-0 max-w-xl text-admin-muted;
-  }
+    p:not(.eyebrow) {
+      @apply m-0 max-w-xl text-admin-muted;
+    }
 
-  .state-page button,
-  .state-page .button {
-    @apply mt-2;
-  }
+    button,
+    .button {
+      @apply mt-2;
+    }
 
-  .state-page .theme-toggle {
-    @apply fixed top-4 right-4 m-0;
+    .theme-toggle {
+      @apply fixed top-4 right-4 m-0;
+    }
   }
 
   .record-list {
     @apply m-0 grid list-none gap-3 p-0;
-  }
 
-  .record-list > li {
-    @apply grid gap-2 p-4;
-  }
+    > li {
+      @apply grid gap-2 p-4;
+    }
 
-  .record-list p {
-    @apply m-0;
+    p {
+      @apply m-0;
+    }
   }
 
   .command-panel {
     @apply grid gap-3 border-t border-admin-border pt-4;
-  }
 
-  .command-panel h3 {
-    @apply m-0;
+    h3 {
+      @apply m-0;
+    }
   }
 
   .club-member-list {
@@ -1004,307 +1012,314 @@
     color: #ffffff;
     background: #b42332;
     box-shadow: var(--admin-shadow-danger);
-  }
 
-  @media (hover: hover) {
-    .moderation-form > .danger-button:hover {
-      color: #ffffff;
-      background: #9b1c2c;
+    @media (hover: hover) {
+      &:hover {
+        color: #ffffff;
+        background: #9b1c2c;
+      }
     }
   }
 }
 
-@media (max-width: 760px) {
-  .app-shell {
-    grid-template-columns: minmax(0, 1fr);
+@layer overrides {
+  @media (max-width: 760px) {
+    .app-shell {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .sidebar {
+      position: static;
+      height: auto;
+      border-right: 0;
+      border-bottom: 1px solid var(--admin-border);
+
+      nav {
+        display: flex;
+        flex-wrap: wrap;
+        overflow: visible;
+      }
+    }
+
+    .sidebar-section {
+      border-bottom: 0;
+      padding: 0.5rem 0.75rem;
+
+      ul {
+        flex-direction: row;
+        flex-wrap: wrap;
+      }
+    }
+
+    .page-header {
+      display: grid;
+    }
+
+    .summary-grid,
+    .form-grid,
+    .detail-facts,
+    .conflict-panel dl {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .filter-panel label {
+      max-width: none;
+    }
+
+    .filter-actions {
+      flex-wrap: wrap;
+    }
+
+    .detail-header,
+    .panel-heading {
+      display: grid;
+    }
   }
 
-  .sidebar {
-    position: static;
-    height: auto;
-    border-right: 0;
-    border-bottom: 1px solid var(--admin-border);
+  /* A theme switch repaints every token at once; fading each one is
+     noise. */
+  :root[data-theme-switching] {
+    &,
+    *,
+    *::before,
+    *::after {
+      transition: none !important;
+    }
   }
 
-  .sidebar nav {
-    display: flex;
-    flex-wrap: wrap;
-    overflow: visible;
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      scroll-behavior: auto !important;
+      transition: none !important;
+    }
   }
 
-  .sidebar-section {
-    border-bottom: 0;
-    padding: 0.5rem 0.75rem;
+  /* Windows High Contrast and other forced-colors modes drop box-shadow and
+     background colors, so anything drawn with them needs a real border,
+     outline, or system color. Status badges also carry their meaning in
+     text. */
+  @media (forced-colors: active) {
+    :focus-visible,
+    input:focus,
+    select:focus,
+    textarea:focus {
+      outline: 3px solid Highlight;
+      outline-offset: 2px;
+      box-shadow: none;
+    }
+
+    .sidebar nav a:focus-visible,
+    .data-table__primary:focus-visible {
+      outline-offset: -3px;
+    }
+
+    /* Raised surfaces are drawn with a shadow ring; give them a border. */
+    button,
+    .secondary-button,
+    .primary-button,
+    .button,
+    .pagination a,
+    .brand-mark,
+    .summary-card,
+    .empty-panel,
+    .detail-panel,
+    .record-list > li {
+      border: 1px solid ButtonText;
+    }
+
+    button:disabled {
+      border-color: GrayText;
+      color: GrayText;
+      opacity: 1;
+    }
+
+    /* The current page is a background tint and a shadow; mark it with a
+       heavier border. */
+    .sidebar nav a[aria-current="page"] {
+      border: 2px solid Highlight;
+    }
+
+    /* Badges and notices rely on a tinted background; keep a visible border
+       and vary its style so the states differ without color. */
+    .count-badge,
+    .queue-status,
+    .notice,
+    .conflict-panel {
+      border: 1px solid CanvasText;
+      forced-color-adjust: none;
+      color: CanvasText;
+      background: Canvas;
+    }
+
+    .queue-status--resolved,
+    .record-state--active,
+    .record-state--published,
+    .record-state--approved,
+    .notice--success {
+      border-width: 2px;
+    }
+
+    .queue-status--in_review,
+    .record-state--pending,
+    .conflict-panel {
+      border-style: dashed;
+    }
+
+    .record-state--suspended,
+    .record-state--deleted,
+    .record-state--rejected,
+    .notice--error {
+      border-width: 3px;
+      border-style: double;
+    }
+
+    .form-error {
+      color: CanvasText;
+      font-weight: 600;
+    }
+
+    input[type="checkbox"],
+    input[type="radio"] {
+      accent-color: auto;
+    }
+
+    .audit-marker {
+      background: CanvasText;
+      forced-color-adjust: none;
+    }
+
+    .logo-preview {
+      background: Canvas;
+      border-color: CanvasText;
+    }
+
+    .app-shell--non-production {
+      border-top-color: CanvasText;
+    }
   }
 
-  .sidebar-section ul {
-    flex-direction: row;
-    flex-wrap: wrap;
-  }
+  /* Printing a record page: keep the content, drop the chrome and
+     controls. */
+  @media print {
+    @page {
+      margin: 16mm 14mm;
+    }
 
-  .page-header {
-    display: grid;
-  }
+    html,
+    body {
+      background: #fff !important;
+      color: #000 !important;
+      font-size: 11pt;
+    }
 
-  .summary-grid,
-  .form-grid,
-  .detail-facts,
-  .conflict-panel dl {
-    grid-template-columns: minmax(0, 1fr);
-  }
+    *,
+    *::before,
+    *::after {
+      box-shadow: none !important;
+      text-shadow: none !important;
+    }
 
-  .filter-panel label {
-    max-width: none;
-  }
+    .skip-link,
+    .sidebar,
+    .back-link,
+    .pagination,
+    .filter-panel,
+    .command-panel,
+    .moderation-form,
+    .related-actions,
+    .assign-to-me,
+    .copy-id,
+    .theme-toggle,
+    .page-header > .primary-button,
+    button,
+    .button {
+      display: none !important;
+    }
 
-  .filter-actions {
-    flex-wrap: wrap;
-  }
+    .app-shell {
+      display: block;
+      min-height: 0;
+    }
 
-  .detail-header,
-  .panel-heading {
-    display: grid;
-  }
-}
+    .app-shell--non-production {
+      border-top: 0;
+    }
 
-/* A theme switch repaints every token at once; fading each one is noise. */
-:root[data-theme-switching],
-:root[data-theme-switching] *,
-:root[data-theme-switching] *::before,
-:root[data-theme-switching] *::after {
-  transition: none !important;
-}
+    .page-stack,
+    .detail-page {
+      display: block;
+      max-width: none;
+      padding-inline: 0;
+    }
 
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    scroll-behavior: auto !important;
-    transition: none !important;
-  }
-}
+    .page-header {
+      margin-inline: 0;
+      padding-inline: 0;
+    }
 
-/* Windows High Contrast and other forced-colors modes drop box-shadow and
-   background colors, so anything drawn with them needs a real border, outline,
-   or system color. Status badges also carry their meaning in text. */
-@media (forced-colors: active) {
-  :focus-visible,
-  input:focus,
-  select:focus,
-  textarea:focus {
-    outline: 3px solid Highlight;
-    outline-offset: 2px;
-    box-shadow: none;
-  }
+    .data-table-wrap {
+      overflow: visible;
+      margin-inline: 0;
+    }
 
-  .sidebar nav a:focus-visible,
-  .data-table__primary:focus-visible {
-    outline-offset: -3px;
-  }
+    .data-table {
+      min-width: 0;
 
-  /* Raised surfaces are drawn with a shadow ring; give them a border. */
-  button,
-  .secondary-button,
-  .primary-button,
-  .button,
-  .pagination a,
-  .brand-mark,
-  .summary-card,
-  .empty-panel,
-  .detail-panel,
-  .record-list > li {
-    border: 1px solid ButtonText;
-  }
+      th,
+      td {
+        white-space: normal;
+        overflow-wrap: anywhere;
+      }
 
-  button:disabled {
-    border-color: GrayText;
-    color: GrayText;
-    opacity: 1;
-  }
+      thead {
+        display: table-header-group;
+      }
+    }
 
-  /* The current page is a background tint and a shadow; mark it with a
-     heavier border. */
-  .sidebar nav a[aria-current="page"] {
-    border: 2px solid Highlight;
-  }
+    .data-table tr,
+    .summary-card,
+    .detail-panel,
+    .record-list > li,
+    .audit-list li,
+    .stored-content {
+      break-inside: avoid;
+    }
 
-  /* Badges and notices rely on a tinted background; keep a visible border and
-     vary its style so the states differ without color. */
-  .count-badge,
-  .queue-status,
-  .notice,
-  .conflict-panel {
-    border: 1px solid CanvasText;
-    forced-color-adjust: none;
-    color: CanvasText;
-    background: Canvas;
-  }
+    .summary-card,
+    .empty-panel,
+    .detail-panel,
+    .record-list > li,
+    .stored-content {
+      border: 1px solid #999;
+    }
 
-  .queue-status--resolved,
-  .record-state--active,
-  .record-state--published,
-  .record-state--approved,
-  .notice--success {
-    border-width: 2px;
-  }
+    .detail-panel,
+    .stored-content {
+      margin-bottom: 12pt;
+    }
 
-  .queue-status--in_review,
-  .record-state--pending,
-  .conflict-panel {
-    border-style: dashed;
-  }
+    .count-badge,
+    .queue-status {
+      border-color: #000;
+      color: #000;
+      background: none;
+    }
 
-  .record-state--suspended,
-  .record-state--deleted,
-  .record-state--rejected,
-  .notice--error {
-    border-width: 3px;
-    border-style: double;
-  }
+    h1,
+    h2,
+    h3 {
+      break-after: avoid;
+    }
 
-  .form-error {
-    color: CanvasText;
-    font-weight: 600;
-  }
-
-  input[type="checkbox"],
-  input[type="radio"] {
-    accent-color: auto;
-  }
-
-  .audit-marker {
-    background: CanvasText;
-    forced-color-adjust: none;
-  }
-
-  .logo-preview {
-    background: Canvas;
-    border-color: CanvasText;
-  }
-
-  .app-shell--non-production {
-    border-top-color: CanvasText;
-  }
-}
-
-/* Printing a record page: keep the content, drop the chrome and controls. */
-@media print {
-  @page {
-    margin: 16mm 14mm;
-  }
-
-  html,
-  body {
-    background: #fff !important;
-    color: #000 !important;
-    font-size: 11pt;
-  }
-
-  *,
-  *::before,
-  *::after {
-    box-shadow: none !important;
-    text-shadow: none !important;
-  }
-
-  .skip-link,
-  .sidebar,
-  .back-link,
-  .pagination,
-  .filter-panel,
-  .command-panel,
-  .moderation-form,
-  .related-actions,
-  .assign-to-me,
-  .copy-id,
-  .theme-toggle,
-  .page-header > .primary-button,
-  button,
-  .button {
-    display: none !important;
-  }
-
-  .app-shell {
-    display: block;
-    min-height: 0;
-  }
-
-  .app-shell--non-production {
-    border-top: 0;
-  }
-
-  .page-stack,
-  .detail-page {
-    display: block;
-    max-width: none;
-    padding-inline: 0;
-  }
-
-  .page-header {
-    margin-inline: 0;
-    padding-inline: 0;
-  }
-
-  .data-table-wrap {
-    overflow: visible;
-    margin-inline: 0;
-  }
-
-  .data-table {
-    min-width: 0;
-  }
-
-  .data-table th,
-  .data-table td {
-    white-space: normal;
-    overflow-wrap: anywhere;
-  }
-
-  .data-table thead {
-    display: table-header-group;
-  }
-
-  .data-table tr,
-  .summary-card,
-  .detail-panel,
-  .record-list > li,
-  .audit-list li,
-  .stored-content {
-    break-inside: avoid;
-  }
-
-  .summary-card,
-  .empty-panel,
-  .detail-panel,
-  .record-list > li,
-  .stored-content {
-    border: 1px solid #999;
-  }
-
-  .detail-panel,
-  .stored-content {
-    margin-bottom: 12pt;
-  }
-
-  .count-badge,
-  .queue-status {
-    border-color: #000;
-    color: #000;
-    background: none;
-  }
-
-  h1,
-  h2,
-  h3 {
-    break-after: avoid;
-  }
-
-  /* Show where a link goes, except in-page and script links. */
-  .detail-facts a[href^="http"]::after,
-  .record-list a[href^="http"]::after,
-  .stored-content a[href^="http"]::after {
-    content: " (" attr(href) ")";
-    font-size: 9pt;
-    overflow-wrap: anywhere;
+    /* Show where a link goes, except in-page and script links. */
+    .detail-facts a[href^="http"]::after,
+    .record-list a[href^="http"]::after,
+    .stored-content a[href^="http"]::after {
+      content: " (" attr(href) ")";
+      font-size: 9pt;
+      overflow-wrap: anywhere;
+    }
   }
 }

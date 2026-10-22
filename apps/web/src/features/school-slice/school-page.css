@@ -1,58 +1,65 @@
-/* The school hub (reference sheets 11 and 12): breadcrumbs, the generated
-   identity banner, section tabs, then events, teams, and people beside an
-   About card. */
-.school-page .tabs {
-  margin-bottom: var(--space-5);
-}
+@layer features {
+  /* The school hub (reference sheets 11 and 12): breadcrumbs, the generated
+     identity banner, section tabs, then events, teams, and people beside an
+     About card. */
+  .school-page {
+    .tabs {
+      margin-bottom: var(--space-5);
+    }
 
-.school-page .action-panel {
-  margin-top: 0;
-}
+    .action-panel {
+      margin-top: 0;
 
-.school-page .action-panel .actions {
-  margin-top: var(--space-4);
-}
+      .actions {
+        margin-top: var(--space-4);
+      }
+    }
+  }
 
-.school-empty-note {
-  margin: var(--space-4) 0 0;
-  color: var(--color-muted);
-  font-size: var(--text-sm);
-}
+  .school-empty-note {
+    margin: var(--space-4) 0 0;
+    color: var(--color-muted);
+    font-size: var(--text-sm);
+  }
 
-/* Event and team rows sit flush in their panel under a divider. */
-.school-page__rows {
-  border-top: 1px solid var(--color-border);
-}
+  /* Event and team rows sit flush in their panel under a divider. */
+  .school-page__rows {
+    border-top: 1px solid var(--color-border);
+  }
 
-.school-page__empty {
-  display: grid;
-  gap: var(--space-2);
-  justify-items: start;
-}
+  .school-page__empty {
+    display: grid;
+    gap: var(--space-2);
+    justify-items: start;
 
-.school-page__empty p {
-  margin: 0;
-}
+    p {
+      margin: 0;
+    }
+  }
 
-/* The people preview: plain rows inside the panel, two or three to a line. */
-.school-page__people .people-list {
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 14rem), 1fr));
-  gap: 0 var(--space-5);
-  border: 0;
-  border-top: 1px solid var(--color-border);
-  border-radius: 0;
-  padding: var(--space-2) var(--space-4);
-}
+  /* The people preview: plain rows inside the panel, two or three to a
+     line. */
+  .school-page__people {
+    .people-list {
+      grid-template-columns: repeat(auto-fill, minmax(min(100%, 14rem), 1fr));
+      gap: 0 var(--space-5);
+      border: 0;
+      border-top: 1px solid var(--color-border);
+      border-radius: 0;
+      padding: var(--space-2) var(--space-4);
 
-.school-page__people .people-list > li {
-  padding: var(--space-2) 0;
-  border-bottom: 0;
-}
+      > li {
+        padding: var(--space-2) 0;
+        border-bottom: 0;
+      }
+    }
 
-.school-page__people .people-note {
-  padding: 0 var(--space-4) var(--space-4);
-}
+    .people-note {
+      padding: 0 var(--space-4) var(--space-4);
+    }
 
-.school-page__people .callout {
-  margin: 0;
+    .callout {
+      margin: 0;
+    }
+  }
 }

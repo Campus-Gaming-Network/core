@@ -1,281 +1,286 @@
-/* Layout for the style guide page only. The pieces it shows are styled by the
-   same sheets as everywhere else; nothing here restyles them. */
-.styleguide-intro {
-  max-width: 44rem;
-  margin: 0 0 var(--space-5);
-  color: var(--color-muted);
-}
+@layer features {
+  /* Layout for the style guide page only. The pieces it shows are styled by
+     the same sheets as everywhere else; nothing here restyles them. */
+  .styleguide-intro {
+    max-width: 44rem;
+    margin: 0 0 var(--space-5);
+    color: var(--color-muted);
+  }
 
-.styleguide-sub {
-  margin: var(--space-6) 0 var(--space-3);
-  font-size: var(--text-md);
-  letter-spacing: -0.01em;
-}
+  .styleguide-sub {
+    margin: var(--space-6) 0 var(--space-3);
+    font-size: var(--text-md);
+    letter-spacing: -0.01em;
+  }
 
-.styleguide-label {
-  margin: 0;
-  color: var(--color-muted);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: var(--text-xs);
-  overflow-wrap: anywhere;
-}
+  .styleguide-label {
+    margin: 0;
+    color: var(--color-muted);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: var(--text-xs);
+    overflow-wrap: anywhere;
+  }
 
-.styleguide-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-3) var(--space-4);
-}
+  .styleguide-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3) var(--space-4);
+  }
 
-.styleguide-row--marks {
-  align-items: flex-end;
-  gap: 1.5rem 2.5rem;
-}
+  .styleguide-row--marks {
+    align-items: flex-end;
+    gap: 1.5rem 2.5rem;
+  }
 
-.styleguide-stack {
-  display: grid;
-  gap: var(--space-4);
-  min-width: 0;
-}
+  .styleguide-stack {
+    display: grid;
+    gap: var(--space-4);
+    min-width: 0;
 
-.styleguide-stack > * {
-  margin: 0;
-}
+    > * {
+      margin: 0;
+    }
+  }
 
-/* As wide as the side panel on a detail page. */
-.styleguide-side-panel {
-  max-width: 21rem;
-}
+  /* As wide as the side panel on a detail page. */
+  .styleguide-side-panel {
+    max-width: 21rem;
+  }
 
-.styleguide-two {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: clamp(1.5rem, 4vw, 3rem);
-  align-items: start;
-}
+  .styleguide-two {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: clamp(1.5rem, 4vw, 3rem);
+    align-items: start;
 
-.styleguide-two > * {
-  min-width: 0;
-  margin: 0;
-}
+    > * {
+      min-width: 0;
+      margin: 0;
+    }
+  }
 
-.styleguide-swatches {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 11rem), 1fr));
-  gap: var(--space-4);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
+  .styleguide-swatches {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 11rem), 1fr));
+    gap: var(--space-4);
+    margin: 0;
+    padding: 0;
+    list-style: none;
 
-.styleguide-swatches > li {
-  display: grid;
-  gap: 0.15rem;
-  min-width: 0;
-}
+    > li {
+      display: grid;
+      gap: 0.15rem;
+      min-width: 0;
+    }
 
-.styleguide-swatches small {
-  color: var(--color-muted);
-  font-size: 0.8125rem;
-  overflow-wrap: anywhere;
-}
+    small {
+      color: var(--color-muted);
+      font-size: 0.8125rem;
+      overflow-wrap: anywhere;
+    }
+  }
 
-.styleguide-chip {
-  height: 3.5rem;
-  margin-bottom: 0.35rem;
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-small);
-}
+  .styleguide-chip {
+    height: 3.5rem;
+    margin-bottom: 0.35rem;
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-small);
+  }
 
-.styleguide-chip--shape {
-  border-color: var(--color-card-border);
-  background: var(--color-card);
-}
+  .styleguide-chip--shape {
+    border-color: var(--color-card-border);
+    background: var(--color-card);
+  }
 
-.styleguide-spec {
-  display: grid;
-  grid-template-columns: 11rem minmax(0, 1fr);
-  align-items: baseline;
-  gap: var(--space-2) var(--space-5);
-  padding-block: 1.1rem;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.styleguide-spec > :last-child,
-.styleguide-spec > :last-child > * {
-  margin: 0;
-}
-
-.styleguide-mark {
-  display: grid;
-  gap: var(--space-2);
-  justify-items: start;
-}
-
-.styleguide-calendar {
-  width: 3.5rem;
-}
-
-.styleguide-calendar--large {
-  width: 4.5rem;
-}
-
-@media (max-width: 42rem) {
-  .styleguide-two,
   .styleguide-spec {
-    grid-template-columns: 1fr;
-  }
-}
+    display: grid;
+    grid-template-columns: 11rem minmax(0, 1fr);
+    align-items: baseline;
+    gap: var(--space-2) var(--space-5);
+    padding-block: 1.1rem;
+    border-bottom: 1px solid var(--color-border);
 
-/* The section index under the heading: a wrapping row of links. */
-.styleguide-toc ul {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2) var(--space-4);
-  margin: 0 0 var(--space-6);
-  padding: var(--space-3) var(--space-4);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-panel);
-  background: var(--color-surface);
-  list-style: none;
-  font-size: var(--text-sm);
-}
-
-/* ==== Specimens, labels, and the sticky table of contents ==== */
-
-/* The section index stays in view on a wide screen. On a phone it would fill
-   the screen once it wraps, so it scrolls with the page there. */
-@media (min-width: 64rem) {
-  .styleguide-toc {
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    margin-bottom: var(--space-6);
-    background: var(--color-canvas);
+    > :last-child,
+    > :last-child > * {
+      margin: 0;
+    }
   }
 
+  .styleguide-mark {
+    display: grid;
+    gap: var(--space-2);
+    justify-items: start;
+  }
+
+  .styleguide-calendar {
+    width: 3.5rem;
+  }
+
+  .styleguide-calendar--large {
+    width: 4.5rem;
+  }
+
+  @media (max-width: 42rem) {
+    .styleguide-two,
+    .styleguide-spec {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* The section index under the heading: a wrapping row of links. */
   .styleguide-toc ul {
-    margin-bottom: 0;
-    padding-block: var(--space-2);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-4);
+    margin: 0 0 var(--space-6);
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-panel);
+    background: var(--color-surface);
+    list-style: none;
+    font-size: var(--text-sm);
   }
-}
 
-.styleguide-toc a {
-  display: inline-flex;
-  min-height: 1.5rem;
-  align-items: center;
-}
+  /* ==== Specimens, labels, and the sticky table of contents ==== */
 
-.styleguide-page > .section {
-  scroll-margin-top: 6.5rem;
-}
+  /* The section index stays in view on a wide screen. On a phone it would
+     fill the screen once it wraps, so it scrolls with the page there. */
+  .styleguide-toc {
+    @media (min-width: 64rem) {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      margin-bottom: var(--space-6);
+      background: var(--color-canvas);
 
-/* Every specimen: a label (component name, then its source file), then the
-   piece itself. */
-.styleguide-specimen {
-  display: grid;
-  gap: var(--space-2);
-  min-width: 0;
-  margin: 0;
-}
+      ul {
+        margin-bottom: 0;
+        padding-block: var(--space-2);
+      }
+    }
 
-.styleguide-specimen > :not(.styleguide-label) {
-  margin: 0;
-}
-
-.styleguide-label__file {
-  color: var(--color-muted);
-  opacity: 0.85;
-}
-
-.styleguide-label__file::before {
-  content: "· ";
-}
-
-.styleguide-mark .styleguide-label__file::before {
-  content: none;
-}
-
-.styleguide-note {
-  max-width: 44rem;
-  margin: var(--space-2) 0 0;
-  border-left: 4px solid var(--color-border-strong);
-  padding: var(--space-2) var(--space-3);
-  background: var(--color-subtle);
-  font-size: var(--text-sm);
-}
-
-.styleguide-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr));
-  gap: var(--space-5);
-  align-items: start;
-  margin-top: var(--space-4);
-}
-
-/* The section nav is a desktop-only column on the site; show it everywhere. */
-.styleguide-page .form-section-nav {
-  position: static;
-  display: block;
-  max-width: 15rem;
-}
-
-.styleguide-two--nav {
-  align-items: start;
-}
-
-/* The route boundaries' h1 styling, for the h3 their specimens use. */
-.styleguide-specimen .route-state,
-.styleguide-specimen .route-pending {
-  margin-top: 0;
-}
-
-.styleguide-specimen .route-state__panel h3 {
-  margin: 0 0 var(--space-3);
-  font-size: var(--text-2xl);
-  line-height: 1.2;
-}
-
-.styleguide-specimen .danger-zone h4 {
-  font-size: var(--text-lg);
-}
-
-@media (max-width: 42rem) {
-  .styleguide-specimen .route-state__panel {
-    padding: var(--space-4);
+    a {
+      display: inline-flex;
+      min-height: 1.5rem;
+      align-items: center;
+    }
   }
-}
 
-/* ==== Reflow (WCAG 1.4.10) ==== */
-.styleguide-label__file,
-.styleguide-row {
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
+  .styleguide-page > .section {
+    scroll-margin-top: 6.5rem;
+  }
 
-.styleguide-specimen {
-  grid-template-columns: minmax(0, 1fr);
-}
+  /* Every specimen: a label (component name, then its source file), then
+     the piece itself. */
+  .styleguide-specimen {
+    display: grid;
+    gap: var(--space-2);
+    min-width: 0;
+    margin: 0;
 
-/* Schools without a logo (Marks): each tile above its name. */
-.styleguide-tile-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-3);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
+    > :not(.styleguide-label) {
+      margin: 0;
+    }
+  }
 
-.styleguide-tile-row li {
-  display: grid;
-  gap: var(--space-1);
-  justify-items: center;
-  width: 4.5rem;
-  text-align: center;
-}
+  .styleguide-label__file {
+    color: var(--color-muted);
+    opacity: 0.85;
 
-.styleguide-tile-row .styleguide-label {
-  font-size: 0.6875rem;
-  line-height: 1.25;
+    &::before {
+      content: "· ";
+    }
+  }
+
+  .styleguide-mark .styleguide-label__file::before {
+    content: none;
+  }
+
+  .styleguide-note {
+    max-width: 44rem;
+    margin: var(--space-2) 0 0;
+    border-left: 4px solid var(--color-border-strong);
+    padding: var(--space-2) var(--space-3);
+    background: var(--color-subtle);
+    font-size: var(--text-sm);
+  }
+
+  .styleguide-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr));
+    gap: var(--space-5);
+    align-items: start;
+    margin-top: var(--space-4);
+  }
+
+  /* The section nav is a desktop-only column on the site; show it
+     everywhere. */
+  .styleguide-page .form-section-nav {
+    position: static;
+    display: block;
+    max-width: 15rem;
+  }
+
+  .styleguide-two--nav {
+    align-items: start;
+  }
+
+  .styleguide-specimen {
+    /* The route boundaries' h1 styling, for the h3 their specimens use. */
+    .route-state,
+    .route-pending {
+      margin-top: 0;
+    }
+
+    .route-state__panel {
+      @media (max-width: 42rem) {
+        padding: var(--space-4);
+      }
+
+      h3 {
+        margin: 0 0 var(--space-3);
+        font-size: var(--text-2xl);
+        line-height: 1.2;
+      }
+    }
+
+    .danger-zone h4 {
+      font-size: var(--text-lg);
+    }
+  }
+
+  /* ==== Reflow (WCAG 1.4.10) ==== */
+  .styleguide-label__file,
+  .styleguide-row {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .styleguide-specimen {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* Schools without a logo (Marks): each tile above its name. */
+  .styleguide-tile-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    li {
+      display: grid;
+      gap: var(--space-1);
+      justify-items: center;
+      width: 4.5rem;
+      text-align: center;
+    }
+
+    .styleguide-label {
+      font-size: 0.6875rem;
+      line-height: 1.25;
+    }
+  }
 }

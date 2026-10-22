@@ -1,119 +1,120 @@
-/* The public profile (reference sheets 11 and 12): a header panel with the
-   large avatar, name, school, tags, and bio, and Edit profile at the right
-   for the owner; then the links beside an About card. */
-.public-profile__header {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: start;
-  gap: var(--space-4) var(--space-5);
-  margin-bottom: var(--space-5);
-}
-
-.public-profile__header .avatar {
-  width: 6rem;
-  height: 6rem;
-  font-size: var(--text-2xl);
-}
-
-.public-profile__body {
-  display: grid;
-  gap: var(--space-2);
-  min-width: 0;
-}
-
-.public-profile__body h1 {
-  margin: 0;
-  overflow-wrap: anywhere;
-}
-
-.public-profile__school,
-.public-profile__bio {
-  margin: 0;
-}
-
-.public-profile__bio {
-  max-width: var(--measure-width);
-  margin-top: var(--space-1);
-  overflow-wrap: anywhere;
-  white-space: pre-line;
-}
-
-.public-profile__actions {
-  display: flex;
-  justify-content: flex-end;
-}
-
-.public-profile .layout-detail {
-  margin-top: var(--space-5);
-}
-
-/* Each link on its own row under the panel's divider. */
-.public-profile__links {
-  margin: 0;
-  padding: 0;
-  border-top: 1px solid var(--color-border);
-  list-style: none;
-}
-
-.public-profile__links li {
-  display: flex;
-  min-height: 2.75rem;
-  align-items: center;
-  padding: var(--space-2) var(--space-4);
-  overflow-wrap: anywhere;
-}
-
-.public-profile__links li + li {
-  border-top: 1px solid var(--color-border);
-}
-
-/* The home school in the About card: its logo tile beside the linked name. */
-.public-profile__school-link {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  text-decoration: none;
-}
-
-.public-profile__school-link > span:last-child {
-  text-decoration: underline;
-  text-decoration-thickness: 1px;
-  text-underline-offset: 0.18em;
-}
-
-@media (hover: hover) {
-  .public-profile__school-link:hover > span:last-child {
-    text-decoration-thickness: 2px;
-  }
-}
-
-.public-profile__school-link .school-directory-mark {
-  width: 2.25rem;
-  height: 2.25rem;
-  font-size: var(--text-sm);
-}
-
-@media (max-width: 42rem) {
+@layer features {
+  /* The public profile (reference sheets 11 and 12): a header panel with the
+     large avatar, name, school, tags, and bio, and Edit profile at the right
+     for the owner; then the links beside an About card. */
   .public-profile__header {
-    grid-template-columns: auto minmax(0, 1fr);
-    gap: var(--space-4);
-  }
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: start;
+    gap: var(--space-4) var(--space-5);
+    margin-bottom: var(--space-5);
 
-  .public-profile__header .avatar {
-    width: 4.5rem;
-    height: 4.5rem;
-    font-size: var(--text-xl);
+    @media (max-width: 42rem) {
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: var(--space-4);
+    }
+
+    .avatar {
+      width: 6rem;
+      height: 6rem;
+      font-size: var(--text-2xl);
+
+      @media (max-width: 42rem) {
+        width: 4.5rem;
+        height: 4.5rem;
+        font-size: var(--text-xl);
+      }
+    }
   }
 
   .public-profile__body {
-    grid-column: 1 / -1;
-    grid-row: 2;
+    display: grid;
+    gap: var(--space-2);
+    min-width: 0;
+
+    @media (max-width: 42rem) {
+      grid-column: 1 / -1;
+      grid-row: 2;
+    }
+
+    h1 {
+      margin: 0;
+      overflow-wrap: anywhere;
+    }
+  }
+
+  .public-profile__school,
+  .public-profile__bio {
+    margin: 0;
+  }
+
+  .public-profile__bio {
+    max-width: var(--measure-width);
+    margin-top: var(--space-1);
+    overflow-wrap: anywhere;
+    white-space: pre-line;
   }
 
   .public-profile__actions {
-    grid-column: 2;
-    grid-row: 1;
-    align-self: center;
+    display: flex;
     justify-content: flex-end;
+
+    @media (max-width: 42rem) {
+      grid-column: 2;
+      grid-row: 1;
+      align-self: center;
+      justify-content: flex-end;
+    }
+  }
+
+  .public-profile .layout-detail {
+    margin-top: var(--space-5);
+  }
+
+  /* Each link on its own row under the panel's divider. */
+  .public-profile__links {
+    margin: 0;
+    padding: 0;
+    border-top: 1px solid var(--color-border);
+    list-style: none;
+
+    li {
+      display: flex;
+      min-height: 2.75rem;
+      align-items: center;
+      padding: var(--space-2) var(--space-4);
+      overflow-wrap: anywhere;
+    }
+
+    li + li {
+      border-top: 1px solid var(--color-border);
+    }
+  }
+
+  /* The home school in the About card: its logo tile beside the linked
+     name. */
+  .public-profile__school-link {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    text-decoration: none;
+
+    > span:last-child {
+      text-decoration: underline;
+      text-decoration-thickness: 1px;
+      text-underline-offset: 0.18em;
+    }
+
+    @media (hover: hover) {
+      &:hover > span:last-child {
+        text-decoration-thickness: 2px;
+      }
+    }
+
+    .school-directory-mark {
+      width: 2.25rem;
+      height: 2.25rem;
+      font-size: var(--text-sm);
+    }
   }
 }
