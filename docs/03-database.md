@@ -410,6 +410,7 @@ If activity and audit can share one table with a clear `kind` discriminator, pre
 - Common filters: `events.starts_at`, `events.visibility`, `events.deleted_at`, game FKs, geo later if needed
 - Audit history: `(entity_type, entity_id, created_at DESC)`
 - Foreign keys: every foreign key's referencing columns lead some index, because Postgres does not create one and a cascade or restrict check would otherwise scan the referencing table. A new foreign key ships with its index in the same migration; `TestSchemaInvariants` fails otherwise. Do not recreate indexes dropped on purpose (for example the school trigram indexes removed in `000007`).
+- Text bounds: the free-text columns users type into carry CHECK constraints that match the API validators (`000041`): `events` title (non-empty only), description, location, address, online URL, and payment note; `teams` name and description; `users` name and bio; `user_social_links` label and URL; `reports.reason`; and `support_tickets` name, subject, and message. The database counts characters and the API counts bytes, so the database never rejects what the API accepts. A new free-text column gets a bound in the same migration as the column.
 
 ## Search (Postgres first)
 

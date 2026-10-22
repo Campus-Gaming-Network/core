@@ -148,3 +148,8 @@ Migration `000040_user_activity_days.up.sql` adds `user_activity_days`, one
 row per account per UTC day on which it made a signed-in API request. Apply it
 before deploying the API that writes it, or every signed-in request logs a
 failed activity write.
+Migration `000041_text_bounds.up.sql` adds CHECK constraints for the length
+limits the API already enforces on event, team, user, social-link, report, and
+support-ticket text. It validates existing rows, so it fails if any row breaks
+a limit. `events.title` is only checked for non-empty, because the demo seed
+writes titles longer than the API allows. No API change; apply at any time.
