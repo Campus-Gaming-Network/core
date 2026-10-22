@@ -785,6 +785,12 @@
   background: var(--color-danger-soft);
 }
 
+/* The shared [role="alert"] rule colors text danger red, which is 4.1:1 on
+   this tint. Keep the message in the body text color (WCAG 1.4.3). */
+.page-notice[role="alert"] {
+  color: var(--color-text);
+}
+
 .page-notice--danger svg {
   color: var(--color-danger);
 }
