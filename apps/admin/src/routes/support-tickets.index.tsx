@@ -101,6 +101,7 @@ function SupportTicketsPage() {
       </header>
 
       <QueueFilters
+        accountName={tickets.support_tickets[0]?.submitter_name}
         action="/support-tickets"
         operators={tickets.operators}
         search={search}

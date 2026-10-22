@@ -86,3 +86,21 @@ test("the console loads no third-party analytics and one error monitor", () => {
     [],
   );
 });
+
+// The console never displays a record ID. A value is shown only through a
+// name and a link, with "Copy <entity> ID" for the rare need. This catches a
+// component that renders an ID field as text, or prefills a visible input
+// with one; hidden inputs, props, and keys are fine.
+test("the console renders no record ID as text", () => {
+  const idExpression = String.raw`[\w.?]*(?:\.id|_id|Id|ID|uuid)\b`;
+  const rendersID = new RegExp(
+    String.raw`>\s*\{${idExpression}\}|\$\{${idExpression}\}[^\`]*<|defaultValue=\{${idExpression}\}`,
+  );
+
+  const found = sources
+    .filter(({ path }) => path.endsWith(".tsx"))
+    .filter(({ text }) => rendersID.test(text))
+    .map(({ path }) => path);
+
+  assert.deepEqual(found, []);
+});

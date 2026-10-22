@@ -100,6 +100,7 @@ function ReportsPage() {
       </header>
 
       <QueueFilters
+        accountName={reports.reports[0]?.reporter_name}
         action="/reports"
         operators={reports.operators}
         search={search}

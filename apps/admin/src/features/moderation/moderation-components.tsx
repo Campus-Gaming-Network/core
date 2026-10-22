@@ -38,12 +38,22 @@ export function QueueFilters({
   action,
   operators,
   search,
+  accountName,
 }: {
   action: "/reports" | "/support-tickets";
   operators: Operator[];
   search: QueueSearch;
+  /** The name of the account a record-ID filter points at, when a row has it. */
+  accountName?: string;
 }) {
   const userLabel = action === "/reports" ? "Reporter" : "Submitter";
+  // A user's page links here with that account's ID. The console never shows
+  // an ID, so the filter is carried hidden and described by name.
+  const accountFilter =
+    search.user !== undefined &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      search.user,
+    );
 
   return (
     <form action={action} className="filter-panel" method="get">
@@ -80,15 +90,24 @@ export function QueueFilters({
           ))}
         </select>
       </label>
-      <label>
-        {userLabel} (name or email)
-        <input
-          defaultValue={search.user ?? ""}
-          name="user"
-          placeholder={`Find by ${userLabel.toLowerCase()}`}
-          spellCheck={false}
-        />
-      </label>
+      {accountFilter ? (
+        <div>
+          <input name="user" type="hidden" value={search.user} />
+          <p className="field-help">
+            {userLabel}: {accountName ?? "the selected account"}
+          </p>
+        </div>
+      ) : (
+        <label>
+          {userLabel} (name or email)
+          <input
+            defaultValue={search.user ?? ""}
+            name="user"
+            placeholder={`Find by ${userLabel.toLowerCase()}`}
+            spellCheck={false}
+          />
+        </label>
+      )}
       <div className="filter-actions">
         <button type="submit">Apply filters</button>
         <a className="secondary-button" href={action}>
