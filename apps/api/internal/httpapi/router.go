@@ -264,7 +264,7 @@ func NewRouter(cfg config.Config, pools ...*pgxpool.Pool) http.Handler {
 		})
 	}
 
-	return withRequestLogging(withSecurityHeaders(withPanicRecovery(handler)))
+	return withRequestLogging(withSecurityHeaders(withPanicRecovery(withBodyLimit(maxRequestBodyBytes, handler))))
 }
 
 // registerPublicRoutes registers every public route on the router mux. The
