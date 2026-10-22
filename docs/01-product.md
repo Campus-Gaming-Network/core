@@ -27,7 +27,7 @@
 - Internet Explorer support
 - Heavy user-generated content on the homepage (keep it simple until content exists)
 - Shipping the Admin Console in the first release (it comes later)
-- User/entity audit-history views (later)
+- Audit-history views for users and for entities other than events (later)
 
 ## Product principles
 
@@ -257,6 +257,13 @@ club on CGN, which lists them as members here.
   and the attendee list gone; after that it is not found. A cancelled private
   event is not found at once
 - An event that has ended can no longer be edited or cancelled
+- Every change to an event is kept in its **activity log**. The people who can
+  edit the event see every entry and who made it. Everyone else who can see the
+  event sees only the changes that affect attending it (time, place, format,
+  title, cost, host team, and cancellation), without the organizer's name. The
+  event page shows the latest three entries the viewer may see under
+  **Updates** and links to the full log at `/events/:slug/activity`. What is
+  recorded: [02 — Domain model](./02-domain-model.md#event-activity-log)
 - **Your events** (`/account/events`) lists every event the viewer created,
   past and upcoming, latest first, a page at a time
 - Recurring events support weekly, biweekly, and monthly schedules for up to
