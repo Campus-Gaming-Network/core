@@ -157,3 +157,73 @@ func TestProcessRejectsUnsafeUploads(t *testing.T) {
 		})
 	}
 }
+
+func TestOrientMapsEveryEXIFOrientationToUpright(t *testing.T) {
+	// A B / C D, with each letter a distinct opaque color.
+	colors := map[byte]color.NRGBA{
+		'A': {R: 255, A: 255}, 'B': {G: 255, A: 255}, 'C': {B: 255, A: 255}, 'D': {R: 255, G: 255, A: 255},
+	}
+	source := image.NewNRGBA(image.Rect(0, 0, 2, 2))
+	for index, letter := range []byte("ABCD") {
+		source.SetNRGBA(index%2, index/2, colors[letter])
+	}
+
+	for orientation, want := range map[int]string{
+		1: "ABCD", 2: "BADC", 3: "DCBA", 4: "CDAB", 5: "ACBD", 6: "CADB", 7: "DBCA", 8: "BDAC",
+	} {
+		oriented := orient(source, orientation)
+		wantImage := image.NewNRGBA(image.Rect(0, 0, 2, 2))
+		for index, letter := range []byte(want) {
+			wantImage.SetNRGBA(index%2, index/2, colors[letter])
+		}
+		if !bytes.Equal(oriented.Pix, wantImage.Pix) {
+			t.Errorf("orientation %d = %v, want layout %s", orientation, oriented.Pix, want)
+		}
+	}
+}
+
+func TestOrientSwapsDimensionsForTransposingOrientations(t *testing.T) {
+	source := image.NewNRGBA(image.Rect(0, 0, 3, 1))
+	for orientation, want := range map[int]image.Rectangle{
+		1: image.Rect(0, 0, 3, 1), 4: image.Rect(0, 0, 3, 1), 5: image.Rect(0, 0, 1, 3), 8: image.Rect(0, 0, 1, 3),
+	} {
+		if got := orient(source, orientation).Rect; got != want {
+			t.Errorf("orientation %d size = %v, want %v", orientation, got, want)
+		}
+	}
+}
+
+func TestExifOrientationDefaultsToUprightOnMalformedBlocks(t *testing.T) {
+	little := func(entries ...string) []byte {
+		block := []byte("II*\x00\x08\x00\x00\x00")
+		block = binary.LittleEndian.AppendUint16(block, uint16(len(entries)))
+		for _, entry := range entries {
+			block = append(block, entry...)
+		}
+		return block
+	}
+	orientationEntry := func(kind, value byte) string {
+		return "\x12\x01" + string([]byte{kind, 0, 1, 0, 0, 0, value, 0, 0, 0})
+	}
+	tests := []struct {
+		name string
+		tiff []byte
+		want int
+	}{
+		{"little endian orientation 3", little(orientationEntry(3, 3)), 3},
+		{"too short", []byte("II*\x00"), 1},
+		{"unknown byte order", append([]byte("XX*\x00\x08\x00\x00\x00"), 0, 0), 1},
+		{"IFD offset before header end", append([]byte("II*\x00\x04\x00\x00\x00"), make([]byte, 16)...), 1},
+		{"IFD offset past block", []byte("II*\x00\xff\x00\x00\x00\x00\x00"), 1},
+		{"entry count overruns block", append([]byte("II*\x00\x08\x00\x00\x00\x05\x00\x0f\x01"), make([]byte, 10)...), 1},
+		{"value out of range", little(orientationEntry(3, 9)), 1},
+		{"value zero", little(orientationEntry(3, 0)), 1},
+		{"wrong type", little(orientationEntry(4, 6)), 1},
+		{"no orientation tag", little("\x0f\x01" + string(make([]byte, 10))), 1},
+	}
+	for _, tt := range tests {
+		if got := exifOrientation(tt.tiff); got != tt.want {
+			t.Errorf("%s: exifOrientation() = %d, want %d", tt.name, got, tt.want)
+		}
+	}
+}

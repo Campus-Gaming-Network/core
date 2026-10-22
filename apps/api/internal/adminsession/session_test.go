@@ -1,10 +1,12 @@
 package adminsession
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 )
@@ -259,5 +261,84 @@ func TestServiceRevokesHashedCredential(t *testing.T) {
 	}
 	if string(repository.revokedHash) == "raw-token" || repository.revokedReason != "operator logout" {
 		t.Fatalf("revoke = hash %q reason %q", repository.revokedHash, repository.revokedReason)
+	}
+}
+
+func TestRevokeRejectsInvalidInputWithoutCallingRepository(t *testing.T) {
+	tests := map[string]struct{ token, reason string }{
+		"blank token":     {"  ", "logout"},
+		"blank reason":    {"raw-token", "  "},
+		"overlong reason": {"raw-token", strings.Repeat("r", maximumRevocationReasonLength+1)},
+	}
+	for name, tt := range tests {
+		repository := &fakeRepository{}
+		service, _ := NewService(repository, 30*time.Minute, 8*time.Hour)
+		if err := service.Revoke(context.Background(), tt.token, tt.reason); !errors.Is(err, ErrInvalidSessionInput) {
+			t.Errorf("%s: Revoke() error = %v, want ErrInvalidSessionInput", name, err)
+		}
+		if repository.revokedHash != nil {
+			t.Errorf("%s: repository was called", name)
+		}
+	}
+	var nilService *Service
+	if err := nilService.Revoke(context.Background(), "raw-token", "logout"); !errors.Is(err, ErrInvalidSessionInput) {
+		t.Errorf("nil service Revoke() error = %v", err)
+	}
+}
+
+func TestRotateRejectsBlankPreviousToken(t *testing.T) {
+	repository := &fakeRepository{}
+	service, _ := NewService(repository, 30*time.Minute, 8*time.Hour)
+	_, err := service.Rotate(context.Background(), " ", StartInput{}, false)
+	if !errors.Is(err, ErrInvalidSessionInput) || repository.rotatedFrom != nil {
+		t.Fatalf("Rotate() error = %v, rotatedFrom = %v", err, repository.rotatedFrom)
+	}
+}
+
+func TestAuthenticateRejectsBlankAndForeignMethodCredentials(t *testing.T) {
+	now := time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC)
+	repository := &fakeRepository{session: Session{
+		AuthnMethod: "password", IdleExpiresAt: now.Add(time.Hour), AbsoluteExpiresAt: now.Add(time.Hour),
+	}}
+	service, _ := NewService(repository, 30*time.Minute, 8*time.Hour)
+	service.now = func() time.Time { return now }
+	for _, token := range []string{"", "  ", "raw-token"} {
+		if _, err := service.Authenticate(context.Background(), token); !errors.Is(err, ErrUnauthenticated) {
+			t.Errorf("Authenticate(%q) error = %v, want ErrUnauthenticated", token, err)
+		}
+	}
+}
+
+func TestNewTokenIsUniqueAndHashMatches(t *testing.T) {
+	first, firstHash, err := newToken()
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, _, _ := newToken()
+	if first == second || len(first) != 43 || !bytes.Equal(firstHash, HashToken(first)) {
+		t.Fatalf("tokens = %q, %q", first, second)
+	}
+}
+
+func TestConstantTimeEqual(t *testing.T) {
+	tests := []struct {
+		left, right []byte
+		want        bool
+	}{
+		{[]byte("abc"), []byte("abc"), true},
+		{[]byte("abc"), []byte("abd"), false},
+		{[]byte("abc"), []byte("ab"), false},
+		{nil, nil, true},
+	}
+	for _, tt := range tests {
+		if got := constantTimeEqual(tt.left, tt.right); got != tt.want {
+			t.Errorf("constantTimeEqual(%q, %q) = %v", tt.left, tt.right, got)
+		}
+	}
+}
+
+func TestMaxAgeFloorsAtOneSecond(t *testing.T) {
+	if got := maxAge(time.Now().Add(-time.Hour)); got != 1 {
+		t.Errorf("maxAge(past) = %d, want 1", got)
 	}
 }

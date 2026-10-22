@@ -99,3 +99,20 @@ func TestLimiterSweepKeepsLiveWindows(t *testing.T) {
 		t.Fatal("a live window was dropped by the sweep")
 	}
 }
+
+func TestNewWithClockClampsInvalidLimitAndWindow(t *testing.T) {
+	now := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	limiter := NewWithClock(-5, 0, func() time.Time { return now })
+
+	if allowed, _ := limiter.Take("k"); !allowed {
+		t.Fatal("first attempt was refused")
+	}
+	allowed, retry := limiter.Take("k")
+	if allowed || retry != time.Minute {
+		t.Fatalf("second attempt = %v, retry %v; want refused with the default one-minute window", allowed, retry)
+	}
+	now = now.Add(time.Minute)
+	if allowed, _ := limiter.Take("k"); !allowed {
+		t.Fatal("attempt at the window boundary was refused")
+	}
+}

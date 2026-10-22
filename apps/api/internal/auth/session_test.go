@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"net/http"
@@ -105,5 +106,54 @@ func TestWithSessionSeparatesMissingSessionFromLookupFailure(t *testing.T) {
 				t.Fatalf("outcome = %+v, want %+v", got, test.want)
 			}
 		})
+	}
+}
+
+func TestNewTokenReturnsUniqueRawValueAndMatchingHash(t *testing.T) {
+	first, firstHash, err := NewToken()
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, secondHash, _ := NewToken()
+	if first == second || bytes.Equal(firstHash, secondHash) || len(first) != 43 ||
+		!bytes.Equal(firstHash, HashToken(first)) {
+		t.Fatalf("tokens = %q, %q", first, second)
+	}
+}
+
+func TestRequireUser(t *testing.T) {
+	ctx := context.WithValue(context.Background(), userIDContextKey, "user-1")
+	if got, err := RequireUser(ctx); got != "user-1" || err != nil {
+		t.Errorf("RequireUser(authenticated) = %q, %v", got, err)
+	}
+	for name, ctx := range map[string]context.Context{
+		"anonymous": context.Background(),
+		"empty id":  context.WithValue(context.Background(), userIDContextKey, ""),
+	} {
+		if got, err := RequireUser(ctx); got != "" || !errors.Is(err, ErrUnauthenticated) {
+			t.Errorf("RequireUser(%s) = %q, %v", name, got, err)
+		}
+	}
+}
+
+func TestSessionCookiesAreHardened(t *testing.T) {
+	config := SessionCookieConfig{Name: "sid", Secure: true}
+	response := httptest.NewRecorder()
+	SetSessionCookie(response, config, "tok", time.Now().Add(time.Hour))
+	ClearSessionCookie(response, config)
+	cookies := response.Result().Cookies()
+	if len(cookies) != 2 {
+		t.Fatalf("cookies = %v", cookies)
+	}
+	set, cleared := cookies[0], cookies[1]
+	if set.Value != "tok" || !set.HttpOnly || !set.Secure || set.SameSite != http.SameSiteLaxMode ||
+		set.Path != "/" || set.MaxAge < 3500 || set.MaxAge > 3600 {
+		t.Errorf("set cookie = %#v", set)
+	}
+	if cleared.Value != "" || cleared.MaxAge >= 0 || !cleared.HttpOnly || !cleared.Secure {
+		t.Errorf("cleared cookie = %#v", cleared)
+	}
+	if got := maxAge(time.Now().Add(-time.Minute)); got != 1 {
+		t.Errorf("maxAge(past) = %d, want 1", got)
 	}
 }
