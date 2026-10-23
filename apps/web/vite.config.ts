@@ -3,7 +3,7 @@ import viteReact from "@vitejs/plugin-react";
 import { nitro } from "nitro/vite";
 import { defineConfig, lazyPlugins } from "vite-plus";
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   lint: {
     categories: {
       correctness: "error",
@@ -32,11 +32,11 @@ export default defineConfig({
   resolve: {
     tsconfigPaths: true,
   },
-  plugins: lazyPlugins(() => [
-    tanstackStart({
-      srcDirectory: "src",
-    }),
-    viteReact(),
-    nitro(),
-  ]),
-});
+  // Unit tests exercise application handlers directly. Start's RPC transform
+  // replaces them with transport stubs and also starts the Nitro dev runtime.
+  plugins: lazyPlugins(() =>
+    mode === "test"
+      ? [viteReact()]
+      : [tanstackStart({ srcDirectory: "src" }), viteReact(), nitro()],
+  ),
+}));

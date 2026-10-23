@@ -1,49 +1,76 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
-import { basename, join } from "node:path";
 import { test } from "vite-plus/test";
+import {
+  createMemoryHistory,
+  createRootRoute,
+  createRouter,
+  RouterProvider,
+} from "@tanstack/react-router";
+import { createElement, type ReactNode } from "react";
+import { renderToString } from "react-dom/server";
+import { getRouter } from "../src/router.js";
 
-const currentDirectory = process.cwd();
-const appRoot =
-  basename(currentDirectory) === "web"
-    ? currentDirectory
-    : join(currentDirectory, "apps/web");
-
-function source(relativePath: string) {
-  return readFileSync(join(appRoot, relativePath), "utf8");
+async function renderBoundary(content: ReactNode, href: string) {
+  const router = createRouter({
+    routeTree: createRootRoute({ component: () => content }),
+    history: createMemoryHistory({ initialEntries: [href] }),
+  });
+  await router.load();
+  return renderToString(createElement(RouterProvider, { router }));
 }
 
-test("shared route defaults preserve safe pending, error, and not-found conventions", () => {
-  const boundaries = source("src/components/route-boundaries.tsx");
-  const root = source("src/routes/__root.tsx");
-  const router = source("src/router.tsx");
-  const event = source("src/routes/events.$slug.tsx");
+test("the configured pending view announces loading and marks the page busy", async () => {
+  const Pending = getRouter().options.defaultPendingComponent;
+  assert.ok(Pending);
+  const markup = await renderBoundary(createElement(Pending), "/");
+  assert.match(markup, /aria-busy="true"/);
+  assert.match(markup, /aria-live="polite"/);
+  assert.match(markup, /Loading page…/);
+});
 
-  assert.match(boundaries, /aria-busy="true"/);
-  assert.match(boundaries, /aria-live="polite"/);
-  // Retrying loads a whole new document; an in-place refetch would rerun a
-  // stale tab's old code (see route-error-view.test.ts).
-  assert.doesNotMatch(boundaries, /router\.invalidate\(\)/);
-  assert.doesNotMatch(boundaries, /error\.message/);
-  // Not-found titles read "<what> | Campus Gaming Network", "Page not found"
-  // by default.
-  assert.match(boundaries, /title: pageTitle = "Page not found"/);
-  assert.match(boundaries, /`\$\{pageTitle\} \| \$\{siteName\}`/);
-  assert.match(boundaries, /The link may be broken or out of date/);
-  assert.match(boundaries, /property="og:description"/);
-  assert.match(boundaries, /name="twitter:description"/);
-  assert.match(boundaries, /name="robots" content="noindex,nofollow"/);
+test("the configured error view hides internal failures and retries with a document link", async () => {
+  const ErrorView = getRouter().options.defaultErrorComponent;
+  assert.ok(ErrorView);
+  const markup = await renderBoundary(
+    createElement(ErrorView, {
+      error: new Error("secret-internal-error"),
+      reset: () => {},
+    }),
+    "/?q=night",
+  );
+  assert.doesNotMatch(markup, /secret-internal-error/);
+  assert.match(markup, /<a[^>]*href="\/\?q=night"[^>]*>Try again<\/a>/);
+  assert.match(markup, /name="robots" content="noindex,nofollow"/);
+});
 
-  assert.match(router, /defaultPendingComponent: DefaultPending/);
-  assert.match(router, /defaultErrorComponent: DefaultError/);
-  assert.match(router, /defaultNotFoundComponent: DefaultNotFound/);
-  assert.match(root, /pendingComponent: DefaultPending/);
-  // The root's error view is the shared one inside the site shell, so a
-  // failure at the root keeps the header and footer.
-  assert.match(root, /errorComponent: RootError/);
-  assert.match(root, /<SiteShell>\s*<DefaultError \/>\s*<\/SiteShell>/);
-  assert.match(root, /notFoundComponent: DefaultNotFound/);
-  assert.match(root, /shellComponent: RootDocument/);
-  assert.match(event, /<RoutePending message="Loading event…"/);
-  assert.match(event, /<RouteErrorView/);
+test("the configured not-found view provides safe metadata and recovery links", async () => {
+  const NotFound = getRouter().options.defaultNotFoundComponent;
+  assert.ok(NotFound);
+  const markup = await renderBoundary(createElement(NotFound), "/");
+  assert.match(
+    markup,
+    /<title>Page not found \| Campus Gaming Network<\/title>/,
+  );
+  assert.match(markup, /name="robots" content="noindex,nofollow"/);
+  assert.match(markup, /property="og:description"/);
+  assert.match(markup, /name="twitter:description"/);
+  assert.match(markup, /href="\/events"/);
+  assert.match(markup, /href="\/schools"/);
+  assert.match(markup, /href="\/teams"/);
+});
+
+test("the root error view keeps the site header and footer around a safe error", async () => {
+  const RootError = getRouter().routeTree.options.errorComponent;
+  assert.ok(RootError);
+  const markup = await renderBoundary(
+    createElement(RootError, {
+      error: new Error("secret-root-error"),
+      reset: () => {},
+    }),
+    "/",
+  );
+  assert.match(markup, /<header[^>]*>/);
+  assert.match(markup, /<footer[^>]*>/);
+  assert.match(markup, /We could not load this page/);
+  assert.doesNotMatch(markup, /secret-root-error/);
 });
