@@ -120,7 +120,7 @@ function calendarDay(
   return { year: part("year"), month: part("month"), day: part("day") };
 }
 
-function zoneName(value: Date, timeZone: string): string {
+export function zoneName(value: Date, timeZone: string): string {
   return (
     new Intl.DateTimeFormat("en-US", { timeZoneName: "short", timeZone })
       .formatToParts(value)

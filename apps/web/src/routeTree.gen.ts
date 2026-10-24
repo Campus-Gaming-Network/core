@@ -64,6 +64,7 @@ import { Route as ApiIgdbCoversImageIdRouteImport } from './routes/api.igdb-cove
 import { Route as ClubsSlugClaimRouteImport } from './routes/clubs.$slug_.claim'
 import { Route as ClubsSlugManageRouteImport } from './routes/clubs.$slug_.manage'
 import { Route as ClubsSlugPeopleRouteImport } from './routes/clubs.$slug_.people'
+import { Route as EventsSlugActivityRouteImport } from './routes/events.$slug_.activity'
 import { Route as EventsSlugEditRouteImport } from './routes/events.$slug_.edit'
 import { Route as EventsSlugPeopleRouteImport } from './routes/events.$slug_.people'
 import { Route as SchoolsSlugPeopleRouteImport } from './routes/schools.$slug_.people'
@@ -347,6 +348,11 @@ const ClubsSlugPeopleRoute = ClubsSlugPeopleRouteImport.update({
   path: '/clubs/$slug/people',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EventsSlugActivityRoute = EventsSlugActivityRouteImport.update({
+  id: '/$slug_/activity',
+  path: '/$slug/activity',
+  getParentRoute: () => EventsRoute,
+} as any)
 const EventsSlugEditRoute = EventsSlugEditRouteImport.update({
   id: '/$slug_/edit',
   path: '/$slug/edit',
@@ -440,6 +446,7 @@ export interface FileRoutesByFullPath {
   '/clubs/$slug/claim': typeof ClubsSlugClaimRoute
   '/clubs/$slug/manage': typeof ClubsSlugManageRoute
   '/clubs/$slug/people': typeof ClubsSlugPeopleRoute
+  '/events/$slug/activity': typeof EventsSlugActivityRoute
   '/events/$slug/edit': typeof EventsSlugEditRoute
   '/events/$slug/people': typeof EventsSlugPeopleRoute
   '/schools/$slug/people': typeof SchoolsSlugPeopleRoute
@@ -500,6 +507,7 @@ export interface FileRoutesByTo {
   '/clubs/$slug/claim': typeof ClubsSlugClaimRoute
   '/clubs/$slug/manage': typeof ClubsSlugManageRoute
   '/clubs/$slug/people': typeof ClubsSlugPeopleRoute
+  '/events/$slug/activity': typeof EventsSlugActivityRoute
   '/events/$slug/edit': typeof EventsSlugEditRoute
   '/events/$slug/people': typeof EventsSlugPeopleRoute
   '/schools/$slug/people': typeof SchoolsSlugPeopleRoute
@@ -565,6 +573,7 @@ export interface FileRoutesById {
   '/clubs/$slug_/claim': typeof ClubsSlugClaimRoute
   '/clubs/$slug_/manage': typeof ClubsSlugManageRoute
   '/clubs/$slug_/people': typeof ClubsSlugPeopleRoute
+  '/events/$slug_/activity': typeof EventsSlugActivityRoute
   '/events/$slug_/edit': typeof EventsSlugEditRoute
   '/events/$slug_/people': typeof EventsSlugPeopleRoute
   '/schools/$slug_/people': typeof SchoolsSlugPeopleRoute
@@ -631,6 +640,7 @@ export interface FileRouteTypes {
     | '/clubs/$slug/claim'
     | '/clubs/$slug/manage'
     | '/clubs/$slug/people'
+    | '/events/$slug/activity'
     | '/events/$slug/edit'
     | '/events/$slug/people'
     | '/schools/$slug/people'
@@ -691,6 +701,7 @@ export interface FileRouteTypes {
     | '/clubs/$slug/claim'
     | '/clubs/$slug/manage'
     | '/clubs/$slug/people'
+    | '/events/$slug/activity'
     | '/events/$slug/edit'
     | '/events/$slug/people'
     | '/schools/$slug/people'
@@ -755,6 +766,7 @@ export interface FileRouteTypes {
     | '/clubs/$slug_/claim'
     | '/clubs/$slug_/manage'
     | '/clubs/$slug_/people'
+    | '/events/$slug_/activity'
     | '/events/$slug_/edit'
     | '/events/$slug_/people'
     | '/schools/$slug_/people'
@@ -1198,6 +1210,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ClubsSlugPeopleRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/events/$slug_/activity': {
+      id: '/events/$slug_/activity'
+      path: '/$slug/activity'
+      fullPath: '/events/$slug/activity'
+      preLoaderRoute: typeof EventsSlugActivityRouteImport
+      parentRoute: typeof EventsRoute
+    }
     '/events/$slug_/edit': {
       id: '/events/$slug_/edit'
       path: '/$slug/edit'
@@ -1254,6 +1273,7 @@ interface EventsRouteChildren {
   EventsSlugRoute: typeof EventsSlugRoute
   EventsNewRoute: typeof EventsNewRoute
   EventsIndexRoute: typeof EventsIndexRoute
+  EventsSlugActivityRoute: typeof EventsSlugActivityRoute
   EventsSlugEditRoute: typeof EventsSlugEditRoute
   EventsSlugPeopleRoute: typeof EventsSlugPeopleRoute
 }
@@ -1262,6 +1282,7 @@ const EventsRouteChildren: EventsRouteChildren = {
   EventsSlugRoute: EventsSlugRoute,
   EventsNewRoute: EventsNewRoute,
   EventsIndexRoute: EventsIndexRoute,
+  EventsSlugActivityRoute: EventsSlugActivityRoute,
   EventsSlugEditRoute: EventsSlugEditRoute,
   EventsSlugPeopleRoute: EventsSlugPeopleRoute,
 }

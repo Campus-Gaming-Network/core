@@ -423,4 +423,41 @@
     max-width: 32rem;
     margin-block: var(--space-5);
   }
+
+  /* ==== Activity log ====
+     The Updates section on the event page and the full log page: one entry
+     per row, newest first, with its changes and when it happened. */
+  .activity-list {
+    display: grid;
+    gap: var(--space-4);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    & > li {
+      display: grid;
+      gap: var(--space-1);
+      padding-block-end: var(--space-4);
+      border-block-end: 1px solid var(--color-border);
+
+      &:last-child {
+        padding-block-end: 0;
+        border-block-end: 0;
+      }
+    }
+  }
+
+  .activity-list__summary {
+    margin: 0;
+  }
+
+  .activity-list__details {
+    margin: 0;
+    padding-inline-start: var(--space-5);
+  }
+
+  .activity-list__when {
+    color: var(--color-muted);
+    font-size: var(--text-sm);
+  }
 }
