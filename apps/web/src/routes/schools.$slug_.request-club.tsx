@@ -10,6 +10,7 @@ import {
 import { getClaimViewer } from "../features/club-slice/club.functions";
 import { validateClaimSearch } from "../features/club-slice/contracts";
 import { getSchoolCatalog } from "../features/school-slice/catalog.functions";
+import { PageIntro } from "../components/page-heading";
 
 export const Route = createFileRoute("/schools/$slug_/request-club")({
   validateSearch: validateClaimSearch,
@@ -59,16 +60,10 @@ function RequestClubPage() {
           {school.name}
         </BreadcrumbLink>
       </Breadcrumbs>
-      <section className="page-heading">
-        <div>
-          <h1>Request a club at {school.name}</h1>
-          <p className="lede">
-            Run a gaming club or esports program that is not listed? Once a site
-            admin confirms you run it, the club gets a page and you become its
-            owner.
-          </p>
-        </div>
-      </section>
+      <PageIntro
+        title={<>Request a club at {school.name}</>}
+        lede="Run a gaming club or esports program that is not listed? Once a site admin confirms you run it, the club gets a page and you become its owner."
+      />
       {search.claim === "submitted" ? (
         <>
           <ClaimSubmitted>Your request is waiting for review.</ClaimSubmitted>

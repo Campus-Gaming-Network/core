@@ -9,6 +9,7 @@ import { FormField } from "../../components/form-field";
 import { FormSection } from "../../components/form-section";
 import { deleteAccount } from "./account.functions";
 import { formString } from "../../components/form-string";
+import { Button } from "../../components/button";
 
 /**
  * Deleting the account, set apart as the settings' danger zone: a red-edged
@@ -84,14 +85,14 @@ export function DeleteAccountForm() {
             </FormField>
           </FormSection>
           <div className="form-actions">
-            <button
-              className="button--destructive"
+            <Button
+              variant="destructive"
               disabled={mutation.pending}
               ref={triggerRef}
               type="submit"
             >
               Delete account
-            </button>
+            </Button>
           </div>
           <ConfirmDialog
             cancelLabel="Keep account"

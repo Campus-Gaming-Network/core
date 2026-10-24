@@ -49,6 +49,8 @@ import {
   teamsHead,
 } from "../features/team-slice/presentation";
 import teamCSS from "../features/team-slice/teams.css?url";
+import { PageIntro } from "../components/page-heading";
+import { Surface } from "../components/surface";
 
 export const Route = createFileRoute("/teams/")({
   validateSearch: validateTeamsSearch,
@@ -146,28 +148,26 @@ function TeamsPage() {
 
   return (
     <main className="directory-page">
-      <section className="directory-heading">
-        <div>
-          <h1>Teams</h1>
-          <p className="lede">
-            Find players who share your games. Build a team at your school or
-            across campuses.
-          </p>
-        </div>
-        {authenticated ? (
-          <ButtonLink variant="primary" to="/teams/new">
-            Create team
-          </ButtonLink>
-        ) : (
-          <ButtonLink
-            variant="primary"
-            to="/login"
-            search={{ next: "/teams/new" }}
-          >
-            Log in to create a team
-          </ButtonLink>
-        )}
-      </section>
+      <PageIntro
+        variant="directory"
+        title="Teams"
+        lede="Find players who share your games. Build a team at your school or across campuses."
+        actions={
+          authenticated ? (
+            <ButtonLink variant="primary" to="/teams/new">
+              Create team
+            </ButtonLink>
+          ) : (
+            <ButtonLink
+              variant="primary"
+              to="/login"
+              search={{ next: "/teams/new" }}
+            >
+              Log in to create a team
+            </ButtonLink>
+          )
+        }
+      />
 
       <PageNoticeView
         notice={search.team ? teamBrowseNotices[search.team] : undefined}
@@ -270,7 +270,7 @@ function TeamsPage() {
             ))}
           </div>
         ) : (
-          <section className="empty-state">
+          <Surface variant="empty">
             <h2>No teams found</h2>
             {chips.length > 0 ? (
               <p>
@@ -299,7 +299,7 @@ function TeamsPage() {
                 </ButtonLink>
               </div>
             ) : null}
-          </section>
+          </Surface>
         )}
       </DirectoryResults>
 

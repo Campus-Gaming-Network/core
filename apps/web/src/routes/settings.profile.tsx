@@ -24,6 +24,7 @@ import {
   settingsProfileHead,
 } from "../features/account-slice/presentation";
 import { formString } from "../components/form-string";
+import { PageIntro } from "../components/page-heading";
 
 // The API accepts at most three social links; rows are numbered from zero.
 const socialLinkSlots = [0, 1, 2];
@@ -72,21 +73,19 @@ function SettingsProfilePage() {
 
   return (
     <>
-      <section className="page-heading">
-        <div>
-          <h1>Edit profile</h1>
-          <p className="lede">
-            Show other players who you are and what you play.
-          </p>
-        </div>
-        <Link
-          className="link"
-          to="/users/$id"
-          params={{ id: profile.public_id }}
-        >
-          View public profile
-        </Link>
-      </section>
+      <PageIntro
+        title="Edit profile"
+        lede="Show other players who you are and what you play."
+        actions={
+          <Link
+            className="link"
+            to="/users/$id"
+            params={{ id: profile.public_id }}
+          >
+            View public profile
+          </Link>
+        }
+      />
       <PageNoticeView
         notice={search.settings ? settingsNotices[search.settings] : undefined}
       />

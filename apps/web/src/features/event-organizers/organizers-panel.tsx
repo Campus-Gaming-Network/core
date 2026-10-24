@@ -21,6 +21,8 @@ import {
   revokeOrganizerInvite,
   transferEventCreator,
 } from "./organizer.functions";
+import { Button } from "../../components/button";
+import { Surface } from "../../components/surface";
 
 type Organizer = NonNullable<EventDTO["organizers"]>[number];
 
@@ -52,9 +54,10 @@ export function OrganizersPanel({
     mutation.execute(request);
 
   return (
-    <section
+    <Surface
       aria-labelledby="organizers-heading"
-      className="panel event-organizers"
+      variant="panel"
+      className="event-organizers"
       id="organizers"
     >
       <h2 id="organizers-heading">Organizers</h2>
@@ -126,7 +129,7 @@ export function OrganizersPanel({
           slug={slug}
         />
       ) : null}
-    </section>
+    </Surface>
   );
 }
 
@@ -204,8 +207,9 @@ function InviteSection({
                 >
                   <input name="slug" type="hidden" value={slug} />
                   <input name="invite_id" type="hidden" value={invite.id} />
-                  <button
-                    className="button--secondary button--small"
+                  <Button
+                    variant="secondary"
+                    size="small"
                     disabled={pending}
                     type="submit"
                   >
@@ -214,7 +218,7 @@ function InviteSection({
                       {" "}
                       invitation to {invite.email}
                     </span>
-                  </button>
+                  </Button>
                 </form>
               </li>
             ))}
@@ -255,14 +259,10 @@ function OrganizerButton({
     >
       <input name="slug" type="hidden" value={slug} />
       <input name="user_id" type="hidden" value={userID} />
-      <button
-        className="button--secondary button--small"
-        disabled={pending}
-        type="submit"
-      >
+      <Button variant="secondary" size="small" disabled={pending} type="submit">
         {label}
         {name ? <span className="visually-hidden"> {name}</span> : null}
-      </button>
+      </Button>
     </form>
   );
 }
@@ -300,14 +300,15 @@ function TransferForm({
     <form action={transferEventCreator.url} method="post" onSubmit={submit}>
       <input name="slug" type="hidden" value={slug} />
       <input name="user_id" type="hidden" value={userID} />
-      <button
-        className="button--secondary button--small"
+      <Button
+        variant="secondary"
+        size="small"
         disabled={pending}
         ref={triggerRef}
         type="submit"
       >
         Make creator<span className="visually-hidden"> {name}</span>
-      </button>
+      </Button>
       <ConfirmDialog
         cancelLabel="Keep the event"
         confirmLabel={`Yes, hand it to ${name}`}

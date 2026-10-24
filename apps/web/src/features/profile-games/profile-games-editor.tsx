@@ -20,6 +20,7 @@ import {
   moveProfileGame,
   removeProfileGame,
 } from "./profile-games.functions";
+import { Button } from "../../components/button";
 
 /**
  * The profile settings section for the game lists: each list's games in
@@ -126,14 +127,15 @@ function GameListEditor({
                   >
                     <input name="game_id" type="hidden" value={game.id} />
                     <input name="position" type="hidden" value={index - 1} />
-                    <button
-                      className="button--secondary button--small"
+                    <Button
+                      variant="secondary"
+                      size="small"
                       disabled={mutation.pending}
                       type="submit"
                     >
                       Move up
                       <span className="visually-hidden"> {game.name}</span>
-                    </button>
+                    </Button>
                   </form>
                 ) : null}
                 {index < games.length - 1 ? (
@@ -144,14 +146,15 @@ function GameListEditor({
                   >
                     <input name="game_id" type="hidden" value={game.id} />
                     <input name="position" type="hidden" value={index + 1} />
-                    <button
-                      className="button--secondary button--small"
+                    <Button
+                      variant="secondary"
+                      size="small"
                       disabled={mutation.pending}
                       type="submit"
                     >
                       Move down
                       <span className="visually-hidden"> {game.name}</span>
-                    </button>
+                    </Button>
                   </form>
                 ) : null}
                 <form
@@ -160,13 +163,14 @@ function GameListEditor({
                   onSubmit={submitWith((data) => runRemove({ data }))}
                 >
                   <input name="game_id" type="hidden" value={game.id} />
-                  <button
-                    className="button--secondary button--small"
+                  <Button
+                    variant="secondary"
+                    size="small"
                     disabled={mutation.pending}
                     type="submit"
                   >
                     Remove<span className="visually-hidden"> {game.name}</span>
-                  </button>
+                  </Button>
                 </form>
               </span>
             </li>

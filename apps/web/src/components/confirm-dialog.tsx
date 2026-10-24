@@ -5,6 +5,7 @@ import {
   type ReactNode,
   type RefObject,
 } from "react";
+import { Button } from "./button";
 
 export function ConfirmDialog({
   cancelLabel = "Keep it",
@@ -66,8 +67,8 @@ export function ConfirmDialog({
         <h2 id={titleId}>{heading}</h2>
         <div id={bodyId}>{children}</div>
         <div className="actions">
-          <button
-            className="button--secondary"
+          <Button
+            variant="secondary"
             aria-disabled={pending || undefined}
             onClick={() => {
               if (!pending) onClose();
@@ -76,9 +77,9 @@ export function ConfirmDialog({
             type="button"
           >
             {cancelLabel}
-          </button>
-          <button
-            className="button--destructive"
+          </Button>
+          <Button
+            variant="destructive"
             aria-disabled={pending || undefined}
             onClick={(event) => {
               if (pending) event.preventDefault();
@@ -86,7 +87,7 @@ export function ConfirmDialog({
             type="submit"
           >
             {pending ? "Working…" : confirmLabel}
-          </button>
+          </Button>
         </div>
       </div>
     </dialog>

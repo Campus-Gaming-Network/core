@@ -37,6 +37,7 @@ import {
 } from "../features/team-slice/team.functions";
 import { newTeamHead } from "../features/team-slice/presentation";
 import teamCSS from "../features/team-slice/teams.css?url";
+import { PageIntro } from "../components/page-heading";
 
 const teamFormSections = [
   { id: "team-basics", label: "Team basics" },
@@ -91,15 +92,10 @@ function NewTeamPage() {
       <div className="form-page__layout">
         <FormSectionNav heading="Create team" sections={teamFormSections} />
         <div className="form-page__body">
-          <section className="page-heading">
-            <div>
-              <h1>Create team</h1>
-              <p className="lede">
-                Give your team a name, pick the games you play, and invite your
-                people.
-              </p>
-            </div>
-          </section>
+          <PageIntro
+            title="Create team"
+            lede="Give your team a name, pick the games you play, and invite your people."
+          />
           <NoScriptSchoolSearch
             action="/teams/new"
             query={search.school_q ?? ""}

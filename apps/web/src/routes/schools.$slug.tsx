@@ -66,6 +66,7 @@ import { getPopularGames } from "../features/popular-games/popular-games.functio
 import { PopularGamesPanel } from "../features/popular-games/popular-games-panel";
 import schoolPageCSS from "../features/school-slice/school-page.css?url";
 import { schoolMonogram, schoolTone } from "../components/school-identity";
+import { Surface } from "../components/surface";
 
 type SchoolRouteData = {
   school: SchoolDTO;
@@ -243,20 +244,17 @@ function SchoolPage() {
       <div className="layout-detail">
         <div className="layout-detail__main">
           {activityUnavailable ? (
-            <section
+            <Surface
               aria-labelledby="school-unavailable-heading"
-              className="action-panel"
+              variant="action"
             >
               <h2 id="school-unavailable-heading">
                 We could not load campus activity
               </h2>
               <p>Please refresh the page or check back in a few minutes.</p>
-            </section>
+            </Surface>
           ) : !hasActivity ? (
-            <section
-              aria-labelledby="school-empty-heading"
-              className="action-panel"
-            >
+            <Surface aria-labelledby="school-empty-heading" variant="action">
               <h2 id="school-empty-heading">No activity here yet</h2>
               <p>
                 Be the first. Host a game night or start a team; it takes a few
@@ -276,13 +274,13 @@ function SchoolPage() {
                   events on your account page.
                 </p>
               ) : null}
-            </section>
+            </Surface>
           ) : (
             <>
               {tab !== "teams" ? (
-                <section
+                <Surface
                   aria-labelledby="school-events-heading"
-                  className="panel panel--flush"
+                  variant="flush"
                   id="school-events"
                 >
                   <div className="panel__header">
@@ -318,13 +316,13 @@ function SchoolPage() {
                       </Link>
                     </div>
                   )}
-                </section>
+                </Surface>
               ) : null}
 
               {tab !== "events" ? (
-                <section
+                <Surface
                   aria-labelledby="school-teams-heading"
-                  className="panel panel--flush"
+                  variant="flush"
                   id="school-teams"
                 >
                   <div className="panel__header">
@@ -378,7 +376,7 @@ function SchoolPage() {
                       </Link>
                     </div>
                   )}
-                </section>
+                </Surface>
               ) : null}
             </>
           )}
@@ -386,9 +384,9 @@ function SchoolPage() {
           {/* Clubs show on the overview. A school without clubs keeps the
               panel so officers can request theirs. */}
           {tab === undefined ? (
-            <section
+            <Surface
               aria-labelledby="school-clubs-heading"
-              className="panel panel--flush"
+              variant="flush"
               id="school-clubs"
             >
               <div className="panel__header">
@@ -441,12 +439,13 @@ function SchoolPage() {
                   ))}
                 </div>
               )}
-            </section>
+            </Surface>
           ) : null}
 
-          <section
+          <Surface
             aria-labelledby="school-people-heading"
-            className="panel panel--flush school-page__people"
+            variant="flush"
+            className="school-page__people"
             id="school-people"
           >
             <div className="panel__header">
@@ -473,7 +472,7 @@ function SchoolPage() {
                 />
               </div>
             )}
-          </section>
+          </Surface>
         </div>
 
         <aside className="layout-detail__aside" aria-label="About this school">

@@ -1,4 +1,5 @@
 import { useId, type ReactNode } from "react";
+import { Surface } from "./surface";
 
 /**
  * A card of facts for a detail page's side panel, written as a description
@@ -15,9 +16,10 @@ export function KeyInformation({
   const headingID = useId();
 
   return (
-    <section
+    <Surface
       aria-labelledby={headingID}
-      className="detail-card key-information"
+      variant="card"
+      className="key-information"
     >
       <h2 id={headingID}>{title}</h2>
       <dl>
@@ -28,6 +30,6 @@ export function KeyInformation({
           </div>
         ))}
       </dl>
-    </section>
+    </Surface>
   );
 }

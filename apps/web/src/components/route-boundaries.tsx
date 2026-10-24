@@ -2,6 +2,7 @@ import { Link, useLocation, useParams } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
 import { siteName } from "./public-page-head.js";
 import { slugSearchWords } from "./slug-search.js";
+import { Surface } from "./surface.js";
 
 type RoutePendingProps = {
   message?: string;
@@ -80,7 +81,7 @@ export function RouteErrorView({
 
   return (
     <main className="route-state">
-      <section className="empty-state route-state__panel" role="alert">
+      <Surface variant="empty" className="route-state__panel" role="alert">
         <title>{`${eyebrow} | ${siteName}`}</title>
         <meta name="robots" content="noindex,nofollow" />
         <p className="route-state__kicker">{eyebrow}</p>
@@ -103,7 +104,7 @@ export function RouteErrorView({
             </>
           ) : null}
         </div>
-      </section>
+      </Surface>
     </main>
   );
 }
@@ -115,7 +116,7 @@ export function ListUnavailable({ heading }: { heading: string }) {
   const href = useLocation({ select: (location) => location.href });
 
   return (
-    <section className="empty-state" role="alert">
+    <Surface variant="empty" role="alert">
       <h2>{heading}</h2>
       <p>
         This is usually temporary. Try again in a moment, and contact support if
@@ -127,7 +128,7 @@ export function ListUnavailable({ heading }: { heading: string }) {
         </a>
         <Link to="/support">Contact support</Link>
       </div>
-    </section>
+    </Surface>
   );
 }
 
@@ -156,7 +157,7 @@ function NotFoundView({
 
   return (
     <main className="route-state">
-      <section className="empty-state route-state__panel">
+      <Surface variant="empty" className="route-state__panel">
         <title>{title}</title>
         <meta name="description" content={description} />
         <meta name="robots" content="noindex,nofollow" />
@@ -171,7 +172,7 @@ function NotFoundView({
         <h1>{heading}</h1>
         <p>{description}</p>
         <div className="actions">{actions}</div>
-      </section>
+      </Surface>
     </main>
   );
 }

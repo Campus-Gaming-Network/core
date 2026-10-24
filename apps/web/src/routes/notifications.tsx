@@ -19,6 +19,9 @@ import {
   markNotificationRead,
 } from "../features/notifications/notifications.functions";
 import inboxCSS from "../features/notifications/notifications.css?url";
+import { PageIntro } from "../components/page-heading";
+import { Button } from "../components/button";
+import { Surface } from "../components/surface";
 
 export const Route = createFileRoute("/notifications")({
   validateSearch: validateInboxSearch,
@@ -66,33 +69,30 @@ function InboxPage() {
 
   return (
     <main className="inbox-page">
-      <section className="page-heading">
-        <div>
-          <h1>Notifications</h1>
-          <p className="lede">
-            Updates about events you are going to, events you organize, and your
-            teams.
-          </p>
-        </div>
-        {anyUnread ? (
-          <form
-            action={markAllNotificationsRead.url}
-            method="post"
-            onSubmit={async (event) => {
-              event.preventDefault();
-              await mutation.execute(() => runMarkAll());
-            }}
-          >
-            <button
-              className="button--secondary"
-              disabled={mutation.pending}
-              type="submit"
+      <PageIntro
+        title="Notifications"
+        lede="Updates about events you are going to, events you organize, and your teams."
+        actions={
+          anyUnread ? (
+            <form
+              action={markAllNotificationsRead.url}
+              method="post"
+              onSubmit={async (event) => {
+                event.preventDefault();
+                await mutation.execute(() => runMarkAll());
+              }}
             >
-              Mark all as read
-            </button>
-          </form>
-        ) : null}
-      </section>
+              <Button
+                variant="secondary"
+                disabled={mutation.pending}
+                type="submit"
+              >
+                Mark all as read
+              </Button>
+            </form>
+          ) : null
+        }
+      />
       <PageNoticeView
         notice={search.notice ? inboxNotices[search.notice] : undefined}
       />
@@ -106,7 +106,7 @@ function InboxPage() {
           Your notifications are unavailable right now. Try again later.
         </p>
       ) : entries.length === 0 ? (
-        <section className="empty-state">
+        <Surface variant="empty">
           <h2>
             {search.after ? "No older notifications" : "No notifications yet"}
           </h2>
@@ -115,7 +115,7 @@ function InboxPage() {
             you organize or a team you own, or a team is handed to you, it shows
             up here.
           </p>
-        </section>
+        </Surface>
       ) : (
         <ol className="inbox-list">
           {entries.map((entry) => (
@@ -185,14 +185,15 @@ function InboxItem({
           ) : entry.team_slug ? (
             <input name="team_slug" type="hidden" value={entry.team_slug} />
           ) : null}
-          <button
-            className="button--secondary button--small"
+          <Button
+            variant="secondary"
+            size="small"
             disabled={pending}
             type="submit"
           >
             {opens ?? "Mark as read"}
             <span className="visually-hidden">: {entry.title}</span>
-          </button>
+          </Button>
         </form>
       ) : null}
     </li>

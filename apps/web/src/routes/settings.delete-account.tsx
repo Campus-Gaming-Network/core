@@ -8,6 +8,7 @@ import {
   deleteAccountHead,
   deleteAccountNotices,
 } from "../features/account-slice/presentation";
+import { PageIntro } from "../components/page-heading";
 
 export const Route = createFileRoute("/settings/delete-account")({
   validateSearch: (search: Record<string, unknown>) => {
@@ -40,14 +41,10 @@ function DeleteAccountPage() {
 
   return (
     <>
-      <section className="page-heading">
-        <div>
-          <h1>Delete account</h1>
-          <p className="lede">
-            Permanently remove your Campus Gaming Network account.
-          </p>
-        </div>
-      </section>
+      <PageIntro
+        title="Delete account"
+        lede="Permanently remove your Campus Gaming Network account."
+      />
       <PageNoticeView
         notice={
           search.account ? deleteAccountNotices[search.account] : undefined

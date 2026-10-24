@@ -54,6 +54,8 @@ import {
   searchSchoolFilter,
 } from "../features/school-slice/school-filter-options";
 import { schoolLocation } from "../features/school-slice/presentation";
+import { PageIntro } from "../components/page-heading";
+import { Surface } from "../components/surface";
 
 export const Route = createFileRoute("/clubs/")({
   validateSearch: validateClubsSearch,
@@ -147,15 +149,11 @@ function ClubsPage() {
 
   return (
     <main className="directory-page">
-      <section className="directory-heading">
-        <div>
-          <h1>Clubs</h1>
-          <p className="lede">
-            Gaming clubs and esports programs at schools across the US. Find one
-            at your school and see how to join.
-          </p>
-        </div>
-      </section>
+      <PageIntro
+        variant="directory"
+        title="Clubs"
+        lede="Gaming clubs and esports programs at schools across the US. Find one at your school and see how to join."
+      />
 
       <Callout
         action={
@@ -307,7 +305,7 @@ function ClubsPage() {
             ))}
           </div>
         ) : (
-          <section className="empty-state">
+          <Surface variant="empty">
             <h2>No clubs found</h2>
             {chips.length > 0 ? (
               <p>
@@ -342,7 +340,7 @@ function ClubsPage() {
                 </ButtonLink>
               )}
             </div>
-          </section>
+          </Surface>
         )}
       </DirectoryResults>
 

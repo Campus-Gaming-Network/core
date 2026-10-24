@@ -7,6 +7,7 @@ import {
   validateSupportSearch,
 } from "../features/support-slice/contracts";
 import { SupportTicketForm } from "../features/support-slice/support-ticket-form";
+import { PageIntro } from "../components/page-heading";
 
 const description =
   "Get help with Campus Gaming Network or send the team a support request.";
@@ -35,15 +36,10 @@ function SupportPage() {
 
   return (
     <main className="prose">
-      <section className="page-heading">
-        <div>
-          <h1>Get support</h1>
-          <p className="lede">
-            Stuck on something, or found a problem? Tell us what happened and we
-            will help.
-          </p>
-        </div>
-      </section>
+      <PageIntro
+        title="Get support"
+        lede="Stuck on something, or found a problem? Tell us what happened and we will help."
+      />
       {search.topic === "privacy" ? (
         <Callout icon="shield">
           <strong>Privacy request.</strong> Tell us what you want corrected or

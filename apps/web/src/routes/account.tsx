@@ -18,6 +18,7 @@ import { StatusLabel } from "../components/status-label";
 import { schoolLocation } from "../features/school-slice/presentation";
 import accountCSS from "../features/account-slice/account.css?url";
 import { SettingsNav } from "../features/account-slice/settings-nav";
+import { Surface } from "../components/surface";
 
 export const Route = createFileRoute("/account")({
   loader: async ({ context }) => {
@@ -190,7 +191,7 @@ function AccountPage() {
                 ))}
               </div>
             ) : (
-              <div className="empty-state">
+              <Surface as="div" variant="empty">
                 <p>
                   You are not following any other schools yet. Follow one from
                   its page to see its events here.
@@ -198,7 +199,7 @@ function AccountPage() {
                 <ButtonLink to="/schools" variant="secondary">
                   Find schools
                 </ButtonLink>
-              </div>
+              </Surface>
             )}
           </section>
 
