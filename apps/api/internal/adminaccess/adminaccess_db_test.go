@@ -5,12 +5,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"reflect"
 	"testing"
 	"time"
 
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminaudit"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminmutation"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminsecurity"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/dbtest"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/pagecursor"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -413,5 +416,97 @@ func TestPostgresRepositoryRequiresSiteAdminActorForGrantMutations(t *testing.T)
 		Reason:      "Suspended actor attempt",
 	}); !errors.Is(err, ErrSiteAdminRequired) {
 		t.Fatalf("RevokeRole(suspended actor) error = %v, want ErrSiteAdminRequired", err)
+	}
+}
+
+// The Admin Console lists grants newest first, filtered by state, a page at a
+// time in either direction, and reads one grant with its user's name.
+func TestPostgresRepositoryListsAndReadsGrantHistory(t *testing.T) {
+	fixture := newAdminAccessFixture(t)
+	ctx := context.Background()
+	actorGrant, err := fixture.repository.BootstrapSiteAdmin(ctx, BootstrapInput{
+		UserID: fixture.actorID, OperatorIdentity: "deployment-operator@example.test", Reason: "Initial administrator",
+	})
+	if err != nil {
+		t.Fatalf("BootstrapSiteAdmin() error = %v", err)
+	}
+	grant := func() Grant {
+		t.Helper()
+		granted, err := fixture.repository.GrantRole(ctx, GrantInput{
+			UserID: fixture.otherID, Role: RoleSiteAdmin, ActorUserID: fixture.actorID, Reason: "Add an administrator",
+		})
+		if err != nil {
+			t.Fatalf("GrantRole() error = %v", err)
+		}
+		return granted
+	}
+	revokedGrant := grant()
+	if _, err := fixture.repository.RevokeRole(ctx, RevokeInput{
+		UserID: fixture.otherID, Role: RoleSiteAdmin, ActorUserID: fixture.actorID, Reason: "No longer needed",
+	}); err != nil {
+		t.Fatalf("RevokeRole() error = %v", err)
+	}
+	activeGrant := grant()
+
+	list := func(filter adminmutation.Filter) []string {
+		t.Helper()
+		grants, err := fixture.repository.ListGrants(ctx, filter)
+		if err != nil {
+			t.Fatalf("ListGrants(%+v) error = %v", filter, err)
+		}
+		ids := []string{}
+		for _, grant := range grants {
+			ids = append(ids, grant.ID)
+		}
+		return ids
+	}
+	first := list(adminmutation.Filter{Limit: 1})
+	firstGrant, err := fixture.repository.GetGrant(ctx, first[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	afterFirst := &pagecursor.Cursor{Timestamp: firstGrant.GrantedAt, ID: firstGrant.ID}
+	lastGrant, err := fixture.repository.GetGrant(ctx, actorGrant.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	beforeLast := &pagecursor.Cursor{Timestamp: lastGrant.GrantedAt, ID: lastGrant.ID}
+
+	got := map[string][]string{
+		"all":         list(adminmutation.Filter{Limit: 10}),
+		"active":      list(adminmutation.Filter{State: "active", Limit: 10}),
+		"revoked":     list(adminmutation.Filter{State: "revoked", Limit: 10}),
+		"first page":  first,
+		"second page": list(adminmutation.Filter{Limit: 1, After: afterFirst}),
+		"before last": list(adminmutation.Filter{Limit: 2, Before: beforeLast}),
+	}
+	want := map[string][]string{
+		"all":         {activeGrant.ID, revokedGrant.ID, actorGrant.ID},
+		"active":      {activeGrant.ID, actorGrant.ID},
+		"revoked":     {revokedGrant.ID},
+		"first page":  {activeGrant.ID},
+		"second page": {revokedGrant.ID},
+		"before last": {activeGrant.ID, revokedGrant.ID},
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("grant lists = %v, want %v", got, want)
+	}
+
+	read, err := fixture.repository.GetGrant(ctx, revokedGrant.ID)
+	if err != nil {
+		t.Fatalf("GetGrant() error = %v", err)
+	}
+	if read.UserName != "site-admin-other" || read.RevokedAt == nil || read.RevokeReason == nil || *read.RevokeReason != "No longer needed" {
+		t.Fatalf("GetGrant() = %+v, want the revoked grant with its user's name", read)
+	}
+	for _, id := range []string{"not-a-uuid", "00000000-0000-4000-8000-000000000000"} {
+		if _, err := fixture.repository.GetGrant(ctx, id); !errors.Is(err, adminmutation.ErrNotFound) {
+			t.Fatalf("GetGrant(%q) error = %v, want ErrNotFound", id, err)
+		}
+	}
+	for _, filter := range []adminmutation.Filter{{Query: "admin", Limit: 10}, {State: "suspended", Limit: 10}} {
+		if _, err := fixture.repository.ListGrants(ctx, filter); err == nil {
+			t.Fatalf("ListGrants(%+v) succeeded, want a validation error", filter)
+		}
 	}
 }
