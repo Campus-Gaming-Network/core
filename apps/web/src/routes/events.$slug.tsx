@@ -90,12 +90,20 @@ import {
 import { verificationDetail } from "../features/people-slice/presentation";
 import { schoolMonogram, schoolTone } from "../components/school-identity";
 import { formString } from "../components/form-string";
+import { getEventActivity } from "../features/event-activity/activity.functions";
+import { EventActivityList } from "../features/event-activity/activity-list";
+import {
+  eventUpdatesPreviewSize,
+  type EventActivityEntry,
+} from "../features/event-activity/contracts";
 
 type EventRouteData = {
   event: EventDetailDTO;
   authenticated: boolean;
   /** The first people going, read only for a signed-in viewer of a visible event. */
   attendees?: PeopleListResult;
+  /** The latest log entries the viewer may see; empty when there are none or they could not be read. */
+  updates: EventActivityEntry[];
   publicOrigin: string;
   /** Server-rendered report key; see useIdempotencyKey. */
   idempotencyKey: string;
@@ -145,11 +153,19 @@ export const Route = createFileRoute("/events/$slug")({
             },
           })
         : undefined;
+    // The latest changes, read after the detail like the attendees. A log
+    // that cannot be read leaves the Updates section out.
+    const activity = isLockedEvent(detail.event)
+      ? undefined
+      : await getEventActivity({
+          data: { slug: params.slug, limit: eventUpdatesPreviewSize },
+        });
 
     return {
       event: detail.event,
       authenticated: session.authenticated,
       ...(attendees ? { attendees } : {}),
+      updates: activity?.status === "found" ? activity.page.entries : [],
       publicOrigin: context.publicOrigin,
       idempotencyKey: newIdempotencyKey(),
     };
@@ -176,7 +192,7 @@ function validateEventSearch(search: Record<string, unknown>): EventSearch {
 }
 
 function EventPage() {
-  const { attendees, event, authenticated, publicOrigin } =
+  const { attendees, event, authenticated, publicOrigin, updates } =
     Route.useLoaderData();
   const search = Route.useSearch();
 
@@ -193,6 +209,7 @@ function EventPage() {
   return (
     <VisibleEventView
       attendees={attendees}
+      updates={updates}
       event={event}
       authenticated={authenticated}
       notice={search.event}
@@ -245,12 +262,14 @@ function LockedEventView({
 
 function VisibleEventView({
   attendees,
+  updates,
   event,
   authenticated,
   notice,
   publicOrigin,
 }: {
   attendees?: PeopleListResult;
+  updates: EventActivityEntry[];
   event: EventDTO;
   authenticated: boolean;
   notice?: EventSearch["event"];
@@ -532,6 +551,30 @@ function VisibleEventView({
               next={`/events/${event.slug}`}
             />
           )}
+
+          {updates.length > 0 ? (
+            <section
+              className="detail-card"
+              aria-labelledby="event-updates-title"
+            >
+              <h2 id="event-updates-title">Updates</h2>
+              <div className="detail-card-body">
+                <EventActivityList
+                  entries={updates}
+                  timeZone={event.timezone}
+                />
+                <Link
+                  aria-label={`See every update to ${event.title}`}
+                  className="link with-arrow"
+                  to="/events/$slug/activity"
+                  params={{ slug: event.slug }}
+                >
+                  See all updates
+                  <ArrowRight aria-hidden="true" size={14} strokeWidth={2.25} />
+                </Link>
+              </div>
+            </section>
+          ) : null}
 
           {event.organizers && event.organizers.length > 0 ? (
             <section aria-labelledby="event-organizers">

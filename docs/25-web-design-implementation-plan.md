@@ -395,6 +395,7 @@ These screens can be implemented against existing routes and contracts:
 | Edit event            | `/events/:slug/edit`                 | Editable, forbidden, validation errors, cancelled; Organizers section for the creator and for a co-organizer |
 | Co-organizer invite   | `/organizer-invite`                  | Signed out (to login and back), accept, invalid, wrong account                                               |
 | Event attendees       | `/events/:slug/people`               | Going and Maybe tabs, empty, unavailable, pagination                                                         |
+| Event updates         | `/events/:slug/activity`             | Editor view with authors, public view, empty, unavailable, pagination; Updates section on the event page     |
 | School people         | `/schools/:slug/people`              | Members, empty, unavailable, pagination                                                                      |
 | Team people           | `/teams/:slug/people`                | Members with roles, empty, unavailable, pagination                                                           |
 | Team directory        | `/teams`                             | Search/filter, empty, unavailable, pagination                                                                |
