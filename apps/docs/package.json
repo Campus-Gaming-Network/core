@@ -13,8 +13,8 @@
     "test:e2e": "playwright test"
   },
   "devDependencies": {
-    "mermaid": "11.17.2",
+    "mermaid": "12.2.0",
     "vitepress": "2.0.0-alpha.20",
-    "vue": "3.5.42"
+    "vue": "3.5.44"
   }
 }
