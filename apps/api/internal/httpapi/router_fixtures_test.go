@@ -690,7 +690,7 @@ func authenticatedEventReportHandler(repository *fakeSafetyRepository) http.Hand
 	return auth.WithSession(store, auth.SessionCookieConfig{
 		Name: "session",
 		TTL:  time.Hour,
-	})(http.HandlerFunc(router.handleEventPath))
+	})(router.eventRoutes())
 }
 
 func authenticatedUserReportHandler(repository *fakeSafetyRepository) http.Handler {
@@ -794,7 +794,7 @@ func authenticatedEventPathHandler(repository *fakeEventRepository) http.Handler
 	return auth.WithSession(store, auth.SessionCookieConfig{
 		Name: "session",
 		TTL:  time.Hour,
-	})(http.HandlerFunc(router.handleEventPath))
+	})(router.eventRoutes())
 }
 
 func authenticatedEventRequest(method string, target string, body string) *http.Request {
@@ -928,4 +928,14 @@ func withIdempotencyKey(request *http.Request) *http.Request {
 
 func (r *fakeEventRepository) ListInterestedEvents(_ context.Context, _ string, _ int) ([]eventstore.Event, error) {
 	return r.interestedEvents, r.err
+}
+
+// eventRoutes returns the router's mux with the event routes registered, so a
+// test can exercise /events/ paths on a Router built without NewRouter.
+func (r *Router) eventRoutes() http.Handler {
+	if r.mux == nil {
+		r.mux = http.NewServeMux()
+		r.registerEventRoutes()
+	}
+	return r.mux
 }

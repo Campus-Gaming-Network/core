@@ -203,7 +203,7 @@ func TestPickedGamesAreImportedOnlyForValidAuthorizedRequests(t *testing.T) {
 			router := &Router{events: repository, picker: picker, customGames: picker, gameSearchLimiter: test.limiter}
 			handler := router.handleEvents
 			if test.method == http.MethodPatch {
-				handler = router.handleEventPath
+				handler = router.eventRoutes().ServeHTTP
 			}
 			response := httptest.NewRecorder()
 			signedIn(handler).ServeHTTP(response, withIdempotencyKey(authenticatedEventRequest(test.method, test.path, test.body)))

@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/url"
 	"runtime/debug"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -287,7 +288,7 @@ func (r *Router) registerPublicRoutes() {
 	r.mux.HandleFunc("/internal/schools/refresh", requireMethod(http.MethodPost, r.handleRefreshCatalog))
 	r.mux.HandleFunc("/internal/error-monitoring/test", requireMethod(http.MethodPost, r.handleErrorMonitoringTest))
 	r.mux.HandleFunc("/events", r.handleEvents)
-	r.mux.HandleFunc("/events/", r.handleEventPath)
+	r.registerEventRoutes()
 	r.mux.HandleFunc("/clubs", requireMethod(http.MethodGet, r.handleClubs))
 	r.mux.HandleFunc("/clubs/{slug}", requireMethod(http.MethodGet, r.handleClub))
 	r.mux.HandleFunc("/clubs/{slug}/claims", requireMethod(http.MethodPost, r.handleClubClaim))
@@ -935,127 +936,77 @@ func parseStartRange(values url.Values) (*time.Time, *time.Time, error) {
 	return after, before, nil
 }
 
-// handleEventPath routes /events/{slug} and its unlock, rsvp, interest,
-// report, and attendees sub-resources.
-func (r *Router) handleEventPath(w http.ResponseWriter, req *http.Request) {
+// registerEventRoutes registers /events/{slug} and its sub-resources. Every
+// route answers 503 while the event store is not wired. Paths that match no
+// route reach handleEventFallback.
+func (r *Router) registerEventRoutes() {
+	r.mux.HandleFunc("/events/", r.handleEventFallback)
+	r.mux.HandleFunc("/events/{slug}", r.eventRoute(nil, false, r.handleEvent))
+	r.mux.HandleFunc("/events/{slug}/unlock", r.eventRoute([]string{http.MethodPost}, false, r.handleUnlockEvent))
+	r.mux.HandleFunc("/events/{slug}/rsvp", r.eventRoute([]string{http.MethodPost}, false, r.handleRSVPEvent))
+	r.mux.HandleFunc("/events/{slug}/interest", r.eventRoute([]string{http.MethodPost, http.MethodDelete}, false, r.handleEventInterest))
+	r.mux.HandleFunc("/events/{slug}/report", r.eventRoute([]string{http.MethodPost}, false, r.handleReportEvent))
+	r.mux.HandleFunc("/events/{slug}/organizer-invites", r.eventRoute([]string{http.MethodGet, http.MethodPost}, true, r.handleOrganizerInvites))
+	r.mux.HandleFunc("/events/{slug}/organizer-invites/{id}", r.eventRoute([]string{http.MethodDelete}, true, func(w http.ResponseWriter, req *http.Request, slug string) {
+		r.handleRevokeOrganizerInvite(w, req, slug, req.PathValue("id"))
+	}))
+	r.mux.HandleFunc("/events/{slug}/organizers/{id}", r.eventRoute([]string{http.MethodDelete}, true, func(w http.ResponseWriter, req *http.Request, slug string) {
+		r.handleRemoveOrganizer(w, req, slug, req.PathValue("id"))
+	}))
+	r.mux.HandleFunc("/events/{slug}/organizers/{id}/creator", r.eventRoute([]string{http.MethodPost}, true, func(w http.ResponseWriter, req *http.Request, slug string) {
+		r.handleTransferEventCreator(w, req, slug, req.PathValue("id"))
+	}))
+	r.mux.HandleFunc("/events/{slug}/activity", r.eventRoute([]string{http.MethodGet}, true, r.handleEventActivity))
+	r.mux.HandleFunc("/events/{slug}/attendees", r.eventRoute(nil, true, r.handleEventAttendees))
+}
+
+// eventRoute adapts a handler that takes the event slug. It answers 503 while
+// the event store is not wired, decodes the {slug} path value, and answers 405
+// with an Allow header when methods is set and the request uses another
+// method. The method check runs before the slug check unless slugFirst is set.
+func (r *Router) eventRoute(methods []string, slugFirst bool, handler func(http.ResponseWriter, *http.Request, string)) http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
+		if r.events == nil {
+			writeError(w, http.StatusServiceUnavailable, "database_unavailable")
+			return
+		}
+		methodAllowed := len(methods) == 0 || slices.Contains(methods, req.Method)
+		if !slugFirst && !methodAllowed {
+			methodNotAllowed(w, strings.Join(methods, ", "))
+			return
+		}
+		slug, ok := pathSlug(w, req.PathValue("slug"), "invalid_event_slug")
+		if !ok {
+			return
+		}
+		if !methodAllowed {
+			methodNotAllowed(w, strings.Join(methods, ", "))
+			return
+		}
+		handler(w, req, slug)
+	}
+}
+
+// handleEventFallback answers every /events/ path that matches no route. A
+// trailing slash is ignored, so /events/{slug}/rsvp/ serves the same as
+// /events/{slug}/rsvp; anything else is a 404.
+func (r *Router) handleEventFallback(w http.ResponseWriter, req *http.Request) {
 	if r.events == nil {
 		writeError(w, http.StatusServiceUnavailable, "database_unavailable")
 		return
 	}
-	path := strings.TrimPrefix(req.URL.Path, "/events/")
-	path = strings.TrimSuffix(path, "/")
-	parts := strings.Split(path, "/")
-	if len(parts) == 2 && parts[1] == "unlock" {
-		if req.Method != http.MethodPost {
-			methodNotAllowed(w, http.MethodPost)
-			return
-		}
-		slug, ok := pathSlug(w, parts[0], "invalid_event_slug")
-		if !ok {
-			return
-		}
-		r.handleUnlockEvent(w, req, slug)
-		return
-	}
-	if len(parts) == 2 && parts[1] == "rsvp" {
-		if req.Method != http.MethodPost {
-			methodNotAllowed(w, http.MethodPost)
-			return
-		}
-		slug, ok := pathSlug(w, parts[0], "invalid_event_slug")
-		if !ok {
-			return
-		}
-		r.handleRSVPEvent(w, req, slug)
-		return
-	}
-	if len(parts) == 2 && parts[1] == "interest" {
-		if req.Method != http.MethodPost && req.Method != http.MethodDelete {
-			methodNotAllowed(w, http.MethodPost+", "+http.MethodDelete)
-			return
-		}
-		slug, ok := pathSlug(w, parts[0], "invalid_event_slug")
-		if !ok {
-			return
-		}
-		r.handleEventInterest(w, req, slug)
-		return
-	}
-	if len(parts) == 2 && parts[1] == "report" {
-		if req.Method != http.MethodPost {
-			methodNotAllowed(w, http.MethodPost)
-			return
-		}
-		slug, ok := pathSlug(w, parts[0], "invalid_event_slug")
-		if !ok {
-			return
-		}
-		r.handleReportEvent(w, req, slug)
-		return
-	}
-	if len(parts) >= 2 && (parts[1] == "organizer-invites" || parts[1] == "organizers") {
-		slug, ok := pathSlug(w, parts[0], "invalid_event_slug")
-		if !ok {
-			return
-		}
-		switch {
-		case len(parts) == 2 && parts[1] == "organizer-invites":
-			if req.Method != http.MethodGet && req.Method != http.MethodPost {
-				methodNotAllowed(w, http.MethodGet+", "+http.MethodPost)
-				return
-			}
-			r.handleOrganizerInvites(w, req, slug)
-		case len(parts) == 3 && parts[1] == "organizer-invites":
-			if req.Method != http.MethodDelete {
-				methodNotAllowed(w, http.MethodDelete)
-				return
-			}
-			r.handleRevokeOrganizerInvite(w, req, slug, parts[2])
-		case len(parts) == 3 && parts[1] == "organizers":
-			if req.Method != http.MethodDelete {
-				methodNotAllowed(w, http.MethodDelete)
-				return
-			}
-			r.handleRemoveOrganizer(w, req, slug, parts[2])
-		case len(parts) == 4 && parts[1] == "organizers" && parts[3] == "creator":
-			if req.Method != http.MethodPost {
-				methodNotAllowed(w, http.MethodPost)
-				return
-			}
-			r.handleTransferEventCreator(w, req, slug, parts[2])
-		default:
-			http.NotFound(w, req)
-		}
-		return
-	}
-	if len(parts) == 2 && parts[1] == "activity" {
-		slug, ok := pathSlug(w, parts[0], "invalid_event_slug")
-		if !ok {
-			return
-		}
-		if req.Method != http.MethodGet {
-			methodNotAllowed(w, http.MethodGet)
-			return
-		}
-		r.handleEventActivity(w, req, slug)
-		return
-	}
-	if len(parts) == 2 && parts[1] == "attendees" {
-		slug, ok := pathSlug(w, parts[0], "invalid_event_slug")
-		if !ok {
-			return
-		}
-		r.handleEventAttendees(w, req, slug)
-		return
-	}
-	if len(parts) != 1 || parts[0] == "" {
+	trimmed := strings.TrimSuffix(req.URL.Path, "/")
+	if trimmed == req.URL.Path || trimmed == "/events" {
 		http.NotFound(w, req)
 		return
 	}
-	slug, ok := pathSlug(w, parts[0], "invalid_event_slug")
-	if !ok {
-		return
-	}
+	retry := req.Clone(req.Context())
+	retry.URL.Path, retry.URL.RawPath = trimmed, ""
+	r.mux.ServeHTTP(w, retry)
+}
+
+// handleEvent answers GET, PATCH, and DELETE /events/{slug}.
+func (r *Router) handleEvent(w http.ResponseWriter, req *http.Request, slug string) {
 	if req.Method == http.MethodPatch {
 		r.handleUpdateEvent(w, req, slug)
 		return

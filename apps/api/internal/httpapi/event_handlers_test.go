@@ -531,7 +531,7 @@ func TestHandleEventPathReturnsPublicDetail(t *testing.T) {
 	request := httptest.NewRequest(http.MethodGet, "/events/campus-scrim-night", nil)
 	response := httptest.NewRecorder()
 
-	router.handleEventPath(response, request)
+	router.eventRoutes().ServeHTTP(response, request)
 
 	if response.Code != http.StatusOK {
 		t.Fatalf("status = %d, want %d; body = %s", response.Code, http.StatusOK, response.Body.String())
@@ -621,7 +621,7 @@ func TestHandleUpdateEventRequiresAuthentication(t *testing.T) {
 	request := httptest.NewRequest(http.MethodPatch, "/events/campus-scrim-night", strings.NewReader(validCreateEventJSON(eventstore.VisibilityPublic, "")))
 	response := httptest.NewRecorder()
 
-	router.handleEventPath(response, request)
+	router.eventRoutes().ServeHTTP(response, request)
 
 	if response.Code != http.StatusUnauthorized {
 		t.Fatalf("status = %d, want %d", response.Code, http.StatusUnauthorized)
@@ -756,7 +756,7 @@ func TestHandleEventPathReturnsLockedShellForPrivateDetail(t *testing.T) {
 	request := httptest.NewRequest(http.MethodGet, "/events/campus-scrim-night", nil)
 	response := httptest.NewRecorder()
 
-	router.handleEventPath(response, request)
+	router.eventRoutes().ServeHTTP(response, request)
 
 	if response.Code != http.StatusOK {
 		t.Fatalf("status = %d, want %d; body = %s", response.Code, http.StatusOK, response.Body.String())
@@ -787,7 +787,7 @@ func TestHandleUnlockEventRejectsWrongPassword(t *testing.T) {
 	request := httptest.NewRequest(http.MethodPost, "/events/campus-scrim-night/unlock", strings.NewReader(`{"password":"WrongPass8"}`))
 	response := httptest.NewRecorder()
 
-	router.handleEventPath(response, request)
+	router.eventRoutes().ServeHTTP(response, request)
 
 	if response.Code != http.StatusUnauthorized {
 		t.Fatalf("status = %d, want %d; body = %s", response.Code, http.StatusUnauthorized, response.Body.String())
@@ -806,7 +806,7 @@ func TestHandleRSVPEventRequiresAuthentication(t *testing.T) {
 	request := httptest.NewRequest(http.MethodPost, "/events/campus-scrim-night/rsvp", strings.NewReader(`{"response":"yes"}`))
 	response := httptest.NewRecorder()
 
-	router.handleEventPath(response, request)
+	router.eventRoutes().ServeHTTP(response, request)
 
 	if response.Code != http.StatusUnauthorized {
 		t.Fatalf("status = %d, want %d", response.Code, http.StatusUnauthorized)
@@ -841,7 +841,7 @@ func TestHandleEventInterestRequiresAuthentication(t *testing.T) {
 	request := httptest.NewRequest(http.MethodPost, "/events/campus-scrim-night/interest", nil)
 	response := httptest.NewRecorder()
 
-	router.handleEventPath(response, request)
+	router.eventRoutes().ServeHTTP(response, request)
 
 	if response.Code != http.StatusUnauthorized {
 		t.Fatalf("status = %d, want %d", response.Code, http.StatusUnauthorized)
@@ -916,7 +916,7 @@ func TestHandleEventPathReturnsNotFoundForMissingEvent(t *testing.T) {
 	request := httptest.NewRequest(http.MethodGet, "/events/missing-event", nil)
 	response := httptest.NewRecorder()
 
-	router.handleEventPath(response, request)
+	router.eventRoutes().ServeHTTP(response, request)
 
 	if response.Code != http.StatusNotFound {
 		t.Fatalf("status = %d, want %d", response.Code, http.StatusNotFound)
@@ -948,7 +948,7 @@ func TestEventResponsesShowTheOnlineLinkOnlyToPeopleGoingAndOrganizers(t *testin
 			if tc.signedIn {
 				authenticatedEventPathHandler(repository).ServeHTTP(response, authenticatedEventRequest(http.MethodGet, "/events/campus-scrim-night", ""))
 			} else {
-				(&Router{events: repository}).handleEventPath(response, httptest.NewRequest(http.MethodGet, "/events/campus-scrim-night", nil))
+				(&Router{events: repository}).eventRoutes().ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/events/campus-scrim-night", nil))
 			}
 			if response.Code != http.StatusOK {
 				t.Fatalf("status = %d, want %d; body = %s", response.Code, http.StatusOK, response.Body.String())
@@ -1023,7 +1023,7 @@ func TestMalformedSlugsNameTheirRecordType(t *testing.T) {
 	got := map[string]string{}
 	for path, handle := range map[string]http.HandlerFunc{
 		"/schools/%25zz/members": router.handleSchoolPath,
-		"/events/%25zz":          router.handleEventPath,
+		"/events/%25zz":          router.eventRoutes().ServeHTTP,
 	} {
 		response := httptest.NewRecorder()
 		handle(response, httptest.NewRequest(http.MethodGet, path, nil))

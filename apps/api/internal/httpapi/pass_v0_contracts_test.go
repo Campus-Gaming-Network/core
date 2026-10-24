@@ -68,7 +68,7 @@ func TestPassV0SuccessResponseContracts(t *testing.T) {
 		repository := &fakeEventRepository{detail: event, privateHash: passwordHash}
 		router := &Router{events: repository}
 		response := serveContractRequest(
-			http.HandlerFunc(router.handleEventPath),
+			router.eventRoutes(),
 			httptest.NewRequest(http.MethodPost, "/events/campus-scrim-night/unlock", strings.NewReader(`{"password":"PrivatePass8"}`)),
 		)
 
@@ -386,7 +386,7 @@ func TestPassV0ErrorResponseContracts(t *testing.T) {
 		repository := &fakeEventRepository{detail: testEvent(eventstore.VisibilityPrivate), privateHash: passwordHash}
 		router := &Router{events: repository}
 		response := serveContractRequest(
-			http.HandlerFunc(router.handleEventPath),
+			router.eventRoutes(),
 			httptest.NewRequest(http.MethodPost, "/events/campus-scrim-night/unlock", strings.NewReader(`{"password":"WrongPass8"}`)),
 		)
 

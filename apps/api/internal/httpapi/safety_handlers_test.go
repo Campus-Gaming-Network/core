@@ -95,7 +95,7 @@ func TestHandleReportEventRequiresAuthentication(t *testing.T) {
 	request := httptest.NewRequest(http.MethodPost, "/events/campus-scrim-night/report", strings.NewReader(`{"reason":"Spam listing"}`))
 	response := httptest.NewRecorder()
 
-	router.handleEventPath(response, request)
+	router.eventRoutes().ServeHTTP(response, request)
 
 	if response.Code != http.StatusUnauthorized {
 		t.Fatalf("status = %d, want %d", response.Code, http.StatusUnauthorized)
@@ -150,7 +150,7 @@ func TestHandleReportEventRateLimitsSubmissions(t *testing.T) {
 	handler := auth.WithSession(store, auth.SessionCookieConfig{
 		Name: "session",
 		TTL:  time.Hour,
-	})(http.HandlerFunc(router.handleEventPath))
+	})(router.eventRoutes())
 	body := `{"reason":"Spam listing"}`
 	first := httptest.NewRecorder()
 	handler.ServeHTTP(first, withIdempotencyKey(authenticatedEventRequest(http.MethodPost, "/events/campus-scrim-night/report", body)))
