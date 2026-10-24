@@ -14,8 +14,10 @@ import (
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/pagecursor"
 )
 
+// Action names the change an audit entry records, in "entity.verb" form.
 type Action string
 
+// Audit actions. Each is valid for exactly one EntityType.
 const (
 	ActionReportUpdated        Action = "report.updated"
 	ActionSupportTicketUpdated Action = "support_ticket.updated"
@@ -57,9 +59,11 @@ const (
 	ActionClubClaimRejected Action = "club_claim.rejected"
 )
 
+// EntityType names the kind of record an audit entry is about.
 type EntityType string
 
 const (
+	// Audit entity types, stored in audit_logs.entity_type.
 	EntityReport        EntityType = "report"
 	EntitySupportTicket EntityType = "support_ticket"
 	EntitySiteRoleGrant EntityType = "site_role_grant"
@@ -71,6 +75,7 @@ const (
 	EntityClubClaim     EntityType = "club_claim"
 )
 
+// Errors returned when validating and writing audit records.
 var (
 	ErrInvalidAudit = errors.New("invalid admin audit record")
 	// ErrWriteFailed marks any failure to record an audit row, so the request
@@ -79,6 +84,8 @@ var (
 	ErrSensitiveAuditData = errors.New("sensitive data is prohibited in admin audit records")
 )
 
+// Correlation ties an audit entry to the admin who made the change and the
+// request that carried it.
 type Correlation struct {
 	ActorUserID    string
 	AdminSessionID string
@@ -91,10 +98,12 @@ type State interface {
 	auditState()
 }
 
+// EmptyState is the Before state of a creation, when no prior record existed.
 type EmptyState struct{}
 
 func (EmptyState) auditState() {}
 
+// QueueState is the audit state of a report or support ticket.
 type QueueState struct {
 	Status             string     `json:"status"`
 	AssignedToUserID   *string    `json:"assigned_to_user_id"`
@@ -103,6 +112,7 @@ type QueueState struct {
 
 func (QueueState) auditState() {}
 
+// SiteRoleGrantState is the audit state of a site role grant.
 type SiteRoleGrantState struct {
 	ID              string     `json:"id"`
 	UserID          string     `json:"user_id"`
@@ -130,6 +140,8 @@ type CatalogState struct {
 
 func (CatalogState) auditState() {}
 
+// AccountState is the audit state of a user's account status and verification
+// level.
 type AccountState struct {
 	Status            string `json:"account_status"`
 	VerificationLevel string `json:"verification_level"`
@@ -137,6 +149,7 @@ type AccountState struct {
 
 func (AccountState) auditState() {}
 
+// SchoolGrantState is the audit state of a school administrator grant.
 type SchoolGrantState struct {
 	SchoolID  string     `json:"school_id"`
 	UserID    string     `json:"user_id"`
@@ -178,6 +191,8 @@ type Metadata struct {
 	EditedFields []string `json:"edited_fields,omitempty"`
 }
 
+// WriteInput is one audit row to record. Before and After must be the state
+// schema that matches EntityType.
 type WriteInput struct {
 	Correlation Correlation
 	Action      Action
@@ -188,6 +203,8 @@ type WriteInput struct {
 	Metadata    Metadata
 }
 
+// Entry is a stored audit row. The state and metadata columns stay as raw
+// JSON, already validated when written.
 type Entry struct {
 	ID             string          `json:"id"`
 	ActorUserID    *string         `json:"actor_user_id,omitempty"`
@@ -203,6 +220,8 @@ type Entry struct {
 	CreatedAt      time.Time       `json:"created_at"`
 }
 
+// ListParams selects a page of the audit history for one record. After and
+// Before are mutually exclusive cursors; a zero Limit uses the default.
 type ListParams struct {
 	EntityType EntityType
 	EntityID   string
@@ -238,6 +257,9 @@ type Writer interface {
 	Insert(context.Context, WriteInput) (Entry, error)
 }
 
+// Validate reports ErrInvalidAudit when the IDs are not UUIDs, the request ID
+// is blank or longer than 128 characters, or an admin session and request ID
+// are not supplied together.
 func (correlation Correlation) Validate() error {
 	if !validOptionalUUID(correlation.ActorUserID) || !validOptionalUUID(correlation.AdminSessionID) {
 		return ErrInvalidAudit

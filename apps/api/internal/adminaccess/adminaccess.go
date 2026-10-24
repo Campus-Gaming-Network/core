@@ -30,6 +30,7 @@ const (
 // supports only site administrators.
 type Role string
 
+// RoleSiteAdmin is the site administrator role.
 const RoleSiteAdmin Role = "site_admin"
 
 // Capability is a server-enforced permission. Callers must ask for the
@@ -37,6 +38,8 @@ const RoleSiteAdmin Role = "site_admin"
 type Capability string
 
 const (
+	// Capabilities granted to site administrators. Each name is the string an
+	// Admin Console operation checks and the session endpoint reports.
 	CapabilityAdminSessionRead   Capability = "admin.session.read"
 	CapabilityReportsRead        Capability = "reports.read"
 	CapabilityReportsManage      Capability = "reports.manage"
@@ -81,6 +84,7 @@ var siteAdminCapabilities = []Capability{
 }
 
 var (
+	// Errors returned by role grant, revoke, and bootstrap operations.
 	ErrGrantNotFound = apperror.New(
 		apperror.KindNotFound,
 		"site_role_grant_not_found",
@@ -152,6 +156,8 @@ type Grant struct {
 	RevokeReason    *string    `json:"revoke_reason,omitempty"`
 }
 
+// GrantInput describes a site role grant made by an active administrator.
+// ExpectedUserUpdatedAt, when set, must match the user's current version.
 type GrantInput struct {
 	ExpectedUserUpdatedAt *time.Time
 	UserID                string
@@ -162,6 +168,9 @@ type GrantInput struct {
 	Reason                string
 }
 
+// RevokeInput describes a site role revocation made by an active
+// administrator. ExpectedGrantID and ExpectedGrantedAt, when set, must match
+// the active grant.
 type RevokeInput struct {
 	ExpectedGrantID   string
 	ExpectedGrantedAt *time.Time
@@ -190,14 +199,18 @@ type Repository interface {
 	RevokeRole(ctx context.Context, input RevokeInput) (Grant, error)
 }
 
+// PostgresRepository stores site role grants in Postgres.
 type PostgresRepository struct {
 	pool *pgxpool.Pool
 }
 
+// NewPostgresRepository returns a repository that uses pool.
 func NewPostgresRepository(pool *pgxpool.Pool) *PostgresRepository {
 	return &PostgresRepository{pool: pool}
 }
 
+// ValidateGrantInput checks the user, role, actor, audit correlation, and
+// reason of a grant.
 func ValidateGrantInput(input GrantInput) error {
 	if err := validateUserID(input.UserID, "site role user"); err != nil {
 		return err
@@ -214,6 +227,8 @@ func ValidateGrantInput(input GrantInput) error {
 	return validateReason(input.Reason)
 }
 
+// ValidateBootstrapInput checks the user, the operator email address, and the
+// reason of a bootstrap grant.
 func ValidateBootstrapInput(input BootstrapInput) error {
 	if err := validateUserID(input.UserID, "site role user"); err != nil {
 		return err
@@ -229,6 +244,8 @@ func ValidateBootstrapInput(input BootstrapInput) error {
 	return validateReason(input.Reason)
 }
 
+// ValidateRevokeInput checks the user, role, actor, audit correlation, and
+// reason of a revocation.
 func ValidateRevokeInput(input RevokeInput) error {
 	if err := validateUserID(input.UserID, "site role user"); err != nil {
 		return err
@@ -245,6 +262,7 @@ func ValidateRevokeInput(input RevokeInput) error {
 	return validateReason(input.Reason)
 }
 
+// ActiveGrant returns the user's unrevoked grant for role, or ErrGrantNotFound.
 func (r *PostgresRepository) ActiveGrant(ctx context.Context, userID string, role Role) (Grant, error) {
 	userID = strings.TrimSpace(userID)
 	if err := validateUserID(userID, "site role user"); err != nil {
@@ -339,6 +357,9 @@ func (r *PostgresRepository) BootstrapSiteAdmin(ctx context.Context, input Boots
 	return grant, nil
 }
 
+// GrantRole grants role to an eligible user on behalf of an active site
+// administrator and audits it in the same transaction. It returns
+// ErrGrantAlreadyActive when the user already holds the role.
 func (r *PostgresRepository) GrantRole(ctx context.Context, input GrantInput) (Grant, error) {
 	input = normalizeGrantInput(input)
 	if err := ValidateGrantInput(input); err != nil {
@@ -427,6 +448,9 @@ func (r *PostgresRepository) GrantRole(ctx context.Context, input GrantInput) (G
 	return grant, nil
 }
 
+// RevokeRole revokes the user's active grant, ends their admin sessions, and
+// audits both in the same transaction. It returns ErrLastActiveSiteAdmin
+// rather than remove the last eligible site administrator.
 func (r *PostgresRepository) RevokeRole(ctx context.Context, input RevokeInput) (Grant, error) {
 	input = normalizeRevokeInput(input)
 	if err := ValidateRevokeInput(input); err != nil {

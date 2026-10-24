@@ -19,6 +19,8 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+// Kinds of email the outbox carries. A kind selects the template and payload
+// the dispatcher uses.
 const (
 	KindAccountVerification = "account_verification"
 	KindPasswordReset       = "password_reset"
@@ -50,6 +52,7 @@ const (
 )
 
 const (
+	// Worker defaults, used when the matching Worker field is not positive.
 	DefaultPollInterval   = 2 * time.Second
 	DefaultConcurrency    = 4
 	DefaultMessageTimeout = 10 * time.Second
@@ -57,6 +60,8 @@ const (
 	DefaultMaxAttempts    = 8
 )
 
+// Intent is an email to send: its kind, recipient, template payload, and a
+// durable key that makes enqueueing it idempotent.
 type Intent struct {
 	Kind           string
 	Recipient      string
@@ -64,6 +69,7 @@ type Intent struct {
 	IdempotencyKey string
 }
 
+// Message is a claimed outbox row. LockedBy names the worker holding its lease.
 type Message struct {
 	ID             string
 	Kind           string
@@ -74,6 +80,8 @@ type Message struct {
 	LockedBy       string
 }
 
+// TokenKey returns an idempotency key for a message that carries a token,
+// built from the kind and the token's hash so the token itself is never stored.
 func TokenKey(kind string, tokenHash []byte) string {
 	return kind + ":" + base64.RawURLEncoding.EncodeToString(tokenHash)
 }
@@ -103,21 +111,27 @@ func Enqueue(ctx context.Context, db execer, intent Intent) error {
 	return nil
 }
 
+// Store is the persistence the Worker needs: claiming due messages and
+// recording each delivery outcome.
 type Store interface {
 	Claim(context.Context, int, time.Duration, string) ([]Message, error)
 	MarkDelivered(context.Context, Message, string) error
 	MarkFailed(context.Context, Message, time.Time, bool, string) error
 }
 
+// PostgresStore implements Store on the email_outbox table.
 type PostgresStore struct {
 	pool *pgxpool.Pool
 	now  func() time.Time
 }
 
+// NewPostgresStore returns a store that uses pool.
 func NewPostgresStore(pool *pgxpool.Pool) *PostgresStore {
 	return &PostgresStore{pool: pool, now: time.Now}
 }
 
+// Claim leases up to limit due messages to workerID. A message whose lease is
+// older than lease is claimable again.
 func (s *PostgresStore) Claim(ctx context.Context, limit int, lease time.Duration, workerID string) ([]Message, error) {
 	if limit < 1 {
 		return nil, nil
@@ -159,6 +173,8 @@ func (s *PostgresStore) Claim(ctx context.Context, limit int, lease time.Duratio
 	return messages, nil
 }
 
+// MarkDelivered records a delivery, clears the payload, and releases the
+// lease. It fails if the worker no longer holds the lease.
 func (s *PostgresStore) MarkDelivered(ctx context.Context, message Message, providerID string) error {
 	command, err := s.pool.Exec(ctx, `
 		UPDATE email_outbox
@@ -177,6 +193,9 @@ func (s *PostgresStore) MarkDelivered(ctx context.Context, message Message, prov
 	return nil
 }
 
+// MarkFailed records a failed attempt and releases the lease. A terminal
+// failure also stops retries and clears the payload; otherwise the message is
+// retried at next. It fails if the worker no longer holds the lease.
 func (s *PostgresStore) MarkFailed(ctx context.Context, message Message, next time.Time, terminal bool, detail string) error {
 	detail = truncateDetail(detail)
 	command, err := s.pool.Exec(ctx, `
@@ -245,6 +264,7 @@ func (s *PostgresStore) Backlog(ctx context.Context) (Backlog, error) {
 	return backlog, nil
 }
 
+// Dispatcher sends one message and returns the provider's message ID.
 type Dispatcher interface {
 	Send(context.Context, Message) (string, error)
 }
@@ -254,6 +274,8 @@ type permanentError struct{ err error }
 func (e permanentError) Error() string { return e.err.Error() }
 func (e permanentError) Unwrap() error { return e.err }
 
+// Permanent marks err as a failure that retrying will not fix, so the Worker
+// stops retrying the message. It returns nil for a nil err.
 func Permanent(err error) error {
 	if err == nil {
 		return nil
@@ -261,11 +283,14 @@ func Permanent(err error) error {
 	return permanentError{err: err}
 }
 
+// IsPermanent reports whether err was marked with Permanent.
 func IsPermanent(err error) bool {
 	var target permanentError
 	return errors.As(err, &target)
 }
 
+// Worker claims due messages and delivers them through Dispatcher. Zero or
+// negative durations and counts fall back to the Default values.
 type Worker struct {
 	Store          Store
 	Dispatcher     Dispatcher
@@ -281,11 +306,14 @@ type Worker struct {
 	terminal       atomic.Uint64
 }
 
+// WorkerStats counts failed delivery attempts since the Worker was created.
 type WorkerStats struct {
 	DeliveryFailures uint64
 	TerminalFailures uint64
 }
 
+// NewWorker returns a Worker with the default polling, concurrency, timeout,
+// lease, and attempt settings.
 func NewWorker(store Store, dispatcher Dispatcher, logger *slog.Logger) *Worker {
 	return &Worker{
 		Store: store, Dispatcher: dispatcher, Logger: logger,
@@ -296,6 +324,8 @@ func NewWorker(store Store, dispatcher Dispatcher, logger *slog.Logger) *Worker 
 	}
 }
 
+// Start delivers messages immediately and then on every poll interval until
+// ctx is done.
 func (w *Worker) Start(ctx context.Context) {
 	if err := w.RunOnce(ctx); err != nil {
 		w.logRunError()
@@ -318,6 +348,8 @@ func (w *Worker) Start(ctx context.Context) {
 	}
 }
 
+// RunOnce claims up to Concurrency messages and delivers them in parallel. It
+// returns the errors from messages whose outcome could not be recorded.
 func (w *Worker) RunOnce(ctx context.Context) error {
 	concurrency := w.Concurrency
 	if concurrency < 1 {
@@ -394,6 +426,7 @@ func (w *Worker) deliver(parent context.Context, message Message) error {
 	return nil
 }
 
+// Stats returns the worker's failure counts.
 func (w *Worker) Stats() WorkerStats {
 	return WorkerStats{
 		DeliveryFailures: w.failures.Load(),
