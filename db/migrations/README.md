@@ -2,6 +2,16 @@
 
 Versioned SQL migrations live here.
 
+Migration `000001_foundation.up.sql` enables the `pgcrypto` extension.
+Later foundation migrations: `000003_phase1_launch_games.up.sql` seeded six
+launch games (removed by `000020`), `000004_phase2_events_foundation.up.sql`
+adds events and their games, organizers, RSVPs, interests, and private unlocks,
+`000005_phase3_teams_foundation.up.sql` adds teams, team games, and members,
+`000006_phase3_support_safety.up.sql` adds support tickets and reports,
+`000007_drop_unused_school_search_indexes.up.sql` drops two unused school name
+trigram indexes, and `000011_email_outbox.up.sql` adds the `email_outbox` table
+for durable email delivery.
+
 Phase 0 intentionally creates only foundation-level database setup. Phase 1A
 adds the identity and read-catalog foundation in `000002_phase1_identity_catalog.up.sql`.
 Phase 3.5 adds recurring event fields and occurrence indexing in
@@ -117,6 +127,9 @@ serves `POST /me/email` and `POST /auth/confirm-email-change`.
 Migration `000032_user_games.up.sql` adds `user_games`, the favorite, liked,
 and want-to-play games a user lists on their profile, with a check that caps
 favorites at five. Apply it before deploying the API that serves `/me/games`.
+Migration `000033_event_organizer_invites.up.sql` adds `event_organizer_invites`,
+single-use hashed invitation tokens for co-organizers, and extends the
+`email_outbox` kinds.
 Migration `000034_clubs.up.sql` adds `clubs`, `club_games`, and `club_links`:
 public club records under a school, with a type, summary, How to join text,
 status, last-confirmed date, games, and labeled links. Apply it before
