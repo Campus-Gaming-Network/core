@@ -2,12 +2,16 @@ package auth
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"reflect"
 	"testing"
 	"time"
 
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/dbtest"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/migrate"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -77,5 +81,46 @@ func TestSessionRepositoryFindSessionDoesNotWrite(t *testing.T) {
 	}
 	if _, versionAfter := readRow(); versionAfter != versionBefore {
 		t.Fatalf("session row version changed from %s to %s; lookups wrote to the row", versionBefore, versionAfter)
+	}
+}
+
+// Signed-in commands such as joining a team rely on this: a session of a
+// suspended or deleted account no longer authenticates.
+func TestSessionRepositoryFindSessionRefusesInactiveAccounts(t *testing.T) {
+	ctx := context.Background()
+	pool := dbtest.NewSchemaPool(t, "sessions")
+	if err := migrate.Run(ctx, pool, "../../../../db/migrations"); err != nil {
+		t.Fatalf("migrate schema: %v", err)
+	}
+	var schoolID string
+	if err := pool.QueryRow(ctx, `INSERT INTO schools (name, slug) VALUES ('Status School', 'status-school') RETURNING id::text`).Scan(&schoolID); err != nil {
+		t.Fatal(err)
+	}
+	repository := NewSessionRepository(pool)
+	found := map[string]bool{}
+	for _, status := range []string{"active", "suspended", "deleted"} {
+		var userID string
+		if err := pool.QueryRow(ctx, `
+			INSERT INTO users (email, password_hash, name, home_school_id, age_confirmed_at)
+			VALUES ($1 || '@example.test', 'hash', $1, $2::uuid, NOW())
+			RETURNING id::text
+		`, status, schoolID).Scan(&userID); err != nil {
+			t.Fatal(err)
+		}
+		tokenHash := HashToken("session-" + status)
+		if err := repository.CreateSession(ctx, userID, tokenHash, time.Now().Add(time.Hour)); err != nil {
+			t.Fatalf("CreateSession(%s) error = %v", status, err)
+		}
+		if _, err := pool.Exec(ctx, `UPDATE users SET account_status = $2 WHERE id = $1::uuid`, userID, status); err != nil {
+			t.Fatal(err)
+		}
+		_, err := repository.FindSession(ctx, tokenHash)
+		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+			t.Fatalf("FindSession(%s) error = %v", status, err)
+		}
+		found[status] = err == nil
+	}
+	if want := map[string]bool{"active": true, "suspended": false, "deleted": false}; !reflect.DeepEqual(found, want) {
+		t.Fatalf("sessions found = %v, want %v", found, want)
 	}
 }

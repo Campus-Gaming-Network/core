@@ -364,15 +364,29 @@ func (r *PostgresRepository) Join(ctx context.Context, slug string, userID strin
 		return Team{}, apperror.Validation("team slug and user are required")
 	}
 
-	teamID, err := r.teamIDBySlug(ctx, slug)
-	if err != nil {
-		return Team{}, err
-	}
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
 		return Team{}, fmt.Errorf("begin join team: %w", err)
 	}
 	defer tx.Rollback(ctx)
+
+	// The share lock holds off a delete until the membership commits. A
+	// delete that commits first makes the row stop matching, and the join
+	// finds no team.
+	var teamID string
+	err = tx.QueryRow(ctx, `
+		SELECT id::text
+		FROM teams
+		WHERE slug = $1
+		  AND deleted_at IS NULL
+		FOR SHARE
+	`, slug).Scan(&teamID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return Team{}, ErrTeamNotFound
+	}
+	if err != nil {
+		return Team{}, fmt.Errorf("lock team for join: %w", err)
+	}
 
 	// An active member's row is left as it is and returns nothing, so only a
 	// membership that starts here produces a notice. Its time keeps each
