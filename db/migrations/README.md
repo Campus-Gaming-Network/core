@@ -1,79 +1,7 @@
 # Database migrations
 
-Versioned SQL migrations live here.
-
-Migration `000001_foundation.up.sql` enables the `pgcrypto` extension.
-Later foundation migrations: `000003_phase1_launch_games.up.sql` seeded six
-launch games (removed by `000020`), `000004_phase2_events_foundation.up.sql`
-adds events and their games, organizers, RSVPs, interests, and private unlocks,
-`000005_phase3_teams_foundation.up.sql` adds teams, team games, and members,
-`000006_phase3_support_safety.up.sql` adds support tickets and reports,
-`000007_drop_unused_school_search_indexes.up.sql` drops two unused school name
-trigram indexes, and `000011_email_outbox.up.sql` adds the `email_outbox` table
-for durable email delivery.
-
-Phase 0 intentionally creates only foundation-level database setup. Phase 1A
-adds the identity and read-catalog foundation in `000002_phase1_identity_catalog.up.sql`.
-Phase 3.5 adds recurring event fields and occurrence indexing in
-`000008_recurring_events.up.sql`; occurrences remain normal event rows.
-The same phase adds school-scoped role grants in `000009_trust_roles.up.sql`.
-The operations foundation in `000010_operations_foundation.up.sql` adds queue
-assignment and terminal-retention fields, domain audit history, and per-user
-notifications; site-admin authorization, purge/hold jobs, and Admin Console HTTP/UI
-surfaces remain separate work.
-The Admin Console security foundation starts with revocable site-wide grants in
-`000012_site_role_grants.up.sql` and isolated, grant-bound admin sessions in
-`000013_admin_sessions.up.sql`. Migration
-`000014_admin_security_events.up.sql` adds append-oriented Admin Console
-security events and queryable admin-session/request correlation to domain audit
-history. These tables do not expose an HTTP surface by
-themselves; Cloudflare Access validation, admin-only proxy trust, session
-exchange, and capability middleware must land before any operations route is
-registered.
-Migration `000015_admin_catalog_commands.up.sql` adds game activation, stable
-school-grant IDs, admin query indexes, strictly advancing record versions, and
-row-locking guards against references to soft-deleted catalog records. Existing
-school-grant composite keys and history are retained. Apply it before deploying
-the AC-009 API, since public game queries also use the new activation column.
-Migration `000016_create_idempotency_keys.up.sql` adds nullable, unique
-`idempotency_key` columns to events, teams, reports, and support tickets so a
-repeated create request returns the original row.
-Migration `000017_school_logo_objects.up.sql` tracks every stored school-logo
-object as pending, current, or retired so the API can delete objects that a
-failed or replaced upload leaves behind.
-Migration `000018_user_list_visibility.up.sql` adds `users.show_in_lists`
-(default true), the opt-out from the event, school, and team people lists, and
-the partial index that serves the school member list. Apply it before deploying
-the API that reads or writes the column.
-Migration `000019_policy_acceptance.up.sql` adds the immutable
-`policy_documents` table, the append-only `user_policy_acceptances` table, and
-the first published Terms and Privacy versions. Apply it before deploying the
-API that requires a policy claim at signup. A later version is published by a
-new migration that inserts a row; never edit a published row or its source
-file.
-Migration `000020_igdb_game_import.up.sql` adds `games.last_synced_at` and the
-`game_covers` table, which holds each imported game's cover as `bytea`. It also
-deletes the six launch games seeded by `000003`, with the event and team links
-that point at them; games are imported from IGDB from here on. Apply it before
-deploying the API that reads covers.
-Migration `000021_user_game_picker.up.sql` adds `games.user_submitted`, which
-marks a game a user typed in, and the `igdb_search_cache` table, which holds
-IGDB search results for 24 hours. Apply it before deploying the API that
-accepts picked or typed games.
-Migration `000022_event_audience.up.sql` adds the nullable `events.audience`
-column (`open`, `collegiate`, `campus`, `members`). Existing events keep
-`NULL`. Apply it before deploying the API that reads or writes the column.
-Migration `000023_event_type.up.sql` adds the nullable `events.event_type`
-column. Existing events keep `NULL`. Apply it before deploying the API that
-reads or writes the column.
-Migration `000024_event_cost.up.sql` replaces `events.is_paid` with
-`events.cost` (`free`, `paid`, `unspecified`). Events with `is_paid = true`
-become `paid` and every other event becomes `unspecified`. It drops `is_paid`,
-so an API built before this migration cannot read events after it; deploy the
-migration and the API together.
-Do not add clubs, tournaments, feature flags, site announcements, on-site
-payment tables, IGDB bulk-sync tables, or Admin Console-only workflow tables until those
-phases are active.
+Versioned SQL migrations live here. Files are named
+`NNNNNN_description.up.sql` and applied in numeric order.
 
 The Go migration runner is `apps/api/cmd/migrate`. It creates
 `schema_migrations`, applies pending files in numeric order, and records each
@@ -97,84 +25,64 @@ cd apps/api
 go run ./cmd/seed -csv ../../data/schools_seed.csv
 ```
 
-Migration `000025_school_short_name.up.sql` adds the nullable
-`schools.short_name`, the name an admin chooses to display beside a school's
-name; `alias` stays the search field.
-Migration `000026_audit_log_index.up.sql` indexes `audit_logs` by
-`(created_at DESC, id DESC)` for the Admin Console audit log.
-Migration `000027_social_link_kind.up.sql` adds `user_social_links.kind`
-(`url`, `discord`) and the nullable `username`, and makes `url` nullable: a
-Discord link stores a username and no URL. Existing rows become `url` links.
-Apply it before deploying the API that reads or writes the columns.
-Migration `000028_foreign_key_indexes.up.sql` indexes the six foreign keys that
-no index led with: `events.creator_user_id`, `teams.owner_user_id`,
-`site_role_grants.granted_by_user_id` and `revoked_by_user_id`,
-`admin_sessions (grant_id, user_id)`, and
-`user_policy_acceptances.policy_document_id`. `TestSchemaInvariants` keeps new
-migrations to the same rule.
-Migration `000029_igdb_search_cache_covers.up.sql` adds a GIN index on
-`igdb_search_cache.results`, so the API can check that a search returned a
-cover image ID before it proxies that image. Apply it before deploying the API
-that serves `/igdb-covers/{image_id}`.
-Migration `000030_event_host_team.up.sql` adds the nullable
-`events.host_team_id`, the team that hosts an event, indexed with
-`starts_at` for a team page's event list. Apply it before deploying the API
-that reads or writes the column.
-Migration `000031_account_email_change.up.sql` adds `email_change_tokens`
-for confirming a new email address, and the `email_change_verification` and
-`email_changed_notice` email kinds. Apply it before deploying the API that
-serves `POST /me/email` and `POST /auth/confirm-email-change`.
-Migration `000032_user_games.up.sql` adds `user_games`, the favorite, liked,
-and want-to-play games a user lists on their profile, with a check that caps
-favorites at five. Apply it before deploying the API that serves `/me/games`.
-Migration `000033_event_organizer_invites.up.sql` adds `event_organizer_invites`,
-single-use hashed invitation tokens for co-organizers, and extends the
-`email_outbox` kinds.
-Migration `000034_clubs.up.sql` adds `clubs`, `club_games`, and `club_links`:
-public club records under a school, with a type, summary, How to join text,
-status, last-confirmed date, games, and labeled links. Apply it before
-deploying the API that serves `/clubs/{slug}` and `/schools/{slug}/clubs`.
-Migration `000035_club_admin.up.sql` adds `club_slug_redirects`, the earlier
-slugs of renamed clubs, so old club links still reach the club.
-Migration `000036_user_public_id.up.sql` adds `users.public_id`, a unique,
-permanent ten-character base58 ID that the database generates on insert and a
-trigger keeps from changing. Existing users get one. The UUID `id` stays the
-primary key. Apply it before deploying the API that serves
-`/users/{public_id}`.
-Migration `000037_team_notice_emails.up.sql` adds the `team_member_joined`
-and `team_ownership_transferred` email kinds. Apply it before deploying the
-API that queues them, or team joins and ownership transfers fail.
-Migration `000038_club_claims.up.sql` adds `club_members`, the people with a
-role in a club (claims write owners), and `club_claims`, the claims on listed
-clubs and requests for new ones with their evidence and review, plus the
-`club_claim_approved` and `club_claim_rejected` email kinds. Apply it before
-deploying the API that serves `POST /clubs/{slug}/claims`,
-`POST /schools/{slug}/club-requests`, and `/admin/v1/club-claims`; the public
-club reads also join `club_members`.
-Migration `000039_club_officers.up.sql` adds `club_editor_invites`, an owner's
-single-use, expiring invites to edit a club, and `club_ownership_offers`, an
-owner's pending offer of the club to another member, plus the
-`club_editor_invite` and `club_ownership_offered` email kinds. Apply it before
-deploying the API that serves `/clubs/{slug}/manage` and the club officer
-commands.
-Migration `000040_user_activity_days.up.sql` adds `user_activity_days`, one
-row per account per UTC day on which it made a signed-in API request. Apply it
-before deploying the API that writes it, or every signed-in request logs a
-failed activity write.
-Migration `000041_text_bounds.up.sql` adds CHECK constraints for the length
-limits the API already enforces on event, team, user, social-link, report, and
-support-ticket text. It validates existing rows, so it fails if any row breaks
-a limit. `events.title` is only checked for non-empty, because the demo seed
-writes titles longer than the API allows. No API change; apply at any time.
-Migration `000042_club_confirmation_reminders.up.sql` adds
-`club_confirmation_reminders`, which records the confirmation each claimed
-club's owners were last reminded about, and the `club_confirmation_due` email
-kind. Apply it before deploying the API that serves `POST /clubs/{slug}/confirm`
-and queues the reminders.
-Migration `000043_event_host_club.up.sql` adds `events.host_club_id`, the club
-that hosts an event, and a check that an event has at most one hosting team or
-club. Apply it before deploying the API that reads and writes the column.
-Migration `000044_event_revision.up.sql` adds `events.revision`, which a
-trigger raises whenever a field an event's calendar file shows changes,
-cancellation included. Calendar files use it as their `SEQUENCE`. Apply it
-before deploying the API that returns `revision`.
+Rules:
+
+- A published policy row or its source file is never edited; a later policy
+  version is a new migration (see `000019`).
+- `TestSchemaInvariants` requires every foreign key to be led by an index (see
+  `000028`).
+- Do not add tournaments, feature flags, site announcements, on-site
+  payment tables, IGDB bulk-sync tables, or Admin Console-only workflow tables
+  until those phases are active.
+
+In the table, "Deploy order" says when to apply a migration relative to the API
+that depends on it. A dash means no ordering requirement is recorded.
+
+## Migrations
+
+| File                                              | What it adds                                                                                                                                                                                                                                                                                                                            | Deploy order                                                                                                                                                                         |
+| ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `000001_foundation.up.sql`                        | Phase 0 foundation-level database setup only (the `pgcrypto` extension).                                                                                                                                                                                                                                                                | -                                                                                                                                                                                    |
+| `000002_phase1_identity_catalog.up.sql`           | Phase 1A identity and read-catalog foundation: schools, games, users, auth sessions, email verification and password reset tokens, social links, school follows, and the `set_updated_at` trigger function.                                                                                                                             | -                                                                                                                                                                                    |
+| `000003_phase1_launch_games.up.sql`               | Phase 1B curated launch catalog: seeds six launch games. `000020` later deletes them.                                                                                                                                                                                                                                                   | -                                                                                                                                                                                    |
+| `000004_phase2_events_foundation.up.sql`          | Phase 2 events foundation: `events`, `event_games`, `event_organizers`, `event_rsvps`, `event_interests`, and `event_private_unlocks`. Create, edit, and RSVP behavior is wired in later slices.                                                                                                                                        | -                                                                                                                                                                                    |
+| `000005_phase3_teams_foundation.up.sql`           | Phase 3 teams foundation: `teams`, `team_games`, and `team_members` with owner, captain, and member roles.                                                                                                                                                                                                                              | -                                                                                                                                                                                    |
+| `000006_phase3_support_safety.up.sql`             | Phase 3 support and safety intake: `support_tickets` and `reports`, queued for Admin Console review.                                                                                                                                                                                                                                    | -                                                                                                                                                                                    |
+| `000007_drop_unused_school_search_indexes.up.sql` | Drops the two trigram indexes on `schools`, which the planner never chooses on a catalog this small.                                                                                                                                                                                                                                    | -                                                                                                                                                                                    |
+| `000008_recurring_events.up.sql`                  | Phase 3.5 recurring event fields and occurrence indexing. Occurrences remain normal event rows.                                                                                                                                                                                                                                         | -                                                                                                                                                                                    |
+| `000009_trust_roles.up.sql`                       | School-scoped role grants (same phase as `000008`).                                                                                                                                                                                                                                                                                     | -                                                                                                                                                                                    |
+| `000010_operations_foundation.up.sql`             | Operations foundation: queue assignment and terminal-retention fields, domain audit history, and per-user notifications. Site-admin authorization, purge/hold jobs, and Admin Console HTTP/UI surfaces remain separate work.                                                                                                            | -                                                                                                                                                                                    |
+| `000011_email_outbox.up.sql`                      | `email_outbox`, durable email delivery intent: one row per recipient, leased with `SKIP LOCKED` and retried independently.                                                                                                                                                                                                              | -                                                                                                                                                                                    |
+| `000012_site_role_grants.up.sql`                  | Revocable site-wide grants, the start of the Admin Console security foundation.                                                                                                                                                                                                                                                         | -                                                                                                                                                                                    |
+| `000013_admin_sessions.up.sql`                    | Isolated, grant-bound admin sessions.                                                                                                                                                                                                                                                                                                   | -                                                                                                                                                                                    |
+| `000014_admin_security_events.up.sql`             | Append-oriented Admin Console security events and queryable admin-session/request correlation to domain audit history. These tables do not expose an HTTP surface by themselves; Cloudflare Access validation, admin-only proxy trust, session exchange, and capability middleware must land before any operations route is registered. | -                                                                                                                                                                                    |
+| `000015_admin_catalog_commands.up.sql`            | Game activation, stable school-grant IDs, admin query indexes, strictly advancing record versions, and row-locking guards against references to soft-deleted catalog records. Existing school-grant composite keys and history are retained.                                                                                            | Before deploying the AC-009 API, since public game queries also use the new activation column.                                                                                       |
+| `000016_create_idempotency_keys.up.sql`           | Nullable, unique `idempotency_key` columns on events, teams, reports, and support tickets, so a repeated create request returns the original row.                                                                                                                                                                                       | -                                                                                                                                                                                    |
+| `000017_school_logo_objects.up.sql`               | Tracks every stored school-logo object as pending, current, or retired, so the API can delete objects that a failed or replaced upload leaves behind.                                                                                                                                                                                   | -                                                                                                                                                                                    |
+| `000018_user_list_visibility.up.sql`              | `users.show_in_lists` (default true), the opt-out from the event, school, and team people lists, and the partial index that serves the school member list.                                                                                                                                                                              | Before deploying the API that reads or writes the column.                                                                                                                            |
+| `000019_policy_acceptance.up.sql`                 | The immutable `policy_documents` table, the append-only `user_policy_acceptances` table, and the first published Terms and Privacy versions. A later version is published by a new migration that inserts a row; never edit a published row or its source file.                                                                         | Before deploying the API that requires a policy claim at signup.                                                                                                                     |
+| `000020_igdb_game_import.up.sql`                  | `games.last_synced_at` and the `game_covers` table, which holds each imported game's cover as `bytea`. Also deletes the six launch games seeded by `000003`, with the event and team links that point at them; games are imported from IGDB from here on.                                                                               | Before deploying the API that reads covers.                                                                                                                                          |
+| `000021_user_game_picker.up.sql`                  | `games.user_submitted`, which marks a game a user typed in, and the `igdb_search_cache` table, which holds IGDB search results for 24 hours.                                                                                                                                                                                            | Before deploying the API that accepts picked or typed games.                                                                                                                         |
+| `000022_event_audience.up.sql`                    | The nullable `events.audience` column (`open`, `collegiate`, `campus`, `members`). Existing events keep `NULL`.                                                                                                                                                                                                                         | Before deploying the API that reads or writes the column.                                                                                                                            |
+| `000023_event_type.up.sql`                        | The nullable `events.event_type` column. Existing events keep `NULL`.                                                                                                                                                                                                                                                                   | Before deploying the API that reads or writes the column.                                                                                                                            |
+| `000024_event_cost.up.sql`                        | Replaces `events.is_paid` with `events.cost` (`free`, `paid`, `unspecified`). Events with `is_paid = true` become `paid` and every other event becomes `unspecified`. It drops `is_paid`.                                                                                                                                               | Deploy the migration and the API together: an API built before this migration cannot read events after it.                                                                           |
+| `000025_school_short_name.up.sql`                 | The nullable `schools.short_name`, the name an admin chooses to display beside a school's name; `alias` stays the search field.                                                                                                                                                                                                         | -                                                                                                                                                                                    |
+| `000026_audit_log_index.up.sql`                   | Indexes `audit_logs` by `(created_at DESC, id DESC)` for the Admin Console audit log.                                                                                                                                                                                                                                                   | -                                                                                                                                                                                    |
+| `000027_social_link_kind.up.sql`                  | `user_social_links.kind` (`url`, `discord`) and the nullable `username`, and makes `url` nullable: a Discord link stores a username and no URL. Existing rows become `url` links.                                                                                                                                                       | Before deploying the API that reads or writes the columns.                                                                                                                           |
+| `000028_foreign_key_indexes.up.sql`               | Indexes the six foreign keys that no index led with: `events.creator_user_id`, `teams.owner_user_id`, `site_role_grants.granted_by_user_id` and `revoked_by_user_id`, `admin_sessions (grant_id, user_id)`, and `user_policy_acceptances.policy_document_id`. `TestSchemaInvariants` keeps new migrations to the same rule.             | -                                                                                                                                                                                    |
+| `000029_igdb_search_cache_covers.up.sql`          | A GIN index on `igdb_search_cache.results`, so the API can check that a search returned a cover image ID before it proxies that image.                                                                                                                                                                                                  | Before deploying the API that serves `/igdb-covers/{image_id}`.                                                                                                                      |
+| `000030_event_host_team.up.sql`                   | The nullable `events.host_team_id`, the team that hosts an event, indexed with `starts_at` for a team page's event list.                                                                                                                                                                                                                | Before deploying the API that reads or writes the column.                                                                                                                            |
+| `000031_account_email_change.up.sql`              | `email_change_tokens` for confirming a new email address, and the `email_change_verification` and `email_changed_notice` email kinds.                                                                                                                                                                                                   | Before deploying the API that serves `POST /me/email` and `POST /auth/confirm-email-change`.                                                                                         |
+| `000032_user_games.up.sql`                        | `user_games`, the favorite, liked, and want-to-play games a user lists on their profile, with a check that caps favorites at five.                                                                                                                                                                                                      | Before deploying the API that serves `/me/games`.                                                                                                                                    |
+| `000033_event_organizer_invites.up.sql`           | `event_organizer_invites`: an event creator's single-use, expiring email invitations to co-organize, stored as token hashes, plus the `event_organizer_invite` email kind.                                                                                                                                                              | -                                                                                                                                                                                    |
+| `000034_clubs.up.sql`                             | `clubs`, `club_games`, and `club_links`: public club records under a school, with a type, summary, How to join text, status, last-confirmed date, games, and labeled links.                                                                                                                                                             | Before deploying the API that serves `/clubs/{slug}` and `/schools/{slug}/clubs`.                                                                                                    |
+| `000035_club_admin.up.sql`                        | `club_slug_redirects`, the earlier slugs of renamed clubs, so old club links still reach the club.                                                                                                                                                                                                                                      | -                                                                                                                                                                                    |
+| `000036_user_public_id.up.sql`                    | `users.public_id`, a unique, permanent ten-character base58 ID that the database generates on insert and a trigger keeps from changing. Existing users get one. The UUID `id` stays the primary key.                                                                                                                                    | Before deploying the API that serves `/users/{public_id}`.                                                                                                                           |
+| `000037_team_notice_emails.up.sql`                | The `team_member_joined` and `team_ownership_transferred` email kinds.                                                                                                                                                                                                                                                                  | Before deploying the API that queues them, or team joins and ownership transfers fail.                                                                                               |
+| `000038_club_claims.up.sql`                       | `club_members`, the people with a role in a club (claims write owners), and `club_claims`, the claims on listed clubs and requests for new ones with their evidence and review, plus the `club_claim_approved` and `club_claim_rejected` email kinds.                                                                                   | Before deploying the API that serves `POST /clubs/{slug}/claims`, `POST /schools/{slug}/club-requests`, and `/admin/v1/club-claims`; the public club reads also join `club_members`. |
+| `000039_club_officers.up.sql`                     | `club_editor_invites`, an owner's single-use, expiring invites to edit a club, and `club_ownership_offers`, an owner's pending offer of the club to another member, plus the `club_editor_invite` and `club_ownership_offered` email kinds.                                                                                             | Before deploying the API that serves `/clubs/{slug}/manage` and the club officer commands.                                                                                           |
+| `000040_user_activity_days.up.sql`                | `user_activity_days`, one row per account per UTC day on which it made a signed-in API request.                                                                                                                                                                                                                                         | Before deploying the API that writes it, or every signed-in request logs a failed activity write.                                                                                    |
+| `000041_text_bounds.up.sql`                       | CHECK constraints for the length limits the API already enforces on event, team, user, social-link, report, and support-ticket text. It validates existing rows, so it fails if any row breaks a limit. `events.title` is only checked for non-empty, because the demo seed writes titles longer than the API allows. No API change.    | Apply at any time.                                                                                                                                                                   |
+| `000042_club_confirmation_reminders.up.sql`       | `club_confirmation_reminders`, which records the confirmation each claimed club's owners were last reminded about, and the `club_confirmation_due` email kind.                                                                                                                                                                          | Before deploying the API that serves `POST /clubs/{slug}/confirm` and queues the reminders.                                                                                          |
+| `000043_event_host_club.up.sql`                   | `events.host_club_id`, the club that hosts an event, and a check that an event has at most one hosting team or club.                                                                                                                                                                                                                    | Before deploying the API that reads and writes the column.                                                                                                                           |
+| `000044_event_revision.up.sql`                    | `events.revision`, which a trigger raises whenever a field the event's calendar file shows changes, cancellation included. Calendar files use it as their `SEQUENCE`.                                                                                                                                                                   | Before deploying the API that returns `revision`.                                                                                                                                    |
