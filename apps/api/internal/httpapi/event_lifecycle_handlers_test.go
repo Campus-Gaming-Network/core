@@ -21,7 +21,7 @@ func TestEventPageShowsARecentlyCancelledPublicEvent(t *testing.T) {
 	router := &Router{events: &fakeEventRepository{detail: event}}
 	response := httptest.NewRecorder()
 
-	router.handleEventPath(response, httptest.NewRequest(http.MethodGet, "/events/campus-scrim-night", nil))
+	router.eventRoutes().ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/events/campus-scrim-night", nil))
 
 	if response.Code != http.StatusOK {
 		t.Fatalf("status = %d; body = %s", response.Code, response.Body.String())
@@ -44,7 +44,7 @@ func TestEventPageHidesACancelledPrivateEvent(t *testing.T) {
 	router := &Router{events: &fakeEventRepository{detail: event}}
 	response := httptest.NewRecorder()
 
-	router.handleEventPath(response, httptest.NewRequest(http.MethodGet, "/events/campus-scrim-night", nil))
+	router.eventRoutes().ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/events/campus-scrim-night", nil))
 
 	if response.Code != http.StatusNotFound {
 		t.Fatalf("status = %d, want 404; body = %s", response.Code, response.Body.String())

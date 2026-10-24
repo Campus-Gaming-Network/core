@@ -104,7 +104,8 @@ func newPeopleFixture(event eventstore.Event) *peopleFixture {
 		people: fixture.people,
 	}
 	mux := http.NewServeMux()
-	mux.HandleFunc("/events/", router.handleEventPath)
+	router.mux = mux
+	router.registerEventRoutes()
 	mux.HandleFunc("/schools/", router.handleSchoolPath)
 	mux.HandleFunc("/teams/", router.handleTeamPath)
 	fixture.handler = auth.WithSession(
