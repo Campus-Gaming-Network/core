@@ -17,9 +17,7 @@ func TestTokensAreSingleUseAndExpireAtTheirDeadline(t *testing.T) {
 	ctx := context.Background()
 	pool := dbtest.NewMigratedSchemaPool(t, "auth_tokens")
 	var schoolID, userID string
-	if err := pool.QueryRow(ctx, `INSERT INTO schools (name, slug) VALUES ('Token School', 'token-school') RETURNING id::text`).Scan(&schoolID); err != nil {
-		t.Fatal(err)
-	}
+	schoolID = dbtest.InsertSchool(t, pool, "Token School", "token-school")
 	if err := pool.QueryRow(ctx, `
 		INSERT INTO users (email, password_hash, name, home_school_id, age_confirmed_at)
 		VALUES ('token-user@example.test', 'old-hash', 'Token User', $1::uuid, NOW())

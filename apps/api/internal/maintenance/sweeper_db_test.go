@@ -14,17 +14,8 @@ func TestSweeperDeletesOnlyAgedRows(t *testing.T) {
 	ctx := context.Background()
 
 	var schoolID, userID string
-	if err := pool.QueryRow(ctx, `
-		INSERT INTO schools (name, slug) VALUES ('Sweeper School', 'sweeper-school')
-		RETURNING id::text`).Scan(&schoolID); err != nil {
-		t.Fatalf("insert school: %v", err)
-	}
-	if err := pool.QueryRow(ctx, `
-		INSERT INTO users (email, password_hash, name, home_school_id, age_confirmed_at)
-		VALUES ('sweeper@example.test', 'x', 'Sweeper', $1::uuid, NOW())
-		RETURNING id::text`, schoolID).Scan(&userID); err != nil {
-		t.Fatalf("insert user: %v", err)
-	}
+	schoolID = dbtest.InsertSchool(t, pool, "Sweeper School", "sweeper-school")
+	userID = dbtest.InsertUser(t, pool, schoolID, "sweeper@example.test", "Sweeper")
 
 	// One session expired well past the grace window, one still valid.
 	if _, err := pool.Exec(ctx, `

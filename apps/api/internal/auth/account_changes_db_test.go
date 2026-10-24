@@ -35,11 +35,7 @@ func newAccountChangeFixture(t *testing.T) accountChangeFixture {
 		t.Fatalf("migrate schema: %v", err)
 	}
 	var schoolID string
-	if err := pool.QueryRow(ctx, `
-		INSERT INTO schools (name, slug) VALUES ('Account School', 'account-school') RETURNING id::text
-	`).Scan(&schoolID); err != nil {
-		t.Fatalf("insert school: %v", err)
-	}
+	schoolID = dbtest.InsertSchool(t, pool, "Account School", "account-school")
 	passwordHash, err := HashPassword("OldPassword1")
 	if err != nil {
 		t.Fatalf("hash password: %v", err)

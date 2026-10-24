@@ -25,9 +25,7 @@ func newOrganizerFixture(t *testing.T) organizerFixture {
 	ctx := context.Background()
 	pool := dbtest.NewMigratedSchemaPool(t, "event_organizers")
 	fixture := organizerFixture{pool: pool, repository: NewPostgresRepository(pool)}
-	if err := pool.QueryRow(ctx, `INSERT INTO schools (name, slug) VALUES ('Host', 'host') RETURNING id::text`).Scan(&fixture.schoolID); err != nil {
-		t.Fatalf("insert school: %v", err)
-	}
+	fixture.schoolID = dbtest.InsertSchool(t, pool, "Host", "host")
 	if err := pool.QueryRow(ctx, `INSERT INTO games (name, slug) VALUES ('Chess', 'chess') RETURNING id::text`).Scan(&fixture.gameID); err != nil {
 		t.Fatalf("insert game: %v", err)
 	}

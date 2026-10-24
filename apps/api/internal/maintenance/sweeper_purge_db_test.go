@@ -18,17 +18,8 @@ func TestSweeperPurgesAdminSessionsAndEmailOutbox(t *testing.T) {
 
 	now := time.Date(2030, 1, 15, 12, 0, 0, 0, time.UTC)
 	var schoolID, userID, grantID string
-	if err := pool.QueryRow(ctx, `
-		INSERT INTO schools (name, slug) VALUES ('Purge School', 'purge-school')
-		RETURNING id::text`).Scan(&schoolID); err != nil {
-		t.Fatalf("insert school: %v", err)
-	}
-	if err := pool.QueryRow(ctx, `
-		INSERT INTO users (email, password_hash, name, home_school_id, age_confirmed_at)
-		VALUES ('purge@example.test', 'x', 'Purge', $1::uuid, NOW())
-		RETURNING id::text`, schoolID).Scan(&userID); err != nil {
-		t.Fatalf("insert user: %v", err)
-	}
+	schoolID = dbtest.InsertSchool(t, pool, "Purge School", "purge-school")
+	userID = dbtest.InsertUser(t, pool, schoolID, "purge@example.test", "Purge")
 	if err := pool.QueryRow(ctx, `
 		INSERT INTO site_role_grants (user_id, role, grant_reason)
 		VALUES ($1::uuid, 'site_admin', 'purge test')

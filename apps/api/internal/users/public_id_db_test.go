@@ -3,6 +3,7 @@ package users
 import (
 	"context"
 	"fmt"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/dbtest"
 	"os"
 	"reflect"
 	"testing"
@@ -27,12 +28,7 @@ func TestPostgresRepositoryGivesEachUserAPermanentPublicID(t *testing.T) {
 
 	suffix := fmt.Sprint(time.Now().UnixNano())
 	var schoolID string
-	if err := pool.QueryRow(ctx, `
-		INSERT INTO schools (name, slug) VALUES ('Public ID School', $1)
-		RETURNING id::text
-	`, "public-id-school-"+suffix).Scan(&schoolID); err != nil {
-		t.Fatalf("insert school: %v", err)
-	}
+	schoolID = dbtest.InsertSchool(t, pool, "Public ID School", "public-id-school-"+suffix)
 	t.Cleanup(func() {
 		_, _ = pool.Exec(context.Background(), `DELETE FROM schools WHERE id = $1::uuid`, schoolID)
 	})
