@@ -28,7 +28,7 @@ export function EventCard({
 }: {
   event: EventBrowseItemDTO;
   showHost?: boolean;
-  /** Off on the hosting team's own page, where the team goes without saying. */
+  /** Off on the hosting team or club page, where the host goes without saying. */
   showTeam?: boolean;
 }) {
   const renderedAt = useRenderedAt();
@@ -59,7 +59,7 @@ export function EventCard({
         media={<EventGameThumb games={event.games} />}
         // A hosting team leads, even on its school's own page.
         meta={[
-          showTeam ? event.host_team?.name : undefined,
+          showTeam ? (event.host_team ?? event.host_club)?.name : undefined,
           showHost ? event.host_school.name : undefined,
           eventPlace(event),
         ]}

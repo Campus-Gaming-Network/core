@@ -16,6 +16,7 @@ func NormalizeListParams(params ListParams) ListParams {
 	params.GameSlug = strings.TrimSpace(params.GameSlug)
 	params.SchoolSlug = strings.TrimSpace(params.SchoolSlug)
 	params.TeamSlug = strings.TrimSpace(params.TeamSlug)
+	params.ClubSlug = strings.TrimSpace(params.ClubSlug)
 	params.Query = strings.Join(strings.Fields(params.Query), " ")
 	params.Format = strings.TrimSpace(params.Format)
 	if params.Format != "" && params.Format != FormatOnline && params.Format != FormatInPerson && params.Format != FormatHybrid {
@@ -58,6 +59,7 @@ func ValidateUpdateInput(input UpdateInput) error {
 		CreatorUserID:   input.EditorUserID,
 		HostSchoolID:    input.HostSchoolID,
 		HostTeamID:      input.HostTeamID,
+		HostClubID:      input.HostClubID,
 		GameIDs:         input.GameIDs,
 		Visibility:      input.Visibility,
 		Format:          input.Format,
@@ -110,6 +112,9 @@ func validateEventFields(input CreateInput, requirePrivatePassword bool) error {
 	}
 	if strings.TrimSpace(input.HostSchoolID) == "" {
 		return apperror.Validation("host school is required")
+	}
+	if strings.TrimSpace(input.HostTeamID) != "" && strings.TrimSpace(input.HostClubID) != "" {
+		return apperror.Validation("an event is hosted by a team or a club, not both")
 	}
 	// Games are optional: an informational meeting or a club social may not
 	// center on any game.
@@ -259,6 +264,7 @@ func normalizeCreateParams(params CreateParams) CreateParams {
 	params.CreatorUserID = strings.TrimSpace(params.CreatorUserID)
 	params.HostSchoolID = strings.TrimSpace(params.HostSchoolID)
 	params.HostTeamID = strings.TrimSpace(params.HostTeamID)
+	params.HostClubID = strings.TrimSpace(params.HostClubID)
 	params.GameIDs = normalizeIDs(params.GameIDs)
 	params.Visibility = strings.TrimSpace(params.Visibility)
 	params.Format = strings.TrimSpace(params.Format)
@@ -284,6 +290,7 @@ func normalizeUpdateParams(params UpdateParams) UpdateParams {
 	params.Description = strings.TrimSpace(params.Description)
 	params.HostSchoolID = strings.TrimSpace(params.HostSchoolID)
 	params.HostTeamID = strings.TrimSpace(params.HostTeamID)
+	params.HostClubID = strings.TrimSpace(params.HostClubID)
 	params.GameIDs = normalizeIDs(params.GameIDs)
 	params.Visibility = strings.TrimSpace(params.Visibility)
 	params.Format = strings.TrimSpace(params.Format)

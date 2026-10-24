@@ -20,6 +20,7 @@ import type {
   EventDTO,
   EventFormSchoolDTO,
   EventGameDTO,
+  EventHostClubDTO,
   EventHostTeamDTO,
 } from "./contracts.js";
 import { createEvent, updateEvent } from "./event.functions.js";
@@ -52,6 +53,8 @@ type Props = {
   defaultTimeZone?: string;
   /** Teams that may host the event: the viewer's own, plus the event's. */
   hostTeams: EventHostTeamDTO[];
+  /** Clubs that may host the event: the viewer's own, plus the event's. */
+  hostClubs: EventHostClubDTO[];
   initialSchoolQuery: string;
   initialSchoolSearchFailed: boolean;
   /** Server-rendered key for create mode; see useIdempotencyKey. */
@@ -112,6 +115,7 @@ export function EventForm({
   defaultSchool,
   defaultTimeZone,
   hostTeams,
+  hostClubs,
   initialSchoolQuery,
   initialSchoolSearchFailed,
   idempotencyKey = "",
@@ -328,26 +332,55 @@ export function EventForm({
             </select>
           </FormField>
 
-          {/* Only a viewer who owns or captains a team gets the choice; the
-              event then reads "Hosted by" the team instead of its organizer. */}
-          {hostTeams.length > 0 ? (
+          {/* Only a viewer who owns or captains a team, or owns or edits a
+              club, gets the choice; the event then reads "Hosted by" the team
+              or club instead of its organizer. A club hosts only at its own
+              school. */}
+          {hostTeams.length > 0 || hostClubs.length > 0 ? (
             <FormField
-              errorId="event-host-team-error"
-              errors={errors("host_team_id")}
+              errorId="event-host-error"
+              errors={errors("host_team_id") ?? errors("host_club_id")}
               label="Hosted by"
             >
               <select
-                defaultValue={event?.host_team?.id ?? ""}
-                name="host_team_id"
+                defaultValue={
+                  event?.host_team
+                    ? `team:${event.host_team.id}`
+                    : event?.host_club
+                      ? `club:${event.host_club.id}`
+                      : ""
+                }
+                name="host"
               >
                 <option value="">Just me</option>
-                {hostTeams.map((team) => (
-                  <option key={team.id} value={team.id}>
-                    {team.name}
-                  </option>
-                ))}
+                {hostTeams.length > 0 ? (
+                  <optgroup label="Teams">
+                    {hostTeams.map((team) => (
+                      <option key={team.id} value={`team:${team.id}`}>
+                        {team.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                ) : null}
+                {hostClubs.length > 0 ? (
+                  <optgroup label="Clubs">
+                    {hostClubs.map((club) => (
+                      <option key={club.id} value={`club:${club.id}`}>
+                        {club.school
+                          ? `${club.name} (${club.school.name})`
+                          : club.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                ) : null}
               </select>
             </FormField>
+          ) : null}
+          {hostClubs.length > 0 ? (
+            <p className="form-help">
+              A club hosts events at its own school, and any of its owners or
+              editors can change or cancel them.
+            </p>
           ) : null}
 
           {/* No audience is preselected: an event created before the field

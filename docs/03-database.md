@@ -234,6 +234,9 @@ events
                               -- who the event is for; null only on events created before the column
   host_team_id nullable,      -- the hosting team; null when the organizer runs it alone.
                               -- checked against the organizer's team role only when chosen
+  host_club_id nullable,      -- the hosting club; its owners and editors may edit and cancel.
+                              -- the API keeps host_school_id equal to the club's school;
+                              -- CHECK: at most one of host_team_id and host_club_id
   cost (free|paid|unspecified) default unspecified,
                               -- unspecified = the organizer did not say; never treated as free.
                               -- Replaced is_paid: true became paid, everything else unspecified

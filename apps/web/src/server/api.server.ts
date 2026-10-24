@@ -165,6 +165,10 @@ export function safeApiErrorMessage(error: unknown): string {
     event_unlock_failed: "We could not unlock that event. Please try again.",
     host_team_not_allowed:
       "Only a team's owner or captains can host an event as that team.",
+    host_club_not_allowed:
+      "Only a club's owners and editors can host an event as that club.",
+    host_club_school_mismatch:
+      "A club's event must be hosted at the club's school. Choose that school as the host school.",
     idempotency_key_reused:
       "This form was already submitted. Reload the page and try again.",
     invalid_credentials: "The email or password did not match.",

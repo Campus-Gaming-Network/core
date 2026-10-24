@@ -31,6 +31,9 @@ func scanEvent(scanner eventScanner, now time.Time) (Event, error) {
 	var hostTeamID sql.NullString
 	var hostTeamName sql.NullString
 	var hostTeamSlug sql.NullString
+	var hostClubID sql.NullString
+	var hostClubName sql.NullString
+	var hostClubSlug sql.NullString
 	var gameIDs []string
 	var gameNames []string
 	var gameSlugs []string
@@ -60,6 +63,9 @@ func scanEvent(scanner eventScanner, now time.Time) (Event, error) {
 		&hostTeamID,
 		&hostTeamName,
 		&hostTeamSlug,
+		&hostClubID,
+		&hostClubName,
+		&hostClubSlug,
 		&event.HostSchool.ID,
 		&event.HostSchool.Name,
 		&event.HostSchool.Slug,
@@ -111,6 +117,9 @@ func scanEvent(scanner eventScanner, now time.Time) (Event, error) {
 	if hostTeamID.Valid {
 		event.HostTeam = &TeamSummary{ID: hostTeamID.String, Name: hostTeamName.String, Slug: hostTeamSlug.String}
 	}
+	if hostClubID.Valid {
+		event.HostClub = &ClubSummary{ID: hostClubID.String, Name: hostClubName.String, Slug: hostClubSlug.String}
+	}
 
 	event.Games = make([]GameSummary, 0, len(gameIDs))
 	for index := range gameIDs {
@@ -141,6 +150,9 @@ func scanEventForUser(scanner eventScanner, now time.Time) (Event, error) {
 	var hostTeamID sql.NullString
 	var hostTeamName sql.NullString
 	var hostTeamSlug sql.NullString
+	var hostClubID sql.NullString
+	var hostClubName sql.NullString
+	var hostClubSlug sql.NullString
 	var viewerRSVP sql.NullString
 	var gameIDs []string
 	var gameNames []string
@@ -171,6 +183,9 @@ func scanEventForUser(scanner eventScanner, now time.Time) (Event, error) {
 		&hostTeamID,
 		&hostTeamName,
 		&hostTeamSlug,
+		&hostClubID,
+		&hostClubName,
+		&hostClubSlug,
 		&event.HostSchool.ID,
 		&event.HostSchool.Name,
 		&event.HostSchool.Slug,
@@ -225,6 +240,9 @@ func scanEventForUser(scanner eventScanner, now time.Time) (Event, error) {
 	if hostTeamID.Valid {
 		event.HostTeam = &TeamSummary{ID: hostTeamID.String, Name: hostTeamName.String, Slug: hostTeamSlug.String}
 	}
+	if hostClubID.Valid {
+		event.HostClub = &ClubSummary{ID: hostClubID.String, Name: hostClubName.String, Slug: hostClubSlug.String}
+	}
 	if viewerRSVP.Valid {
 		event.ViewerRSVP = &viewerRSVP.String
 	}
@@ -251,6 +269,7 @@ func eventSelectSQL(whereClause string, tailClause string) string {
 		       e.payment_note, e.payment_url,
 		       e.recurrence_rule, e.recurrence_until, e.audience, e.event_type,
 		       ht.id::text, ht.name, ht.slug,
+		       hc.id::text, hc.name, hc.slug,
 		       s.id::text, s.name, s.slug, COALESCE(s.city, ''), COALESCE(s.state, ''),
 		       COALESCE(yes_counts.yes_count, 0)::int,
 		       COALESCE(interest_counts.interest_count, 0)::int,
@@ -274,6 +293,7 @@ func eventSelectSQL(whereClause string, tailClause string) string {
 		FROM events e
 		JOIN schools s ON s.id = e.host_school_id
 		LEFT JOIN teams ht ON ht.id = e.host_team_id AND ht.deleted_at IS NULL
+		LEFT JOIN clubs hc ON hc.id = e.host_club_id AND hc.deleted_at IS NULL AND hc.status = 'published'
 		LEFT JOIN event_games eg ON eg.event_id = e.id
 		LEFT JOIN games g ON g.id = eg.game_id AND g.deleted_at IS NULL
 		LEFT JOIN LATERAL (
@@ -294,7 +314,7 @@ func eventSelectSQL(whereClause string, tailClause string) string {
 		         e.format, e.starts_at, e.ends_at, e.timezone,
 		         e.location_name, e.address, e.online_url, e.capacity, e.cost,
 		         e.payment_note, e.payment_url, e.recurrence_rule, e.recurrence_until, e.audience,
-		         e.event_type, ht.id, ht.name, ht.slug,
+		         e.event_type, ht.id, ht.name, ht.slug, hc.id, hc.name, hc.slug,
 		         s.id, s.name, s.slug, s.city, s.state, yes_counts.yes_count,
 		         interest_counts.interest_count
 	` + tailClause
@@ -308,6 +328,7 @@ func eventSelectForUserSQL(whereClause string, tailClause string) string {
 		       e.payment_note, e.payment_url,
 		       e.recurrence_rule, e.recurrence_until, e.audience, e.event_type,
 		       ht.id::text, ht.name, ht.slug,
+		       hc.id::text, hc.name, hc.slug,
 		       s.id::text, s.name, s.slug, COALESCE(s.city, ''), COALESCE(s.state, ''),
 		       COALESCE(yes_counts.yes_count, 0)::int,
 		       COALESCE(interest_counts.interest_count, 0)::int,
@@ -330,16 +351,11 @@ func eventSelectForUserSQL(whereClause string, tailClause string) string {
 		       ),
 		       viewer_rsvp.response,
 		       (viewer_interest.user_id IS NOT NULL),
-		       EXISTS (
-		           SELECT 1
-		           FROM event_organizers viewer_organizer
-		           WHERE viewer_organizer.event_id = e.id
-		             AND viewer_organizer.user_id = $1::uuid
-		             AND viewer_organizer.deleted_at IS NULL
-		       )
+		       ` + editableBy("$1") + `
 		FROM events e
 		JOIN schools s ON s.id = e.host_school_id
 		LEFT JOIN teams ht ON ht.id = e.host_team_id AND ht.deleted_at IS NULL
+		LEFT JOIN clubs hc ON hc.id = e.host_club_id AND hc.deleted_at IS NULL AND hc.status = 'published'
 		LEFT JOIN event_games eg ON eg.event_id = e.id
 		LEFT JOIN games g ON g.id = eg.game_id AND g.deleted_at IS NULL
 		LEFT JOIN event_rsvps viewer_rsvp ON viewer_rsvp.event_id = e.id
@@ -366,7 +382,7 @@ func eventSelectForUserSQL(whereClause string, tailClause string) string {
 		         e.format, e.starts_at, e.ends_at, e.timezone,
 		         e.location_name, e.address, e.online_url, e.capacity, e.cost,
 		         e.payment_note, e.payment_url, e.recurrence_rule, e.recurrence_until, e.audience,
-		         e.event_type, ht.id, ht.name, ht.slug,
+		         e.event_type, ht.id, ht.name, ht.slug, hc.id, hc.name, hc.slug,
 		         s.id, s.name, s.slug, s.city, s.state, yes_counts.yes_count,
 		         interest_counts.interest_count, viewer_rsvp.response,
 		         viewer_interest.user_id

@@ -158,3 +158,6 @@ Migration `000042_club_confirmation_reminders.up.sql` adds
 club's owners were last reminded about, and the `club_confirmation_due` email
 kind. Apply it before deploying the API that serves `POST /clubs/{slug}/confirm`
 and queues the reminders.
+Migration `000043_event_host_club.up.sql` adds `events.host_club_id`, the club
+that hosts an event, and a check that an event has at most one hosting team or
+club. Apply it before deploying the API that reads and writes the column.

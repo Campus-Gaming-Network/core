@@ -595,6 +595,7 @@ func TestHandleEventPathReturnsEditPermissionForOrganizer(t *testing.T) {
 	repository := &fakeEventRepository{
 		detail:      testEvent(eventstore.VisibilityPublic),
 		isOrganizer: true,
+		canCancel:   true,
 	}
 	handler := authenticatedEventPathHandler(repository)
 	request := authenticatedEventRequest(http.MethodGet, "/events/campus-scrim-night", "")
@@ -609,8 +610,8 @@ func TestHandleEventPathReturnsEditPermissionForOrganizer(t *testing.T) {
 	if err := json.NewDecoder(response.Body).Decode(&payload); err != nil {
 		t.Fatalf("decode response: %v", err)
 	}
-	if !payload.ViewerCanEdit {
-		t.Fatal("ViewerCanEdit = false, want true for organizer")
+	if !payload.ViewerCanEdit || !payload.ViewerCanCancel {
+		t.Fatalf("ViewerCanEdit, ViewerCanCancel = %v, %v, want both for an organizer who may cancel", payload.ViewerCanEdit, payload.ViewerCanCancel)
 	}
 }
 

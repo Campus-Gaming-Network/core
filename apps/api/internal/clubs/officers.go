@@ -684,3 +684,41 @@ func (r *PostgresRepository) AcceptOwnership(ctx context.Context, slug, userID s
 			map[string]string{"owner_user_id": from}, map[string]string{"owner_user_id": userID}, nil)
 	})
 }
+
+// UserClub is a published club someone is in, with their role in it.
+type UserClub struct {
+	ID         string        `json:"id"`
+	Name       string        `json:"name"`
+	Slug       string        `json:"slug"`
+	School     SchoolSummary `json:"school"`
+	ViewerRole string        `json:"viewer_role"`
+}
+
+// maximumUserClubs bounds the clubs ListForUser returns.
+const maximumUserClubs = 100
+
+// ListForUser returns the published clubs userID is in, owners' and editors'
+// clubs first, then by name.
+func (r *PostgresRepository) ListForUser(ctx context.Context, userID string) ([]UserClub, error) {
+	rows, err := r.pool.Query(ctx, `
+		SELECT c.id::text, c.name, c.slug, s.id::text, s.name, s.slug, m.role
+		FROM club_members m
+		JOIN clubs c ON c.id = m.club_id AND `+publishedClub+`
+		JOIN schools s ON s.id = c.school_id AND s.deleted_at IS NULL
+		WHERE m.user_id = $1::uuid
+		ORDER BY CASE m.role WHEN 'member' THEN 1 ELSE 0 END, LOWER(c.name), c.id
+		LIMIT $2
+	`, userID, maximumUserClubs)
+	if err != nil {
+		return nil, fmt.Errorf("list user clubs: %w", err)
+	}
+	clubs, err := pgx.CollectRows(rows, func(row pgx.CollectableRow) (UserClub, error) {
+		var club UserClub
+		err := row.Scan(&club.ID, &club.Name, &club.Slug, &club.School.ID, &club.School.Name, &club.School.Slug, &club.ViewerRole)
+		return club, err
+	})
+	if err != nil {
+		return nil, fmt.Errorf("scan user clubs: %w", err)
+	}
+	return clubs, nil
+}

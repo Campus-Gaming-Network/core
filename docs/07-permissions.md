@@ -17,7 +17,7 @@ Authorization rules for the public site and the Admin Console. Enforce in **Go**
 | **Club member**        | Joins (signed in, verified email)                                   | Listed on the club member list; may leave                                                                                                    |
 | **Team owner**         | Creator or transfer                                                 | Manage team; transfer ownership; assign captains                                                                                             |
 | **Team captain**       | Owner assigns                                                       | Register team for tournaments; limited team mgmt                                                                                             |
-| **Event organizer**    | Creator, or co-organizer by accepted invite                         | Edit event until it ends; the creator alone cancels it, until it ends, and manages co-organizers                                             |
+| **Event organizer**    | Creator, or co-organizer by accepted invite                         | Edit event until it ends; the creator cancels it, until it ends, and alone manages co-organizers                                             |
 | **Approved organizer** | Explicit grant                                                      | Badge-eligible events                                                                                                                        |
 | **Site admin**         | Bootstrap, then Admin Console                                       | Schools; games; reports; support tickets; staff grants; impersonation and feature flags later                                                |
 
@@ -78,7 +78,7 @@ Verification is not a substitute for school admin or site admin.
 | Remove other school admin                       |           |                 | ✗            |                   |            |                 | ✓ only              |
 | Edit past event date/location                   |           | ✗               | ✗            | ✗                 | ✗          | ✗               | break-glass TBD     |
 | Minor edit past event                           |           |                 |              |                   |            | ✓               | ✓                   |
-| Soft-delete event                               |           |                 |              |                   |            | creator only    | ✓                   |
+| Soft-delete event                               |           |                 |              | if hosting        |            | creator only    | ✓                   |
 | View event activity log                         | public†   | public†         | public†      | all if hosting†   | public†    | all             | all (Admin Console) |
 | View all reports                                |           |                 |              |                   |            |                 | ✓                   |
 | Impersonate user                                |           |                 |              |                   |            |                 | ✓                   |
@@ -132,8 +132,9 @@ see every entry. See [02 — Domain model](./02-domain-model.md#event-activity-l
 
 - Anyone authenticated (email-verified) can create an event — **no approval required**
 - The creator invites co-organizers by email; an invite is accepted by signing in
-  with that address. Co-organizers edit the event and may step down. Only the
-  creator cancels the event, manages invites and co-organizers, and hands the
+  with that address. Co-organizers edit the event and may step down. The
+  creator, and on a club-hosted event the club's owners and editors, cancel
+  the event. Only the creator manages invites and co-organizers and hands the
   creator role to a co-organizer (see [04 — API](./04-api.md#co-organizers))
 - Event pages show organizer names and school-admin/staff-faculty role indicators
   when applicable
@@ -195,8 +196,12 @@ see every entry. See [02 — Domain model](./02-domain-model.md#event-activity-l
 - A club's owners and editors may host an event as the club, at the club's
   school. Any owner or editor of the hosting club can edit and cancel the
   event; a person removed from the club loses that access unless they created
-  or co-organize the event. How organizer trust indicators read on a
-  club-hosted event is decided with that work (#124)
+  or co-organize the event
+- On a club-hosted event the page reads "Hosted by \<club>" and still lists
+  the event's creator and co-organizers with their own role indicators. The
+  club's other owners and editors, who can edit through the club, are not
+  listed as organizers and add no indicator, and hosting by a club adds no
+  trust indicator of its own: a claimed club is not a verified one
 - Every club edit, claim decision, role change, removal, and transfer writes an
   audit record
 
