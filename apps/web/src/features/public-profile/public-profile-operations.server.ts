@@ -1,10 +1,10 @@
 import * as z from "zod";
 import {
-  ApiContractError,
   ApiError,
   safeApiErrorMessage,
   type ApiClient,
 } from "../../server/api.server.js";
+import { apiErrorReporter } from "../../server/api-error-reporter.server.js";
 import { optionalViewerProfile } from "../../server/viewer.server.js";
 import { withBundledSchoolLogo } from "../school-slice/school-logos.server.js";
 import {
@@ -114,13 +114,4 @@ export async function reportUserOperation(
   }
 }
 
-function defaultErrorReporter(error: unknown): void {
-  if (error instanceof ApiContractError) {
-    console.error("API response contract violation", {
-      path: error.path,
-      issues: error.issues,
-    });
-  } else if (!(error instanceof ApiError)) {
-    console.error("Public profile request failed");
-  }
-}
+const defaultErrorReporter = apiErrorReporter("Public profile", "API");

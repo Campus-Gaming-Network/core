@@ -1,11 +1,11 @@
 import * as z from "zod";
 import type { GoalSender } from "../../server/analytics.server.js";
 import {
-  ApiContractError,
   ApiError,
   safeApiErrorMessage,
   type ApiClient,
 } from "../../server/api.server.js";
+import { apiErrorReporter } from "../../server/api-error-reporter.server.js";
 import {
   unlockCookieMutation,
   type CookieMutation,
@@ -676,13 +676,4 @@ async function readEvents(api: ApiClient, input: EventsBrowseInput) {
   return { ...data, events: data.events.map(withHostSchoolLogo) };
 }
 
-function defaultErrorReporter(error: unknown): void {
-  if (error instanceof ApiContractError) {
-    console.error("API response contract violation", {
-      path: error.path,
-      issues: error.issues,
-    });
-  } else if (!(error instanceof ApiError)) {
-    console.error("Event request failed");
-  }
-}
+const defaultErrorReporter = apiErrorReporter("Event", "API");

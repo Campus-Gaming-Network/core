@@ -1,8 +1,5 @@
-import {
-  ApiContractError,
-  ApiError,
-  type ApiClient,
-} from "../../server/api.server.js";
+import { ApiError, type ApiClient } from "../../server/api.server.js";
+import { apiErrorReporter } from "../../server/api-error-reporter.server.js";
 import { schoolLogoBase } from "../../server/environment.server.js";
 import { optionalViewerProfile } from "../../server/viewer.server.js";
 import { bundledSchoolLogo } from "./school-logos.server.js";
@@ -274,13 +271,4 @@ function withVerifiedLogo(
   }
 }
 
-export function defaultErrorReporter(error: unknown): void {
-  if (error instanceof ApiContractError) {
-    console.error("School catalog response contract violation", {
-      path: error.path,
-      issues: error.issues,
-    });
-  } else if (!(error instanceof ApiError)) {
-    console.error("School catalog request failed");
-  }
-}
+export const defaultErrorReporter = apiErrorReporter("School catalog");

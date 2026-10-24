@@ -1,10 +1,10 @@
 import * as z from "zod";
 import {
-  ApiContractError,
   ApiError,
   safeApiErrorMessage,
   type ApiClient,
 } from "../../server/api.server.js";
+import { apiErrorReporter } from "../../server/api-error-reporter.server.js";
 import type { CookieMutation } from "../../server/cookies.server.js";
 import {
   withBundledSchoolLogo,
@@ -300,16 +300,7 @@ async function safeSecondaryRead<T>(
   }
 }
 
-function defaultErrorReporter(error: unknown): void {
-  if (error instanceof ApiContractError) {
-    console.error("Account response contract violation", {
-      path: error.path,
-      issues: error.issues,
-    });
-  } else if (!(error instanceof ApiError)) {
-    console.error("Account request failed");
-  }
-}
+const defaultErrorReporter = apiErrorReporter("Account");
 
 /** A password or email change: where to go next, or the notice to show. */
 export type SecurityChangeResult =

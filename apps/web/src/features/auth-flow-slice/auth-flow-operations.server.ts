@@ -1,9 +1,6 @@
 import * as z from "zod";
-import {
-  ApiContractError,
-  ApiError,
-  type ApiClient,
-} from "../../server/api.server.js";
+import { ApiError, type ApiClient } from "../../server/api.server.js";
+import { apiErrorReporter } from "../../server/api-error-reporter.server.js";
 import type { GoalSender } from "../../server/analytics.server.js";
 import { profileDtoSchema } from "../../server/viewer.server.js";
 import {
@@ -200,13 +197,4 @@ function authErrorMessage(error: unknown): string {
   return messages[error.code] ?? "Something went wrong. Please try again.";
 }
 
-function defaultErrorReporter(error: unknown): void {
-  if (error instanceof ApiContractError) {
-    console.error("Authentication response contract violation", {
-      path: error.path,
-      issues: error.issues,
-    });
-  } else if (!(error instanceof ApiError)) {
-    console.error("Authentication request failed");
-  }
-}
+const defaultErrorReporter = apiErrorReporter("Authentication");

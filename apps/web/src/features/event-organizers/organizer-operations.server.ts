@@ -1,8 +1,5 @@
-import {
-  ApiContractError,
-  ApiError,
-  type ApiClient,
-} from "../../server/api.server.js";
+import { ApiError, type ApiClient } from "../../server/api.server.js";
+import { apiErrorReporter } from "../../server/api-error-reporter.server.js";
 import { emptyResponseDtoSchema } from "../event-slice/contracts.js";
 import {
   acceptOrganizerInviteResponseDtoSchema,
@@ -197,13 +194,4 @@ export async function acceptOrganizerInviteOperation(
   }
 }
 
-function defaultErrorReporter(error: unknown): void {
-  if (error instanceof ApiContractError) {
-    console.error("Event organizer response contract violation", {
-      path: error.path,
-      issues: error.issues,
-    });
-  } else if (!(error instanceof ApiError)) {
-    console.error("Event organizer request failed");
-  }
-}
+const defaultErrorReporter = apiErrorReporter("Event organizer");

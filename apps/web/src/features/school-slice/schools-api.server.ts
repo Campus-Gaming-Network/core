@@ -1,8 +1,5 @@
-import {
-  ApiContractError,
-  ApiError,
-  type ApiClient,
-} from "../../server/api.server.js";
+import { ApiError, type ApiClient } from "../../server/api.server.js";
+import { apiErrorReporter } from "../../server/api-error-reporter.server.js";
 import { readSchools } from "./catalog-operations.server.js";
 import { withBundledSchoolLogo } from "./school-logos.server.js";
 
@@ -73,13 +70,4 @@ function jsonResponse(
   return Response.json(body, { status, headers });
 }
 
-function defaultErrorReporter(error: unknown): void {
-  if (error instanceof ApiContractError) {
-    console.error("School search response contract violation", {
-      path: error.path,
-      issues: error.issues,
-    });
-  } else if (!(error instanceof ApiError)) {
-    console.error("School search request failed");
-  }
-}
+const defaultErrorReporter = apiErrorReporter("School search");
