@@ -18,6 +18,8 @@ export const routeEvent: EventDTO = {
   cost: "free",
   host_school: { id: "school-1", name: "Example University", slug: "example" },
   games: [],
+  revision: 0,
+  updated_at: "2037-02-01T17:00:00Z",
 };
 
 export const routeProfile: PublicProfileDTO = {

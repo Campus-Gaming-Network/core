@@ -1330,6 +1330,8 @@ function eventFor(slug: string, viewerRsvp?: string) {
     interest_count: 2,
     lifecycle: "upcoming",
     cost: "unspecified",
+    revision: 0,
+    updated_at: "2037-08-01T17:00:00Z",
     host_school: {
       id: "school-e2e",
       name: "Browser Test University",
@@ -1385,6 +1387,8 @@ function createdEventFromBody(
     rsvp_yes_count: 0,
     interest_count: 0,
     lifecycle: "upcoming",
+    revision: 0,
+    updated_at: "2037-08-01T17:00:00Z",
     ...(body.recurrence_rule ? { recurrence_rule: body.recurrence_rule } : {}),
     ...(body.recurrence_until
       ? { recurrence_until: `${body.recurrence_until}T23:59:59Z` }

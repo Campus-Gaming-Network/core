@@ -247,6 +247,8 @@ events
   recurrence_rule nullable,       -- weekly | biweekly | monthly
   recurrence_until nullable,      -- inclusive UTC end date; max one year from start
   recurrence_parent_id nullable,   -- generated occurrence's root event
+  revision default 0,             -- a trigger raises it when a field the calendar file
+                                  -- shows changes, cancellation included; the file's SEQUENCE
   created_by_user_id, school_id nullable,
   badge_eligible boolean or derived,
   created_at, updated_at, deleted_at

@@ -2,7 +2,10 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import { test } from "vite-plus/test";
-import type { EventDTO } from "../src/features/event-slice/contracts.js";
+import {
+  eventDtoSchema,
+  type EventDTO,
+} from "../src/features/event-slice/contracts.js";
 import {
   eventCalendarResponse,
   eventICS,
@@ -38,6 +41,8 @@ const event: EventDTO = {
   cost: "unspecified",
   host_school: { id: "school-1", name: "Example University", slug: "example" },
   games: [],
+  revision: 0,
+  updated_at: "2036-12-20T00:00:00Z",
 };
 
 function client(fetcher: Fetcher) {
@@ -64,6 +69,7 @@ test("an event becomes one escaped UTC VCALENDAR entry", () => {
       "DTSTAMP:20370101T000000Z",
       "DTSTART:20370220T020000Z",
       "DTEND:20370220T050000Z",
+      "LAST-MODIFIED:20361220T000000Z",
       "SEQUENCE:0",
       "STATUS:CONFIRMED",
       "TRANSP:OPAQUE",
@@ -79,6 +85,28 @@ test("an event becomes one escaped UTC VCALENDAR entry", () => {
   );
 });
 
+// The Go RSVP attachment renders the same fixtures to the same files, so a
+// file from either replaces the other in a calendar: editing raises
+// SEQUENCE, and cancelling raises it again and marks the event cancelled.
+test("the export matches the calendar fixtures the RSVP attachment shares", () => {
+  const fixtures = join(appRoot, "../api/internal/events/testdata/calendar");
+  const read = (name: string) => readFileSync(join(fixtures, name), "utf8");
+  const rendered = ["created", "edited", "cancelled"].map((state) => {
+    const fixture = eventDtoSchema.parse(JSON.parse(read(`${state}.json`)));
+    return eventICS(
+      fixture,
+      `https://cgn.test/events/${fixture.slug}`,
+      new Date("2037-02-01T12:00:00Z"),
+    );
+  });
+
+  assert.deepEqual(rendered, [
+    read("created.ics"),
+    read("edited.ics"),
+    read("cancelled.ics"),
+  ]);
+});
+
 test("a cancelled event is marked cancelled with a higher sequence", () => {
   const body = eventICS(
     {
@@ -90,6 +118,8 @@ test("a cancelled event is marked cancelled with a higher sequence", () => {
       address: undefined,
       audience: undefined,
       cancelled_at: "2037-01-02T03:04:05Z",
+      revision: 1,
+      updated_at: "2037-01-02T03:04:05Z",
     },
     "https://cgn.test/e",
     now,

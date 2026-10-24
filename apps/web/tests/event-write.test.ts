@@ -48,6 +48,8 @@ const event = {
   cost: "unspecified" as const,
   host_school: school,
   games: [{ ...game, has_cover: true }],
+  revision: 0,
+  updated_at: "2037-02-01T17:00:00Z",
   viewer_can_edit: true,
 };
 

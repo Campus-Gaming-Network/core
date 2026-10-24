@@ -1,0 +1,28 @@
+{
+  "id": "7d0f3c1e-2b4a-4c8d-9e6f-1a2b3c4d5e6f",
+  "title": "Smash Night, Finals",
+  "slug": "smash-night-finals",
+  "description": "Bring a controller; doors open early.",
+  "visibility": "public",
+  "format": "in_person",
+  "audience": "campus",
+  "event_type": "tournament",
+  "starts_at": "2037-02-21T02:00:00Z",
+  "ends_at": "2037-02-21T05:00:00Z",
+  "timezone": "America/Los_Angeles",
+  "location_name": "Student Union",
+  "address": "1 Campus Way",
+  "rsvp_yes_count": 4,
+  "interest_count": 2,
+  "lifecycle": "upcoming",
+  "cost": "free",
+  "host_school": {
+    "id": "school-1",
+    "name": "Example University",
+    "slug": "example"
+  },
+  "games": [],
+  "revision": 2,
+  "updated_at": "2037-02-10T09:00:00Z",
+  "cancelled_at": "2037-02-10T09:00:00Z"
+}

@@ -1,0 +1,21 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Campus Gaming Network//CGN//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+BEGIN:VEVENT
+UID:7d0f3c1e-2b4a-4c8d-9e6f-1a2b3c4d5e6f@campusgamingnetwork.com
+DTSTAMP:20370201T120000Z
+DTSTART:20370221T020000Z
+DTEND:20370221T050000Z
+LAST-MODIFIED:20370205T181500Z
+SEQUENCE:1
+STATUS:CONFIRMED
+TRANSP:OPAQUE
+SUMMARY:Smash Night\, Finals
+DESCRIPTION:Bring a controller\; doors open early.\n\nWho it's for: Host ca
+ mpus only\n\nView event: https://cgn.test/events/smash-night-finals
+LOCATION:Student Union\, 1 Campus Way
+URL:https://cgn.test/events/smash-night-finals
+END:VEVENT
+END:VCALENDAR

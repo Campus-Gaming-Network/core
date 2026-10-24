@@ -44,6 +44,8 @@ const baseEvent: EventDTO = {
     slug: "example-university",
   },
   games: [],
+  revision: 0,
+  updated_at: "2037-02-01T17:00:00Z",
   organizers: [
     {
       id: "user-1",
