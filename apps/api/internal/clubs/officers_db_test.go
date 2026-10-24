@@ -352,3 +352,29 @@ func TestAVerifiedUserJoinsLeavesAndAfterRemovalJoinsAgain(t *testing.T) {
 		t.Fatalf("role after joining again = %q, want member", got)
 	}
 }
+
+func TestListForUserPutsOfficerClubsFirst(t *testing.T) {
+	ctx := context.Background()
+	f := newOfficerFixture(t)
+	person := f.user(t, "person")
+	alphaID := f.club(t, "alpha-club", [2]string{person, RoleMember})
+	zuluID := f.club(t, "zulu-club", [2]string{person, RoleEditor})
+	f.club(t, "other-club")
+	hiddenID := f.club(t, "hidden-club", [2]string{person, RoleOwner})
+	if _, err := f.pool.Exec(ctx, `UPDATE clubs SET status = 'hidden' WHERE id = $1::uuid`, hiddenID); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := f.repository.ListForUser(ctx, person)
+	if err != nil {
+		t.Fatalf("ListForUser() error = %v", err)
+	}
+	school := SchoolSummary{ID: f.schoolID, Name: "Officer University", Slug: "officer-university"}
+	want := []UserClub{
+		{ID: zuluID, Name: "zulu-club", Slug: "zulu-club", School: school, ViewerRole: RoleEditor},
+		{ID: alphaID, Name: "alpha-club", Slug: "alpha-club", School: school, ViewerRole: RoleMember},
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("ListForUser() = %+v, want %+v", got, want)
+	}
+}

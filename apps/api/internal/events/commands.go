@@ -29,6 +29,11 @@ func (r *PostgresRepository) Create(ctx context.Context, params CreateParams) (E
 			return Event{}, err
 		}
 	}
+	if params.HostClubID != "" {
+		if err := checkHostClub(ctx, r.pool, params.HostClubID, params.CreatorUserID, params.HostSchoolID, true); err != nil {
+			return Event{}, err
+		}
+	}
 	baseSlug := GenerateSlug(params.Title, params.CreatorUserID, r.now())
 	for attempt := 0; attempt < 5; attempt++ {
 		slug := baseSlug
@@ -76,19 +81,24 @@ func (r *PostgresRepository) Update(ctx context.Context, params UpdateParams) (E
 		return Event{}, err
 	}
 
-	// An event keeps its team after the organizer leaves it or stops being a
-	// captain, so only a change of team needs the role.
-	if params.HostTeamID != "" {
-		var currentHostTeamID string
-		if err := tx.QueryRow(ctx, `
-			SELECT COALESCE(host_team_id::text, '') FROM events WHERE id = $1::uuid
-		`, eventID).Scan(&currentHostTeamID); err != nil {
-			return Event{}, fmt.Errorf("load event host team: %w", err)
+	// An event keeps its team or club after the organizer leaves it or loses
+	// the role, so only a change of host needs the role. A club host must
+	// still share the event's school.
+	var currentHostTeamID, currentHostClubID string
+	if err := tx.QueryRow(ctx, `
+		SELECT COALESCE(host_team_id::text, ''), COALESCE(host_club_id::text, '') FROM events WHERE id = $1::uuid
+	`, eventID).Scan(&currentHostTeamID, &currentHostClubID); err != nil {
+		return Event{}, fmt.Errorf("load event hosts: %w", err)
+	}
+	if params.HostTeamID != "" && params.HostTeamID != currentHostTeamID {
+		if err := checkHostTeam(ctx, tx, params.HostTeamID, params.EditorUserID); err != nil {
+			return Event{}, err
 		}
-		if params.HostTeamID != currentHostTeamID {
-			if err := checkHostTeam(ctx, tx, params.HostTeamID, params.EditorUserID); err != nil {
-				return Event{}, err
-			}
+	}
+	if params.HostClubID != "" {
+		changed := params.HostClubID != currentHostClubID
+		if err := checkHostClub(ctx, tx, params.HostClubID, params.EditorUserID, params.HostSchoolID, changed); err != nil {
+			return Event{}, err
 		}
 	}
 
@@ -124,7 +134,8 @@ func (r *PostgresRepository) Update(ctx context.Context, params UpdateParams) (E
 		    payment_url = NULLIF($17, ''),
 		    audience = $18,
 		    event_type = $19,
-		    host_team_id = NULLIF($20, '')::uuid
+		    host_team_id = NULLIF($20, '')::uuid,
+		    host_club_id = NULLIF($21, '')::uuid
 		FROM schools s
 		WHERE e.id = $1::uuid
 		  AND s.id = $2::uuid
@@ -135,7 +146,7 @@ func (r *PostgresRepository) Update(ctx context.Context, params UpdateParams) (E
 		params.Format, params.StartsAt, params.EndsAt, params.Timezone, params.LocationName,
 		params.Address, params.OnlineURL, privatePasswordHash, nullableInt(params.Capacity),
 		params.Cost, params.PaymentNote, params.PaymentURL, params.Audience,
-		params.EventType, params.HostTeamID).Scan(&slug)
+		params.EventType, params.HostTeamID, params.HostClubID).Scan(&slug)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Event{}, ErrHostSchoolNotFound
 	}
@@ -180,7 +191,8 @@ func (r *PostgresRepository) Update(ctx context.Context, params UpdateParams) (E
 	return r.GetBySlug(ctx, slug)
 }
 
-// Delete soft-deletes an event the user may edit.
+// Delete cancels an event for its creator or an owner or editor of its host
+// club.
 func (r *PostgresRepository) Delete(ctx context.Context, slug string, userID string) error {
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
@@ -188,8 +200,9 @@ func (r *PostgresRepository) Delete(ctx context.Context, slug string, userID str
 	}
 	defer tx.Rollback(ctx)
 
-	// Co-organizers edit an event; only its creator cancels it.
-	eventID, err := lockOwnedEvent(ctx, tx, slug, userID)
+	// Co-organizers edit an event; its creator and its host club's officers
+	// cancel it.
+	eventID, err := lockCancellableEvent(ctx, tx, slug, userID)
 	if err != nil {
 		return err
 	}

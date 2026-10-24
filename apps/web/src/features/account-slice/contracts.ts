@@ -71,6 +71,7 @@ const dashboardEventDtoSchema = z.object({
   lifecycle: z.enum(["upcoming", "happening_now", "ended", "full"]),
   host_school: schoolSummarySchema.pick({ name: true, slug: true }),
   host_team: z.object({ name: z.string(), slug: identifierSchema }).optional(),
+  host_club: z.object({ name: z.string(), slug: identifierSchema }).optional(),
   games: z.array(gameSummarySchema.pick({ name: true })),
   rsvp_yes_count: nonNegativeIntegerSchema,
   interest_count: nonNegativeIntegerSchema,

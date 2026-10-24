@@ -15,12 +15,18 @@ var (
 	// ErrHostTeamNotAllowed reports a host team that does not exist or that
 	// the organizer does not own or captain.
 	ErrHostTeamNotAllowed = apperror.New(apperror.KindUnprocessable, "host_team_not_allowed", "host team must be one you own or captain")
-	ErrGameNotFound       = apperror.New(apperror.KindUnprocessable, "game_not_found", "game not found")
-	ErrSlugUnavailable    = apperror.New(apperror.KindConflict, "event_slug_unavailable", "event slug unavailable")
-	ErrEventNotFound      = apperror.New(apperror.KindNotFound, "event_not_found", "event not found")
-	ErrOrganizerRequired  = apperror.New(apperror.KindAuthorization, "not_event_organizer", "event organizer required")
-	ErrEventFull          = apperror.New(apperror.KindConflict, "event_full", "event is full")
-	ErrRSVPClosed         = apperror.New(apperror.KindConflict, "event_rsvp_closed", "event rsvp is closed")
+	// ErrHostClubNotAllowed reports a host club that is not published or that
+	// the user is not an owner or editor of.
+	ErrHostClubNotAllowed = apperror.New(apperror.KindUnprocessable, "host_club_not_allowed", "host club must be one you own or edit")
+	// ErrHostClubSchool reports a host club at a school other than the
+	// event's host school.
+	ErrHostClubSchool    = apperror.New(apperror.KindUnprocessable, "host_club_school_mismatch", "the host school must be the host club's school")
+	ErrGameNotFound      = apperror.New(apperror.KindUnprocessable, "game_not_found", "game not found")
+	ErrSlugUnavailable   = apperror.New(apperror.KindConflict, "event_slug_unavailable", "event slug unavailable")
+	ErrEventNotFound     = apperror.New(apperror.KindNotFound, "event_not_found", "event not found")
+	ErrOrganizerRequired = apperror.New(apperror.KindAuthorization, "not_event_organizer", "event organizer required")
+	ErrEventFull         = apperror.New(apperror.KindConflict, "event_full", "event is full")
+	ErrRSVPClosed        = apperror.New(apperror.KindConflict, "event_rsvp_closed", "event rsvp is closed")
 	// ErrEventEnded reports an edit or cancellation of an event that has
 	// already ended.
 	ErrEventEnded = apperror.New(apperror.KindConflict, "event_ended", "event has ended")
@@ -105,15 +111,21 @@ type Event struct {
 	HostSchool      SchoolSummary `json:"host_school"`
 	// HostTeam is the team that hosts the event. It is nil for an event its
 	// organizer runs alone.
-	HostTeam         *TeamSummary  `json:"host_team,omitempty"`
+	HostTeam *TeamSummary `json:"host_team,omitempty"`
+	// HostClub is the club that hosts the event. An event has a host team or
+	// a host club, not both.
+	HostClub         *ClubSummary  `json:"host_club,omitempty"`
 	Games            []GameSummary `json:"games"`
 	Organizers       []Organizer   `json:"organizers,omitempty"`
 	ViewerRSVP       *string       `json:"viewer_rsvp,omitempty"`
 	ViewerInterested bool          `json:"viewer_interested,omitempty"`
 	ViewerCanEdit    bool          `json:"viewer_can_edit,omitempty"`
-	// ViewerIsCreator is set for the event's creator, who alone cancels it
-	// and manages its co-organizers.
+	// ViewerIsCreator is set for the event's creator, who alone manages its
+	// co-organizers.
 	ViewerIsCreator bool `json:"viewer_is_creator,omitempty"`
+	// ViewerCanCancel is set for the creator and for an owner or editor of
+	// the host club.
+	ViewerCanCancel bool `json:"viewer_can_cancel,omitempty"`
 	// CancelledAt is when the event was cancelled. Only GetPageBySlug sets
 	// it; every other read leaves cancelled events out.
 	CancelledAt *time.Time `json:"cancelled_at,omitempty"`
@@ -169,6 +181,13 @@ type TeamSummary struct {
 	Slug string `json:"slug"`
 }
 
+// ClubSummary identifies the club that hosts an event.
+type ClubSummary struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+	Slug string `json:"slug"`
+}
+
 // GameSummary identifies a game in event responses.
 type GameSummary struct {
 	ID   string `json:"id"`
@@ -186,6 +205,8 @@ type ListParams struct {
 	SchoolSlug string
 	// TeamSlug keeps the events that team hosts.
 	TeamSlug string
+	// ClubSlug keeps the events that club hosts.
+	ClubSlug string
 	// Query keeps events whose title contains it, ignoring case.
 	Query     string
 	Format    string
@@ -213,7 +234,10 @@ type CreateInput struct {
 	CreatorUserID string
 	HostSchoolID  string
 	// HostTeamID is optional. The creator must own or captain the team.
-	HostTeamID      string
+	HostTeamID string
+	// HostClubID is optional. The creator must own or edit the club, and the
+	// host school must be the club's.
+	HostClubID      string
 	GameIDs         []string
 	Visibility      string
 	Format          string
@@ -253,7 +277,10 @@ type UpdateInput struct {
 	HostSchoolID string
 	// HostTeamID is optional. Keeping the event's current team needs no role;
 	// choosing a different team needs the editor to own or captain it.
-	HostTeamID      string
+	HostTeamID string
+	// HostClubID is optional, with the same rule as HostTeamID for a club's
+	// owners and editors. The host school must stay the club's.
+	HostClubID      string
 	GameIDs         []string
 	Visibility      string
 	Format          string
@@ -279,6 +306,14 @@ type UpdateParams struct {
 	PrivatePasswordHash string
 }
 
+// Access is what a signed-in user may do to an event.
+type Access struct {
+	// Edit is true for an organizer, or an owner or editor of the host club.
+	Edit bool
+	// Cancel is true for the creator, or an owner or editor of the host club.
+	Cancel bool
+}
+
 // RSVPInput sets a user's RSVP response for an event.
 type RSVPInput struct {
 	Slug     string
@@ -291,7 +326,7 @@ type Repository interface {
 	Create(ctx context.Context, params CreateParams) (Event, error)
 	Update(ctx context.Context, params UpdateParams) (Event, error)
 	Delete(ctx context.Context, slug string, userID string) error
-	IsOrganizer(ctx context.Context, slug string, userID string) (bool, error)
+	Access(ctx context.Context, slug string, userID string) (Access, error)
 	PrivatePasswordHash(ctx context.Context, slug string) (string, error)
 	CreatePrivateUnlock(ctx context.Context, slug string, tokenHash []byte, expiresAt time.Time) error
 	IsPrivateUnlockValid(ctx context.Context, slug string, tokenHash []byte) (bool, error)

@@ -26,6 +26,8 @@ import { ButtonLink } from "../components/button-link";
 import { PageNoticeView } from "../components/page-notice-view";
 import { StatusLabel } from "../components/status-label";
 import { ClubCommandForm } from "../features/club-slice/club-command-form";
+import { EventCard } from "../features/event-slice/event-card";
+import { getClubEvents } from "../features/event-slice/event.functions";
 import { getClubDetail } from "../features/club-slice/club.functions";
 import {
   clubNotices,
@@ -47,9 +49,10 @@ export const Route = createFileRoute("/clubs/$slug")({
   loader: async ({ context, params }) => {
     // The members read is for signed-in viewers; a visitor's answers
     // "signed_out" without reaching the API.
-    const [result, members] = await Promise.all([
+    const [result, members, events] = await Promise.all([
       getClubDetail({ data: { slug: params.slug } }),
       getClubMembers({ data: { slug: params.slug, limit: peoplePreviewSize } }),
+      getClubEvents({ data: { slug: params.slug } }),
     ]);
     if (result.status === "not_found") throw notFound();
     if (result.status !== "found")
@@ -63,7 +66,12 @@ export const Route = createFileRoute("/clubs/$slug")({
         statusCode: 301,
       });
     }
-    return { club: result.club, members, publicOrigin: context.publicOrigin };
+    return {
+      club: result.club,
+      members,
+      events,
+      publicOrigin: context.publicOrigin,
+    };
   },
   staleTime: 0,
   head: ({ loaderData }) => {
@@ -80,7 +88,7 @@ export const Route = createFileRoute("/clubs/$slug")({
 });
 
 function ClubPage() {
-  const { club, members } = Route.useLoaderData();
+  const { club, members, events } = Route.useLoaderData();
   const search = Route.useSearch();
   const location = schoolLocation(club.school, "");
   const confirmed = clubConfirmedLine(club);
@@ -127,6 +135,29 @@ function ClubPage() {
               {club.name} has not added a description or how to join yet.
             </p>
           ) : null}
+          <section
+            aria-labelledby="club-events-title"
+            className="panel panel--flush"
+          >
+            <div className="panel__header">
+              <h2 id="club-events-title">Upcoming events</h2>
+            </div>
+            {events.unavailable ? (
+              <p className="panel__body muted">
+                Events are unavailable right now. Please check back soon.
+              </p>
+            ) : events.events.length > 0 ? (
+              <div className="list directory-list">
+                {events.events.map((event) => (
+                  <EventCard event={event} key={event.id} showTeam={false} />
+                ))}
+              </div>
+            ) : (
+              <p className="panel__body muted">
+                {club.name} has no upcoming public events.
+              </p>
+            )}
+          </section>
           <ClubPeople club={club} members={members} />
         </div>
 

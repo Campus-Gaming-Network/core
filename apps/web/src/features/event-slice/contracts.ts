@@ -58,12 +58,14 @@ export const schoolSummarySchema = z.object({
   state: z.string().optional(),
 });
 
-// The team that hosts an event, when a team does.
+// The team or club that hosts an event, when one does. An event has at most
+// one of them.
 const eventHostTeamSchema = z.object({
   id: identifierSchema,
   name: z.string(),
   slug: identifierSchema,
 });
+const eventHostClubSchema = eventHostTeamSchema;
 
 export const gameSummaryDtoSchema = z.object({
   id: identifierSchema,
@@ -120,13 +122,16 @@ export const eventDtoSchema = z.object({
   payment_url: z.string().optional(),
   host_school: schoolSummarySchema,
   host_team: eventHostTeamSchema.optional(),
+  host_club: eventHostClubSchema.optional(),
   games: z.array(eventGameDtoSchema),
   organizers: z.array(eventOrganizerSchema).optional(),
   viewer_rsvp: eventRSVPSchema.optional(),
   viewer_interested: z.boolean().optional(),
   viewer_can_edit: z.boolean().optional(),
-  /** The creator alone cancels the event and manages its co-organizers. */
+  /** The creator alone manages the event's co-organizers. */
   viewer_is_creator: z.boolean().optional(),
+  /** The creator and the host club's owners and editors cancel the event. */
+  viewer_can_cancel: z.boolean().optional(),
   /** Set for a cancelled event, whose page stays up for a day. */
   cancelled_at: timestampSchema.optional(),
 });
@@ -161,6 +166,7 @@ const eventBrowseItemDtoSchema = z.object({
   cost: eventCostSchema,
   host_school: z.object({ name: z.string(), slug: identifierSchema }),
   host_team: z.object({ name: z.string(), slug: identifierSchema }).optional(),
+  host_club: z.object({ name: z.string(), slug: identifierSchema }).optional(),
   // The API sends each game's slug and whether the site serves its cover;
   // rows show the first game's cover when it has one.
   games: z.array(
@@ -270,8 +276,10 @@ const eventMutableInputSchema = z.object({
   title: requiredText("Title", 120),
   description: optionalText("Description", 5000),
   host_school_id: z.string().trim().min(1, "Choose a host school."),
-  // Empty when the organizer runs the event alone. The API checks the role.
+  // Empty when the organizer runs the event alone. The API checks the role,
+  // and for a club that the host school is the club's.
   host_team_id: z.string().trim().max(100),
+  host_club_id: z.string().trim().max(100).default(""),
   game_ids: z.array(identifierSchema),
   igdb_game_ids: pickedIGDBGameIDsSchema,
   other_game: otherGameSchema,
@@ -350,6 +358,16 @@ export const eventFormViewerDtoSchema = z.object({
   timezone: identifierSchema,
 });
 
+/** The viewer's clubs; the form offers the ones they own or edit. */
+export const eventFormClubsResponseDtoSchema = z.object({
+  clubs: z.array(
+    eventHostClubSchema.extend({
+      school: z.object({ id: identifierSchema, name: z.string() }),
+      viewer_role: z.enum(["owner", "editor", "member"]),
+    }),
+  ),
+});
+
 /** The viewer's teams; the form offers the ones they own or captain. */
 export const eventFormTeamsResponseDtoSchema = z.object({
   teams: z.array(
@@ -374,6 +392,10 @@ type WithHostSchoolLogo<T extends { host_school: unknown }> = T & {
 };
 export type EventDTO = WithHostSchoolLogo<z.output<typeof eventDtoSchema>>;
 export type EventHostTeamDTO = z.output<typeof eventHostTeamSchema>;
+/** A club that may host an event; `school` is missing for the event's own. */
+export type EventHostClubDTO = z.output<typeof eventHostClubSchema> & {
+  school?: { id: string; name: string };
+};
 export type LockedEventDTO = z.output<typeof lockedEventDtoSchema>;
 export type EventDetailDTO = EventDTO | LockedEventDTO;
 export type EventBrowseItemDTO = WithHostSchoolLogo<
@@ -485,6 +507,7 @@ export type NewEventPageResult =
       defaultTimeZone: string;
       games: EventGameDTO[];
       hostTeams: EventHostTeamDTO[];
+      hostClubs: EventHostClubDTO[];
       schools: EventFormSchoolDTO[];
       schoolSearchFailed: boolean;
     }
@@ -499,6 +522,7 @@ export type EditEventPageResult =
       viewerID: string;
       games: EventGameDTO[];
       hostTeams: EventHostTeamDTO[];
+      hostClubs: EventHostClubDTO[];
       schools: EventFormSchoolDTO[];
       schoolSearchFailed: boolean;
     }
@@ -758,7 +782,7 @@ function eventWriteCandidate(
     title: normalizedInputValue(input, "title"),
     description: normalizedInputValue(input, "description"),
     host_school_id: normalizedInputValue(input, "host_school_id"),
-    host_team_id: normalizedInputValue(input, "host_team_id"),
+    ...eventHost(input),
     game_ids: normalizedInputValues(input, "game_ids"),
     igdb_game_ids: normalizedInputValues(input, "igdb_game_ids"),
     other_game: normalizedInputValue(input, "other_game"),
@@ -783,6 +807,24 @@ function eventWriteCandidate(
     ...(hasInputField(input, "recurrence_until")
       ? { recurrence_until: normalizedInputValue(input, "recurrence_until") }
       : {}),
+  };
+}
+
+/**
+ * The form's single "Hosted by" choice is `team:<id>` or `club:<id>`; API
+ * shaped input names the two IDs directly.
+ */
+function eventHost(input: CreateEventInput | UpdateEventInput | FormData) {
+  if (!hasInputField(input, "host")) {
+    return {
+      host_team_id: normalizedInputValue(input, "host_team_id"),
+      host_club_id: normalizedInputValue(input, "host_club_id"),
+    };
+  }
+  const host = normalizedInputValue(input, "host");
+  return {
+    host_team_id: host.startsWith("team:") ? host.slice("team:".length) : "",
+    host_club_id: host.startsWith("club:") ? host.slice("club:".length) : "",
   };
 }
 

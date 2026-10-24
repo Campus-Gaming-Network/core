@@ -25,13 +25,13 @@ func (r *PostgresRepository) createWithSlug(ctx context.Context, params CreatePa
 			format, starts_at, ends_at, timezone, location_name, address, online_url,
 			private_password_hash, capacity, cost, payment_note, payment_url,
 			recurrence_rule, recurrence_until, idempotency_key, audience, event_type,
-			host_team_id
+			host_team_id, host_club_id
 		)
 		SELECT $1::uuid, s.id, $3, $4, $5, $6, $7, $8, $9, $10,
 		       NULLIF($11, ''), NULLIF($12, ''), NULLIF($13, ''),
 		       NULLIF($14, ''), $15, $16, NULLIF($17, ''), NULLIF($18, ''),
 		       NULLIF($19, ''), $20, NULLIF($21, '')::uuid, $22, $23,
-		       NULLIF($24, '')::uuid
+		       NULLIF($24, '')::uuid, NULLIF($25, '')::uuid
 		FROM schools s
 		WHERE s.id = $2::uuid
 		  AND s.deleted_at IS NULL
@@ -43,7 +43,7 @@ func (r *PostgresRepository) createWithSlug(ctx context.Context, params CreatePa
 		params.LocationName, params.Address, params.OnlineURL, params.PrivatePasswordHash,
 		nullableInt(params.Capacity), params.Cost, params.PaymentNote, params.PaymentURL,
 		params.RecurrenceRule, nullableTime(params.RecurrenceUntil), params.IdempotencyKey,
-		params.Audience, params.EventType, params.HostTeamID).Scan(&eventID)
+		params.Audience, params.EventType, params.HostTeamID, params.HostClubID).Scan(&eventID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return "", r.createNoRowsError(ctx, tx, params.HostSchoolID, params.IdempotencyKey)
 	}
@@ -139,13 +139,13 @@ func insertRecurringOccurrence(ctx context.Context, tx pgx.Tx, params CreatePara
 			format, starts_at, ends_at, timezone, location_name, address, online_url,
 			private_password_hash, capacity, cost, payment_note, payment_url,
 			recurrence_rule, recurrence_until, recurrence_parent_id, idempotency_key,
-			audience, event_type, host_team_id
+			audience, event_type, host_team_id, host_club_id
 		)
 		SELECT $1::uuid, s.id, $3, $4, $5, $6, $7, $8, $9, $10,
 		       NULLIF($11, ''), NULLIF($12, ''), NULLIF($13, ''),
 		       NULLIF($14, ''), $15, $16, NULLIF($17, ''), NULLIF($18, ''),
 		       NULLIF($19, ''), $20, NULLIF($21, '')::uuid, NULLIF($22, '')::uuid, $23, $24,
-		       NULLIF($25, '')::uuid
+		       NULLIF($25, '')::uuid, NULLIF($26, '')::uuid
 		FROM schools s
 		WHERE s.id = $2::uuid
 		  AND s.deleted_at IS NULL
@@ -157,7 +157,7 @@ func insertRecurringOccurrence(ctx context.Context, tx pgx.Tx, params CreatePara
 		params.LocationName, params.Address, params.OnlineURL, params.PrivatePasswordHash,
 		nullableInt(params.Capacity), params.Cost, params.PaymentNote, params.PaymentURL,
 		params.RecurrenceRule, nullableTime(params.RecurrenceUntil), parentID, idempotencyKey,
-		params.Audience, params.EventType, params.HostTeamID).Scan(&eventID)
+		params.Audience, params.EventType, params.HostTeamID, params.HostClubID).Scan(&eventID)
 	if err != nil {
 		return "", fmt.Errorf("insert recurring event occurrence: %w", err)
 	}
@@ -209,6 +209,63 @@ func checkHostTeam(ctx context.Context, checker hostTeamChecker, teamID string, 
 	return nil
 }
 
+// editableBy is a condition on event e that is true when the user whose ID is
+// the SQL parameter userParam may edit it: an organizer, or an owner or
+// editor of the published club that hosts it. Club access follows the club's
+// roles, so someone removed from the club loses it unless they also organize
+// the event.
+func editableBy(userParam string) string {
+	return `(EXISTS (
+		    SELECT 1 FROM event_organizers editor_organizer
+		    WHERE editor_organizer.event_id = e.id
+		      AND editor_organizer.user_id = ` + userParam + `::uuid
+		      AND editor_organizer.deleted_at IS NULL
+		) OR ` + hostClubOfficer(userParam) + `)`
+}
+
+// hostClubOfficer is a condition on event e that is true when the user whose
+// ID is the SQL parameter userParam owns or edits the published club that
+// hosts it.
+func hostClubOfficer(userParam string) string {
+	return `EXISTS (
+		    SELECT 1 FROM club_members editor_club_member
+		    JOIN clubs editor_club ON editor_club.id = editor_club_member.club_id
+		    WHERE editor_club.id = e.host_club_id
+		      AND editor_club.deleted_at IS NULL
+		      AND editor_club.status = 'published'
+		      AND editor_club_member.user_id = ` + userParam + `::uuid
+		      AND editor_club_member.role IN ('owner', 'editor')
+		)`
+}
+
+// checkHostClub returns ErrHostClubNotAllowed unless clubID is a published
+// club and, when requireOfficer is set, userID owns or edits it. It returns
+// ErrHostClubSchool when the club is not at schoolID.
+func checkHostClub(ctx context.Context, checker hostTeamChecker, clubID, userID, schoolID string, requireOfficer bool) error {
+	var clubSchoolID string
+	var officer bool
+	err := checker.QueryRow(ctx, `
+		SELECT c.school_id::text,
+		       EXISTS (SELECT 1 FROM club_members m
+		               WHERE m.club_id = c.id AND m.user_id = $2::uuid AND m.role IN ('owner', 'editor'))
+		FROM clubs c
+		WHERE c.id::text = $1 AND c.deleted_at IS NULL AND c.status = 'published'
+	`, clubID, userID).Scan(&clubSchoolID, &officer)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return ErrHostClubNotAllowed
+	}
+	if err != nil {
+		return fmt.Errorf("check event host club: %w", err)
+	}
+	if requireOfficer && !officer {
+		return ErrHostClubNotAllowed
+	}
+	if clubSchoolID != schoolID {
+		return ErrHostClubSchool
+	}
+	return nil
+}
+
 type schoolExistenceChecker interface {
 	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
 }
@@ -218,7 +275,8 @@ type editableEventLocker interface {
 }
 
 // lockEditableEvent locks the event with slug for an edit by userID, who must
-// organize it. An event that ended before now cannot be edited.
+// organize it or own or edit its host club. An event that ended before now
+// cannot be edited.
 func lockEditableEvent(ctx context.Context, locker editableEventLocker, slug string, userID string, now time.Time) (string, sql.NullString, error) {
 	var eventID string
 	var currentPrivatePasswordHash sql.NullString
@@ -228,13 +286,7 @@ func lockEditableEvent(ctx context.Context, locker editableEventLocker, slug str
 		SELECT e.id::text,
 		       e.private_password_hash,
 		       e.ends_at,
-		       EXISTS (
-		           SELECT 1
-		           FROM event_organizers eo
-		           WHERE eo.event_id = e.id
-		             AND eo.user_id = $2::uuid
-		             AND eo.deleted_at IS NULL
-		       ) AS organizer
+		       `+editableBy("$2")+` AS organizer
 		FROM events e
 		WHERE e.slug = $1
 		  AND e.deleted_at IS NULL

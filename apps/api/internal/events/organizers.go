@@ -74,6 +74,29 @@ func lockOwnedEvent(ctx context.Context, tx pgx.Tx, slug string, userID string) 
 	return eventID, nil
 }
 
+// lockCancellableEvent locks the event and returns its ID when userID created
+// it or owns or edits its host club.
+func lockCancellableEvent(ctx context.Context, tx pgx.Tx, slug string, userID string) (string, error) {
+	var eventID string
+	var allowed bool
+	err := tx.QueryRow(ctx, `
+		SELECT e.id::text, e.creator_user_id = $2::uuid OR `+hostClubOfficer("$2")+`
+		FROM events e
+		WHERE e.slug = $1 AND e.deleted_at IS NULL
+		FOR UPDATE OF e
+	`, strings.TrimSpace(slug), strings.TrimSpace(userID)).Scan(&eventID, &allowed)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", ErrEventNotFound
+	}
+	if err != nil {
+		return "", fmt.Errorf("lock event: %w", err)
+	}
+	if !allowed {
+		return "", ErrCreatorRequired
+	}
+	return eventID, nil
+}
+
 // InviteOrganizer records an invite and queues its email. The result is the
 // same whether or not the address has an account, so an invite reveals
 // nothing about who is registered. Inviting an address again replaces its

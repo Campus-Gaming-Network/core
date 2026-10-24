@@ -19,6 +19,7 @@ const clubEditorInviteTTL = 7 * 24 * time.Hour
 type clubOfficers interface {
 	Viewer(ctx context.Context, clubID, userID string) (clubs.Viewer, error)
 	Join(ctx context.Context, slug, userID string) error
+	ListForUser(ctx context.Context, userID string) ([]clubs.UserClub, error)
 	Manage(ctx context.Context, slug, userID string) (clubs.Management, error)
 	EditProfile(ctx context.Context, slug, userID string, edit clubs.ProfileEdit) error
 	EditLinks(ctx context.Context, slug, userID string, links []clubs.Link) error
@@ -40,6 +41,7 @@ type clubUserRequest struct {
 // registerClubOfficerRoutes adds the routes that change a club's profile and
 // people. Each needs a signed-in user.
 func (r *Router) registerClubOfficerRoutes() {
+	r.mux.HandleFunc("/me/clubs", requireMethod(http.MethodGet, r.handleMyClubs))
 	r.mux.HandleFunc("/clubs/{slug}/manage", requireMethod(http.MethodGet, r.handleManageClub))
 	r.mux.HandleFunc("/clubs/{slug}/profile", requireMethod(http.MethodPost, r.handleEditClubProfile))
 	r.mux.HandleFunc("/clubs/{slug}/links", requireMethod(http.MethodPost, r.handleEditClubLinks))
@@ -67,6 +69,22 @@ func (r *Router) clubOfficer(w http.ResponseWriter, req *http.Request) (string, 
 		return "", false
 	}
 	return userID, true
+}
+
+// handleMyClubs answers GET /me/clubs with the signed-in user's clubs and
+// their role in each.
+func (r *Router) handleMyClubs(w http.ResponseWriter, req *http.Request) {
+	userID, ok := r.clubOfficer(w, req)
+	if !ok {
+		return
+	}
+	result, err := r.clubOfficers.ListForUser(req.Context(), userID)
+	if err != nil {
+		writeApplicationError(w, err, "clubs_unavailable")
+		return
+	}
+	w.Header().Set("Cache-Control", "private, no-store")
+	writeJSON(w, http.StatusOK, map[string]any{"clubs": result})
 }
 
 // handleManageClub answers GET /clubs/{slug}/manage for an owner or editor.

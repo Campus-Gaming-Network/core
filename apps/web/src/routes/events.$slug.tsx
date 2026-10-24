@@ -305,15 +305,23 @@ function VisibleEventView({
           </p>
         ) : null}
         <h1>{event.title}</h1>
-        {/* A team hosts; a person only organizes. The school is where the
-            event belongs, never its host, since a student's own event is not
-            run by their school. */}
+        {/* A team or club hosts; a person only organizes. The school is where
+            the event belongs, never its host, since a student's own event is
+            not run by their school. */}
         <p className="detail-hero__meta">
           {event.host_team ? (
             <>
               Hosted by{" "}
               <Link to="/teams/$slug" params={{ slug: event.host_team.slug }}>
                 {event.host_team.name}
+              </Link>
+              {" · "}
+            </>
+          ) : event.host_club ? (
+            <>
+              Hosted by{" "}
+              <Link to="/clubs/$slug" params={{ slug: event.host_club.slug }}>
+                {event.host_club.name}
               </Link>
               {" · "}
             </>
@@ -552,7 +560,9 @@ function VisibleEventView({
                   <p className="form-help">
                     {event.viewer_is_creator
                       ? "You can change the details, manage organizers, or cancel this event."
-                      : "You can change the details of this event as a co-organizer."}
+                      : event.viewer_can_cancel && event.host_club
+                        ? `You can change the details or cancel this event as an officer of ${event.host_club.name}.`
+                        : "You can change the details of this event as a co-organizer."}
                   </p>
                   <div className="actions">
                     <ButtonLink
@@ -562,7 +572,7 @@ function VisibleEventView({
                     >
                       Edit event
                     </ButtonLink>
-                    {event.viewer_is_creator ? (
+                    {event.viewer_can_cancel ? (
                       <CancelEventForm slug={event.slug} />
                     ) : null}
                   </div>

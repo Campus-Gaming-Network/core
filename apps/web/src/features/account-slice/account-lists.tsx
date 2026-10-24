@@ -98,7 +98,10 @@ export function AccountEventSection({
                       timezone={event.timezone}
                     />
                   }
-                  meta={[event.host_team?.name, event.host_school.name]}
+                  meta={[
+                    (event.host_team ?? event.host_club)?.name,
+                    event.host_school.name,
+                  ]}
                   name={event.title}
                   status={
                     <>

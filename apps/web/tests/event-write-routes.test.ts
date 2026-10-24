@@ -90,6 +90,7 @@ test("an editable event renders native search and a mutation form without leakin
     viewerID: "editor-1",
     games: [],
     hostTeams: [],
+    hostClubs: [],
     schools: [],
     schoolSearchFailed: false,
   });

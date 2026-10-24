@@ -396,6 +396,7 @@ type fakeEventRepository struct {
 	deleteSlug                     string
 	deleteUserID                   string
 	isOrganizer                    bool
+	canCancel                      bool
 	privateHash                    string
 	unlockValid                    bool
 	unlockChecked                  bool
@@ -455,8 +456,8 @@ func (r *fakeEventRepository) Delete(_ context.Context, slug string, userID stri
 	return r.err
 }
 
-func (r *fakeEventRepository) IsOrganizer(_ context.Context, _ string, _ string) (bool, error) {
-	return r.isOrganizer, r.err
+func (r *fakeEventRepository) Access(_ context.Context, _ string, _ string) (eventstore.Access, error) {
+	return eventstore.Access{Edit: r.isOrganizer, Cancel: r.canCancel}, r.err
 }
 
 func (r *fakeEventRepository) PrivatePasswordHash(_ context.Context, slug string) (string, error) {

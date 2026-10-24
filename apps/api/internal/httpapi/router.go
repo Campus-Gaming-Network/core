@@ -837,6 +837,7 @@ func (r *Router) handleEvents(w http.ResponseWriter, req *http.Request) {
 		GameSlug:     req.URL.Query().Get("game"),
 		SchoolSlug:   req.URL.Query().Get("school"),
 		TeamSlug:     req.URL.Query().Get("team"),
+		ClubSlug:     req.URL.Query().Get("club"),
 		Query:        query,
 		FromDate:     fromDate,
 		ToDate:       toDate,
@@ -1096,15 +1097,15 @@ func (r *Router) handleEventPath(w http.ResponseWriter, req *http.Request) {
 	writeJSON(w, http.StatusOK, event)
 }
 
-// canAccessPrivateEvent reports whether the viewer is an organizer of the
-// private event or holds a valid unlock token for it.
+// canAccessPrivateEvent reports whether the viewer may edit the private event
+// or holds a valid unlock token for it.
 func (r *Router) canAccessPrivateEvent(req *http.Request, slug string) (bool, error) {
 	if userID, ok := auth.UserID(req.Context()); ok && looksLikeUUID(userID) {
-		organizer, err := r.events.IsOrganizer(req.Context(), slug, userID)
+		access, err := r.events.Access(req.Context(), slug, userID)
 		if err != nil {
 			return false, err
 		}
-		if organizer {
+		if access.Edit {
 			return true, nil
 		}
 	}
@@ -1133,11 +1134,12 @@ func (r *Router) decorateEventForViewer(req *http.Request, slug string, event *e
 		return err
 	}
 	event.ViewerInterested = interested
-	organizer, err := r.events.IsOrganizer(req.Context(), slug, userID)
+	access, err := r.events.Access(req.Context(), slug, userID)
 	if err != nil {
 		return err
 	}
-	event.ViewerCanEdit = organizer
+	event.ViewerCanEdit = access.Edit
+	event.ViewerCanCancel = access.Cancel
 	for _, candidate := range event.Organizers {
 		if candidate.Role == "creator" && candidate.ID == userID {
 			event.ViewerIsCreator = true

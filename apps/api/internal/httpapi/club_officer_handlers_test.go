@@ -33,6 +33,11 @@ func (f fakeClubOfficers) Join(_ context.Context, slug, _ string) error {
 	return f.record("join", slug, "")
 }
 
+func (f fakeClubOfficers) ListForUser(_ context.Context, _ string) ([]clubs.UserClub, error) {
+	return []clubs.UserClub{{ID: "club-1", Name: "Smash Club", Slug: "smash-club", ViewerRole: clubs.RoleEditor}},
+		f.record("mine", "", "")
+}
+
 func (f fakeClubOfficers) Manage(_ context.Context, slug, _ string) (clubs.Management, error) {
 	return clubs.Management{Role: clubs.RoleEditor, Members: []clubs.Member{}, Invites: []clubs.EditorInvite{}}, f.record("manage", slug, "")
 }
@@ -96,6 +101,7 @@ func TestClubOfficerRoutesNeedASignedInUserAndPassThroughTheirArguments(t *testi
 		method, path, body string
 		status             int
 	}{
+		{http.MethodGet, "/me/clubs", "", http.StatusOK},
 		{http.MethodGet, "/clubs/smash-club/manage", "", http.StatusOK},
 		{http.MethodPost, "/clubs/smash-club/profile", `{"name":"Smash","type":"student_club"}`, http.StatusNoContent},
 		{http.MethodPost, "/clubs/chess-club/profile", `{"name":"Chess","type":"student_club"}`, http.StatusForbidden},
@@ -125,7 +131,7 @@ func TestClubOfficerRoutesNeedASignedInUserAndPassThroughTheirArguments(t *testi
 		}
 	}
 	want := []string{
-		"manage:smash-club:", "profile:smash-club:Smash", "profile:chess-club:Chess",
+		"mine::", "manage:smash-club:", "profile:smash-club:Smash", "profile:chess-club:Chess",
 		"links:smash-club:https://smash.example.test", "confirm:smash-club:", "confirm:chess-club:", "invite:smash-club:editor@example.test",
 		"revoke:smash-club:" + memberID, "accept-invite::raw-token", "remove:smash-club:" + memberID,
 		"join:smash-club:", "leave:smash-club:", "offer:smash-club:" + memberID, "cancel-offer:smash-club:", "accept-offer:smash-club:",

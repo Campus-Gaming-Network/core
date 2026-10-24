@@ -13,21 +13,22 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-// IsOrganizer reports whether the user organizes the live event with slug.
-func (r *PostgresRepository) IsOrganizer(ctx context.Context, slug string, userID string) (bool, error) {
-	var organizer bool
+// Access returns what the user may do to the live event with slug. A missing
+// event allows nothing.
+func (r *PostgresRepository) Access(ctx context.Context, slug string, userID string) (Access, error) {
+	var access Access
 	err := r.pool.QueryRow(ctx, `
-		SELECT EXISTS (
-			SELECT 1
-			FROM events e
-			JOIN event_organizers eo ON eo.event_id = e.id
-			WHERE e.slug = $1
-			  AND e.deleted_at IS NULL
-			  AND eo.user_id = $2::uuid
-			  AND eo.deleted_at IS NULL
-		)
-	`, strings.TrimSpace(slug), strings.TrimSpace(userID)).Scan(&organizer)
-	return organizer, err
+		SELECT `+editableBy("$2")+`, e.creator_user_id = $2::uuid OR `+hostClubOfficer("$2")+`
+		FROM events e
+		WHERE e.slug = $1 AND e.deleted_at IS NULL
+	`, strings.TrimSpace(slug), strings.TrimSpace(userID)).Scan(&access.Edit, &access.Cancel)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return Access{}, nil
+	}
+	if err != nil {
+		return Access{}, fmt.Errorf("read event access: %w", err)
+	}
+	return access, nil
 }
 
 // PrivatePasswordHash returns the password hash of a private event. It
@@ -216,6 +217,7 @@ func (r *PostgresRepository) ListPublic(ctx context.Context, params ListParams) 
 		AND ($5 = '' OR e.event_type = $5)
 		AND ($6 = '' OR e.cost = $6)
 		AND ($8 = '' OR ht.slug = $8)
+		AND ($12 = '' OR hc.slug = $12)
 		AND ($9 = '' OR e.title ILIKE '%' || $9 || '%')
 		AND ($10 = '' OR (e.starts_at AT TIME ZONE e.timezone)::date >= $10::date)
 		AND ($11 = '' OR (e.starts_at AT TIME ZONE e.timezone)::date <= $11::date)
@@ -223,6 +225,7 @@ func (r *PostgresRepository) ListPublic(ctx context.Context, params ListParams) 
 	arguments := []any{
 		params.GameSlug, params.SchoolSlug, params.Format, params.Audience, params.EventType,
 		params.Cost, r.now(), params.TeamSlug, likePattern(params.Query), params.FromDate, params.ToDate,
+		params.ClubSlug,
 	}
 	// Soonest first: events under way, then upcoming ones by start time.
 	// Ended events leave the list. A previous page reads backward from its

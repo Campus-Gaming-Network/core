@@ -21,6 +21,7 @@ type createEventRequest struct {
 	Description     string             `json:"description"`
 	HostSchoolID    string             `json:"host_school_id"`
 	HostTeamID      string             `json:"host_team_id"`
+	HostClubID      string             `json:"host_club_id"`
 	GameIDs         []string           `json:"game_ids"`
 	Visibility      string             `json:"visibility"`
 	Format          string             `json:"format"`
@@ -286,10 +287,10 @@ func (r *Router) handleUpdateEvent(w http.ResponseWriter, req *http.Request, slu
 		return
 	}
 	if request.pickedGames.pending() {
-		// Only an organizer's edit may import games. Update checks this again
+		// Only an editor's change may import games. Update checks this again
 		// inside its transaction.
-		organizer, err := r.events.IsOrganizer(req.Context(), slug, userID)
-		if err == nil && !organizer {
+		access, err := r.events.Access(req.Context(), slug, userID)
+		if err == nil && !access.Edit {
 			err = eventstore.ErrOrganizerRequired
 		}
 		if err != nil {
@@ -501,6 +502,7 @@ func createEventInputFromRequest(request createEventRequest, userID string) even
 		CreatorUserID:   userID,
 		HostSchoolID:    request.HostSchoolID,
 		HostTeamID:      request.HostTeamID,
+		HostClubID:      request.HostClubID,
 		GameIDs:         request.GameIDs,
 		Visibility:      request.Visibility,
 		Format:          request.Format,
@@ -529,6 +531,7 @@ func updateEventInputFromRequest(request createEventRequest, slug string, userID
 		Description:     request.Description,
 		HostSchoolID:    request.HostSchoolID,
 		HostTeamID:      request.HostTeamID,
+		HostClubID:      request.HostClubID,
 		GameIDs:         request.GameIDs,
 		Visibility:      request.Visibility,
 		Format:          request.Format,
@@ -572,11 +575,11 @@ func (r *Router) hideOnlineURLUnlessGoing(req *http.Request, slug string, event 
 	if going {
 		return nil
 	}
-	organizer, err := r.events.IsOrganizer(req.Context(), slug, userID)
+	access, err := r.events.Access(req.Context(), slug, userID)
 	if err != nil {
 		return err
 	}
-	if !organizer {
+	if !access.Edit {
 		event.OnlineURL = ""
 	}
 	return nil

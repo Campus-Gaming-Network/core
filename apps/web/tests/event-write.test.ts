@@ -60,7 +60,7 @@ function validEventForm(): FormData {
   form.set("title", "  Campus tournament  ");
   form.set("description", " Bring your controller. ");
   form.set("host_school_id", school.id);
-  form.set("host_team_id", " team-1 ");
+  form.set("host", " team:team-1 ");
   form.append("game_ids", ` ${game.id} `);
   form.set("visibility", "public");
   form.set("format", "in_person");
@@ -81,6 +81,25 @@ function validEventForm(): FormData {
   return form;
 }
 
+test("the Hosted by choice names a team, a club, or neither", () => {
+  const hosts = ["team:team-1", "club:club-1", ""].map((host) => {
+    const form = validEventForm();
+    form.set("host", host);
+    form.set("recurrence_rule", "weekly");
+    form.set("recurrence_until", "2037-03-19");
+    const result = validateCreateEventServerInput(form);
+    return result.valid
+      ? [result.value.host_team_id, result.value.host_club_id]
+      : result;
+  });
+
+  assert.deepEqual(hosts, [
+    ["team-1", ""],
+    ["", "club-1"],
+    ["", ""],
+  ]);
+});
+
 test("event create validation normalizes payloads, local times, and recurrence", () => {
   const form = validEventForm();
   form.set("recurrence_rule", "weekly");
@@ -94,6 +113,7 @@ test("event create validation normalizes payloads, local times, and recurrence",
     description: "Bring your controller.",
     host_school_id: school.id,
     host_team_id: "team-1",
+    host_club_id: "",
     game_ids: [game.id],
     igdb_game_ids: [],
     other_game: "",
@@ -298,6 +318,7 @@ test("new-event page data enforces auth then loads default profile and catalogs"
         if (path === "/me/teams?limit=25") {
           return Response.json({ teams: myTeams });
         }
+        if (path === "/me/clubs") return Response.json({ clubs: myClubs });
         return Response.json({
           schools: [{ ...school, internal_note: "strip" }],
           limit: 50,
@@ -322,6 +343,21 @@ test("new-event page data enforces auth then loads default profile and catalogs"
     { id: "team-1", name: "Red Team", slug: "red-team" },
     { id: "team-2", name: "Blue Team", slug: "blue-team" },
   ]);
+  // Likewise only the clubs the viewer owns or edits.
+  assert.deepEqual(ready.hostClubs, [
+    {
+      id: "club-1",
+      name: "Smash Club",
+      slug: "smash-club",
+      school: { id: school.id, name: school.name },
+    },
+    {
+      id: "club-2",
+      name: "Chess Club",
+      slug: "chess-club",
+      school: { id: school.id, name: school.name },
+    },
+  ]);
   assert.equal(JSON.stringify(ready).includes("private@example.test"), false);
   assert.equal(JSON.stringify(ready).includes("internal"), false);
   assert.deepEqual(calls[0], {
@@ -335,6 +371,7 @@ test("new-event page data enforces auth then loads default profile and catalogs"
     {
       "/games": null,
       "/me/teams?limit=25": "cgn_session=session-value",
+      "/me/clubs": "cgn_session=session-value",
       "/schools?q=Example&limit=50": null,
     },
   );
@@ -351,6 +388,18 @@ const myTeams = [
   },
   { id: "team-3", name: "Gold Team", slug: "gold-team", viewer_role: "member" },
 ];
+
+const myClubs = [
+  ["club-1", "Smash Club", "smash-club", "owner"],
+  ["club-2", "Chess Club", "chess-club", "editor"],
+  ["club-3", "Go Club", "go-club", "member"],
+].map(([id, name, slug, viewer_role]) => ({
+  id,
+  name,
+  slug,
+  school: { id: school.id, name: school.name, slug: school.slug },
+  viewer_role,
+}));
 
 test("new-event catalogs keep school failure inline and make game failure fatal", async () => {
   const reported: unknown[] = [];
@@ -381,8 +430,12 @@ test("new-event catalogs keep school failure inline and make game failure fatal"
   if (schoolFailure.status !== "ready") assert.fail("school failure was fatal");
   assert.equal(schoolFailure.schoolSearchFailed, true);
   assert.deepEqual(schoolFailure.schools, []);
-  // A failed team read leaves the choice out instead of failing the page.
-  assert.deepEqual(schoolFailure.hostTeams, []);
+  // A failed team or club read leaves the choice out instead of failing the
+  // page.
+  assert.deepEqual(
+    [schoolFailure.hostTeams, schoolFailure.hostClubs],
+    [[], []],
+  );
 
   const gameFailure = await newEventPageOperation(
     { schoolQuery: "" },
@@ -405,8 +458,9 @@ test("new-event catalogs keep school failure inline and make game failure fatal"
     status: "error",
     message: "Event creation is unavailable.",
   });
-  // Schools and teams in the first read, games and teams in the second.
-  assert.equal(reported.length, 4);
+  // Schools, teams, and clubs in the first read; games, teams, and clubs in
+  // the second.
+  assert.equal(reported.length, 6);
 });
 
 test("edit page distinguishes missing, locked, cancelled, forbidden, ended, and editable events", async () => {
@@ -427,6 +481,7 @@ test("edit page distinguishes missing, locked, cancelled, forbidden, ended, and 
           }
           if (path === "/games") return Response.json({ games: [game] });
           if (path === "/me/teams") return Response.json({ teams: myTeams });
+          if (path === "/me/clubs") return Response.json({ clubs: myClubs });
           return detailResponse.clone();
         }),
         cookieHeader: "cgn_session=value",
@@ -478,7 +533,11 @@ test("edit page distinguishes missing, locked, cancelled, forbidden, ended, and 
     "/me",
     "/events/campus%2Ftournament",
   ]);
-  assert.deepEqual(editable.calls.slice(2).sort(), ["/games", "/me/teams"]);
+  assert.deepEqual(editable.calls.slice(2).sort(), [
+    "/games",
+    "/me/clubs",
+    "/me/teams",
+  ]);
 
   // An event keeps its team after its editor stops leading it, so the form
   // still offers that team first.
@@ -492,6 +551,17 @@ test("edit page distinguishes missing, locked, cancelled, forbidden, ended, and 
     { id: "team-1", name: "Red Team", slug: "red-team" },
     { id: "team-2", name: "Blue Team", slug: "blue-team" },
   ]);
+
+  // The same holds for a club.
+  const oldClub = { id: "club-9", name: "Old Club", slug: "old-club" };
+  const clubHosted = await editWith(
+    Response.json({ ...event, host_club: oldClub }),
+  );
+  if (clubHosted.result.status !== "ready") assert.fail("editor was denied");
+  assert.deepEqual(
+    clubHosted.result.hostClubs.map((club) => club.id),
+    ["club-9", "club-1", "club-2"],
+  );
 });
 
 test("event writes forward exact auth, method, payload, and safe returned DTOs", async () => {
@@ -698,6 +768,7 @@ function validPayload(): EventMutationPayload {
     description: "Bring your controller.",
     host_school_id: school.id,
     host_team_id: "",
+    host_club_id: "",
     game_ids: [game.id],
     igdb_game_ids: [],
     other_game: "",

@@ -214,6 +214,10 @@ A club can host an event the same way: its owners and editors choose it as the
 host, the club must belong to the event's host school, and an event has at
 most one hosting team or club. Unlike a team, any owner or editor of the
 hosting club can edit and cancel the event, so it survives officer turnover.
+That access follows the club's roles: someone who leaves the club or is
+removed loses it unless they created or co-organize the event. Keeping the
+event's club through an edit needs no club role, but the host school must stay
+the club's.
 
 **Type**
 
