@@ -21,18 +21,8 @@ func TestPostgresRepositoryStoresAndFiltersEventType(t *testing.T) {
 	var schoolID string
 	var userID string
 	var gameID string
-	if err := pool.QueryRow(ctx, `
-		INSERT INTO schools (name, slug) VALUES ('Event Type School', $1) RETURNING id::text
-	`, schoolSlug).Scan(&schoolID); err != nil {
-		t.Fatalf("insert school: %v", err)
-	}
-	if err := pool.QueryRow(ctx, `
-		INSERT INTO users (email, password_hash, name, home_school_id, age_confirmed_at)
-		VALUES ('event-type@example.test', 'hash', 'Event Type Organizer', $1::uuid, NOW())
-		RETURNING id::text
-	`, schoolID).Scan(&userID); err != nil {
-		t.Fatalf("insert user: %v", err)
-	}
+	schoolID = dbtest.InsertSchool(t, pool, "Event Type School", schoolSlug)
+	userID = dbtest.InsertUser(t, pool, schoolID, "event-type@example.test", "Event Type Organizer")
 	if err := pool.QueryRow(ctx, `
 		INSERT INTO games (name, slug) VALUES ('Event Type Game', 'event-type-game') RETURNING id::text
 	`).Scan(&gameID); err != nil {

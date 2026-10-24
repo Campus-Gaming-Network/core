@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"fmt"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/dbtest"
 	"os"
 	"testing"
 	"time"
@@ -25,21 +26,10 @@ func TestTokenRepositoryCommitsTokensWithOutboxAndRollsBackTogether(t *testing.T
 
 	suffix := fmt.Sprint(time.Now().UnixNano())
 	var schoolID string
-	if err := pool.QueryRow(ctx, `
-		INSERT INTO schools (name, slug) VALUES ('Token Outbox School', $1)
-		RETURNING id::text
-	`, "token-outbox-school-"+suffix).Scan(&schoolID); err != nil {
-		t.Fatalf("insert school: %v", err)
-	}
+	schoolID = dbtest.InsertSchool(t, pool, "Token Outbox School", "token-outbox-school-"+suffix)
 	email := "token-outbox-" + suffix + "@example.test"
 	var userID string
-	if err := pool.QueryRow(ctx, `
-		INSERT INTO users (email, password_hash, name, home_school_id, age_confirmed_at)
-		VALUES ($1, 'hash', 'Token User', $2::uuid, NOW())
-		RETURNING id::text
-	`, email, schoolID).Scan(&userID); err != nil {
-		t.Fatalf("insert user: %v", err)
-	}
+	userID = dbtest.InsertUser(t, pool, schoolID, email, "Token User")
 	t.Cleanup(func() {
 		_, _ = pool.Exec(context.Background(), `DELETE FROM email_outbox WHERE recipient = $1`, email)
 		_, _ = pool.Exec(context.Background(), `DELETE FROM users WHERE id = $1::uuid`, userID)

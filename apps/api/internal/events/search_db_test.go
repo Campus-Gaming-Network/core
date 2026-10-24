@@ -18,18 +18,8 @@ func TestPostgresRepositorySearchesByTitleAndLocalDate(t *testing.T) {
 		t.Fatalf("migrate schema: %v", err)
 	}
 	var schoolID, userID string
-	if err := pool.QueryRow(ctx, `
-		INSERT INTO schools (name, slug) VALUES ('Search School', 'search-school') RETURNING id::text
-	`).Scan(&schoolID); err != nil {
-		t.Fatalf("insert school: %v", err)
-	}
-	if err := pool.QueryRow(ctx, `
-		INSERT INTO users (email, password_hash, name, home_school_id, age_confirmed_at)
-		VALUES ('search@example.test', 'hash', 'Searcher', $1::uuid, NOW())
-		RETURNING id::text
-	`, schoolID).Scan(&userID); err != nil {
-		t.Fatalf("insert user: %v", err)
-	}
+	schoolID = dbtest.InsertSchool(t, pool, "Search School", "search-school")
+	userID = dbtest.InsertUser(t, pool, schoolID, "search@example.test", "Searcher")
 
 	repository := NewPostgresRepository(pool)
 	repository.now = func() time.Time { return time.Date(2031, time.April, 1, 0, 0, 0, 0, time.UTC) }

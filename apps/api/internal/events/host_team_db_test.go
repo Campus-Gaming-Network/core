@@ -19,21 +19,11 @@ func TestPostgresRepositoryHostTeam(t *testing.T) {
 	}
 
 	var schoolID string
-	if err := pool.QueryRow(ctx, `
-		INSERT INTO schools (name, slug) VALUES ('Host Team School', 'host-team-school') RETURNING id::text
-	`).Scan(&schoolID); err != nil {
-		t.Fatalf("insert school: %v", err)
-	}
+	schoolID = dbtest.InsertSchool(t, pool, "Host Team School", "host-team-school")
 	user := func(email string) string {
 		t.Helper()
 		var id string
-		if err := pool.QueryRow(ctx, `
-			INSERT INTO users (email, password_hash, name, home_school_id, age_confirmed_at)
-			VALUES ($1, 'hash', $3, $2::uuid, NOW())
-			RETURNING id::text
-		`, email, schoolID, email).Scan(&id); err != nil {
-			t.Fatalf("insert user %s: %v", email, err)
-		}
+		id = dbtest.InsertUser(t, pool, schoolID, email, email)
 		return id
 	}
 	ownerID := user("owner@example.test")

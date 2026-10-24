@@ -3,6 +3,7 @@ package events
 import (
 	"context"
 	"fmt"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/dbtest"
 	"os"
 	"reflect"
 	"sort"
@@ -27,23 +28,12 @@ func TestPostgresEventMutationsCommitDurableEmailIntent(t *testing.T) {
 
 	suffix := fmt.Sprint(time.Now().UnixNano())
 	var schoolID string
-	if err := pool.QueryRow(ctx, `
-		INSERT INTO schools (name, slug) VALUES ('Event Outbox School', $1)
-		RETURNING id::text
-	`, "event-outbox-school-"+suffix).Scan(&schoolID); err != nil {
-		t.Fatalf("insert school: %v", err)
-	}
+	schoolID = dbtest.InsertSchool(t, pool, "Event Outbox School", "event-outbox-school-"+suffix)
 	insertUser := func(label string) (string, string) {
 		t.Helper()
 		email := "event-outbox-" + label + "-" + suffix + "@example.test"
 		var id string
-		if err := pool.QueryRow(ctx, `
-			INSERT INTO users (email, password_hash, name, home_school_id, age_confirmed_at)
-			VALUES ($1, 'hash', $2, $3::uuid, NOW())
-			RETURNING id::text
-		`, email, label, schoolID).Scan(&id); err != nil {
-			t.Fatalf("insert user %s: %v", label, err)
-		}
+		id = dbtest.InsertUser(t, pool, schoolID, email, label)
 		return id, email
 	}
 	creatorID, creatorEmail := insertUser("creator")

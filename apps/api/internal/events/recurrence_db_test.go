@@ -3,6 +3,7 @@ package events
 import (
 	"context"
 	"fmt"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/dbtest"
 	"os"
 	"testing"
 	"time"
@@ -54,13 +55,7 @@ func TestPostgresRepositoryCreatesMonthlySeriesFromOriginalLocalAnchor(t *testin
 	`, "recurrence-test-school-"+suffix).Scan(&schoolID); err != nil {
 		t.Fatalf("insert school: %v", err)
 	}
-	if err := pool.QueryRow(ctx, `
-		INSERT INTO users (email, password_hash, name, home_school_id, age_confirmed_at)
-		VALUES ($1, 'hash', 'Recurrence Test Creator', $2::uuid, NOW())
-		RETURNING id::text
-	`, "recurrence-test-"+suffix+"@example.test", schoolID).Scan(&userID); err != nil {
-		t.Fatalf("insert user: %v", err)
-	}
+	userID = dbtest.InsertUser(t, pool, schoolID, "recurrence-test-"+suffix+"@example.test", "Recurrence Test Creator")
 	if err := pool.QueryRow(ctx, `
 		INSERT INTO games (name, slug)
 		VALUES ('Recurrence Test Game', $1)

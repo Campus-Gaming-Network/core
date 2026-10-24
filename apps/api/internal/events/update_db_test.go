@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/dbtest"
 	"os"
 	"reflect"
 	"testing"
@@ -48,13 +49,7 @@ func TestPostgresRepositoryUpdateRetainsDeactivatedGames(t *testing.T) {
 	`, "retired-game-school-"+suffix).Scan(&schoolID); err != nil {
 		t.Fatalf("insert school: %v", err)
 	}
-	if err := pool.QueryRow(ctx, `
-		INSERT INTO users (email, password_hash, name, home_school_id, age_confirmed_at)
-		VALUES ($1, 'hash', 'Retired Game Organizer', $2::uuid, NOW())
-		RETURNING id::text
-	`, "retired-game-"+suffix+"@example.test", schoolID).Scan(&userID); err != nil {
-		t.Fatalf("insert user: %v", err)
-	}
+	userID = dbtest.InsertUser(t, pool, schoolID, "retired-game-"+suffix+"@example.test", "Retired Game Organizer")
 	games := make([]GameSummary, 2)
 	for index, name := range []string{"Retired Game", "Never Chosen Game"} {
 		games[index] = GameSummary{Name: name, Slug: fmt.Sprintf("retired-game-%d-%s", index, suffix)}

@@ -21,18 +21,8 @@ func TestPostgresRepositoryStoresAndFiltersAudience(t *testing.T) {
 	var schoolID string
 	var userID string
 	var gameID string
-	if err := pool.QueryRow(ctx, `
-		INSERT INTO schools (name, slug) VALUES ('Audience School', $1) RETURNING id::text
-	`, schoolSlug).Scan(&schoolID); err != nil {
-		t.Fatalf("insert school: %v", err)
-	}
-	if err := pool.QueryRow(ctx, `
-		INSERT INTO users (email, password_hash, name, home_school_id, age_confirmed_at)
-		VALUES ('audience@example.test', 'hash', 'Audience Organizer', $1::uuid, NOW())
-		RETURNING id::text
-	`, schoolID).Scan(&userID); err != nil {
-		t.Fatalf("insert user: %v", err)
-	}
+	schoolID = dbtest.InsertSchool(t, pool, "Audience School", schoolSlug)
+	userID = dbtest.InsertUser(t, pool, schoolID, "audience@example.test", "Audience Organizer")
 	if err := pool.QueryRow(ctx, `
 		INSERT INTO games (name, slug) VALUES ('Audience Game', 'audience-game') RETURNING id::text
 	`).Scan(&gameID); err != nil {
