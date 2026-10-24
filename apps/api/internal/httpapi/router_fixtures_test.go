@@ -2,6 +2,7 @@ package httpapi
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -415,7 +416,9 @@ type fakeEventRepository struct {
 	interestValue                  bool
 	interestEvent                  eventstore.Event
 	viewerInterested               bool
-	err                            error
+	// activityCalls records each Activity call as eventID:editor:limit.
+	activityCalls []string
+	err           error
 }
 
 func (r *fakeEventRepository) Create(_ context.Context, params eventstore.CreateParams) (eventstore.Event, error) {
@@ -573,6 +576,11 @@ func (r *fakeEventRepository) GetPageBySlug(_ context.Context, slug string) (eve
 		return eventstore.Event{}, pgx.ErrNoRows
 	}
 	return r.detail, nil
+}
+
+func (r *fakeEventRepository) Activity(_ context.Context, eventID string, editor bool, _ *pagecursor.Cursor, limit int) (eventstore.ActivityPage, error) {
+	r.activityCalls = append(r.activityCalls, fmt.Sprintf("%s:%t:%d", eventID, editor, limit))
+	return eventstore.ActivityPage{Entries: []eventstore.ActivityEntry{}}, r.err
 }
 
 func (r *fakeEventRepository) ListCreated(_ context.Context, userID string, after *pagecursor.Cursor, limit int) (eventstore.CreatedPage, error) {

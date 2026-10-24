@@ -584,3 +584,74 @@ func (r *Router) hideOnlineURLUnlessGoing(req *http.Request, slug string, event 
 	}
 	return nil
 }
+
+// handleEventActivity answers GET /events/{slug}/activity with a page of the
+// event's activity log. It follows the event page's access rules, and an
+// editor of the event sees every entry while anyone else sees the public
+// ones.
+func (r *Router) handleEventActivity(w http.ResponseWriter, req *http.Request, slug string) {
+	if r.events == nil {
+		writeError(w, http.StatusServiceUnavailable, "database_unavailable")
+		return
+	}
+	query := req.URL.Query()
+	limit := eventstore.DefaultActivityLimit
+	if query.Has("limit") {
+		parsed, err := strconv.Atoi(query.Get("limit"))
+		if err != nil || parsed < 1 || parsed > eventstore.MaximumActivityLimit {
+			writeError(w, http.StatusBadRequest, "invalid_limit")
+			return
+		}
+		limit = parsed
+	}
+	var after *pagecursor.Cursor
+	if query.Has("after") {
+		cursor, err := pagecursor.Decode(query.Get("after"))
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid_cursor")
+			return
+		}
+		after = &cursor
+	}
+
+	event, err := r.events.GetPageBySlug(req.Context(), slug)
+	if errors.Is(err, pgx.ErrNoRows) {
+		writeError(w, http.StatusNotFound, "event_not_found")
+		return
+	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "event_unavailable")
+		return
+	}
+	// A locked private event's log is not found, like the event behind it.
+	if event.IsPrivate() {
+		allowed := false
+		if event.CancelledAt == nil {
+			allowed, err = r.canAccessPrivateEvent(req, slug)
+			if err != nil {
+				writeError(w, http.StatusInternalServerError, "event_unavailable")
+				return
+			}
+		}
+		if !allowed {
+			writeError(w, http.StatusNotFound, "event_not_found")
+			return
+		}
+	}
+	editor := false
+	if userID, ok := auth.UserID(req.Context()); ok && looksLikeUUID(userID) {
+		access, err := r.events.Access(req.Context(), slug, userID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "event_unavailable")
+			return
+		}
+		editor = access.Edit
+	}
+	page, err := r.events.Activity(req.Context(), event.ID, editor, after, limit)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "event_activity_unavailable")
+		return
+	}
+	w.Header().Set("Cache-Control", "private, no-store")
+	writeJSON(w, http.StatusOK, page)
+}

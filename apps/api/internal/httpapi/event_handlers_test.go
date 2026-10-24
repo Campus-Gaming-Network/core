@@ -1076,3 +1076,46 @@ func TestHandleMyEventsKeepsTheMeetingLinkForGoingViewersAndOrganizers(t *testin
 		t.Fatalf("online_url by event = %v, want %v", got, want)
 	}
 }
+
+func TestHandleEventActivityFollowsTheEventPageRules(t *testing.T) {
+	public := testEvent(eventstore.VisibilityPublic)
+	private := testEvent(eventstore.VisibilityPrivate)
+	private.Slug = "private-night"
+	for _, test := range []struct {
+		name       string
+		detail     eventstore.Event
+		organizer  bool
+		signedIn   bool
+		path       string
+		wantStatus int
+		wantCalls  []string
+	}{
+		{"a visitor reads the public view", public, false, false, "/events/campus-scrim-night/activity", http.StatusOK,
+			[]string{public.ID + ":false:20"}},
+		{"an editor reads every entry", public, true, true, "/events/campus-scrim-night/activity?limit=5", http.StatusOK,
+			[]string{public.ID + ":true:5"}},
+		{"a missing event", public, false, false, "/events/gone/activity", http.StatusNotFound, nil},
+		{"a locked private event", private, false, true, "/events/private-night/activity", http.StatusNotFound, nil},
+		{"an organizer of a private event", private, true, true, "/events/private-night/activity", http.StatusOK,
+			[]string{private.ID + ":true:20"}},
+		{"a limit out of range", public, false, false, "/events/campus-scrim-night/activity?limit=51", http.StatusBadRequest, nil},
+		{"a malformed cursor", public, false, false, "/events/campus-scrim-night/activity?after=nope", http.StatusBadRequest, nil},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			repository := &fakeEventRepository{detail: test.detail, isOrganizer: test.organizer}
+			request := httptest.NewRequest(http.MethodGet, test.path, nil)
+			if test.signedIn {
+				request = authenticatedEventRequest(http.MethodGet, test.path, "")
+			}
+			response := httptest.NewRecorder()
+			authenticatedEventPathHandler(repository).ServeHTTP(response, request)
+			if response.Code != test.wantStatus || !reflect.DeepEqual(repository.activityCalls, test.wantCalls) {
+				t.Fatalf("status %d, calls %v; want %d, %v (%s)", response.Code, repository.activityCalls,
+					test.wantStatus, test.wantCalls, response.Body.String())
+			}
+			if response.Code == http.StatusOK && response.Header().Get("Cache-Control") != "private, no-store" {
+				t.Fatalf("Cache-Control = %q, want private, no-store", response.Header().Get("Cache-Control"))
+			}
+		})
+	}
+}
