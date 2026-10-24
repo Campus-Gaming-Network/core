@@ -2286,6 +2286,8 @@ function visibleEvent({
     interest_count: 2,
     lifecycle: "upcoming",
     cost: "unspecified",
+    revision: 0,
+    updated_at: "2037-08-01T17:00:00Z",
     host_school: {
       id: "school-smoke",
       name: "Smoke Test University",
