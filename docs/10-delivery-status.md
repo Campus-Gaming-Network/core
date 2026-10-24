@@ -14,7 +14,7 @@ Work is grouped **Now** (building toward the first public release), **Next** (pl
 2. Lightweight moderation and operations: reports/support queue, deactivation tools, audit history, and notifications.
 3. Expand trust and safety beyond the first role and content-filtering pass.
 4. Production-readiness hardening: monitoring, legal content, performance, and launch checks.
-5. Clubs, shipped ([05 — Phase 6a](./05-roadmap.md#phase-6a--clubs)); tournaments after the event loop has been validated with real users.
+5. Clubs: the core shipped; seeding clubs from the research list (#120) and recruiting posts (#125) remain ([05 — Phase 6a](./05-roadmap.md#phase-6a--clubs)); tournaments after the event loop has been validated with real users.
 
 **First release slice:** auth → home school on signup → schools search/follow → events + games → teams → dashboard.
 
@@ -173,6 +173,8 @@ Spec and order: [05 — Phase 6a](./05-roadmap.md#phase-6a--clubs).
 - [x] Clubs directory with search and filters (#261)
 - [x] Club pages show when details were last confirmed; officers confirm them, and lapsed confirmations are flagged (#119)
 - [x] A club can host an event (#124)
+- [ ] Clean up and seed clubs from the university research list (#120; needs the owner)
+- [ ] Club recruiting posts: tryouts and open roles (#125; needs a spec)
 
 ### Dashboard & content
 
