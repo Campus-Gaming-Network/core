@@ -3,6 +3,7 @@ package events
 import (
 	"context"
 	"fmt"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/dbtest"
 	"os"
 	"reflect"
 	"testing"
@@ -44,18 +45,8 @@ func TestPostgresRepositoryListPublicPagesSoonestFirstWithoutEndedEvents(t *test
 		}
 	})
 
-	if err := pool.QueryRow(ctx, `
-		INSERT INTO schools (name, slug) VALUES ('Soonest First School', $1) RETURNING id::text
-	`, schoolSlug).Scan(&schoolID); err != nil {
-		t.Fatalf("insert school: %v", err)
-	}
-	if err := pool.QueryRow(ctx, `
-		INSERT INTO users (email, password_hash, name, home_school_id, age_confirmed_at)
-		VALUES ($1, 'hash', 'Soonest First Organizer', $2::uuid, NOW())
-		RETURNING id::text
-	`, "soonest-first-"+suffix+"@example.test", schoolID).Scan(&userID); err != nil {
-		t.Fatalf("insert user: %v", err)
-	}
+	schoolID = dbtest.InsertSchool(t, pool, "Soonest First School", schoolSlug)
+	userID = dbtest.InsertUser(t, pool, schoolID, "soonest-first-"+suffix+"@example.test", "Soonest First Organizer")
 	if err := pool.QueryRow(ctx, `
 		INSERT INTO games (name, slug) VALUES ('Soonest First Game', $1) RETURNING id::text
 	`, "soonest-first-game-"+suffix).Scan(&gameID); err != nil {
@@ -159,21 +150,9 @@ func TestPostgresRepositoryListInterestedEventsListsUpcomingInterestsSoonestFirs
 			_, _ = pool.Exec(cleanupContext, `DELETE FROM games WHERE id = $1::uuid`, gameID)
 		}
 	})
-	if err := pool.QueryRow(ctx, `INSERT INTO schools (name, slug) VALUES ('Interested School', $1) RETURNING id::text`, "interested-school-"+suffix).Scan(&schoolID); err != nil {
-		t.Fatalf("insert school: %v", err)
-	}
-	if err := pool.QueryRow(ctx, `
-		INSERT INTO users (email, password_hash, name, home_school_id, age_confirmed_at)
-		VALUES ($1, 'hash', 'Interested Viewer', $2::uuid, NOW()) RETURNING id::text
-	`, "interested-"+suffix+"@example.test", schoolID).Scan(&userID); err != nil {
-		t.Fatalf("insert user: %v", err)
-	}
-	if err := pool.QueryRow(ctx, `
-		INSERT INTO users (email, password_hash, name, home_school_id, age_confirmed_at)
-		VALUES ($1, 'hash', 'Interested Guest', $2::uuid, NOW()) RETURNING id::text
-	`, "interested-guest-"+suffix+"@example.test", schoolID).Scan(&guestID); err != nil {
-		t.Fatalf("insert guest: %v", err)
-	}
+	schoolID = dbtest.InsertSchool(t, pool, "Interested School", "interested-school-"+suffix)
+	userID = dbtest.InsertUser(t, pool, schoolID, "interested-"+suffix+"@example.test", "Interested Viewer")
+	guestID = dbtest.InsertUser(t, pool, schoolID, "interested-guest-"+suffix+"@example.test", "Interested Guest")
 	if err := pool.QueryRow(ctx, `INSERT INTO games (name, slug) VALUES ('Interested Game', $1) RETURNING id::text`, "interested-game-"+suffix).Scan(&gameID); err != nil {
 		t.Fatalf("insert game: %v", err)
 	}
@@ -268,15 +247,8 @@ func TestPostgresRepositoryEventsNeedNoGames(t *testing.T) {
 			_, _ = pool.Exec(cleanupContext, `DELETE FROM games WHERE id = $1::uuid`, gameID)
 		}
 	})
-	if err := pool.QueryRow(ctx, `INSERT INTO schools (name, slug) VALUES ('Gameless School', $1) RETURNING id::text`, "gameless-school-"+suffix).Scan(&schoolID); err != nil {
-		t.Fatalf("insert school: %v", err)
-	}
-	if err := pool.QueryRow(ctx, `
-		INSERT INTO users (email, password_hash, name, home_school_id, age_confirmed_at)
-		VALUES ($1, 'hash', 'Club Officer', $2::uuid, NOW()) RETURNING id::text
-	`, "gameless-"+suffix+"@example.test", schoolID).Scan(&userID); err != nil {
-		t.Fatalf("insert user: %v", err)
-	}
+	schoolID = dbtest.InsertSchool(t, pool, "Gameless School", "gameless-school-"+suffix)
+	userID = dbtest.InsertUser(t, pool, schoolID, "gameless-"+suffix+"@example.test", "Club Officer")
 	if err := pool.QueryRow(ctx, `INSERT INTO games (name, slug) VALUES ('Gameless Game', $1) RETURNING id::text`, "gameless-game-"+suffix).Scan(&gameID); err != nil {
 		t.Fatalf("insert game: %v", err)
 	}

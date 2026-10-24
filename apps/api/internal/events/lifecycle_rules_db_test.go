@@ -30,18 +30,8 @@ func newLifecycleFixture(t *testing.T, schema string) lifecycleFixture {
 		t.Fatalf("migrate schema: %v", err)
 	}
 	var fixture lifecycleFixture
-	if err := pool.QueryRow(ctx, `
-		INSERT INTO schools (name, slug) VALUES ('Lifecycle School', 'lifecycle-school') RETURNING id::text
-	`).Scan(&fixture.schoolID); err != nil {
-		t.Fatalf("insert school: %v", err)
-	}
-	if err := pool.QueryRow(ctx, `
-		INSERT INTO users (email, password_hash, name, home_school_id, age_confirmed_at)
-		VALUES ('creator@example.test', 'hash', 'Creator', $1::uuid, NOW())
-		RETURNING id::text
-	`, fixture.schoolID).Scan(&fixture.creatorID); err != nil {
-		t.Fatalf("insert creator: %v", err)
-	}
+	fixture.schoolID = dbtest.InsertSchool(t, pool, "Lifecycle School", "lifecycle-school")
+	fixture.creatorID = dbtest.InsertUser(t, pool, fixture.schoolID, "creator@example.test", "Creator")
 	if err := pool.QueryRow(ctx, `
 		INSERT INTO games (name, slug) VALUES ('Lifecycle Game', 'lifecycle-game') RETURNING id::text
 	`).Scan(&fixture.gameID); err != nil {

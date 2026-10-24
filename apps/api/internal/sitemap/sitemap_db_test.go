@@ -18,23 +18,13 @@ func TestPostgresRepositoryEntriesListsOnlyPublicOpenRecords(t *testing.T) {
 	}
 
 	var schoolID, userID string
-	if err := pool.QueryRow(ctx, `
-		INSERT INTO schools (name, slug) VALUES ('Sitemap School', 'sitemap-school') RETURNING id::text
-	`).Scan(&schoolID); err != nil {
-		t.Fatalf("insert school: %v", err)
-	}
+	schoolID = dbtest.InsertSchool(t, pool, "Sitemap School", "sitemap-school")
 	if _, err := pool.Exec(ctx, `
 		INSERT INTO schools (name, slug, is_active) VALUES ('Inactive School', 'inactive-school', FALSE)
 	`); err != nil {
 		t.Fatalf("insert inactive school: %v", err)
 	}
-	if err := pool.QueryRow(ctx, `
-		INSERT INTO users (email, password_hash, name, home_school_id, age_confirmed_at)
-		VALUES ('sitemap@example.test', 'hash', 'Sitemap Organizer', $1::uuid, NOW())
-		RETURNING id::text
-	`, schoolID).Scan(&userID); err != nil {
-		t.Fatalf("insert user: %v", err)
-	}
+	userID = dbtest.InsertUser(t, pool, schoolID, "sitemap@example.test", "Sitemap Organizer")
 
 	now := time.Date(2031, time.May, 10, 12, 0, 0, 0, time.UTC)
 	insertEvent := func(slug, visibility string, audience *string, endsAt time.Time, deletedAt *time.Time) {

@@ -18,11 +18,7 @@ func TestPostgresRepositoryLeaveAndRemoveMember(t *testing.T) {
 	}
 
 	var schoolID string
-	if err := pool.QueryRow(ctx, `
-		INSERT INTO schools (name, slug) VALUES ('Roster School', 'roster-school') RETURNING id::text
-	`).Scan(&schoolID); err != nil {
-		t.Fatalf("insert school: %v", err)
-	}
+	schoolID = dbtest.InsertSchool(t, pool, "Roster School", "roster-school")
 	user := func(name string) string {
 		t.Helper()
 		var id string

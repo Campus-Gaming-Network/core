@@ -23,18 +23,8 @@ func TestPostgresRepositoryStoresAndFiltersCost(t *testing.T) {
 	var schoolID string
 	var userID string
 	var gameID string
-	if err := pool.QueryRow(ctx, `
-		INSERT INTO schools (name, slug) VALUES ('Cost School', $1) RETURNING id::text
-	`, schoolSlug).Scan(&schoolID); err != nil {
-		t.Fatalf("insert school: %v", err)
-	}
-	if err := pool.QueryRow(ctx, `
-		INSERT INTO users (email, password_hash, name, home_school_id, age_confirmed_at)
-		VALUES ('cost@example.test', 'hash', 'Cost Organizer', $1::uuid, NOW())
-		RETURNING id::text
-	`, schoolID).Scan(&userID); err != nil {
-		t.Fatalf("insert user: %v", err)
-	}
+	schoolID = dbtest.InsertSchool(t, pool, "Cost School", schoolSlug)
+	userID = dbtest.InsertUser(t, pool, schoolID, "cost@example.test", "Cost Organizer")
 	if err := pool.QueryRow(ctx, `
 		INSERT INTO games (name, slug) VALUES ('Cost Game', 'cost-game') RETURNING id::text
 	`).Scan(&gameID); err != nil {
@@ -159,20 +149,9 @@ func TestCostMigrationKeepsPaidEventsAndLeavesTheRestUnspecified(t *testing.T) {
 	}
 
 	var schoolID string
-	if err := pool.QueryRow(ctx, `
-		INSERT INTO schools (name, slug) VALUES ('Cost Migration School', 'cost-migration-school')
-		RETURNING id::text
-	`).Scan(&schoolID); err != nil {
-		t.Fatalf("insert school: %v", err)
-	}
+	schoolID = dbtest.InsertSchool(t, pool, "Cost Migration School", "cost-migration-school")
 	var userID string
-	if err := pool.QueryRow(ctx, `
-		INSERT INTO users (email, password_hash, name, home_school_id, age_confirmed_at)
-		VALUES ('cost-migration@example.test', 'hash', 'Cost Migration Organizer', $1::uuid, NOW())
-		RETURNING id::text
-	`, schoolID).Scan(&userID); err != nil {
-		t.Fatalf("insert user: %v", err)
-	}
+	userID = dbtest.InsertUser(t, pool, schoolID, "cost-migration@example.test", "Cost Migration Organizer")
 	if _, err := pool.Exec(ctx, `
 		INSERT INTO events (
 			creator_user_id, host_school_id, title, slug, visibility, format,

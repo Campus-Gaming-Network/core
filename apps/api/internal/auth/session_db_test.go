@@ -29,20 +29,9 @@ func TestSessionRepositoryFindSessionDoesNotWrite(t *testing.T) {
 
 	suffix := fmt.Sprint(time.Now().UnixNano())
 	var schoolID string
-	if err := pool.QueryRow(ctx, `
-		INSERT INTO schools (name, slug) VALUES ('Session Lookup School', $1)
-		RETURNING id::text
-	`, "session-lookup-school-"+suffix).Scan(&schoolID); err != nil {
-		t.Fatalf("insert school: %v", err)
-	}
+	schoolID = dbtest.InsertSchool(t, pool, "Session Lookup School", "session-lookup-school-"+suffix)
 	var userID string
-	if err := pool.QueryRow(ctx, `
-		INSERT INTO users (email, password_hash, name, home_school_id, age_confirmed_at)
-		VALUES ($1, 'hash', 'Session User', $2::uuid, NOW())
-		RETURNING id::text
-	`, "session-lookup-"+suffix+"@example.test", schoolID).Scan(&userID); err != nil {
-		t.Fatalf("insert user: %v", err)
-	}
+	userID = dbtest.InsertUser(t, pool, schoolID, "session-lookup-"+suffix+"@example.test", "Session User")
 	t.Cleanup(func() {
 		_, _ = pool.Exec(context.Background(), `DELETE FROM auth_sessions WHERE user_id = $1::uuid`, userID)
 		_, _ = pool.Exec(context.Background(), `DELETE FROM users WHERE id = $1::uuid`, userID)
@@ -93,9 +82,7 @@ func TestSessionRepositoryFindSessionRefusesInactiveAccounts(t *testing.T) {
 		t.Fatalf("migrate schema: %v", err)
 	}
 	var schoolID string
-	if err := pool.QueryRow(ctx, `INSERT INTO schools (name, slug) VALUES ('Status School', 'status-school') RETURNING id::text`).Scan(&schoolID); err != nil {
-		t.Fatal(err)
-	}
+	schoolID = dbtest.InsertSchool(t, pool, "Status School", "status-school")
 	repository := NewSessionRepository(pool)
 	found := map[string]bool{}
 	for _, status := range []string{"active", "suspended", "deleted"} {
