@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/dbtest"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/events"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -870,5 +871,43 @@ func TestDeleteAccountPassesAClubToItsLongestServingEditorOrLeavesItUnclaimed(t 
 	var offers int
 	if err := pool.QueryRow(ctx, `SELECT COUNT(*) FROM club_ownership_offers`).Scan(&offers); err != nil || offers != 0 {
 		t.Fatalf("ownership offers = %d, %v; want 0", offers, err)
+	}
+}
+
+func TestDeleteAccountLogsTheTransferAndCancellationAsADeletedAccount(t *testing.T) {
+	pool, schoolID := newDeletionFixture(t)
+	ctx := context.Background()
+	creatorID := insertUser(t, pool, schoolID, "logged-creator@example.test")
+	organizerID := insertUser(t, pool, schoolID, "logged-organizer@example.test")
+	transferredID := insertDeletionEvent(t, pool, creatorID, schoolID, "logged-transfer")
+	cancelledID := insertDeletionEvent(t, pool, creatorID, schoolID, "logged-cancel")
+	addEventOrganizer(t, pool, transferredID, organizerID, time.Now().Add(-time.Hour).UTC())
+
+	if err := NewPostgresRepository(pool).DeleteAccount(ctx, creatorID); err != nil {
+		t.Fatalf("DeleteAccount() error = %v", err)
+	}
+
+	got := map[string][]string{}
+	activity := events.NewPostgresRepository(pool)
+	for name, eventID := range map[string]string{"transferred": transferredID, "cancelled": cancelledID} {
+		page, err := activity.Activity(ctx, eventID, true, nil, 50)
+		if err != nil {
+			t.Fatalf("Activity(%s) error = %v", name, err)
+		}
+		for _, entry := range page.Entries {
+			// The deleted account shows as no actor.
+			actor := "someone"
+			if entry.Actor == nil {
+				actor = "deleted account"
+			}
+			got[name] = append(got[name], entry.Action+" by "+actor)
+		}
+	}
+	want := map[string][]string{
+		"transferred": {events.ActionCreatorTransferred + " by deleted account"},
+		"cancelled":   {events.ActionCancelled + " by deleted account"},
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("activity = %v, want %v", got, want)
 	}
 }

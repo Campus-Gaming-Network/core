@@ -341,6 +341,7 @@ type Repository interface {
 	GetBySlug(ctx context.Context, slug string) (Event, error)
 	GetPageBySlug(ctx context.Context, slug string) (Event, error)
 	ListCreated(ctx context.Context, userID string, after *pagecursor.Cursor, limit int) (CreatedPage, error)
+	Activity(ctx context.Context, eventID string, editor bool, after *pagecursor.Cursor, limit int) (ActivityPage, error)
 }
 
 // PostgresRepository stores events in Postgres.

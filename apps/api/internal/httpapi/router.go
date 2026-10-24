@@ -1028,6 +1028,18 @@ func (r *Router) handleEventPath(w http.ResponseWriter, req *http.Request) {
 		}
 		return
 	}
+	if len(parts) == 2 && parts[1] == "activity" {
+		slug, ok := pathSlug(w, parts[0], "invalid_event_slug")
+		if !ok {
+			return
+		}
+		if req.Method != http.MethodGet {
+			methodNotAllowed(w, http.MethodGet)
+			return
+		}
+		r.handleEventActivity(w, req, slug)
+		return
+	}
 	if len(parts) == 2 && parts[1] == "attendees" {
 		slug, ok := pathSlug(w, parts[0], "invalid_event_slug")
 		if !ok {

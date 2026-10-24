@@ -264,7 +264,15 @@ func (r *PostgresRepository) AcceptOrganizerInvite(ctx context.Context, tokenHas
 	`, inviteID, userID); err != nil {
 		return "", fmt.Errorf("accept organizer invite: %w", err)
 	}
-	// Someone already organizing keeps their role, the creator's included.
+	// Someone already organizing keeps their role, the creator's included,
+	// and joins nothing new.
+	var alreadyOrganizes bool
+	if err := tx.QueryRow(ctx, `
+		SELECT EXISTS (SELECT 1 FROM event_organizers
+		               WHERE event_id = $1::uuid AND user_id = $2::uuid AND deleted_at IS NULL)
+	`, eventID, userID).Scan(&alreadyOrganizes); err != nil {
+		return "", fmt.Errorf("read event organizer: %w", err)
+	}
 	if _, err := tx.Exec(ctx, `
 		INSERT INTO event_organizers (event_id, user_id, role)
 		VALUES ($1::uuid, $2::uuid, 'organizer')
@@ -273,6 +281,11 @@ func (r *PostgresRepository) AcceptOrganizerInvite(ctx context.Context, tokenHas
 		    role = CASE WHEN event_organizers.deleted_at IS NULL THEN event_organizers.role ELSE 'organizer' END
 	`, eventID, userID); err != nil {
 		return "", fmt.Errorf("add event organizer: %w", err)
+	}
+	if !alreadyOrganizes {
+		if err := writeActivity(ctx, tx, eventID, userID, ActionOrganizerJoined, nil, map[string]any{"user_id": userID}, nil); err != nil {
+			return "", err
+		}
 	}
 	var creatorID, title, name string
 	if err := tx.QueryRow(ctx, `
@@ -344,6 +357,13 @@ func (r *PostgresRepository) RemoveOrganizer(ctx context.Context, slug string, a
 	if tag.RowsAffected() != 1 {
 		return ErrOrganizerNotFound
 	}
+	action := ActionOrganizerRemoved
+	if actorUserID == organizerUserID {
+		action = ActionOrganizerLeft
+	}
+	if err := writeActivity(ctx, tx, eventID, actorUserID, action, map[string]any{"user_id": organizerUserID}, nil, nil); err != nil {
+		return err
+	}
 	return tx.Commit(ctx)
 }
 
@@ -384,6 +404,10 @@ func (r *PostgresRepository) TransferCreator(ctx context.Context, slug string, c
 		UPDATE events SET creator_user_id = $2::uuid WHERE id = $1::uuid
 	`, eventID, organizerUserID); err != nil {
 		return fmt.Errorf("transfer event creator: %w", err)
+	}
+	if err := writeActivity(ctx, tx, eventID, creatorUserID, ActionCreatorTransferred,
+		map[string]any{"creator_user_id": creatorUserID}, map[string]any{"creator_user_id": organizerUserID}, nil); err != nil {
+		return err
 	}
 	return tx.Commit(ctx)
 }

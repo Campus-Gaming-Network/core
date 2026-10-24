@@ -80,6 +80,10 @@ func (r *PostgresRepository) Update(ctx context.Context, params UpdateParams) (E
 	if err != nil {
 		return Event{}, err
 	}
+	stateBefore, err := loadActivityState(ctx, tx, eventID)
+	if err != nil {
+		return Event{}, err
+	}
 
 	// An event keeps its team or club after the organizer leaves it or loses
 	// the role, so only a change of host needs the role. A club host must
@@ -185,6 +189,21 @@ func (r *PostgresRepository) Update(ctx context.Context, params UpdateParams) (E
 		}
 	}
 
+	// One entry per save that changes something.
+	stateAfter, err := loadActivityState(ctx, tx, eventID)
+	if err != nil {
+		return Event{}, err
+	}
+	before, after, edited, err := diffActivity(stateBefore, stateAfter)
+	if err != nil {
+		return Event{}, err
+	}
+	if len(edited) > 0 {
+		if err := writeActivity(ctx, tx, eventID, params.EditorUserID, ActionUpdated, before, after, edited); err != nil {
+			return Event{}, err
+		}
+	}
+
 	if err := tx.Commit(ctx); err != nil {
 		return Event{}, fmt.Errorf("commit event update: %w", err)
 	}
@@ -275,6 +294,9 @@ func (r *PostgresRepository) Delete(ctx context.Context, slug string, userID str
 		WHERE event_id = $1::uuid AND deleted_at IS NULL
 	`, eventID); err != nil {
 		return fmt.Errorf("delete event private unlocks: %w", err)
+	}
+	if err := writeActivity(ctx, tx, eventID, userID, ActionCancelled, nil, nil, nil); err != nil {
+		return err
 	}
 
 	if err := tx.Commit(ctx); err != nil {

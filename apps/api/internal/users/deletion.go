@@ -7,6 +7,7 @@ import (
 
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminaccess"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminaudit"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/events"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/notifications"
 	"github.com/jackc/pgx/v5"
 )
@@ -144,13 +145,20 @@ func (r *PostgresRepository) DeleteAccount(ctx context.Context, userID string) e
 		    FROM successor
 		    WHERE e.id = successor.event_id
 		    RETURNING e.id, e.creator_user_id
+		), promoted AS (
+		    UPDATE event_organizers eo
+		    SET role = 'creator'
+		    FROM transferred
+		    WHERE eo.event_id = transferred.id
+		      AND eo.user_id = transferred.creator_user_id
 		)
-		UPDATE event_organizers eo
-		SET role = 'creator'
+		-- The deleted account made the transfer, so its activity entry names it.
+		INSERT INTO audit_logs (actor_user_id, action, entity_type, entity_id, before_json, after_json)
+		SELECT $1::uuid, $2, 'event', transferred.id,
+		       jsonb_build_object('creator_user_id', $1::text),
+		       jsonb_build_object('creator_user_id', transferred.creator_user_id::text)
 		FROM transferred
-		WHERE eo.event_id = transferred.id
-		  AND eo.user_id = transferred.creator_user_id
-	`, userID); err != nil {
+	`, userID, events.ActionCreatorTransferred); err != nil {
 		return fmt.Errorf("transfer created events: %w", err)
 	}
 
@@ -210,6 +218,9 @@ func (r *PostgresRepository) DeleteAccount(ctx context.Context, userID string) e
 		    SET deleted_at = NOW()
 		    WHERE creator_user_id = $1::uuid AND deleted_at IS NULL
 		    RETURNING id
+		), cancellation_entries AS (
+		    INSERT INTO audit_logs (actor_user_id, action, entity_type, entity_id)
+		    SELECT $1::uuid, $2, 'event', id FROM archived_events
 		), archived_organizers AS (
 		    UPDATE event_organizers eo
 		    SET deleted_at = NOW()
@@ -230,7 +241,7 @@ func (r *PostgresRepository) DeleteAccount(ctx context.Context, userID string) e
 		SET deleted_at = NOW()
 		FROM archived_events e
 		WHERE eu.event_id = e.id AND eu.deleted_at IS NULL
-	`, userID); err != nil {
+	`, userID, events.ActionCancelled); err != nil {
 		return fmt.Errorf("soft delete orphaned events: %w", err)
 	}
 

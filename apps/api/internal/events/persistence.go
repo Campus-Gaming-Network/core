@@ -57,6 +57,9 @@ func (r *PostgresRepository) createWithSlug(ctx context.Context, params CreatePa
 	`, eventID, params.CreatorUserID); err != nil {
 		return "", fmt.Errorf("insert event organizer: %w", err)
 	}
+	if err := writeActivity(ctx, tx, eventID, params.CreatorUserID, ActionCreated, nil, nil, nil); err != nil {
+		return "", err
+	}
 
 	insertedGameCount, err := insertEventGames(ctx, tx, eventID, params.GameIDs)
 	if err != nil {
@@ -170,6 +173,9 @@ func insertEventAssociations(ctx context.Context, tx pgx.Tx, eventID string, par
 		VALUES ($1::uuid, $2::uuid, 'creator')
 	`, eventID, params.CreatorUserID); err != nil {
 		return fmt.Errorf("insert event organizer: %w", err)
+	}
+	if err := writeActivity(ctx, tx, eventID, params.CreatorUserID, ActionCreated, nil, nil, nil); err != nil {
+		return err
 	}
 	insertedGameCount, err := insertEventGames(ctx, tx, eventID, params.GameIDs)
 	if err != nil {

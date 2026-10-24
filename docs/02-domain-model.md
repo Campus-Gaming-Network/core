@@ -314,6 +314,7 @@ ones that change whether or how someone attends.
 | Cost                         | Yes    | Before and after                                       |
 | Payment note and payment URL | Yes    | Changed only                                           |
 | Host team                    | Yes    | Before and after team                                  |
+| Host club                    | Yes    | Before and after club                                  |
 | Description                  | No     | Changed only                                           |
 | Visibility                   | No     | Before and after                                       |
 | Private password             | No     | Changed only; never the password or its hash           |
