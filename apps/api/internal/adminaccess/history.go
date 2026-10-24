@@ -11,6 +11,8 @@ import (
 
 const grantColumns = `id::text,user_id::text,role,granted_by_user_id::text,grant_reason,granted_at,revoked_at,revoked_by_user_id::text,revoke_reason,COALESCE((SELECT name FROM users WHERE users.id=site_role_grants.user_id),'')`
 
+// GetGrant returns the grant with the given ID, active or revoked, including
+// the grantee's name.
 func (r *PostgresRepository) GetGrant(ctx context.Context, id string) (Grant, error) {
 	if !adminmutation.UUID(id) {
 		return Grant{}, adminmutation.ErrNotFound
@@ -19,6 +21,8 @@ func (r *PostgresRepository) GetGrant(ctx context.Context, id string) (Grant, er
 	return g, adminmutation.Error(err)
 }
 
+// ListGrants returns a page of grants, newest first, optionally limited to
+// active or revoked ones through filter.State.
 func (r *PostgresRepository) ListGrants(ctx context.Context, filter adminmutation.Filter) ([]Grant, error) {
 	if err := filter.Validate(); err != nil {
 		return nil, err

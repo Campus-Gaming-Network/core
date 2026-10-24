@@ -10,6 +10,8 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+// Errors returned by event operations. Each carries the API error kind and
+// code the client sees.
 var (
 	ErrHostSchoolNotFound = apperror.New(apperror.KindUnprocessable, "host_school_not_found", "host school not found")
 	// ErrHostTeamNotAllowed reports a host team that does not exist or that
@@ -35,15 +37,19 @@ var (
 	ErrIdempotencyKeyReused = apperror.New(apperror.KindConflict, "idempotency_key_reused", "idempotency key was used by another request")
 )
 
+// Values of the event fields that take a fixed set of strings.
 const (
+	// Event visibility values.
 	VisibilityPublic   = "public"
 	VisibilityUnlisted = "unlisted"
 	VisibilityPrivate  = "private"
 
+	// Event format values.
 	FormatOnline   = "online"
 	FormatInPerson = "in_person"
 	FormatHybrid   = "hybrid"
 
+	// Event audience values.
 	AudienceOpen       = "open"
 	AudienceCollegiate = "collegiate"
 	AudienceCampus     = "campus"
@@ -59,6 +65,7 @@ const (
 	EventTypeWorkshop   = "workshop"
 	EventTypeOther      = "other"
 
+	// Event lifecycle values, derived from the event's times and capacity.
 	LifecycleUpcoming     = "upcoming"
 	LifecycleHappeningNow = "happening_now"
 	LifecycleEnded        = "ended"
@@ -70,10 +77,12 @@ const (
 	CostPaid        = "paid"
 	CostUnspecified = "unspecified"
 
+	// RSVP response values.
 	RSVPYes   = "yes"
 	RSVPMaybe = "maybe"
 	RSVPNo    = "no"
 
+	// Recurrence rule values.
 	RecurrenceWeekly   = "weekly"
 	RecurrenceBiweekly = "biweekly"
 	RecurrenceMonthly  = "monthly"

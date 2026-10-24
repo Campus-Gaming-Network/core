@@ -11,10 +11,12 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+// PostgresStore reads and appends audit rows in Postgres.
 type PostgresStore struct {
 	executor postgresExecutor
 }
 
+// NewPostgresStore returns a store that runs each statement on pool.
 func NewPostgresStore(pool *pgxpool.Pool) *PostgresStore {
 	return &PostgresStore{executor: pool}
 }
@@ -90,6 +92,9 @@ func (store *PostgresStore) insert(ctx context.Context, input WriteInput) (Entry
 	return entry, nil
 }
 
+// List returns a page of one record's audit history, newest first. With a
+// Before cursor it returns the page that precedes the cursor, still newest
+// first.
 func (store *PostgresStore) List(ctx context.Context, params ListParams) ([]Entry, error) {
 	if store == nil || store.executor == nil || params.validate() != nil {
 		return nil, ErrInvalidAudit
