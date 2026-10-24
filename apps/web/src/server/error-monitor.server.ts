@@ -72,14 +72,19 @@ export function startErrorMonitoring(
   });
 }
 
-// Redirects, not-found results, ready-made responses, and API rejections of
-// the visitor's own request are expected outcomes rather than failures.
-export function reportServerError(error: unknown): void {
+// Redirects, not-found results, ready-made responses, API rejections of the
+// visitor's own request, and visitors who disconnect mid-request are expected
+// outcomes rather than failures.
+export function reportServerError(
+  error: unknown,
+  capture: typeof Sentry.captureException = Sentry.captureException,
+): void {
   if (
     isRedirect(error) ||
     isNotFound(error) ||
     error instanceof Response ||
-    (error instanceof ApiError && error.status < 500)
+    (error instanceof ApiError && error.status < 500) ||
+    isClientDisconnect(error)
   ) {
     return;
   }
@@ -90,7 +95,18 @@ export function reportServerError(error: unknown): void {
     reported.add(error);
   }
 
-  Sentry.captureException(error);
+  capture(error);
+}
+
+// Node fails a request body read with this error when the visitor closes the
+// connection before sending all of it.
+function isClientDisconnect(error: unknown): boolean {
+  return (
+    error instanceof Error &&
+    error.message === "aborted" &&
+    "code" in error &&
+    error.code === "ECONNRESET"
+  );
 }
 
 /**
