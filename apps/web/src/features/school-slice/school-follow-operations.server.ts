@@ -1,8 +1,5 @@
-import {
-  ApiContractError,
-  ApiError,
-  type ApiClient,
-} from "../../server/api.server.js";
+import { ApiError, type ApiClient } from "../../server/api.server.js";
+import { apiErrorReporter } from "../../server/api-error-reporter.server.js";
 import {
   emptyResponseDtoSchema,
   type SchoolFollowInput,
@@ -69,13 +66,4 @@ export function schoolFollowErrorDestination(
   return `/schools/${encodeURIComponent(slug)}?follow=failed`;
 }
 
-function defaultErrorReporter(error: unknown): void {
-  if (error instanceof ApiContractError) {
-    console.error("School follow response contract violation", {
-      path: error.path,
-      issues: error.issues,
-    });
-  } else if (!(error instanceof ApiError)) {
-    console.error("School follow request failed");
-  }
-}
+const defaultErrorReporter = apiErrorReporter("School follow");

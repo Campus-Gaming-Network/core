@@ -1,9 +1,6 @@
 import * as z from "zod";
-import {
-  ApiContractError,
-  ApiError,
-  type ApiClient,
-} from "../../server/api.server.js";
+import { ApiError, type ApiClient } from "../../server/api.server.js";
+import { apiErrorReporter } from "../../server/api-error-reporter.server.js";
 import type { DataExportNotice } from "./presentation.js";
 
 const entries = z.array(z.record(z.string(), z.unknown()));
@@ -125,13 +122,4 @@ export async function dataExportResponse(
   }
 }
 
-function defaultErrorReporter(error: unknown): void {
-  if (error instanceof ApiContractError) {
-    console.error("Data export response contract violation", {
-      path: error.path,
-      issues: error.issues,
-    });
-  } else if (!(error instanceof ApiError)) {
-    console.error("Data export request failed");
-  }
-}
+const defaultErrorReporter = apiErrorReporter("Data export");

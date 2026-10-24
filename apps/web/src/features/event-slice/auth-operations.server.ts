@@ -2,11 +2,10 @@ import { unreadCountOperation } from "../notifications/notifications-operations.
 import * as z from "zod";
 import { safeLocalPath } from "../../safe-local-path.js";
 import {
-  ApiContractError,
-  ApiError,
   safeApiErrorMessage,
   type ApiClient,
 } from "../../server/api.server.js";
+import { apiErrorReporter } from "../../server/api-error-reporter.server.js";
 import {
   configuredCookieDeletion,
   mirroredSessionCookieMutation,
@@ -221,13 +220,4 @@ export function safeLocalNext(value: string | undefined): string | null {
   return safeLocalPath(value);
 }
 
-function defaultErrorReporter(error: unknown): void {
-  if (error instanceof ApiContractError) {
-    console.error("API response contract violation", {
-      path: error.path,
-      issues: error.issues,
-    });
-  } else if (!(error instanceof ApiError)) {
-    console.error("Authentication request failed");
-  }
-}
+const defaultErrorReporter = apiErrorReporter("Authentication", "API");

@@ -1,10 +1,10 @@
 import * as z from "zod";
 import {
-  ApiContractError,
   ApiError,
   safeApiErrorMessage,
   type ApiClient,
 } from "../../server/api.server.js";
+import { apiErrorReporter } from "../../server/api-error-reporter.server.js";
 import {
   listedGameDtoSchema,
   profileGameListsDtoSchema,
@@ -132,13 +132,4 @@ export function safeProfileGamesMessage(error: unknown): string {
   return safeApiErrorMessage(error);
 }
 
-function defaultErrorReporter(error: unknown): void {
-  if (error instanceof ApiContractError) {
-    console.error("Profile games response contract violation", {
-      path: error.path,
-      issues: error.issues,
-    });
-  } else if (!(error instanceof ApiError)) {
-    console.error("Profile games request failed");
-  }
-}
+const defaultErrorReporter = apiErrorReporter("Profile games");

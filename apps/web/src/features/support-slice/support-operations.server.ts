@@ -1,8 +1,5 @@
-import {
-  ApiContractError,
-  ApiError,
-  type ApiClient,
-} from "../../server/api.server.js";
+import { ApiError, type ApiClient } from "../../server/api.server.js";
+import { apiErrorReporter } from "../../server/api-error-reporter.server.js";
 import {
   supportTicketIdDtoSchema,
   type SupportTicketInput,
@@ -55,13 +52,4 @@ export function supportErrorMessage(error: unknown): string {
   return messages[error.code] ?? "Something went wrong. Please try again.";
 }
 
-function defaultErrorReporter(error: unknown): void {
-  if (error instanceof ApiContractError) {
-    console.error("Support ticket response contract violation", {
-      path: error.path,
-      issues: error.issues,
-    });
-  } else if (!(error instanceof ApiError)) {
-    console.error("Support ticket request failed");
-  }
-}
+const defaultErrorReporter = apiErrorReporter("Support ticket");

@@ -1,8 +1,5 @@
-import {
-  ApiContractError,
-  ApiError,
-  type ApiClient,
-} from "../../server/api.server.js";
+import { ApiError, type ApiClient } from "../../server/api.server.js";
+import { apiErrorReporter } from "../../server/api-error-reporter.server.js";
 import {
   eventActivityResponseDtoSchema,
   type EventActivityInput,
@@ -50,13 +47,4 @@ export async function eventActivityOperation(
   }
 }
 
-function defaultErrorReporter(error: unknown): void {
-  if (error instanceof ApiContractError) {
-    console.error("Event activity response contract violation", {
-      path: error.path,
-      issues: error.issues,
-    });
-  } else if (!(error instanceof ApiError)) {
-    console.error("Event activity request failed");
-  }
-}
+const defaultErrorReporter = apiErrorReporter("Event activity");

@@ -1,8 +1,5 @@
-import {
-  ApiContractError,
-  ApiError,
-  type ApiClient,
-} from "../../server/api.server.js";
+import { ApiError, type ApiClient } from "../../server/api.server.js";
+import { apiErrorReporter } from "../../server/api-error-reporter.server.js";
 import { optionalViewerProfile } from "../../server/viewer.server.js";
 import * as z from "zod";
 import {
@@ -136,13 +133,4 @@ export async function markAllReadOperation({
   }
 }
 
-function defaultErrorReporter(error: unknown): void {
-  if (error instanceof ApiContractError) {
-    console.error("Notifications response contract violation", {
-      path: error.path,
-      issues: error.issues,
-    });
-  } else if (!(error instanceof ApiError)) {
-    console.error("Notifications request failed");
-  }
-}
+const defaultErrorReporter = apiErrorReporter("Notifications");

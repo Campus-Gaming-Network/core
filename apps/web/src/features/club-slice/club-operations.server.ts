@@ -1,9 +1,6 @@
 import type { GoalSender } from "../../server/analytics.server.js";
-import {
-  ApiContractError,
-  ApiError,
-  type ApiClient,
-} from "../../server/api.server.js";
+import { ApiError, type ApiClient } from "../../server/api.server.js";
+import { apiErrorReporter } from "../../server/api-error-reporter.server.js";
 import { loadGameFilterChoices } from "../game-picker/game-filter.server.js";
 import { loadSchoolFilterChoices } from "../school-slice/school-filter.server.js";
 import { withBundledSchoolLogo } from "../school-slice/school-logos.server.js";
@@ -420,14 +417,4 @@ export async function acceptEditorInviteOperation(
   }
 }
 
-// Logs what failed without the response body, like the other slices.
-function defaultErrorReporter(error: unknown): void {
-  if (error instanceof ApiContractError) {
-    console.error("Club response contract violation", {
-      path: error.path,
-      issues: error.issues,
-    });
-  } else if (!(error instanceof ApiError)) {
-    console.error("Club request failed");
-  }
-}
+const defaultErrorReporter = apiErrorReporter("Club");

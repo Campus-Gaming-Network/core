@@ -1,8 +1,5 @@
-import {
-  ApiContractError,
-  ApiError,
-  type ApiClient,
-} from "../../server/api.server.js";
+import { type ApiClient } from "../../server/api.server.js";
+import { apiErrorReporter } from "../../server/api-error-reporter.server.js";
 import {
   popularGamesResponseSchema,
   type PopularGamesInput,
@@ -32,13 +29,4 @@ export async function popularGamesOperation(
   }
 }
 
-function defaultErrorReporter(error: unknown): void {
-  if (error instanceof ApiContractError) {
-    console.error("Popular games response contract violation", {
-      path: error.path,
-      issues: error.issues,
-    });
-  } else if (!(error instanceof ApiError)) {
-    console.error("Popular games request failed");
-  }
-}
+const defaultErrorReporter = apiErrorReporter("Popular games");

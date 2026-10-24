@@ -1,8 +1,5 @@
-import {
-  ApiContractError,
-  ApiError,
-  type ApiClient,
-} from "../../server/api.server.js";
+import { ApiError, type ApiClient } from "../../server/api.server.js";
+import { apiErrorReporter } from "../../server/api-error-reporter.server.js";
 import { optionalViewerProfile } from "../../server/viewer.server.js";
 import { gamePickerErrorMessages } from "../game-picker/contracts.js";
 import { loadGameFilterChoices } from "../game-picker/game-filter.server.js";
@@ -362,13 +359,4 @@ export function safeTeamMutationMessage(error: unknown): string {
   return messages[error.code] ?? "Something went wrong. Please try again.";
 }
 
-function defaultErrorReporter(error: unknown): void {
-  if (error instanceof ApiContractError) {
-    console.error("Team response contract violation", {
-      path: error.path,
-      issues: error.issues,
-    });
-  } else if (!(error instanceof ApiError)) {
-    console.error("Team request failed");
-  }
-}
+const defaultErrorReporter = apiErrorReporter("Team");
