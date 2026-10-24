@@ -47,6 +47,8 @@ export const clubDtoSchema = z.object({
   member_count: z.number().int().nonnegative(),
   confirmed_at: z.iso.datetime({ offset: true }).optional(),
   confirmed_source: z.enum(["club", "cgn"]).optional(),
+  // The last confirmation is older than the API's confirmation window.
+  needs_confirmation: z.boolean(),
   // A signed-in viewer's place in the club.
   viewer: z
     .object({
@@ -67,6 +69,7 @@ export const schoolClubsResponseDtoSchema = z.object({
       summary: z.string(),
       games: z.array(clubGameSchema),
       claimed: z.boolean(),
+      needs_confirmation: z.boolean(),
     }),
   ),
 });
@@ -82,6 +85,7 @@ export const clubsResponseDtoSchema = z.object({
       summary: z.string(),
       games: z.array(clubGameSchema),
       claimed: z.boolean(),
+      needs_confirmation: z.boolean(),
       school: z.object({
         id: identifierSchema,
         name: z.string(),
@@ -486,6 +490,7 @@ const clubCommandSchema = z.discriminatedUnion("command", [
       )
       .max(maximumClubLinks, `A club has at most ${maximumClubLinks} links.`),
   }),
+  z.object({ command: z.literal("confirm"), ...slugField }),
   z.object({
     command: z.literal("invite"),
     ...slugField,
@@ -511,6 +516,10 @@ export type ClubCommandName = ClubCommand["command"];
 export const clubNotices = {
   saved: { message: "Club details saved.", severity: "success" },
   "links-saved": { message: "Links saved.", severity: "success" },
+  confirmed: {
+    message: "Details confirmed. The club page shows today's date.",
+    severity: "success",
+  },
   invited: {
     message: "Invitation sent. The link works once and expires in 7 days.",
     severity: "success",
@@ -556,6 +565,7 @@ export type ClubNotice = keyof typeof clubNotices;
 export const clubCommandNotices: Record<ClubCommandName, ClubNotice> = {
   profile: "saved",
   links: "links-saved",
+  confirm: "confirmed",
   invite: "invited",
   "revoke-invite": "invite-withdrawn",
   "remove-member": "removed",

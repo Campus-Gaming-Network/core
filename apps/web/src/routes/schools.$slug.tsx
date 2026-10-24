@@ -57,7 +57,10 @@ import {
 import { getTeamsBrowse } from "../features/team-slice/team.functions";
 import { getSchoolClubs } from "../features/club-slice/club.functions";
 import type { SchoolClubsResult } from "../features/club-slice/contracts";
-import { clubTypeLabels } from "../features/club-slice/presentation";
+import {
+  clubNeedsConfirmationLabel,
+  clubTypeLabels,
+} from "../features/club-slice/presentation";
 import type { PopularGamesResult } from "../features/popular-games/contracts";
 import { getPopularGames } from "../features/popular-games/popular-games.functions";
 import { PopularGamesPanel } from "../features/popular-games/popular-games-panel";
@@ -417,6 +420,13 @@ function SchoolPage() {
                     >
                       <DirectoryRow
                         action="View club"
+                        facts={
+                          club.needs_confirmation ? (
+                            <StatusLabel>
+                              {clubNeedsConfirmationLabel}
+                            </StatusLabel>
+                          ) : undefined
+                        }
                         identity={
                           <span aria-hidden="true" className="team-mark">
                             {club.name.slice(0, 1).toUpperCase()}

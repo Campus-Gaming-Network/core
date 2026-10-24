@@ -65,12 +65,12 @@ func TestClubRoutes(t *testing.T) {
 		status       int
 		body         string
 	}{
-		{http.MethodGet, "/clubs/esports-program", http.StatusOK, `{"id":"club-1","name":"Esports Program","slug":"esports-program","type":"university_program","summary":"","school":{"id":"","name":"","slug":""},"games":[],"links":[],"claimed":false,"member_count":0}` + "\n"},
+		{http.MethodGet, "/clubs/esports-program", http.StatusOK, `{"id":"club-1","name":"Esports Program","slug":"esports-program","type":"university_program","summary":"","school":{"id":"","name":"","slug":""},"games":[],"links":[],"claimed":false,"member_count":0,"needs_confirmation":false}` + "\n"},
 		{http.MethodGet, "/clubs/hidden-guild", http.StatusNotFound, `{"error":"club_not_found"}` + "\n"},
 		{http.MethodPost, "/clubs/esports-program", http.StatusMethodNotAllowed, ""},
-		{http.MethodGet, "/schools/club-university/clubs", http.StatusOK, `{"clubs":[{"id":"club-1","name":"Esports Program","slug":"esports-program","type":"university_program","summary":"","games":[],"claimed":false}]}` + "\n"},
+		{http.MethodGet, "/schools/club-university/clubs", http.StatusOK, `{"clubs":[{"id":"club-1","name":"Esports Program","slug":"esports-program","type":"university_program","summary":"","games":[],"claimed":false,"needs_confirmation":false}]}` + "\n"},
 		{http.MethodGet, "/schools/no-such-school/clubs", http.StatusNotFound, `{"error":"school_not_found"}` + "\n"},
-		{http.MethodGet, "/clubs", http.StatusOK, `{"clubs":[{"id":"11111111-1111-1111-1111-111111111111","name":"Esports Program","slug":"esports-program","type":"university_program","summary":"","games":[],"claimed":false,"school":{"id":"school-1","name":"Club University","slug":"club-university"}},{"id":"22222222-2222-2222-2222-222222222222","name":"Smash Club","slug":"smash-club","type":"student_club","summary":"","games":[],"claimed":false,"school":{"id":"school-2","name":"Quiet College","slug":"quiet-college"}}],"has_more":false,"has_previous":false,"limit":25}` + "\n"},
+		{http.MethodGet, "/clubs", http.StatusOK, `{"clubs":[{"id":"11111111-1111-1111-1111-111111111111","name":"Esports Program","slug":"esports-program","type":"university_program","summary":"","games":[],"claimed":false,"needs_confirmation":false,"school":{"id":"school-1","name":"Club University","slug":"club-university"}},{"id":"22222222-2222-2222-2222-222222222222","name":"Smash Club","slug":"smash-club","type":"student_club","summary":"","games":[],"claimed":false,"needs_confirmation":false,"school":{"id":"school-2","name":"Quiet College","slug":"quiet-college"}}],"has_more":false,"has_previous":false,"limit":25}` + "\n"},
 		{http.MethodGet, "/clubs?type=guild", http.StatusBadRequest, `{"error":"invalid_type"}` + "\n"},
 		{http.MethodGet, "/clubs?after=not-a-cursor", http.StatusBadRequest, `{"error":"invalid_cursor"}` + "\n"},
 		{http.MethodGet, "/clubs?limit=0", http.StatusBadRequest, `{"error":"invalid_limit"}` + "\n"},

@@ -33,6 +33,7 @@ type Mailer interface {
 	SendClaimRejected(ctx context.Context, recipient string, decision DecisionPayload, idempotencyKey string) (string, error)
 	SendEditorInvite(ctx context.Context, recipient string, invite EditorInvitePayload, idempotencyKey string) (string, error)
 	SendOwnershipOffered(ctx context.Context, recipient string, offer OwnershipOfferPayload, idempotencyKey string) (string, error)
+	SendConfirmationDue(ctx context.Context, recipient string, club ConfirmationDuePayload, idempotencyKey string) (string, error)
 }
 
 // ResendMailer sends club emails through Resend. Without an API key it logs
@@ -80,6 +81,27 @@ func (m *ResendMailer) SendOwnershipOffered(ctx context.Context, recipient strin
 	return m.sendMessage(ctx, recipient, offer.OwnerName+" offered you "+offer.ClubName,
 		ownershipOfferedMessage(offer, strings.TrimRight(m.SiteURL, "/")+"/clubs/"+url.PathEscape(offer.ClubSlug)),
 		"club ownership offered", idempotencyKey)
+}
+
+// SendConfirmationDue asks an owner to confirm the club's details and returns
+// the provider message ID.
+func (m *ResendMailer) SendConfirmationDue(ctx context.Context, recipient string, club ConfirmationDuePayload, idempotencyKey string) (string, error) {
+	return m.sendMessage(ctx, recipient, "Are "+club.ClubName+"'s details still current?",
+		confirmationDueMessage(club, strings.TrimRight(m.SiteURL, "/")+"/clubs/"+url.PathEscape(club.ClubSlug)+"/manage"),
+		"club confirmation due", idempotencyKey)
+}
+
+func confirmationDueMessage(club ConfirmationDuePayload, link string) emaillayout.Message {
+	return emaillayout.Message{
+		Preview: "Confirm " + club.ClubName + "'s page on Campus Gaming Network is up to date.",
+		Heading: "Check your club's page",
+		Paragraphs: []string{
+			"No one has confirmed " + club.ClubName + "'s details on Campus Gaming Network in over 90 days, so its page now says it needs confirmation.",
+			"Check its description, how to join, and links, then confirm the details are current on the Manage club page.",
+		},
+		Action: &emaillayout.Action{Label: "Manage club", URL: link},
+		Reason: "You received this email because you are an owner of this club.",
+	}
 }
 
 func editorInviteMessage(invite EditorInvitePayload, link string) emaillayout.Message {

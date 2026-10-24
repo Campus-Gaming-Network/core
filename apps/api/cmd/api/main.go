@@ -98,6 +98,9 @@ func run() int {
 	workers.Go(func() {
 		maintenance.NewSweeper(database, slog.Default()).Start(ctx, maintenance.DefaultInterval)
 	})
+	workers.Go(func() {
+		clubs.NewPostgresRepository(database).StartConfirmationReminders(ctx, clubs.DefaultReminderInterval, slog.Default())
+	})
 
 	mailClient := mailhttp.NewClient()
 	emailWorker := emailoutbox.NewWorker(

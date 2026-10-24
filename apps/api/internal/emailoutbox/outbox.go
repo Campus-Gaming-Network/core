@@ -44,6 +44,9 @@ const (
 	// the club.
 	KindClubEditorInvite     = "club_editor_invite"
 	KindClubOwnershipOffered = "club_ownership_offered"
+	// KindClubConfirmationDue asks a claimed club's owners to confirm its
+	// details once they are older than clubs.ConfirmationWindow.
+	KindClubConfirmationDue = "club_confirmation_due"
 )
 
 const (

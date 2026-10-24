@@ -122,8 +122,10 @@ SiteAnnouncement ── global banner                        (later)
   in the club itself, which follows the club's How to join
 - Unstated facts stay unstated: no fee, eligibility, or skill level is shown
   unless the club states it
-- After 90 days without confirmation the club shows "Needs confirmation" and
-  stays listed
+- Owners and editors confirm the club's details are current; site admins
+  mark it checked against its public source. After 90 days without
+  confirmation the club shows "Needs confirmation" and stays listed. A claimed
+  club's owners are emailed once per lapse
 - Teams assigned to a club (Varsity, JV) are later
 
 ### Team

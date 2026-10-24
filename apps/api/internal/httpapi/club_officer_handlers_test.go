@@ -45,6 +45,10 @@ func (f fakeClubOfficers) EditLinks(_ context.Context, slug, _ string, links []c
 	return f.record("links", slug, links[0].URL)
 }
 
+func (f fakeClubOfficers) Confirm(_ context.Context, slug, _ string) error {
+	return f.record("confirm", slug, "")
+}
+
 func (f fakeClubOfficers) InviteEditor(_ context.Context, params clubs.EditorInviteParams) (clubs.EditorInvite, error) {
 	return clubs.EditorInvite{Email: params.Email}, f.record("invite", params.Slug, params.Email)
 }
@@ -96,6 +100,8 @@ func TestClubOfficerRoutesNeedASignedInUserAndPassThroughTheirArguments(t *testi
 		{http.MethodPost, "/clubs/smash-club/profile", `{"name":"Smash","type":"student_club"}`, http.StatusNoContent},
 		{http.MethodPost, "/clubs/chess-club/profile", `{"name":"Chess","type":"student_club"}`, http.StatusForbidden},
 		{http.MethodPost, "/clubs/smash-club/links", `{"links":[{"type":"website","label":"Site","url":"https://smash.example.test"}]}`, http.StatusNoContent},
+		{http.MethodPost, "/clubs/smash-club/confirm", "", http.StatusNoContent},
+		{http.MethodPost, "/clubs/chess-club/confirm", "", http.StatusForbidden},
 		{http.MethodPost, "/clubs/smash-club/editor-invites", `{"email":" Editor@Example.test "}`, http.StatusCreated},
 		{http.MethodPost, "/clubs/smash-club/editor-invites", `{"email":"not an address"}`, http.StatusBadRequest},
 		{http.MethodDelete, "/clubs/smash-club/editor-invites/" + memberID, "", http.StatusNoContent},
@@ -120,7 +126,7 @@ func TestClubOfficerRoutesNeedASignedInUserAndPassThroughTheirArguments(t *testi
 	}
 	want := []string{
 		"manage:smash-club:", "profile:smash-club:Smash", "profile:chess-club:Chess",
-		"links:smash-club:https://smash.example.test", "invite:smash-club:editor@example.test",
+		"links:smash-club:https://smash.example.test", "confirm:smash-club:", "confirm:chess-club:", "invite:smash-club:editor@example.test",
 		"revoke:smash-club:" + memberID, "accept-invite::raw-token", "remove:smash-club:" + memberID,
 		"join:smash-club:", "leave:smash-club:", "offer:smash-club:" + memberID, "cancel-offer:smash-club:", "accept-offer:smash-club:",
 		"viewer:club-1:",

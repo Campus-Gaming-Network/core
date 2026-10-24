@@ -53,6 +53,8 @@ type Club struct {
 	MemberCount     int        `json:"member_count"`
 	ConfirmedAt     *time.Time `json:"confirmed_at,omitempty"`
 	ConfirmedSource string     `json:"confirmed_source,omitempty"`
+	// NeedsConfirmation reports a confirmation older than ConfirmationWindow.
+	NeedsConfirmation bool `json:"needs_confirmation"`
 	// Viewer is set for a signed-in viewer.
 	Viewer *Viewer `json:"viewer,omitempty"`
 }
@@ -66,6 +68,8 @@ type ListItem struct {
 	Summary string        `json:"summary"`
 	Games   []GameSummary `json:"games"`
 	Claimed bool          `json:"claimed"`
+	// NeedsConfirmation reports a confirmation older than ConfirmationWindow.
+	NeedsConfirmation bool `json:"needs_confirmation"`
 	// School is set in the directory, which lists clubs from every school.
 	School *SchoolSummary `json:"school,omitempty"`
 	// SortKey is the club's place in the directory's name order, for paging.
@@ -126,11 +130,12 @@ type Repository interface {
 // PostgresRepository reads clubs from Postgres.
 type PostgresRepository struct {
 	pool *pgxpool.Pool
+	now  func() time.Time
 }
 
 // NewPostgresRepository returns a repository backed by pool.
 func NewPostgresRepository(pool *pgxpool.Pool) *PostgresRepository {
-	return &PostgresRepository{pool: pool}
+	return &PostgresRepository{pool: pool, now: time.Now}
 }
 
 // publishedClub is the condition every public read applies.
@@ -202,6 +207,7 @@ func (r *PostgresRepository) getByCurrentSlug(ctx context.Context, slug string) 
 	if confirmedSource != nil {
 		club.ConfirmedSource = *confirmedSource
 	}
+	club.NeedsConfirmation = NeedsConfirmation(club.ConfirmedAt, r.now())
 	club.Games = games(gameIDs, gameNames, gameSlugs, gameCovers)
 
 	rows, err := r.pool.Query(ctx, `
@@ -245,7 +251,7 @@ func (r *PostgresRepository) ListBySchool(ctx context.Context, schoolSlug string
 	}
 
 	rows, err := r.pool.Query(ctx, `
-		SELECT c.id::text, c.name, c.slug, c.type, c.summary, `+claimedColumn+`,
+		SELECT c.id::text, c.name, c.slug, c.type, c.summary, `+claimedColumn+`, c.confirmed_at,
 		       `+gameColumns+`
 		FROM clubs c
 		LEFT JOIN club_games cg ON cg.club_id = c.id
@@ -258,15 +264,18 @@ func (r *PostgresRepository) ListBySchool(ctx context.Context, schoolSlug string
 		return nil, fmt.Errorf("list school clubs: %w", err)
 	}
 	defer rows.Close()
+	now := r.now()
 	clubs := []ListItem{}
 	for rows.Next() {
 		var item ListItem
+		var confirmedAt *time.Time
 		var gameIDs, gameNames, gameSlugs []string
 		var gameCovers []bool
-		if err := rows.Scan(&item.ID, &item.Name, &item.Slug, &item.Type, &item.Summary, &item.Claimed,
+		if err := rows.Scan(&item.ID, &item.Name, &item.Slug, &item.Type, &item.Summary, &item.Claimed, &confirmedAt,
 			&gameIDs, &gameNames, &gameSlugs, &gameCovers); err != nil {
 			return nil, fmt.Errorf("scan school club: %w", err)
 		}
+		item.NeedsConfirmation = NeedsConfirmation(confirmedAt, now)
 		item.Games = games(gameIDs, gameNames, gameSlugs, gameCovers)
 		clubs = append(clubs, item)
 	}
@@ -313,7 +322,7 @@ func (r *PostgresRepository) List(ctx context.Context, params ListParams) ([]Lis
 	arguments = append(arguments, params.Limit)
 
 	rows, err := r.pool.Query(ctx, `
-		SELECT c.id::text, c.name, c.slug, c.type, c.summary, `+claimedColumn+`, LOWER(c.name),
+		SELECT c.id::text, c.name, c.slug, c.type, c.summary, `+claimedColumn+`, c.confirmed_at, LOWER(c.name),
 		       s.id::text, s.name, s.slug, COALESCE(s.city, ''), COALESCE(s.state, ''),
 		       `+gameColumns+`
 		FROM clubs c
@@ -327,17 +336,20 @@ func (r *PostgresRepository) List(ctx context.Context, params ListParams) ([]Lis
 		return nil, fmt.Errorf("list clubs: %w", err)
 	}
 	defer rows.Close()
+	now := r.now()
 	clubs := []ListItem{}
 	for rows.Next() {
 		var item ListItem
 		var school SchoolSummary
+		var confirmedAt *time.Time
 		var gameIDs, gameNames, gameSlugs []string
 		var gameCovers []bool
-		if err := rows.Scan(&item.ID, &item.Name, &item.Slug, &item.Type, &item.Summary, &item.Claimed, &item.SortKey,
+		if err := rows.Scan(&item.ID, &item.Name, &item.Slug, &item.Type, &item.Summary, &item.Claimed, &confirmedAt, &item.SortKey,
 			&school.ID, &school.Name, &school.Slug, &school.City, &school.State,
 			&gameIDs, &gameNames, &gameSlugs, &gameCovers); err != nil {
 			return nil, fmt.Errorf("scan club: %w", err)
 		}
+		item.NeedsConfirmation = NeedsConfirmation(confirmedAt, now)
 		item.School = &school
 		item.Games = games(gameIDs, gameNames, gameSlugs, gameCovers)
 		clubs = append(clubs, item)

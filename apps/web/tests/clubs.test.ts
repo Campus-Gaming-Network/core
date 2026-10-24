@@ -43,6 +43,7 @@ const club = {
   member_count: 2,
   confirmed_at: "2031-03-04T12:00:00Z",
   confirmed_source: "cgn",
+  needs_confirmation: false,
 };
 
 test("a club page reads one club, and a hidden or missing club is not found", async () => {
@@ -123,6 +124,7 @@ test("a school page lists its clubs, and a failure leaves the page up", async ()
               summary: club.summary,
               games: club.games,
               claimed: false,
+              needs_confirmation: true,
             },
           ],
         });
@@ -142,13 +144,13 @@ test("a school page lists its clubs, and a failure leaves the page up", async ()
   assert.deepEqual(
     {
       requested,
-      slugs: listed.clubs.map((item) => item.slug),
+      slugs: listed.clubs.map((item) => [item.slug, item.needs_confirmation]),
       unavailable: listed.unavailable,
       failed,
     },
     {
       requested: ["http://api:8080/schools/club%2Funiversity/clubs"],
-      slugs: ["esports-program"],
+      slugs: [["esports-program", true]],
       unavailable: false,
       failed: { clubs: [], unavailable: true },
     },
@@ -245,6 +247,7 @@ test("the clubs directory asks for one filtered page, and a failure leaves the p
               summary: club.summary,
               games: club.games,
               claimed: false,
+              needs_confirmation: false,
               school: club.school,
             },
           ],
