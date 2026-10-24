@@ -153,3 +153,8 @@ limits the API already enforces on event, team, user, social-link, report, and
 support-ticket text. It validates existing rows, so it fails if any row breaks
 a limit. `events.title` is only checked for non-empty, because the demo seed
 writes titles longer than the API allows. No API change; apply at any time.
+Migration `000042_club_confirmation_reminders.up.sql` adds
+`club_confirmation_reminders`, which records the confirmation each claimed
+club's owners were last reminded about, and the `club_confirmation_due` email
+kind. Apply it before deploying the API that serves `POST /clubs/{slug}/confirm`
+and queues the reminders.

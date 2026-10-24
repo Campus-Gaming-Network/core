@@ -34,6 +34,7 @@ import {
 } from "../features/club-slice/contracts";
 import {
   clubConfirmedLine,
+  clubNeedsConfirmationLabel,
   clubHead,
   clubManagedBy,
   clubTypeLabels,
@@ -160,7 +161,21 @@ function ClubPage() {
               { term: "School", value: club.school.name },
               { term: "Page", value: clubManagedBy(club) },
               ...(confirmed
-                ? [{ term: "Last confirmed", value: confirmed }]
+                ? [
+                    {
+                      term: "Last confirmed",
+                      value: club.needs_confirmation ? (
+                        <>
+                          {confirmed}{" "}
+                          <StatusLabel>
+                            {clubNeedsConfirmationLabel}
+                          </StatusLabel>
+                        </>
+                      ) : (
+                        confirmed
+                      ),
+                    },
+                  ]
                 : []),
             ]}
           />

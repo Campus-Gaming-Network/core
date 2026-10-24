@@ -150,6 +150,17 @@ func (d *Dispatcher) Send(ctx context.Context, message emailoutbox.Message) (str
 		}
 		providerID, err := d.Clubs.SendOwnershipOffered(ctx, message.Recipient, payload, message.IdempotencyKey)
 		return providerID, classifyProviderError(err)
+	case emailoutbox.KindClubConfirmationDue:
+		var payload clubs.ConfirmationDuePayload
+		if json.Unmarshal(message.Payload, &payload) != nil || strings.TrimSpace(payload.ClubName) == "" ||
+			strings.TrimSpace(payload.ClubSlug) == "" {
+			return "", emailoutbox.Permanent(errors.New("invalid club confirmation email payload"))
+		}
+		if d.Clubs == nil {
+			return "", errors.New("club mailer unavailable")
+		}
+		providerID, err := d.Clubs.SendConfirmationDue(ctx, message.Recipient, payload, message.IdempotencyKey)
+		return providerID, classifyProviderError(err)
 	default:
 		return "", emailoutbox.Permanent(fmt.Errorf("unsupported email kind %q", message.Kind))
 	}

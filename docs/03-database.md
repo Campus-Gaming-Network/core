@@ -181,6 +181,11 @@ club_ownership_offers
   club_id (primary key), from_user_id, to_user_id, created_at
   -- at most one offer per club; nothing changes until the recipient accepts
 
+club_confirmation_reminders
+  club_id (primary key), confirmed_at, sent_at
+  -- the confirmation a claimed club's owners were last reminded about; a
+  -- club is reminded again only once a newer confirmation lapses
+
 club_claims
   id, club_id nullable, school_id, requested_name nullable,
   requested_type nullable (student_club|university_program),

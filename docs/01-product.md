@@ -212,8 +212,11 @@ club on CGN, which lists them as members here.
   [People lists](#people-lists). Signed-out visitors see the count
 - **Last confirmed:** a club page shows when its details were last confirmed and
   by whom: "Confirmed by the club on \<date>" or "Checked by Campus Gaming
-  Network on \<date>". After 90 days it reads "Needs confirmation", which never
-  says or implies the club is inactive
+  Network on \<date>". An owner or editor confirms from the Manage club page.
+  After 90 days the club page and its row on the school page and in the clubs
+  directory read "Needs confirmation", which never says or implies the club is
+  inactive; the club stays listed. A claimed club's owners are emailed once
+  when it lapses, and again only after it is confirmed and lapses again
 - **Events:** a club's owners and editors can host an event as the club, as a
   team's owners and captains can host as the team; an event has at most one
   hosting team or club. Any owner or editor of the club can manage an event the

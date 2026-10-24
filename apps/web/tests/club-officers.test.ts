@@ -193,6 +193,7 @@ test("link rows drop blank rows, and each command calls its own route", async ()
   );
   const results = [];
   const commands: Array<Record<string, string>> = [
+    { command: "confirm", page: "manage" },
     { command: "revoke-invite", invite_id: "invite-1", page: "manage" },
     { command: "remove-member", user_id: memberID, page: "manage" },
     { command: "offer", user_id: memberID, page: "manage" },
@@ -214,6 +215,7 @@ test("link rows drop blank rows, and each command calls its own route", async ()
       result.status === "success" ? result.redirectTo : result.status,
     ),
     [
+      "/clubs/smash-club/manage?club=confirmed",
       "/clubs/smash-club/manage?club=invite-withdrawn",
       "/clubs/smash-club/manage?club=removed",
       "/clubs/smash-club/manage?club=offered",
@@ -228,6 +230,7 @@ test("link rows drop blank rows, and each command calls its own route", async ()
         `${method} ${url.replace("http://api:8080", "")} ${JSON.stringify(body ?? null)}`,
     ),
     [
+      "POST /clubs/smash-club/confirm null",
       "DELETE /clubs/smash-club/editor-invites/invite-1 null",
       `POST /clubs/smash-club/remove-member {"user_id":"${memberID}"}`,
       `POST /clubs/smash-club/ownership-offer {"user_id":"${memberID}"}`,

@@ -22,6 +22,7 @@ type clubOfficers interface {
 	Manage(ctx context.Context, slug, userID string) (clubs.Management, error)
 	EditProfile(ctx context.Context, slug, userID string, edit clubs.ProfileEdit) error
 	EditLinks(ctx context.Context, slug, userID string, links []clubs.Link) error
+	Confirm(ctx context.Context, slug, userID string) error
 	InviteEditor(ctx context.Context, params clubs.EditorInviteParams) (clubs.EditorInvite, error)
 	RevokeEditorInvite(ctx context.Context, slug, ownerUserID, inviteID string) error
 	AcceptEditorInvite(ctx context.Context, tokenHash []byte, userID string) (string, error)
@@ -42,6 +43,7 @@ func (r *Router) registerClubOfficerRoutes() {
 	r.mux.HandleFunc("/clubs/{slug}/manage", requireMethod(http.MethodGet, r.handleManageClub))
 	r.mux.HandleFunc("/clubs/{slug}/profile", requireMethod(http.MethodPost, r.handleEditClubProfile))
 	r.mux.HandleFunc("/clubs/{slug}/links", requireMethod(http.MethodPost, r.handleEditClubLinks))
+	r.mux.HandleFunc("/clubs/{slug}/confirm", requireMethod(http.MethodPost, r.handleConfirmClub))
 	r.mux.HandleFunc("/clubs/{slug}/editor-invites", requireMethod(http.MethodPost, r.handleInviteClubEditor))
 	r.mux.HandleFunc("/clubs/{slug}/editor-invites/{id}", requireMethod(http.MethodDelete, r.handleRevokeClubEditorInvite))
 	r.mux.HandleFunc("/club-editor-invites/accept", requireMethod(http.MethodPost, r.handleAcceptClubEditorInvite))
@@ -110,6 +112,20 @@ func (r *Router) handleEditClubLinks(w http.ResponseWriter, req *http.Request) {
 	}
 	if err := r.clubOfficers.EditLinks(req.Context(), req.PathValue("slug"), userID, request.Links); err != nil {
 		writeApplicationError(w, err, "club_edit_failed")
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// handleConfirmClub answers POST /clubs/{slug}/confirm, an owner or editor
+// confirming the club's details are current.
+func (r *Router) handleConfirmClub(w http.ResponseWriter, req *http.Request) {
+	userID, ok := r.clubOfficer(w, req)
+	if !ok {
+		return
+	}
+	if err := r.clubOfficers.Confirm(req.Context(), req.PathValue("slug"), userID); err != nil {
+		writeApplicationError(w, err, "club_confirm_failed")
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)

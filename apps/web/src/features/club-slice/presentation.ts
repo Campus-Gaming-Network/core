@@ -38,6 +38,12 @@ export function clubConfirmedLine(
     : `Checked by Campus Gaming Network on ${date}`;
 }
 
+/**
+ * The tag a club wears once its last confirmation is out of date. It says
+ * only that, never that the club is inactive.
+ */
+export const clubNeedsConfirmationLabel = "Needs confirmation";
+
 export function clubsHead(publicOrigin?: string) {
   return pageHead(publicOrigin, {
     title: "Clubs",

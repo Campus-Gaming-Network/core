@@ -26,6 +26,7 @@ import {
 } from "../components/filter-toolbar";
 import { ListUnavailable, RoutePending } from "../components/route-boundaries";
 import { SchoolMark } from "../components/school-mark";
+import { StatusLabel } from "../components/status-label";
 import {
   SearchFilter,
   searchFilterFallback,
@@ -37,7 +38,11 @@ import {
   validateClubsSearch,
   type ClubsSearch,
 } from "../features/club-slice/contracts";
-import { clubsHead, clubTypeLabels } from "../features/club-slice/presentation";
+import {
+  clubNeedsConfirmationLabel,
+  clubsHead,
+  clubTypeLabels,
+} from "../features/club-slice/presentation";
 import clubCSS from "../features/club-slice/clubs.css?url";
 import { EventGameThumb } from "../features/event-slice/event-game-thumb";
 import {
@@ -284,6 +289,11 @@ function ClubsPage() {
                       size={44}
                       slug={club.school.slug}
                     />
+                  }
+                  facts={
+                    club.needs_confirmation ? (
+                      <StatusLabel>{clubNeedsConfirmationLabel}</StatusLabel>
+                    ) : undefined
                   }
                   media={<EventGameThumb decorative games={club.games} />}
                   meta={[club.school.name, schoolLocation(club.school, "")]}

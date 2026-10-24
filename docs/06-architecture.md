@@ -184,7 +184,7 @@ Each layer sets its headers once, as defaults a route can replace.
 
 - `http.Server` sets `ReadHeaderTimeout` 5s, `ReadTimeout` 15s, `WriteTimeout` 30s, `IdleTimeout` 60s, and `MaxHeaderBytes` 64 KiB.
 - Every request body is size limited. Public JSON bodies are capped at 1 MiB, Admin JSON bodies at 16 KiB, and school logo uploads at the logo limit plus multipart overhead. An oversized body returns `413` (`request_too_large`; `logo_too_large` for logos) through `apperror.KindTooLarge`, not `400`.
-- On `SIGTERM` or interrupt the API stops accepting connections, drains in-flight requests for `API_SHUTDOWN_TIMEOUT` (default `10s`, matching Railway's `drainingSeconds`), waits for the maintenance sweeper and email outbox worker to stop, and only then closes the database pool. Requests still running at the deadline are cut off and the process exits nonzero.
+- On `SIGTERM` or interrupt the API stops accepting connections, drains in-flight requests for `API_SHUTDOWN_TIMEOUT` (default `10s`, matching Railway's `drainingSeconds`), waits for the maintenance sweeper, the club confirmation reminder job, and the email outbox worker to stop, and only then closes the database pool. Requests still running at the deadline are cut off and the process exits nonzero.
 - `/health` is liveness and does not touch the database. `/ready` pings Postgres and is the Railway health check.
 - The pgx pool is configured through `API_DB_MAX_CONNS` (default 10), `API_DB_MAX_CONN_LIFETIME` (`30m`), `API_DB_MAX_CONN_IDLE_TIME` (`5m`), and `API_DB_STATEMENT_TIMEOUT` (`15s`, applied as the Postgres `statement_timeout` on API connections only; the migrator and seeders do not set it).
 

@@ -11,6 +11,7 @@ import { FormSection } from "../components/form-section";
 import { PageNoticeView } from "../components/page-notice-view";
 import { pageHead } from "../components/public-page-head";
 import { RouteErrorView, RoutePending } from "../components/route-boundaries";
+import { StatusLabel } from "../components/status-label";
 import { ClubCommandForm } from "../features/club-slice/club-command-form";
 import { getClubManagement } from "../features/club-slice/club.functions";
 import {
@@ -19,7 +20,11 @@ import {
   validateClubManageSearch,
   type ClubManagementDTO,
 } from "../features/club-slice/contracts";
-import { clubTypeLabels } from "../features/club-slice/presentation";
+import {
+  clubConfirmedLine,
+  clubNeedsConfirmationLabel,
+  clubTypeLabels,
+} from "../features/club-slice/presentation";
 import clubCSS from "../features/club-slice/clubs.css?url";
 
 export const Route = createFileRoute("/clubs/$slug_/manage")({
@@ -219,6 +224,29 @@ function ManageClubPage() {
         >
           {(errors) => <LinkRows club={club} errors={errors.links} />}
         </ClubCommandForm>
+      </FormSection>
+
+      <FormSection
+        title="Confirm details"
+        description="Once the details and links above are right, confirm them. The club page shows the date, and after 90 days it says the club needs confirmation."
+      >
+        <p>
+          {clubConfirmedLine(club) ?? "No one has confirmed these details yet."}
+          {club.needs_confirmation ? (
+            <>
+              {" "}
+              <StatusLabel>{clubNeedsConfirmationLabel}</StatusLabel>
+            </>
+          ) : null}
+        </p>
+        <ClubCommandForm
+          command="confirm"
+          page="manage"
+          pendingLabel="Confirming…"
+          slug={club.slug}
+          submitLabel="Confirm these details are current"
+          variant="secondary"
+        />
       </FormSection>
 
       <People management={management} />

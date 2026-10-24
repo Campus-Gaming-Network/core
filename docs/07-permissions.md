@@ -67,6 +67,7 @@ Verification is not a substitute for school admin or site admin.
 | Review club claims and requests                 |           |                 |              |                   |            |                 | ✓ (Admin Console)   |
 | Create unclaimed club; edit, hide, mark checked |           |                 |              |                   |            |                 | ✓ (Admin Console)   |
 | Edit club profile                               |           |                 | own school   | ✓                 |            |                 | ✓                   |
+| Confirm club details                            |           |                 |              | ✓                 |            |                 | mark checked        |
 | Remove club member                              |           |                 |              | ✓                 |            |                 | ✓                   |
 | Manage club editors; transfer ownership         |           |                 |              | owner only        |            |                 | ✓                   |
 | Host event as club                              |           |                 |              | ✓                 |            |                 |                     |

@@ -218,6 +218,11 @@ func (m *clubMailerStub) SendOwnershipOffered(_ context.Context, recipient strin
 	return "provider-id", nil
 }
 
+func (m *clubMailerStub) SendConfirmationDue(_ context.Context, recipient string, club clubs.ConfirmationDuePayload, _ string) (string, error) {
+	m.sent = append(m.sent, "confirm:"+recipient+":"+club.ClubName)
+	return "provider-id", nil
+}
+
 func TestDispatcherSendsClubOfficerEmailsAndQuarantinesBadOnes(t *testing.T) {
 	mailer := &clubMailerStub{}
 	dispatcher := &Dispatcher{Clubs: mailer}
@@ -233,15 +238,19 @@ func TestDispatcherSendsClubOfficerEmailsAndQuarantinesBadOnes(t *testing.T) {
 	if err := send(emailoutbox.KindClubOwnershipOffered, `{"club_name":"Smash Club","club_slug":"smash-club","owner_name":"Jo"}`); err != nil {
 		t.Fatalf("Send(ownership offered) error = %v", err)
 	}
+	if err := send(emailoutbox.KindClubConfirmationDue, `{"club_name":"Smash Club","club_slug":"smash-club"}`); err != nil {
+		t.Fatalf("Send(confirmation due) error = %v", err)
+	}
 	for _, bad := range []struct{ kind, payload string }{
 		{emailoutbox.KindClubEditorInvite, `{"club_name":"Smash Club","inviter_name":"Jo"}`},
 		{emailoutbox.KindClubOwnershipOffered, `{"club_name":"Smash Club","owner_name":"Jo"}`},
+		{emailoutbox.KindClubConfirmationDue, `{"club_name":"Smash Club"}`},
 	} {
 		if err := send(bad.kind, bad.payload); !emailoutbox.IsPermanent(err) {
 			t.Fatalf("Send(%s, %s) error = %v, want permanent", bad.kind, bad.payload, err)
 		}
 	}
-	if want := []string{"editor:officer@example.com:Smash Club", "offered:officer@example.com:Smash Club"}; !reflect.DeepEqual(mailer.sent, want) {
+	if want := []string{"editor:officer@example.com:Smash Club", "offered:officer@example.com:Smash Club", "confirm:officer@example.com:Smash Club"}; !reflect.DeepEqual(mailer.sent, want) {
 		t.Fatalf("sent = %v, want %v", mailer.sent, want)
 	}
 }

@@ -295,6 +295,8 @@ export async function runClubCommandOperation(
           method: "POST" as const,
           body: { links: command.links },
         };
+      case "confirm":
+        return { path: `${club}/confirm`, method: "POST" as const };
       case "invite":
         return {
           path: `${club}/editor-invites`,
