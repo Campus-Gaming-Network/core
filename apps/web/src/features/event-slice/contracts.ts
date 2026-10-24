@@ -134,6 +134,9 @@ export const eventDtoSchema = z.object({
   viewer_can_cancel: z.boolean().optional(),
   /** Set for a cancelled event, whose page stays up for a day. */
   cancelled_at: timestampSchema.optional(),
+  /** Rises with every change its calendar file shows; the file's SEQUENCE. */
+  revision: nonNegativeIntegerSchema,
+  updated_at: timestampSchema,
 });
 
 const lockedEventDtoSchema = z.object({

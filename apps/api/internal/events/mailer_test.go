@@ -8,6 +8,8 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -69,7 +71,7 @@ func TestEventResendMailerReturnsTypedNonSuccessResponse(t *testing.T) {
 	}
 }
 
-func TestEventICSIncludesEscapedEventDetails(t *testing.T) {
+func TestEventICSEscapesAndFoldsEventDetails(t *testing.T) {
 	event := Event{
 		ID:           "event-1",
 		Title:        "Rocket League, Finals",
@@ -82,26 +84,39 @@ func TestEventICSIncludesEscapedEventDetails(t *testing.T) {
 		LocationName: "Student Union",
 		Address:      "1 Campus Way",
 		OnlineURL:    "https://meet.example.test/event",
+		Revision:     3,
+		UpdatedAt:    time.Date(2026, 8, 2, 9, 30, 0, 0, time.UTC),
 	}
 
-	ics := EventICS(event, "https://campusgamingnetwork.com/events/rocket-league-finals", time.Date(2026, 8, 1, 12, 0, 0, 0, time.UTC))
+	got := EventICS(event, "https://campusgamingnetwork.com/events/rocket-league-finals", time.Date(2026, 8, 1, 12, 0, 0, 0, time.UTC))
 
-	for _, want := range []string{
-		"BEGIN:VCALENDAR\r\n",
-		"BEGIN:VEVENT\r\n",
-		"DTSTAMP:20260801T120000Z\r\n",
-		"DTSTART:20260815T200000Z\r\n",
-		"DTEND:20260815T220000Z\r\n",
-		"SUMMARY:Rocket League\\, Finals\r\n",
-		"DESCRIPTION:Bring your squad\\;\\ncheck in early.\\n\\nWho it's for: Host campus only\\n\\n",
-		"LOCATION:Student Union\\, 1 Campus Way + Online: https://meet.example.test/event\r\n",
-		"URL:https://campusgamingnetwork.com/events/rocket-league-finals\r\n",
-		"END:VEVENT\r\n",
-		"END:VCALENDAR\r\n",
-	} {
-		if !strings.Contains(ics, want) {
-			t.Fatalf("ICS missing %q:\n%s", want, ics)
-		}
+	want := strings.Join([]string{
+		"BEGIN:VCALENDAR",
+		"VERSION:2.0",
+		"PRODID:-//Campus Gaming Network//CGN//EN",
+		"CALSCALE:GREGORIAN",
+		"METHOD:PUBLISH",
+		"BEGIN:VEVENT",
+		"UID:event-1@campusgamingnetwork.com",
+		"DTSTAMP:20260801T120000Z",
+		"DTSTART:20260815T200000Z",
+		"DTEND:20260815T220000Z",
+		"LAST-MODIFIED:20260802T093000Z",
+		"SEQUENCE:3",
+		"STATUS:CONFIRMED",
+		"TRANSP:OPAQUE",
+		"SUMMARY:Rocket League\\, Finals",
+		"DESCRIPTION:Bring your squad\\;\\ncheck in early.\\n\\nWho it's for: Host campu",
+		" s only\\n\\nView event: https://campusgamingnetwork.com/events/rocket-league",
+		" -finals",
+		"LOCATION:Student Union\\, 1 Campus Way + Online: https://meet.example.test/e",
+		" vent",
+		"URL:https://campusgamingnetwork.com/events/rocket-league-finals",
+		"END:VEVENT",
+		"END:VCALENDAR",
+	}, "\r\n") + "\r\n"
+	if got != want {
+		t.Fatalf("EventICS() =\n%s\nwant\n%s", got, want)
 	}
 }
 
@@ -299,5 +314,29 @@ func TestResendMailerSendsOrganizerInvites(t *testing.T) {
 	}
 	if !reflect.DeepEqual(bodies, want) {
 		t.Fatalf("emails = %#v\nwant %#v", bodies, want)
+	}
+}
+
+// The RSVP attachment and the web export render the same event to the same
+// file in every state, so either replaces the other in a calendar: editing
+// raises SEQUENCE, and cancelling raises it again and marks it cancelled.
+func TestEventICSMatchesTheSharedCalendarFixtures(t *testing.T) {
+	now := time.Date(2037, time.February, 1, 12, 0, 0, 0, time.UTC)
+	for _, state := range []string{"created", "edited", "cancelled"} {
+		encoded, err := os.ReadFile(filepath.Join("testdata", "calendar", state+".json"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		var event Event
+		if err := json.Unmarshal(encoded, &event); err != nil {
+			t.Fatalf("decode %s: %v", state, err)
+		}
+		want, err := os.ReadFile(filepath.Join("testdata", "calendar", state+".ics"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := EventICS(event, "https://cgn.test/events/"+event.Slug, now); got != string(want) {
+			t.Errorf("EventICS(%s) =\n%s\nwant\n%s", state, got, want)
+		}
 	}
 }

@@ -11,8 +11,10 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/emaillayout"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/mailhttp"
@@ -226,15 +228,54 @@ func EventICS(event Event, eventURL string, now time.Time) string {
 		"DTSTAMP:" + icsTime(now),
 		"DTSTART:" + icsTime(event.StartsAt),
 		"DTEND:" + icsTime(event.EndsAt),
-		"SUMMARY:" + escapeICSText(event.Title),
-		"DESCRIPTION:" + escapeICSText(icsDescription(event, eventURL)),
-		"LOCATION:" + escapeICSText(icsLocation(event)),
-		"URL:" + escapeICSText(eventURL),
+	}
+	// The web export writes the same three lines from the same event, so a
+	// file from either replaces the other in a calendar once the event changes.
+	if !event.UpdatedAt.IsZero() {
+		lines = append(lines, "LAST-MODIFIED:"+icsTime(event.UpdatedAt))
+	}
+	status := "CONFIRMED"
+	if event.CancelledAt != nil {
+		status = "CANCELLED"
+	}
+	lines = append(lines,
+		"SEQUENCE:"+strconv.Itoa(event.Revision),
+		"STATUS:"+status,
+		"TRANSP:OPAQUE",
+		"SUMMARY:"+escapeICSText(event.Title),
+		"DESCRIPTION:"+escapeICSText(icsDescription(event, eventURL)),
+		"LOCATION:"+escapeICSText(icsLocation(event)),
+		"URL:"+escapeICSText(eventURL),
 		"END:VEVENT",
 		"END:VCALENDAR",
-	}
+	)
 
+	for index, line := range lines {
+		lines[index] = foldICSLine(line)
+	}
 	return strings.Join(lines, "\r\n") + "\r\n"
+}
+
+// maximumICSLineOctets is RFC 5545's limit for one content line.
+const maximumICSLineOctets = 75
+
+// foldICSLine continues a content line longer than 75 octets on a new line
+// that starts with one space (RFC 5545 section 3.1). It breaks between code
+// points, so a multi-byte character is never split, the same as the web
+// export.
+func foldICSLine(line string) string {
+	var folded strings.Builder
+	octets, limit := 0, maximumICSLineOctets
+	for _, char := range line {
+		size := utf8.RuneLen(char)
+		if octets+size > limit {
+			folded.WriteString("\r\n ")
+			octets, limit = 0, maximumICSLineOctets-1
+		}
+		folded.WriteRune(char)
+		octets += size
+	}
+	return folded.String()
 }
 
 func (m *ResendMailer) now() time.Time {

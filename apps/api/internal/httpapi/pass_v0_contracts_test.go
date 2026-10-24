@@ -462,11 +462,13 @@ var eventContractKeys = []string{
 	"id",
 	"interest_count",
 	"lifecycle",
+	"revision",
 	"rsvp_yes_count",
 	"slug",
 	"starts_at",
 	"timezone",
 	"title",
+	"updated_at",
 	"visibility",
 }
 

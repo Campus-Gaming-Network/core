@@ -129,6 +129,10 @@ type Event struct {
 	// CancelledAt is when the event was cancelled. Only GetPageBySlug sets
 	// it; every other read leaves cancelled events out.
 	CancelledAt *time.Time `json:"cancelled_at,omitempty"`
+	// Revision rises whenever something its calendar file shows changes,
+	// cancelling included; calendar files carry it as SEQUENCE.
+	Revision  int       `json:"revision"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 // CancelledEventVisibility is how long a cancelled event's page stays up,

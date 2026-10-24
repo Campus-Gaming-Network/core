@@ -161,3 +161,7 @@ and queues the reminders.
 Migration `000043_event_host_club.up.sql` adds `events.host_club_id`, the club
 that hosts an event, and a check that an event has at most one hosting team or
 club. Apply it before deploying the API that reads and writes the column.
+Migration `000044_event_revision.up.sql` adds `events.revision`, which a
+trigger raises whenever a field an event's calendar file shows changes,
+cancellation included. Calendar files use it as their `SEQUENCE`. Apply it
+before deploying the API that returns `revision`.

@@ -101,8 +101,10 @@ Signup also requires confirming **age 18+**. Alumni can participate. Faculty who
 - RSVP yes → confirmation email with calendar attach (ICS)
 - Any visible event page has an **Add to calendar** link (a plain link, no
   JavaScript needed) to `/api/events/:slug/calendar.ics`. The file is built from
-  the same event data the page shows, with the same UID as the RSVP email's
-  attachment. A locked private event, a missing event, and a cancelled event
+  the same event data the page shows, with the same UID, SEQUENCE, and STATUS
+  as the RSVP email's attachment, so a calendar keeps one entry and replaces
+  it after any change the file shows. While a cancelled event's page is up,
+  its file is marked cancelled. A locked private event and a missing event
   answer 404 and expose nothing
 - A visible event page lists the event's games, each with its cover when the
   catalog stores one

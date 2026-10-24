@@ -109,12 +109,10 @@ export function eventICS(event: EventDTO, eventURL: string, now: Date): string {
     `DTSTAMP:${icsTime(now)}`,
     `DTSTART:${icsTime(new Date(event.starts_at))}`,
     `DTEND:${icsTime(new Date(event.ends_at))}`,
-    ...(event.cancelled_at
-      ? [`LAST-MODIFIED:${icsTime(new Date(event.cancelled_at))}`]
-      : []),
-    // Cancelling is the one edit the DTO dates, so it is the one that raises
-    // SEQUENCE. The RSVP email omits SEQUENCE (0), so the cancelled copy wins.
-    `SEQUENCE:${event.cancelled_at ? 1 : 0}`,
+    // The RSVP email's attachment writes the same three lines from the same
+    // event, so a file from either replaces the other once the event changes.
+    `LAST-MODIFIED:${icsTime(new Date(event.updated_at))}`,
+    `SEQUENCE:${event.revision}`,
     `STATUS:${event.cancelled_at ? "CANCELLED" : "CONFIRMED"}`,
     "TRANSP:OPAQUE",
     `SUMMARY:${escapeICSText(event.title)}`,

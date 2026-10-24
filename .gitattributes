@@ -1,0 +1,2 @@
+# Calendar fixtures compare byte for byte, and iCalendar lines end in CRLF.
+*.ics -text
