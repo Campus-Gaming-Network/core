@@ -14,7 +14,7 @@ Work is grouped **Now** (building toward the first public release), **Next** (pl
 2. Lightweight moderation and operations: reports/support queue, deactivation tools, audit history, and notifications.
 3. Expand trust and safety beyond the first role and content-filtering pass.
 4. Production-readiness hardening: monitoring, legal content, performance, and launch checks.
-5. Clubs, now in progress ([05 — Phase 6a](./05-roadmap.md#phase-6a--clubs)); tournaments after the event loop has been validated with real users.
+5. Clubs, shipped ([05 — Phase 6a](./05-roadmap.md#phase-6a--clubs)); tournaments after the event loop has been validated with real users.
 
 **First release slice:** auth → home school on signup → schools search/follow → events + games → teams → dashboard.
 
@@ -146,6 +146,8 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 - [x] Cancellation notifications to active yes/maybe RSVPs (best-effort email)
 - [x] Attendee lists: Going (yes) and Maybe, signed-in only, hidden for a private event until the viewer unlocks or organizes it (`GET /events/:slug/attendees`)
 - [x] Empty states for events browse
+- [x] Event activity log: every change is recorded, served by `GET /events/:slug/activity`, with an Updates section on the event page and a full log at `/events/:slug/activity` (#292, #293)
+- [x] Calendar `SEQUENCE` rises on every edit in both the `.ics` export and the RSVP email, and email invites carry `STATUS` (#295)
 
 ### Teams
 
@@ -157,6 +159,20 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 - [x] Captains + ownership transfer
 - [x] Team member list with roles, signed-in only; the owner roster stays unfiltered (`GET /teams/:slug/members`)
 - [x] Dashboard shows team activity
+- [x] Joining a team locks the team row, so concurrent joins cannot exceed the team's limits (#296)
+
+### Clubs
+
+Spec and order: [05 — Phase 6a](./05-roadmap.md#phase-6a--clubs).
+
+- [x] Club records, a club page, and a Clubs section on school pages (#115)
+- [x] Site admins create and manage unclaimed clubs in the Admin Console (#116)
+- [x] Officers claim a club or request one; site admins review (#117)
+- [x] Owners and editors edit the club page, invite editors, and transfer ownership (#118)
+- [x] Students join clubs on CGN and see the member list (#262)
+- [x] Clubs directory with search and filters (#261)
+- [x] Club pages show when details were last confirmed; officers confirm them, and lapsed confirmations are flagged (#119)
+- [x] A club can host an event (#124)
 
 ### Dashboard & content
 
@@ -187,8 +203,8 @@ Tracked ticket by ticket in [20 — Admin Console v1 engineering plan](./20-admi
 
 ### Product polish
 
-- [ ] Sentry/error monitoring
-- [ ] Analytics (non-GA: Plausible or Cloudflare Web Analytics)
+- [x] Sentry/error monitoring for the web app, the Admin Console, and the API
+- [x] Analytics (non-GA): the Plausible integration is shipped; creating the staging Plausible site and setting `PLAUSIBLE_DOMAIN` remain owner steps tracked in #112
 - [x] Frontend regression coverage for routes, components, server functions, native forms, and the built Nitro runtime
 - [x] Open Graph share image, favicon, `robots.txt`, and `sitemap.xml`
 
@@ -218,8 +234,7 @@ Tracked ticket by ticket in [20 — Admin Console v1 engineering plan](./20-admi
 
 ### Larger feature areas
 
-- [ ] Clubs (in progress; see [05 — Phase 6a](./05-roadmap.md#phase-6a--clubs))
-
+- [x] Clubs (see [05 — Phase 6a](./05-roadmap.md#phase-6a--clubs) for what is later)
 - [ ] Tournaments
 - [ ] On-site payments
 - [ ] Waitlists
