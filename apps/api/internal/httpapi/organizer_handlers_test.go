@@ -67,7 +67,7 @@ func organizerRequest(t *testing.T, store *fakeEventOrganizers, method, target, 
 			router.handleAcceptOrganizerInvite(w, req)
 			return
 		}
-		router.handleEventPath(w, req)
+		router.eventRoutes().ServeHTTP(w, req)
 	}))
 	response := httptest.NewRecorder()
 	handler.ServeHTTP(response, authenticatedEventRequest(method, target, body))
