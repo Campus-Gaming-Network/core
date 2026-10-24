@@ -95,7 +95,7 @@ reliable enough for real users before expanding into clubs and tournaments.
 - Mobile and accessibility pass on primary journeys
 - Reviewed Terms and Privacy content
 - **Implemented:** Sentry error monitoring for the web app, the Admin Console, and the API
-- Basic product analytics
+- **Implemented:** Plausible product analytics on the public site (staging site setup is tracked in #112)
 - **Implemented:** recurring events with weekly, biweekly, and monthly schedules up to one year;
   independent occurrence records with per-occurrence RSVP and cancellation
 - **Implemented:** cancellation notifications as best-effort email to active yes/maybe RSVPs
@@ -149,8 +149,9 @@ In order (each issue names its own "Done when"):
 4. **Done:** #117 — Officers claim or request a club; site admins review
 5. **Done:** #118 — Owners and editors: edit, invite editors, transfer ownership
 6. **Done:** #262 — Students join clubs and see the member list
-7. Then, in any order: #119 (last confirmed), #124 (clubs host events), and
-   **done:** #261 (clubs directory)
+7. **Done:** #119 — Show when a club's details were last confirmed
+8. **Done:** #124 — Let a club host an event
+9. **Done:** #261 — Clubs directory
 
 Later: assigning teams to clubs (Varsity, JV), join approval, co-hosted events.
 

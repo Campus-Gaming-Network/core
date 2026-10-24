@@ -14,9 +14,9 @@ The first-release product is implemented: authentication with email and
 password changes, profiles with game lists, schools, an IGDB-imported game
 catalog with popular games, events with co-organizers and keyword search,
 teams, the dashboard, a notification inbox, data export, support, and
-baseline safety intake. Clubs have begun: club records, club pages, a Clubs
-section on school pages, a `/clubs` directory that points officers to support,
-and Admin Console club management are in place.
+baseline safety intake. Clubs are in place: club records and pages, claims, owners and editors,
+joining, a `/clubs` directory, last-confirmed dates, club-hosted events, and
+Admin Console club management.
 
 The web app and the Admin Console are TanStack Start apps in `apps/web` and
 `apps/admin`. The JavaScript toolchain is Vite+ (`vp`), which runs builds,
@@ -40,15 +40,13 @@ is done. Engineering work comes from the open
 
 ## Next tasks
 
-1. Clubs, in the order in [05](./05-roadmap.md#phase-6a--clubs): #119 (last
-   confirmed) and #124 (clubs host events), in either order.
-2. Finish what `AC-014` still owes, none of which needs code: the independent
+1. Finish what `AC-014` still owes, none of which needs code: the independent
    security review, then the staging penetration pass, drills, and deployment
    smoke checks on staging
    ([24](./24-admin-console-security-review.md#still-owed-before-production-is-enabled)).
-3. Clear the P1 launch gates that need outside input: legal copy and the
+2. Clear the P1 launch gates that need outside input: legal copy and the
    external launch rehearsal.
-4. Bring back the paused Playwright suites before launch (#244).
+3. Bring back the paused Playwright suites before launch (#244).
 
 Admin Console work continues under
 [20 — Admin Console v1 engineering plan](./20-admin-console-v1-engineering-plan.md).
