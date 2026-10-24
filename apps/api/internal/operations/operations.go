@@ -22,6 +22,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+// Errors returned by queue and notification operations.
 var (
 	ErrQueueItemNotFound       = apperror.New(apperror.KindNotFound, "queue_item_not_found", "queue item not found")
 	ErrQueueItemConflict       = apperror.New(apperror.KindConflict, "queue_item_conflict", "queue item changed since it was read")
@@ -30,9 +31,11 @@ var (
 	ErrNoChanges               = apperror.New(apperror.KindConflict, "queue_no_changes", "no queue changes requested")
 )
 
+// QueueStatus is the workflow state of a report or support ticket.
 type QueueStatus string
 
 const (
+	// Queue statuses.
 	QueueStatusOpen     QueueStatus = "open"
 	QueueStatusInReview QueueStatus = "in_review"
 	QueueStatusResolved QueueStatus = "resolved"
@@ -97,6 +100,9 @@ type QueueCounts struct {
 	Unassigned int `json:"unassigned"`
 }
 
+// QueueFilter selects a page of reports or support tickets. Empty fields do
+// not filter. A non-nil empty AssignedToUserID selects unassigned items, and
+// UserQuery matches the reporter or submitter by ID, email, or name.
 type QueueFilter struct {
 	Status QueueStatus
 	// TargetType narrows reports to one reported entity type. Support tickets
@@ -124,6 +130,8 @@ type QueuePatch struct {
 	ResolutionNote    *string
 }
 
+// Report is a user's report of an event or another user, with the names the
+// Admin Console shows.
 type Report struct {
 	ID                 string      `json:"id"`
 	ReporterUserID     string      `json:"reporter_user_id"`
@@ -143,6 +151,7 @@ type Report struct {
 	TargetSlug *string `json:"target_slug,omitempty"`
 }
 
+// ReportSummary is a Report without the reason and resolution note, for lists.
 type ReportSummary struct {
 	ID                 string      `json:"id"`
 	ReporterUserID     string      `json:"reporter_user_id"`
@@ -158,6 +167,8 @@ type ReportSummary struct {
 	AssignedToName     *string     `json:"assigned_to_name,omitempty"`
 }
 
+// SupportTicket is a message sent through the support form. Submitter fields
+// are empty when the sender was not signed in or has deleted their account.
 type SupportTicket struct {
 	ID                 string      `json:"id"`
 	SubmitterUserID    *string     `json:"submitter_user_id,omitempty"`
@@ -176,6 +187,8 @@ type SupportTicket struct {
 	AssignedToName     *string     `json:"assigned_to_name,omitempty"`
 }
 
+// SupportTicketSummary is a SupportTicket without the message, contact
+// details, and resolution note, for lists.
 type SupportTicketSummary struct {
 	ID                 string      `json:"id"`
 	SubmitterUserID    *string     `json:"submitter_user_id,omitempty"`
@@ -190,8 +203,10 @@ type SupportTicketSummary struct {
 	AssignedToName     *string     `json:"assigned_to_name,omitempty"`
 }
 
+// AuditEntry is one row of a record's audit history.
 type AuditEntry = adminaudit.Entry
 
+// Notification is an in-app notification for one user.
 type Notification struct {
 	ID         string          `json:"id"`
 	UserID     string          `json:"user_id"`
@@ -205,6 +220,8 @@ type Notification struct {
 	CreatedAt  time.Time       `json:"created_at"`
 }
 
+// NotificationInput describes a notification to create. EntityType and
+// EntityID, when set, name the record it links to and must be given together.
 type NotificationInput struct {
 	UserID     string
 	Type       string
@@ -215,17 +232,21 @@ type NotificationInput struct {
 	Payload    json.RawMessage
 }
 
+// NotificationFilter selects a user's notifications, newest first.
 type NotificationFilter struct {
 	UnreadOnly bool
 	Limit      int
 }
 
+// AuditFilter selects a page of a record's audit history.
 type AuditFilter struct {
 	Limit  int
 	After  *pagecursor.Cursor
 	Before *pagecursor.Cursor
 }
 
+// Repository is the persistence boundary for moderation queues, audit
+// history, and in-app notifications.
 type Repository interface {
 	ListReports(ctx context.Context, filter QueueFilter) ([]ReportSummary, error)
 	CountReports(ctx context.Context) (QueueCounts, error)
@@ -241,14 +262,18 @@ type Repository interface {
 	MarkNotificationRead(ctx context.Context, userID string, notificationID string) (Notification, error)
 }
 
+// PostgresRepository implements Repository on Postgres.
 type PostgresRepository struct {
 	pool *pgxpool.Pool
 }
 
+// NewPostgresRepository returns a repository that uses pool.
 func NewPostgresRepository(pool *pgxpool.Pool) *PostgresRepository {
 	return &PostgresRepository{pool: pool}
 }
 
+// ValidateQueueFilter checks the status, assignee, target, user query, limit,
+// and cursors of a queue filter.
 func ValidateQueueFilter(filter QueueFilter) error {
 	if filter.Status != "" && !validQueueStatus(filter.Status) {
 		return apperror.Validation("queue status must be open, in_review, resolved, or closed")
@@ -275,6 +300,9 @@ func ValidateQueueFilter(filter QueueFilter) error {
 	return nil
 }
 
+// ValidateQueuePatch checks the audit correlation, expected version, and
+// changed fields of a patch. It returns ErrNoChanges when the patch changes
+// nothing.
 func ValidateQueuePatch(patch QueuePatch) error {
 	if strings.TrimSpace(patch.ActorUserID) == "" {
 		return apperror.Validation("actor user is required")
@@ -307,6 +335,8 @@ func ValidateQueuePatch(patch QueuePatch) error {
 	return nil
 }
 
+// ValidateNotification checks the lengths and pairing of a notification's
+// fields and that its payload is valid JSON.
 func ValidateNotification(input NotificationInput) error {
 	if strings.TrimSpace(input.UserID) == "" {
 		return errors.New("notification user is required")
@@ -332,6 +362,7 @@ func ValidateNotification(input NotificationInput) error {
 	return nil
 }
 
+// ListReports returns a page of reports matching filter, newest first.
 func (r *PostgresRepository) ListReports(ctx context.Context, filter QueueFilter) ([]ReportSummary, error) {
 	filter = normalizeQueueFilter(filter)
 	if err := ValidateQueueFilter(filter); err != nil {
@@ -392,10 +423,13 @@ func (r *PostgresRepository) ListReports(ctx context.Context, filter QueueFilter
 	return reports, nil
 }
 
+// CountReports returns how many reports are open, in review, and unassigned.
 func (r *PostgresRepository) CountReports(ctx context.Context) (QueueCounts, error) {
 	return r.countQueue(ctx, "reports")
 }
 
+// CountSupportTickets returns how many support tickets are open, in review,
+// and unassigned.
 func (r *PostgresRepository) CountSupportTickets(ctx context.Context) (QueueCounts, error) {
 	return r.countQueue(ctx, "support_tickets")
 }
@@ -416,6 +450,7 @@ func (r *PostgresRepository) countQueue(ctx context.Context, table string) (Queu
 	return counts, nil
 }
 
+// GetReport returns a report, or ErrQueueItemNotFound.
 func (r *PostgresRepository) GetReport(ctx context.Context, id string) (Report, error) {
 	report, err := scanReport(r.pool.QueryRow(ctx, `
 		SELECT `+reportColumns+`
@@ -431,6 +466,9 @@ func (r *PostgresRepository) GetReport(ctx context.Context, id string) (Report, 
 	return report, nil
 }
 
+// PatchReport applies patch to a report and audits the change in the same
+// transaction. It returns ErrQueueItemConflict when the report changed since
+// patch.ExpectedUpdatedAt and ErrNoChanges when the patch alters nothing.
 func (r *PostgresRepository) PatchReport(ctx context.Context, id string, patch QueuePatch) (Report, error) {
 	id = strings.TrimSpace(id)
 	patch = normalizeQueuePatch(patch)
@@ -497,6 +535,8 @@ func (r *PostgresRepository) PatchReport(ctx context.Context, id string, patch Q
 	return updated, nil
 }
 
+// ListSupportTickets returns a page of support tickets matching filter,
+// newest first.
 func (r *PostgresRepository) ListSupportTickets(ctx context.Context, filter QueueFilter) ([]SupportTicketSummary, error) {
 	filter = normalizeQueueFilter(filter)
 	if err := ValidateQueueFilter(filter); err != nil {
@@ -555,6 +595,7 @@ func (r *PostgresRepository) ListSupportTickets(ctx context.Context, filter Queu
 	return tickets, nil
 }
 
+// GetSupportTicket returns a support ticket, or ErrQueueItemNotFound.
 func (r *PostgresRepository) GetSupportTicket(ctx context.Context, id string) (SupportTicket, error) {
 	ticket, err := scanSupportTicket(r.pool.QueryRow(ctx, `
 		SELECT `+supportTicketColumns+`
@@ -570,6 +611,10 @@ func (r *PostgresRepository) GetSupportTicket(ctx context.Context, id string) (S
 	return ticket, nil
 }
 
+// PatchSupportTicket applies patch to a support ticket and audits the change
+// in the same transaction. It returns ErrQueueItemConflict when the ticket
+// changed since patch.ExpectedUpdatedAt and ErrNoChanges when the patch alters
+// nothing.
 func (r *PostgresRepository) PatchSupportTicket(ctx context.Context, id string, patch QueuePatch) (SupportTicket, error) {
 	id = strings.TrimSpace(id)
 	patch = normalizeQueuePatch(patch)
@@ -646,6 +691,7 @@ func (r *PostgresRepository) PatchSupportTicket(ctx context.Context, id string, 
 	return updated, nil
 }
 
+// ListAuditHistory returns a page of the audit history of one record.
 func (r *PostgresRepository) ListAuditHistory(ctx context.Context, entityType string, entityID string, filter AuditFilter) ([]AuditEntry, error) {
 	entityType = strings.TrimSpace(entityType)
 	entityID = strings.TrimSpace(entityID)
@@ -671,6 +717,8 @@ func (r *PostgresRepository) ListAuditHistory(ctx context.Context, entityType st
 	})
 }
 
+// CreateNotification stores a notification for an active user, or returns
+// ErrNotificationUserMissing.
 func (r *PostgresRepository) CreateNotification(ctx context.Context, input NotificationInput) (Notification, error) {
 	input = normalizeNotification(input)
 	if err := ValidateNotification(input); err != nil {
@@ -718,6 +766,7 @@ func (r *PostgresRepository) CreateNotification(ctx context.Context, input Notif
 	return notification, nil
 }
 
+// ListNotifications returns the user's notifications, newest first.
 func (r *PostgresRepository) ListNotifications(ctx context.Context, userID string, filter NotificationFilter) ([]Notification, error) {
 	userID = strings.TrimSpace(userID)
 	if userID == "" {
@@ -754,6 +803,9 @@ func (r *PostgresRepository) ListNotifications(ctx context.Context, userID strin
 	return notifications, nil
 }
 
+// MarkNotificationRead marks one of the user's notifications read, keeping
+// the original time if it already was. It returns ErrNotificationNotFound
+// when the user has no such notification.
 func (r *PostgresRepository) MarkNotificationRead(ctx context.Context, userID string, notificationID string) (Notification, error) {
 	userID = strings.TrimSpace(userID)
 	notificationID = strings.TrimSpace(notificationID)
