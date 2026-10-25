@@ -8,6 +8,7 @@ import {
   errorMonitoringConfig,
   errorMonitoringTestResponse,
   reportApiContractViolation,
+  reportServerError,
 } from "../src/server/error-monitor.server.js";
 
 test("error monitoring is disabled without a DSN", () => {
@@ -116,4 +117,26 @@ test("an API contract violation is reported once, by area and failing field, wit
       },
     ],
   ]);
+});
+
+test("a visitor disconnecting mid-request is not reported, and a real failure is", () => {
+  const captured: unknown[] = [];
+  const capture = ((error: unknown) => {
+    captured.push(error);
+    return "event-id";
+  }) as typeof Sentry.captureException;
+  // The error Node gives a body read when the client closes the connection.
+  const disconnect = Object.assign(new Error("aborted"), {
+    code: "ECONNRESET",
+  });
+  const reset = Object.assign(new Error("socket hang up"), {
+    code: "ECONNRESET",
+  });
+  const failure = new Error("aborted");
+
+  for (const error of [disconnect, reset, failure]) {
+    reportServerError(error, capture);
+  }
+
+  assert.deepEqual(captured, [reset, failure]);
 });
