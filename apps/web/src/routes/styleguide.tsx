@@ -29,7 +29,9 @@ import { FormField, RequiredFieldsNote } from "../components/form-field";
 import { FormSection } from "../components/form-section";
 import { FormSectionNav } from "../components/form-section-nav";
 import { KeyInformation } from "../components/key-information";
-import { PageHeading } from "../components/page-heading";
+import { Button } from "../components/button";
+import { PageHeading, PageIntro } from "../components/page-heading";
+import { Surface } from "../components/surface";
 import { PasswordInput } from "../components/password-input";
 import { PageNoticeView } from "../components/page-notice-view";
 import { Person } from "../components/person";
@@ -149,26 +151,18 @@ function StyleguidePage() {
 
   return (
     <main className="styleguide-page">
-      <section className="page-heading">
-        <div>
-          <p className="eyebrow">Style guide</p>
-          <h1>Every style in the web app, on one page</h1>
-          <p className="lede">
-            Colors, type, buttons, forms, and the pieces built from them, drawn
-            by the same components and stylesheets as the rest of the site. The
-            events, schools, and people are made up, so their links lead to
-            pages that do not exist. Each specimen is labelled with its
-            component and source file. This page makes no API calls and its
-            images are inline.
-          </p>
-          <p className="styleguide-intro">
-            A few pieces need the server, a clock, or a full page of their own
-            and cannot render here as they do on the site: the RSVP form, the
-            404 and error pages, and the Today and Tomorrow tag. Those show
-            markup with the same classes, and say so beside them.
-          </p>
-        </div>
-      </section>
+      <PageIntro
+        eyebrow="Style guide"
+        title="Every style in the web app, on one page"
+        lede="Colors, type, buttons, forms, and the pieces built from them, drawn by the same components and stylesheets as the rest of the site. The events, schools, and people are made up, so their links lead to pages that do not exist. Each specimen is labelled with its component and source file. This page makes no API calls and its images are inline."
+      >
+        <p className="styleguide-intro">
+          A few pieces need the server, a clock, or a full page of their own and
+          cannot render here as they do on the site: the RSVP form, the 404 and
+          error pages, and the Today and Tomorrow tag. Those show markup with
+          the same classes, and say so beside them.
+        </p>
+      </PageIntro>
       <nav aria-label="Style guide sections" className="styleguide-toc">
         <ul>
           {sections.map(([id, label]) => (
@@ -322,8 +316,8 @@ function StyleguidePage() {
         </p>
         <div className="styleguide-stack">
           <Specimen
-            file="src/components/button-link.tsx, styles.css"
-            name="ButtonLink, .button--destructive, .link"
+            file="src/components/button-link.tsx, src/components/button.tsx, styles.css"
+            name="ButtonLink, Button, .link"
           >
             <div className="styleguide-row">
               <ButtonLink to="/events" variant="primary">
@@ -332,19 +326,22 @@ function StyleguidePage() {
               <ButtonLink to="/schools" variant="secondary">
                 Find your school
               </ButtonLink>
-              <button className="button--destructive" type="button">
+              <Button variant="destructive" type="button">
                 Cancel event
-              </button>
+              </Button>
               <Link className="link" to="/teams/new">
                 Or start a team
               </Link>
             </div>
           </Specimen>
-          <Specimen file="styles.css" name="Disabled, .with-arrow">
+          <Specimen
+            file="src/components/button.tsx, styles.css"
+            name="Disabled, .with-arrow"
+          >
             <div className="styleguide-row">
-              <button className="button--secondary" disabled type="button">
+              <Button variant="secondary" disabled type="button">
                 Saving…
-              </button>
+              </Button>
               <Link
                 className="button button--secondary with-arrow"
                 to="/events"
@@ -418,14 +415,14 @@ function StyleguidePage() {
               Log in to RSVP and follow this campus.
             </Callout>
           </Specimen>
-          <Specimen file="styles.css" name=".empty-state">
-            <section className="empty-state">
+          <Specimen file="src/components/surface.tsx" name="Surface, empty">
+            <Surface variant="empty">
               <h3>No public events found</h3>
               <p>
                 Create the first event for your campus, or{" "}
                 <Link to="/events/new">start from the event form</Link>.
               </p>
-            </section>
+            </Surface>
           </Specimen>
         </div>
       </section>
@@ -818,10 +815,11 @@ function StyleguidePage() {
 
         <h3 className="styleguide-sub">Panel with a header</h3>
         <p className="styleguide-label">
-          .panel--flush, .detail-card (styles.css, components.css)
+          Surface, flush and card (src/components/surface.tsx, styles.css,
+          components.css)
         </p>
         <div className="styleguide-two">
-          <section className="panel panel--flush">
+          <Surface variant="flush">
             <div className="panel__header">
               <h2>Events</h2>
               <Link to="/events">View all</Link>
@@ -831,8 +829,8 @@ function StyleguidePage() {
                 <EventCard event={event} key={event.id} />
               ))}
             </div>
-          </section>
-          <section className="detail-card">
+          </Surface>
+          <Surface variant="card">
             <h2>Event details</h2>
             <div className="detail-row">
               <span>Host</span>
@@ -849,7 +847,7 @@ function StyleguidePage() {
               <span>Capacity</span>
               <span>48 of 48 spots taken</span>
             </div>
-          </section>
+          </Surface>
         </div>
       </section>
 
@@ -1226,12 +1224,12 @@ function NavigationSection() {
       </nav>
 
       <h3 className="styleguide-sub">Copy link</h3>
-      <div className="detail-card">
+      <Surface as="div" variant="card">
         <CopyLink
           label="Share this event"
           url="https://example.edu/events/rocket-league-3v3-bracket"
         />
-      </div>
+      </Surface>
     </section>
   );
 }
@@ -1422,43 +1420,43 @@ function EventControlsSection() {
         full event closes Going for anyone who has not already said it.
       </p>
       <SpecimenNote>
-        The real RSVP form lives in the event route and posts to a server
-        function, so these panels repeat its markup and classes with nothing
-        wired up. Only the first one responds to a press.
+        The real RSVP form, RSVPControl, posts to a server function, so these
+        panels repeat its markup and classes with nothing wired up. Only the
+        first one responds to a press.
       </SpecimenNote>
       <div className="styleguide-cards">
         <Specimen
-          file="src/routes/events.$slug.tsx (RsvpEventForm)"
+          file="src/components/rsvp-control.tsx (RSVPControl)"
           name="RSVP panel, unanswered (press to try)"
         >
           <RsvpPanel interactive />
         </Specimen>
         <Specimen
-          file="src/routes/events.$slug.tsx (RsvpEventForm)"
+          file="src/components/rsvp-control.tsx (RSVPControl)"
           name="RSVP panel, Going"
         >
           <RsvpPanel answer="yes" />
         </Specimen>
         <Specimen
-          file="src/routes/events.$slug.tsx (RsvpEventForm)"
+          file="src/components/rsvp-control.tsx (RSVPControl)"
           name="RSVP panel, Maybe"
         >
           <RsvpPanel answer="maybe" />
         </Specimen>
         <Specimen
-          file="src/routes/events.$slug.tsx (RsvpEventForm)"
+          file="src/components/rsvp-control.tsx (RSVPControl)"
           name="RSVP panel, Can't go"
         >
           <RsvpPanel answer="no" />
         </Specimen>
         <Specimen
-          file="src/routes/events.$slug.tsx (RsvpEventForm)"
+          file="src/components/rsvp-control.tsx (RSVPControl)"
           name="RSVP panel, ended"
         >
           <RsvpPanel answer="yes" ended />
         </Specimen>
         <Specimen
-          file="src/routes/events.$slug.tsx (RsvpEventForm)"
+          file="src/components/rsvp-control.tsx (RSVPControl)"
           name="RSVP panel, full"
         >
           <RsvpPanel full />
@@ -1474,8 +1472,11 @@ function EventControlsSection() {
       <h3 className="styleguide-sub">Details and sharing</h3>
       <div className="styleguide-two">
         {event ? (
-          <Specimen file="styles.css (.detail-card)" name="Detail card rows">
-            <section className="detail-card">
+          <Specimen
+            file="src/components/surface.tsx (card)"
+            name="Detail card rows"
+          >
+            <Surface variant="card">
               <h3>When and where</h3>
               <div className="detail-card-row">
                 <CalendarDays aria-hidden="true" size={18} strokeWidth={1.75} />
@@ -1491,20 +1492,20 @@ function EventControlsSection() {
                   <small>The link is shared with people who RSVP yes.</small>
                 </div>
               </div>
-            </section>
+            </Surface>
           </Specimen>
         ) : null}
         <Specimen
           file="src/components/copy-link.tsx"
           name="CopyLink, with Share (copy it to try)"
         >
-          <div className="detail-card">
+          <Surface as="div" variant="card">
             <CopyLink
               label="Share this event"
               shareTitle="Rocket League 3v3 Bracket"
               url="https://example.edu/events/rocket-league-3v3-bracket"
             />
-          </div>
+          </Surface>
           <SpecimenNote>
             Share appears only where the device has a native share sheet; most
             desktop browsers show Copy link alone.
@@ -1593,7 +1594,7 @@ function FiltersSection() {
           file="src/routes/events.index.tsx"
           name="Empty state with filters"
         >
-          <section className="empty-state">
+          <Surface variant="empty">
             <h3>No public events found</h3>
             <p>Nothing matches Game: Valorant, Type: Tournament.</p>
             <div className="actions">
@@ -1608,7 +1609,7 @@ function FiltersSection() {
                 Clear all filters
               </ButtonLink>
             </div>
-          </section>
+          </Surface>
         </Specimen>
       </div>
       <SpecimenNote>
@@ -1677,7 +1678,7 @@ function PageStatesSection() {
           name="RouteErrorView"
         >
           <div className="route-state">
-            <section className="empty-state route-state__panel">
+            <Surface variant="empty" className="route-state__panel">
               <p className="route-state__kicker">Something went wrong</p>
               <h3>We could not load this page.</h3>
               <p>
@@ -1693,7 +1694,7 @@ function PageStatesSection() {
                 </Link>
                 <Link to="/support">Contact support</Link>
               </div>
-            </section>
+            </Surface>
           </div>
         </Specimen>
         <Specimen
@@ -1701,7 +1702,7 @@ function PageStatesSection() {
           name="DefaultNotFound (404)"
         >
           <div className="route-state">
-            <section className="empty-state route-state__panel">
+            <Surface variant="empty" className="route-state__panel">
               <p className="route-state__kicker">404</p>
               <h3>We could not find that page.</h3>
               <p>
@@ -1718,7 +1719,7 @@ function PageStatesSection() {
                 <Link to="/schools">Browse schools</Link>
                 <Link to="/teams">Browse teams</Link>
               </div>
-            </section>
+            </Surface>
           </div>
         </Specimen>
         <Specimen

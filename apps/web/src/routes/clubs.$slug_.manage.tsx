@@ -26,6 +26,7 @@ import {
   clubTypeLabels,
 } from "../features/club-slice/presentation";
 import clubCSS from "../features/club-slice/clubs.css?url";
+import { PageIntro } from "../components/page-heading";
 
 export const Route = createFileRoute("/clubs/$slug_/manage")({
   validateSearch: validateClubManageSearch,
@@ -78,17 +79,17 @@ function ManageClubPage() {
   if (result.status !== "found") {
     return (
       <main className="form-page">
-        <section className="page-heading">
-          <div>
-            <h1>You do not manage this club</h1>
-            <p className="lede">
+        <PageIntro
+          title="You do not manage this club"
+          lede={
+            <>
               Only the club&apos;s owners and editors can change its page.{" "}
               <Link params={{ slug }} to="/clubs/$slug">
                 Back to the club
               </Link>
-            </p>
-          </div>
-        </section>
+            </>
+          }
+        />
       </main>
     );
   }
@@ -103,15 +104,15 @@ function ManageClubPage() {
           {club.name}
         </BreadcrumbLink>
       </Breadcrumbs>
-      <section className="page-heading">
-        <div>
-          <h1>Manage {club.name}</h1>
-          <p className="lede">
+      <PageIntro
+        title={<>Manage {club.name}</>}
+        lede={
+          <>
             You are {owner ? "an owner" : "an editor"} of this club. Changes
             show on the club&apos;s page right away.
-          </p>
-        </div>
-      </section>
+          </>
+        }
+      />
       <PageNoticeView
         notice={search.club ? clubNotices[search.club] : undefined}
       />

@@ -45,6 +45,8 @@ import {
   schoolsHead,
 } from "../features/school-slice/presentation";
 import { usStates } from "../features/school-slice/us-states";
+import { PageIntro } from "../components/page-heading";
+import { Surface } from "../components/surface";
 
 // Each count's icon in a school row; team rows use the same people icon.
 const activityIcons = {
@@ -99,15 +101,11 @@ function SchoolsPage() {
 
   return (
     <main className="directory-page">
-      <section className="directory-heading">
-        <div>
-          <h1>Schools</h1>
-          <p className="lede">
-            Find your campus and see who is playing there. Follow a school to
-            keep up with its events and teams.
-          </p>
-        </div>
-      </section>
+      <PageIntro
+        variant="directory"
+        title="Schools"
+        lede="Find your campus and see who is playing there. Follow a school to keep up with its events and teams."
+      />
 
       <PageNoticeView
         notice={search.follow ? schoolBrowseNotices[search.follow] : undefined}
@@ -236,7 +234,7 @@ function SchoolsPage() {
             </div>
           </section>
         ) : (
-          <section className="empty-state">
+          <Surface variant="empty">
             <h2>No schools found</h2>
             <p>
               {chips.length > 0
@@ -250,7 +248,7 @@ function SchoolsPage() {
                 </ButtonLink>
               </div>
             ) : null}
-          </section>
+          </Surface>
         )}
       </DirectoryResults>
 

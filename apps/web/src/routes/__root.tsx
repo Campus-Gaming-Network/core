@@ -7,12 +7,11 @@ import {
   createRootRoute,
 } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { Bell, Gamepad2 } from "lucide-react";
+import { Bell } from "lucide-react";
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { AccountMenu } from "../components/account-menu";
 import { RouteAnnouncer } from "../components/route-announcer";
-import { SiteNavigation } from "../components/site-navigation";
-import { SiteSocialLinks } from "../components/site-social-links";
+import { SiteShell } from "../components/site-shell";
 import { ViewerContext, type ViewerState } from "../components/viewer";
 import {
   DefaultError,
@@ -120,73 +119,6 @@ function RootComponent() {
         <MainContent />
       </SiteShell>
     </ViewerContext>
-  );
-}
-
-/**
- * The header, the main content area, and the footer around every page. The
- * root's error view uses it too, so a failure at the root keeps the site's
- * navigation; there the viewer is unknown, so `account` is left out.
- */
-function SiteShell({
-  account,
-  children,
-}: {
-  account?: ReactNode;
-  children: ReactNode;
-}) {
-  return (
-    <>
-      <a className="skip-link" href="#main-content">
-        Skip to main content
-      </a>
-      <header className="site-header">
-        <Link aria-label="Campus Gaming Network" className="brand" to="/">
-          <span aria-hidden="true" className="brand-mark">
-            <Gamepad2 size={18} strokeWidth={2.25} />
-          </span>
-          <span className="brand-name">CGN</span>
-          <span className="brand-full">Campus Gaming Network</span>
-        </Link>
-        <nav aria-label="Main navigation">
-          <SiteNavigation />
-          {account}
-        </nav>
-      </header>
-      <div id="main-content" tabIndex={-1}>
-        {children}
-      </div>
-      <footer className="site-footer">
-        <div className="site-footer__inner">
-          <span className="site-footer__brand">
-            <span aria-hidden="true" className="brand-mark">
-              <Gamepad2 size={16} strokeWidth={2.25} />
-            </span>
-            Campus Gaming Network
-          </span>
-          <nav aria-label="Footer">
-            <ul>
-              <li>
-                <Link to="/about">About</Link>
-              </li>
-              <li>
-                <Link to="/faq">FAQ</Link>
-              </li>
-              <li>
-                <Link to="/support">Support</Link>
-              </li>
-              <li>
-                <Link to="/terms">Terms</Link>
-              </li>
-              <li>
-                <Link to="/privacy">Privacy</Link>
-              </li>
-            </ul>
-          </nav>
-          <SiteSocialLinks />
-        </div>
-      </footer>
-    </>
   );
 }
 

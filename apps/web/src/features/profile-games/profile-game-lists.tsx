@@ -6,6 +6,7 @@ import {
   profileGameLists,
   type ProfileGameListsDTO,
 } from "./contracts";
+import { Surface } from "../../components/surface";
 
 /** The public profile's Games panel: each list that has games, in order. */
 export function ProfileGameLists({
@@ -18,7 +19,7 @@ export function ProfileGameLists({
   const shown = profileGameLists.filter((list) => lists?.[list].length);
 
   return (
-    <section aria-labelledby="profile-games" className="panel">
+    <Surface aria-labelledby="profile-games" variant="panel">
       <div className="panel__header">
         <h2 id="profile-games">Games</h2>
       </div>
@@ -52,6 +53,6 @@ export function ProfileGameLists({
           )}
         </p>
       )}
-    </section>
+    </Surface>
   );
 }

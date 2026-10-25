@@ -7,6 +7,8 @@ import {
   dataExportNotices,
   dataSettingsHead,
 } from "../features/account-slice/presentation";
+import { PageIntro } from "../components/page-heading";
+import { Surface } from "../components/surface";
 
 export const Route = createFileRoute("/settings/data")({
   validateSearch: (search: Record<string, unknown>) => {
@@ -41,20 +43,15 @@ function DataSettingsPage() {
 
   return (
     <>
-      <section className="page-heading">
-        <div>
-          <h1>Your data</h1>
-          <p className="lede">
-            Download a copy of what Campus Gaming Network holds about you, and
-            find where to correct it.
-          </p>
-        </div>
-      </section>
+      <PageIntro
+        title="Your data"
+        lede="Download a copy of what Campus Gaming Network holds about you, and find where to correct it."
+      />
       <PageNoticeView
         notice={search.export ? dataExportNotices[search.export] : undefined}
       />
 
-      <section aria-labelledby="export-heading" className="panel">
+      <Surface aria-labelledby="export-heading" variant="panel">
         <h2 id="export-heading">Download your data</h2>
         <p>
           The file covers your account and profile, the schools you follow, your
@@ -83,9 +80,9 @@ function DataSettingsPage() {
             <button type="submit">Download your data</button>
           </div>
         </form>
-      </section>
+      </Surface>
 
-      <section aria-labelledby="correct-heading" className="panel">
+      <Surface aria-labelledby="correct-heading" variant="panel">
         <h2 id="correct-heading">Correct your data</h2>
         <ul className="data-corrections">
           <li>
@@ -104,15 +101,15 @@ function DataSettingsPage() {
             </Link>
           </li>
         </ul>
-      </section>
+      </Surface>
 
-      <section aria-labelledby="delete-heading" className="panel">
+      <Surface aria-labelledby="delete-heading" variant="panel">
         <h2 id="delete-heading">Delete your account</h2>
         <p>
           Deleting your account removes your profile and personal data.{" "}
           <Link to="/settings/delete-account">Delete account</Link>
         </p>
-      </section>
+      </Surface>
     </>
   );
 }

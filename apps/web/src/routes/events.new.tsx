@@ -14,6 +14,7 @@ import {
 import { getNewEventPage } from "../features/event-slice/event.functions";
 import { NoScriptSchoolSearch } from "../features/event-slice/event-school-picker";
 import eventCSS from "../features/event-slice/events.css?url";
+import { PageIntro } from "../components/page-heading";
 
 type ReadyNewEvent = Extract<NewEventPageResult, { status: "ready" }> & {
   publicOrigin: string;
@@ -90,15 +91,10 @@ function NewEventPage() {
       <div className="form-page__layout">
         <FormSectionNav heading="Create event" sections={eventFormSections} />
         <div className="form-page__body">
-          <section className="page-heading">
-            <div>
-              <h1>Create event</h1>
-              <p className="lede">
-                Get people playing together. Start with the basics; you can fill
-                in the details after you create it.
-              </p>
-            </div>
-          </section>
+          <PageIntro
+            title="Create event"
+            lede="Get people playing together. Start with the basics; you can fill in the details after you create it."
+          />
           {search.event === "failed" ? (
             <p role="alert">
               We could not create that event. Please try again.

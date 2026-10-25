@@ -61,6 +61,8 @@ import {
 import { schoolLocation } from "../features/school-slice/presentation";
 import teamCSS from "../features/team-slice/teams.css?url";
 import { formString } from "../components/form-string";
+import { Button } from "../components/button";
+import { Surface } from "../components/surface";
 
 type TeamRouteData = {
   team: TeamDTO;
@@ -189,10 +191,7 @@ function TeamPage() {
             <p>{team.description || "Team details are coming soon."}</p>
           </section>
 
-          <section
-            aria-labelledby="team-events-title"
-            className="panel panel--flush"
-          >
+          <Surface aria-labelledby="team-events-title" variant="flush">
             <div className="panel__header">
               <h2 id="team-events-title">Upcoming events</h2>
             </div>
@@ -211,7 +210,7 @@ function TeamPage() {
                 {team.name} has no upcoming public events.
               </p>
             )}
-          </section>
+          </Surface>
 
           {viewer === "anonymous" ? (
             <PeopleSignedOut
@@ -219,10 +218,7 @@ function TeamPage() {
               next={`/teams/${team.slug}`}
             />
           ) : (
-            <section
-              className="detail-card"
-              aria-labelledby="team-people-title"
-            >
+            <Surface variant="card" aria-labelledby="team-people-title">
               <h2 id="team-people-title">Members</h2>
               <PeoplePreview empty="No members yet." result={members} />
               {members.status === "found" && members.list.people.length > 0 ? (
@@ -242,12 +238,13 @@ function TeamPage() {
                   </Link>
                 </div>
               ) : null}
-            </section>
+            </Surface>
           )}
 
           {viewer === "owner" ? (
-            <section
-              className="panel team-manage"
+            <Surface
+              variant="panel"
+              className="team-manage"
               aria-labelledby="team-actions"
             >
               <h2 id="team-actions">Manage team</h2>
@@ -255,7 +252,7 @@ function TeamPage() {
                 members={ownerRoster ?? []}
                 slug={team.slug}
               />
-            </section>
+            </Surface>
           ) : null}
         </div>
 
@@ -346,14 +343,14 @@ function LeaveTeamForm({ slug }: { slug: string }) {
   return (
     <form action={leaveTeam.url} method="post" onSubmit={submit}>
       <input name="slug" type="hidden" value={slug} />
-      <button
-        className="button--secondary"
+      <Button
+        variant="secondary"
         disabled={pending}
         ref={triggerRef}
         type="submit"
       >
         {pending ? "Leaving…" : "Leave team"}
-      </button>
+      </Button>
       <ConfirmDialog
         cancelLabel="Stay on the team"
         confirmLabel="Leave team"
@@ -539,9 +536,10 @@ function CaptainManagementRow({
             type="hidden"
             value={isCaptain ? "false" : "true"}
           />
-          <button
+          <Button
             aria-label={`${isCaptain ? "Remove captain" : "Make captain"} ${member.name}`}
-            className="button--secondary button--small"
+            variant="secondary"
+            size="small"
             disabled={pending}
             ref={triggerRef}
             type="submit"
@@ -551,7 +549,7 @@ function CaptainManagementRow({
               : isCaptain
                 ? "Remove captain"
                 : "Make captain"}
-          </button>
+          </Button>
           <ConfirmDialog
             cancelLabel="Keep captain"
             confirmLabel="Remove captain"
@@ -609,15 +607,16 @@ function RemoveMemberForm({
     <form action={removeTeamMember.url} method="post" onSubmit={submit}>
       <input name="slug" type="hidden" value={slug} />
       <input name="user_id" type="hidden" value={member.user_id} />
-      <button
+      <Button
         aria-label={`Remove ${member.name} from the team`}
-        className="button--secondary button--small"
+        variant="secondary"
+        size="small"
         disabled={pending}
         ref={triggerRef}
         type="submit"
       >
         {pending ? "Removing…" : "Remove"}
-      </button>
+      </Button>
       <ConfirmDialog
         cancelLabel="Keep member"
         confirmLabel="Remove member"
@@ -704,14 +703,14 @@ function TransferOwnershipForm({
         Ownership transfer is immediate. You will remain a member after the
         transfer.
       </p>
-      <button
-        className="button--destructive"
+      <Button
+        variant="destructive"
         disabled={pending}
         ref={triggerRef}
         type="submit"
       >
         Transfer ownership
-      </button>
+      </Button>
       <ConfirmDialog
         cancelLabel="Keep ownership"
         confirmLabel="Yes, transfer ownership"

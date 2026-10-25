@@ -6,6 +6,7 @@ import {
 } from "../../components/enhanced-mutation";
 import { runClubCommand } from "./club.functions";
 import { clubNotices, type ClubCommandName, type ClubPage } from "./contracts";
+import { Button } from "../../components/button";
 
 /**
  * A native form for one club command. Without JavaScript it posts and the
@@ -64,13 +65,9 @@ export function ClubCommandForm({
       />
       {children?.(mutation.fieldErrors)}
       <div className="form-actions">
-        <button
-          className={variant ? `button--${variant}` : undefined}
-          disabled={mutation.pending}
-          type="submit"
-        >
+        <Button variant={variant} disabled={mutation.pending} type="submit">
           {mutation.pending ? pendingLabel : submitLabel}
-        </button>
+        </Button>
       </div>
     </form>
   );

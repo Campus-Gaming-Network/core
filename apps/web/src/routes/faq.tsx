@@ -6,6 +6,7 @@ import {
 } from "@tanstack/react-router";
 import { Check, Link2 } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
+import { PageIntro } from "../components/page-heading";
 import { publicPageHead } from "../components/public-page-head";
 
 const description =
@@ -481,9 +482,7 @@ function FAQPage() {
   useOpenLinkedQuestion();
   return (
     <main className="prose faq-page">
-      <section className="page-heading">
-        <h1>Frequently asked questions</h1>
-      </section>
+      <PageIntro title="Frequently asked questions" />
       <nav aria-label="Question topics" className="faq-topics">
         <ul>
           {groups.map((group) => (

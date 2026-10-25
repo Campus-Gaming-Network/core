@@ -4,6 +4,7 @@ import {
   minimumSectionsForContents,
 } from "./policy-sections";
 import { PolicyContents } from "./policy-contents";
+import { PageIntro } from "./page-heading";
 
 const effectiveDate = new Intl.DateTimeFormat("en", {
   dateStyle: "long",
@@ -21,16 +22,12 @@ export function PolicyPage({ document }: { document: PolicyDocument }) {
   );
   return (
     <main className="prose policy-page" id="policy-top">
-      <section className="page-heading">
-        <div>
-          <h1>{document.heading}</h1>
-          <p className="lede">{document.lede}</p>
-          <p className="policy-meta">
-            <span>Version {document.version}</span>
-            <span>Effective {effective}</span>
-          </p>
-        </div>
-      </section>
+      <PageIntro title={document.heading} lede={<>{document.lede}</>}>
+        <p className="policy-meta">
+          <span>Version {document.version}</span>
+          <span>Effective {effective}</span>
+        </p>
+      </PageIntro>
       <div className={hasContents ? "policy-layout has-contents" : undefined}>
         {hasContents ? <PolicyContents sections={sections} /> : null}
         <div className="policy-body">

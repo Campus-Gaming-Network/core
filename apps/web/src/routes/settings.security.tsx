@@ -11,6 +11,7 @@ import {
   ChangeEmailForm,
   ChangePasswordForm,
 } from "../features/account-slice/security-forms";
+import { PageIntro } from "../components/page-heading";
 
 export const Route = createFileRoute("/settings/security")({
   validateSearch: (search: Record<string, unknown>) => {
@@ -44,14 +45,10 @@ function SecuritySettingsPage() {
 
   return (
     <>
-      <section className="page-heading">
-        <div>
-          <h1>Email and password</h1>
-          <p className="lede">
-            Change the email and password you sign in with.
-          </p>
-        </div>
-      </section>
+      <PageIntro
+        title="Email and password"
+        lede="Change the email and password you sign in with."
+      />
       <PageNoticeView notice={pageNotice} />
       {/* Each answer remounts the forms, so a saved password does not stay
           typed in. */}

@@ -20,6 +20,8 @@ import {
 import { getOrganizerInvites } from "../features/event-organizers/organizer.functions";
 import { OrganizersPanel } from "../features/event-organizers/organizers-panel";
 import eventCSS from "../features/event-slice/events.css?url";
+import { PageIntro } from "../components/page-heading";
+import { Surface } from "../components/surface";
 
 type EditEventRouteData =
   | (Extract<EditEventPageResult, { status: "ready" }> & {
@@ -117,7 +119,7 @@ function EditEventPage() {
   if (data.status === "denied") {
     return (
       <main className="prose">
-        <section className="empty-state">
+        <Surface variant="empty">
           <p className="eyebrow">Edit event</p>
           <h1>{editDenials[data.reason].heading}</h1>
           <p>{editDenials[data.reason].detail}</p>
@@ -130,7 +132,7 @@ function EditEventPage() {
               Back to event
             </ButtonLink>
           </div>
-        </section>
+        </Surface>
       </main>
     );
   }
@@ -147,18 +149,18 @@ function EditEventPage() {
       <div className="form-page__layout">
         <FormSectionNav heading="Edit event" sections={eventFormSections} />
         <div className="form-page__body">
-          <section className="page-heading">
-            <div>
-              <h1>Edit event</h1>
-              <p className="lede">
+          <PageIntro
+            title="Edit event"
+            lede={
+              <>
                 Editing <strong>{data.event.title}</strong>. Changes are saved
                 to this event only; its repeat settings cannot be changed.
                 {data.event.visibility === "private"
                   ? " Leave the private password blank to keep the current one."
                   : ""}
-              </p>
-            </div>
-          </section>
+              </>
+            }
+          />
           {search.event === "failed" ? (
             <p role="alert">
               We could not update that event. Please try again.

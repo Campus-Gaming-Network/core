@@ -67,6 +67,8 @@ import {
   eventsHead,
   eventTypeLabels,
 } from "../features/event-slice/presentation";
+import { PageIntro } from "../components/page-heading";
+import { Surface } from "../components/surface";
 
 export const Route = createFileRoute("/events/")({
   validateSearch: validateEventsSearch,
@@ -163,28 +165,26 @@ function EventsPage() {
 
   return (
     <main className="directory-page">
-      <section className="directory-heading">
-        <div>
-          <h1>Events</h1>
-          <p className="lede">
-            Game nights, tournaments, and LAN parties at your school and beyond.
-            Find one to show up to, or host your own.
-          </p>
-        </div>
-        {authenticated ? (
-          <ButtonLink variant="primary" to="/events/new">
-            Create event
-          </ButtonLink>
-        ) : (
-          <ButtonLink
-            variant="primary"
-            to="/login"
-            search={{ next: "/events/new" }}
-          >
-            Log in to create an event
-          </ButtonLink>
-        )}
-      </section>
+      <PageIntro
+        variant="directory"
+        title="Events"
+        lede="Game nights, tournaments, and LAN parties at your school and beyond. Find one to show up to, or host your own."
+        actions={
+          authenticated ? (
+            <ButtonLink variant="primary" to="/events/new">
+              Create event
+            </ButtonLink>
+          ) : (
+            <ButtonLink
+              variant="primary"
+              to="/login"
+              search={{ next: "/events/new" }}
+            >
+              Log in to create an event
+            </ButtonLink>
+          )
+        }
+      />
 
       <PageNoticeView
         notice={search.event ? eventBrowseNotices[search.event] : undefined}
@@ -384,7 +384,7 @@ function EventsPage() {
             ))}
           </div>
         ) : (
-          <section className="empty-state">
+          <Surface variant="empty">
             <h2>No public events found</h2>
             {chips.length > 0 ? (
               <p>
@@ -413,7 +413,7 @@ function EventsPage() {
                 </ButtonLink>
               </div>
             ) : null}
-          </section>
+          </Surface>
         )}
       </DirectoryResults>
 

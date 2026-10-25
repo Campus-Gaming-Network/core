@@ -1,6 +1,7 @@
 import { useHydrated } from "@tanstack/react-router";
 import { Check, Copy, Share2 } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
+import { Button } from "./button";
 
 const copiedMessage = "Link copied to the clipboard";
 const failedMessage =
@@ -79,17 +80,19 @@ export function CopyLink({
       {interactive ? (
         <div className="copy-link__actions">
           {canShare ? (
-            <button
-              className="button--primary copy-link__button"
+            <Button
+              variant="primary"
+              className="copy-link__button"
               onClick={share}
               type="button"
             >
               <Share2 aria-hidden="true" size={16} strokeWidth={1.75} />
               Share
-            </button>
+            </Button>
           ) : null}
-          <button
-            className={`copy-link__button${canShare ? " button--secondary" : ""}`}
+          <Button
+            variant={canShare ? "secondary" : undefined}
+            className="copy-link__button"
             onClick={copy}
             type="button"
           >
@@ -99,7 +102,7 @@ export function CopyLink({
               <Copy aria-hidden="true" size={16} strokeWidth={1.75} />
             )}
             {status === "copied" ? "Copied" : "Copy link"}
-          </button>
+          </Button>
         </div>
       ) : null}
       <p

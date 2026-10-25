@@ -43,6 +43,7 @@ import {
 } from "../features/club-slice/presentation";
 import { schoolLocation } from "../features/school-slice/presentation";
 import clubCSS from "../features/club-slice/clubs.css?url";
+import { Surface } from "../components/surface";
 
 export const Route = createFileRoute("/clubs/$slug")({
   validateSearch: validateClubManageSearch,
@@ -135,10 +136,7 @@ function ClubPage() {
               {club.name} has not added a description or how to join yet.
             </p>
           ) : null}
-          <section
-            aria-labelledby="club-events-title"
-            className="panel panel--flush"
-          >
+          <Surface aria-labelledby="club-events-title" variant="flush">
             <div className="panel__header">
               <h2 id="club-events-title">Upcoming events</h2>
             </div>
@@ -157,13 +155,13 @@ function ClubPage() {
                 {club.name} has no upcoming public events.
               </p>
             )}
-          </section>
+          </Surface>
           <ClubPeople club={club} members={members} />
         </div>
 
         <aside className="layout-detail__aside" aria-label="About this club">
           {club.links.length > 0 ? (
-            <section className="detail-card" aria-labelledby="club-links-title">
+            <Surface variant="card" aria-labelledby="club-links-title">
               <h2 id="club-links-title">Links</h2>
               <ul className="detail-card-body club-links">
                 {club.links.map((link) => (
@@ -183,7 +181,7 @@ function ClubPage() {
                   </li>
                 ))}
               </ul>
-            </section>
+            </Surface>
           ) : null}
           <KeyInformation
             title="Club details"
@@ -237,7 +235,7 @@ function ClubViewerActions({ club }: { club: ClubDTO }) {
   const role = club.viewer?.role;
   if (!role && !club.viewer?.ownership_offered) return null;
   return (
-    <section className="detail-card" aria-labelledby="club-you-title">
+    <Surface variant="card" aria-labelledby="club-you-title">
       <h2 id="club-you-title">You and this club</h2>
       <div className="detail-card-body form-stack">
         {role ? <p>You are {roleLabels[role]} of this club.</p> : null}
@@ -282,7 +280,7 @@ function ClubViewerActions({ club }: { club: ClubDTO }) {
           />
         ) : null}
       </div>
-    </section>
+    </Surface>
   );
 }
 
@@ -305,7 +303,7 @@ function JoinOnCGN({ club, signedIn }: { club: ClubDTO; signedIn: boolean }) {
     </p>
   );
   return (
-    <section className="detail-card" aria-labelledby="club-join-cgn-title">
+    <Surface variant="card" aria-labelledby="club-join-cgn-title">
       <h2 id="club-join-cgn-title">Join on CGN</h2>
       <div className="detail-card-body form-stack">
         {signedIn ? (
@@ -327,7 +325,7 @@ function JoinOnCGN({ club, signedIn }: { club: ClubDTO; signedIn: boolean }) {
         )}
         {note}
       </div>
-    </section>
+    </Surface>
   );
 }
 
@@ -355,7 +353,7 @@ function ClubPeople({
     );
   }
   return (
-    <section className="detail-card" aria-labelledby="club-people-title">
+    <Surface variant="card" aria-labelledby="club-people-title">
       <h2 id="club-people-title">People</h2>
       <p className="detail-card-body muted">{count}</p>
       <PeoplePreview empty="No one has joined yet." result={members} />
@@ -372,7 +370,7 @@ function ClubPeople({
           </Link>
         </div>
       ) : null}
-    </section>
+    </Surface>
   );
 }
 
@@ -385,10 +383,14 @@ const roleLabels = {
 /** The club's own process for becoming a member, written by the club or CGN. */
 function HowToJoin({ club }: { club: ClubDTO }) {
   return (
-    <section aria-labelledby="club-join-title" className="panel club-join">
+    <Surface
+      aria-labelledby="club-join-title"
+      variant="panel"
+      className="club-join"
+    >
       <h2 id="club-join-title">How to join</h2>
       <p className="club-text">{club.how_to_join}</p>
-    </section>
+    </Surface>
   );
 }
 

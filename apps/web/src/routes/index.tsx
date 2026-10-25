@@ -20,6 +20,7 @@ import {
   homeHead,
   schoolLocation,
 } from "../features/school-slice/presentation";
+import { Surface } from "../components/surface";
 
 export const Route = createFileRoute("/")({
   validateSearch: (search: Record<string, unknown>) => {
@@ -173,10 +174,7 @@ function HomePage() {
           </div>
 
           <div className="home-aside">
-            <section
-              className="panel panel--flush"
-              aria-labelledby="schools-title"
-            >
+            <Surface variant="flush" aria-labelledby="schools-title">
               <div className="panel__header">
                 <h2 id="schools-title">
                   {catalog.schoolsPopular
@@ -221,11 +219,11 @@ function HomePage() {
               ) : (
                 <p className="panel__body muted">No schools are listed yet.</p>
               )}
-            </section>
+            </Surface>
 
             <PopularGamesPanel heading="Popular games" result={popularGames} />
 
-            <section className="panel" aria-labelledby="host-title">
+            <Surface variant="panel" aria-labelledby="host-title">
               <h2 id="host-title">Host something</h2>
               <p className="muted">
                 {homeSchool
@@ -240,7 +238,7 @@ function HomePage() {
                   Create team
                 </ButtonLink>
               </div>
-            </section>
+            </Surface>
           </div>
         </div>
       </div>
@@ -265,7 +263,7 @@ function HomeEventsSection({
   unavailable: boolean;
 }) {
   return (
-    <section className="panel panel--flush" aria-labelledby={id}>
+    <Surface variant="flush" aria-labelledby={id}>
       <div className="panel__header">
         <h2 id={id}>{heading}</h2>
         <Link aria-label="View all events" to="/events">
@@ -287,6 +285,6 @@ function HomeEventsSection({
           {empty} <Link to="/events/new">Create an event.</Link>
         </p>
       )}
-    </section>
+    </Surface>
   );
 }

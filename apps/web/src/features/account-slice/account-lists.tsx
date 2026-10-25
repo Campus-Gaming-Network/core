@@ -22,6 +22,7 @@ import {
   type AccountTeamDTO,
   type DashboardEventDTO,
 } from "./contracts";
+import { Surface } from "../../components/surface";
 
 // A preview shows this many rows of each event list.
 const dashboardPreviewCount = 3;
@@ -139,7 +140,9 @@ export function AccountEventSection({
           ) : null}
         </>
       ) : (
-        <div className="empty-state">{empty}</div>
+        <Surface as="div" variant="empty">
+          {empty}
+        </Surface>
       )}
       {footer}
     </section>
@@ -182,11 +185,11 @@ export function AccountTeamList({ teams }: { teams: AccountTeamDTO[] }) {
       ))}
     </div>
   ) : (
-    <div className="empty-state">
+    <Surface as="div" variant="empty">
       <p>No teams yet. Find one that plays your games, or start your own.</p>
       <ButtonLink to="/teams" variant="secondary">
         Find teams
       </ButtonLink>
-    </div>
+    </Surface>
   );
 }

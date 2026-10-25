@@ -4,8 +4,6 @@ import {
   ArrowRight,
   CalendarDays,
   CalendarPlus,
-  Check,
-  CircleHelp,
   Flag,
   Globe,
   Lock,
@@ -13,7 +11,6 @@ import {
   MapPin,
   Star,
   Users,
-  X,
 } from "lucide-react";
 import { type FormEvent, useRef, useState } from "react";
 import { BreadcrumbLink, Breadcrumbs } from "../components/breadcrumbs";
@@ -24,9 +21,7 @@ import { TabLink, Tabs } from "../components/tabs";
 import { CopyLink } from "../components/copy-link";
 import { ConfirmDialog } from "../components/confirm-dialog";
 import {
-  FieldError,
   FormErrorSummary,
-  fieldErrorProps,
   useEnhancedMutation,
 } from "../components/enhanced-mutation";
 import { FormField } from "../components/form-field";
@@ -49,7 +44,6 @@ import {
   cancelEvent,
   getEventDetail,
   reportEvent,
-  rsvpEvent,
   setEventInterest,
   unlockEvent,
 } from "../features/event-slice/event.functions";
@@ -68,7 +62,6 @@ import {
   eventDetailNotices,
   eventEndTime,
   eventLifecycleLabel,
-  eventRSVPLabel,
   eventTimeRange,
   eventVisibilityLabel,
   formatEventDate,
@@ -96,6 +89,9 @@ import {
   eventUpdatesPreviewSize,
   type EventActivityEntry,
 } from "../features/event-activity/contracts";
+import { Button } from "../components/button";
+import { RSVPControl } from "../components/rsvp-control";
+import { Surface } from "../components/surface";
 
 type EventRouteData = {
   event: EventDetailDTO;
@@ -474,7 +470,7 @@ function VisibleEventView({
             </p>
           ) : authenticated ? (
             <>
-              <RsvpEventForm event={event} />
+              <RSVPControl event={event} />
               <InterestEventForm event={event} />
             </>
           ) : (
@@ -524,10 +520,7 @@ function VisibleEventView({
           </section>
 
           {cancelled ? null : authenticated ? (
-            <section
-              className="detail-card"
-              aria-labelledby="event-people-title"
-            >
+            <Surface variant="card" aria-labelledby="event-people-title">
               <h2 id="event-people-title">{"Who's going"}</h2>
               <PeoplePreview
                 empty="No one has RSVP'd yet."
@@ -544,7 +537,7 @@ function VisibleEventView({
                   <ArrowRight aria-hidden="true" size={14} strokeWidth={2.25} />
                 </Link>
               </div>
-            </section>
+            </Surface>
           ) : (
             <PeopleSignedOut
               message="Log in to see who's going."
@@ -553,10 +546,7 @@ function VisibleEventView({
           )}
 
           {updates.length > 0 ? (
-            <section
-              className="detail-card"
-              aria-labelledby="event-updates-title"
-            >
+            <Surface variant="card" aria-labelledby="event-updates-title">
               <h2 id="event-updates-title">Updates</h2>
               <div className="detail-card-body">
                 <EventActivityList
@@ -573,7 +563,7 @@ function VisibleEventView({
                   <ArrowRight aria-hidden="true" size={14} strokeWidth={2.25} />
                 </Link>
               </div>
-            </section>
+            </Surface>
           ) : null}
 
           {event.organizers && event.organizers.length > 0 ? (
@@ -598,7 +588,7 @@ function VisibleEventView({
             <section aria-label="Event safety and management">
               {/* An event that has ended can no longer be changed. */}
               {event.viewer_can_edit && event.lifecycle !== "ended" ? (
-                <div className="panel event-manage">
+                <Surface as="div" variant="panel" className="event-manage">
                   <h2 id="manage-event">Manage event</h2>
                   <p className="form-help">
                     {event.viewer_is_creator
@@ -619,7 +609,7 @@ function VisibleEventView({
                       <CancelEventForm slug={event.slug} />
                     ) : null}
                   </div>
-                </div>
+                </Surface>
               ) : null}
               <details className="safety-details">
                 <summary>
@@ -668,23 +658,23 @@ function VisibleEventView({
             title="Details"
           />
 
-          <section className="detail-card">
+          <Surface variant="card">
             <h2>Share</h2>
             <CopyLink
               label="Event link"
               shareTitle={event.title}
               url={`${publicOrigin}/events/${encodeURIComponent(event.slug)}`}
             />
-          </section>
+          </Surface>
 
           {event.cost === "paid" ? (
-            <section className="detail-card">
+            <Surface variant="card">
               <h2>Payment</h2>
               <div className="detail-card-body">
                 <p>{event.payment_note || "Payment happens off CGN."}</p>
                 {paymentURL ? <a href={paymentURL}>Open payment link</a> : null}
               </div>
-            </section>
+            </Surface>
           ) : null}
         </aside>
       </div>
@@ -759,14 +749,14 @@ function CancelEventForm({ slug }: { slug: string }) {
   return (
     <form action={cancelEvent.url} method="post" onSubmit={submit}>
       <input name="slug" type="hidden" value={slug} />
-      <button
-        className="button--destructive"
+      <Button
+        variant="destructive"
         disabled={mutation.pending}
         ref={triggerRef}
         type="submit"
       >
         Cancel event
-      </button>
+      </Button>
       <ConfirmDialog
         cancelLabel="Keep event"
         confirmLabel="Yes, cancel event"
@@ -913,98 +903,6 @@ function UnlockEventForm({ slug }: { slug: string }) {
       <button type="submit" disabled={mutation.pending}>
         {mutation.pending ? "Unlocking…" : "Unlock event"}
       </button>
-    </form>
-  );
-}
-
-const rsvpIcons = { maybe: CircleHelp, no: X, yes: Check } as const;
-
-function RsvpEventForm({ event }: { event: EventDTO }) {
-  const runRsvpEvent = useServerFn(rsvpEvent);
-  const mutation = useEnhancedMutation(
-    "We could not save your RSVP. Please try again.",
-  );
-  const isEnded = event.lifecycle === "ended";
-  const isFullForViewer =
-    event.lifecycle === "full" && event.viewer_rsvp !== "yes";
-
-  async function submit(formEvent: FormEvent<HTMLFormElement>) {
-    formEvent.preventDefault();
-    // The buttons stay enabled while a save is pending, so ignore a second
-    // press instead of disabling them.
-    if (mutation.pending) return;
-    const submitter = (formEvent.nativeEvent as SubmitEvent)
-      .submitter as HTMLButtonElement | null;
-    const response = submitter?.value;
-
-    if (response !== "yes" && response !== "maybe" && response !== "no") {
-      await mutation.execute(async () => ({
-        status: "error",
-        message: "Check the highlighted fields and try again.",
-        fieldErrors: { response: ["Choose yes, maybe, or no."] },
-      }));
-      return;
-    }
-
-    await mutation.execute(() =>
-      runRsvpEvent({
-        data: { slug: event.slug, response },
-      }),
-    );
-  }
-
-  const responseErrors = mutation.fieldErrors.response;
-
-  return (
-    <form
-      action={rsvpEvent.url}
-      className="rsvp-form"
-      method="post"
-      onSubmit={submit}
-    >
-      <input type="hidden" name="slug" value={event.slug} />
-      <FormErrorSummary
-        fieldErrors={mutation.fieldErrors}
-        fieldIds={{ response: "event-rsvp-error" }}
-        message={mutation.message}
-        summaryRef={mutation.errorSummaryRef}
-      />
-      {mutation.pending ? (
-        <p aria-live="polite" className="rsvp-note" role="status">
-          Saving your RSVP…
-        </p>
-      ) : null}
-      {isEnded ? (
-        <p className="rsvp-note">RSVPs are closed for ended events.</p>
-      ) : null}
-      {isFullForViewer ? (
-        <p className="rsvp-note">
-          This event is full, but you can still choose maybe or no.
-        </p>
-      ) : null}
-      <div aria-label="Your RSVP" className="rsvp-buttons" role="group">
-        {(["yes", "maybe", "no"] as const).map((response) => {
-          const RsvpIcon = rsvpIcons[response];
-          return (
-            <button
-              aria-pressed={event.viewer_rsvp === response}
-              {...fieldErrorProps(responseErrors, "event-rsvp-error")}
-              // A disabled button drops keyboard focus to the page body, so a
-              // pending save marks the buttons aria-disabled instead.
-              aria-disabled={mutation.pending || undefined}
-              disabled={isEnded || (response === "yes" && isFullForViewer)}
-              key={response}
-              name="response"
-              type="submit"
-              value={response}
-            >
-              <RsvpIcon aria-hidden="true" size={16} strokeWidth={2.25} />
-              {eventRSVPLabel(response)}
-            </button>
-          );
-        })}
-      </div>
-      <FieldError id="event-rsvp-error" messages={responseErrors} />
     </form>
   );
 }

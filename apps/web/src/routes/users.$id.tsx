@@ -37,6 +37,7 @@ import {
   verificationLabel,
 } from "../features/public-profile/presentation";
 import { formString } from "../components/form-string";
+import { Surface } from "../components/surface";
 
 export type PublicProfileRouteData = {
   profile: PublicProfileDTO;
@@ -100,7 +101,7 @@ function PublicProfilePage() {
 
   return (
     <main className="public-profile">
-      <header className="panel public-profile__header">
+      <Surface as="header" variant="panel" className="public-profile__header">
         <Avatar id={profile.id} name={profile.name} />
         <div className="public-profile__body">
           <h1>{profile.name}</h1>
@@ -153,7 +154,7 @@ function PublicProfilePage() {
             </Link>
           </div>
         ) : null}
-      </header>
+      </Surface>
 
       <PageNoticeView
         notice={search.report ? reportUserNotices[search.report] : undefined}
@@ -161,10 +162,7 @@ function PublicProfilePage() {
 
       <div className="layout-detail">
         <div className="layout-detail__main">
-          <section
-            aria-labelledby="social-links"
-            className="panel panel--flush"
-          >
+          <Surface aria-labelledby="social-links" variant="flush">
             <div className="panel__header">
               <h2 id="social-links">Links</h2>
             </div>
@@ -201,7 +199,7 @@ function PublicProfilePage() {
                 )}
               </p>
             )}
-          </section>
+          </Surface>
           <ProfileGameLists lists={profile.games} self={viewer === "self"} />
         </div>
 

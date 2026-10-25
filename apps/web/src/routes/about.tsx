@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { publicPageHead } from "../components/public-page-head";
+import { PageIntro } from "../components/page-heading";
 
 const description =
   "How Campus Gaming Network connects collegiate gamers with events, teams, clubs, and campus activity.";
@@ -14,16 +15,10 @@ export const Route = createFileRoute("/about")({
 function AboutPage() {
   return (
     <main className="prose">
-      <section className="page-heading">
-        <div>
-          <h1>About Campus Gaming Network</h1>
-          <p className="lede">
-            One place for college gamers in the United States to find events,
-            teams, clubs, and other players at their own school and at other
-            campuses.
-          </p>
-        </div>
-      </section>
+      <PageIntro
+        title="About Campus Gaming Network"
+        lede="One place for college gamers in the United States to find events, teams, clubs, and other players at their own school and at other campuses."
+      />
       <section aria-labelledby="about-why" className="about-section">
         <h2 id="about-why">Why it exists</h2>
         <p>

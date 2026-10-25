@@ -13,6 +13,7 @@ import {
   getClubDetail,
 } from "../features/club-slice/club.functions";
 import { validateClaimSearch } from "../features/club-slice/contracts";
+import { PageIntro } from "../components/page-heading";
 
 export const Route = createFileRoute("/clubs/$slug_/claim")({
   validateSearch: validateClaimSearch,
@@ -68,15 +69,10 @@ function ClaimClubPage() {
           {club.name}
         </BreadcrumbLink>
       </Breadcrumbs>
-      <section className="page-heading">
-        <div>
-          <h1>Claim {club.name}</h1>
-          <p className="lede">
-            Officers who claim their club become its owner on Campus Gaming
-            Network, and the page then says it is managed by the club.
-          </p>
-        </div>
-      </section>
+      <PageIntro
+        title={<>Claim {club.name}</>}
+        lede="Officers who claim their club become its owner on Campus Gaming Network, and the page then says it is managed by the club."
+      />
       {search.claim === "submitted" ? (
         <>
           <ClaimSubmitted>

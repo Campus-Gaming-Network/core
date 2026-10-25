@@ -44,3 +44,39 @@ export function PageHeading({
     </header>
   );
 }
+
+/**
+ * The header of a directory, form, settings, or static page: the page's `h1`,
+ * an optional eyebrow above it and lede below it, any further intro content,
+ * and the page's one action at the right on a wide screen. `directory` is the
+ * directory pages' variant. Styles live in styles.css.
+ */
+export function PageIntro({
+  actions,
+  children,
+  eyebrow,
+  lede,
+  title,
+  variant = "page",
+}: {
+  actions?: ReactNode;
+  children?: ReactNode;
+  eyebrow?: ReactNode;
+  lede?: ReactNode;
+  title: ReactNode;
+  variant?: "page" | "directory";
+}) {
+  return (
+    <section
+      className={variant === "page" ? "page-heading" : "directory-heading"}
+    >
+      <div>
+        {eyebrow ? <p className="eyebrow">{eyebrow}</p> : null}
+        <h1>{title}</h1>
+        {lede ? <p className="lede">{lede}</p> : null}
+        {children}
+      </div>
+      {actions}
+    </section>
+  );
+}

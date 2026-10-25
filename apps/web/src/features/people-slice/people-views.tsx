@@ -5,6 +5,7 @@ import { Person } from "../../components/person";
 import { ListUnavailable } from "../../components/route-boundaries";
 import type { PeopleListResult, PersonDTO } from "./contracts";
 import { personDetail } from "./presentation";
+import { Surface } from "../../components/surface";
 
 /**
  * Everyone on a page of a list, each name linked to their public profile.
@@ -101,10 +102,10 @@ export function PeopleResults({
   }
   if (result.list.people.length === 0) {
     return (
-      <section className="empty-state">
+      <Surface variant="empty">
         <h2>{emptyHeading}</h2>
         <p>{emptyMessage}</p>
-      </section>
+      </Surface>
     );
   }
   return <PersonList people={result.list.people} rows={rows} />;
