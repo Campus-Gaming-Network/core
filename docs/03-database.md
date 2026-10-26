@@ -278,18 +278,29 @@ event_private_unlocks
 
 ### Tournaments
 
+Planned, not migrated. [02 — Domain model](./02-domain-model.md#tournament) owns
+the fields and rules; the migration in each phase's issue sets the final
+columns.
+
 ```text
 tournaments
-  id, title, slug (unique; name + small hash with date/other info),
-  type (individual|team), capacity nullable,
-  event_id nullable, ...
-  -- capacity full => block new registrations; no waitlist yet
+  id, event_id (unique, references events), game_id,
+  entry_type (solo|team), team_size, substitutes, entrant_cap nullable,
+  registration_closes_at nullable, format, format options,
+  rules nullable, prizes nullable, bracket_url nullable,
+  status (draft|registration_open|in_progress|completed|cancelled), ...
 
-tournament_games
-  tournament_id, game_id
+tournament_entries
+  id, tournament_id, user_id nullable, team_id nullable (exactly one set),
+  registered_by_user_id, status (registered|withdrawn|removed), seed nullable, ...
 
-tournament_registrations
-  tournament_id, user_id nullable, team_id nullable, registered_by_user_id, ...
+tournament_entry_players
+  entry_id, user_id  -- a team entry's roster
+
+tournament_matches
+  id, tournament_id, bracket (upper|lower|grand_final), round, position,
+  entry slots (nullable; a bye or not yet decided), next match for the
+  winner (and loser), scheduled_at nullable, status, scores, winner, walkover
 ```
 
 ### Games
@@ -412,7 +423,7 @@ If activity and audit can share one table with a clear `kind` discriminator, pre
 
 ## Indexes (minimum intent)
 
-- Unique: `users.email`, `schools.slug`, `events.slug`, `tournaments.slug`, `games.igdb_id`
+- Unique: `users.email`, `schools.slug`, `events.slug`, `tournaments.event_id`, `games.igdb_id`
 - RSVP uniqueness: `(event_id, user_id)` where not deleted
 - Interest uniqueness: `(event_id, user_id)`
 - Follow uniqueness: `(user_id, school_id)`
@@ -426,11 +437,11 @@ If activity and audit can share one table with a clear `kind` discriminator, pre
 
 Prefer Postgres over Elasticsearch (or similar) until scale demands it.
 
-| Use case                     | Approach                                                                            |
-| ---------------------------- | ----------------------------------------------------------------------------------- |
-| School search / browse       | `pg_trgm` on `name` / `alias` + filters (state, etc.); optional `tsvector`          |
-| Events / tournaments by game | Join `event_games` / `tournament_games`; filter `visibility = public` for discovery |
-| Text filters                 | Indexed columns: game, starts_at, format, school_id, visibility                     |
+| Use case                     | Approach                                                                                                 |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------- |
+| School search / browse       | `pg_trgm` on `name` / `alias` + filters (state, etc.); optional `tsvector`                               |
+| Events / tournaments by game | Join `event_games` (a tournament is found through its event); filter `visibility = public` for discovery |
+| Text filters                 | Indexed columns: game, starts_at, format, school_id, visibility                                          |
 
 Do not list `unlisted` or `private` events in discovery search. Unlisted is reachable by slug URL; private also requires password verification.
 

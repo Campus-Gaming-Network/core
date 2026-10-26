@@ -15,7 +15,7 @@ Authorization rules for the public site and the Admin Console. Enforce in **Go**
 | **Club owner**         | Approved claim, or ownership transfer                               | Edit club; invite/remove editors; remove members; transfer ownership; manage events the club hosts                                           |
 | **Club editor**        | Owner invites                                                       | Edit club; remove members; manage events the club hosts                                                                                      |
 | **Club member**        | Joins (signed in, verified email)                                   | Listed on the club member list; may leave                                                                                                    |
-| **Team owner**         | Creator or transfer                                                 | Manage team; transfer ownership; assign captains                                                                                             |
+| **Team owner**         | Creator or transfer                                                 | Manage team; transfer ownership; assign captains; register team for tournaments                                                              |
 | **Team captain**       | Owner assigns                                                       | Register team for tournaments; limited team mgmt                                                                                             |
 | **Event organizer**    | Creator, or co-organizer by accepted invite                         | Edit event until it ends; the creator cancels it, until it ends, and alone manages co-organizers                                             |
 | **Approved organizer** | Explicit grant                                                      | Badge-eligible events                                                                                                                        |
@@ -156,6 +156,33 @@ see every entry. See [02 — Domain model](./02-domain-model.md#event-activity-l
 - Basic blocked-language filtering rejects disallowed names, bios, event/team
   text, reports, and support messages before persistence
 - Slug = event name + small hash (date + other info)
+
+## Tournament rules (not built yet)
+
+[01 — Product](./01-product.md#tournaments) is the spec. A tournament belongs to
+one event, so it follows that event's visibility and access: a private event's
+tournament is hidden, as the event is, until the viewer unlocks it.
+
+- **Organizers** of the tournament are the people who can edit its event (the
+  creator, co-organizers, and on a club-hosted event the club's owners and
+  editors). Only they create, edit, and move the status of the settings;
+  order seeds; generate the bracket; remove entries before the start; and
+  enter, correct, and walk over results. Anyone else gets `403`
+- A draft tournament is visible to its organizers only; to everyone else the
+  event reads as having no tournament
+- **Solo entry:** a signed-in account with a verified email registers itself
+  and withdraws itself
+- **Team entry:** only the team's owner or a captain registers the team,
+  changes its roster, or withdraws it. Roster players must be the team's
+  members. A member leaving the team is taken off its roster before the
+  start; after the start the roster is frozen
+- Results entered by organizers are official; entrants cannot enter results
+- **Entrant names:** the entrant list and the bracket name every entrant to
+  signed-in viewers who can see the event, regardless of Show me in people
+  lists, because entering a competition is entering a public field.
+  Signed-out viewers see team names and see solo entrants by seed only
+- Site admins have no tournament-specific tools; moderating the event covers
+  its tournament
 
 ## Club rules
 

@@ -159,13 +159,18 @@ Later: assigning teams to clubs (Varsity, JV), join approval, co-hosted events.
 
 ## Phase 6b — Tournaments (later)
 
-**Goal:** Competitive layer.
+**Goal:** Competitive layer. The spec is [01 — Product](./01-product.md#tournaments):
+a tournament is part of one tournament-type event and shows on its page.
 
-- Tournaments as own entity; slug = name + hash; optional event link; optional capacity
-- Individual vs team tournaments; captain registration
-- Browse/filter tournaments by game
+1. Settings and status (#263), solo and team registration (#265), and an
+   external bracket link (#264)
+2. Single-elimination brackets (#266), organizer-entered results (#267), and
+   the tournament tabs and bracket view (#268)
+3. Round robin and Swiss (#269)
+4. Double elimination (#270)
 
-**Exit:** Tournament registerable.
+**Exit:** a tournament event takes registrations and runs a single-elimination
+bracket to a result.
 
 ## Phase 7 — Hardening & production ops
 

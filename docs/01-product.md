@@ -15,7 +15,7 @@
 
 ## Non-goals (not scheduled yet)
 
-- Tournaments (later)
+- Tournaments: specified under [Tournaments](#tournaments) and not built yet
 - On-site payment processing (paid events may be listed for now, but organizers handle payment off-site)
 - Near-you / geo discovery (later)
 - Schools outside the United States
@@ -122,7 +122,7 @@ Signup also requires confirming **age 18+**. Alumni can participate. Faculty who
 - Events can be online, in-person, or hybrid; one-off or recurring; paid events are allowed, but payment happens off-site
 - Event cost is **free**, **paid**, or **not specified** (the default). A free event shows "Free" on its page and card and can be found with the Free filter in browse. A paid event shows its payment note. An event whose organizer did not say shows nothing about cost, so "free" is never implied
 - Event visibility: **public**, **unlisted**, or **private**
-- Event type says what kind of event it is: **game night**, **LAN**, **tournament**, **watch party**, **tryout**, **meeting**, **workshop**, or **other**. Organizers must choose one. It is shown on the event page and event cards and can be filtered in browse. The tournament type is only a label; it does not create a tournament
+- Event type says what kind of event it is: **game night**, **LAN**, **tournament**, **watch party**, **tryout**, **meeting**, **workshop**, or **other**. Organizers must choose one. It is shown on the event page and event cards and can be filtered in browse. The tournament type on its own is a label; organizers add [tournament settings](#tournaments) to run a tournament on CGN
 - Event audience says who may come: **open** (anyone), **collegiate** (students at any school), **campus** (students and staff of the host school), or **members** (members of the hosting group). Organizers must choose one. It is shown on the event page and event cards and can be filtered in browse. It is information for attendees and does not change who can see the page or RSVP
 - Private events: page content is **not visible/inspectable** until unlocked; show blurred shell + **password modal** (share URL + password manually)
 - Optional **capacity** on events; counts **RSVP yes only**; when full, no more yes RSVPs
@@ -296,15 +296,123 @@ club on CGN, which lists them as members here.
 - Reference any number of games, including none (an informational meeting or club social); browse/filter by game
 - Timezone: user preference (default system) for display
 
-### Tournaments (later)
+### Tournaments
 
-- Separate from events; can optionally be tied to an event
-- Slug from name + short hash for uniqueness
-- Events = attend; tournaments = compete
-- Individual and team tournaments
-- Optional capacity; when full, no more registrations (no waitlist yet)
-- Browse and filter by game; reference one or more games
-- Team captains register their teams
+Not built yet. This section is the spec; the phases are listed at the end. An
+event is something you attend and a tournament is something you enter, so a
+tournament adds entry, seeding, matches, and results to an event instead of
+repeating the event's own facts.
+
+- **Part of an event:** a tournament is a record attached to exactly one event
+  whose type is **tournament**. The event keeps its title, URL, time, place,
+  visibility, host, organizers, private password, cancellation, calendar file,
+  activity log, and reports; the tournament adds its own settings, entrants,
+  and matches. There is no separate tournament URL, and the event page shows
+  the tournament. A tournament-type event without tournament settings stays a
+  plain event, as today
+- **Organizers** are the people who can edit the event: its creator, its
+  co-organizers, and on a club-hosted event the club's owners and editors (a
+  hosting team's other owners and captains cannot edit it). They manage the
+  settings, entrants, seeds, bracket, and results
+- **The event around it:** settings attach to one event, not to a repeating
+  series; each occurrence of a series is its own event and can have its own
+  tournament. An event with tournament settings keeps the tournament type
+  until the settings are deleted, which is possible only in draft. Its own
+  capacity is not used, because the entrant cap takes its place
+- **Discovery** stays in the events directory: its Tournaments tab lists
+  tournament-type events. A card for an event with tournament settings also
+  says solo or team, and whether registration is open. `/tournaments` redirects
+  to that tab
+- **Settings:** one game (one of the event's games), **solo** or **team**
+  entry, team size and the number of substitutes a roster may add, an
+  optional entrant cap, when registration closes (the event's start by
+  default), the format, rules and prizes as plain text, and an optional link
+  to a bracket hosted elsewhere. Entry type, team size, and format are fixed
+  once anyone has registered
+- **Status:** **draft**, **registration open**, **in progress**,
+  **completed**, or **cancelled**. Registration opens when organizers move
+  the tournament to registration open. Organizers move it forward; a tournament
+  goes back from registration open to draft only while nobody has registered.
+  Starting it needs two or more entrants and ends registration. Cancelling the
+  event cancels the tournament. A draft's settings are visible to the
+  event's organizers only
+- **Registration replaces RSVP** on an event with tournament settings: the
+  event page shows a registration panel (not open yet, open, full, closed,
+  registered) where the RSVP buttons would be, and Interested still works for
+  spectators. Settings can be added to an event only while nobody but its
+  organizers has an RSVP, so no one's RSVP is dropped
+- **Solo entry:** a signed-in person registers themselves
+- **Team entry:** a team's owner or a captain registers the team and picks its
+  roster from the team's members: at least the team size, at most the team
+  size plus the substitutes. The owner or a captain can change the roster
+  until the tournament starts. A person can be in only one entry of a
+  tournament, solo or on one roster
+- **Cap:** counts entries, so teams in a team tournament. A full tournament
+  takes no more entries; there is no waitlist
+- **Eligibility:** as with RSVP, the event's audience (open, collegiate,
+  campus, members) is information and is not enforced. Organizers can remove
+  an entry until the tournament starts, and a removed entrant cannot register
+  again
+- **Withdrawing:** an entrant (a solo player, or a team's owner or captain)
+  withdraws on CGN until the tournament starts. After that an entrant who
+  cannot play tells the organizer, who records a walkover
+- **Entrants and brackets are public to participants:** entering means your
+  name appears in the tournament's entrant list and bracket for signed-in
+  viewers, and the registration form says so; Show me in people lists does not
+  hide an entrant. Signed-out visitors see team names (team pages are public)
+  but see solo entrants as their seed ("Seed 3"), as people lists show them
+  counts only
+- **Formats,** in the order they ship: **single elimination**, then **round
+  robin** and **Swiss** (pairings and a standings table, not a bracket), then
+  **double elimination**. There is no third-place match in single elimination
+- **Seeding:** organizers order the entrants, and registration order is the
+  default. A bracket is sized to the next power of two, the top seeds get the
+  byes, and a bye advances its entrant without a match. Organizers generate
+  the bracket after starting the tournament and may regenerate it until the
+  first result is entered
+- **Matches:** each has its two entrants, an optional scheduled time, a status
+  (upcoming, live, or complete), each side's score as a whole number, and the
+  winner. An elimination match has no draw
+- **Results:** organizers enter them, and a result they enter is official;
+  entrants do not report their own results in the first version. A winner
+  advances to their next match at once. A result can be corrected until the
+  match the winner moved on to has a result. Organizers can record a
+  **walkover** for a no-show, which advances the opponent without a score.
+  The final's result completes the tournament. Every result and correction is
+  written to the event's activity log
+- **Round robin:** everyone plays everyone once, with a bye each round for an
+  odd count. **Swiss:** the organizer sets the number of rounds (by default
+  enough rounds for one entrant to be the only one unbeaten), each round pairs
+  entrants with the same record without a rematch, and a bye counts as a win.
+  Both may allow draws if the organizer turns them on. Standings give 3 points
+  for a win and 1 for a draw; ties break by head-to-head result (round robin)
+  or by the sum of opponents' points (Swiss), then by score difference, then
+  by seed
+- **Double elimination:** losers drop to a lower bracket, and the lower
+  bracket's winner meets the upper bracket's in a grand final. A grand-final
+  reset (the lower-bracket winner must win twice) is on by default, and
+  organizers can turn it off before generating the bracket
+- **External bracket:** until native brackets ship, or instead of them, a
+  tournament can link to a bracket on start.gg, Challonge, Battlefy, or any
+  other site (an `http` or `https` link, checked like the payment link). The
+  event page names the host ("Bracket on start.gg"), marks the link as
+  external, and never embeds it. An organizer using an external bracket
+  completes the tournament by hand
+- **Tournament on the event page:** tabs for Overview, Players or Teams,
+  Bracket (once generated), Schedule (once a match has a time), Rules (when
+  written), and Prizes (when written). The tabs are links that work without
+  JavaScript. On a phone the bracket is a list of matches round by round, not
+  a shrunken bracket
+- **Notices:** entrants get an in-app notice when an organizer removes their
+  entry, when the tournament starts, and when it is cancelled; cancelling the
+  event also emails them, as it emails RSVPs
+- **Not in the first version:** check-in, entry fees on CGN (an event's cost
+  and payment note still apply), self-reported results, match chat, streaming
+  embeds, and tournament series or leagues across events
+- **Phases:** (1) settings and status (#263), registration (#265), and the
+  external bracket link (#264); (2) single-elimination brackets (#266),
+  results (#267), and the tournament tabs and bracket view (#268); (3) round
+  robin and Swiss (#269); (4) double elimination (#270)
 
 ### Games
 
@@ -314,7 +422,7 @@ club on CGN, which lists them as members here.
 - A site admin blocks a game by hiding or deleting it
 - Games IGDB tags as erotic are never shown in search and cannot be imported
 - The FAQ page credits IGDB.com for game data
-- Used to browse/filter events (and later tournaments) and show popularity by school
+- Used to browse/filter events (tournaments included) and show popularity by school
 
 ### Profiles & social
 
