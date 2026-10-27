@@ -385,7 +385,7 @@ cancellation, activity log) stays on the event.
 | Place           | Round and position; double elimination also records upper, lower, or grand final                  |
 | Entrants        | Two slots, each an entry or empty until an earlier match decides it; a bye has no match           |
 | Next match      | Where the winner goes (and, in double elimination, where the loser drops)                         |
-| Scheduled time  | Optional                                                                                          |
+| Scheduled time  | Optional; set by organizers within the event's start and end, until the match has a result        |
 | Status          | `upcoming`, `live`, or `complete`                                                                 |
 | Result          | Each side's whole-number score and the winner, or a walkover; a draw only where the format allows |
 

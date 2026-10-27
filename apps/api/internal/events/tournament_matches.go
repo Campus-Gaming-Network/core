@@ -43,6 +43,10 @@ var (
 	// ErrInvalidResult reports a result whose winner is not in the match, or
 	// whose scores do not name that winner.
 	ErrInvalidResult = apperror.New(apperror.KindUnprocessable, "invalid_match_result", "the winner must be in the match and have the higher score")
+	// ErrMatchComplete reports scheduling a match that already has a result.
+	ErrMatchComplete = apperror.New(apperror.KindConflict, "tournament_match_complete", "the match has a result, so its time is fixed")
+	// ErrMatchTime reports a match time outside the event's start and end.
+	ErrMatchTime = apperror.New(apperror.KindUnprocessable, "match_time_outside_event", "the match time must be within the event's start and end")
 )
 
 // MaximumMatchScore bounds a side's score.
@@ -497,4 +501,63 @@ func matchResultState(round, position int, seeds [2]sql.NullInt32, entries [2]sq
 		state["scores"] = []int32{scores[0].Int32, scores[1].Int32}
 	}
 	return state
+}
+
+// ScheduleMatch sets, or with a nil time clears, when a match in the
+// tournament on the event with slug is played, for an organizer while the
+// tournament is in progress and until the match has a result. A time must be
+// within the event's start and end. Schedule changes are not written to the
+// activity log; the bracket and schedule show the current time. It returns
+// the bracket.
+func (r *PostgresRepository) ScheduleMatch(ctx context.Context, slug string, userID string, matchID string, scheduledAt *time.Time) ([]TournamentMatch, error) {
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("begin match schedule: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	tournament, err := lockEntryTournament(ctx, tx, slug, userID)
+	if err != nil {
+		return nil, err
+	}
+	if !tournament.Organizer {
+		return nil, ErrOrganizerRequired
+	}
+	var complete bool
+	var startsAt time.Time
+	err = tx.QueryRow(ctx, `
+		SELECT m.winner_entry_id IS NOT NULL OR m.status = 'complete', e.starts_at
+		FROM tournament_matches m
+		JOIN events e ON e.id = $3::uuid
+		WHERE m.id::text = $1 AND m.tournament_id = $2::uuid
+		FOR UPDATE OF m
+	`, strings.ToLower(strings.TrimSpace(matchID)), tournament.ID, tournament.EventID).Scan(&complete, &startsAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, ErrMatchNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("lock match: %w", err)
+	}
+	if tournament.Status != TournamentInProgress {
+		return nil, ErrTournamentLocked
+	}
+	if complete {
+		return nil, ErrMatchComplete
+	}
+	if scheduledAt != nil && (scheduledAt.Before(startsAt) || scheduledAt.After(tournament.EndsAt)) {
+		return nil, ErrMatchTime
+	}
+	if _, err := tx.Exec(ctx, `
+		UPDATE tournament_matches SET scheduled_at = $2 WHERE id::text = $1
+	`, strings.ToLower(strings.TrimSpace(matchID)), scheduledAt); err != nil {
+		return nil, fmt.Errorf("schedule match: %w", err)
+	}
+	matches, err := listMatches(ctx, tx, tournament.ID)
+	if err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return nil, fmt.Errorf("commit match schedule: %w", err)
+	}
+	return matches, nil
 }

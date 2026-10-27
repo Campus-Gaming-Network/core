@@ -508,8 +508,9 @@ documents are updated and their contracts are implemented:
   Teams (`/events/:slug/entrants`), the full list, where organizers remove an
   entry until the start and land back on the tab, Bracket (`/events/:slug/bracket`, once
   generated), Rules and Prizes (`/events/:slug/rules` and `/prizes`, when
-  written). A tab shows only when its section has content, and each is a plain
-  link. There is no Schedule tab yet, because nothing sets a match's time.
+  written), and Schedule (`/events/:slug/schedule`) once any match has a time.
+  A tab shows only when its section has content, and each is a plain link. The
+  schedule lists the timed matches by day and time in the event's time zone.
 - The bracket is one list of rounds, each a list of matches. On a wide screen
   the rounds sit left to right on a grid of first-round rows, each match
   centred between the two that feed it and joined to them by lines, with
@@ -521,7 +522,9 @@ documents are updated and their contracts are implemented:
 - A match's page (`/events/:slug/matches/:id`) shows both sides, the score,
   the status, and where the winner goes. Organizers get two native forms
   there: the winner and both scores, or a walkover naming who advances. A
-  result can be corrected until the winner's next match has one. The settings
+  result can be corrected until the winner's next match has one. Until a
+  match has a result, organizers also set or clear its time there, read in
+  the event's time zone. The settings
   page has "Generate bracket" while the tournament is in progress.
 - The settings page's Seeds panel lists the entrants with a seed number each,
   saved with a native form, while registration is open or the tournament is

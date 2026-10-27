@@ -5,12 +5,14 @@ export type TournamentSection =
   | "overview"
   | "entrants"
   | "bracket"
+  | "schedule"
   | "rules"
   | "prizes";
 
 /**
  * The tabs a tournament event shows, in order. Overview and the entrants
- * always show; Bracket once one is generated; Rules and Prizes when written.
+ * always show; Bracket once one is generated; Schedule once a match has a
+ * time; Rules and Prizes when written.
  */
 export function tournamentSections(
   tournament: Pick<
@@ -18,6 +20,7 @@ export function tournamentSections(
     "entry_type" | "entry_count" | "rules" | "prizes"
   >,
   hasBracket: boolean,
+  hasSchedule = false,
 ): Array<{ section: TournamentSection; label: string }> {
   return [
     { section: "overview", label: "Overview" },
@@ -26,6 +29,9 @@ export function tournamentSections(
       label: `${tournament.entry_type === "team" ? "Teams" : "Players"} (${tournament.entry_count})`,
     },
     ...(hasBracket ? [{ section: "bracket", label: "Bracket" } as const] : []),
+    ...(hasSchedule
+      ? [{ section: "schedule", label: "Schedule" } as const]
+      : []),
     ...(tournament.rules
       ? [{ section: "rules", label: "Rules" } as const]
       : []),
@@ -140,4 +146,43 @@ export function bracketRounds(matches: TournamentMatchDTO[]): BracketRound[] {
     }
     return { round, name: roundName(round, rounds), items };
   });
+}
+
+/**
+ * The scheduled matches in time order, grouped by day in the event's time
+ * zone: "Sat, Jun 1, 2031". Matches without a time are left out.
+ */
+export function scheduleDays(
+  matches: TournamentMatchDTO[],
+  timeZone: string,
+): Array<{ day: string; matches: TournamentMatchDTO[] }> {
+  const day = new Intl.DateTimeFormat("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone,
+  });
+  const days: Array<{ day: string; matches: TournamentMatchDTO[] }> = [];
+  const timed = matches
+    .filter((match) => match.scheduled_at)
+    .map((match) => ({ match, at: Date.parse(match.scheduled_at ?? "") }))
+    .sort((a, b) => a.at - b.at || a.match.round - b.match.round);
+  for (const { match, at } of timed) {
+    const label = day.format(at);
+    const last = days.at(-1);
+    if (last?.day === label) last.matches.push(match);
+    else days.push({ day: label, matches: [match] });
+  }
+  return days;
+}
+
+/** A match's time of day in the event's zone: "7:30 PM PDT". */
+export function matchTime(value: string, timeZone: string): string {
+  return new Intl.DateTimeFormat("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    timeZoneName: "short",
+    timeZone,
+  }).format(new Date(value));
 }

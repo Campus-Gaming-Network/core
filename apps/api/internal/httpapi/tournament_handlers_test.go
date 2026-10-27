@@ -123,6 +123,20 @@ func (f *fakeEventTournaments) RecordResult(_ context.Context, input eventstore.
 	}}, nil
 }
 
+// ScheduleMatch refuses a time in another century, so a store error's
+// response shows too.
+func (f *fakeEventTournaments) ScheduleMatch(_ context.Context, slug string, userID string, matchID string, scheduledAt *time.Time) ([]eventstore.TournamentMatch, error) {
+	when := "none"
+	if scheduledAt != nil {
+		when = scheduledAt.UTC().Format(time.RFC3339)
+	}
+	f.calls = append(f.calls, fmt.Sprintf("schedule %s %s %s at=%s", slug, userID, matchID, when))
+	if scheduledAt != nil && scheduledAt.Year() > 2100 {
+		return nil, eventstore.ErrMatchTime
+	}
+	return []eventstore.TournamentMatch{{ID: matchID, Round: 1, Position: 1, Status: eventstore.MatchUpcoming, ScheduledAt: scheduledAt}}, nil
+}
+
 func tournamentRouter(store *fakeEventTournaments, events *fakeEventRepository) http.Handler {
 	router := &Router{
 		cfg:         config.Config{SessionCookie: "session", SessionTTL: time.Hour},
@@ -391,6 +405,51 @@ func TestTournamentResultRoute(t *testing.T) {
 	wantCalls := []string{
 		"result spring-bracket " + testUserID + " " + matchID + " winner=entry-2 scores=[1 3] walkover=false",
 		"result spring-bracket " + testUserID + " " + matchID + " winner=entry-1 scores=[] walkover=true",
+	}
+	if !reflect.DeepEqual(got, want) || !reflect.DeepEqual(store.calls, wantCalls) {
+		t.Fatalf("results = %+v\ncalls = %q\nwant %+v\nand %q", got, store.calls, want, wantCalls)
+	}
+}
+
+func TestTournamentScheduleRoute(t *testing.T) {
+	store := &fakeEventTournaments{}
+	public := &fakeEventRepository{detail: eventstore.Event{Slug: "spring-bracket", Visibility: eventstore.VisibilityPublic}}
+	const matchID = "11111111-2222-4333-8444-555555555555"
+	target := "/events/spring-bracket/tournament/matches/" + matchID + "/schedule"
+	type result struct {
+		Status int
+		Body   string
+	}
+	var got []result
+	for _, request := range []struct {
+		method, body string
+		signedIn     bool
+	}{
+		{http.MethodPut, `{"scheduled_at":"2031-06-01T19:30:00Z"}`, true},
+		{http.MethodPut, `{"scheduled_at":null}`, true},
+		{http.MethodPut, `{"scheduled_at":"2131-06-01T19:30:00Z"}`, true},
+		{http.MethodPut, `{"scheduled_at":null}`, false},
+		{http.MethodPost, `{"scheduled_at":null}`, true},
+	} {
+		req := httptest.NewRequest(request.method, target, strings.NewReader(request.body))
+		if request.signedIn {
+			req = authenticatedEventRequest(request.method, target, request.body)
+		}
+		response := httptest.NewRecorder()
+		tournamentRouter(store, public).ServeHTTP(response, req)
+		got = append(got, result{response.Code, strings.TrimSpace(response.Body.String())})
+	}
+	want := []result{
+		{http.StatusOK, `{"matches":[{"id":"` + matchID + `","round":1,"position":1,"entrants":[null,null],"status":"upcoming","scheduled_at":"2031-06-01T19:30:00Z"}]}`},
+		{http.StatusOK, `{"matches":[{"id":"` + matchID + `","round":1,"position":1,"entrants":[null,null],"status":"upcoming"}]}`},
+		{http.StatusUnprocessableEntity, `{"error":"match_time_outside_event"}`},
+		{http.StatusUnauthorized, `{"error":"authentication_required"}`},
+		{http.StatusMethodNotAllowed, `{"error":"method_not_allowed"}`},
+	}
+	wantCalls := []string{
+		"schedule spring-bracket " + testUserID + " " + matchID + " at=2031-06-01T19:30:00Z",
+		"schedule spring-bracket " + testUserID + " " + matchID + " at=none",
+		"schedule spring-bracket " + testUserID + " " + matchID + " at=2131-06-01T19:30:00Z",
 	}
 	if !reflect.DeepEqual(got, want) || !reflect.DeepEqual(store.calls, wantCalls) {
 		t.Fatalf("results = %+v\ncalls = %q\nwant %+v\nand %q", got, store.calls, want, wantCalls)

@@ -441,22 +441,23 @@ A tournament lives under its event; there is no `/tournaments` resource. The
 settings, status, registration, seeding, bracket, and result routes are
 built.
 
-| Method | Path                                           | Notes                                                                        |
-| ------ | ---------------------------------------------- | ---------------------------------------------------------------------------- |
-| PUT    | `/events/:slug/tournament`                     | Organizers; create (`201`) or replace (`200`) the settings                   |
-| DELETE | `/events/:slug/tournament`                     | Organizers; draft only; `204`                                                |
-| POST   | `/events/:slug/tournament/status`              | Organizers; move the status; invalid moves `409`                             |
-| GET    | `/events/:slug/tournament/entries`             | Entrant list in seed order; solo names for signed-in viewers only            |
-| POST   | `/events/:slug/tournament/entries`             | Auth; register yourself, or a team with its roster (owner or captain); `201` |
-| PATCH  | `/events/:slug/tournament/entries/:id`         | Team owner or captain; replace the roster, before start                      |
-| DELETE | `/events/:slug/tournament/entries/:id`         | Withdraw (entrant) or remove (organizers), before start; `204`               |
-| POST   | `/events/:slug/tournament/entries/:id/approve` | Organizers; approve a pending request, before start; returns the entry       |
-| POST   | `/events/:slug/tournament/entries/:id/decline` | Organizers; decline a pending request, before start; returns the entry       |
-| GET    | `/events/:slug/tournament/my-teams`            | Auth; teams the viewer owns or captains, with their members, for a roster    |
-| PUT    | `/events/:slug/tournament/seeds`               | Organizers; order the registered entries from seed 1, until the first result |
-| POST   | `/events/:slug/tournament/bracket`             | Organizers; generate or regenerate once started, until the first result      |
-| GET    | `/events/:slug/tournament/matches`             | The bracket by round and position; empty until generated                     |
-| POST   | `/events/:slug/tournament/matches/:id/result`  | Organizers; enter or correct a result or a walkover; returns the bracket     |
+| Method | Path                                            | Notes                                                                        |
+| ------ | ----------------------------------------------- | ---------------------------------------------------------------------------- |
+| PUT    | `/events/:slug/tournament`                      | Organizers; create (`201`) or replace (`200`) the settings                   |
+| DELETE | `/events/:slug/tournament`                      | Organizers; draft only; `204`                                                |
+| POST   | `/events/:slug/tournament/status`               | Organizers; move the status; invalid moves `409`                             |
+| GET    | `/events/:slug/tournament/entries`              | Entrant list in seed order; solo names for signed-in viewers only            |
+| POST   | `/events/:slug/tournament/entries`              | Auth; register yourself, or a team with its roster (owner or captain); `201` |
+| PATCH  | `/events/:slug/tournament/entries/:id`          | Team owner or captain; replace the roster, before start                      |
+| DELETE | `/events/:slug/tournament/entries/:id`          | Withdraw (entrant) or remove (organizers), before start; `204`               |
+| POST   | `/events/:slug/tournament/entries/:id/approve`  | Organizers; approve a pending request, before start; returns the entry       |
+| POST   | `/events/:slug/tournament/entries/:id/decline`  | Organizers; decline a pending request, before start; returns the entry       |
+| GET    | `/events/:slug/tournament/my-teams`             | Auth; teams the viewer owns or captains, with their members, for a roster    |
+| PUT    | `/events/:slug/tournament/seeds`                | Organizers; order the registered entries from seed 1, until the first result |
+| POST   | `/events/:slug/tournament/bracket`              | Organizers; generate or regenerate once started, until the first result      |
+| GET    | `/events/:slug/tournament/matches`              | The bracket by round and position; empty until generated                     |
+| POST   | `/events/:slug/tournament/matches/:id/result`   | Organizers; enter or correct a result or a walkover; returns the bracket     |
+| PUT    | `/events/:slug/tournament/matches/:id/schedule` | Organizers; set or clear a match's time; returns the bracket                 |
 
 `PUT /events/:slug/tournament` takes `game_id` (one of the event's games),
 `entry_type` (`solo` or `team`), `team_size` (2 to 20, team only),
@@ -642,6 +643,15 @@ refused once the event has ended. Errors:
   except to correct its final
 - `422 invalid_match_result` for a winner who is not in the match or does not
   have the higher score
+
+**Schedule.** `PUT .../matches/:id/schedule` takes
+`{ "scheduled_at": "2031-06-01T19:30:00Z" }`, or `null` to clear the time, and
+answers with the bracket as `{ "matches": [...] }`. It is for organizers
+(`403 not_event_organizer`) while the tournament is in progress
+(`409 tournament_locked` otherwise) and until the match has a result
+(`409 tournament_match_complete`). A time must be within the event's start and
+end (`422 match_time_outside_event`). Changing a match's time is not written to
+the activity log; the bracket and the schedule show the current time.
 
 A member who leaves a team, or is removed from it, leaves its rosters for
 tournaments that have not started. An organizer's removal leaves an in-app

@@ -238,6 +238,39 @@ func TestPostgresRepositoryTournamentResults(t *testing.T) {
 		return status
 	}
 
+	schedule := func(userID, place string, at *time.Time) error {
+		_, err := repository.ScheduleMatch(ctx, slug, userID, matchIDs[place], at)
+		return err
+	}
+	at := func(offset time.Duration) *time.Time {
+		value := startsAt.Add(offset)
+		return &value
+	}
+	scheduled := []error{
+		schedule(organizerID, "r2p1", at(time.Hour)),
+		schedule(organizerID, "r3p1", at(3*time.Hour)),
+		schedule(organizerID, "r3p1", nil),
+		schedule(playerID, "r2p1", at(2*time.Hour)),
+		schedule(organizerID, "r2p1", at(-time.Minute)),
+		schedule(organizerID, "r2p1", at(4*time.Hour+time.Minute)),
+	}
+	times := map[string]string{}
+	listedTimes, err := repository.ListMatches(ctx, slug, "")
+	if err != nil {
+		t.Fatalf("ListMatches() error = %v", err)
+	}
+	for _, match := range listedTimes {
+		if match.ScheduledAt != nil {
+			times[fmt.Sprintf("r%dp%d", match.Round, match.Position)] = match.ScheduledAt.UTC().Format(time.RFC3339)
+		}
+	}
+	if got, want := []any{scheduled, times}, []any{
+		[]error{nil, nil, nil, ErrOrganizerRequired, ErrMatchTime, ErrMatchTime},
+		map[string]string{"r2p1": "2031-06-01T19:00:00Z"},
+	}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("schedule = %v, want %v", got, want)
+	}
+
 	refused := []error{
 		record(playerID, "r1p2", "Ben", 2, 1),
 		record(organizerID, "r2p1", "Eli", 2, 1),
@@ -260,6 +293,7 @@ func TestPostgresRepositoryTournamentResults(t *testing.T) {
 		t.Fatalf("record r1p2: %v", err)
 	}
 	afterFirst := describe()
+	matchCompleteErr := schedule(organizerID, "r1p2", at(time.Hour))
 	if err := record(organizerID, "r1p2", "Ana", 0, 2); err != nil {
 		t.Fatalf("correct r1p2: %v", err)
 	}
@@ -279,7 +313,9 @@ func TestPostgresRepositoryTournamentResults(t *testing.T) {
 		t.Fatalf("correct final: %v", err)
 	}
 	semifinalErr := record(organizerID, "r2p1", "Ana", 1, 3)
-	if got, want := []any{afterFirst, afterCorrection, describe(), lockedErr, semifinalErr, append(beforeFinal, tournamentStatus())}, []any{
+	// A completed tournament's schedule is fixed.
+	completeErr := schedule(organizerID, "r1p2", at(time.Hour))
+	if got, want := []any{afterFirst, afterCorrection, describe(), lockedErr, semifinalErr, matchCompleteErr, completeErr, append(beforeFinal, tournamentStatus())}, []any{
 		[]string{
 			"r1p2 4 Ben v 5 Ana complete [2 1] winner=Ben walkover=false",
 			"r2p1 1 Eli v 4 Ben upcoming [] winner= walkover=false",
@@ -298,7 +334,7 @@ func TestPostgresRepositoryTournamentResults(t *testing.T) {
 			"r2p2 2 Dee v 3 Cal complete [] winner=Dee walkover=true",
 			"r3p1 1 Eli v 2 Dee complete [3 2] winner=Eli walkover=false",
 		},
-		ErrResultLocked, ErrResultLocked,
+		ErrResultLocked, ErrResultLocked, ErrMatchComplete, ErrTournamentLocked,
 		[]string{TournamentInProgress, TournamentCompleted},
 	}; !reflect.DeepEqual(got, want) {
 		t.Fatalf("results = %#v\nwant %#v", got, want)

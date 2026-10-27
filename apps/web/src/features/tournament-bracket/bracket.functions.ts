@@ -8,12 +8,17 @@ import {
   setPrivateNoStoreResponse,
 } from "../../server/request-boundary.server.js";
 import type { TournamentMutationResult } from "../tournament-registration/contracts.js";
-import { validateBracketInput, validateResultInput } from "./contracts.js";
+import {
+  validateBracketInput,
+  validateResultInput,
+  validateScheduleInput,
+} from "./contracts.js";
 import {
   bracketPageWithNotice,
   generateBracketOperation,
   matchPageWithNotice,
   recordResultOperation,
+  scheduleMatchOperation,
   tournamentMatchesOperation,
 } from "./bracket-operations.server.js";
 
@@ -62,6 +67,26 @@ export const recordMatchResult = createServerFn({
               ? data.matchID
                 ? matchPageWithNotice(data.slug, data.matchID, "invalid")
                 : bracketPageWithNotice(data.slug, "invalid")
+              : "/events?event=failed",
+          }),
+    ),
+  );
+
+export const scheduleMatch = createServerFn({
+  method: "POST",
+  strict: { input: false },
+})
+  .validator((input: object | FormData) => validateScheduleInput(input))
+  .handler(({ data }) =>
+    finish(
+      data.valid
+        ? scheduleMatchOperation(data.value, currentSessionRequest())
+        : Promise.resolve({
+            status: "success",
+            redirectTo: data.slug
+              ? data.matchID
+                ? matchPageWithNotice(data.slug, data.matchID, "time-invalid")
+                : bracketPageWithNotice(data.slug, "time-invalid")
               : "/events?event=failed",
           }),
     ),

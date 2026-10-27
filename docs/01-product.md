@@ -300,8 +300,8 @@ club on CGN, which lists them as members here.
 
 Tournament settings and status (#263), registration (#265),
 single-elimination brackets (#266), results (#267), and the tournament tabs
-and bracket view (#268), and the seeding page (#333) are built; there is no
-Schedule tab yet. This section is the spec; the phases
+and bracket view (#268), the seeding page (#333), and match times with the
+Schedule tab (#334) are built. This section is the spec; the phases
 are listed at the end. An event is something you attend and a tournament is
 something you enter, so a tournament adds entry, seeding, matches, and results
 to an event instead of repeating the event's own facts.

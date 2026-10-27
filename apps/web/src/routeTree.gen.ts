@@ -71,6 +71,7 @@ import { Route as EventsSlugEntrantsRouteImport } from './routes/events.$slug_.e
 import { Route as EventsSlugPeopleRouteImport } from './routes/events.$slug_.people'
 import { Route as EventsSlugPrizesRouteImport } from './routes/events.$slug_.prizes'
 import { Route as EventsSlugRulesRouteImport } from './routes/events.$slug_.rules'
+import { Route as EventsSlugScheduleRouteImport } from './routes/events.$slug_.schedule'
 import { Route as EventsSlugTournamentRouteImport } from './routes/events.$slug_.tournament'
 import { Route as SchoolsSlugPeopleRouteImport } from './routes/schools.$slug_.people'
 import { Route as SchoolsSlugRequestClubRouteImport } from './routes/schools.$slug_.request-club'
@@ -389,6 +390,11 @@ const EventsSlugRulesRoute = EventsSlugRulesRouteImport.update({
   path: '/$slug/rules',
   getParentRoute: () => EventsRoute,
 } as any)
+const EventsSlugScheduleRoute = EventsSlugScheduleRouteImport.update({
+  id: '/$slug_/schedule',
+  path: '/$slug/schedule',
+  getParentRoute: () => EventsRoute,
+} as any)
 const EventsSlugTournamentRoute = EventsSlugTournamentRouteImport.update({
   id: '/$slug_/tournament',
   path: '/$slug/tournament',
@@ -490,6 +496,7 @@ export interface FileRoutesByFullPath {
   '/events/$slug/people': typeof EventsSlugPeopleRoute
   '/events/$slug/prizes': typeof EventsSlugPrizesRoute
   '/events/$slug/rules': typeof EventsSlugRulesRoute
+  '/events/$slug/schedule': typeof EventsSlugScheduleRoute
   '/events/$slug/tournament': typeof EventsSlugTournamentRoute
   '/schools/$slug/people': typeof SchoolsSlugPeopleRoute
   '/schools/$slug/request-club': typeof SchoolsSlugRequestClubRoute
@@ -557,6 +564,7 @@ export interface FileRoutesByTo {
   '/events/$slug/people': typeof EventsSlugPeopleRoute
   '/events/$slug/prizes': typeof EventsSlugPrizesRoute
   '/events/$slug/rules': typeof EventsSlugRulesRoute
+  '/events/$slug/schedule': typeof EventsSlugScheduleRoute
   '/events/$slug/tournament': typeof EventsSlugTournamentRoute
   '/schools/$slug/people': typeof SchoolsSlugPeopleRoute
   '/schools/$slug/request-club': typeof SchoolsSlugRequestClubRoute
@@ -629,6 +637,7 @@ export interface FileRoutesById {
   '/events/$slug_/people': typeof EventsSlugPeopleRoute
   '/events/$slug_/prizes': typeof EventsSlugPrizesRoute
   '/events/$slug_/rules': typeof EventsSlugRulesRoute
+  '/events/$slug_/schedule': typeof EventsSlugScheduleRoute
   '/events/$slug_/tournament': typeof EventsSlugTournamentRoute
   '/schools/$slug_/people': typeof SchoolsSlugPeopleRoute
   '/schools/$slug_/request-club': typeof SchoolsSlugRequestClubRoute
@@ -702,6 +711,7 @@ export interface FileRouteTypes {
     | '/events/$slug/people'
     | '/events/$slug/prizes'
     | '/events/$slug/rules'
+    | '/events/$slug/schedule'
     | '/events/$slug/tournament'
     | '/schools/$slug/people'
     | '/schools/$slug/request-club'
@@ -769,6 +779,7 @@ export interface FileRouteTypes {
     | '/events/$slug/people'
     | '/events/$slug/prizes'
     | '/events/$slug/rules'
+    | '/events/$slug/schedule'
     | '/events/$slug/tournament'
     | '/schools/$slug/people'
     | '/schools/$slug/request-club'
@@ -840,6 +851,7 @@ export interface FileRouteTypes {
     | '/events/$slug_/people'
     | '/events/$slug_/prizes'
     | '/events/$slug_/rules'
+    | '/events/$slug_/schedule'
     | '/events/$slug_/tournament'
     | '/schools/$slug_/people'
     | '/schools/$slug_/request-club'
@@ -1332,6 +1344,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EventsSlugRulesRouteImport
       parentRoute: typeof EventsRoute
     }
+    '/events/$slug_/schedule': {
+      id: '/events/$slug_/schedule'
+      path: '/$slug/schedule'
+      fullPath: '/events/$slug/schedule'
+      preLoaderRoute: typeof EventsSlugScheduleRouteImport
+      parentRoute: typeof EventsRoute
+    }
     '/events/$slug_/tournament': {
       id: '/events/$slug_/tournament'
       path: '/$slug/tournament'
@@ -1395,6 +1414,7 @@ interface EventsRouteChildren {
   EventsSlugPeopleRoute: typeof EventsSlugPeopleRoute
   EventsSlugPrizesRoute: typeof EventsSlugPrizesRoute
   EventsSlugRulesRoute: typeof EventsSlugRulesRoute
+  EventsSlugScheduleRoute: typeof EventsSlugScheduleRoute
   EventsSlugTournamentRoute: typeof EventsSlugTournamentRoute
   EventsSlugMatchesMatchIdRoute: typeof EventsSlugMatchesMatchIdRoute
 }
@@ -1410,6 +1430,7 @@ const EventsRouteChildren: EventsRouteChildren = {
   EventsSlugPeopleRoute: EventsSlugPeopleRoute,
   EventsSlugPrizesRoute: EventsSlugPrizesRoute,
   EventsSlugRulesRoute: EventsSlugRulesRoute,
+  EventsSlugScheduleRoute: EventsSlugScheduleRoute,
   EventsSlugTournamentRoute: EventsSlugTournamentRoute,
   EventsSlugMatchesMatchIdRoute: EventsSlugMatchesMatchIdRoute,
 }
