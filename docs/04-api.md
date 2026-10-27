@@ -436,8 +436,8 @@ Response:
 ### Tournaments
 
 A tournament lives under its event; there is no `/tournaments` resource. The
-settings, status, registration, seeding, and bracket routes are built; the
-result route is a sketch that its issue (#267) fixes.
+settings, status, registration, seeding, bracket, and result routes are
+built.
 
 | Method | Path                                           | Notes                                                                        |
 | ------ | ---------------------------------------------- | ---------------------------------------------------------------------------- |
@@ -454,7 +454,7 @@ result route is a sketch that its issue (#267) fixes.
 | PUT    | `/events/:slug/tournament/seeds`               | Organizers; order the registered entries from seed 1, until the first result |
 | POST   | `/events/:slug/tournament/bracket`             | Organizers; generate or regenerate once started, until the first result      |
 | GET    | `/events/:slug/tournament/matches`             | The bracket by round and position; empty until generated                     |
-| POST   | `/events/:slug/tournament/matches/:id/result`  | **(planned)** Organizers; enter or correct a result or a walkover            |
+| POST   | `/events/:slug/tournament/matches/:id/result`  | Organizers; enter or correct a result or a walkover; returns the bracket     |
 
 `PUT /events/:slug/tournament` takes `game_id` (one of the event's games),
 `entry_type` (`solo` or `team`), `team_size` (2 to 20, team only),
@@ -618,6 +618,28 @@ positions with a bye have no match, so position numbers can skip.
 `scheduled_at`, `scores`, `winner_entry_id`, `walkover`, and
 `next_match_id` (none for the final) are omitted when not set, and
 signed-out viewers get no `player`.
+
+**Results.** `POST .../matches/:id/result` takes
+`{ "winner_entry_id", "scores": [2, 1] }`, both sides' whole-number scores
+(0 to 1,000,000) in slot order, or `{ "winner_entry_id", "walkover": true }`
+with no scores for a no-show. It is for organizers (`403 not_event_organizer`)
+and answers with the whole bracket as `{ "matches": [...] }`, because the
+winner moves into their next match at once and the match becomes `complete`.
+The final's result completes the tournament. Sending a result for a match that
+has one corrects it; a new winner replaces the old one in the next match.
+The result is official: entrants cannot enter their own. Results are not
+refused once the event has ended. Errors:
+
+- `400 invalid_request` for missing or out-of-range scores, scores on a
+  walkover, or a draw
+- `404 tournament_match_not_found` for a match not in the bracket
+- `409 tournament_match_not_ready` while either entrant is still undecided
+- `409 tournament_result_locked` for a correction once the winner's next
+  match has a result
+- `409 tournament_locked` for a cancelled tournament, or a completed one
+  except to correct its final
+- `422 invalid_match_result` for a winner who is not in the match or does not
+  have the higher score
 
 A member who leaves a team, or is removed from it, leaves its rosters for
 tournaments that have not started. An organizer's removal leaves an in-app

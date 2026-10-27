@@ -111,6 +111,18 @@ func (f *fakeEventTournaments) ListMatches(_ context.Context, slug string, userI
 	}}, nil
 }
 
+// RecordResult refuses a walkover, so a store error's response shows too.
+func (f *fakeEventTournaments) RecordResult(_ context.Context, input eventstore.ResultInput) ([]eventstore.TournamentMatch, error) {
+	f.calls = append(f.calls, fmt.Sprintf("result %s %s %s winner=%s scores=%v walkover=%t",
+		input.Slug, input.UserID, input.MatchID, input.WinnerEntryID, input.Scores, input.Walkover))
+	if input.Walkover {
+		return nil, eventstore.ErrResultLocked
+	}
+	return []eventstore.TournamentMatch{{
+		ID: input.MatchID, Round: 1, Position: 1, Status: eventstore.MatchComplete, Scores: input.Scores, WinnerEntryID: input.WinnerEntryID,
+	}}, nil
+}
+
 func tournamentRouter(store *fakeEventTournaments, events *fakeEventRepository) http.Handler {
 	router := &Router{
 		cfg:         config.Config{SessionCookie: "session", SessionTTL: time.Hour},
@@ -337,6 +349,48 @@ func TestTournamentBracketRoutes(t *testing.T) {
 		"bracket spring-bracket " + testUserID,
 		`matches spring-bracket ""`,
 		`matches spring-bracket "` + testUserID + `"`,
+	}
+	if !reflect.DeepEqual(got, want) || !reflect.DeepEqual(store.calls, wantCalls) {
+		t.Fatalf("results = %+v\ncalls = %q\nwant %+v\nand %q", got, store.calls, want, wantCalls)
+	}
+}
+
+func TestTournamentResultRoute(t *testing.T) {
+	store := &fakeEventTournaments{}
+	public := &fakeEventRepository{detail: eventstore.Event{Slug: "spring-bracket", Visibility: eventstore.VisibilityPublic}}
+	const matchID = "11111111-2222-4333-8444-555555555555"
+	target := "/events/spring-bracket/tournament/matches/" + matchID + "/result"
+	type result struct {
+		Status int
+		Body   string
+	}
+	var got []result
+	for _, request := range []struct {
+		target, body string
+		signedIn     bool
+	}{
+		{target, `{"winner_entry_id":"entry-2","scores":[1,3]}`, true},
+		{target, `{"winner_entry_id":"entry-1","walkover":true}`, true},
+		{target, `{"winner_entry_id":"entry-1","scores":[3,1]}`, false},
+		{"/events/spring-bracket/tournament/matches/match-1/result", `{"winner_entry_id":"entry-1","scores":[3,1]}`, true},
+	} {
+		req := httptest.NewRequest(http.MethodPost, request.target, strings.NewReader(request.body))
+		if request.signedIn {
+			req = authenticatedEventRequest(http.MethodPost, request.target, request.body)
+		}
+		response := httptest.NewRecorder()
+		tournamentRouter(store, public).ServeHTTP(response, req)
+		got = append(got, result{response.Code, strings.TrimSpace(response.Body.String())})
+	}
+	want := []result{
+		{http.StatusOK, `{"matches":[{"id":"` + matchID + `","round":1,"position":1,"entrants":[null,null],"status":"complete","scores":[1,3],"winner_entry_id":"entry-2"}]}`},
+		{http.StatusConflict, `{"error":"tournament_result_locked"}`},
+		{http.StatusUnauthorized, `{"error":"authentication_required"}`},
+		{http.StatusNotFound, `{"error":"tournament_match_not_found"}`},
+	}
+	wantCalls := []string{
+		"result spring-bracket " + testUserID + " " + matchID + " winner=entry-2 scores=[1 3] walkover=false",
+		"result spring-bracket " + testUserID + " " + matchID + " winner=entry-1 scores=[] walkover=true",
 	}
 	if !reflect.DeepEqual(got, want) || !reflect.DeepEqual(store.calls, wantCalls) {
 		t.Fatalf("results = %+v\ncalls = %q\nwant %+v\nand %q", got, store.calls, want, wantCalls)

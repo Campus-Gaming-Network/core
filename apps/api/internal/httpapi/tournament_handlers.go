@@ -27,6 +27,7 @@ type eventTournaments interface {
 	SetSeeds(ctx context.Context, slug string, userID string, entryIDs []string) ([]eventstore.TournamentEntry, error)
 	GenerateBracket(ctx context.Context, slug string, userID string) ([]eventstore.TournamentMatch, error)
 	ListMatches(ctx context.Context, slug string, userID string) ([]eventstore.TournamentMatch, error)
+	RecordResult(ctx context.Context, input eventstore.ResultInput) ([]eventstore.TournamentMatch, error)
 }
 
 type tournamentRequest struct {
@@ -149,6 +150,12 @@ type rosterRequest struct {
 
 type seedsRequest struct {
 	EntryIDs []string `json:"entry_ids"`
+}
+
+type resultRequest struct {
+	WinnerEntryID string `json:"winner_entry_id"`
+	Scores        []int  `json:"scores"`
+	Walkover      bool   `json:"walkover"`
 }
 
 // tournamentEventVisible answers for an event that is missing, or private and
@@ -367,5 +374,33 @@ func (r *Router) handleTournamentMatches(w http.ResponseWriter, req *http.Reques
 	}
 	w.Header().Set("Cache-Control", "private, no-store")
 	w.Header().Set("Vary", "Cookie, Authorization, X-CGN-Event-Unlock")
+	writeJSON(w, http.StatusOK, map[string]any{"matches": matches})
+}
+
+// handleTournamentResult answers POST
+// /events/{slug}/tournament/matches/{id}/result, which enters or corrects a
+// match's result and returns the bracket.
+func (r *Router) handleTournamentResult(w http.ResponseWriter, req *http.Request, slug string) {
+	userID, ok := r.tournamentUser(w, req)
+	if !ok {
+		return
+	}
+	matchID := req.PathValue("id")
+	if !looksLikeUUID(matchID) {
+		writeError(w, http.StatusNotFound, "tournament_match_not_found")
+		return
+	}
+	var request resultRequest
+	if !decodeJSON(w, req, &request) {
+		return
+	}
+	matches, err := r.tournaments.RecordResult(req.Context(), eventstore.ResultInput{
+		Slug: slug, UserID: userID, MatchID: matchID,
+		WinnerEntryID: request.WinnerEntryID, Scores: request.Scores, Walkover: request.Walkover,
+	})
+	if err != nil {
+		writeApplicationError(w, err, "tournament_result_failed")
+		return
+	}
 	writeJSON(w, http.StatusOK, map[string]any{"matches": matches})
 }

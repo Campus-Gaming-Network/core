@@ -23,6 +23,10 @@ const (
 	ActionOrganizerRemoved   = "event.organizer_removed"
 	ActionOrganizerLeft      = "event.organizer_left"
 	ActionCreatorTransferred = "event.creator_transferred"
+	// ActionMatchResult and ActionMatchResultCorrected record a tournament
+	// match's result and a change to it; their single change is "result".
+	ActionMatchResult          = "event.match_result"
+	ActionMatchResultCorrected = "event.match_result_corrected"
 )
 
 // Activity log paging bounds.
@@ -353,6 +357,14 @@ func (e *ActivityEntry) fill(beforeJSON, afterJSON, editedJSON []byte, editor bo
 		e.Visibility = ActivityPublic
 	}
 	e.Changes = []ActivityChange{}
+	if e.Action == ActionMatchResult || e.Action == ActionMatchResultCorrected {
+		change := ActivityChange{Field: "result", After: normalizedJSON(afterJSON)}
+		if len(before) > 0 {
+			change.Before = normalizedJSON(beforeJSON)
+		}
+		e.Changes = append(e.Changes, change)
+		return nil
+	}
 	for _, field := range activityFields {
 		if !slices.Contains(edited, field.name) {
 			continue

@@ -27,6 +27,8 @@ const actionSummaries = {
   "event.organizer_removed": "A co-organizer was removed",
   "event.organizer_left": "A co-organizer stepped down",
   "event.creator_transferred": "The creator role was handed to a co-organizer",
+  "event.match_result": "Match result entered",
+  "event.match_result_corrected": "Match result corrected",
 } as const satisfies Record<EventActivityEntry["action"], string>;
 
 /** Fields the log records as changed only, in words. */
@@ -128,6 +130,12 @@ function changeLines(change: EventActivityChange, timeZone: string): string[] {
         ...gameLine("Games removed", before),
         ...gameLine("Games added", after),
       ];
+    case "result":
+      return [
+        before === undefined
+          ? `${matchPlace(after)}: ${outcome(after)}`
+          : `${matchPlace(after)} changed from ${outcome(before)} to ${outcome(after)}`,
+      ];
     default:
       // A field added to the API after this page shows without its values.
       return [`${change.field.replaceAll("_", " ")} changed`];
@@ -164,6 +172,29 @@ function gameLine(subject: string, value: unknown): string[] {
     ? value.map((game) => named(game)).filter((name) => name !== "none")
     : [];
   return names.length > 0 ? [`${subject}: ${names.join(", ")}`] : [];
+}
+
+/** A logged result's match: "Round 1, match 2". */
+function matchPlace(value: unknown): string {
+  const result = loggedResult(value);
+  return `Round ${result.round ?? "?"}, match ${result.position ?? "?"}`;
+}
+
+/** A logged result, winner's score first: "Seed 4 won 2–1". */
+function outcome(value: unknown): string {
+  const result = loggedResult(value);
+  const winner = `Seed ${result.winner_seed ?? "?"}`;
+  if (result.walkover === true) return `${winner} advanced on a walkover`;
+  if (!Array.isArray(result.scores)) return `${winner} won`;
+  const scores = result.scores.map(Number);
+  return `${winner} won ${Math.max(...scores)}–${Math.min(...scores)}`;
+}
+
+/** The log records a result by seed, so no entrant's name is in it. */
+function loggedResult(value: unknown): Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
 }
 
 function time(value: unknown, timeZone: string): string {
