@@ -15,7 +15,7 @@ School ── logo, slug, admins
 Club   ── games, links, members (owner, editors, members), claims
 Team   ── games, members (URL + password), owner, captains
 Event ── games, organizers, RSVPs, interests, location, capacity, visibility, slug
-Tournament ── games, optional Event, individual | team, capacity, slug
+Tournament ── exactly one Event, one game, solo | team, entrants, matches (not built yet)
 Game ── added from IGDB when a user picks it (corrected and hidden by site admins, not editable by end users)
 
 Report ── target: Event | User | …
@@ -149,7 +149,7 @@ SiteAnnouncement ── global banner                        (later)
   applies. The owner's roster used for captain management is a separate,
   unfiltered list
 - Invite-link tokens are **later**
-- Captains register the team for team tournaments (when tournaments ship)
+- The owner or a captain registers the team for team tournaments and picks its roster (when tournaments ship)
 
 ### Event
 
@@ -224,9 +224,9 @@ the club's.
 The event type says what kind of event it is so browse can tell a weekly game
 night from a large LAN. It is required when an event is created or edited.
 Events created before the field have no type and show none. A recurring series
-copies the type to each occurrence. The `tournament` type is a label only: it
-adds no brackets, entries, or standings, and the separate Tournaments entity is
-unchanged.
+copies the type to each occurrence. The `tournament` type alone is a label: it
+adds no entries, brackets, or standings until organizers attach a
+[Tournament](#tournament) to the event.
 
 **Lifecycle display**
 
@@ -336,20 +336,61 @@ Site admins see every entry in the Admin Console audit log.
 
 ### Tournament
 
-| Field / concept | Notes                                                                                              |
-| --------------- | -------------------------------------------------------------------------------------------------- |
-| Slug            | From name + short hash for uniqueness                                                              |
-| Type            | `individual` \| `team`                                                                             |
-| Capacity        | Optional; when full, block new registrations (no waitlist); counting rule for team tournaments TBD |
-| Optional event  | May be tied to an Event                                                                            |
-| Games           | One or more                                                                                        |
+Not built yet; [01 — Product](./01-product.md#tournaments) is the spec. A
+tournament belongs to exactly one event whose type is `tournament`, and an
+event has at most one tournament. Everything an event already has (title,
+slug, time, place, visibility, host, organizers, private access,
+cancellation, activity log) stays on the event.
+
+| Field / concept     | Notes                                                                                                                            |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Event               | Required and unique; the event's type is `tournament` and it is not a series template                                            |
+| Game                | Exactly one, one of the event's games                                                                                            |
+| Entry type          | `solo` or `team`; fixed once an entry exists                                                                                     |
+| Team size           | Players a team fields (team entry only); fixed once an entry exists                                                              |
+| Substitutes         | Extra roster places beyond the team size, from 0 up to the team size                                                             |
+| Entrant cap         | Optional; counts entries (teams in a team tournament); no waitlist                                                               |
+| Registration closes | Optional instant; defaults to the event's start                                                                                  |
+| Format              | `single_elimination`, later `round_robin`, `swiss`, and `double_elimination`; fixed once an entry exists                         |
+| Format options      | Swiss round count; draws allowed (round robin and Swiss); grand-final reset (double elimination, on by default)                  |
+| Rules, prizes       | Optional plain text                                                                                                              |
+| Bracket URL         | Optional `http` or `https` link to a bracket hosted elsewhere, shown as external                                                 |
+| Status              | `draft` → `registration_open` → `in_progress` → `completed`, or `cancelled` with its event; back to `draft` only with no entries |
+
+**Tournament entry**
+
+| Field / concept | Notes                                                                                                   |
+| --------------- | ------------------------------------------------------------------------------------------------------- |
+| Entrant         | A user (solo) or a team (team entry), never both                                                        |
+| Roster          | Team entry only: team members, from the team size up to the team size plus substitutes                  |
+| Registered by   | The solo player, or the team owner or captain who registered the team                                   |
+| Status          | `registered`, `withdrawn` (by the entrant, before the start), or `removed` (by an organizer, before it) |
+| Seed            | Set by organizers; registration order until then                                                        |
+
+**Match**
+
+| Field / concept | Notes                                                                                             |
+| --------------- | ------------------------------------------------------------------------------------------------- |
+| Place           | Round and position; double elimination also records upper, lower, or grand final                  |
+| Entrants        | Two slots, each an entry, a bye, or empty until an earlier match decides it                       |
+| Next match      | Where the winner goes (and, in double elimination, where the loser drops)                         |
+| Scheduled time  | Optional                                                                                          |
+| Status          | `upcoming`, `live`, or `complete`                                                                 |
+| Result          | Each side's whole-number score and the winner, or a walkover; a draw only where the format allows |
 
 **Rules**
 
-- Tournaments are their own entity (not a subtype of Event)
-- Events = attend; tournaments = compete
-- Team captains register teams for team tournaments
-- Browse and **filter** tournaments by game (and related filters)
+- An entry is active while `registered`. A user is in at most one active
+  entry of a tournament, solo or on one roster, and a team has at most one
+- A removed entrant cannot register again for that tournament
+- Rosters freeze when the tournament starts
+- The bracket or pairings are generated from active entries in seed order and
+  may be regenerated until the first result exists
+- A result can be corrected until the winner's next match has a result
+- Organizers are the people who can edit the event. Entering and correcting
+  results, removing entries, and changing seeds are written to the
+  [event activity log](#event-activity-log)
+- Cancelling the event cancels the tournament
 
 ### Game
 
@@ -363,7 +404,7 @@ Site admins see every entry in the Admin Console audit log.
 | One game per title    | An import links a game already stored under the entry's slug with no IGDB link (a demo seed game, an older hand-made game, or a typed game) instead of copying it: the game keeps its name, slug, events, and teams. A typed game becomes listed. A slug held by another IGDB entry or a deleted game gets a numeric suffix |
 | Editable by end users | **No**. Site admins manage games in the Admin Console                                                                                                                                                                                                                                                                       |
 
-Used for: browse/filter events (and later tournaments) by game; popular games by school; associations on events/teams/clubs/tournaments.
+Used for: browse/filter events (tournaments included) by game; popular games by school; associations on events, teams, clubs, and tournaments.
 
 ### Report
 
@@ -410,19 +451,21 @@ Used for: browse/filter events (and later tournaments) by game; popular games by
 
 ## Relationship cardinality (summary)
 
-| Relationship           | Cardinality                           |
-| ---------------------- | ------------------------------------- |
-| User ↔ School (follow) | many-to-many                          |
-| User ↔ School (admin)  | many-to-many                          |
-| User ↔ Major           | many-to-many                          |
-| User ↔ Team (member)   | many-to-many                          |
-| User → Team (owner)    | one owner per team; user may own many |
-| School → Club          | one-to-many (required parent)         |
-| User ↔ Club (member)   | many-to-many, with role               |
-| Club → Team            | later                                 |
-| Event ↔ Organizer      | many-to-many                          |
-| Event ↔ Game           | many-to-many                          |
-| Team ↔ Game            | many-to-many                          |
-| Club ↔ Game            | many-to-many                          |
-| Tournament ↔ Game      | many-to-many                          |
-| Tournament → Event     | optional many-to-one                  |
+| Relationship           | Cardinality                            |
+| ---------------------- | -------------------------------------- |
+| User ↔ School (follow) | many-to-many                           |
+| User ↔ School (admin)  | many-to-many                           |
+| User ↔ Major           | many-to-many                           |
+| User ↔ Team (member)   | many-to-many                           |
+| User → Team (owner)    | one owner per team; user may own many  |
+| School → Club          | one-to-many (required parent)          |
+| User ↔ Club (member)   | many-to-many, with role                |
+| Club → Team            | later                                  |
+| Event ↔ Organizer      | many-to-many                           |
+| Event ↔ Game           | many-to-many                           |
+| Team ↔ Game            | many-to-many                           |
+| Club ↔ Game            | many-to-many                           |
+| Tournament → Game      | many-to-one (one of the event's games) |
+| Tournament ↔ Event     | one-to-one                             |
+| Tournament → Entry     | one-to-many                            |
+| Entry ↔ User (roster)  | many-to-many                           |

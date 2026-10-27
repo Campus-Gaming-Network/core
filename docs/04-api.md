@@ -433,26 +433,36 @@ Response:
   used for captain management. It still lists every active member and is not
   affected by `show_in_lists`.
 
-### Tournaments (later)
+### Tournaments (planned)
 
-| Method | Path                          | Notes                                               |
-| ------ | ----------------------------- | --------------------------------------------------- |
-| GET    | `/tournaments`                | Browse/filter by game and other filters             |
-| GET    | `/tournaments/:slug`          |                                                     |
-| POST   | `/tournaments`                | Slug = name + hash; optional capacity               |
-| POST   | `/tournaments/:slug/register` | Individual or team (captain); reject if at capacity |
+A tournament lives under its event; there is no `/tournaments` resource. The
+event's detail response gains a `tournament` object once settings exist (a
+draft only for organizers). These routes are a sketch: each phase's issue
+fixes the request and response shapes.
+
+| Method | Path                                          | Notes                                                                           |
+| ------ | --------------------------------------------- | ------------------------------------------------------------------------------- |
+| PUT    | `/events/:slug/tournament`                    | **(planned)** Organizers; create or update the settings                         |
+| DELETE | `/events/:slug/tournament`                    | **(planned)** Organizers; draft only                                            |
+| POST   | `/events/:slug/tournament/status`             | **(planned)** Organizers; move the status; invalid moves `409`                  |
+| GET    | `/events/:slug/tournament/entries`            | **(planned)** Entrant list; solo names for signed-in viewers only               |
+| POST   | `/events/:slug/tournament/entries`            | **(planned)** Register yourself, or a team with its roster (owner or captain)   |
+| PATCH  | `/events/:slug/tournament/entries/:id`        | **(planned)** Roster (team owner or captain) or seed (organizers), before start |
+| DELETE | `/events/:slug/tournament/entries/:id`        | **(planned)** Withdraw (entrant) or remove (organizers), before start           |
+| POST   | `/events/:slug/tournament/bracket`            | **(planned)** Organizers; generate or regenerate until the first result         |
+| GET    | `/events/:slug/tournament/matches`            | **(planned)** Bracket or rounds with results                                    |
+| POST   | `/events/:slug/tournament/matches/:id/result` | **(planned)** Organizers; enter or correct a result or a walkover               |
 
 ### Games
 
-| Method | Path                       | Notes                                                    |
-| ------ | -------------------------- | -------------------------------------------------------- |
-| GET    | `/games`                   | Browse (public); active games only; `q` searches by name |
-| GET    | `/games/:slug`             | One active game (public); `404 game_not_found` otherwise |
-| GET    | `/games/:slug/cover`       | Stored cover image of an active game                     |
-| GET    | `/games/igdb-search?q=`    | Auth; search IGDB from a game picker                     |
-| GET    | `/igdb-covers/:image_id`   | Small IGDB cover of a recent search result (public)      |
-| GET    | `/popular-games`           | Games with the most upcoming public events (public)      |
-| GET    | `/games/:slug/tournaments` | **(planned)** Tournaments for game + filters             |
+| Method | Path                     | Notes                                                    |
+| ------ | ------------------------ | -------------------------------------------------------- |
+| GET    | `/games`                 | Browse (public); active games only; `q` searches by name |
+| GET    | `/games/:slug`           | One active game (public); `404 game_not_found` otherwise |
+| GET    | `/games/:slug/cover`     | Stored cover image of an active game                     |
+| GET    | `/games/igdb-search?q=`  | Auth; search IGDB from a game picker                     |
+| GET    | `/igdb-covers/:image_id` | Small IGDB cover of a recent search result (public)      |
+| GET    | `/popular-games`         | Games with the most upcoming public events (public)      |
 
 End users cannot edit games. A signed-in user can add one while creating an
 event or team, and site admins correct, hide, delete, and refresh games through

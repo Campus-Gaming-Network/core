@@ -58,7 +58,7 @@ Admin Console work continues under
   launch geography, provider, and sale/share decisions. Engineering retention
   targets are recorded in [16 — Legal and data-lifecycle plan](./16-legal-and-data-lifecycle-plan.md)
   pending legal review.
-- Tournaments remain later work; their spec is #215.
+- Tournaments remain later work; their spec is in [01 — Product](./01-product.md#tournaments).
 - Product and technical questions that are intentionally unresolved are tracked
   in [08 — Open questions](./08-open-questions.md).
 
