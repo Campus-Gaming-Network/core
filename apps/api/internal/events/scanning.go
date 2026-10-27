@@ -34,6 +34,9 @@ func scanEvent(scanner eventScanner, now time.Time) (Event, error) {
 	var hostClubID sql.NullString
 	var hostClubName sql.NullString
 	var hostClubSlug sql.NullString
+	var tournamentEntryType sql.NullString
+	var tournamentEntrantCap sql.NullInt32
+	var tournamentEntryCount sql.NullInt32
 	var gameIDs []string
 	var gameNames []string
 	var gameSlugs []string
@@ -75,6 +78,9 @@ func scanEvent(scanner eventScanner, now time.Time) (Event, error) {
 		&event.HostSchool.State,
 		&event.RSVPYesCount,
 		&event.InterestCount,
+		&tournamentEntryType,
+		&tournamentEntrantCap,
+		&tournamentEntryCount,
 		&gameIDs,
 		&gameNames,
 		&gameSlugs,
@@ -122,6 +128,7 @@ func scanEvent(scanner eventScanner, now time.Time) (Event, error) {
 	if hostClubID.Valid {
 		event.HostClub = &ClubSummary{ID: hostClubID.String, Name: hostClubName.String, Slug: hostClubSlug.String}
 	}
+	event.TournamentEntries = tournamentEntries(tournamentEntryType, tournamentEntrantCap, tournamentEntryCount)
 
 	event.Games = make([]GameSummary, 0, len(gameIDs))
 	for index := range gameIDs {
@@ -155,6 +162,9 @@ func scanEventForUser(scanner eventScanner, now time.Time) (Event, error) {
 	var hostClubID sql.NullString
 	var hostClubName sql.NullString
 	var hostClubSlug sql.NullString
+	var tournamentEntryType sql.NullString
+	var tournamentEntrantCap sql.NullInt32
+	var tournamentEntryCount sql.NullInt32
 	var viewerRSVP sql.NullString
 	var gameIDs []string
 	var gameNames []string
@@ -197,6 +207,9 @@ func scanEventForUser(scanner eventScanner, now time.Time) (Event, error) {
 		&event.HostSchool.State,
 		&event.RSVPYesCount,
 		&event.InterestCount,
+		&tournamentEntryType,
+		&tournamentEntrantCap,
+		&tournamentEntryCount,
 		&gameIDs,
 		&gameNames,
 		&gameSlugs,
@@ -247,6 +260,7 @@ func scanEventForUser(scanner eventScanner, now time.Time) (Event, error) {
 	if hostClubID.Valid {
 		event.HostClub = &ClubSummary{ID: hostClubID.String, Name: hostClubName.String, Slug: hostClubSlug.String}
 	}
+	event.TournamentEntries = tournamentEntries(tournamentEntryType, tournamentEntrantCap, tournamentEntryCount)
 	if viewerRSVP.Valid {
 		event.ViewerRSVP = &viewerRSVP.String
 	}
@@ -265,6 +279,20 @@ func scanEventForUser(scanner eventScanner, now time.Time) (Event, error) {
 	return event, nil
 }
 
+// tournamentEntries is how full the event's tournament is, or nil when the
+// event has none past draft.
+func tournamentEntries(entryType sql.NullString, entrantCap sql.NullInt32, entryCount sql.NullInt32) *TournamentEntries {
+	if !entryType.Valid {
+		return nil
+	}
+	entries := TournamentEntries{EntryType: entryType.String, EntryCount: int(entryCount.Int32)}
+	if entrantCap.Valid {
+		value := int(entrantCap.Int32)
+		entries.EntrantCap = &value
+	}
+	return &entries
+}
+
 func eventSelectSQL(whereClause string, tailClause string) string {
 	return `
 		SELECT e.id::text, e.title, e.slug, e.description, e.visibility,
@@ -278,6 +306,7 @@ func eventSelectSQL(whereClause string, tailClause string) string {
 		       s.id::text, s.name, s.slug, COALESCE(s.city, ''), COALESCE(s.state, ''),
 		       COALESCE(yes_counts.yes_count, 0)::int,
 		       COALESCE(interest_counts.interest_count, 0)::int,
+		       tournament_counts.entry_type, tournament_counts.entrant_cap, tournament_counts.entry_count,
 		       COALESCE(
 		           array_agg(g.id::text ORDER BY g.name, g.id::text) FILTER (WHERE g.id IS NOT NULL),
 		           ARRAY[]::text[]
@@ -314,6 +343,14 @@ func eventSelectSQL(whereClause string, tailClause string) string {
 			WHERE i.event_id = e.id
 			  AND i.deleted_at IS NULL
 		) interest_counts ON TRUE
+		LEFT JOIN LATERAL (
+			SELECT t.entry_type, t.entrant_cap,
+			       (SELECT COUNT(*) FROM tournament_entries te
+			        WHERE te.tournament_id = t.id AND te.status = 'registered')::int AS entry_count
+			FROM tournaments t
+			WHERE t.event_id = e.id
+			  AND t.status <> 'draft'
+		) tournament_counts ON TRUE
 		WHERE ` + whereClause + `
 		GROUP BY e.id, e.title, e.slug, e.description, e.visibility,
 		         e.format, e.starts_at, e.ends_at, e.timezone,
@@ -321,7 +358,8 @@ func eventSelectSQL(whereClause string, tailClause string) string {
 		         e.payment_note, e.payment_url, e.recurrence_rule, e.recurrence_until, e.audience,
 		         e.event_type, e.revision, e.updated_at, ht.id, ht.name, ht.slug, hc.id, hc.name, hc.slug,
 		         s.id, s.name, s.slug, s.city, s.state, yes_counts.yes_count,
-		         interest_counts.interest_count
+		         interest_counts.interest_count, tournament_counts.entry_type,
+		         tournament_counts.entrant_cap, tournament_counts.entry_count
 	` + tailClause
 }
 
@@ -338,6 +376,7 @@ func eventSelectForUserSQL(whereClause string, tailClause string) string {
 		       s.id::text, s.name, s.slug, COALESCE(s.city, ''), COALESCE(s.state, ''),
 		       COALESCE(yes_counts.yes_count, 0)::int,
 		       COALESCE(interest_counts.interest_count, 0)::int,
+		       tournament_counts.entry_type, tournament_counts.entrant_cap, tournament_counts.entry_count,
 		       COALESCE(
 		           array_agg(g.id::text ORDER BY g.name, g.id::text) FILTER (WHERE g.id IS NOT NULL),
 		           ARRAY[]::text[]
@@ -383,6 +422,14 @@ func eventSelectForUserSQL(whereClause string, tailClause string) string {
 			WHERE i.event_id = e.id
 			  AND i.deleted_at IS NULL
 		) interest_counts ON TRUE
+		LEFT JOIN LATERAL (
+			SELECT t.entry_type, t.entrant_cap,
+			       (SELECT COUNT(*) FROM tournament_entries te
+			        WHERE te.tournament_id = t.id AND te.status = 'registered')::int AS entry_count
+			FROM tournaments t
+			WHERE t.event_id = e.id
+			  AND t.status <> 'draft'
+		) tournament_counts ON TRUE
 		WHERE ` + whereClause + `
 		GROUP BY e.id, e.title, e.slug, e.description, e.visibility,
 		         e.format, e.starts_at, e.ends_at, e.timezone,
@@ -390,7 +437,8 @@ func eventSelectForUserSQL(whereClause string, tailClause string) string {
 		         e.payment_note, e.payment_url, e.recurrence_rule, e.recurrence_until, e.audience,
 		         e.event_type, e.revision, e.updated_at, ht.id, ht.name, ht.slug, hc.id, hc.name, hc.slug,
 		         s.id, s.name, s.slug, s.city, s.state, yes_counts.yes_count,
-		         interest_counts.interest_count, viewer_rsvp.response,
+		         interest_counts.interest_count, tournament_counts.entry_type,
+		         tournament_counts.entrant_cap, tournament_counts.entry_count, viewer_rsvp.response,
 		         viewer_interest.user_id
 	` + tailClause
 }

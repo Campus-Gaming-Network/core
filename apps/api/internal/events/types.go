@@ -138,6 +138,9 @@ type Event struct {
 	// CancelledAt is when the event was cancelled. Only GetPageBySlug sets
 	// it; every other read leaves cancelled events out.
 	CancelledAt *time.Time `json:"cancelled_at,omitempty"`
+	// TournamentEntries says how full the event's tournament is, for list
+	// rows. It is nil when the event has no tournament or only a draft one.
+	TournamentEntries *TournamentEntries `json:"tournament_entries,omitempty"`
 	// Tournament is the tournament on a tournament-type event. Only
 	// GetPageBySlug sets it, and only organizers see a draft.
 	Tournament *Tournament `json:"tournament,omitempty"`
@@ -145,6 +148,15 @@ type Event struct {
 	// cancelling included; calendar files carry it as SEQUENCE.
 	Revision  int       `json:"revision"`
 	UpdatedAt time.Time `json:"updated_at"`
+}
+
+// TournamentEntries counts the registered entries in an event's tournament
+// against its cap.
+type TournamentEntries struct {
+	EntryType  string `json:"entry_type"`
+	EntryCount int    `json:"entry_count"`
+	// EntrantCap is nil when the tournament has no limit.
+	EntrantCap *int `json:"entrant_cap,omitempty"`
 }
 
 // CancelledEventVisibility is how long a cancelled event's page stays up,

@@ -153,6 +153,22 @@ export const eventDetailDtoSchema = z.union([
   lockedEventDtoSchema,
 ]);
 
+/**
+ * How full an event is, for list rows: its capacity, and its tournament's
+ * registered entries against the entrant cap. A tournament past draft takes
+ * the place of the capacity.
+ */
+export const eventFillDtoSchema = z.object({
+  capacity: z.number().int().positive().optional(),
+  tournament_entries: z
+    .object({
+      entry_type: z.enum(["solo", "team"]),
+      entry_count: nonNegativeIntegerSchema,
+      entrant_cap: z.number().int().positive().optional(),
+    })
+    .optional(),
+});
+
 const eventBrowseItemDtoSchema = z.object({
   id: identifierSchema,
   title: z.string(),
@@ -184,6 +200,7 @@ const eventBrowseItemDtoSchema = z.object({
   ),
   rsvp_yes_count: nonNegativeIntegerSchema,
   interest_count: nonNegativeIntegerSchema,
+  ...eventFillDtoSchema.shape,
 });
 
 export const eventsBrowseResponseDtoSchema = z.object({
