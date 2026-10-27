@@ -2,11 +2,13 @@ package events
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"testing"
 	"time"
 
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/apperror"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/dbtest"
 )
 
@@ -150,5 +152,200 @@ func TestPostgresRepositoryTournamentBracket(t *testing.T) {
 	_, endedErr := repository.GenerateBracket(ctx, slug, organizerID)
 	if got, want := []error{lockedBracketErr, lockedSeedsErr, endedErr}, []error{ErrBracketLocked, ErrBracketLocked, ErrEventEnded}; !reflect.DeepEqual(got, want) {
 		t.Fatalf("locked errors = %v, want %v", got, want)
+	}
+}
+
+func TestPostgresRepositoryTournamentResults(t *testing.T) {
+	ctx := context.Background()
+	pool := dbtest.NewMigratedSchemaPool(t, "events")
+	schoolID := dbtest.InsertSchool(t, pool, "Results School", "results-school")
+	organizerID := dbtest.InsertUser(t, pool, schoolID, "results-organizer@example.test", "Organizer")
+	var gameID string
+	if err := pool.QueryRow(ctx, `
+		INSERT INTO games (name, slug) VALUES ('Results Game', 'results-game') RETURNING id::text
+	`).Scan(&gameID); err != nil {
+		t.Fatalf("insert game: %v", err)
+	}
+	repository := NewPostgresRepository(pool)
+	startsAt := time.Date(2031, time.June, 1, 18, 0, 0, 0, time.UTC)
+	event, err := repository.Create(ctx, CreateParams{CreateInput: CreateInput{
+		Title: "Results Cup", CreatorUserID: organizerID, HostSchoolID: schoolID, GameIDs: []string{gameID},
+		Visibility: VisibilityPublic, Format: FormatOnline, Audience: AudienceOpen, EventType: EventTypeTournament,
+		StartsAt: startsAt, EndsAt: startsAt.Add(4 * time.Hour), Timezone: "UTC",
+	}})
+	if err != nil {
+		t.Fatalf("Create() error = %v", err)
+	}
+	slug := event.Slug
+	if _, _, err := repository.PutTournament(ctx, TournamentInput{Slug: slug, EditorUserID: organizerID, GameID: gameID, EntryType: EntrySolo}); err != nil {
+		t.Fatalf("PutTournament() error = %v", err)
+	}
+	if _, err := repository.SetTournamentStatus(ctx, slug, organizerID, TournamentRegistrationOpen); err != nil {
+		t.Fatalf("open: %v", err)
+	}
+	// Five players register in seed order: Eli 1, Dee 2, Cal 3, Ben 4, Ana 5.
+	entryIDs := map[string]string{}
+	var playerID string
+	for _, name := range []string{"Eli", "Dee", "Cal", "Ben", "Ana"} {
+		playerID = dbtest.InsertUser(t, pool, schoolID, "results-"+name+"@example.test", name, dbtest.VerifiedEmail())
+		entry, err := repository.Register(ctx, RegisterInput{Slug: slug, UserID: playerID})
+		if err != nil {
+			t.Fatalf("Register(%s) error = %v", name, err)
+		}
+		entryIDs[name] = entry.ID
+	}
+	if _, err := repository.SetTournamentStatus(ctx, slug, organizerID, TournamentInProgress); err != nil {
+		t.Fatalf("start: %v", err)
+	}
+	generated, err := repository.GenerateBracket(ctx, slug, organizerID)
+	if err != nil {
+		t.Fatalf("GenerateBracket() error = %v", err)
+	}
+	matchIDs := map[string]string{}
+	for _, match := range generated {
+		matchIDs[fmt.Sprintf("r%dp%d", match.Round, match.Position)] = match.ID
+	}
+	record := func(userID, place, winner string, scores ...int) error {
+		_, err := repository.RecordResult(ctx, ResultInput{
+			Slug: slug, UserID: userID, MatchID: matchIDs[place], WinnerEntryID: entryIDs[winner],
+			Scores: scores, Walkover: scores == nil,
+		})
+		return err
+	}
+	describe := func() []string {
+		matches, err := repository.ListMatches(ctx, slug, organizerID)
+		if err != nil {
+			t.Fatalf("ListMatches() error = %v", err)
+		}
+		names := map[string]string{}
+		for name, id := range entryIDs {
+			names[id] = name
+		}
+		var described []string
+		for _, match := range matches {
+			slots := [2]string{"-", "-"}
+			for index, entrant := range match.Entrants {
+				if entrant != nil {
+					slots[index] = fmt.Sprintf("%d %s", entrant.Seed, entrant.Player.Name)
+				}
+			}
+			described = append(described, fmt.Sprintf("r%dp%d %s v %s %s %v winner=%s walkover=%t",
+				match.Round, match.Position, slots[0], slots[1], match.Status, match.Scores, names[match.WinnerEntryID], match.Walkover))
+		}
+		return described
+	}
+	tournamentStatus := func() string {
+		var status string
+		if err := pool.QueryRow(ctx, `SELECT status FROM tournaments`).Scan(&status); err != nil {
+			t.Fatalf("read tournament status: %v", err)
+		}
+		return status
+	}
+
+	// Results that cannot be entered: by an entrant, for a match still
+	// waiting on an entrant, for a winner who is not in the match, or with
+	// the winner on the lower score.
+	refused := []error{
+		record(playerID, "r1p2", "Ben", 2, 1),
+		record(organizerID, "r2p1", "Eli", 2, 1),
+		record(organizerID, "r1p2", "Eli", 2, 1),
+		record(organizerID, "r1p2", "Ben", 1, 2),
+		record(organizerID, "r1p2", "Ben", 1, 1),
+	}
+	_, unknownMatchErr := repository.RecordResult(ctx, ResultInput{
+		Slug: slug, UserID: organizerID, MatchID: entryIDs["Ben"], WinnerEntryID: entryIDs["Ben"], Walkover: true,
+	})
+	refused = append(refused, unknownMatchErr)
+	if got, want := refused, []error{
+		ErrOrganizerRequired, ErrMatchNotReady, ErrInvalidResult, ErrInvalidResult,
+		apperror.Validation("an elimination match has no draw"), ErrMatchNotFound,
+	}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("refused results = %v, want %v", got, want)
+	}
+
+	// Ben beats Ana and moves on to meet Eli; a correction gives the match to
+	// Ana, who takes Ben's place.
+	if err := record(organizerID, "r1p2", "Ben", 2, 1); err != nil {
+		t.Fatalf("record r1p2: %v", err)
+	}
+	afterFirst := describe()
+	if err := record(organizerID, "r1p2", "Ana", 0, 2); err != nil {
+		t.Fatalf("correct r1p2: %v", err)
+	}
+	afterCorrection := describe()
+	// Cal does not show, so Dee advances on a walkover; Eli beats Ana, so the
+	// first match's result is now fixed.
+	if err := record(organizerID, "r2p2", "Dee"); err != nil {
+		t.Fatalf("walkover r2p2: %v", err)
+	}
+	if err := record(organizerID, "r2p1", "Eli", 3, 1); err != nil {
+		t.Fatalf("record r2p1: %v", err)
+	}
+	lockedErr := record(organizerID, "r1p2", "Ben", 2, 1)
+	beforeFinal := []string{tournamentStatus()}
+	// The final completes the tournament and can still be corrected; the
+	// semifinal before it is then fixed.
+	if err := record(organizerID, "r3p1", "Dee", 1, 2); err != nil {
+		t.Fatalf("record final: %v", err)
+	}
+	if err := record(organizerID, "r3p1", "Eli", 3, 2); err != nil {
+		t.Fatalf("correct final: %v", err)
+	}
+	semifinalErr := record(organizerID, "r2p1", "Ana", 1, 3)
+	if got, want := []any{afterFirst, afterCorrection, describe(), lockedErr, semifinalErr, append(beforeFinal, tournamentStatus())}, []any{
+		[]string{
+			"r1p2 4 Ben v 5 Ana complete [2 1] winner=Ben walkover=false",
+			"r2p1 1 Eli v 4 Ben upcoming [] winner= walkover=false",
+			"r2p2 2 Dee v 3 Cal upcoming [] winner= walkover=false",
+			"r3p1 - v - upcoming [] winner= walkover=false",
+		},
+		[]string{
+			"r1p2 4 Ben v 5 Ana complete [0 2] winner=Ana walkover=false",
+			"r2p1 1 Eli v 5 Ana upcoming [] winner= walkover=false",
+			"r2p2 2 Dee v 3 Cal upcoming [] winner= walkover=false",
+			"r3p1 - v - upcoming [] winner= walkover=false",
+		},
+		[]string{
+			"r1p2 4 Ben v 5 Ana complete [0 2] winner=Ana walkover=false",
+			"r2p1 1 Eli v 5 Ana complete [3 1] winner=Eli walkover=false",
+			"r2p2 2 Dee v 3 Cal complete [] winner=Dee walkover=true",
+			"r3p1 1 Eli v 2 Dee complete [3 2] winner=Eli walkover=false",
+		},
+		ErrResultLocked, ErrResultLocked,
+		[]string{TournamentInProgress, TournamentCompleted},
+	}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("results = %#v\nwant %#v", got, want)
+	}
+
+	// Every result and correction is in the log for editors, by seed, newest
+	// first; nobody else sees them.
+	editorLog, err := repository.Activity(ctx, event.ID, true, nil, MaximumActivityLimit)
+	if err != nil {
+		t.Fatalf("Activity(editor) error = %v", err)
+	}
+	var logged []string
+	for _, entry := range editorLog.Entries {
+		if entry.Action != ActionMatchResult && entry.Action != ActionMatchResultCorrected {
+			continue
+		}
+		changes, err := json.Marshal(entry.Changes)
+		if err != nil {
+			t.Fatalf("encode changes: %v", err)
+		}
+		logged = append(logged, fmt.Sprintf("%s %s %s", entry.Action, entry.Visibility, changes))
+	}
+	publicLog, err := repository.Activity(ctx, event.ID, false, nil, MaximumActivityLimit)
+	if err != nil {
+		t.Fatalf("Activity(public) error = %v", err)
+	}
+	if got, want := []any{logged, len(publicLog.Entries)}, []any{[]string{
+		`event.match_result_corrected editors [{"field":"result","before":{"round":3,"scores":[1,2],"position":1,"walkover":false,"winner_seed":2},"after":{"round":3,"scores":[3,2],"position":1,"walkover":false,"winner_seed":1}}]`,
+		`event.match_result editors [{"field":"result","after":{"round":3,"scores":[1,2],"position":1,"walkover":false,"winner_seed":2}}]`,
+		`event.match_result editors [{"field":"result","after":{"round":2,"scores":[3,1],"position":1,"walkover":false,"winner_seed":1}}]`,
+		`event.match_result editors [{"field":"result","after":{"round":2,"position":2,"walkover":true,"winner_seed":2}}]`,
+		`event.match_result_corrected editors [{"field":"result","before":{"round":1,"scores":[2,1],"position":2,"walkover":false,"winner_seed":4},"after":{"round":1,"scores":[0,2],"position":2,"walkover":false,"winner_seed":5}}]`,
+		`event.match_result editors [{"field":"result","after":{"round":1,"scores":[2,1],"position":2,"walkover":false,"winner_seed":4}}]`,
+	}, 0}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("log = %#v\nwant %#v", got, want)
 	}
 }

@@ -16,6 +16,8 @@ export const eventActivityActions = [
   "event.organizer_removed",
   "event.organizer_left",
   "event.creator_transferred",
+  "event.match_result",
+  "event.match_result_corrected",
 ] as const;
 
 /**

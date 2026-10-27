@@ -94,6 +94,80 @@ test("an entry reads in words, in the event's time zone, with its author only fo
   );
 });
 
+test("a match result reads by seed, winner's score first, and a correction shows both", () => {
+  const entered: EventActivityEntry = {
+    id: "entry-3",
+    action: "event.match_result",
+    occurred_at: "2037-02-20T03:00:00Z",
+    visibility: "editors",
+    changes: [
+      {
+        field: "result",
+        after: {
+          round: 1,
+          position: 2,
+          scores: [2, 1],
+          walkover: false,
+          winner_seed: 4,
+        },
+      },
+    ],
+  };
+  const walkover: EventActivityEntry = {
+    ...entered,
+    changes: [
+      {
+        field: "result",
+        after: { round: 2, position: 2, walkover: true, winner_seed: 2 },
+      },
+    ],
+  };
+  const corrected: EventActivityEntry = {
+    ...entered,
+    action: "event.match_result_corrected",
+    changes: [
+      {
+        field: "result",
+        before: {
+          round: 1,
+          position: 2,
+          scores: [2, 1],
+          walkover: false,
+          winner_seed: 4,
+        },
+        after: {
+          round: 1,
+          position: 2,
+          scores: [0, 2],
+          walkover: false,
+          winner_seed: 5,
+        },
+      },
+    ],
+  };
+  assert.deepEqual(
+    [entered, walkover, corrected]
+      .map((entry) => eventActivityLine(entry, routeEvent.timezone))
+      .map(({ summary, details }) => ({ summary, details })),
+    [
+      {
+        summary: "Match result entered",
+        details: ["Round 1, match 2: Seed 4 won 2–1"],
+      },
+      {
+        summary: "Match result entered",
+        details: ["Round 2, match 2: Seed 2 advanced on a walkover"],
+      },
+      {
+        summary: "Match result corrected",
+        details: [
+          "Round 1, match 2 changed from Seed 4 won 2–1 to Seed 5 won 2–0",
+        ],
+      },
+    ],
+  );
+});
+
 test("the activity read forwards the session and unlock, and maps 404 and failures", async () => {
   const requests: Array<{
     url: string;

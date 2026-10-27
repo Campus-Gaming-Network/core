@@ -285,20 +285,29 @@ account that made it, the action, and, for an edit, each changed field. Entries
 are never edited. Events created before the log shipped start with an empty
 log; nothing is backfilled.
 
-| Action                      | Written when                                                                                                                 | Visible to       |
-| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ---------------- |
-| `event.created`             | The event is created; each occurrence of a recurring series gets its own entry                                               | Editors          |
-| `event.updated`             | An edit changes at least one field; one entry per save lists every changed field. A save that changes nothing writes nothing | Per field, below |
-| `event.cancelled`           | The event is cancelled, including by its creator's account deletion when no co-organizer remains                             | Everyone         |
-| `event.organizer_joined`    | Someone accepts a co-organizer invite                                                                                        | Editors          |
-| `event.organizer_removed`   | The creator removes a co-organizer                                                                                           | Editors          |
-| `event.organizer_left`      | A co-organizer steps down                                                                                                    | Editors          |
-| `event.creator_transferred` | The creator hands the role to a co-organizer, or deleting the creator's account transfers it                                 | Editors          |
+| Action                         | Written when                                                                                                                 | Visible to       |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| `event.created`                | The event is created; each occurrence of a recurring series gets its own entry                                               | Editors          |
+| `event.updated`                | An edit changes at least one field; one entry per save lists every changed field. A save that changes nothing writes nothing | Per field, below |
+| `event.cancelled`              | The event is cancelled, including by its creator's account deletion when no co-organizer remains                             | Everyone         |
+| `event.organizer_joined`       | Someone accepts a co-organizer invite                                                                                        | Editors          |
+| `event.organizer_removed`      | The creator removes a co-organizer                                                                                           | Editors          |
+| `event.organizer_left`         | A co-organizer steps down                                                                                                    | Editors          |
+| `event.creator_transferred`    | The creator hands the role to a co-organizer, or deleting the creator's account transfers it                                 | Editors          |
+| `event.match_result`           | An organizer enters a tournament match's result or walkover                                                                  | Editors          |
+| `event.match_result_corrected` | An organizer changes a match's result                                                                                        | Editors          |
 
 "Editors" are the people who can edit the event: its organizers, and the owners
 and editors of a hosting club. "Everyone" is anyone who can see the event page.
 Sending and withdrawing co-organizer invites is not logged: an invite carries an
 email address, and the creator already sees pending invites.
+
+A result entry has one change, `result`, holding the match's round and
+position, the winner's seed, the scores unless it was a walkover, and whether
+it was a walkover; a correction also holds the result it replaced. Seeds
+rather than names keep entrants out of the log. Results stay with editors so
+a running bracket does not crowd the event's public updates; the bracket
+itself shows every result.
 
 An edit entry is public when at least one of its changed fields is public, and
 a viewer who cannot edit the event sees only those fields. Public fields are the
@@ -336,8 +345,8 @@ Site admins see every entry in the Admin Console audit log.
 
 ### Tournament
 
-Settings and status (#263), entries (#265), seeds, and single-elimination
-brackets (#266) are built; results are not built yet.
+Settings and status (#263), entries (#265), seeds, single-elimination
+brackets (#266), and results (#267) are built.
 [01 — Product](./01-product.md#tournaments) is the spec. A tournament belongs to exactly one event whose type is `tournament`, and an
 event has at most one tournament. Everything an event already has (title,
 slug, time, place, visibility, host, organizers, private access,
