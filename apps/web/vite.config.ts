@@ -1,9 +1,10 @@
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
+import { redact } from "@tanstack/redact/vite";
 import viteReact from "@vitejs/plugin-react";
 import { nitro } from "nitro/vite";
 import { defineConfig, lazyPlugins } from "vite-plus";
 
-export default defineConfig(({ mode }) => ({
+export default defineConfig(({ command, mode }) => ({
   lint: {
     categories: {
       correctness: "error",
@@ -32,11 +33,28 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     tsconfigPaths: true,
   },
+  // Bundle server dependencies so Redact can redirect their React imports.
+  // The dev module runner cannot evaluate the CommonJS that Sentry's Node SDK
+  // loads, and the SDK does not import React. Production bundles it.
+  ssr:
+    mode === "test"
+      ? undefined
+      : {
+          noExternal: true,
+          external: command === "serve" ? ["@sentry/node"] : [],
+        },
   // Unit tests exercise application handlers directly. Start's RPC transform
   // replaces them with transport stubs and also starts the Nitro dev runtime.
+  // They render with React: Vitest skips Redact's per-environment aliases, so
+  // dependencies would load a second React copy.
   plugins: lazyPlugins(() =>
     mode === "test"
       ? [viteReact()]
-      : [tanstackStart({ srcDirectory: "src" }), viteReact(), nitro()],
+      : [
+          tanstackStart({ srcDirectory: "src" }),
+          viteReact(),
+          redact(),
+          nitro(),
+        ],
   ),
 }));
