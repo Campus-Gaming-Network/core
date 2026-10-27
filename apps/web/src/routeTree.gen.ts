@@ -67,6 +67,7 @@ import { Route as ClubsSlugPeopleRouteImport } from './routes/clubs.$slug_.peopl
 import { Route as EventsSlugActivityRouteImport } from './routes/events.$slug_.activity'
 import { Route as EventsSlugEditRouteImport } from './routes/events.$slug_.edit'
 import { Route as EventsSlugPeopleRouteImport } from './routes/events.$slug_.people'
+import { Route as EventsSlugTournamentRouteImport } from './routes/events.$slug_.tournament'
 import { Route as SchoolsSlugPeopleRouteImport } from './routes/schools.$slug_.people'
 import { Route as SchoolsSlugRequestClubRouteImport } from './routes/schools.$slug_.request-club'
 import { Route as TeamsSlugPeopleRouteImport } from './routes/teams.$slug_.people'
@@ -363,6 +364,11 @@ const EventsSlugPeopleRoute = EventsSlugPeopleRouteImport.update({
   path: '/$slug/people',
   getParentRoute: () => EventsRoute,
 } as any)
+const EventsSlugTournamentRoute = EventsSlugTournamentRouteImport.update({
+  id: '/$slug_/tournament',
+  path: '/$slug/tournament',
+  getParentRoute: () => EventsRoute,
+} as any)
 const SchoolsSlugPeopleRoute = SchoolsSlugPeopleRouteImport.update({
   id: '/$slug_/people',
   path: '/$slug/people',
@@ -449,6 +455,7 @@ export interface FileRoutesByFullPath {
   '/events/$slug/activity': typeof EventsSlugActivityRoute
   '/events/$slug/edit': typeof EventsSlugEditRoute
   '/events/$slug/people': typeof EventsSlugPeopleRoute
+  '/events/$slug/tournament': typeof EventsSlugTournamentRoute
   '/schools/$slug/people': typeof SchoolsSlugPeopleRoute
   '/schools/$slug/request-club': typeof SchoolsSlugRequestClubRoute
   '/teams/$slug/people': typeof TeamsSlugPeopleRoute
@@ -510,6 +517,7 @@ export interface FileRoutesByTo {
   '/events/$slug/activity': typeof EventsSlugActivityRoute
   '/events/$slug/edit': typeof EventsSlugEditRoute
   '/events/$slug/people': typeof EventsSlugPeopleRoute
+  '/events/$slug/tournament': typeof EventsSlugTournamentRoute
   '/schools/$slug/people': typeof SchoolsSlugPeopleRoute
   '/schools/$slug/request-club': typeof SchoolsSlugRequestClubRoute
   '/teams/$slug/people': typeof TeamsSlugPeopleRoute
@@ -576,6 +584,7 @@ export interface FileRoutesById {
   '/events/$slug_/activity': typeof EventsSlugActivityRoute
   '/events/$slug_/edit': typeof EventsSlugEditRoute
   '/events/$slug_/people': typeof EventsSlugPeopleRoute
+  '/events/$slug_/tournament': typeof EventsSlugTournamentRoute
   '/schools/$slug_/people': typeof SchoolsSlugPeopleRoute
   '/schools/$slug_/request-club': typeof SchoolsSlugRequestClubRoute
   '/teams/$slug_/people': typeof TeamsSlugPeopleRoute
@@ -643,6 +652,7 @@ export interface FileRouteTypes {
     | '/events/$slug/activity'
     | '/events/$slug/edit'
     | '/events/$slug/people'
+    | '/events/$slug/tournament'
     | '/schools/$slug/people'
     | '/schools/$slug/request-club'
     | '/teams/$slug/people'
@@ -704,6 +714,7 @@ export interface FileRouteTypes {
     | '/events/$slug/activity'
     | '/events/$slug/edit'
     | '/events/$slug/people'
+    | '/events/$slug/tournament'
     | '/schools/$slug/people'
     | '/schools/$slug/request-club'
     | '/teams/$slug/people'
@@ -769,6 +780,7 @@ export interface FileRouteTypes {
     | '/events/$slug_/activity'
     | '/events/$slug_/edit'
     | '/events/$slug_/people'
+    | '/events/$slug_/tournament'
     | '/schools/$slug_/people'
     | '/schools/$slug_/request-club'
     | '/teams/$slug_/people'
@@ -1231,6 +1243,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EventsSlugPeopleRouteImport
       parentRoute: typeof EventsRoute
     }
+    '/events/$slug_/tournament': {
+      id: '/events/$slug_/tournament'
+      path: '/$slug/tournament'
+      fullPath: '/events/$slug/tournament'
+      preLoaderRoute: typeof EventsSlugTournamentRouteImport
+      parentRoute: typeof EventsRoute
+    }
     '/schools/$slug_/people': {
       id: '/schools/$slug_/people'
       path: '/$slug/people'
@@ -1276,6 +1295,7 @@ interface EventsRouteChildren {
   EventsSlugActivityRoute: typeof EventsSlugActivityRoute
   EventsSlugEditRoute: typeof EventsSlugEditRoute
   EventsSlugPeopleRoute: typeof EventsSlugPeopleRoute
+  EventsSlugTournamentRoute: typeof EventsSlugTournamentRoute
 }
 
 const EventsRouteChildren: EventsRouteChildren = {
@@ -1285,6 +1305,7 @@ const EventsRouteChildren: EventsRouteChildren = {
   EventsSlugActivityRoute: EventsSlugActivityRoute,
   EventsSlugEditRoute: EventsSlugEditRoute,
   EventsSlugPeopleRoute: EventsSlugPeopleRoute,
+  EventsSlugTournamentRoute: EventsSlugTournamentRoute,
 }
 
 const EventsRouteWithChildren =

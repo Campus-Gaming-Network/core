@@ -395,6 +395,7 @@ These screens can be implemented against existing routes and contracts:
 | Edit event            | `/events/:slug/edit`                 | Editable, forbidden, validation errors, cancelled; Organizers section for the creator and for a co-organizer |
 | Co-organizer invite   | `/organizer-invite`                  | Signed out (to login and back), accept, invalid, wrong account                                               |
 | Event attendees       | `/events/:slug/people`               | Going and Maybe tabs, empty, unavailable, pagination                                                         |
+| Tournament settings   | `/events/:slug/tournament`           | Create, edit, status moves, fixed entry type once registered, not a tournament, forbidden, cancelled, ended  |
 | Event updates         | `/events/:slug/activity`             | Editor view with authors, public view, empty, unavailable, pagination; Updates section on the event page     |
 | School people         | `/schools/:slug/people`              | Members, empty, unavailable, pagination                                                                      |
 | Team people           | `/teams/:slug/people`                | Members with roles, empty, unavailable, pagination                                                           |
@@ -467,6 +468,27 @@ documents are updated and their contracts are implemented:
 - `EntrantsCard` replaces "Who's going": entrants in seed order, team rosters
   after the team's name, solo entrants as "Seed 3" for visitors, and Remove
   for organizers until the tournament starts. Every control is a native form.
+
+### Tournament settings
+
+- `/events/:slug/tournament`
+  (`apps/web/src/features/tournament-settings/settings-panel.tsx`) is for the
+  event's organizers; anyone else sees why they can't change it. The event
+  page's Manage event panel links to it ("Set up tournament", then
+  "Tournament settings") on a tournament-type event, and stays up after the
+  event ends while the tournament is in progress, so it can be completed.
+- `StatusPanel` shows the status and only the moves the API allows: open
+  registration, delete, or cancel a draft; start (two or more entrants), back
+  to draft (no entrants), or cancel while registration is open; complete or
+  cancel once started; and only complete after the event ends. Cancelling asks
+  first once the page is interactive.
+- `SettingsForm` creates or replaces the settings: the game (one of the
+  event's), solo or team entry with team size and substitutes, the cap, the
+  close time in the event's time zone, rules, and prizes. Once anyone has
+  registered, the entry type and team size are shown as text and sent
+  unchanged. A refusal comes back as a notice in words.
+- The event form says why the type and the tournament's game can't change
+  while settings exist.
 
 ### People lists
 

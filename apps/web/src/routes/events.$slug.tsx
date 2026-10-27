@@ -670,26 +670,49 @@ function VisibleEventView({
 
           {authenticated ? (
             <section aria-label="Event safety and management">
-              {/* An event that has ended can no longer be changed. */}
-              {event.viewer_can_edit && event.lifecycle !== "ended" ? (
+              {/* An event that has ended can no longer be changed, except
+                  that a tournament in progress can still be completed. */}
+              {event.viewer_can_edit &&
+              (event.lifecycle !== "ended" ||
+                tournament?.status === "in_progress") ? (
                 <Surface as="div" variant="panel" className="event-manage">
                   <h2 id="manage-event">Manage event</h2>
-                  <p className="form-help">
-                    {event.viewer_is_creator
-                      ? "You can change the details, manage organizers, or cancel this event."
-                      : event.viewer_can_cancel && event.host_club
-                        ? `You can change the details or cancel this event as an officer of ${event.host_club.name}.`
-                        : "You can change the details of this event as a co-organizer."}
-                  </p>
+                  {event.lifecycle === "ended" ? (
+                    <p className="form-help">
+                      The event has ended. Mark the tournament complete in its
+                      settings.
+                    </p>
+                  ) : (
+                    <p className="form-help">
+                      {event.viewer_is_creator
+                        ? "You can change the details, manage organizers, or cancel this event."
+                        : event.viewer_can_cancel && event.host_club
+                          ? `You can change the details or cancel this event as an officer of ${event.host_club.name}.`
+                          : "You can change the details of this event as a co-organizer."}
+                    </p>
+                  )}
                   <div className="actions">
-                    <ButtonLink
-                      variant="secondary"
-                      to="/events/$slug/edit"
-                      params={{ slug: event.slug }}
-                    >
-                      Edit event
-                    </ButtonLink>
-                    {event.viewer_can_cancel ? (
+                    {event.lifecycle === "ended" ? null : (
+                      <ButtonLink
+                        variant="secondary"
+                        to="/events/$slug/edit"
+                        params={{ slug: event.slug }}
+                      >
+                        Edit event
+                      </ButtonLink>
+                    )}
+                    {event.event_type === "tournament" || tournament ? (
+                      <ButtonLink
+                        variant="secondary"
+                        to="/events/$slug/tournament"
+                        params={{ slug: event.slug }}
+                      >
+                        {tournament
+                          ? "Tournament settings"
+                          : "Set up tournament"}
+                      </ButtonLink>
+                    ) : null}
+                    {event.viewer_can_cancel && event.lifecycle !== "ended" ? (
                       <CancelEventForm slug={event.slug} />
                     ) : null}
                   </div>

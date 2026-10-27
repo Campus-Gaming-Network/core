@@ -331,6 +331,12 @@ export function EventForm({
               ))}
             </select>
           </FormField>
+          {event?.tournament ? (
+            <p className="form-help">
+              This event has tournament settings, so its type stays Tournament.
+              Delete the draft settings to change it.
+            </p>
+          ) : null}
 
           {/* Only a viewer who owns or captains a team, or owns or edits a
               club, gets the choice; the event then reads "Hosted by" the team
@@ -650,6 +656,11 @@ export function EventForm({
             otherGameErrorId="event-other-game-error"
             otherGameErrors={errors("other_game")}
           />
+          {event?.tournament ? (
+            <p className="form-help">
+              {`The tournament is played in ${event.tournament.game.name}, so that game stays on the event while it has settings.`}
+            </p>
+          ) : null}
           <FormField
             errorId="event-capacity-error"
             errors={errors("capacity")}
