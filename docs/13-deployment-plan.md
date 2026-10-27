@@ -89,12 +89,12 @@ openssl rand -hex 32
 
 Label and save them in a password manager:
 
-| Environment | Secret                     | Used by                                                                       |
-| ----------- | -------------------------- | ----------------------------------------------------------------------------- |
-| Staging     | `API_PROXY_SHARED_SECRET`  | `web` and `api`; values must match                                            |
-| Staging     | `CLOUDFLARE_ORIGIN_SECRET` | `web`; required at startup even when staging uses its Railway domain directly |
-| Production  | `API_PROXY_SHARED_SECRET`  | `web` and `api`; values must match                                            |
-| Production  | `CLOUDFLARE_ORIGIN_SECRET` | `web` and the Cloudflare request-header transform                             |
+| Environment | Secret                     | Used by                                                                      |
+| ----------- | -------------------------- | ---------------------------------------------------------------------------- |
+| Staging     | `API_PROXY_SHARED_SECRET`  | `web` and `api`; values must match                                           |
+| Staging     | `CLOUDFLARE_ORIGIN_SECRET` | `web` and the staging Cloudflare request-header transform; values must match |
+| Production  | `API_PROXY_SHARED_SECRET`  | `web` and `api`; values must match                                           |
+| Production  | `CLOUDFLARE_ORIGIN_SECRET` | `web` and the Cloudflare request-header transform                            |
 
 Each generated value is 64 hexadecimal characters, exceeding the application's 32-character minimum. Never reuse a staging value in production.
 
@@ -285,7 +285,7 @@ Return to the API variables and replace `https://REPLACE-WITH-STAGING-WEB-DOMAIN
 
 `R2_PUBLIC_ASSET_ORIGIN` is the same value the API uses for its uploaded-logo asset hostname. The web app treats it as optional: without it, schools use bundled institutional logos when available, otherwise an initial. See [School data](./09-school-data.md#institutional-logos). To serve the bundled logos from the same bucket, sync them and set `BUNDLED_SCHOOL_LOGOS_IN_R2=true` as described under [Serving bundled logos from R2](./09-school-data.md#serving-bundled-logos-from-r2).
 
-Staging does not need a Cloudflare header transform when it uses the Railway domain directly. Nevertheless, the application requires a unique `CLOUDFLARE_ORIGIN_SECRET` in strict staging mode so an unsafe configuration can never be promoted silently.
+The application requires a unique `CLOUDFLARE_ORIGIN_SECRET` in strict staging mode so an unsafe configuration can never be promoted silently. Staging served through a proxied Cloudflare hostname also needs its own header transform, set up as in [Add the trusted Cloudflare origin header](#2-add-the-trusted-cloudflare-origin-header) with the name `CGN trusted origin header (staging)`, the hostname `staging.campusgamingnetwork.com`, and the staging secret. Without it the site still works, but the web app falls back to Railway's visitor address instead of `CF-Connecting-IP`. Staging served only from its Railway domain needs no transform. When you rotate the secret, update the rule and the `web` variable together.
 
 ### 7. Review secrets and staged changes
 
