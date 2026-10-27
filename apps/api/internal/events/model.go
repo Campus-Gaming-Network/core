@@ -60,6 +60,17 @@ func Lifecycle(now time.Time, startsAt time.Time, endsAt time.Time, capacity *in
 	return LifecycleUpcoming
 }
 
+// seatsTaken returns the limit the event fills against and how much of it is
+// taken: a tournament's registered entries against its entrant cap, otherwise
+// RSVP yes answers against the event's capacity. The limit is nil when there
+// is none.
+func (e Event) seatsTaken() (*int, int) {
+	if e.TournamentEntries != nil {
+		return e.TournamentEntries.EntrantCap, e.TournamentEntries.EntryCount
+	}
+	return e.Capacity, e.RSVPYesCount
+}
+
 // IsPrivate reports whether the event is private.
 func (e Event) IsPrivate() bool {
 	return e.Visibility == VisibilityPrivate

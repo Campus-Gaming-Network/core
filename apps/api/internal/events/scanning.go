@@ -139,7 +139,8 @@ func scanEvent(scanner eventScanner, now time.Time) (Event, error) {
 			HasCover: gameCovers[index],
 		})
 	}
-	event.Lifecycle = Lifecycle(now, event.StartsAt, event.EndsAt, event.Capacity, event.RSVPYesCount)
+	limit, taken := event.seatsTaken()
+	event.Lifecycle = Lifecycle(now, event.StartsAt, event.EndsAt, limit, taken)
 
 	return event, nil
 }
@@ -274,7 +275,8 @@ func scanEventForUser(scanner eventScanner, now time.Time) (Event, error) {
 			HasCover: gameCovers[index],
 		})
 	}
-	event.Lifecycle = Lifecycle(now, event.StartsAt, event.EndsAt, event.Capacity, event.RSVPYesCount)
+	limit, taken := event.seatsTaken()
+	event.Lifecycle = Lifecycle(now, event.StartsAt, event.EndsAt, limit, taken)
 
 	return event, nil
 }
