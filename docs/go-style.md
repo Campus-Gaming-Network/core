@@ -16,8 +16,9 @@ an existing inconsistency in new code.
 - Preserve initialisms: use `ID`, `URL`, `HTTP`, and `DB`, not `Id`, `Url`, `Http`,
   or `Db`.
 - Name getters after the underlying concept (`Owner`, not `GetOwner`).
-- Keep comments useful and explain why when the code's rationale is not obvious.
-  Exported declarations should have doc comments.
+- Comment only to explain why, a non-obvious constraint, a workaround, or a
+  TODO; never restate what the code does. Exported declarations should have
+  doc comments.
 - Handle errors explicitly, return early for error paths, and wrap errors with
   useful context when crossing a boundary.
 - Prefer small interfaces defined by the consumer and avoid abstractions that
