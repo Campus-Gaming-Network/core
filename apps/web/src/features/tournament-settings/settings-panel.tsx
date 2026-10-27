@@ -15,12 +15,17 @@ import type { EventDTO } from "../event-slice/contracts";
 import { instantToLocalDateTime } from "../event-slice/event-time";
 import type {
   TournamentDTO,
+  TournamentEntryDTO,
   TournamentMutationResult,
 } from "../tournament-registration/contracts";
-import { tournamentSummary } from "../tournament-registration/presentation";
+import {
+  entrantName,
+  tournamentSummary,
+} from "../tournament-registration/presentation";
 import {
   deleteTournamentSettings,
   saveTournamentSettings,
+  setTournamentSeeds,
   setTournamentStatus,
 } from "./settings.functions";
 import { statusActions, tournamentStatusLabels } from "./presentation";
@@ -500,5 +505,92 @@ export function SettingsForm({
         </button>
       </div>
     </form>
+  );
+}
+
+export function SeedsPanel({
+  entries,
+  locked,
+  slug,
+}: {
+  entries: TournamentEntryDTO[];
+  locked: boolean;
+  slug: string;
+}) {
+  const mutation = useEnhancedMutation(
+    "We could not save the seeds. Please try again.",
+  );
+  const save = useServerFn(setTournamentSeeds);
+  async function submit(formEvent: FormEvent<HTMLFormElement>) {
+    formEvent.preventDefault();
+    const data = new FormData(formEvent.currentTarget);
+    await mutation.execute(() => save({ data }));
+  }
+  return (
+    <Surface
+      variant="panel"
+      aria-labelledby="tournament-seeds-heading"
+      id="seeds"
+    >
+      <h2 id="tournament-seeds-heading">Seeds</h2>
+      {entries.length === 0 ? (
+        <p className="form-help">No one has registered yet.</p>
+      ) : locked ? (
+        <>
+          <p className="form-help">
+            A match has a result, so the seeds are fixed.
+          </p>
+          <ol className="tournament-entrants">
+            {entries.map((entry) => (
+              <li key={entry.id}>{entrantName(entry)}</li>
+            ))}
+          </ol>
+        </>
+      ) : (
+        <>
+          <p className="form-help">
+            Seed 1 is the strongest. The bracket puts the top seeds furthest
+            apart and gives them any byes. A bracket generated before you change
+            the seeds keeps its order until you generate it again.
+          </p>
+          <FormErrorSummary
+            fieldErrors={mutation.fieldErrors}
+            message={mutation.message}
+            summaryRef={mutation.errorSummaryRef}
+          />
+          <form
+            action={setTournamentSeeds.url}
+            className="seeds-form"
+            method="post"
+            onSubmit={submit}
+          >
+            <input name="slug" type="hidden" value={slug} />
+            <ol className="seeds-form__list">
+              {entries.map((entry, index) => (
+                <li key={entry.id}>
+                  <input name="entry_id" type="hidden" value={entry.id} />
+                  <label>
+                    <span>{entrantName(entry)}</span>
+                    <input
+                      defaultValue={(entry.seed ?? index + 1).toString()}
+                      inputMode="numeric"
+                      max={entries.length}
+                      min={1}
+                      name="seed"
+                      required
+                      step={1}
+                      type="number"
+                    />
+                  </label>
+                </li>
+              ))}
+            </ol>
+            <Button disabled={mutation.pending} type="submit" variant="primary">
+              Save seeds
+            </Button>
+          </form>
+        </>
+      )}
+    </Surface>
   );
 }

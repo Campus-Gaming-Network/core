@@ -16,9 +16,13 @@ import {
   type SettingsNotice,
 } from "../features/tournament-settings/contracts";
 import {
+  SeedsPanel,
   SettingsForm,
   StatusPanel,
 } from "../features/tournament-settings/settings-panel";
+import { getTournamentMatches } from "../features/tournament-bracket/bracket.functions";
+import type { TournamentEntriesResult } from "../features/tournament-registration/contracts";
+import { getTournamentEntries } from "../features/tournament-registration/tournament.functions";
 import { GenerateBracketForm } from "../features/tournament-bracket/bracket-views";
 import {
   bracketNoticeKey,
@@ -28,6 +32,9 @@ import {
 
 type TournamentSettingsRouteData = {
   event: EventDTO;
+  entries: TournamentEntriesResult;
+  /** Whether a match has a result, which fixes the seeds. */
+  bracketLocked: boolean;
   publicOrigin: string;
 };
 
@@ -50,14 +57,29 @@ export const Route = createFileRoute("/events/$slug_/tournament")({
         statusCode: 307,
       });
     }
-    // The detail read runs last because of its private cache policy.
+    // The detail read runs last because of its private cache policy. A
+    // tournament without settings yet answers these reads as unavailable.
+    const entries = await getTournamentEntries({ data: { slug: params.slug } });
+    const bracket = await getTournamentMatches({ data: { slug: params.slug } });
     const detail = await getEventDetail({ data: { slug: params.slug } });
     if (detail.status === "not_found") throw notFound();
     if (detail.status !== "found") {
       throw new Error("Event detail is unavailable");
     }
     if ("locked" in detail.event) throw notFound();
-    return { event: detail.event, publicOrigin: context.publicOrigin };
+    return {
+      event: detail.event,
+      entries,
+      bracketLocked:
+        bracket.status === "ready" &&
+        bracket.matches.some(
+          (match) =>
+            match.status !== "upcoming" ||
+            match.winner_entry_id !== undefined ||
+            match.scores !== undefined,
+        ),
+      publicOrigin: context.publicOrigin,
+    };
   },
   staleTime: 0,
   headers: () => ({ "cache-control": "private, no-store", vary: "Cookie" }),
@@ -133,7 +155,7 @@ function denial(
 }
 
 function TournamentSettingsPage() {
-  const { event } = Route.useLoaderData();
+  const { bracketLocked, entries, event } = Route.useLoaderData();
   const search = Route.useSearch();
   // A bracket refusal comes back here, where the bracket is generated.
   const notice = search.settings
@@ -195,6 +217,16 @@ function TournamentSettingsPage() {
           <>
             {tournament ? (
               <StatusPanel event={event} tournament={tournament} />
+            ) : null}
+            {(tournament?.status === "registration_open" ||
+              tournament?.status === "in_progress") &&
+            event.lifecycle !== "ended" &&
+            entries.status === "ready" ? (
+              <SeedsPanel
+                entries={entries.items}
+                locked={bracketLocked}
+                slug={event.slug}
+              />
             ) : null}
             {tournament?.status === "in_progress" &&
             event.lifecycle !== "ended" ? (
