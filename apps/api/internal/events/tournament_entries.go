@@ -138,6 +138,7 @@ type entryTournament struct {
 	Substitutes int
 	Cap         sql.NullInt32
 	ClosesAt    time.Time
+	EndsAt      time.Time
 	Organizer   bool
 	EntryCount  int
 }
@@ -149,7 +150,7 @@ func lockEntryTournament(ctx context.Context, tx pgx.Tx, slug string, userID str
 	var teamSize sql.NullInt32
 	err := tx.QueryRow(ctx, `
 		SELECT e.id::text, t.id::text, t.status, t.registration_mode, t.entry_type, t.team_size, t.substitutes, t.entrant_cap,
-		       COALESCE(LEAST(t.registration_closes_at, e.starts_at), e.starts_at),
+		       COALESCE(LEAST(t.registration_closes_at, e.starts_at), e.starts_at), e.ends_at,
 		       `+editableBy("$2")+`,
 		       (SELECT COUNT(*) FROM tournament_entries te WHERE te.tournament_id = t.id AND te.status = 'registered')::int
 		FROM events e
@@ -158,7 +159,7 @@ func lockEntryTournament(ctx context.Context, tx pgx.Tx, slug string, userID str
 		FOR UPDATE OF t
 	`, strings.TrimSpace(slug), strings.TrimSpace(userID)).Scan(
 		&tournament.EventID, &tournament.ID, &tournament.Status, &tournament.Mode, &tournament.EntryType, &teamSize,
-		&tournament.Substitutes, &tournament.Cap, &tournament.ClosesAt, &tournament.Organizer, &tournament.EntryCount)
+		&tournament.Substitutes, &tournament.Cap, &tournament.ClosesAt, &tournament.EndsAt, &tournament.Organizer, &tournament.EntryCount)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return entryTournament{}, ErrTournamentNotFound
 	}

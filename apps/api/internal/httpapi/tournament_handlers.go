@@ -24,6 +24,9 @@ type eventTournaments interface {
 	DecideEntry(ctx context.Context, slug string, userID string, entryID string, approve bool) (eventstore.TournamentEntry, error)
 	ViewerEntry(ctx context.Context, slug string, userID string) (*eventstore.ViewerEntry, error)
 	RegistrationTeams(ctx context.Context, slug string, userID string) ([]eventstore.RegistrationTeam, error)
+	SetSeeds(ctx context.Context, slug string, userID string, entryIDs []string) ([]eventstore.TournamentEntry, error)
+	GenerateBracket(ctx context.Context, slug string, userID string) ([]eventstore.TournamentMatch, error)
+	ListMatches(ctx context.Context, slug string, userID string) ([]eventstore.TournamentMatch, error)
 }
 
 type tournamentRequest struct {
@@ -142,6 +145,10 @@ type registerRequest struct {
 
 type rosterRequest struct {
 	Roster []string `json:"roster"`
+}
+
+type seedsRequest struct {
+	EntryIDs []string `json:"entry_ids"`
 }
 
 // tournamentEventVisible answers for an event that is missing, or private and
@@ -298,4 +305,67 @@ func (r *Router) handleTournamentTeams(w http.ResponseWriter, req *http.Request,
 	}
 	w.Header().Set("Cache-Control", "private, no-store")
 	writeJSON(w, http.StatusOK, map[string]any{"teams": teams})
+}
+
+// handleTournamentSeeds answers PUT /events/{slug}/tournament/seeds, which
+// orders the registered entries from seed 1.
+func (r *Router) handleTournamentSeeds(w http.ResponseWriter, req *http.Request, slug string) {
+	userID, ok := r.tournamentUser(w, req)
+	if !ok {
+		return
+	}
+	var request seedsRequest
+	if !decodeJSON(w, req, &request) {
+		return
+	}
+	entries, err := r.tournaments.SetSeeds(req.Context(), slug, userID, request.EntryIDs)
+	if err != nil {
+		writeApplicationError(w, err, "tournament_seeding_failed")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"entries": entries})
+}
+
+// handleTournamentBracket answers POST /events/{slug}/tournament/bracket,
+// which generates or regenerates the bracket.
+func (r *Router) handleTournamentBracket(w http.ResponseWriter, req *http.Request, slug string) {
+	userID, ok := r.tournamentUser(w, req)
+	if !ok {
+		return
+	}
+	matches, err := r.tournaments.GenerateBracket(req.Context(), slug, userID)
+	if err != nil {
+		writeApplicationError(w, err, "tournament_bracket_failed")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"matches": matches})
+}
+
+// handleTournamentMatches answers GET /events/{slug}/tournament/matches: the
+// bracket, with solo entrants' names for signed-in viewers only.
+func (r *Router) handleTournamentMatches(w http.ResponseWriter, req *http.Request, slug string) {
+	if r.tournaments == nil {
+		writeError(w, http.StatusServiceUnavailable, "database_unavailable")
+		return
+	}
+	if !r.tournamentEventVisible(w, req, slug) {
+		return
+	}
+	userID, signedIn := auth.UserID(req.Context())
+	if !signedIn || !looksLikeUUID(userID) {
+		userID, signedIn = "", false
+	}
+	matches, err := r.tournaments.ListMatches(req.Context(), slug, userID)
+	if err != nil {
+		writeApplicationError(w, err, "tournament_matches_unavailable")
+		return
+	}
+	if !signedIn {
+		for index, match := range matches {
+			matches[index] = match.ForSignedOut()
+		}
+	}
+	w.Header().Set("Cache-Control", "private, no-store")
+	w.Header().Set("Vary", "Cookie, Authorization, X-CGN-Event-Unlock")
+	writeJSON(w, http.StatusOK, map[string]any{"matches": matches})
 }

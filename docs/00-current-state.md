@@ -62,8 +62,9 @@ Admin Console work continues under
   tournament (with an optional link to a bracket on another site) and moves
   its status at `/events/:slug/tournament`, and
   players and teams register and withdraw on the event page, or request to
-  join when the organizers approve each entry; brackets and
-  results are not built yet. The spec is in [01 — Product](./01-product.md#tournaments).
+  join when the organizers approve each entry. Organizers can seed entrants
+  and generate a single-elimination bracket through the API; results and the
+  bracket view are not built yet. The spec is in [01 — Product](./01-product.md#tournaments).
 - Product and technical questions that are intentionally unresolved are tracked
   in [08 — Open questions](./08-open-questions.md).
 
