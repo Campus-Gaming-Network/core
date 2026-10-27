@@ -336,7 +336,7 @@ Site admins see every entry in the Admin Console audit log.
 
 ### Tournament
 
-Settings and status are built (#263); entries and matches are not built yet.
+Settings and status (#263) and entries (#265) are built; matches are not built yet.
 [01 — Product](./01-product.md#tournaments) is the spec. A tournament belongs to exactly one event whose type is `tournament`, and an
 event has at most one tournament. Everything an event already has (title,
 slug, time, place, visibility, host, organizers, private access,

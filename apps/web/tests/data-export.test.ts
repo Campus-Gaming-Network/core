@@ -21,6 +21,7 @@ const exported = {
   events_organized: [],
   rsvps: [],
   interested_events: [],
+  tournament_entries: [],
   support_tickets: [],
   reports: [],
   notifications: [],

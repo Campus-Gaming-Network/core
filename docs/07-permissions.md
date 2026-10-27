@@ -159,8 +159,8 @@ see every entry. See [02 — Domain model](./02-domain-model.md#event-activity-l
 
 ## Tournament rules
 
-Settings and status are built (#263); the entry and result rules below are
-not built yet. [01 — Product](./01-product.md#tournaments) is the spec. A tournament belongs to
+Settings, status (#263), and entries (#265) are built; the seed, bracket, and
+result rules below are not built yet. [01 — Product](./01-product.md#tournaments) is the spec. A tournament belongs to
 one event, so it follows that event's visibility and access: a private event's
 tournament is hidden, as the event is, until the viewer unlocks it.
 

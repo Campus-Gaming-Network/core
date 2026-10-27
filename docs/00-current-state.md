@@ -59,8 +59,9 @@ Admin Console work continues under
   targets are recorded in [16 — Legal and data-lifecycle plan](./16-legal-and-data-lifecycle-plan.md)
   pending legal review.
 - Tournaments are being built: an organizer can attach settings and a status to
-  a tournament-type event through the API; registration, brackets, results, and
-  the web pages are not built yet. The spec is in [01 — Product](./01-product.md#tournaments).
+  a tournament-type event through the API (the settings form is #322), and
+  players and teams register and withdraw on the event page; brackets and
+  results are not built yet. The spec is in [01 — Product](./01-product.md#tournaments).
 - Product and technical questions that are intentionally unresolved are tracked
   in [08 — Open questions](./08-open-questions.md).
 
