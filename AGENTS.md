@@ -36,6 +36,16 @@
   files, build output, coverage output, and Playwright artifacts.
 - For Go code, also run `pnpm run fmt:api` because Oxfmt does not format Go.
 
+## Comments
+
+- Write a comment only to explain why, a non-obvious constraint, a workaround,
+  or a TODO/FIXME. Do not write comments that restate what the code does.
+- Leave out section labels, prop and field docs that repeat the name, route
+  handler docs that only name the route, and test narration of the next few
+  lines.
+- Exported Go declarations keep their doc comments (`docs/go-style.md`).
+- When a comment is part restatement and part reason, keep only the reason.
+
 ## TypeScript
 
 - Write TypeScript with real types wherever a file can be TypeScript. This

@@ -95,4 +95,6 @@ Run the checks for the area you changed.
 - A changed endpoint, field, permission, or rule is updated in the doc that
   owns it.
 - No secrets, credentials, or real personal data in code, fixtures, or logs.
+- New comments explain why or a non-obvious constraint; none restates the
+  code (AGENTS.md, "Comments").
 - Admin changes keep capability checks, CSRF protection, and audit writes.
