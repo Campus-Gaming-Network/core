@@ -446,8 +446,8 @@ function VisibleEventView({
         </div>
       </DetailHero>
       <div className="event-header">
-        {/* When, where, online, how a tournament is played, and who is
-            going, each said once, with the action that goes with it. */}
+        {/* When, where, online, and who is going, each said once, with the
+            action that goes with it. */}
         <ul className="event-facts" aria-label="When and where">
           <li>
             <CalendarDays aria-hidden="true" size={20} strokeWidth={1.75} />
