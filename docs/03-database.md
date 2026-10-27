@@ -290,10 +290,10 @@ tournaments
   substitutes (0 to team_size, team only), entrant_cap nullable (2-512),
   registration_closes_at nullable (NULL = the event's start),
   format (single_elimination|round_robin|swiss|double_elimination),
-  rules, prizes ('' when empty),
+  rules, prizes, bracket_url ('' when empty; bracket_url from `000047`),
   status (draft|registration_open|in_progress|completed|cancelled),
   created_at, updated_at
-  -- planned: format options, bracket_url, registration_mode (open|approval,
+  -- planned: format options, registration_mode (open|approval,
   -- default open; #324)
 
 tournament_entries

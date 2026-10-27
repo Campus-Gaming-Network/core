@@ -84,15 +84,25 @@ function form(fields: Record<string, string>) {
   return validateSettingsInput(data);
 }
 
-test("the settings form becomes the API's request: whole numbers, team fields for teams only, and the close time in the event's zone", () => {
+test("the settings form becomes the API's request: whole numbers, team fields for teams only, the close time in the event's zone, and an http bracket link", () => {
+  const solo = {
+    game_id: "game-1",
+    entry_type: "solo",
+    substitutes: 0,
+    format: "single_elimination",
+    rules: "Best of three.",
+    prizes: "",
+    bracket_url: "",
+  };
   assert.deepEqual(
     [
-      form({}),
+      form({ bracket_url: " https://challonge.com/spring " }),
       form({ entry_type: "solo", entrant_cap: "", registration_closes_at: "" }),
       form({ team_size: "1" }),
       form({ substitutes: "6" }),
       form({ entrant_cap: "513" }),
       form({ entry_type: "duo" }),
+      form({ bracket_url: "javascript:alert(1)" }),
     ],
     [
       {
@@ -100,32 +110,18 @@ test("the settings form becomes the API's request: whole numbers, team fields fo
         value: {
           slug: "spring-cup",
           settings: {
-            game_id: "game-1",
+            ...solo,
             entry_type: "team",
             team_size: 5,
             substitutes: 1,
             entrant_cap: 16,
             registration_closes_at: "2037-02-20T01:00:00.000Z",
-            format: "single_elimination",
-            rules: "Best of three.",
-            prizes: "",
+            bracket_url: "https://challonge.com/spring",
           },
         },
       },
-      {
-        valid: true,
-        value: {
-          slug: "spring-cup",
-          settings: {
-            game_id: "game-1",
-            entry_type: "solo",
-            substitutes: 0,
-            format: "single_elimination",
-            rules: "Best of three.",
-            prizes: "",
-          },
-        },
-      },
+      { valid: true, value: { slug: "spring-cup", settings: solo } },
+      { valid: false, slug: "spring-cup" },
       { valid: false, slug: "spring-cup" },
       { valid: false, slug: "spring-cup" },
       { valid: false, slug: "spring-cup" },
@@ -196,6 +192,7 @@ test("settings operations send the settings and status, and map each refusal to 
     format: "single_elimination" as const,
     rules: "",
     prizes: "",
+    bracket_url: "",
   };
 
   const outcomes = [

@@ -4,6 +4,7 @@ import {
   ArrowRight,
   CalendarDays,
   CalendarPlus,
+  ExternalLink,
   Flag,
   Globe,
   Lock,
@@ -107,6 +108,7 @@ import {
   getRegistrationTeams,
   getTournamentEntries,
 } from "../features/tournament-registration/tournament.functions";
+import { bracketHost } from "../features/tournament-registration/presentation";
 
 type EventRouteData = {
   event: EventDetailDTO;
@@ -328,6 +330,7 @@ function VisibleEventView({
   const renderedAt = useRenderedAt();
   const paymentURL = safeExternalEventUrl(event.payment_url);
   const onlineURL = safeExternalEventUrl(event.online_url);
+  const bracketURL = safeExternalEventUrl(event.tournament?.bracket_url);
   const primaryGame = event.games[0];
   const organizer = event.organizers?.[0];
   const cancelled = Boolean(event.cancelled_at);
@@ -764,6 +767,32 @@ function VisibleEventView({
             ]}
             title="Details"
           />
+
+          {/* A bracket hosted elsewhere is a link out, never embedded. */}
+          {bracketURL ? (
+            <Surface variant="card" aria-labelledby="event-bracket-title">
+              <h2 id="event-bracket-title">Bracket</h2>
+              <div className="detail-card-body">
+                <a
+                  className="link with-arrow"
+                  href={bracketURL}
+                  rel="noopener noreferrer"
+                  target="_blank"
+                >
+                  {`Bracket on ${bracketHost(bracketURL)}`}
+                  <ExternalLink
+                    aria-hidden="true"
+                    size={14}
+                    strokeWidth={2.25}
+                  />
+                  <span className="visually-hidden">
+                    {" "}
+                    (external site, opens in a new tab)
+                  </span>
+                </a>
+              </div>
+            </Surface>
+          ) : null}
 
           <Surface variant="card">
             <h2>Share</h2>
