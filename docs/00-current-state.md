@@ -58,8 +58,8 @@ Admin Console work continues under
   launch geography, provider, and sale/share decisions. Engineering retention
   targets are recorded in [16 — Legal and data-lifecycle plan](./16-legal-and-data-lifecycle-plan.md)
   pending legal review.
-- Tournaments are being built: an organizer can attach settings and a status to
-  a tournament-type event through the API (the settings form is #322), and
+- Tournaments are being built: an organizer sets up a tournament-type event's
+  tournament and moves its status at `/events/:slug/tournament`, and
   players and teams register and withdraw on the event page; brackets and
   results are not built yet. The spec is in [01 — Product](./01-product.md#tournaments).
 - Product and technical questions that are intentionally unresolved are tracked

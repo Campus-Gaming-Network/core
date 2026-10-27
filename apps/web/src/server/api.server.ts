@@ -9,7 +9,7 @@ export type Fetcher = (
 export type ApiRequestOptions<TSchema extends z.ZodType> = {
   path: string;
   responseSchema: TSchema;
-  method?: "GET" | "POST" | "PATCH" | "DELETE";
+  method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   body?: unknown;
   cookieHeader?: string;
   headers?: HeadersInit;
@@ -174,6 +174,10 @@ export function safeApiErrorMessage(error: unknown): string {
     invalid_credentials: "The email or password did not match.",
     invalid_private_password: "That event password did not match.",
     invalid_request: "Check the form fields and try again.",
+    tournament_event_type_required:
+      "This event has tournament settings, so its type stays Tournament. Delete the draft settings to change it.",
+    tournament_game_not_on_event:
+      "The tournament's game must stay on the event while it has settings.",
     private_event_locked: "Unlock that private event before RSVPing.",
     rate_limited: "Too many attempts. Please try again later.",
   };

@@ -231,6 +231,10 @@ test("a registered entrant can withdraw, an organizer can remove entries, and a 
   );
   assert.match(registered, /action="\/test\/remove"[^]*Remove Ada/);
   assert.match(registered, /This tournament is full\./);
+  assert.match(
+    registered,
+    /href="\/events\/campus-night\/tournament"[^>]*>Tournament settings</,
+  );
 });
 
 function client(fetcher: Fetcher) {

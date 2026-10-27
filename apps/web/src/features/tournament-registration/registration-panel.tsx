@@ -112,7 +112,11 @@ export function RegistrationPanel({
         </>
       ) : state === "not-open" ? (
         <p className="rsvp-note">
-          Registration is not open yet. Open it when the settings are ready.
+          Registration is not open yet. Open it in the{" "}
+          <Link to="/events/$slug/tournament" params={{ slug: event.slug }}>
+            tournament settings
+          </Link>{" "}
+          when they are ready.
         </p>
       ) : state === "closed" ? (
         <p className="rsvp-note">Registration is closed.</p>
