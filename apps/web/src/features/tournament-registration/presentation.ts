@@ -55,15 +55,45 @@ function registrationClosesAt(
   return closes < start ? closes : start;
 }
 
+/** "Solo", "Teams", or "Teams of 5, up to 1 substitute". */
+function tournamentEntryLabel(tournament: TournamentDTO): string {
+  if (tournament.entry_type === "solo") return "Solo";
+  const teams =
+    tournament.team_size === undefined
+      ? "Teams"
+      : `Teams of ${tournament.team_size}`;
+  return tournament.substitutes > 0
+    ? `${teams}, up to ${tournament.substitutes} ${tournament.substitutes === 1 ? "substitute" : "substitutes"}`
+    : teams;
+}
+
+/** The bracket formats by name, in the order they ship. */
+const tournamentFormatLabels: Record<string, string> = {
+  single_elimination: "Single elimination",
+  round_robin: "Round robin",
+  swiss: "Swiss",
+  double_elimination: "Double elimination",
+};
+
+/**
+ * How a tournament is played, for the event page's facts: "Single elimination
+ * · Teams of 5 · Valorant". The entrant count and cost have their own places
+ * on the page, so they are left out, as is a format or game the tournament
+ * does not state.
+ */
+export function tournamentFormatSummary(tournament: TournamentDTO): string {
+  return [
+    tournamentFormatLabels[tournament.format],
+    tournamentEntryLabel(tournament),
+    tournament.game.name,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
+
 /** "Solo · 3 of 16 registered" or "Teams of 5, up to 1 substitute · …". */
 export function tournamentSummary(tournament: TournamentDTO): string {
-  const entry =
-    tournament.entry_type === "solo"
-      ? "Solo"
-      : `Teams of ${tournament.team_size ?? 0}` +
-        (tournament.substitutes > 0
-          ? `, up to ${tournament.substitutes} ${tournament.substitutes === 1 ? "substitute" : "substitutes"}`
-          : "");
+  const entry = tournamentEntryLabel(tournament);
   const count =
     tournament.entrant_cap === undefined
       ? `${tournament.entry_count} registered`

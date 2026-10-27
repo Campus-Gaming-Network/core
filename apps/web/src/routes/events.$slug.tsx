@@ -11,6 +11,7 @@ import {
   Mail,
   MapPin,
   Star,
+  Trophy,
   Users,
 } from "lucide-react";
 import { type FormEvent, useRef, useState } from "react";
@@ -109,7 +110,10 @@ import {
   getRegistrationTeams,
   getTournamentEntries,
 } from "../features/tournament-registration/tournament.functions";
-import { bracketHost } from "../features/tournament-registration/presentation";
+import {
+  bracketHost,
+  tournamentFormatSummary,
+} from "../features/tournament-registration/presentation";
 import { TournamentTabs } from "../features/tournament-bracket/bracket-views";
 import { getTournamentMatches } from "../features/tournament-bracket/bracket.functions";
 import { bracketMayExist } from "../features/tournament-bracket/presentation";
@@ -442,8 +446,8 @@ function VisibleEventView({
         </div>
       </DetailHero>
       <div className="event-header">
-        {/* When, where, online, and who is going, each said once, with the
-            action that goes with it. */}
+        {/* When, where, online, how a tournament is played, and who is
+            going, each said once, with the action that goes with it. */}
         <ul className="event-facts" aria-label="When and where">
           <li>
             <CalendarDays aria-hidden="true" size={20} strokeWidth={1.75} />
@@ -517,6 +521,14 @@ function VisibleEventView({
                 ) : (
                   <small>The link is shared with people who are going.</small>
                 )}
+              </div>
+            </li>
+          ) : null}
+          {tournament ? (
+            <li>
+              <Trophy aria-hidden="true" size={20} strokeWidth={1.75} />
+              <div>
+                <strong>{tournamentFormatSummary(tournament)}</strong>
               </div>
             </li>
           ) : null}
