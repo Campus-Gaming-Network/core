@@ -12,6 +12,7 @@ import type {
 import {
   bracketHost,
   registrationState,
+  tournamentFormatSummary,
 } from "../src/features/tournament-registration/presentation.js";
 import {
   getRegistrationTeams,
@@ -199,6 +200,41 @@ test("an external bracket shows as a link out named for its site", async () => {
     ].map(bracketHost),
     ["Challonge", "Challonge", "Battlefy", "brackets.example"],
   );
+});
+
+test("the event page says how a tournament is played, leaving out what it does not state", async () => {
+  const tournaments: TournamentDTO[] = [
+    openSolo,
+    {
+      ...openSolo,
+      entry_type: "team",
+      team_size: 5,
+      substitutes: 1,
+      format: "round_robin",
+    },
+    {
+      ...openSolo,
+      game: { ...openSolo.game, name: "" },
+      entry_type: "team",
+      format: "",
+    },
+  ];
+  assert.deepEqual(tournaments.map(tournamentFormatSummary), [
+    "Single elimination · Solo · Chess",
+    "Round robin · Teams of 5, up to 1 substitute · Chess",
+    "Teams",
+  ]);
+
+  const tournamentMarkup = await renderEvent(tournamentEvent, false);
+  assert.match(
+    tournamentMarkup,
+    /<li><svg[^>]*lucide-trophy[^>]*>[^]*?<\/svg><div><strong>Single elimination · Solo · Chess<\/strong><\/div><\/li>/,
+  );
+  const plainMarkup = await renderEvent(
+    { ...routeEvent, visibility: "public" },
+    false,
+  );
+  assert.doesNotMatch(plainMarkup, /lucide-trophy/);
 });
 
 test("a signed-out visitor sees the registration panel, not RSVPs, and solo entrants by seed", async () => {
