@@ -440,18 +440,18 @@ event's detail response gains a `tournament` object once settings exist (a
 draft only for organizers). These routes are a sketch: each phase's issue
 fixes the request and response shapes.
 
-| Method | Path                                          | Notes                                                             |
-| ------ | --------------------------------------------- | ----------------------------------------------------------------- |
-| PUT    | `/events/:slug/tournament`                    | Organizers; create or update the settings                         |
-| DELETE | `/events/:slug/tournament`                    | Organizers; draft only                                            |
-| POST   | `/events/:slug/tournament/status`             | Organizers; move the status; invalid moves `409`                  |
-| GET    | `/events/:slug/tournament/entries`            | Entrant list; solo names for signed-in viewers only               |
-| POST   | `/events/:slug/tournament/entries`            | Register yourself, or a team with its roster (owner or captain)   |
-| PATCH  | `/events/:slug/tournament/entries/:id`        | Roster (team owner or captain) or seed (organizers), before start |
-| DELETE | `/events/:slug/tournament/entries/:id`        | Withdraw (entrant) or remove (organizers), before start           |
-| POST   | `/events/:slug/tournament/bracket`            | Organizers; generate or regenerate until the first result         |
-| GET    | `/events/:slug/tournament/matches`            | Bracket or rounds with results                                    |
-| POST   | `/events/:slug/tournament/matches/:id/result` | Organizers; enter or correct a result or a walkover               |
+| Method | Path                                          | Notes                                                                           |
+| ------ | --------------------------------------------- | ------------------------------------------------------------------------------- |
+| PUT    | `/events/:slug/tournament`                    | **(planned)** Organizers; create or update the settings                         |
+| DELETE | `/events/:slug/tournament`                    | **(planned)** Organizers; draft only                                            |
+| POST   | `/events/:slug/tournament/status`             | **(planned)** Organizers; move the status; invalid moves `409`                  |
+| GET    | `/events/:slug/tournament/entries`            | **(planned)** Entrant list; solo names for signed-in viewers only               |
+| POST   | `/events/:slug/tournament/entries`            | **(planned)** Register yourself, or a team with its roster (owner or captain)   |
+| PATCH  | `/events/:slug/tournament/entries/:id`        | **(planned)** Roster (team owner or captain) or seed (organizers), before start |
+| DELETE | `/events/:slug/tournament/entries/:id`        | **(planned)** Withdraw (entrant) or remove (organizers), before start           |
+| POST   | `/events/:slug/tournament/bracket`            | **(planned)** Organizers; generate or regenerate until the first result         |
+| GET    | `/events/:slug/tournament/matches`            | **(planned)** Bracket or rounds with results                                    |
+| POST   | `/events/:slug/tournament/matches/:id/result` | **(planned)** Organizers; enter or correct a result or a walkover               |
 
 ### Games
 
