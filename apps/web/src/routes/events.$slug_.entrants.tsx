@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { PageNoticeView } from "../components/page-notice-view";
 import { RouteErrorView, RoutePending } from "../components/route-boundaries";
 import {
   loadTournamentPage,
@@ -6,11 +7,22 @@ import {
   tournamentPageHead,
   type TournamentPageData,
 } from "../features/tournament-bracket/tournament-page";
-import type { TournamentEntriesResult } from "../features/tournament-registration/contracts";
+import {
+  tournamentNoticeKey,
+  tournamentNotices,
+  type TournamentEntriesResult,
+  type TournamentNotice,
+} from "../features/tournament-registration/contracts";
 import { EntrantsCard } from "../features/tournament-registration/registration-panel";
 import { getTournamentEntries } from "../features/tournament-registration/tournament.functions";
 
 export const Route = createFileRoute("/events/$slug_/entrants")({
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { tournament?: TournamentNotice } => {
+    const tournament = tournamentNoticeKey(search.tournament);
+    return tournament ? { tournament } : {};
+  },
   loader: async ({
     context,
     params,
@@ -45,6 +57,7 @@ export const Route = createFileRoute("/events/$slug_/entrants")({
 
 function EntrantsPage() {
   const data = Route.useLoaderData();
+  const search = Route.useSearch();
   const { event } = data;
   return (
     <TournamentPage
@@ -52,8 +65,16 @@ function EntrantsPage() {
       data={data}
       heading={event.tournament.entry_type === "team" ? "Teams" : "Players"}
     >
+      <PageNoticeView
+        notice={
+          search.tournament ? tournamentNotices[search.tournament] : undefined
+        }
+      />
       <EntrantsCard
-        canRemove={false}
+        canRemove={
+          Boolean(event.viewer_can_edit) &&
+          event.tournament.status === "registration_open"
+        }
         entries={data.entries}
         slug={event.slug}
         tournament={event.tournament}

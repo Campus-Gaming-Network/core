@@ -630,11 +630,8 @@ function VisibleEventView({
 
           {cancelled ? null : tournament ? (
             <EntrantsCard
-              canRemove={
-                Boolean(event.viewer_can_edit) &&
-                tournament.status === "registration_open"
-              }
               entries={entries ?? { status: "unavailable" }}
+              preview={peoplePreviewSize}
               slug={event.slug}
               tournament={tournament}
             />

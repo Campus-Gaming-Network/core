@@ -193,7 +193,11 @@ const registerInputSchema = z.object({
   team_slug: slugSchema.optional(),
   roster: z.array(z.string().trim().min(1).max(64)).max(40),
 });
-const entryInputSchema = z.object({ slug: slugSchema, entry_id: z.uuid() });
+const entryInputSchema = z.object({
+  slug: slugSchema,
+  entry_id: z.uuid(),
+  return_to: z.literal("entrants").optional(),
+});
 
 export type RegisterInput = z.output<typeof registerInputSchema>;
 export type TournamentEntryInput = z.output<typeof entryInputSchema>;
@@ -220,9 +224,11 @@ export function validateRegisterInput(
 export function validateEntryInput(
   input: object | FormData,
 ): ValidatedTournamentInput<TournamentEntryInput> {
+  const returnTo = inputValue(input, "return_to");
   return validated(entryInputSchema, {
     slug: inputValue(input, "slug"),
     entry_id: inputValue(input, "entry_id"),
+    ...(returnTo ? { return_to: returnTo } : {}),
   });
 }
 
