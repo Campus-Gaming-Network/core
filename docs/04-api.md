@@ -668,6 +668,7 @@ Inbox responses are `private, no-store`. `GET /me/notifications` returns `{"noti
 
 - `event.cancelled` to each active yes/maybe attendee when an event is cancelled, by its creator or because the creator deleted their account. The person cancelling gets none.
 - `event.organizer_joined` to an event's creator when someone accepts a [co-organizer invite](#co-organizers).
+- `tournament.entry_removed` to the solo player, or to the roster and the team's owner and captains, when an organizer removes a [tournament entry](#tournaments).
 - `team.member_joined` to a team's owner when someone joins the team. Joining a team one already belongs to sends none.
 - `team.ownership_transferred` to the member a team's owner makes the new owner.
 
