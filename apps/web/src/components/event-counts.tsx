@@ -10,10 +10,8 @@ type EventCountsEvent = z.output<typeof eventFillDtoSchema> & {
 };
 
 /**
- * How many people are going, against the capacity when there is one, for an
- * event row. A tournament counts its registered entries against its cap
- * instead, as its page does. "0 interested" says nothing useful, so it is
- * left out.
+ * A tournament counts entries rather than RSVPs to match its event page.
+ * "0 interested" says nothing useful, so it is left out.
  */
 export function EventCounts({ event }: { event: EventCountsEvent }) {
   const entries = event.tournament_entries;

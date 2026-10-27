@@ -153,11 +153,7 @@ export const eventDetailDtoSchema = z.union([
   lockedEventDtoSchema,
 ]);
 
-/**
- * How full an event is, for list rows: its capacity, and its tournament's
- * registered entries against the entrant cap. A tournament past draft takes
- * the place of the capacity.
- */
+/** A tournament past draft takes the place of the capacity. */
 export const eventFillDtoSchema = z.object({
   capacity: z.number().int().positive().optional(),
   tournament_entries: z

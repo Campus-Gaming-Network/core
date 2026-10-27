@@ -279,8 +279,6 @@ func scanEventForUser(scanner eventScanner, now time.Time) (Event, error) {
 	return event, nil
 }
 
-// tournamentEntries is how full the event's tournament is, or nil when the
-// event has none past draft.
 func tournamentEntries(entryType sql.NullString, entrantCap sql.NullInt32, entryCount sql.NullInt32) *TournamentEntries {
 	if !entryType.Valid {
 		return nil
