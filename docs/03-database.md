@@ -293,12 +293,15 @@ tournaments
   rules, prizes ('' when empty),
   status (draft|registration_open|in_progress|completed|cancelled),
   created_at, updated_at
-  -- planned: format options, bracket_url
+  -- planned: format options, bracket_url, registration_mode (open|approval,
+  -- default open; #324)
 
 tournament_entries
   id, tournament_id, user_id nullable, team_id nullable (exactly one set),
   registered_by_user_id, status (registered|withdrawn|removed), seed nullable,
   registered_at, created_at, updated_at
+  -- planned (#324): status pending|declined for approval mode; a pending
+  -- entry is active for the uniqueness rules and keeps its roster rows
   -- unique (tournament_id, user_id) and (tournament_id, team_id): one row per
   -- entrant, reused when a withdrawn entrant registers again
 

@@ -350,6 +350,7 @@ cancellation, activity log) stays on the event.
 | Team size           | Players a team fields, 2 to 20 (team entry only); fixed once an entry exists                                                     |
 | Substitutes         | Extra roster places beyond the team size, from 0 up to the team size                                                             |
 | Entrant cap         | Optional, 2 to 512; counts entries (teams in a team tournament); no waitlist                                                     |
+| Registration mode   | `open` (the default) or `approval`, where an entry starts as a request organizers approve (#324, not built yet)                  |
 | Registration closes | Optional instant, no later than the event's start; defaults to the event's start                                                 |
 | Format              | `single_elimination`, later `round_robin`, `swiss`, and `double_elimination`; fixed once an entry exists                         |
 | Format options      | Swiss round count; draws allowed (round robin and Swiss); grand-final reset (double elimination, on by default)                  |
@@ -359,13 +360,13 @@ cancellation, activity log) stays on the event.
 
 **Tournament entry**
 
-| Field / concept | Notes                                                                                                   |
-| --------------- | ------------------------------------------------------------------------------------------------------- |
-| Entrant         | A user (solo) or a team (team entry), never both                                                        |
-| Roster          | Team entry only: team members, from the team size up to the team size plus substitutes                  |
-| Registered by   | The solo player, or the team owner or captain who registered the team                                   |
-| Status          | `registered`, `withdrawn` (by the entrant, before the start), or `removed` (by an organizer, before it) |
-| Seed            | Set by organizers; registration order until then                                                        |
+| Field / concept | Notes                                                                                                                                                                                                       |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Entrant         | A user (solo) or a team (team entry), never both                                                                                                                                                            |
+| Roster          | Team entry only: team members, from the team size up to the team size plus substitutes                                                                                                                      |
+| Registered by   | The solo player, or the team owner or captain who registered the team                                                                                                                                       |
+| Status          | `registered`, `withdrawn` (by the entrant, before the start), or `removed` (by an organizer, before it); in approval mode (#324, not built yet) also `pending` (a request) and `declined` (by an organizer) |
+| Seed            | Set by organizers; registration (or approval) order until then                                                                                                                                              |
 
 **Match**
 
@@ -380,9 +381,16 @@ cancellation, activity log) stays on the event.
 
 **Rules**
 
-- An entry is active while `registered`. A user is in at most one active
+- An entry is active while `registered` (or `pending`, in approval mode). A user is in at most one active
   entry of a tournament, solo or on one roster, and a team has at most one
 - A removed entrant cannot register again for that tournament
+- In approval mode (#324, not built yet) an entry starts `pending`. A pending
+  entry counts as the entrant's one entry and blocks moving back to draft,
+  but holds no spot: it is not listed, has no seed, and does not count toward
+  the cap. Organizers approve or decline it until the start; approving stops
+  at the cap. A declined entrant may request again. Starting the tournament
+  declines every pending entry, and the mode goes back to `open` only while
+  none is pending
 - Rosters freeze when the tournament starts
 - The bracket or pairings are generated from active entries in seed order and
   may be regenerated until the first result exists

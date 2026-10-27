@@ -348,6 +348,23 @@ to an event instead of repeating the event's own facts.
   size plus the substitutes. The owner or a captain can change the roster
   until the tournament starts. A person can be in only one entry of a
   tournament, solo or on one roster
+- **Approval** (#324): an organizer can set registration to **Organizer
+  approval** instead of **Open** (the default), for a paid, invite-only, or
+  vetted bracket. Register then reads **Request to join**, and the entry
+  starts as a pending request. A pending request holds no spot: it is not in
+  the entrant list, has no seed, and does not count toward the cap, but it
+  does count as the person's or team's one entry. Organizers see the requests
+  on the event page and approve or decline each one until the tournament
+  starts, even after registration closes; approving takes a spot, so it stops
+  at the cap, and seeds follow approval order. The requester can cancel a
+  pending request. A declined requester may ask again, which goes to the end
+  of the queue; removing the request instead blocks them for good, as removing
+  an entry does. Starting the tournament declines every request still
+  pending. Registration goes back to Open only once no request is pending
+- **Paid tournaments:** CGN still takes no money. When the event's cost is
+  paid, the registration form shows its payment note and payment link, so in
+  an approval tournament an entrant pays the organizer off-site and the
+  organizer approves the request once the payment arrives
 - **Cap:** counts entries, so teams in a team tournament. A full tournament
   takes no more entries; there is no waitlist
 - **Eligibility:** as with RSVP, the event's audience (open, collegiate,
@@ -406,7 +423,10 @@ to an event instead of repeating the event's own facts.
   a shrunken bracket
 - **Notices:** entrants get an in-app notice when an organizer removes their
   entry, when the tournament starts, and when it is cancelled; cancelling the
-  event also emails them, as it emails RSVPs
+  event also emails them (pending requesters included), as it emails RSVPs.
+  In an approval tournament, the event's creator and co-organizers get a
+  notice for each new request, and the requester gets one when the request
+  is approved or declined
 - **Not in the first version:** check-in, entry fees on CGN (an event's cost
   and payment note still apply), self-reported results, match chat, streaming
   embeds, and tournament series or leagues across events
