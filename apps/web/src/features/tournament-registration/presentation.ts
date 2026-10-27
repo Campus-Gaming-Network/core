@@ -4,6 +4,7 @@ import type { TournamentDTO, TournamentEntryDTO } from "./contracts.js";
 /** What the registration panel shows the viewer. */
 export type RegistrationState =
   | "registered"
+  | "requested"
   | "not-open"
   | "closed"
   | "full"
@@ -23,7 +24,11 @@ export function registrationState(
     startsAt,
   }: { authenticated: boolean; now: Date; startsAt: string },
 ): RegistrationState {
-  if (tournament.viewer_entry) return "registered";
+  if (tournament.viewer_entry) {
+    return tournament.viewer_entry.status === "pending"
+      ? "requested"
+      : "registered";
+  }
   if (tournament.status === "draft") return "not-open";
   if (
     tournament.status !== "registration_open" ||

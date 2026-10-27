@@ -962,6 +962,8 @@ func (r *Router) registerEventRoutes() {
 	r.mux.HandleFunc("/events/{slug}/tournament/status", r.eventRoute([]string{http.MethodPost}, true, r.handleTournamentStatus))
 	r.mux.HandleFunc("/events/{slug}/tournament/entries", r.eventRoute([]string{http.MethodGet, http.MethodPost}, true, r.handleTournamentEntries))
 	r.mux.HandleFunc("/events/{slug}/tournament/entries/{id}", r.eventRoute([]string{http.MethodPatch, http.MethodDelete}, true, r.handleTournamentEntry))
+	r.mux.HandleFunc("/events/{slug}/tournament/entries/{id}/approve", r.eventRoute([]string{http.MethodPost}, true, r.handleTournamentDecision(true)))
+	r.mux.HandleFunc("/events/{slug}/tournament/entries/{id}/decline", r.eventRoute([]string{http.MethodPost}, true, r.handleTournamentDecision(false)))
 	r.mux.HandleFunc("/events/{slug}/tournament/my-teams", r.eventRoute([]string{http.MethodGet}, true, r.handleTournamentTeams))
 	r.mux.HandleFunc("/events/{slug}/activity", r.eventRoute([]string{http.MethodGet}, true, r.handleEventActivity))
 	r.mux.HandleFunc("/events/{slug}/attendees", r.eventRoute(nil, true, r.handleEventAttendees))

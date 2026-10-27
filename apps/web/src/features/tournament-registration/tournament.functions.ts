@@ -14,6 +14,7 @@ import {
   type ValidatedTournamentInput,
 } from "./contracts.js";
 import {
+  decideEntryOperation,
   deleteEntryOperation,
   eventPageWithNotice,
   registerOperation,
@@ -75,6 +76,28 @@ export const removeTournamentEntry = createServerFn({
   .handler(({ data }) =>
     runChange(data, (value, request) =>
       deleteEntryOperation(value, "removed", request),
+    ),
+  );
+
+export const approveTournamentEntry = createServerFn({
+  method: "POST",
+  strict: { input: false },
+})
+  .validator((input: object | FormData) => validateEntryInput(input))
+  .handler(({ data }) =>
+    runChange(data, (value, request) =>
+      decideEntryOperation(value, "approved", request),
+    ),
+  );
+
+export const declineTournamentEntry = createServerFn({
+  method: "POST",
+  strict: { input: false },
+})
+  .validator((input: object | FormData) => validateEntryInput(input))
+  .handler(({ data }) =>
+    runChange(data, (value, request) =>
+      decideEntryOperation(value, "declined", request),
     ),
   );
 

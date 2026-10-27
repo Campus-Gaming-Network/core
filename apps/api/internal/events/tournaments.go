@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/apperror"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/notifications"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/safety"
 	"github.com/jackc/pgx/v5"
 )
@@ -21,6 +22,11 @@ const (
 
 	// FormatSingleElimination is the only format so far.
 	FormatSingleElimination = "single_elimination"
+
+	// RegistrationOpenMode lets anyone register; RegistrationApproval makes
+	// each entry a request organizers approve or decline.
+	RegistrationOpenMode = "open"
+	RegistrationApproval = "approval"
 
 	TournamentDraft            = "draft"
 	TournamentRegistrationOpen = "registration_open"
@@ -82,10 +88,13 @@ type Tournament struct {
 	Rules                string     `json:"rules"`
 	Prizes               string     `json:"prizes"`
 	// BracketURL links a bracket hosted on another site; empty is none.
-	BracketURL string `json:"bracket_url,omitempty"`
-	Status     string `json:"status"`
-	// EntryCount counts the active entries.
+	BracketURL       string `json:"bracket_url,omitempty"`
+	RegistrationMode string `json:"registration_mode"`
+	Status           string `json:"status"`
+	// EntryCount counts the registered entries.
 	EntryCount int `json:"entry_count"`
+	// RequestCount counts the pending requests; only organizers see it.
+	RequestCount int `json:"request_count,omitempty"`
 	// ViewerEntry is the signed-in viewer's own entry, set by the event
 	// page's handler.
 	ViewerEntry *ViewerEntry `json:"viewer_entry,omitempty"`
@@ -106,6 +115,8 @@ type TournamentInput struct {
 	Rules                string
 	Prizes               string
 	BracketURL           string
+	// RegistrationMode is open (the default when empty) or approval.
+	RegistrationMode string
 }
 
 // tournamentTransitions lists the statuses each status may move to.
@@ -139,6 +150,9 @@ func ValidateTournamentInput(input TournamentInput) error {
 	}
 	if input.EntrantCap != nil && (*input.EntrantCap < MinimumEntrantCap || *input.EntrantCap > MaximumEntrantCap) {
 		return apperror.Validation(fmt.Sprintf("entrant cap must be from %d to %d", MinimumEntrantCap, MaximumEntrantCap))
+	}
+	if input.RegistrationMode != RegistrationOpenMode && input.RegistrationMode != RegistrationApproval {
+		return apperror.Validation("registration mode must be open or approval")
 	}
 	if input.Format != FormatSingleElimination {
 		return apperror.Validation("format must be single_elimination")
@@ -212,6 +226,9 @@ func (r *PostgresRepository) PutTournament(ctx context.Context, input Tournament
 	input.Rules = strings.TrimSpace(input.Rules)
 	input.Prizes = strings.TrimSpace(input.Prizes)
 	input.BracketURL = strings.TrimSpace(input.BracketURL)
+	if input.RegistrationMode == "" {
+		input.RegistrationMode = RegistrationOpenMode
+	}
 	if input.Format == "" {
 		input.Format = FormatSingleElimination
 	}
@@ -269,8 +286,11 @@ func (r *PostgresRepository) PutTournament(ctx context.Context, input Tournament
 		if err != nil {
 			return Tournament{}, false, err
 		}
-		if changed && entries > 0 {
+		if changed && entries.Registered+entries.Pending > 0 {
 			return Tournament{}, false, ErrTournamentHasEntries
+		}
+		if input.RegistrationMode == RegistrationOpenMode && entries.Pending > 0 {
+			return Tournament{}, false, ErrTournamentHasRequests
 		}
 	}
 	if created {
@@ -295,8 +315,8 @@ func (r *PostgresRepository) PutTournament(ctx context.Context, input Tournament
 
 	if _, err := tx.Exec(ctx, `
 		INSERT INTO tournaments (event_id, game_id, entry_type, team_size, substitutes, entrant_cap,
-		                         registration_closes_at, format, rules, prizes, bracket_url)
-		VALUES ($1::uuid, $2::uuid, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+		                         registration_closes_at, format, rules, prizes, bracket_url, registration_mode)
+		VALUES ($1::uuid, $2::uuid, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 		ON CONFLICT (event_id) DO UPDATE
 		SET game_id = EXCLUDED.game_id,
 		    entry_type = EXCLUDED.entry_type,
@@ -307,10 +327,11 @@ func (r *PostgresRepository) PutTournament(ctx context.Context, input Tournament
 		    format = EXCLUDED.format,
 		    rules = EXCLUDED.rules,
 		    prizes = EXCLUDED.prizes,
-		    bracket_url = EXCLUDED.bracket_url
+		    bracket_url = EXCLUDED.bracket_url,
+		    registration_mode = EXCLUDED.registration_mode
 	`, event.ID, strings.TrimSpace(input.GameID), input.EntryType, nullableInt(input.TeamSize),
 		input.Substitutes, nullableInt(input.EntrantCap), input.RegistrationClosesAt, input.Format,
-		input.Rules, input.Prizes, input.BracketURL); err != nil {
+		input.Rules, input.Prizes, input.BracketURL, input.RegistrationMode); err != nil {
 		return Tournament{}, false, fmt.Errorf("put tournament: %w", err)
 	}
 	tournament, err := loadTournament(ctx, tx, event.ID)
@@ -379,11 +400,16 @@ func (r *PostgresRepository) SetTournamentStatus(ctx context.Context, slug strin
 		if err != nil {
 			return Tournament{}, err
 		}
-		if status == TournamentDraft && entries > 0 {
+		if status == TournamentDraft && entries.Registered+entries.Pending > 0 {
 			return Tournament{}, ErrTournamentHasEntries
 		}
-		if status == TournamentInProgress && entries < 2 {
+		if status == TournamentInProgress && entries.Registered < 2 {
 			return Tournament{}, ErrTournamentNeedsEntrants
+		}
+		if (status == TournamentInProgress || status == TournamentCancelled) && entries.Pending > 0 {
+			if err := declinePending(ctx, tx, event.ID, status); err != nil {
+				return Tournament{}, err
+			}
 		}
 		if _, err := tx.Exec(ctx, `
 			UPDATE tournaments SET status = $2 WHERE event_id = $1::uuid
@@ -413,15 +439,20 @@ func loadTournament(ctx context.Context, loader tournamentLoader, eventID string
 	err := loader.QueryRow(ctx, `
 		SELECT g.id::text, g.name, g.slug, g.is_active AND EXISTS (SELECT 1 FROM game_covers gc WHERE gc.game_id = g.id),
 		       t.entry_type, t.team_size, t.substitutes, t.entrant_cap, t.registration_closes_at,
-		       t.format, t.rules, t.prizes, t.bracket_url, t.status,
-		       (SELECT COUNT(*) FROM tournament_entries te WHERE te.tournament_id = t.id AND te.status = 'registered')::int
+		       t.format, t.rules, t.prizes, t.bracket_url, t.registration_mode, t.status,
+		       c.registered, c.pending
 		FROM tournaments t
 		JOIN games g ON g.id = t.game_id
+		CROSS JOIN LATERAL (
+		    SELECT COUNT(*) FILTER (WHERE te.status = 'registered')::int AS registered,
+		           COUNT(*) FILTER (WHERE te.status = 'pending')::int AS pending
+		    FROM tournament_entries te WHERE te.tournament_id = t.id) c
 		WHERE t.event_id = $1::uuid
 	`, eventID).Scan(
 		&tournament.Game.ID, &tournament.Game.Name, &tournament.Game.Slug, &tournament.Game.HasCover,
 		&tournament.EntryType, &teamSize, &tournament.Substitutes, &entrantCap, &tournament.RegistrationClosesAt,
-		&tournament.Format, &tournament.Rules, &tournament.Prizes, &tournament.BracketURL, &tournament.Status, &tournament.EntryCount)
+		&tournament.Format, &tournament.Rules, &tournament.Prizes, &tournament.BracketURL, &tournament.RegistrationMode, &tournament.Status,
+		&tournament.EntryCount, &tournament.RequestCount)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
 	}
@@ -461,10 +492,45 @@ func checkTournamentEdit(ctx context.Context, tx pgx.Tx, eventID string, eventTy
 	return nil
 }
 
-// HideDraftTournament removes a draft tournament unless the viewer can edit
-// the event. Call it after the viewer fields are set.
+// HideDraftTournament removes a draft tournament, and a tournament's request
+// count, unless the viewer can edit the event. Call it after the viewer
+// fields are set.
 func (e *Event) HideDraftTournament() {
-	if e.Tournament != nil && e.Tournament.Status == TournamentDraft && !e.ViewerCanEdit {
-		e.Tournament = nil
+	if e.Tournament == nil || e.ViewerCanEdit {
+		return
 	}
+	if e.Tournament.Status == TournamentDraft {
+		e.Tournament = nil
+		return
+	}
+	e.Tournament.RequestCount = 0
+}
+
+// declinePending declines the pending requests of the event's tournament as
+// it starts or is cancelled, and tells each requester.
+func declinePending(ctx context.Context, tx pgx.Tx, eventID string, status string) error {
+	var tournamentID string
+	var pending []string
+	if err := tx.QueryRow(ctx, `
+		SELECT t.id::text, COALESCE(array_agg(te.id::text) FILTER (WHERE te.id IS NOT NULL), '{}')
+		FROM tournaments t
+		LEFT JOIN tournament_entries te ON te.tournament_id = t.id AND te.status = 'pending'
+		WHERE t.event_id = $1::uuid
+		GROUP BY t.id
+	`, eventID).Scan(&tournamentID, &pending); err != nil {
+		return fmt.Errorf("list pending requests: %w", err)
+	}
+	recipients, err := entryRecipients(ctx, tx, pending...)
+	if err != nil {
+		return err
+	}
+	if err := declineEntries(ctx, tx, tournamentID, ""); err != nil {
+		return err
+	}
+	body := "%s started before your request to join was approved."
+	if status == TournamentCancelled {
+		body = "%s was cancelled, so your request to join was declined."
+	}
+	return notifyEntrants(ctx, tx, eventID, recipients, notifications.TypeTournamentEntryDeclined,
+		"Tournament request declined", body)
 }

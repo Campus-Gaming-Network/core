@@ -17,6 +17,9 @@ const playerSchema = z.object({
   name: z.string(),
 });
 
+export const registrationModeSchema = z.enum(["open", "approval"]);
+const entryStatusSchema = z.enum(["registered", "pending"]);
+
 export const tournamentStatusSchema = z.enum([
   "draft",
   "registration_open",
@@ -38,12 +41,17 @@ export const tournamentDtoSchema = z.object({
   prizes: z.string(),
   /** A bracket hosted on another site. */
   bracket_url: z.string().optional(),
+  registration_mode: registrationModeSchema,
   status: tournamentStatusSchema,
   entry_count: nonNegativeIntegerSchema,
+  /** Pending requests in an approval tournament; organizers only. */
+  request_count: nonNegativeIntegerSchema.optional(),
   /** The signed-in viewer's own entry, alone or with a team. */
   viewer_entry: z
     .object({
       id: z.uuid(),
+      /** Pending while an organizer has yet to approve the request. */
+      status: entryStatusSchema,
       team: teamSummarySchema.optional(),
       /** The solo player, or the team's owner or a captain. */
       can_manage: z.boolean(),
@@ -53,12 +61,14 @@ export const tournamentDtoSchema = z.object({
 export type TournamentDTO = z.output<typeof tournamentDtoSchema>;
 
 /**
- * An active entry. A signed-out viewer receives a solo entry with no player
- * and a team entry with no roster.
+ * A registered entry, or a pending request (with no seed) as organizers see
+ * it. A signed-out viewer receives a solo entry with no player and a team
+ * entry with no roster.
  */
 export const tournamentEntryDtoSchema = z.object({
   id: z.uuid(),
-  seed: z.number().int().positive(),
+  status: entryStatusSchema,
+  seed: z.number().int().positive().optional(),
   player: playerSchema.optional(),
   team: teamSummarySchema.optional(),
   roster: z.array(playerSchema).optional(),
@@ -66,6 +76,8 @@ export const tournamentEntryDtoSchema = z.object({
 });
 export const tournamentEntriesResponseDtoSchema = z.object({
   entries: z.array(tournamentEntryDtoSchema),
+  /** Pending requests in request order; organizers only. */
+  requests: z.array(tournamentEntryDtoSchema).optional(),
 });
 export type TournamentEntryDTO = z.output<typeof tournamentEntryDtoSchema>;
 
@@ -87,6 +99,15 @@ export type TournamentListResult<T> =
   | { status: "ready"; items: T[] }
   | { status: "unavailable" };
 
+/** The entrant list, with the pending requests for organizers. */
+export type TournamentEntriesResult =
+  | {
+      status: "ready";
+      items: TournamentEntryDTO[];
+      requests: TournamentEntryDTO[];
+    }
+  | { status: "unavailable" };
+
 /** Where a registration change returns, with a notice naming the outcome. */
 export type TournamentMutationResult = {
   status: "success";
@@ -96,11 +117,22 @@ export type TournamentMutationResult = {
 /** The notices the event page's registration panel can receive. */
 export const tournamentNotices = {
   registered: { message: "You're registered.", severity: "success" },
+  requested: {
+    message:
+      "Request sent. The organizers will approve or decline it, and you'll get a notice either way.",
+    severity: "success",
+  },
   withdrawn: {
-    message: "Your entry was withdrawn.",
+    message: "Your entry or request was withdrawn.",
     severity: "success",
   },
   removed: { message: "Entry removed.", severity: "success" },
+  approved: { message: "Request approved.", severity: "success" },
+  declined: { message: "Request declined.", severity: "success" },
+  "not-pending": {
+    message: "That request was already approved, declined, or withdrawn.",
+    severity: "danger",
+  },
   closed: {
     message: "Registration for this tournament is closed.",
     severity: "danger",
@@ -156,6 +188,7 @@ export const tournamentErrorNotices: Record<string, TournamentNotice> = {
   tournament_team_not_allowed: "team-not-allowed",
   email_verification_required: "verify-email",
   tournament_started: "started",
+  tournament_entry_not_pending: "not-pending",
 };
 
 /** The event page's `tournament` search value, if it names a notice. */

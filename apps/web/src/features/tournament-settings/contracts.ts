@@ -60,7 +60,12 @@ export const settingsNotices = {
   },
   "has-entries": {
     message:
-      "Someone has registered, so the entry type, team size, and format are fixed and the tournament can't go back to draft.",
+      "Someone has registered or asked to, so the entry type, team size, and format are fixed and the tournament can't go back to draft.",
+    severity: "danger",
+  },
+  "has-requests": {
+    message:
+      "Approve or decline the pending requests before switching registration back to open.",
     severity: "danger",
   },
   "needs-entrants": {
@@ -93,6 +98,7 @@ export const settingsErrorNotices: Record<string, SettingsNotice> = {
   invalid_tournament_status: "status",
   tournament_has_entries: "has-entries",
   tournament_needs_entrants: "needs-entrants",
+  tournament_has_requests: "has-requests",
   not_event_organizer: "forbidden",
   invalid_request: "invalid",
 };
@@ -114,6 +120,7 @@ export type TournamentSettingsPayload = {
   rules: string;
   prizes: string;
   bracket_url: string;
+  registration_mode: "open" | "approval";
 };
 
 export type SettingsInput = {
@@ -129,6 +136,7 @@ const settingsFormSchema = z
     slug: slugSchema,
     game_id: z.string().trim().min(1).max(64),
     entry_type: z.enum(["solo", "team"]),
+    registration_mode: z.enum(["open", "approval"]),
     team_size: z.string(),
     substitutes: z.string(),
     entrant_cap: z.string(),
@@ -187,6 +195,7 @@ const settingsFormSchema = z
         rules: form.rules.trim(),
         prizes: form.prizes.trim(),
         bracket_url: form.bracket_url,
+        registration_mode: form.registration_mode,
       },
     };
   });
@@ -211,6 +220,7 @@ export function validateSettingsInput(
     slug: inputValue(input, "slug"),
     game_id: inputValue(input, "game_id"),
     entry_type: inputValue(input, "entry_type"),
+    registration_mode: inputValue(input, "registration_mode") || "open",
     team_size: inputValue(input, "team_size"),
     substitutes: inputValue(input, "substitutes"),
     entrant_cap: inputValue(input, "entrant_cap"),

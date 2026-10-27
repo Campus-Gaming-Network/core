@@ -10,10 +10,12 @@ import {
 import { PageNoticeView } from "../../components/page-notice-view";
 import { Surface } from "../../components/surface";
 import type { EventDTO } from "../event-slice/contracts";
+import { safeExternalEventUrl } from "../event-slice/presentation";
 import {
   tournamentNotices,
   type RegistrationTeamDTO,
   type TournamentDTO,
+  type TournamentEntriesResult,
   type TournamentEntryDTO,
   type TournamentListResult,
   type TournamentMutationResult,
@@ -27,6 +29,8 @@ import {
   tournamentSummary,
 } from "./presentation";
 import {
+  approveTournamentEntry,
+  declineTournamentEntry,
   registerForTournament,
   removeTournamentEntry,
   withdrawTournamentEntry,
@@ -67,6 +71,8 @@ export function RegistrationPanel({
     startsAt: event.starts_at,
   });
   const entry = tournament.viewer_entry;
+  const approval = tournament.registration_mode === "approval";
+  const paymentURL = safeExternalEventUrl(event.payment_url);
 
   return (
     <section
@@ -75,7 +81,13 @@ export function RegistrationPanel({
       id="registration"
     >
       <h2 id="event-registration-heading">
-        {state === "registered" ? "You're in" : "Register"}
+        {state === "registered"
+          ? "You're in"
+          : state === "requested"
+            ? "Request sent"
+            : approval
+              ? "Request to join"
+              : "Register"}
       </h2>
       <p className="rsvp-note">{tournamentSummary(tournament)}</p>
       <PageNoticeView notice={notice ? tournamentNotices[notice] : undefined} />
@@ -110,6 +122,33 @@ export function RegistrationPanel({
             />
           ) : null}
         </>
+      ) : state === "requested" && entry ? (
+        <>
+          <p>
+            {entry.team ? (
+              <>
+                Your request for{" "}
+                <Link to="/teams/$slug" params={{ slug: entry.team.slug }}>
+                  {entry.team.name}
+                </Link>{" "}
+                is waiting for the organizers.
+              </>
+            ) : (
+              "Your request is waiting for the organizers."
+            )}{" "}
+            You hold no spot until they approve it.
+          </p>
+          {entry.can_manage && tournament.status === "registration_open" ? (
+            <EntryButton
+              action={withdrawTournamentEntry}
+              entryID={entry.id}
+              label="Cancel request"
+              pending={mutation.pending}
+              run={run}
+              slug={event.slug}
+            />
+          ) : null}
+        </>
       ) : state === "not-open" ? (
         <p className="rsvp-note">
           Registration is not open yet. Open it in the{" "}
@@ -130,14 +169,48 @@ export function RegistrationPanel({
         >
           Log in to register
         </ButtonLink>
-      ) : tournament.entry_type === "solo" ? (
+      ) : (
+        <>
+          {approval ? (
+            <p className="form-help">
+              The organizers approve each entry. Sending a request holds no spot
+              until they do.
+            </p>
+          ) : null}
+          {event.cost === "paid" ? (
+            <p className="form-help">
+              {event.payment_note || "This tournament has an entry fee."}
+              {paymentURL ? (
+                <>
+                  {" "}
+                  <a
+                    href={paymentURL}
+                    rel="noopener noreferrer"
+                    target="_blank"
+                  >
+                    Payment link
+                    <span className="visually-hidden">
+                      {" "}
+                      (opens in a new tab)
+                    </span>
+                  </a>
+                </>
+              ) : null}{" "}
+              Payment happens off CGN.
+            </p>
+          ) : null}
+        </>
+      )}
+      {state !== "open" ? null : tournament.entry_type === "solo" ? (
         <SoloRegistration
+          approval={approval}
           pending={mutation.pending}
           run={run}
           slug={event.slug}
         />
       ) : (
         <TeamRegistration
+          approval={approval}
           pending={mutation.pending}
           run={run}
           slug={event.slug}
@@ -159,10 +232,12 @@ export function RegistrationPanel({
 }
 
 function SoloRegistration({
+  approval,
   pending,
   run,
   slug,
 }: {
+  approval: boolean;
   pending: boolean;
   run: Run;
   slug: string;
@@ -187,7 +262,7 @@ function SoloRegistration({
       </p>
       <div className="form-actions">
         <Button disabled={pending} type="submit">
-          Register
+          {approval ? "Request to join" : "Register"}
         </Button>
       </div>
     </form>
@@ -195,12 +270,14 @@ function SoloRegistration({
 }
 
 function TeamRegistration({
+  approval,
   pending,
   run,
   slug,
   teams,
   tournament,
 }: {
+  approval: boolean;
   pending: boolean;
   run: Run;
   slug: string;
@@ -269,7 +346,9 @@ function TeamRegistration({
           </p>
           <div className="form-actions">
             <Button disabled={pending} type="submit">
-              {`Register ${team.name}`}
+              {approval
+                ? `Request to join with ${team.name}`
+                : `Register ${team.name}`}
             </Button>
           </div>
         </form>
@@ -285,6 +364,7 @@ function EntryButton({
   pending,
   run,
   slug,
+  variant = "secondary",
 }: {
   action: typeof withdrawTournamentEntry;
   entryID: string;
@@ -292,6 +372,7 @@ function EntryButton({
   pending: boolean;
   run: Run;
   slug: string;
+  variant?: "primary" | "secondary";
 }) {
   const runAction = useServerFn(action);
   async function submit(formEvent: FormEvent<HTMLFormElement>) {
@@ -303,7 +384,7 @@ function EntryButton({
     <form action={action.url} method="post" onSubmit={submit}>
       <input name="slug" type="hidden" value={slug} />
       <input name="entry_id" type="hidden" value={entryID} />
-      <Button disabled={pending} size="small" type="submit" variant="secondary">
+      <Button disabled={pending} size="small" type="submit" variant={variant}>
         {label}
       </Button>
     </form>
@@ -322,7 +403,7 @@ export function EntrantsCard({
   tournament,
 }: {
   canRemove: boolean;
-  entries: TournamentListResult<TournamentEntryDTO>;
+  entries: TournamentEntriesResult;
   slug: string;
   tournament: TournamentDTO;
 }) {
@@ -382,6 +463,109 @@ export function EntrantsCard({
               </li>
             ))}
           </ol>
+        )}
+      </div>
+    </Surface>
+  );
+}
+
+/**
+ * An approval tournament's pending requests, for its organizers: each with
+ * Approve, Decline, and Remove (which blocks the requester) until the start.
+ */
+export function RequestsCard({
+  canDecide,
+  requests,
+  slug,
+}: {
+  canDecide: boolean;
+  requests: TournamentEntryDTO[];
+  slug: string;
+}) {
+  const mutation = useEnhancedMutation(
+    "We could not update that request. Please try again.",
+  );
+  const run: Run = (request) => mutation.execute(request);
+  return (
+    <Surface
+      variant="card"
+      aria-labelledby="event-requests-title"
+      id="requests"
+    >
+      <h2 id="event-requests-title">{`Requests (${requests.length})`}</h2>
+      <div className="detail-card-body">
+        <FormErrorSummary
+          fieldErrors={mutation.fieldErrors}
+          message={mutation.message}
+          summaryRef={mutation.errorSummaryRef}
+        />
+        {requests.length === 0 ? (
+          <p>No requests are waiting.</p>
+        ) : (
+          <>
+            <p className="form-help">
+              Oldest first. Approving gives the entrant the next seed. A
+              declined entrant can ask again; a removed one can't.
+            </p>
+            <ol className="tournament-entrants">
+              {requests.map((request) => (
+                <li key={request.id}>
+                  <span>
+                    {request.player ? (
+                      <Link
+                        to="/users/$id"
+                        params={{ id: request.player.public_id }}
+                      >
+                        {request.player.name}
+                      </Link>
+                    ) : request.team ? (
+                      <Link
+                        to="/teams/$slug"
+                        params={{ slug: request.team.slug }}
+                      >
+                        {request.team.name}
+                      </Link>
+                    ) : null}
+                    {request.roster && request.roster.length > 0 ? (
+                      <small>
+                        {" · "}
+                        {request.roster.map((player) => player.name).join(", ")}
+                      </small>
+                    ) : null}
+                  </span>
+                  {canDecide ? (
+                    <span className="actions">
+                      <EntryButton
+                        action={approveTournamentEntry}
+                        entryID={request.id}
+                        label={`Approve ${entrantName(request)}`}
+                        pending={mutation.pending}
+                        run={run}
+                        slug={slug}
+                        variant="primary"
+                      />
+                      <EntryButton
+                        action={declineTournamentEntry}
+                        entryID={request.id}
+                        label={`Decline ${entrantName(request)}`}
+                        pending={mutation.pending}
+                        run={run}
+                        slug={slug}
+                      />
+                      <EntryButton
+                        action={removeTournamentEntry}
+                        entryID={request.id}
+                        label={`Remove ${entrantName(request)}`}
+                        pending={mutation.pending}
+                        run={run}
+                        slug={slug}
+                      />
+                    </span>
+                  ) : null}
+                </li>
+              ))}
+            </ol>
+          </>
         )}
       </div>
     </Surface>

@@ -96,11 +96,12 @@ import { Surface } from "../components/surface";
 import {
   EntrantsCard,
   RegistrationPanel,
+  RequestsCard,
 } from "../features/tournament-registration/registration-panel";
 import {
   tournamentNoticeKey,
   type RegistrationTeamDTO,
-  type TournamentEntryDTO,
+  type TournamentEntriesResult,
   type TournamentListResult,
   type TournamentNotice,
 } from "../features/tournament-registration/contracts";
@@ -116,7 +117,7 @@ type EventRouteData = {
   /** The first people going, read only for a signed-in viewer of a visible event. */
   attendees?: PeopleListResult;
   /** A tournament's entrants, read for a visible event with a tournament. */
-  entries?: TournamentListResult<TournamentEntryDTO>;
+  entries?: TournamentEntriesResult;
   /** Teams the viewer can register, read for an open team tournament. */
   registrationTeams?: TournamentListResult<RegistrationTeamDTO>;
   /** The latest log entries the viewer may see; empty when there are none or they could not be read. */
@@ -318,7 +319,7 @@ function VisibleEventView({
   tournamentNotice,
 }: {
   attendees?: PeopleListResult;
-  entries?: TournamentListResult<TournamentEntryDTO>;
+  entries?: TournamentEntriesResult;
   updates: EventActivityEntry[];
   event: EventDTO;
   authenticated: boolean;
@@ -631,6 +632,17 @@ function VisibleEventView({
               next={`/events/${event.slug}`}
             />
           )}
+
+          {!cancelled &&
+          tournament?.registration_mode === "approval" &&
+          event.viewer_can_edit &&
+          entries?.status === "ready" ? (
+            <RequestsCard
+              canDecide={tournament.status === "registration_open"}
+              requests={entries.requests}
+              slug={event.slug}
+            />
+          ) : null}
 
           {updates.length > 0 ? (
             <Surface variant="card" aria-labelledby="event-updates-title">

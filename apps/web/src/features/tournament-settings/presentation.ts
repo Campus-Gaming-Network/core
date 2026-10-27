@@ -28,7 +28,8 @@ function move(
 
 /**
  * The moves the API allows from the tournament's status, in the order the
- * panel shows them. Going back to draft needs no entries, starting needs two,
+ * panel shows them. Going back to draft needs no entries or requests, starting
+ * needs two entries,
  * and once the event has ended the only move left is completing it.
  */
 export function statusActions(
@@ -53,7 +54,7 @@ export function statusActions(
         ...(tournament.entry_count >= 2
           ? [move("in_progress", "Start tournament", true)]
           : []),
-        ...(tournament.entry_count === 0
+        ...(tournament.entry_count + (tournament.request_count ?? 0) === 0
           ? [move("draft", "Back to draft")]
           : []),
         cancel,

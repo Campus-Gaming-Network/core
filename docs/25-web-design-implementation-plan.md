@@ -457,8 +457,12 @@ documents are updated and their contracts are implemented:
 - On an event with tournament settings, `RegistrationPanel`
   (`apps/web/src/features/tournament-registration/registration-panel.tsx`)
   takes the RSVP panel's place: a summary ("Solo · 3 of 16 registered"), then
-  one of not open yet (organizers only), open, full, closed, or registered,
-  and "I'm interested" under it.
+  one of not open yet (organizers only), open, full, closed, requested, or
+  registered, and "I'm interested" under it.
+- In an approval tournament the panel's heading and buttons read "Request to
+  join", with a line saying a request holds no spot until the organizers
+  approve it. Requested shows the waiting request with Cancel request. On a
+  paid event the open panel also shows the payment note and link.
 - Open solo registration is one Register button; open team registration is one
   form per team the viewer owns or captains, with a checkbox for each member
   and the roster size in its hint. Each form says that entering shows the
@@ -468,6 +472,9 @@ documents are updated and their contracts are implemented:
 - `EntrantsCard` replaces "Who's going": entrants in seed order, team rosters
   after the team's name, solo entrants as "Seed 3" for visitors, and Remove
   for organizers until the tournament starts. Every control is a native form.
+- `RequestsCard` (organizers of an approval tournament) lists the pending
+  requests oldest first, each with Approve, Decline, and Remove until the
+  tournament starts.
 
 ### Tournament settings
 
@@ -484,8 +491,9 @@ documents are updated and their contracts are implemented:
   first once the page is interactive.
 - `SettingsForm` creates or replaces the settings: the game (one of the
   event's), solo or team entry with team size and substitutes, the cap, the
-  close time in the event's time zone, a bracket link to another site, rules,
-  and prizes. Once anyone has
+  close time in the event's time zone, open or organizer-approval
+  registration, a bracket link to another site, rules, and prizes. The status
+  panel says how many requests are waiting and links to them. Once anyone has
   registered, the entry type and team size are shown as text and sent
   unchanged. A refusal comes back as a notice in words.
 - The event form says why the type and the tournament's game can't change

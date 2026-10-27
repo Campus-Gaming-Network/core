@@ -40,6 +40,7 @@ const draft: TournamentDTO = {
   format: "single_elimination",
   rules: "",
   prizes: "",
+  registration_mode: "open",
   status: "draft",
   entry_count: 0,
 };
@@ -93,6 +94,7 @@ test("the settings form becomes the API's request: whole numbers, team fields fo
     rules: "Best of three.",
     prizes: "",
     bracket_url: "",
+    registration_mode: "open" as const,
   };
   assert.deepEqual(
     [
@@ -103,6 +105,14 @@ test("the settings form becomes the API's request: whole numbers, team fields fo
       form({ entrant_cap: "513" }),
       form({ entry_type: "duo" }),
       form({ bracket_url: "javascript:alert(1)" }),
+      form({
+        registration_mode: "approval",
+        entry_type: "solo",
+        entrant_cap: "",
+        registration_closes_at: "",
+        bracket_url: "",
+      }),
+      form({ registration_mode: "invite" }),
     ],
     [
       {
@@ -126,6 +136,14 @@ test("the settings form becomes the API's request: whole numbers, team fields fo
       { valid: false, slug: "spring-cup" },
       { valid: false, slug: "spring-cup" },
       { valid: false, slug: "spring-cup" },
+      {
+        valid: true,
+        value: {
+          slug: "spring-cup",
+          settings: { ...solo, registration_mode: "approval" },
+        },
+      },
+      { valid: false, slug: "spring-cup" },
     ],
   );
 });
@@ -148,6 +166,7 @@ test("the status panel offers only the moves the API allows", () => {
       labels({ ...draft, status: "in_progress" }),
       labels({ ...draft, status: "in_progress" }, true),
       labels(open, true),
+      labels({ ...open, registration_mode: "approval", request_count: 1 }),
       labels({ ...draft, status: "completed" }),
     ],
     [
@@ -158,6 +177,7 @@ test("the status panel offers only the moves the API allows", () => {
       ["Mark complete", "Cancel tournament"],
       ["Mark complete"],
       [],
+      ["Cancel tournament"],
       [],
     ],
   );
@@ -193,6 +213,7 @@ test("settings operations send the settings and status, and map each refusal to 
     rules: "",
     prizes: "",
     bracket_url: "",
+    registration_mode: "open" as const,
   };
 
   const outcomes = [
@@ -296,6 +317,11 @@ test("an organizer creates settings with a native form; a non-organizer and a no
     /max="2037-02-19T18:00" type="datetime-local" aria-labelledby="[^"]+" name="registration_closes_at"/,
   );
   assert.match(create, />Create tournament</);
+  assert.match(create, /type="radio" name="entry_type"/);
+  assert.match(
+    create,
+    /type="radio" name="registration_mode" checked="" value="open"/,
+  );
   assert.doesNotMatch(create, /Status:/);
 
   const outsider = await renderPage({
@@ -340,8 +366,23 @@ test("with settings, the page shows the status moves, fixes the entry type once 
     markup,
     /<input type="hidden" name="entry_type" value="team"\/><input type="hidden" name="team_size" value="5"\/>/,
   );
-  assert.doesNotMatch(markup, /type="radio"/);
+  assert.doesNotMatch(markup, /type="radio" name="entry_type"/);
   assert.match(markup, />Save settings</);
+
+  const requested = await renderPage({
+    ...tournamentEvent,
+    tournament: {
+      ...draft,
+      status: "registration_open",
+      registration_mode: "approval",
+      request_count: 1,
+    },
+  });
+  assert.match(
+    requested,
+    /<input type="hidden" name="entry_type" value="team"\/>/,
+  );
+  assert.match(requested, /1 request is waiting\./);
 
   const ended = await renderPage({
     ...tournamentEvent,
