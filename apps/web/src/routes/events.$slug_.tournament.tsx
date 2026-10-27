@@ -19,6 +19,12 @@ import {
   SettingsForm,
   StatusPanel,
 } from "../features/tournament-settings/settings-panel";
+import { GenerateBracketForm } from "../features/tournament-bracket/bracket-views";
+import {
+  bracketNoticeKey,
+  bracketNotices,
+  type BracketNotice,
+} from "../features/tournament-bracket/contracts";
 
 type TournamentSettingsRouteData = {
   event: EventDTO;
@@ -28,9 +34,13 @@ type TournamentSettingsRouteData = {
 export const Route = createFileRoute("/events/$slug_/tournament")({
   validateSearch: (
     search: Record<string, unknown>,
-  ): { settings?: SettingsNotice } => {
+  ): { settings?: SettingsNotice; bracket?: BracketNotice } => {
     const settings = settingsNoticeKey(search.settings);
-    return settings ? { settings } : {};
+    const bracket = bracketNoticeKey(search.bracket);
+    return {
+      ...(settings ? { settings } : {}),
+      ...(bracket ? { bracket } : {}),
+    };
   },
   loader: async ({ context, params }): Promise<TournamentSettingsRouteData> => {
     const session = await getEventViewerSession();
@@ -126,7 +136,12 @@ function denial(
 function TournamentSettingsPage() {
   const { event } = Route.useLoaderData();
   const search = Route.useSearch();
-  const notice = search.settings ? settingsNotices[search.settings] : undefined;
+  // A bracket refusal comes back here, where the bracket is generated.
+  const notice = search.settings
+    ? settingsNotices[search.settings]
+    : search.bracket
+      ? bracketNotices[search.bracket]
+      : undefined;
   const blocked = denial(event);
   const tournament = event.tournament;
   const editable =
@@ -181,6 +196,10 @@ function TournamentSettingsPage() {
           <>
             {tournament ? (
               <StatusPanel event={event} tournament={tournament} />
+            ) : null}
+            {tournament?.status === "in_progress" &&
+            event.lifecycle !== "ended" ? (
+              <GenerateBracketForm slug={event.slug} />
             ) : null}
             {editable ? (
               <SettingsForm event={event} tournament={tournament} />

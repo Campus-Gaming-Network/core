@@ -502,6 +502,25 @@ documents are updated and their contracts are implemented:
   column: "Bracket on start.gg" (Challonge, Battlefy, or the site's host for
   anything else), opening in a new tab and announced as an external site. It
   is never embedded.
+- A tournament event replaces the Overview and Going tabs with its own
+  (`apps/web/src/features/tournament-bracket/`): Overview, Players or Teams
+  (`/events/:slug/entrants`), Bracket (`/events/:slug/bracket`, once
+  generated), Rules and Prizes (`/events/:slug/rules` and `/prizes`, when
+  written). A tab shows only when its section has content, and each is a plain
+  link. There is no Schedule tab yet, because nothing sets a match's time.
+- The bracket is one list of rounds, each a list of matches. On a wide screen
+  the rounds sit left to right on a grid of first-round rows, each match
+  centred between the two that feed it and joined to them by lines, with
+  "Jump to round" links and horizontal scrolling. On a phone the same rounds
+  stack, so the round-by-round list and the bracket can't disagree. A
+  first-round bye shows as its entrant on a dashed card. Each match is one
+  link to its page, named with both sides, their seeds and scores, and the
+  outcome.
+- A match's page (`/events/:slug/matches/:id`) shows both sides, the score,
+  the status, and where the winner goes. Organizers get two native forms
+  there: the winner and both scores, or a walkover naming who advances. A
+  result can be corrected until the winner's next match has one. The settings
+  page has "Generate bracket" while the tournament is in progress.
 
 ### People lists
 
