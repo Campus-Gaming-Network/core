@@ -76,6 +76,7 @@ type Router struct {
 	popularGames      popularGames
 	schoolStats       schoolStats
 	organizers        eventOrganizers
+	tournaments       eventTournaments
 	inbox             inbox
 	dataExports       dataExports
 	gameSearchLimiter *ratelimit.Limiter
@@ -149,6 +150,7 @@ func NewRouter(cfg config.Config, pools ...*pgxpool.Pool) http.Handler {
 		eventRepository := eventstore.NewPostgresRepository(router.db)
 		router.events = eventRepository
 		router.organizers = eventRepository
+		router.tournaments = eventRepository
 		router.inbox = notifications.NewPostgresRepository(router.db)
 		router.teams = teamstore.NewPostgresRepository(router.db)
 		clubRepository := clubs.NewPostgresRepository(router.db)
@@ -956,6 +958,8 @@ func (r *Router) registerEventRoutes() {
 	r.mux.HandleFunc("/events/{slug}/organizers/{id}/creator", r.eventRoute([]string{http.MethodPost}, true, func(w http.ResponseWriter, req *http.Request, slug string) {
 		r.handleTransferEventCreator(w, req, slug, req.PathValue("id"))
 	}))
+	r.mux.HandleFunc("/events/{slug}/tournament", r.eventRoute([]string{http.MethodPut, http.MethodDelete}, true, r.handleTournament))
+	r.mux.HandleFunc("/events/{slug}/tournament/status", r.eventRoute([]string{http.MethodPost}, true, r.handleTournamentStatus))
 	r.mux.HandleFunc("/events/{slug}/activity", r.eventRoute([]string{http.MethodGet}, true, r.handleEventActivity))
 	r.mux.HandleFunc("/events/{slug}/attendees", r.eventRoute(nil, true, r.handleEventAttendees))
 }
@@ -1046,6 +1050,7 @@ func (r *Router) handleEvent(w http.ResponseWriter, req *http.Request, slug stri
 				return
 			}
 			event.HideOnlineURLUnlessGoing()
+			event.HideDraftTournament()
 			writeJSON(w, http.StatusOK, event)
 			return
 		}
@@ -1057,6 +1062,7 @@ func (r *Router) handleEvent(w http.ResponseWriter, req *http.Request, slug stri
 		return
 	}
 	event.HideOnlineURLUnlessGoing()
+	event.HideDraftTournament()
 	writeJSON(w, http.StatusOK, event)
 }
 

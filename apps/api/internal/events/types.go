@@ -138,6 +138,9 @@ type Event struct {
 	// CancelledAt is when the event was cancelled. Only GetPageBySlug sets
 	// it; every other read leaves cancelled events out.
 	CancelledAt *time.Time `json:"cancelled_at,omitempty"`
+	// Tournament is the tournament on a tournament-type event. Only
+	// GetPageBySlug sets it, and only organizers see a draft.
+	Tournament *Tournament `json:"tournament,omitempty"`
 	// Revision rises whenever something its calendar file shows changes,
 	// cancelling included; calendar files carry it as SEQUENCE.
 	Revision  int       `json:"revision"`

@@ -21,7 +21,7 @@ PostgreSQL is the system of record. Conventions first; then core tables. Exact c
 
 Keep the first migration set scoped to shipped features. Create only the tables needed for auth/profile, home school and follows, schools seed, launch games, events, teams, reports/support tickets, and operational needs.
 
-Do **not** create first-pass tables for tournaments, user activity history, feature flags, site announcements, on-site payments, IGDB bulk-sync runs, or broader Admin Console-only workflows until those phases are actively being built. The operations foundation includes audit history and per-user notifications. Audit history is readable through capability-gated Admin Console API routes; notifications have no HTTP or UI surface yet.
+Do **not** create first-pass tables for tournament entries and matches, user activity history, feature flags, site announcements, on-site payments, IGDB bulk-sync runs, or broader Admin Console-only workflows until those phases are actively being built. The operations foundation includes audit history and per-user notifications. Audit history is readable through capability-gated Admin Console API routes; notifications have no HTTP or UI surface yet.
 
 ## Core tables (logical)
 
@@ -278,17 +278,21 @@ event_private_unlocks
 
 ### Tournaments
 
-Planned, not migrated. [02 — Domain model](./02-domain-model.md#tournament) owns
-the fields and rules; the migration in each phase's issue sets the final
-columns.
+`tournaments` is migrated (`000045`); the other tables are planned, and the
+migration in each phase's issue sets their final columns.
+[02 — Domain model](./02-domain-model.md#tournament) owns the fields and rules.
 
 ```text
 tournaments
   id, event_id (unique, references events), game_id,
-  entry_type (solo|team), team_size, substitutes, entrant_cap nullable,
-  registration_closes_at nullable, format, format options,
-  rules nullable, prizes nullable, bracket_url nullable,
-  status (draft|registration_open|in_progress|completed|cancelled), ...
+  entry_type (solo|team), team_size nullable (2-20, team only),
+  substitutes (0 to team_size, team only), entrant_cap nullable (2-512),
+  registration_closes_at nullable (NULL = the event's start),
+  format (single_elimination|round_robin|swiss|double_elimination),
+  rules, prizes ('' when empty),
+  status (draft|registration_open|in_progress|completed|cancelled),
+  created_at, updated_at
+  -- planned: format options, bracket_url
 
 tournament_entries
   id, tournament_id, user_id nullable, team_id nullable (exactly one set),
@@ -461,7 +465,7 @@ Do not list `unlisted` or `private` events in discovery search. Unlisted is reac
 ## Migrations
 
 - Versioned SQL migrations live in `db/migrations` and are applied by the Go migrator
-- First migrations stay scoped to shipped features; defer schema for tournaments, feature flags, site announcements, on-site payments, IGDB sync, and Admin Console-only workflows.
+- First migrations stay scoped to shipped features; defer schema for tournament entries and matches, feature flags, site announcements, on-site payments, IGDB sync, and Admin Console-only workflows.
 - In Railway production, run the Go migrator as a pre-deploy command or dedicated migration service/job before the API serves traffic
 - Never rely on manual prod SQL for schema changes
 - The migrator runs each file in one transaction, so `CREATE INDEX CONCURRENTLY` is not available; indexes build under a write lock, which is acceptable at current table sizes

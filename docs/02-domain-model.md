@@ -336,24 +336,24 @@ Site admins see every entry in the Admin Console audit log.
 
 ### Tournament
 
-Not built yet; [01 — Product](./01-product.md#tournaments) is the spec. A
-tournament belongs to exactly one event whose type is `tournament`, and an
+Settings and status are built (#263); entries and matches are not built yet.
+[01 — Product](./01-product.md#tournaments) is the spec. A tournament belongs to exactly one event whose type is `tournament`, and an
 event has at most one tournament. Everything an event already has (title,
 slug, time, place, visibility, host, organizers, private access,
 cancellation, activity log) stays on the event.
 
 | Field / concept     | Notes                                                                                                                            |
 | ------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| Event               | Required and unique; the event's type is `tournament` and it is not a series template                                            |
+| Event               | Required and unique; the event's type is `tournament`, and an occurrence of a series has its own                                 |
 | Game                | Exactly one, one of the event's games                                                                                            |
 | Entry type          | `solo` or `team`; fixed once an entry exists                                                                                     |
-| Team size           | Players a team fields (team entry only); fixed once an entry exists                                                              |
+| Team size           | Players a team fields, 2 to 20 (team entry only); fixed once an entry exists                                                     |
 | Substitutes         | Extra roster places beyond the team size, from 0 up to the team size                                                             |
-| Entrant cap         | Optional; counts entries (teams in a team tournament); no waitlist                                                               |
-| Registration closes | Optional instant; defaults to the event's start                                                                                  |
+| Entrant cap         | Optional, 2 to 512; counts entries (teams in a team tournament); no waitlist                                                     |
+| Registration closes | Optional instant, no later than the event's start; defaults to the event's start                                                 |
 | Format              | `single_elimination`, later `round_robin`, `swiss`, and `double_elimination`; fixed once an entry exists                         |
 | Format options      | Swiss round count; draws allowed (round robin and Swiss); grand-final reset (double elimination, on by default)                  |
-| Rules, prizes       | Optional plain text                                                                                                              |
+| Rules, prizes       | Optional plain text, up to 10,000 and 2,000 characters                                                                           |
 | Bracket URL         | Optional `http` or `https` link to a bracket hosted elsewhere, shown as external                                                 |
 | Status              | `draft` → `registration_open` → `in_progress` → `completed`, or `cancelled` with its event; back to `draft` only with no entries |
 
@@ -390,7 +390,14 @@ cancellation, activity log) stays on the event.
 - Organizers are the people who can edit the event. Entering and correcting
   results, removing entries, and changing seeds are written to the
   [event activity log](#event-activity-log)
-- Cancelling the event cancels the tournament
+- Cancelling the event cancels the tournament unless it has completed
+- Settings are added only to a tournament-type event that nobody but its
+  organizers has RSVP'd to. While they exist, the event keeps the tournament
+  type and the tournament's game, and RSVPs other than "no" are refused
+  unless the tournament is cancelled
+- Settings change until the tournament is completed or cancelled, and are
+  deleted only in draft. Once the event has ended, the only status change is
+  to `completed`
 
 ### Game
 

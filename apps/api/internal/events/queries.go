@@ -320,15 +320,21 @@ func (r *PostgresRepository) GetPageBySlug(ctx context.Context, slug string) (Ev
 	`, strings.TrimSpace(slug), r.now().Add(-CancelledEventVisibility)).Scan(&eventID, &cancelledAt); err != nil {
 		return Event{}, err
 	}
+	var event Event
+	var err error
 	if cancelledAt == nil {
-		return r.GetBySlug(ctx, slug)
+		event, err = r.GetBySlug(ctx, slug)
+	} else {
+		event, err = scanEvent(r.pool.QueryRow(ctx, eventSelectSQL(`e.id = $1::uuid`, ``), eventID), r.now())
+		if err == nil {
+			event.CancelledAt = cancelledAt
+			err = r.populateOrganizers(ctx, &event)
+		}
 	}
-	event, err := scanEvent(r.pool.QueryRow(ctx, eventSelectSQL(`e.id = $1::uuid`, ``), eventID), r.now())
 	if err != nil {
 		return Event{}, err
 	}
-	event.CancelledAt = cancelledAt
-	if err := r.populateOrganizers(ctx, &event); err != nil {
+	if event.Tournament, err = loadTournament(ctx, r.pool, eventID); err != nil {
 		return Event{}, err
 	}
 	return event, nil
