@@ -92,12 +92,31 @@ import {
 import { Button } from "../components/button";
 import { RSVPControl } from "../components/rsvp-control";
 import { Surface } from "../components/surface";
+import {
+  EntrantsCard,
+  RegistrationPanel,
+} from "../features/tournament-registration/registration-panel";
+import {
+  tournamentNoticeKey,
+  type RegistrationTeamDTO,
+  type TournamentEntryDTO,
+  type TournamentListResult,
+  type TournamentNotice,
+} from "../features/tournament-registration/contracts";
+import {
+  getRegistrationTeams,
+  getTournamentEntries,
+} from "../features/tournament-registration/tournament.functions";
 
 type EventRouteData = {
   event: EventDetailDTO;
   authenticated: boolean;
   /** The first people going, read only for a signed-in viewer of a visible event. */
   attendees?: PeopleListResult;
+  /** A tournament's entrants, read for a visible event with a tournament. */
+  entries?: TournamentListResult<TournamentEntryDTO>;
+  /** Teams the viewer can register, read for an open team tournament. */
+  registrationTeams?: TournamentListResult<RegistrationTeamDTO>;
   /** The latest log entries the viewer may see; empty when there are none or they could not be read. */
   updates: EventActivityEntry[];
   publicOrigin: string;
@@ -107,6 +126,7 @@ type EventRouteData = {
 
 type EventSearch = {
   event?: EventDetailNotice;
+  tournament?: TournamentNotice;
 };
 
 export const Route = createFileRoute("/events/$slug")({
@@ -137,10 +157,22 @@ export const Route = createFileRoute("/events/$slug")({
     // Who is going is for signed-in viewers only, and a locked or cancelled
     // event shows nothing. A list that cannot be read is reported in the
     // result and never fails the page.
-    const attendees =
+    const visible = isLockedEvent(detail.event) ? undefined : detail.event;
+    const tournament = visible?.tournament;
+    // A tournament's entrants take the place of who's going, and an open
+    // team tournament needs the viewer's teams for its registration forms.
+    const entries = tournament
+      ? await getTournamentEntries({ data: { slug: params.slug } })
+      : undefined;
+    const registrationTeams =
       session.authenticated &&
-      !isLockedEvent(detail.event) &&
-      !detail.event.cancelled_at
+      tournament?.entry_type === "team" &&
+      tournament.status === "registration_open" &&
+      !tournament.viewer_entry
+        ? await getRegistrationTeams({ data: { slug: params.slug } })
+        : undefined;
+    const attendees =
+      session.authenticated && visible && !tournament && !visible.cancelled_at
         ? await getEventAttendees({
             data: {
               slug: params.slug,
@@ -161,6 +193,8 @@ export const Route = createFileRoute("/events/$slug")({
       event: detail.event,
       authenticated: session.authenticated,
       ...(attendees ? { attendees } : {}),
+      ...(entries ? { entries } : {}),
+      ...(registrationTeams ? { registrationTeams } : {}),
       updates: activity?.status === "found" ? activity.page.entries : [],
       publicOrigin: context.publicOrigin,
       idempotencyKey: newIdempotencyKey(),
@@ -184,12 +218,23 @@ export const Route = createFileRoute("/events/$slug")({
 
 function validateEventSearch(search: Record<string, unknown>): EventSearch {
   const event = pageNoticeKey(eventDetailNotices, search.event);
-  return event ? { event } : {};
+  const tournament = tournamentNoticeKey(search.tournament);
+  return {
+    ...(event ? { event } : {}),
+    ...(tournament ? { tournament } : {}),
+  };
 }
 
 function EventPage() {
-  const { attendees, event, authenticated, publicOrigin, updates } =
-    Route.useLoaderData();
+  const {
+    attendees,
+    entries,
+    event,
+    authenticated,
+    publicOrigin,
+    registrationTeams,
+    updates,
+  } = Route.useLoaderData();
   const search = Route.useSearch();
 
   if (isLockedEvent(event)) {
@@ -205,11 +250,14 @@ function EventPage() {
   return (
     <VisibleEventView
       attendees={attendees}
+      entries={entries}
       updates={updates}
       event={event}
       authenticated={authenticated}
       notice={search.event}
       publicOrigin={publicOrigin}
+      registrationTeams={registrationTeams}
+      tournamentNotice={search.tournament}
     />
   );
 }
@@ -258,18 +306,24 @@ function LockedEventView({
 
 function VisibleEventView({
   attendees,
+  entries,
   updates,
   event,
   authenticated,
   notice,
   publicOrigin,
+  registrationTeams,
+  tournamentNotice,
 }: {
   attendees?: PeopleListResult;
+  entries?: TournamentListResult<TournamentEntryDTO>;
   updates: EventActivityEntry[];
   event: EventDTO;
   authenticated: boolean;
   notice?: EventSearch["event"];
   publicOrigin: string;
+  registrationTeams?: TournamentListResult<RegistrationTeamDTO>;
+  tournamentNotice?: TournamentNotice;
 }) {
   const renderedAt = useRenderedAt();
   const paymentURL = safeExternalEventUrl(event.payment_url);
@@ -277,6 +331,8 @@ function VisibleEventView({
   const primaryGame = event.games[0];
   const organizer = event.organizers?.[0];
   const cancelled = Boolean(event.cancelled_at);
+  // Registration replaces RSVP on an event with a tournament.
+  const tournament = event.tournament;
   const hasPlace = event.format !== "online";
   const directionsURL =
     hasPlace && (event.address || event.location_name)
@@ -449,9 +505,13 @@ function VisibleEventView({
             <Users aria-hidden="true" size={20} strokeWidth={1.75} />
             <div>
               <strong>
-                {event.capacity
-                  ? `${event.rsvp_yes_count} of ${event.capacity} going`
-                  : `${event.rsvp_yes_count} going`}
+                {tournament
+                  ? tournament.entrant_cap
+                    ? `${tournament.entry_count} of ${tournament.entrant_cap} registered`
+                    : `${tournament.entry_count} registered`
+                  : event.capacity
+                    ? `${event.rsvp_yes_count} of ${event.capacity} going`
+                    : `${event.rsvp_yes_count} going`}
               </strong>
               {event.interest_count > 0 ? (
                 <small>{event.interest_count} interested</small>
@@ -459,41 +519,55 @@ function VisibleEventView({
             </div>
           </li>
         </ul>
-        <section
-          className="event-header__rsvp"
-          aria-labelledby="event-rsvp-heading"
-        >
-          <h2 id="event-rsvp-heading">Are you going?</h2>
-          {cancelled ? (
-            <p className="rsvp-note">
-              RSVPs are closed because this event was cancelled.
-            </p>
-          ) : authenticated ? (
-            <>
-              <RSVPControl event={event} />
-              <InterestEventForm event={event} />
-            </>
-          ) : (
-            <ButtonLink
-              variant="primary"
-              to="/login"
-              search={{ next: `/events/${event.slug}` }}
-            >
-              Log in to RSVP
-            </ButtonLink>
-          )}
-          {cancelled ? null : (
-            <p className="rsvp-help">
-              <Mail aria-hidden="true" size={14} strokeWidth={1.75} />
-              Answer yes and we will email you a confirmation with a calendar
-              file.
-            </p>
-          )}
-        </section>
+        {tournament && !cancelled ? (
+          <RegistrationPanel
+            authenticated={authenticated}
+            event={event}
+            notice={tournamentNotice}
+            renderedAt={renderedAt}
+            teams={registrationTeams}
+            tournament={tournament}
+          >
+            {authenticated ? <InterestEventForm event={event} /> : null}
+          </RegistrationPanel>
+        ) : (
+          <section
+            className="event-header__rsvp"
+            aria-labelledby="event-rsvp-heading"
+          >
+            <h2 id="event-rsvp-heading">Are you going?</h2>
+            {cancelled ? (
+              <p className="rsvp-note">
+                RSVPs are closed because this event was cancelled.
+              </p>
+            ) : authenticated ? (
+              <>
+                <RSVPControl event={event} />
+                <InterestEventForm event={event} />
+              </>
+            ) : (
+              <ButtonLink
+                variant="primary"
+                to="/login"
+                search={{ next: `/events/${event.slug}` }}
+              >
+                Log in to RSVP
+              </ButtonLink>
+            )}
+            {cancelled ? null : (
+              <p className="rsvp-help">
+                <Mail aria-hidden="true" size={14} strokeWidth={1.75} />
+                Answer yes and we will email you a confirmation with a calendar
+                file.
+              </p>
+            )}
+          </section>
+        )}
       </div>
 
-      {/* A cancelled event has no attendee list to show. */}
-      {cancelled ? null : (
+      {/* A cancelled event has no attendee list to show, and a tournament
+          lists its entrants on the page instead. */}
+      {cancelled || tournament ? null : (
         <Tabs label="Event sections">
           <TabLink current to="/events/$slug" params={{ slug: event.slug }}>
             Overview
@@ -519,7 +593,17 @@ function VisibleEventView({
             <p>{event.description || "Event details are coming soon."}</p>
           </section>
 
-          {cancelled ? null : authenticated ? (
+          {cancelled ? null : tournament ? (
+            <EntrantsCard
+              canRemove={
+                Boolean(event.viewer_can_edit) &&
+                tournament.status === "registration_open"
+              }
+              entries={entries ?? { status: "unavailable" }}
+              slug={event.slug}
+              tournament={tournament}
+            />
+          ) : authenticated ? (
             <Surface variant="card" aria-labelledby="event-people-title">
               <h2 id="event-people-title">{"Who's going"}</h2>
               <PeoplePreview
