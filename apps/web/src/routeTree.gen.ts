@@ -65,14 +65,19 @@ import { Route as ClubsSlugClaimRouteImport } from './routes/clubs.$slug_.claim'
 import { Route as ClubsSlugManageRouteImport } from './routes/clubs.$slug_.manage'
 import { Route as ClubsSlugPeopleRouteImport } from './routes/clubs.$slug_.people'
 import { Route as EventsSlugActivityRouteImport } from './routes/events.$slug_.activity'
+import { Route as EventsSlugBracketRouteImport } from './routes/events.$slug_.bracket'
 import { Route as EventsSlugEditRouteImport } from './routes/events.$slug_.edit'
+import { Route as EventsSlugEntrantsRouteImport } from './routes/events.$slug_.entrants'
 import { Route as EventsSlugPeopleRouteImport } from './routes/events.$slug_.people'
+import { Route as EventsSlugPrizesRouteImport } from './routes/events.$slug_.prizes'
+import { Route as EventsSlugRulesRouteImport } from './routes/events.$slug_.rules'
 import { Route as EventsSlugTournamentRouteImport } from './routes/events.$slug_.tournament'
 import { Route as SchoolsSlugPeopleRouteImport } from './routes/schools.$slug_.people'
 import { Route as SchoolsSlugRequestClubRouteImport } from './routes/schools.$slug_.request-club'
 import { Route as TeamsSlugPeopleRouteImport } from './routes/teams.$slug_.people'
 import { Route as ApiEventsSlugCalendarDoticsRouteImport } from './routes/api.events.$slug.calendar[.]ics'
 import { Route as ApiGamesSlugCoverRouteImport } from './routes/api.games.$slug.cover'
+import { Route as EventsSlugMatchesMatchIdRouteImport } from './routes/events.$slug_.matches.$matchId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -354,14 +359,34 @@ const EventsSlugActivityRoute = EventsSlugActivityRouteImport.update({
   path: '/$slug/activity',
   getParentRoute: () => EventsRoute,
 } as any)
+const EventsSlugBracketRoute = EventsSlugBracketRouteImport.update({
+  id: '/$slug_/bracket',
+  path: '/$slug/bracket',
+  getParentRoute: () => EventsRoute,
+} as any)
 const EventsSlugEditRoute = EventsSlugEditRouteImport.update({
   id: '/$slug_/edit',
   path: '/$slug/edit',
   getParentRoute: () => EventsRoute,
 } as any)
+const EventsSlugEntrantsRoute = EventsSlugEntrantsRouteImport.update({
+  id: '/$slug_/entrants',
+  path: '/$slug/entrants',
+  getParentRoute: () => EventsRoute,
+} as any)
 const EventsSlugPeopleRoute = EventsSlugPeopleRouteImport.update({
   id: '/$slug_/people',
   path: '/$slug/people',
+  getParentRoute: () => EventsRoute,
+} as any)
+const EventsSlugPrizesRoute = EventsSlugPrizesRouteImport.update({
+  id: '/$slug_/prizes',
+  path: '/$slug/prizes',
+  getParentRoute: () => EventsRoute,
+} as any)
+const EventsSlugRulesRoute = EventsSlugRulesRouteImport.update({
+  id: '/$slug_/rules',
+  path: '/$slug/rules',
   getParentRoute: () => EventsRoute,
 } as any)
 const EventsSlugTournamentRoute = EventsSlugTournamentRouteImport.update({
@@ -395,6 +420,12 @@ const ApiGamesSlugCoverRoute = ApiGamesSlugCoverRouteImport.update({
   path: '/api/games/$slug/cover',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EventsSlugMatchesMatchIdRoute =
+  EventsSlugMatchesMatchIdRouteImport.update({
+    id: '/$slug_/matches/$matchId',
+    path: '/$slug/matches/$matchId',
+    getParentRoute: () => EventsRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -453,14 +484,19 @@ export interface FileRoutesByFullPath {
   '/clubs/$slug/manage': typeof ClubsSlugManageRoute
   '/clubs/$slug/people': typeof ClubsSlugPeopleRoute
   '/events/$slug/activity': typeof EventsSlugActivityRoute
+  '/events/$slug/bracket': typeof EventsSlugBracketRoute
   '/events/$slug/edit': typeof EventsSlugEditRoute
+  '/events/$slug/entrants': typeof EventsSlugEntrantsRoute
   '/events/$slug/people': typeof EventsSlugPeopleRoute
+  '/events/$slug/prizes': typeof EventsSlugPrizesRoute
+  '/events/$slug/rules': typeof EventsSlugRulesRoute
   '/events/$slug/tournament': typeof EventsSlugTournamentRoute
   '/schools/$slug/people': typeof SchoolsSlugPeopleRoute
   '/schools/$slug/request-club': typeof SchoolsSlugRequestClubRoute
   '/teams/$slug/people': typeof TeamsSlugPeopleRoute
   '/api/events/$slug/calendar.ics': typeof ApiEventsSlugCalendarDoticsRoute
   '/api/games/$slug/cover': typeof ApiGamesSlugCoverRoute
+  '/events/$slug/matches/$matchId': typeof EventsSlugMatchesMatchIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -515,14 +551,19 @@ export interface FileRoutesByTo {
   '/clubs/$slug/manage': typeof ClubsSlugManageRoute
   '/clubs/$slug/people': typeof ClubsSlugPeopleRoute
   '/events/$slug/activity': typeof EventsSlugActivityRoute
+  '/events/$slug/bracket': typeof EventsSlugBracketRoute
   '/events/$slug/edit': typeof EventsSlugEditRoute
+  '/events/$slug/entrants': typeof EventsSlugEntrantsRoute
   '/events/$slug/people': typeof EventsSlugPeopleRoute
+  '/events/$slug/prizes': typeof EventsSlugPrizesRoute
+  '/events/$slug/rules': typeof EventsSlugRulesRoute
   '/events/$slug/tournament': typeof EventsSlugTournamentRoute
   '/schools/$slug/people': typeof SchoolsSlugPeopleRoute
   '/schools/$slug/request-club': typeof SchoolsSlugRequestClubRoute
   '/teams/$slug/people': typeof TeamsSlugPeopleRoute
   '/api/events/$slug/calendar.ics': typeof ApiEventsSlugCalendarDoticsRoute
   '/api/games/$slug/cover': typeof ApiGamesSlugCoverRoute
+  '/events/$slug/matches/$matchId': typeof EventsSlugMatchesMatchIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -582,14 +623,19 @@ export interface FileRoutesById {
   '/clubs/$slug_/manage': typeof ClubsSlugManageRoute
   '/clubs/$slug_/people': typeof ClubsSlugPeopleRoute
   '/events/$slug_/activity': typeof EventsSlugActivityRoute
+  '/events/$slug_/bracket': typeof EventsSlugBracketRoute
   '/events/$slug_/edit': typeof EventsSlugEditRoute
+  '/events/$slug_/entrants': typeof EventsSlugEntrantsRoute
   '/events/$slug_/people': typeof EventsSlugPeopleRoute
+  '/events/$slug_/prizes': typeof EventsSlugPrizesRoute
+  '/events/$slug_/rules': typeof EventsSlugRulesRoute
   '/events/$slug_/tournament': typeof EventsSlugTournamentRoute
   '/schools/$slug_/people': typeof SchoolsSlugPeopleRoute
   '/schools/$slug_/request-club': typeof SchoolsSlugRequestClubRoute
   '/teams/$slug_/people': typeof TeamsSlugPeopleRoute
   '/api/events/$slug/calendar.ics': typeof ApiEventsSlugCalendarDoticsRoute
   '/api/games/$slug/cover': typeof ApiGamesSlugCoverRoute
+  '/events/$slug_/matches/$matchId': typeof EventsSlugMatchesMatchIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -650,14 +696,19 @@ export interface FileRouteTypes {
     | '/clubs/$slug/manage'
     | '/clubs/$slug/people'
     | '/events/$slug/activity'
+    | '/events/$slug/bracket'
     | '/events/$slug/edit'
+    | '/events/$slug/entrants'
     | '/events/$slug/people'
+    | '/events/$slug/prizes'
+    | '/events/$slug/rules'
     | '/events/$slug/tournament'
     | '/schools/$slug/people'
     | '/schools/$slug/request-club'
     | '/teams/$slug/people'
     | '/api/events/$slug/calendar.ics'
     | '/api/games/$slug/cover'
+    | '/events/$slug/matches/$matchId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -712,14 +763,19 @@ export interface FileRouteTypes {
     | '/clubs/$slug/manage'
     | '/clubs/$slug/people'
     | '/events/$slug/activity'
+    | '/events/$slug/bracket'
     | '/events/$slug/edit'
+    | '/events/$slug/entrants'
     | '/events/$slug/people'
+    | '/events/$slug/prizes'
+    | '/events/$slug/rules'
     | '/events/$slug/tournament'
     | '/schools/$slug/people'
     | '/schools/$slug/request-club'
     | '/teams/$slug/people'
     | '/api/events/$slug/calendar.ics'
     | '/api/games/$slug/cover'
+    | '/events/$slug/matches/$matchId'
   id:
     | '__root__'
     | '/'
@@ -778,14 +834,19 @@ export interface FileRouteTypes {
     | '/clubs/$slug_/manage'
     | '/clubs/$slug_/people'
     | '/events/$slug_/activity'
+    | '/events/$slug_/bracket'
     | '/events/$slug_/edit'
+    | '/events/$slug_/entrants'
     | '/events/$slug_/people'
+    | '/events/$slug_/prizes'
+    | '/events/$slug_/rules'
     | '/events/$slug_/tournament'
     | '/schools/$slug_/people'
     | '/schools/$slug_/request-club'
     | '/teams/$slug_/people'
     | '/api/events/$slug/calendar.ics'
     | '/api/games/$slug/cover'
+    | '/events/$slug_/matches/$matchId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -1229,6 +1290,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EventsSlugActivityRouteImport
       parentRoute: typeof EventsRoute
     }
+    '/events/$slug_/bracket': {
+      id: '/events/$slug_/bracket'
+      path: '/$slug/bracket'
+      fullPath: '/events/$slug/bracket'
+      preLoaderRoute: typeof EventsSlugBracketRouteImport
+      parentRoute: typeof EventsRoute
+    }
     '/events/$slug_/edit': {
       id: '/events/$slug_/edit'
       path: '/$slug/edit'
@@ -1236,11 +1304,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EventsSlugEditRouteImport
       parentRoute: typeof EventsRoute
     }
+    '/events/$slug_/entrants': {
+      id: '/events/$slug_/entrants'
+      path: '/$slug/entrants'
+      fullPath: '/events/$slug/entrants'
+      preLoaderRoute: typeof EventsSlugEntrantsRouteImport
+      parentRoute: typeof EventsRoute
+    }
     '/events/$slug_/people': {
       id: '/events/$slug_/people'
       path: '/$slug/people'
       fullPath: '/events/$slug/people'
       preLoaderRoute: typeof EventsSlugPeopleRouteImport
+      parentRoute: typeof EventsRoute
+    }
+    '/events/$slug_/prizes': {
+      id: '/events/$slug_/prizes'
+      path: '/$slug/prizes'
+      fullPath: '/events/$slug/prizes'
+      preLoaderRoute: typeof EventsSlugPrizesRouteImport
+      parentRoute: typeof EventsRoute
+    }
+    '/events/$slug_/rules': {
+      id: '/events/$slug_/rules'
+      path: '/$slug/rules'
+      fullPath: '/events/$slug/rules'
+      preLoaderRoute: typeof EventsSlugRulesRouteImport
       parentRoute: typeof EventsRoute
     }
     '/events/$slug_/tournament': {
@@ -1285,6 +1374,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiGamesSlugCoverRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/events/$slug_/matches/$matchId': {
+      id: '/events/$slug_/matches/$matchId'
+      path: '/$slug/matches/$matchId'
+      fullPath: '/events/$slug/matches/$matchId'
+      preLoaderRoute: typeof EventsSlugMatchesMatchIdRouteImport
+      parentRoute: typeof EventsRoute
+    }
   }
 }
 
@@ -1293,9 +1389,14 @@ interface EventsRouteChildren {
   EventsNewRoute: typeof EventsNewRoute
   EventsIndexRoute: typeof EventsIndexRoute
   EventsSlugActivityRoute: typeof EventsSlugActivityRoute
+  EventsSlugBracketRoute: typeof EventsSlugBracketRoute
   EventsSlugEditRoute: typeof EventsSlugEditRoute
+  EventsSlugEntrantsRoute: typeof EventsSlugEntrantsRoute
   EventsSlugPeopleRoute: typeof EventsSlugPeopleRoute
+  EventsSlugPrizesRoute: typeof EventsSlugPrizesRoute
+  EventsSlugRulesRoute: typeof EventsSlugRulesRoute
   EventsSlugTournamentRoute: typeof EventsSlugTournamentRoute
+  EventsSlugMatchesMatchIdRoute: typeof EventsSlugMatchesMatchIdRoute
 }
 
 const EventsRouteChildren: EventsRouteChildren = {
@@ -1303,9 +1404,14 @@ const EventsRouteChildren: EventsRouteChildren = {
   EventsNewRoute: EventsNewRoute,
   EventsIndexRoute: EventsIndexRoute,
   EventsSlugActivityRoute: EventsSlugActivityRoute,
+  EventsSlugBracketRoute: EventsSlugBracketRoute,
   EventsSlugEditRoute: EventsSlugEditRoute,
+  EventsSlugEntrantsRoute: EventsSlugEntrantsRoute,
   EventsSlugPeopleRoute: EventsSlugPeopleRoute,
+  EventsSlugPrizesRoute: EventsSlugPrizesRoute,
+  EventsSlugRulesRoute: EventsSlugRulesRoute,
   EventsSlugTournamentRoute: EventsSlugTournamentRoute,
+  EventsSlugMatchesMatchIdRoute: EventsSlugMatchesMatchIdRoute,
 }
 
 const EventsRouteWithChildren =

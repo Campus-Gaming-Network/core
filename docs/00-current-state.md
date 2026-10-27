@@ -62,9 +62,10 @@ Admin Console work continues under
   tournament (with an optional link to a bracket on another site) and moves
   its status at `/events/:slug/tournament`, and
   players and teams register and withdraw on the event page, or request to
-  join when the organizers approve each entry. Organizers can seed entrants,
-  generate a single-elimination bracket, and enter results through the API;
-  the bracket view and the pages for these steps are not built yet. The spec is in [01 — Product](./01-product.md#tournaments).
+  join when the organizers approve each entry. Organizers generate a
+  single-elimination bracket from the tournament settings and enter results
+  on each match's page; the event page has tournament tabs and a bracket
+  view. Seeding is through the API only. The spec is in [01 — Product](./01-product.md#tournaments).
 - Product and technical questions that are intentionally unresolved are tracked
   in [08 — Open questions](./08-open-questions.md).
 

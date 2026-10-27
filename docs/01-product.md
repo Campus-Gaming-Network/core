@@ -299,8 +299,9 @@ club on CGN, which lists them as members here.
 ### Tournaments
 
 Tournament settings and status (#263), registration (#265),
-single-elimination brackets (#266), and results (#267) are built in the API;
-the bracket view (#268) is not built yet. This section is the spec; the phases
+single-elimination brackets (#266), results (#267), and the tournament tabs
+and bracket view (#268) are built; there is no Schedule tab or seeding page
+yet. This section is the spec; the phases
 are listed at the end. An event is something you attend and a tournament is
 something you enter, so a tournament adds entry, seeding, matches, and results
 to an event instead of repeating the event's own facts.

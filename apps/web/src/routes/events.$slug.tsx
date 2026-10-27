@@ -110,6 +110,9 @@ import {
   getTournamentEntries,
 } from "../features/tournament-registration/tournament.functions";
 import { bracketHost } from "../features/tournament-registration/presentation";
+import { TournamentTabs } from "../features/tournament-bracket/bracket-views";
+import { getTournamentMatches } from "../features/tournament-bracket/bracket.functions";
+import { bracketMayExist } from "../features/tournament-bracket/presentation";
 
 type EventRouteData = {
   event: EventDetailDTO;
@@ -118,6 +121,8 @@ type EventRouteData = {
   attendees?: PeopleListResult;
   /** A tournament's entrants, read for a visible event with a tournament. */
   entries?: TournamentEntriesResult;
+  /** Whether the tournament has a generated bracket, which adds its tab. */
+  hasBracket?: boolean;
   /** Teams the viewer can register, read for an open team tournament. */
   registrationTeams?: TournamentListResult<RegistrationTeamDTO>;
   /** The latest log entries the viewer may see; empty when there are none or they could not be read. */
@@ -167,6 +172,11 @@ export const Route = createFileRoute("/events/$slug")({
     const entries = tournament
       ? await getTournamentEntries({ data: { slug: params.slug } })
       : undefined;
+    // A bracket exists only once the tournament has started.
+    const bracket =
+      tournament && bracketMayExist(tournament)
+        ? await getTournamentMatches({ data: { slug: params.slug } })
+        : undefined;
     const registrationTeams =
       session.authenticated &&
       tournament?.entry_type === "team" &&
@@ -197,6 +207,7 @@ export const Route = createFileRoute("/events/$slug")({
       authenticated: session.authenticated,
       ...(attendees ? { attendees } : {}),
       ...(entries ? { entries } : {}),
+      hasBracket: bracket?.status === "ready" && bracket.matches.length > 0,
       ...(registrationTeams ? { registrationTeams } : {}),
       updates: activity?.status === "found" ? activity.page.entries : [],
       publicOrigin: context.publicOrigin,
@@ -234,6 +245,7 @@ function EventPage() {
     entries,
     event,
     authenticated,
+    hasBracket,
     publicOrigin,
     registrationTeams,
     updates,
@@ -257,6 +269,7 @@ function EventPage() {
       updates={updates}
       event={event}
       authenticated={authenticated}
+      hasBracket={Boolean(hasBracket)}
       notice={search.event}
       publicOrigin={publicOrigin}
       registrationTeams={registrationTeams}
@@ -313,6 +326,7 @@ function VisibleEventView({
   updates,
   event,
   authenticated,
+  hasBracket,
   notice,
   publicOrigin,
   registrationTeams,
@@ -323,6 +337,7 @@ function VisibleEventView({
   updates: EventActivityEntry[];
   event: EventDTO;
   authenticated: boolean;
+  hasBracket: boolean;
   notice?: EventSearch["event"];
   publicOrigin: string;
   registrationTeams?: TournamentListResult<RegistrationTeamDTO>;
@@ -570,8 +585,15 @@ function VisibleEventView({
       </div>
 
       {/* A cancelled event has no attendee list to show, and a tournament
-          lists its entrants on the page instead. */}
-      {cancelled || tournament ? null : (
+          has its own sections instead. */}
+      {cancelled ? null : tournament ? (
+        <TournamentTabs
+          current="overview"
+          hasBracket={hasBracket}
+          slug={event.slug}
+          tournament={tournament}
+        />
+      ) : (
         <Tabs label="Event sections">
           <TabLink current to="/events/$slug" params={{ slug: event.slug }}>
             Overview
