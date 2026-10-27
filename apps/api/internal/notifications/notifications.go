@@ -22,6 +22,9 @@ const (
 	TypeTeamMemberJoined         = "team.member_joined"
 	TypeTeamOwnershipTransferred = "team.ownership_transferred"
 	TypeTournamentEntryRemoved   = "tournament.entry_removed"
+	TypeTournamentEntryRequested = "tournament.entry_requested"
+	TypeTournamentEntryApproved  = "tournament.entry_approved"
+	TypeTournamentEntryDeclined  = "tournament.entry_declined"
 )
 
 // Page sizes for the inbox.

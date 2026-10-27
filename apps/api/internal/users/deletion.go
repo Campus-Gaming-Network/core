@@ -315,7 +315,7 @@ func (r *PostgresRepository) DeleteAccount(ctx context.Context, userID string) e
 		// memberships deleted above take the account off rosters.
 		`UPDATE tournament_entries e SET status = 'withdrawn'
 		 FROM tournaments t
-		 WHERE t.id = e.tournament_id AND e.user_id = $1::uuid AND e.status = 'registered'
+		 WHERE t.id = e.tournament_id AND e.user_id = $1::uuid AND e.status IN ('registered', 'pending')
 		   AND t.status IN ('draft', 'registration_open')`,
 		`DELETE FROM event_interests WHERE user_id = $1::uuid`,
 		`DELETE FROM notifications WHERE user_id = $1::uuid`,

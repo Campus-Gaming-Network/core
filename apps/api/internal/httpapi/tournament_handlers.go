@@ -20,7 +20,8 @@ type eventTournaments interface {
 	Register(ctx context.Context, input eventstore.RegisterInput) (eventstore.TournamentEntry, error)
 	UpdateRoster(ctx context.Context, slug string, userID string, entryID string, roster []string) (eventstore.TournamentEntry, error)
 	DeleteEntry(ctx context.Context, slug string, userID string, entryID string) error
-	ListEntries(ctx context.Context, slug string, userID string) ([]eventstore.TournamentEntry, error)
+	ListEntries(ctx context.Context, slug string, userID string) ([]eventstore.TournamentEntry, []eventstore.TournamentEntry, error)
+	DecideEntry(ctx context.Context, slug string, userID string, entryID string, approve bool) (eventstore.TournamentEntry, error)
 	ViewerEntry(ctx context.Context, slug string, userID string) (*eventstore.ViewerEntry, error)
 	RegistrationTeams(ctx context.Context, slug string, userID string) ([]eventstore.RegistrationTeam, error)
 }
@@ -36,6 +37,7 @@ type tournamentRequest struct {
 	Rules                string     `json:"rules"`
 	Prizes               string     `json:"prizes"`
 	BracketURL           string     `json:"bracket_url"`
+	RegistrationMode     string     `json:"registration_mode"`
 }
 
 type tournamentStatusRequest struct {
@@ -98,6 +100,7 @@ func (r *Router) handleTournament(w http.ResponseWriter, req *http.Request, slug
 		Rules:                request.Rules,
 		Prizes:               request.Prizes,
 		BracketURL:           request.BracketURL,
+		RegistrationMode:     request.RegistrationMode,
 	})
 	if err != nil {
 		writeApplicationError(w, err, "tournament_update_failed")
@@ -183,7 +186,7 @@ func (r *Router) handleTournamentEntries(w http.ResponseWriter, req *http.Reques
 		if !signedIn || !looksLikeUUID(userID) {
 			userID, signedIn = "", false
 		}
-		entries, err := r.tournaments.ListEntries(req.Context(), slug, userID)
+		entries, requests, err := r.tournaments.ListEntries(req.Context(), slug, userID)
 		if err != nil {
 			writeApplicationError(w, err, "tournament_entries_unavailable")
 			return
@@ -195,7 +198,11 @@ func (r *Router) handleTournamentEntries(w http.ResponseWriter, req *http.Reques
 		}
 		w.Header().Set("Cache-Control", "private, no-store")
 		w.Header().Set("Vary", "Cookie, Authorization, X-CGN-Event-Unlock")
-		writeJSON(w, http.StatusOK, map[string]any{"entries": entries})
+		body := map[string]any{"entries": entries}
+		if requests != nil {
+			body["requests"] = requests
+		}
+		writeJSON(w, http.StatusOK, body)
 		return
 	}
 	userID, ok := r.tournamentUser(w, req)
@@ -252,6 +259,29 @@ func (r *Router) handleTournamentEntry(w http.ResponseWriter, req *http.Request,
 		return
 	}
 	writeJSON(w, http.StatusOK, entry)
+}
+
+// handleTournamentDecision answers POST
+// /events/{slug}/tournament/entries/{id}/approve and .../decline, an
+// organizer's decision on a pending request.
+func (r *Router) handleTournamentDecision(approve bool) func(http.ResponseWriter, *http.Request, string) {
+	return func(w http.ResponseWriter, req *http.Request, slug string) {
+		userID, ok := r.tournamentUser(w, req)
+		if !ok {
+			return
+		}
+		entryID := req.PathValue("id")
+		if !looksLikeUUID(entryID) {
+			writeError(w, http.StatusNotFound, "tournament_entry_not_found")
+			return
+		}
+		entry, err := r.tournaments.DecideEntry(req.Context(), slug, userID, entryID, approve)
+		if err != nil {
+			writeApplicationError(w, err, "tournament_decision_failed")
+			return
+		}
+		writeJSON(w, http.StatusOK, entry)
+	}
 }
 
 // handleTournamentTeams answers GET /events/{slug}/tournament/my-teams: the

@@ -18,6 +18,7 @@ import {
   getTournamentEntries,
 } from "../src/features/tournament-registration/tournament.functions.js";
 import {
+  decideEntryOperation,
   deleteEntryOperation,
   registerOperation,
   tournamentEntriesOperation,
@@ -51,6 +52,8 @@ vi.mock(
     getTournamentEntries: vi.fn(),
     getRegistrationTeams: vi.fn(),
     registerForTournament: { url: "/test/register" },
+    approveTournamentEntry: { url: "/test/approve" },
+    declineTournamentEntry: { url: "/test/decline" },
     withdrawTournamentEntry: { url: "/test/withdraw" },
     removeTournamentEntry: { url: "/test/remove" },
   }),
@@ -67,6 +70,7 @@ const openSolo: TournamentDTO = {
   format: "single_elimination",
   rules: "",
   prizes: "",
+  registration_mode: "open",
   status: "registration_open",
   entry_count: 2,
 };
@@ -77,9 +81,15 @@ const tournamentEvent: EventDTO = {
   tournament: openSolo,
 };
 const soloEntries: TournamentEntryDTO[] = [
-  { id: entryID, seed: 1, registered_at: "2037-02-01T17:00:00Z" },
+  {
+    id: entryID,
+    status: "registered",
+    seed: 1,
+    registered_at: "2037-02-01T17:00:00Z",
+  },
   {
     id: "44444444-4444-4444-8444-444444444444",
+    status: "registered",
     seed: 2,
     player: { public_id: "public-ada", name: "Ada" },
     registered_at: "2037-02-02T17:00:00Z",
@@ -90,6 +100,7 @@ async function renderEvent(
   event: EventDTO,
   authenticated: boolean,
   href = "/events/campus-night",
+  requests: TournamentEntryDTO[] = [],
 ) {
   vi.mocked(getEventViewerSession).mockResolvedValue(
     authenticated
@@ -105,6 +116,7 @@ async function renderEvent(
   vi.mocked(getTournamentEntries).mockResolvedValue({
     status: "ready",
     items: soloEntries,
+    requests,
   });
   vi.mocked(getRegistrationTeams).mockResolvedValue({
     status: "ready",
@@ -141,7 +153,11 @@ test("the panel's state follows the status, the close time, the cap, and the vie
       state({
         ...openSolo,
         status: "in_progress",
-        viewer_entry: { id: entryID, can_manage: true },
+        viewer_entry: { id: entryID, status: "registered", can_manage: true },
+      }),
+      state({
+        ...openSolo,
+        viewer_entry: { id: entryID, status: "pending", can_manage: true },
       }),
     ],
     [
@@ -153,6 +169,7 @@ test("the panel's state follows the status, the close time, the cap, and the vie
       "not-open",
       "closed",
       "registered",
+      "requested",
     ],
   );
 });
@@ -246,7 +263,7 @@ test("a registered entrant can withdraw, an organizer can remove entries, and a 
       viewer_can_edit: true,
       tournament: {
         ...openSolo,
-        viewer_entry: { id: entryID, can_manage: true },
+        viewer_entry: { id: entryID, status: "registered", can_manage: true },
       },
     },
     true,
@@ -268,6 +285,88 @@ test("a registered entrant can withdraw, an organizer can remove entries, and a 
   );
 });
 
+const approvalSolo: TournamentDTO = {
+  ...openSolo,
+  registration_mode: "approval",
+};
+const pendingCy: TournamentEntryDTO = {
+  id: "55555555-5555-4555-8555-555555555555",
+  status: "pending",
+  player: { public_id: "public-cy", name: "Cy" },
+  registered_at: "2037-02-03T17:00:00Z",
+};
+
+test("in an approval tournament a player requests to join, sees the payment note, and can cancel the request", async () => {
+  const paid: EventDTO = {
+    ...tournamentEvent,
+    cost: "paid",
+    payment_note: "Entry is $10.",
+    payment_url: "https://pay.example/spring",
+    tournament: approvalSolo,
+  };
+  const open = await renderEvent(paid, true);
+  assert.match(
+    open,
+    /<h2 id="event-registration-heading">Request to join<\/h2>/,
+  );
+  assert.match(open, /The organizers approve each entry\./);
+  assert.match(
+    open,
+    /Entry is \$10\.(<!-- -->)? <a href="https:\/\/pay\.example\/spring" rel="noopener noreferrer" target="_blank">Payment link/,
+  );
+  assert.match(open, /<button type="submit">Request to join<\/button>/);
+
+  const requested = await renderEvent(
+    {
+      ...paid,
+      tournament: {
+        ...approvalSolo,
+        viewer_entry: { id: entryID, status: "pending", can_manage: true },
+      },
+    },
+    true,
+    "/events/campus-night?tournament=requested",
+  );
+  assert.match(
+    requested,
+    /Request sent\. The organizers will approve or decline it/,
+  );
+  assert.match(requested, /Your request is waiting for the organizers\./);
+  assert.match(
+    requested,
+    new RegExp(
+      `<form action="/test/withdraw" method="post"><input type="hidden" name="slug" value="campus-night"/><input type="hidden" name="entry_id" value="${entryID}"/><button[^>]*>Cancel request</button>`,
+    ),
+  );
+  assert.doesNotMatch(requested, /Requests \(/);
+});
+
+test("organizers of an approval tournament approve, decline, or remove each request", async () => {
+  const markup = await renderEvent(
+    {
+      ...tournamentEvent,
+      viewer_can_edit: true,
+      tournament: { ...approvalSolo, request_count: 1 },
+    },
+    true,
+    "/events/campus-night",
+    [pendingCy],
+  );
+  assert.match(markup, /<h2 id="event-requests-title">Requests \(1\)<\/h2>/);
+  for (const [action, label] of [
+    ["approve", "Approve Cy"],
+    ["decline", "Decline Cy"],
+    ["remove", "Remove Cy"],
+  ]) {
+    assert.match(
+      markup,
+      new RegExp(
+        `<form action="/test/${action}" method="post"><input type="hidden" name="slug" value="campus-night"/><input type="hidden" name="entry_id" value="${pendingCy.id}"/><button[^>]*>${label}</button>`,
+      ),
+    );
+  }
+});
+
 function client(fetcher: Fetcher) {
   return createApiClient({ baseUrl: "http://api:8080", fetcher });
 }
@@ -282,7 +381,12 @@ test("registration operations send the roster, map refusals to notices, and read
     });
     if (init?.method === "DELETE") return new Response(null, { status: 204 });
     return Response.json(
-      { id: entryID, seed: 1, registered_at: "2037-02-01T17:00:00Z" },
+      {
+        id: entryID,
+        status: "registered",
+        seed: 1,
+        registered_at: "2037-02-01T17:00:00Z",
+      },
       { status: 201 },
     );
   });
@@ -362,9 +466,84 @@ test("registration operations send the roster, map refusals to notices, and read
           redirectTo: `/events/spring-cup?tournament=${notice}#registration`,
         }),
       ),
-      entries: { status: "ready", items: [soloEntries[1]] },
+      entries: { status: "ready", items: [soloEntries[1]], requests: [] },
       unlocks: ["unlock-token"],
       reported: 2,
+    },
+  );
+});
+
+test("approval operations: a request names its notice, decisions post to their routes, and organizers read the requests", async () => {
+  const calls: Array<{ url: string; method: string }> = [];
+  const api = client(async (input, init) => {
+    const url = requestURL(input);
+    calls.push({ url, method: init?.method ?? "GET" });
+    if (url.endsWith("/decline")) {
+      return Response.json({ id: pendingCy.id, status: "declined" });
+    }
+    if (url.endsWith("/approve")) {
+      return Response.json({ ...pendingCy, status: "registered", seed: 3 });
+    }
+    if (init?.method === "POST") {
+      return Response.json(pendingCy, { status: 201 });
+    }
+    return Response.json({ entries: soloEntries, requests: [pendingCy] });
+  });
+  const dependencies = {
+    api,
+    cookieHeader: "cgn_session=value",
+    reportError: () => {},
+  };
+  const input = { slug: "spring-cup", entry_id: pendingCy.id };
+
+  assert.deepEqual(
+    {
+      outcomes: [
+        await registerOperation(
+          { slug: "spring-cup", roster: [] },
+          dependencies,
+        ),
+        await decideEntryOperation(input, "approved", dependencies),
+        await decideEntryOperation(input, "declined", dependencies),
+        await decideEntryOperation(input, "approved", {
+          ...dependencies,
+          api: client(async () =>
+            Response.json(
+              { error: "tournament_entry_not_pending" },
+              { status: 409 },
+            ),
+          ),
+        }),
+      ].map((outcome) => outcome.redirectTo),
+      entries: await tournamentEntriesOperation(
+        { slug: "spring-cup" },
+        dependencies,
+      ),
+      calls,
+    },
+    {
+      outcomes: ["requested", "approved", "declined", "not-pending"].map(
+        (notice) => `/events/spring-cup?tournament=${notice}#registration`,
+      ),
+      entries: { status: "ready", items: soloEntries, requests: [pendingCy] },
+      calls: [
+        {
+          url: "http://api:8080/events/spring-cup/tournament/entries",
+          method: "POST",
+        },
+        {
+          url: `http://api:8080/events/spring-cup/tournament/entries/${pendingCy.id}/approve`,
+          method: "POST",
+        },
+        {
+          url: `http://api:8080/events/spring-cup/tournament/entries/${pendingCy.id}/decline`,
+          method: "POST",
+        },
+        {
+          url: "http://api:8080/events/spring-cup/tournament/entries",
+          method: "GET",
+        },
+      ],
     },
   );
 });

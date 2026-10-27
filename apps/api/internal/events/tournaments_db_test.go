@@ -122,6 +122,7 @@ func TestPostgresRepositoryTournamentSettingsAndStatus(t *testing.T) {
 		Format:               FormatSingleElimination,
 		Rules:                "Best of three.",
 		BracketURL:           "https://www.start.gg/tournament/spring-bracket",
+		RegistrationMode:     RegistrationOpenMode,
 		Status:               TournamentDraft,
 	}
 	if created.RegistrationClosesAt != nil {
@@ -139,11 +140,12 @@ func TestPostgresRepositoryTournamentSettingsAndStatus(t *testing.T) {
 		t.Fatalf("PutTournament(update) error = %v", err)
 	}
 	wantSolo := Tournament{
-		Game:      GameSummary{ID: otherGameID, Name: "Other Game", Slug: "other-game"},
-		EntryType: EntrySolo,
-		Format:    FormatSingleElimination,
-		Rules:     "Best of three.",
-		Status:    TournamentDraft,
+		Game:             GameSummary{ID: otherGameID, Name: "Other Game", Slug: "other-game"},
+		EntryType:        EntrySolo,
+		Format:           FormatSingleElimination,
+		Rules:            "Best of three.",
+		RegistrationMode: RegistrationOpenMode,
+		Status:           TournamentDraft,
 	}
 	if isNew || !reflect.DeepEqual(solo, wantSolo) {
 		t.Fatalf("PutTournament(update) = %+v, %t; want %+v, false", solo, isNew, wantSolo)

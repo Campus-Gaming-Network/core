@@ -21,10 +21,10 @@ type fakeEventTournaments struct {
 }
 
 func (f *fakeEventTournaments) PutTournament(_ context.Context, input eventstore.TournamentInput) (eventstore.Tournament, bool, error) {
-	f.calls = append(f.calls, fmt.Sprintf("put %s %s %s %s size=%d subs=%d cap=%d closes=%s format=%q rules=%q bracket=%q",
+	f.calls = append(f.calls, fmt.Sprintf("put %s %s %s %s size=%d subs=%d cap=%d closes=%s format=%q rules=%q bracket=%q mode=%q",
 		input.Slug, input.EditorUserID, input.GameID, input.EntryType, *input.TeamSize, input.Substitutes,
-		*input.EntrantCap, input.RegistrationClosesAt.UTC().Format(time.RFC3339), input.Format, input.Rules, input.BracketURL))
-	return eventstore.Tournament{EntryType: input.EntryType, Status: eventstore.TournamentDraft}, f.created, nil
+		*input.EntrantCap, input.RegistrationClosesAt.UTC().Format(time.RFC3339), input.Format, input.Rules, input.BracketURL, input.RegistrationMode))
+	return eventstore.Tournament{EntryType: input.EntryType, RegistrationMode: input.RegistrationMode, Status: eventstore.TournamentDraft}, f.created, nil
 }
 
 func (f *fakeEventTournaments) DeleteTournament(_ context.Context, slug string, userID string) error {
@@ -34,17 +34,25 @@ func (f *fakeEventTournaments) DeleteTournament(_ context.Context, slug string, 
 
 func (f *fakeEventTournaments) SetTournamentStatus(_ context.Context, slug string, userID string, status string) (eventstore.Tournament, error) {
 	f.calls = append(f.calls, "status "+slug+" "+userID+" "+status)
-	return eventstore.Tournament{Status: status}, nil
+	return eventstore.Tournament{RegistrationMode: eventstore.RegistrationOpenMode, Status: status}, nil
 }
 
 func (f *fakeEventTournaments) Register(_ context.Context, input eventstore.RegisterInput) (eventstore.TournamentEntry, error) {
 	f.calls = append(f.calls, fmt.Sprintf("register %s %s team=%q roster=%q", input.Slug, input.UserID, input.TeamSlug, input.Roster))
-	return eventstore.TournamentEntry{ID: "entry-1", Seed: 1}, nil
+	return eventstore.TournamentEntry{ID: "entry-1", Status: eventstore.EntryPending}, nil
 }
 
 func (f *fakeEventTournaments) UpdateRoster(_ context.Context, slug string, userID string, entryID string, roster []string) (eventstore.TournamentEntry, error) {
 	f.calls = append(f.calls, fmt.Sprintf("roster %s %s %s %q", slug, userID, entryID, roster))
-	return eventstore.TournamentEntry{ID: entryID, Seed: 1}, nil
+	return eventstore.TournamentEntry{ID: entryID, Status: eventstore.EntryRegistered, Seed: 1}, nil
+}
+
+func (f *fakeEventTournaments) DecideEntry(_ context.Context, slug string, userID string, entryID string, approve bool) (eventstore.TournamentEntry, error) {
+	f.calls = append(f.calls, fmt.Sprintf("decide %s %s %s approve=%t", slug, userID, entryID, approve))
+	if !approve {
+		return eventstore.TournamentEntry{}, eventstore.ErrEntryNotPending
+	}
+	return eventstore.TournamentEntry{ID: entryID, Status: eventstore.EntryRegistered, Seed: 3}, nil
 }
 
 func (f *fakeEventTournaments) DeleteEntry(_ context.Context, slug string, userID string, entryID string) error {
@@ -52,12 +60,20 @@ func (f *fakeEventTournaments) DeleteEntry(_ context.Context, slug string, userI
 	return nil
 }
 
-func (f *fakeEventTournaments) ListEntries(_ context.Context, slug string, userID string) ([]eventstore.TournamentEntry, error) {
+// ListEntries treats the signed-in test user as an organizer, who also gets
+// the pending requests.
+func (f *fakeEventTournaments) ListEntries(_ context.Context, slug string, userID string) ([]eventstore.TournamentEntry, []eventstore.TournamentEntry, error) {
 	f.calls = append(f.calls, fmt.Sprintf("list %s %q", slug, userID))
-	return []eventstore.TournamentEntry{
-		{ID: "entry-1", Seed: 1, Player: &eventstore.EntryPlayer{PublicID: "p1", Name: "Ada"}},
-		{ID: "entry-2", Seed: 2, Team: &eventstore.TeamSummary{Name: "Knights", Slug: "knights"},
+	entries := []eventstore.TournamentEntry{
+		{ID: "entry-1", Status: eventstore.EntryRegistered, Seed: 1, Player: &eventstore.EntryPlayer{PublicID: "p1", Name: "Ada"}},
+		{ID: "entry-2", Status: eventstore.EntryRegistered, Seed: 2, Team: &eventstore.TeamSummary{Name: "Knights", Slug: "knights"},
 			Roster: []eventstore.EntryPlayer{{PublicID: "p2", Name: "Bo"}}},
+	}
+	if userID == "" {
+		return entries, nil, nil
+	}
+	return entries, []eventstore.TournamentEntry{
+		{ID: "entry-3", Status: eventstore.EntryPending, Player: &eventstore.EntryPlayer{PublicID: "p3", Name: "Cy"}},
 	}, nil
 }
 
@@ -89,7 +105,7 @@ func TestTournamentRoutesReachTheStoreAsTheSignedInUser(t *testing.T) {
 		Body   string
 	}
 	settings := `{"game_id":"game-1","entry_type":"team","team_size":5,"substitutes":1,"entrant_cap":16,` +
-		`"registration_closes_at":"2031-06-01T17:00:00Z","rules":"Best of three","bracket_url":"https://challonge.com/spring"}`
+		`"registration_closes_at":"2031-06-01T17:00:00Z","rules":"Best of three","bracket_url":"https://challonge.com/spring","registration_mode":"approval"}`
 	var got []result
 	for _, request := range []struct {
 		method, target, body string
@@ -114,18 +130,18 @@ func TestTournamentRoutesReachTheStoreAsTheSignedInUser(t *testing.T) {
 		got = append(got, result{response.Code, strings.TrimSpace(response.Body.String())})
 	}
 
-	draft := `{"game":{"id":"","name":"","slug":"","has_cover":false},"entry_type":"team","substitutes":0,"format":"","rules":"","prizes":"","status":"draft","entry_count":0}`
+	draft := `{"game":{"id":"","name":"","slug":"","has_cover":false},"entry_type":"team","substitutes":0,"format":"","rules":"","prizes":"","registration_mode":"approval","status":"draft","entry_count":0}`
 	want := []result{
 		{http.StatusCreated, draft},
 		{http.StatusOK, draft},
-		{http.StatusOK, `{"game":{"id":"","name":"","slug":"","has_cover":false},"entry_type":"","substitutes":0,"format":"","rules":"","prizes":"","status":"registration_open","entry_count":0}`},
+		{http.StatusOK, `{"game":{"id":"","name":"","slug":"","has_cover":false},"entry_type":"","substitutes":0,"format":"","rules":"","prizes":"","registration_mode":"open","status":"registration_open","entry_count":0}`},
 		{http.StatusBadRequest, `{"error":"invalid_tournament_status"}`},
 		{http.StatusConflict, `{"error":"tournament_locked"}`},
 		{http.StatusBadRequest, `{"error":"invalid_json"}`},
 		{http.StatusMethodNotAllowed, `{"error":"method_not_allowed"}`},
 		{http.StatusUnauthorized, `{"error":"authentication_required"}`},
 	}
-	put := "put spring-bracket " + testUserID + ` game-1 team size=5 subs=1 cap=16 closes=2031-06-01T17:00:00Z format="" rules="Best of three" bracket="https://challonge.com/spring"`
+	put := "put spring-bracket " + testUserID + ` game-1 team size=5 subs=1 cap=16 closes=2031-06-01T17:00:00Z format="" rules="Best of three" bracket="https://challonge.com/spring" mode="approval"`
 	wantCalls := []string{
 		put,
 		put,
@@ -203,6 +219,10 @@ func TestTournamentEntryRoutes(t *testing.T) {
 		{http.MethodDelete, "/events/spring-bracket/tournament/entries/not-an-id", "", public, true},
 		{http.MethodGet, "/events/spring-bracket/tournament/my-teams", "", public, true},
 		{http.MethodPost, "/events/spring-bracket/tournament/entries", `{}`, public, false},
+		{http.MethodPost, "/events/spring-bracket/tournament/entries/" + entryID + "/approve", "", public, true},
+		{http.MethodPost, "/events/spring-bracket/tournament/entries/" + entryID + "/decline", "", public, true},
+		{http.MethodPost, "/events/spring-bracket/tournament/entries/not-an-id/approve", "", public, true},
+		{http.MethodPost, "/events/spring-bracket/tournament/entries/" + entryID + "/approve", "", public, false},
 	} {
 		req := httptest.NewRequest(request.method, request.target, strings.NewReader(request.body))
 		if request.signedIn {
@@ -213,19 +233,24 @@ func TestTournamentEntryRoutes(t *testing.T) {
 		got = append(got, result{response.Code, strings.TrimSpace(response.Body.String())})
 	}
 
-	signedOut := `{"entries":[{"id":"entry-1","seed":1,"registered_at":"0001-01-01T00:00:00Z"},` +
-		`{"id":"entry-2","seed":2,"team":{"id":"","name":"Knights","slug":"knights"},"registered_at":"0001-01-01T00:00:00Z"}]}`
-	signedIn := `{"entries":[{"id":"entry-1","seed":1,"player":{"public_id":"p1","name":"Ada"},"registered_at":"0001-01-01T00:00:00Z"},` +
-		`{"id":"entry-2","seed":2,"team":{"id":"","name":"Knights","slug":"knights"},"roster":[{"public_id":"p2","name":"Bo"}],"registered_at":"0001-01-01T00:00:00Z"}]}`
+	signedOut := `{"entries":[{"id":"entry-1","status":"registered","seed":1,"registered_at":"0001-01-01T00:00:00Z"},` +
+		`{"id":"entry-2","status":"registered","seed":2,"team":{"id":"","name":"Knights","slug":"knights"},"registered_at":"0001-01-01T00:00:00Z"}]}`
+	signedIn := `{"entries":[{"id":"entry-1","status":"registered","seed":1,"player":{"public_id":"p1","name":"Ada"},"registered_at":"0001-01-01T00:00:00Z"},` +
+		`{"id":"entry-2","status":"registered","seed":2,"team":{"id":"","name":"Knights","slug":"knights"},"roster":[{"public_id":"p2","name":"Bo"}],"registered_at":"0001-01-01T00:00:00Z"}],` +
+		`"requests":[{"id":"entry-3","status":"pending","player":{"public_id":"p3","name":"Cy"},"registered_at":"0001-01-01T00:00:00Z"}]}`
 	want := []result{
 		{http.StatusOK, signedOut},
 		{http.StatusOK, signedIn},
-		{http.StatusCreated, `{"id":"entry-1","seed":1,"registered_at":"0001-01-01T00:00:00Z"}`},
+		{http.StatusCreated, `{"id":"entry-1","status":"pending","registered_at":"0001-01-01T00:00:00Z"}`},
 		{http.StatusForbidden, `{"error":"private_event_locked"}`},
-		{http.StatusOK, `{"id":"` + entryID + `","seed":1,"registered_at":"0001-01-01T00:00:00Z"}`},
+		{http.StatusOK, `{"id":"` + entryID + `","status":"registered","seed":1,"registered_at":"0001-01-01T00:00:00Z"}`},
 		{http.StatusNoContent, ""},
 		{http.StatusNotFound, `{"error":"tournament_entry_not_found"}`},
 		{http.StatusOK, `{"teams":[]}`},
+		{http.StatusUnauthorized, `{"error":"authentication_required"}`},
+		{http.StatusOK, `{"id":"` + entryID + `","status":"registered","seed":3,"registered_at":"0001-01-01T00:00:00Z"}`},
+		{http.StatusConflict, `{"error":"tournament_entry_not_pending"}`},
+		{http.StatusNotFound, `{"error":"tournament_entry_not_found"}`},
 		{http.StatusUnauthorized, `{"error":"authentication_required"}`},
 	}
 	wantCalls := []string{
@@ -235,6 +260,8 @@ func TestTournamentEntryRoutes(t *testing.T) {
 		"roster spring-bracket " + testUserID + " " + entryID + ` ["p1"]`,
 		"delete entry spring-bracket " + testUserID + " " + entryID,
 		"teams spring-bracket " + testUserID,
+		"decide spring-bracket " + testUserID + " " + entryID + " approve=true",
+		"decide spring-bracket " + testUserID + " " + entryID + " approve=false",
 	}
 	if !reflect.DeepEqual(got, want) || !reflect.DeepEqual(store.calls, wantCalls) {
 		t.Fatalf("results = %+v\ncalls = %q\nwant %+v\nand %q", got, store.calls, want, wantCalls)

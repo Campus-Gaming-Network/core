@@ -13,12 +13,19 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-// Tournament entry status values.
+// Tournament entry status values. In approval mode an entry starts pending
+// and an organizer approves (registered) or declines it.
 const (
 	EntryRegistered = "registered"
+	EntryPending    = "pending"
 	EntryWithdrawn  = "withdrawn"
+	EntryDeclined   = "declined"
 	EntryRemoved    = "removed"
 )
+
+// activeEntry is the SQL condition on te.status for an entry that counts as
+// its entrant's one entry: registered, or a pending request.
+const activeEntry = `te.status IN ('registered', 'pending')`
 
 // Errors returned by tournament registration.
 var (
@@ -58,19 +65,29 @@ var (
 	// ErrTournamentNeedsEntrants reports starting a tournament with fewer
 	// than two entries.
 	ErrTournamentNeedsEntrants = apperror.New(apperror.KindConflict, "tournament_needs_entrants", "a tournament needs two or more entries to start")
+	// ErrEntryNotPending reports an approval or decline of an entry that is
+	// not a pending request.
+	ErrEntryNotPending = apperror.New(apperror.KindConflict, "tournament_entry_not_pending", "the entry is not a pending request")
+	// ErrTournamentHasRequests reports switching registration back to open
+	// while a request is pending.
+	ErrTournamentHasRequests = apperror.New(apperror.KindConflict, "tournament_has_requests", "approve or decline the pending requests first")
 )
 
-// TournamentEntry is one active entry as the entrant list shows it. A
-// signed-out viewer receives a solo entry without Player and a team entry
-// without Roster.
+// TournamentEntry is one active entry as the entrant list shows it, or a
+// pending request as organizers see it. A signed-out viewer receives a solo
+// entry without Player and a team entry without Roster.
 type TournamentEntry struct {
-	ID string `json:"id"`
-	// Seed is the entry's place in seed order, from 1.
-	Seed         int           `json:"seed"`
-	Player       *EntryPlayer  `json:"player,omitempty"`
-	Team         *TeamSummary  `json:"team,omitempty"`
-	Roster       []EntryPlayer `json:"roster,omitempty"`
-	RegisteredAt time.Time     `json:"registered_at"`
+	ID     string `json:"id"`
+	Status string `json:"status"`
+	// Seed is a registered entry's place in seed order, from 1; a pending
+	// request has none.
+	Seed   int           `json:"seed,omitempty"`
+	Player *EntryPlayer  `json:"player,omitempty"`
+	Team   *TeamSummary  `json:"team,omitempty"`
+	Roster []EntryPlayer `json:"roster,omitempty"`
+	// RegisteredAt is when the entry registered or was approved, or for a
+	// pending request when it was requested.
+	RegisteredAt time.Time `json:"registered_at"`
 }
 
 // EntryPlayer names a solo entrant or a roster player.
@@ -82,8 +99,10 @@ type EntryPlayer struct {
 // ViewerEntry is the signed-in viewer's own entry: theirs alone, one on whose
 // roster they are, or one for a team they own or captain.
 type ViewerEntry struct {
-	ID   string       `json:"id"`
-	Team *TeamSummary `json:"team,omitempty"`
+	ID string `json:"id"`
+	// Status is registered, or pending for a request awaiting approval.
+	Status string       `json:"status"`
+	Team   *TeamSummary `json:"team,omitempty"`
 	// CanManage is set for the solo player and for the team's owner and
 	// captains, who may change the roster and withdraw.
 	CanManage bool `json:"can_manage"`
@@ -113,6 +132,7 @@ type entryTournament struct {
 	EventID     string
 	ID          string
 	Status      string
+	Mode        string
 	EntryType   string
 	TeamSize    int
 	Substitutes int
@@ -128,7 +148,7 @@ func lockEntryTournament(ctx context.Context, tx pgx.Tx, slug string, userID str
 	var tournament entryTournament
 	var teamSize sql.NullInt32
 	err := tx.QueryRow(ctx, `
-		SELECT e.id::text, t.id::text, t.status, t.entry_type, t.team_size, t.substitutes, t.entrant_cap,
+		SELECT e.id::text, t.id::text, t.status, t.registration_mode, t.entry_type, t.team_size, t.substitutes, t.entrant_cap,
 		       COALESCE(LEAST(t.registration_closes_at, e.starts_at), e.starts_at),
 		       `+editableBy("$2")+`,
 		       (SELECT COUNT(*) FROM tournament_entries te WHERE te.tournament_id = t.id AND te.status = 'registered')::int
@@ -137,7 +157,7 @@ func lockEntryTournament(ctx context.Context, tx pgx.Tx, slug string, userID str
 		WHERE e.slug = $1 AND e.deleted_at IS NULL
 		FOR UPDATE OF t
 	`, strings.TrimSpace(slug), strings.TrimSpace(userID)).Scan(
-		&tournament.EventID, &tournament.ID, &tournament.Status, &tournament.EntryType, &teamSize,
+		&tournament.EventID, &tournament.ID, &tournament.Status, &tournament.Mode, &tournament.EntryType, &teamSize,
 		&tournament.Substitutes, &tournament.Cap, &tournament.ClosesAt, &tournament.Organizer, &tournament.EntryCount)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return entryTournament{}, ErrTournamentNotFound
@@ -153,8 +173,10 @@ func lockEntryTournament(ctx context.Context, tx pgx.Tx, slug string, userID str
 }
 
 // Register enters the user, or a team they own or captain, in the tournament
-// on the event with slug while registration is open. A withdrawn entrant
-// registering again keeps its entry and goes to the end of the seed order.
+// on the event with slug while registration is open. In approval mode the
+// entry is a pending request, and the event's organizers are told about it.
+// A withdrawn or declined entrant registering again keeps its entry and goes
+// to the end of the order.
 func (r *PostgresRepository) Register(ctx context.Context, input RegisterInput) (TournamentEntry, error) {
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
@@ -214,6 +236,10 @@ func (r *PostgresRepository) Register(ctx context.Context, input RegisterInput) 
 		}
 	}
 
+	newStatus := EntryRegistered
+	if tournament.Mode == RegistrationApproval {
+		newStatus = EntryPending
+	}
 	var entryID, status string
 	err = tx.QueryRow(ctx, `
 		SELECT id::text, status FROM tournament_entries
@@ -222,29 +248,34 @@ func (r *PostgresRepository) Register(ctx context.Context, input RegisterInput) 
 	switch {
 	case errors.Is(err, pgx.ErrNoRows):
 		if err := tx.QueryRow(ctx, `
-			INSERT INTO tournament_entries (tournament_id, `+entrantColumn+`, registered_by_user_id)
-			VALUES ($1::uuid, $2::uuid, $3::uuid)
+			INSERT INTO tournament_entries (tournament_id, `+entrantColumn+`, registered_by_user_id, status)
+			VALUES ($1::uuid, $2::uuid, $3::uuid, $4)
 			RETURNING id::text
-		`, tournament.ID, entrantID, input.UserID).Scan(&entryID); err != nil {
+		`, tournament.ID, entrantID, input.UserID, newStatus).Scan(&entryID); err != nil {
 			return TournamentEntry{}, fmt.Errorf("insert tournament entry: %w", err)
 		}
 	case err != nil:
 		return TournamentEntry{}, fmt.Errorf("load tournament entry: %w", err)
-	case status == EntryRegistered:
+	case status == EntryRegistered || status == EntryPending:
 		return TournamentEntry{}, ErrAlreadyEntered
 	case status == EntryRemoved:
 		return TournamentEntry{}, ErrEntryRemoved
 	default:
 		if _, err := tx.Exec(ctx, `
 			UPDATE tournament_entries
-			SET status = 'registered', registered_at = NOW(), registered_by_user_id = $2::uuid, seed = NULL
+			SET status = $3, registered_at = NOW(), registered_by_user_id = $2::uuid, seed = NULL
 			WHERE id = $1::uuid
-		`, entryID, input.UserID); err != nil {
+		`, entryID, input.UserID, newStatus); err != nil {
 			return TournamentEntry{}, fmt.Errorf("reregister tournament entry: %w", err)
 		}
 	}
 	if team {
 		if err := setRoster(ctx, tx, tournament, entryID, entrantID, input.Roster); err != nil {
+			return TournamentEntry{}, err
+		}
+	}
+	if newStatus == EntryPending {
+		if err := notifyOrganizersOfRequest(ctx, tx, tournament.EventID, input.UserID); err != nil {
 			return TournamentEntry{}, err
 		}
 	}
@@ -329,23 +360,8 @@ func (r *PostgresRepository) DeleteEntry(ctx context.Context, slug string, userI
 
 	var recipients []string
 	if status == EntryRemoved {
-		rows, err := tx.Query(ctx, `
-			SELECT DISTINCT u.id::text
-			FROM users u
-			WHERE u.deleted_at IS NULL AND u.account_status = 'active'
-			  AND (u.id IN (SELECT user_id FROM tournament_entries WHERE id = $1::uuid)
-			       OR u.id IN (SELECT user_id FROM tournament_entry_players WHERE entry_id = $1::uuid)
-			       OR u.id IN (SELECT m.user_id FROM team_members m
-			                   JOIN tournament_entries te ON te.team_id = m.team_id
-			                   WHERE te.id = $1::uuid AND m.deleted_at IS NULL AND m.role IN ('owner', 'captain')))
-			ORDER BY 1
-		`, entryID)
-		if err != nil {
-			return fmt.Errorf("list removed entrants: %w", err)
-		}
-		recipients, err = pgx.CollectRows(rows, pgx.RowTo[string])
-		if err != nil {
-			return fmt.Errorf("scan removed entrants: %w", err)
+		if recipients, err = entryRecipients(ctx, tx, entryID); err != nil {
+			return err
 		}
 	}
 
@@ -355,24 +371,9 @@ func (r *PostgresRepository) DeleteEntry(ctx context.Context, slug string, userI
 	if _, err := tx.Exec(ctx, `DELETE FROM tournament_entry_players WHERE entry_id = $1::uuid`, entryID); err != nil {
 		return fmt.Errorf("clear tournament roster: %w", err)
 	}
-	if len(recipients) > 0 {
-		var title string
-		if err := tx.QueryRow(ctx, `SELECT title FROM events WHERE id = $1::uuid`, tournament.EventID).Scan(&title); err != nil {
-			return fmt.Errorf("load event title: %w", err)
-		}
-		inputs := make([]notifications.Input, 0, len(recipients))
-		for _, recipient := range recipients {
-			inputs = append(inputs, notifications.Input{
-				UserID:  recipient,
-				Type:    notifications.TypeTournamentEntryRemoved,
-				Title:   "Tournament entry removed",
-				Body:    "An organizer removed your entry from " + title + ".",
-				EventID: tournament.EventID,
-			})
-		}
-		if err := notifications.Insert(ctx, tx, inputs...); err != nil {
-			return err
-		}
+	if err := notifyEntrants(ctx, tx, tournament.EventID, recipients, notifications.TypeTournamentEntryRemoved,
+		"Tournament entry removed", "An organizer removed your entry from %s."); err != nil {
+		return err
 	}
 	if err := tx.Commit(ctx); err != nil {
 		return fmt.Errorf("commit entry delete: %w", err)
@@ -380,9 +381,10 @@ func (r *PostgresRepository) DeleteEntry(ctx context.Context, slug string, userI
 	return nil
 }
 
-// ListEntries returns the active entries of the tournament on the event with
-// slug in seed order. A draft is not found for anyone but the organizers.
-func (r *PostgresRepository) ListEntries(ctx context.Context, slug string, userID string) ([]TournamentEntry, error) {
+// ListEntries returns the registered entries of the tournament on the event
+// with slug in seed order and, for its organizers only, the pending requests
+// in request order. A draft is not found for anyone but the organizers.
+func (r *PostgresRepository) ListEntries(ctx context.Context, slug string, userID string) ([]TournamentEntry, []TournamentEntry, error) {
 	var tournamentID, status string
 	var organizer bool
 	err := r.pool.QueryRow(ctx, `
@@ -392,12 +394,20 @@ func (r *PostgresRepository) ListEntries(ctx context.Context, slug string, userI
 		WHERE e.slug = $1 AND e.deleted_at IS NULL
 	`, strings.TrimSpace(slug), strings.TrimSpace(userID)).Scan(&tournamentID, &status, &organizer)
 	if errors.Is(err, pgx.ErrNoRows) || (err == nil && status == TournamentDraft && !organizer) {
-		return nil, ErrTournamentNotFound
+		return nil, nil, ErrTournamentNotFound
 	}
 	if err != nil {
-		return nil, fmt.Errorf("load tournament: %w", err)
+		return nil, nil, fmt.Errorf("load tournament: %w", err)
 	}
-	return listEntries(ctx, r.pool, tournamentID, "")
+	entries, err := listEntries(ctx, r.pool, tournamentID, "", EntryRegistered)
+	if err != nil || !organizer {
+		return entries, nil, err
+	}
+	requests, err := listEntries(ctx, r.pool, tournamentID, "", EntryPending)
+	if err != nil {
+		return nil, nil, err
+	}
+	return entries, requests, nil
 }
 
 // ViewerEntry returns the user's own entry in the tournament on the event
@@ -406,14 +416,14 @@ func (r *PostgresRepository) ViewerEntry(ctx context.Context, slug string, userI
 	var entry ViewerEntry
 	var teamID, teamName, teamSlug sql.NullString
 	err := r.pool.QueryRow(ctx, `
-		SELECT te.id::text, tm.id::text, tm.name, tm.slug,
+		SELECT te.id::text, te.status, tm.id::text, tm.name, tm.slug,
 		       COALESCE(te.user_id = $2::uuid, FALSE) OR EXISTS (
 		           SELECT 1 FROM team_members m
 		           WHERE m.team_id = te.team_id AND m.user_id = $2::uuid
 		             AND m.deleted_at IS NULL AND m.role IN ('owner', 'captain'))
 		FROM events e
 		JOIN tournaments t ON t.event_id = e.id
-		JOIN tournament_entries te ON te.tournament_id = t.id AND te.status = 'registered'
+		JOIN tournament_entries te ON te.tournament_id = t.id AND `+activeEntry+`
 		LEFT JOIN teams tm ON tm.id = te.team_id
 		WHERE e.slug = $1 AND e.deleted_at IS NULL
 		  AND (te.user_id = $2::uuid
@@ -423,7 +433,7 @@ func (r *PostgresRepository) ViewerEntry(ctx context.Context, slug string, userI
 		                    AND m.deleted_at IS NULL AND m.role IN ('owner', 'captain')))
 		ORDER BY te.registered_at, te.id
 		LIMIT 1
-	`, strings.TrimSpace(slug), strings.TrimSpace(userID)).Scan(&entry.ID, &teamID, &teamName, &teamSlug, &entry.CanManage)
+	`, strings.TrimSpace(slug), strings.TrimSpace(userID)).Scan(&entry.ID, &entry.Status, &teamID, &teamName, &teamSlug, &entry.CanManage)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
 	}
@@ -445,7 +455,7 @@ func (r *PostgresRepository) RegistrationTeams(ctx context.Context, slug string,
 		       EXISTS (SELECT 1 FROM tournament_entries te
 		               JOIN tournaments t ON t.id = te.tournament_id
 		               JOIN events e ON e.id = t.event_id
-		               WHERE te.team_id = tm.id AND te.status = 'registered' AND e.slug = $2),
+		               WHERE te.team_id = tm.id AND `+activeEntry+` AND e.slug = $2),
 		       COALESCE((
 		           SELECT array_agg(u.public_id ORDER BY lower(u.name), u.public_id)
 		           FROM team_members m JOIN users u ON u.id = m.user_id
@@ -487,6 +497,7 @@ func (r *PostgresRepository) RegistrationTeams(ctx context.Context, slug string,
 
 // lockedEntry is an active entry locked for a change.
 type lockedEntry struct {
+	status string
 	teamID string
 	// manager is set for the solo player and the team's owner and captains.
 	manager bool
@@ -496,15 +507,15 @@ func lockEntry(ctx context.Context, tx pgx.Tx, tournamentID string, entryID stri
 	var entry lockedEntry
 	var teamID sql.NullString
 	err := tx.QueryRow(ctx, `
-		SELECT te.team_id::text,
+		SELECT te.status, te.team_id::text,
 		       COALESCE(te.user_id = $3::uuid, FALSE) OR EXISTS (
 		           SELECT 1 FROM team_members m
 		           WHERE m.team_id = te.team_id AND m.user_id = $3::uuid
 		             AND m.deleted_at IS NULL AND m.role IN ('owner', 'captain'))
 		FROM tournament_entries te
-		WHERE te.id::text = $2 AND te.tournament_id = $1::uuid AND te.status = 'registered'
+		WHERE te.id::text = $2 AND te.tournament_id = $1::uuid AND `+activeEntry+`
 		FOR UPDATE
-	`, tournamentID, entryID, userID).Scan(&teamID, &entry.manager)
+	`, tournamentID, entryID, userID).Scan(&entry.status, &teamID, &entry.manager)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return lockedEntry{}, ErrEntryNotFound
 	}
@@ -521,8 +532,8 @@ func personEntered(ctx context.Context, tx pgx.Tx, tournamentID string, userIDs 
 	var entered bool
 	if err := tx.QueryRow(ctx, `
 		SELECT EXISTS (
-		    SELECT 1 FROM tournament_entries
-		    WHERE tournament_id = $1::uuid AND status = 'registered' AND user_id::text = ANY($2)
+		    SELECT 1 FROM tournament_entries te
+		    WHERE te.tournament_id = $1::uuid AND `+activeEntry+` AND te.user_id::text = ANY($2)
 		) OR EXISTS (
 		    SELECT 1 FROM tournament_entry_players
 		    WHERE tournament_id = $1::uuid AND user_id::text = ANY($2) AND entry_id::text <> $3
@@ -575,7 +586,7 @@ func setRoster(ctx context.Context, tx pgx.Tx, tournament entryTournament, entry
 }
 
 func loadEntry(ctx context.Context, tx pgx.Tx, tournamentID string, entryID string) (TournamentEntry, error) {
-	entries, err := listEntries(ctx, tx, tournamentID, entryID)
+	entries, err := listEntries(ctx, tx, tournamentID, entryID, "")
 	if err != nil {
 		return TournamentEntry{}, err
 	}
@@ -589,16 +600,18 @@ type entryQuerier interface {
 	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
 }
 
-// listEntries returns the active entries of a tournament in seed order, or
-// only the entry onlyEntryID when it is set.
-func listEntries(ctx context.Context, querier entryQuerier, tournamentID string, onlyEntryID string) ([]TournamentEntry, error) {
+// listEntries returns the active entries of a tournament with status, in
+// seed order (request order for pending ones), or only the entry onlyEntryID
+// when it is set. A registered entry's seed is its place in that order.
+func listEntries(ctx context.Context, querier entryQuerier, tournamentID string, onlyEntryID string, status string) ([]TournamentEntry, error) {
 	rows, err := querier.Query(ctx, `
 		WITH ordered AS (
-		    SELECT te.*, row_number() OVER (ORDER BY te.seed NULLS LAST, te.registered_at, te.id)::int AS place
+		    SELECT te.*, row_number() OVER (
+		        PARTITION BY te.status ORDER BY te.seed NULLS LAST, te.registered_at, te.id)::int AS place
 		    FROM tournament_entries te
-		    WHERE te.tournament_id = $1::uuid AND te.status = 'registered'
+		    WHERE te.tournament_id = $1::uuid AND `+activeEntry+`
 		)
-		SELECT o.id::text, o.place, o.registered_at,
+		SELECT o.id::text, o.status, o.place, o.registered_at,
 		       u.public_id, u.name, tm.id::text, tm.name, tm.slug,
 		       COALESCE((SELECT array_agg(pu.public_id ORDER BY lower(pu.name), pu.public_id)
 		                 FROM tournament_entry_players p JOIN users pu ON pu.id = p.user_id
@@ -609,9 +622,9 @@ func listEntries(ctx context.Context, querier entryQuerier, tournamentID string,
 		FROM ordered o
 		LEFT JOIN users u ON u.id = o.user_id
 		LEFT JOIN teams tm ON tm.id = o.team_id
-		WHERE $2 = '' OR o.id::text = $2
+		WHERE ($2 = '' OR o.id::text = $2) AND ($3 = '' OR o.status = $3)
 		ORDER BY o.place
-	`, tournamentID, onlyEntryID)
+	`, tournamentID, onlyEntryID, status)
 	if err != nil {
 		return nil, fmt.Errorf("list tournament entries: %w", err)
 	}
@@ -621,9 +634,13 @@ func listEntries(ctx context.Context, querier entryQuerier, tournamentID string,
 		var entry TournamentEntry
 		var playerID, playerName, teamID, teamName, teamSlug sql.NullString
 		var rosterIDs, rosterNames []string
-		if err := rows.Scan(&entry.ID, &entry.Seed, &entry.RegisteredAt, &playerID, &playerName,
+		var place int
+		if err := rows.Scan(&entry.ID, &entry.Status, &place, &entry.RegisteredAt, &playerID, &playerName,
 			&teamID, &teamName, &teamSlug, &rosterIDs, &rosterNames); err != nil {
 			return nil, fmt.Errorf("scan tournament entry: %w", err)
+		}
+		if entry.Status == EntryRegistered {
+			entry.Seed = place
 		}
 		if playerID.Valid {
 			entry.Player = &EntryPlayer{PublicID: playerID.String, Name: playerName.String}
@@ -651,15 +668,177 @@ func (e TournamentEntry) ForSignedOut() TournamentEntry {
 	return e
 }
 
-// countEntries counts the active entries of the tournament on the event.
-func countEntries(ctx context.Context, tx pgx.Tx, eventID string) (int, error) {
-	var count int
+// entryCounts are a tournament's registered entries and pending requests.
+type entryCounts struct {
+	Registered int
+	Pending    int
+}
+
+// countEntries counts the registered entries and pending requests of the
+// tournament on the event.
+func countEntries(ctx context.Context, tx pgx.Tx, eventID string) (entryCounts, error) {
+	var counts entryCounts
 	if err := tx.QueryRow(ctx, `
-		SELECT COUNT(*)::int FROM tournament_entries te
+		SELECT COUNT(*) FILTER (WHERE te.status = 'registered')::int,
+		       COUNT(*) FILTER (WHERE te.status = 'pending')::int
+		FROM tournament_entries te
 		JOIN tournaments t ON t.id = te.tournament_id
-		WHERE t.event_id = $1::uuid AND te.status = 'registered'
-	`, eventID).Scan(&count); err != nil {
-		return 0, fmt.Errorf("count tournament entries: %w", err)
+		WHERE t.event_id = $1::uuid
+	`, eventID).Scan(&counts.Registered, &counts.Pending); err != nil {
+		return entryCounts{}, fmt.Errorf("count tournament entries: %w", err)
 	}
-	return count, nil
+	return counts, nil
+}
+
+// DecideEntry approves or declines a pending request for an organizer until
+// the tournament starts, even after registration closes. Approving takes a
+// spot, so it stops at the cap, and puts the entry at the end of the seed
+// order. The requester is told either way; a declined one may ask again.
+func (r *PostgresRepository) DecideEntry(ctx context.Context, slug string, userID string, entryID string, approve bool) (TournamentEntry, error) {
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return TournamentEntry{}, fmt.Errorf("begin entry decision: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	tournament, err := lockEntryTournament(ctx, tx, slug, userID)
+	if err != nil {
+		return TournamentEntry{}, err
+	}
+	if !tournament.Organizer {
+		return TournamentEntry{}, ErrOrganizerRequired
+	}
+	if tournament.Status != TournamentRegistrationOpen {
+		return TournamentEntry{}, ErrTournamentStarted
+	}
+	entry, err := lockEntry(ctx, tx, tournament.ID, entryID, userID)
+	if err != nil {
+		return TournamentEntry{}, err
+	}
+	if entry.status != EntryPending {
+		return TournamentEntry{}, ErrEntryNotPending
+	}
+	recipients, err := entryRecipients(ctx, tx, entryID)
+	if err != nil {
+		return TournamentEntry{}, err
+	}
+	if !approve {
+		if err := declineEntries(ctx, tx, tournament.ID, entryID); err != nil {
+			return TournamentEntry{}, err
+		}
+		if err := notifyEntrants(ctx, tx, tournament.EventID, recipients, notifications.TypeTournamentEntryDeclined,
+			"Tournament request declined", "An organizer declined your request to join %s."); err != nil {
+			return TournamentEntry{}, err
+		}
+		if err := tx.Commit(ctx); err != nil {
+			return TournamentEntry{}, fmt.Errorf("commit entry decline: %w", err)
+		}
+		return TournamentEntry{ID: entryID, Status: EntryDeclined}, nil
+	}
+	if tournament.Cap.Valid && tournament.EntryCount >= int(tournament.Cap.Int32) {
+		return TournamentEntry{}, ErrTournamentFull
+	}
+	if _, err := tx.Exec(ctx, `
+		UPDATE tournament_entries SET status = 'registered', registered_at = NOW(), seed = NULL
+		WHERE id = $1::uuid
+	`, entryID); err != nil {
+		return TournamentEntry{}, fmt.Errorf("approve tournament entry: %w", err)
+	}
+	if err := notifyEntrants(ctx, tx, tournament.EventID, recipients, notifications.TypeTournamentEntryApproved,
+		"Tournament request approved", "You're in %s. An organizer approved your request."); err != nil {
+		return TournamentEntry{}, err
+	}
+	approved, err := loadEntry(ctx, tx, tournament.ID, entryID)
+	if err != nil {
+		return TournamentEntry{}, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return TournamentEntry{}, fmt.Errorf("commit entry approval: %w", err)
+	}
+	return approved, nil
+}
+
+// declineEntries declines the pending request entryID of the tournament, or
+// every pending request when entryID is empty, and clears their rosters.
+func declineEntries(ctx context.Context, tx pgx.Tx, tournamentID string, entryID string) error {
+	if _, err := tx.Exec(ctx, `
+		WITH declined AS (
+		    UPDATE tournament_entries SET status = 'declined'
+		    WHERE tournament_id = $1::uuid AND status = 'pending' AND ($2 = '' OR id::text = $2)
+		    RETURNING id
+		)
+		DELETE FROM tournament_entry_players WHERE entry_id IN (SELECT id FROM declined)
+	`, tournamentID, entryID); err != nil {
+		return fmt.Errorf("decline tournament requests: %w", err)
+	}
+	return nil
+}
+
+// entryRecipients returns who hears about a change to an entry: the solo
+// player, or the roster and the team's owner and captains.
+func entryRecipients(ctx context.Context, tx pgx.Tx, entryIDs ...string) ([]string, error) {
+	rows, err := tx.Query(ctx, `
+		SELECT DISTINCT u.id::text
+		FROM users u
+		WHERE u.deleted_at IS NULL AND u.account_status = 'active'
+		  AND (u.id IN (SELECT user_id FROM tournament_entries WHERE id::text = ANY($1))
+		       OR u.id IN (SELECT user_id FROM tournament_entry_players WHERE entry_id::text = ANY($1))
+		       OR u.id IN (SELECT m.user_id FROM team_members m
+		                   JOIN tournament_entries te ON te.team_id = m.team_id
+		                   WHERE te.id::text = ANY($1) AND m.deleted_at IS NULL AND m.role IN ('owner', 'captain')))
+		ORDER BY 1
+	`, entryIDs)
+	if err != nil {
+		return nil, fmt.Errorf("list entry recipients: %w", err)
+	}
+	recipients, err := pgx.CollectRows(rows, pgx.RowTo[string])
+	if err != nil {
+		return nil, fmt.Errorf("scan entry recipients: %w", err)
+	}
+	return recipients, nil
+}
+
+// notifyEntrants leaves each recipient a notice about the event's
+// tournament; body names the event's title with %s.
+func notifyEntrants(ctx context.Context, tx pgx.Tx, eventID string, recipients []string, kind string, title string, body string) error {
+	if len(recipients) == 0 {
+		return nil
+	}
+	var eventTitle string
+	if err := tx.QueryRow(ctx, `SELECT title FROM events WHERE id = $1::uuid`, eventID).Scan(&eventTitle); err != nil {
+		return fmt.Errorf("load event title: %w", err)
+	}
+	inputs := make([]notifications.Input, 0, len(recipients))
+	for _, recipient := range recipients {
+		inputs = append(inputs, notifications.Input{
+			UserID:  recipient,
+			Type:    kind,
+			Title:   title,
+			Body:    fmt.Sprintf(body, eventTitle),
+			EventID: eventID,
+		})
+	}
+	return notifications.Insert(ctx, tx, inputs...)
+}
+
+// notifyOrganizersOfRequest tells the event's creator and co-organizers,
+// other than the requester, about a new request to join its tournament.
+func notifyOrganizersOfRequest(ctx context.Context, tx pgx.Tx, eventID string, requesterID string) error {
+	rows, err := tx.Query(ctx, `
+		SELECT o.user_id::text
+		FROM event_organizers o
+		JOIN users u ON u.id = o.user_id
+		WHERE o.event_id = $1::uuid AND o.deleted_at IS NULL AND o.user_id <> $2::uuid
+		  AND u.deleted_at IS NULL AND u.account_status = 'active'
+		ORDER BY 1
+	`, eventID, requesterID)
+	if err != nil {
+		return fmt.Errorf("list event organizers: %w", err)
+	}
+	organizers, err := pgx.CollectRows(rows, pgx.RowTo[string])
+	if err != nil {
+		return fmt.Errorf("scan event organizers: %w", err)
+	}
+	return notifyEntrants(ctx, tx, eventID, organizers, notifications.TypeTournamentEntryRequested,
+		"New tournament request", "Someone asked to join %s. Approve or decline it in the tournament's settings.")
 }

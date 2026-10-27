@@ -168,8 +168,7 @@ tournament is hidden, as the event is, until the viewer unlocks it.
   creator, co-organizers, and on a club-hosted event the club's owners and
   editors). Only they create, edit, and move the status of the settings;
   order seeds; generate the bracket; remove entries before the start;
-  approve or decline requests in an approval tournament (#324, not built
-  yet); and enter, correct, and walk over results. Anyone else gets `403`
+  approve or decline requests in an approval tournament; and enter, correct, and walk over results. Anyone else gets `403`
 - Pending requests are visible to organizers only; the requester sees their
   own as their entry
 - A draft tournament is visible to its organizers only; to everyone else the

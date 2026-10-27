@@ -348,7 +348,7 @@ to an event instead of repeating the event's own facts.
   size plus the substitutes. The owner or a captain can change the roster
   until the tournament starts. A person can be in only one entry of a
   tournament, solo or on one roster
-- **Approval** (#324): an organizer can set registration to **Organizer
+- **Approval:** an organizer can set registration to **Organizer
   approval** instead of **Open** (the default), for a paid, invite-only, or
   vetted bracket. Register then reads **Request to join**, and the entry
   starts as a pending request. A pending request holds no spot: it is not in

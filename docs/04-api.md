@@ -449,8 +449,8 @@ shapes.
 | POST   | `/events/:slug/tournament/entries`             | Auth; register yourself, or a team with its roster (owner or captain); `201` |
 | PATCH  | `/events/:slug/tournament/entries/:id`         | Team owner or captain; replace the roster, before start                      |
 | DELETE | `/events/:slug/tournament/entries/:id`         | Withdraw (entrant) or remove (organizers), before start; `204`               |
-| POST   | `/events/:slug/tournament/entries/:id/approve` | **(planned)** Organizers; approve a pending request, before start            |
-| POST   | `/events/:slug/tournament/entries/:id/decline` | **(planned)** Organizers; decline a pending request, before start            |
+| POST   | `/events/:slug/tournament/entries/:id/approve` | Organizers; approve a pending request, before start; returns the entry       |
+| POST   | `/events/:slug/tournament/entries/:id/decline` | Organizers; decline a pending request, before start; returns the entry       |
 | GET    | `/events/:slug/tournament/my-teams`            | Auth; teams the viewer owns or captains, with their members, for a roster    |
 | POST   | `/events/:slug/tournament/bracket`             | **(planned)** Organizers; generate or regenerate until the first result      |
 | GET    | `/events/:slug/tournament/matches`             | **(planned)** Bracket or rounds with results                                 |
@@ -557,22 +557,33 @@ goes to the end of the order. Errors:
   team size plus substitutes, with repeats, or with anyone who is not an
   active member of the team
 
-**Approval (planned, #324).** `PUT /events/:slug/tournament` will take
-`registration_mode` (`open`, the default, or `approval`); switching to `open`
-while a request is pending is `409 tournament_has_requests`. In approval mode
-`POST .../entries` creates an entry with `"status": "pending"`, which counts
-as the entrant's one entry but is left out of `entries`, `seed`, the cap, and
-`entry_count`. The requester cancels it with `DELETE` and changes its roster
-with `PATCH`. Organizers get the pending ones as `requests` (in request order)
-from `GET .../entries` and `request_count` on the tournament object, and
-`viewer_entry` carries `status`. `POST .../entries/:id/approve` and
-`.../decline` return the entry; approving at the cap is `409 tournament_full`,
-either one on an entry that is not pending is
-`409 tournament_entry_not_pending`, and after the start
-`409 tournament_started`. Approval order sets the default seed order. A
-declined requester may request again; a removed one gets
-`409 tournament_entry_removed`. Starting the tournament declines every pending
-request.
+Every entry carries `status`: `registered`, or `pending` for a request.
+`seed` is omitted for a request.
+
+**Approval.** `PUT /events/:slug/tournament` takes `registration_mode`
+(`open`, the default when omitted, or `approval`), and the tournament object
+returns it; switching to `open` while a request is pending is
+`409 tournament_has_requests`. In approval mode `POST .../entries` creates an
+entry with `"status": "pending"`. A request counts as the entrant's one entry
+(so the uniqueness and roster rules apply, and it blocks moving back to draft
+and changing the entry type, team size, or format) but is left out of
+`entries`, the seed order, the cap, and `entry_count`; a full tournament
+still refuses new requests with `409 tournament_full`. The requester cancels
+it with `DELETE` and changes its roster with `PATCH`. Organizers get the
+pending ones as `requests`, in request order, from `GET .../entries`, and as
+`request_count` on the tournament object; neither is sent to anyone else.
+`viewer_entry` carries `status`. `POST .../entries/:id/approve` returns the
+registered entry, at the end of the seed order; `.../decline` returns
+`{ "id", "status": "declined" }`. Both are for organizers
+(`403 not_event_organizer`) until the start, even after registration closes
+(`409 tournament_started` after it). Approving at the cap is
+`409 tournament_full`, and either one on an entry that is not pending is
+`409 tournament_entry_not_pending`. A declined requester may request again,
+to the end of the queue; a removed one gets `409 tournament_entry_removed`.
+Starting the tournament declines every pending request. Each request leaves
+the event's creator and co-organizers an in-app notice, and each decision
+leaves one for the solo player, or the roster and the team's owner and
+captains. Cancelling the event also emails pending requesters.
 
 A member who leaves a team, or is removed from it, leaves its rosters for
 tournaments that have not started. An organizer's removal leaves an in-app
@@ -691,6 +702,8 @@ Inbox responses are `private, no-store`. `GET /me/notifications` returns `{"noti
 - `event.cancelled` to each active yes/maybe attendee when an event is cancelled, by its creator or because the creator deleted their account. The person cancelling gets none.
 - `event.organizer_joined` to an event's creator when someone accepts a [co-organizer invite](#co-organizers).
 - `tournament.entry_removed` to the solo player, or to the roster and the team's owner and captains, when an organizer removes a [tournament entry](#tournaments).
+- `tournament.entry_requested` to an event's creator and co-organizers, other than the requester, for each request to join a tournament in approval mode.
+- `tournament.entry_approved` and `tournament.entry_declined` to the same people as a removal when an organizer approves or declines a request; starting the tournament declines the requests still pending, with the same notice.
 - `team.member_joined` to a team's owner when someone joins the team. Joining a team one already belongs to sends none.
 - `team.ownership_transferred` to the member a team's owner makes the new owner.
 

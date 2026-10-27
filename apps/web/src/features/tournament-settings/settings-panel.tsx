@@ -1,4 +1,4 @@
-import { useHydrated } from "@tanstack/react-router";
+import { Link, useHydrated } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useRef, useState, type FormEvent } from "react";
 import { Button } from "../../components/button";
@@ -112,9 +112,22 @@ export function StatusPanel({
           {tournament.entry_count < 2
             ? "Starting needs at least two entrants. "
             : ""}
-          {tournament.entry_count > 0
-            ? "Someone has registered, so it can't go back to draft."
+          {tournament.entry_count + (tournament.request_count ?? 0) > 0
+            ? "Someone has registered or asked to, so it can't go back to draft."
             : ""}
+        </p>
+      ) : null}
+      {tournament.request_count ? (
+        <p className="form-help">
+          {`${tournament.request_count === 1 ? "1 request is" : `${tournament.request_count} requests are`} waiting. `}
+          <Link
+            hash="requests"
+            params={{ slug: event.slug }}
+            to="/events/$slug"
+          >
+            Approve or decline them on the event page
+          </Link>
+          . Starting the tournament declines any still waiting.
         </p>
       ) : null}
     </Surface>
@@ -334,8 +347,42 @@ export function SettingsForm({
 
       <FormSection
         title="Registration"
-        description="How many can enter and when registration closes."
+        description="Who gets in, how many can enter, and when registration closes."
       >
+        <fieldset className="choice-group">
+          <legend>Who gets in</legend>
+          <div className="choice-cards">
+            {(
+              [
+                ["open", "Open", "Anyone signed in registers"],
+                [
+                  "approval",
+                  "Organizer approval",
+                  "Players request to join, and you approve each one",
+                ],
+              ] as const
+            ).map(([value, label, hint]) => (
+              <label className="choice-card" key={value}>
+                <input
+                  defaultChecked={
+                    (tournament?.registration_mode ?? "open") === value
+                  }
+                  name="registration_mode"
+                  required
+                  type="radio"
+                  value={value}
+                />
+                <span className="choice-card-title">{label}</span>
+                <span className="choice-card-hint">{hint}</span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+        <p className="form-help">
+          Use approval for a paid, invite-only, or vetted bracket. A request
+          holds no spot until you approve it on the event page. If the event is
+          paid, players see its payment note and link when they sign up.
+        </p>
         <FormField
           errorId="tournament-cap-error"
           label="Entrant cap (leave blank for no limit)"

@@ -61,7 +61,8 @@ Admin Console work continues under
 - Tournaments are being built: an organizer sets up a tournament-type event's
   tournament (with an optional link to a bracket on another site) and moves
   its status at `/events/:slug/tournament`, and
-  players and teams register and withdraw on the event page; brackets and
+  players and teams register and withdraw on the event page, or request to
+  join when the organizers approve each entry; brackets and
   results are not built yet. The spec is in [01 — Product](./01-product.md#tournaments).
 - Product and technical questions that are intentionally unresolved are tracked
   in [08 — Open questions](./08-open-questions.md).
