@@ -122,18 +122,33 @@ func TestPostgresRepositoryTournamentBracket(t *testing.T) {
 		t.Fatalf("regenerating should replace the matches: generated %v, regenerated %v, listed %v", generated, regenerated, listed)
 	}
 
-	// Once a match has a result, seeds and the bracket are fixed.
-	if _, err := pool.Exec(ctx, `
-		UPDATE tournament_matches SET status = 'complete', score1 = 2, score2 = 0, winner_entry_id = entry1_id
-		WHERE id = $1::uuid
-	`, listed[0].ID); err != nil {
-		t.Fatalf("record result: %v", err)
+	// Reseeding without regenerating leaves the bracket and its seeds as
+	// they were generated.
+	if _, err := repository.SetSeeds(ctx, slug, organizerID, []string{
+		entryIDs["Ana"], entryIDs["Ben"], entryIDs["Cal"], entryIDs["Dee"], entryIDs["Eli"],
+	}); err != nil {
+		t.Fatalf("SetSeeds(again) error = %v", err)
+	}
+	reseeded, err := repository.ListMatches(ctx, slug, organizerID)
+	if err != nil {
+		t.Fatalf("ListMatches(reseeded) error = %v", err)
+	}
+	if got := describe(reseeded); !reflect.DeepEqual(got, want) {
+		t.Fatalf("bracket after reseeding = %q, want %q", got, want)
+	}
+
+	// Once a match goes live, seeds and the bracket are fixed; once the
+	// event ends, they are fixed too.
+	if _, err := pool.Exec(ctx, `UPDATE tournament_matches SET status = 'live' WHERE id = $1::uuid`, listed[0].ID); err != nil {
+		t.Fatalf("start match: %v", err)
 	}
 	_, lockedBracketErr := repository.GenerateBracket(ctx, slug, organizerID)
 	_, lockedSeedsErr := repository.SetSeeds(ctx, slug, organizerID, []string{
 		entryIDs["Ana"], entryIDs["Ben"], entryIDs["Cal"], entryIDs["Dee"], entryIDs["Eli"],
 	})
-	if got, want := []error{lockedBracketErr, lockedSeedsErr}, []error{ErrBracketLocked, ErrBracketLocked}; !reflect.DeepEqual(got, want) {
+	repository.now = func() time.Time { return startsAt.Add(4 * time.Hour) }
+	_, endedErr := repository.GenerateBracket(ctx, slug, organizerID)
+	if got, want := []error{lockedBracketErr, lockedSeedsErr, endedErr}, []error{ErrBracketLocked, ErrBracketLocked, ErrEventEnded}; !reflect.DeepEqual(got, want) {
 		t.Fatalf("locked errors = %v, want %v", got, want)
 	}
 }

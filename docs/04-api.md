@@ -593,8 +593,11 @@ is in progress (`409 tournament_locked` otherwise). `POST .../bracket` builds
 a single-elimination bracket from the registered entries in seed order once
 the tournament is in progress (`409 tournament_not_started` before) and
 answers with `{ "matches": [...] }`; generating again replaces the bracket.
-Both are for organizers (`403 not_event_organizer`) and are refused with
-`409 tournament_bracket_locked` once any match has a result. The bracket is
+Both are for organizers (`403 not_event_organizer`), are refused with
+`409 tournament_bracket_locked` once any match is live or has a score or a
+result, and with `409 event_ended` once the event has ended. Each slot keeps
+the seed it had when the bracket was generated, so reseeding changes the
+bracket only when it is generated again. The bracket is
 sized to the next power of two in the standard seed order (1 plays the
 lowest seed, and the top seeds meet as late as possible), so the byes go to
 the top seeds; a bye advances its entrant to the second round without a

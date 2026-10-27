@@ -3,7 +3,8 @@
 -- lower bracket, the grand final, and where a loser drops. An entrant slot is
 -- empty until an earlier match decides it; a bye advances its entrant without
 -- a match, so no row has a bye. The winner moves to next_match_id, in slot
--- next_slot.
+-- next_slot. seed1 and seed2 are each slot's seed when the bracket was
+-- generated or the entrant advanced, so later reseeding cannot relabel it.
 CREATE TABLE tournament_matches (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tournament_id UUID NOT NULL REFERENCES tournaments (id) ON DELETE CASCADE,
@@ -12,6 +13,8 @@ CREATE TABLE tournament_matches (
     position INTEGER NOT NULL CHECK (position >= 1),
     entry1_id UUID REFERENCES tournament_entries (id),
     entry2_id UUID REFERENCES tournament_entries (id),
+    seed1 INTEGER CHECK (seed1 >= 1),
+    seed2 INTEGER CHECK (seed2 >= 1),
     next_match_id UUID REFERENCES tournament_matches (id) ON DELETE CASCADE,
     next_slot SMALLINT CHECK (next_slot IN (1, 2)),
     scheduled_at TIMESTAMPTZ,

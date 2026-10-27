@@ -314,6 +314,7 @@ tournament_entry_players
 tournament_matches
   id, tournament_id, bracket (upper|lower|grand_final, default upper),
   round, position, entry1_id and entry2_id nullable (not yet decided),
+  seed1 and seed2 nullable (each slot's seed when it was filled),
   next_match_id and next_slot (1|2) nullable together (none for the final),
   scheduled_at nullable, status (upcoming|live|complete), score1 and score2
   nullable, winner_entry_id nullable, walkover, created_at, updated_at

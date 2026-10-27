@@ -91,12 +91,19 @@ func (r *PostgresRepository) SetSeeds(ctx context.Context, slug string, userID s
 	if tournament.Status != TournamentRegistrationOpen && tournament.Status != TournamentInProgress {
 		return nil, ErrTournamentLocked
 	}
+	if !r.now().Before(tournament.EndsAt) {
+		return nil, ErrEventEnded
+	}
 	if locked, err := bracketHasResult(ctx, tx, tournament.ID); err != nil {
 		return nil, err
 	} else if locked {
 		return nil, ErrBracketLocked
 	}
-	ordered := normalizeIDs(entryIDs)
+	lowered := make([]string, len(entryIDs))
+	for index, id := range entryIDs {
+		lowered[index] = strings.ToLower(id)
+	}
+	ordered := normalizeIDs(lowered)
 	if len(ordered) != len(entryIDs) || len(ordered) != tournament.EntryCount {
 		return nil, ErrSeedOrder
 	}
@@ -142,6 +149,9 @@ func (r *PostgresRepository) GenerateBracket(ctx context.Context, slug string, u
 	if tournament.Status != TournamentInProgress {
 		return nil, ErrTournamentNotStarted
 	}
+	if !r.now().Before(tournament.EndsAt) {
+		return nil, ErrEventEnded
+	}
 	if locked, err := bracketHasResult(ctx, tx, tournament.ID); err != nil {
 		return nil, err
 	} else if locked {
@@ -152,8 +162,11 @@ func (r *PostgresRepository) GenerateBracket(ctx context.Context, slug string, u
 		return nil, err
 	}
 	plan, err := PlanSingleElimination(len(entries))
-	if err != nil {
+	if errors.Is(err, errTooFewEntrants) {
 		return nil, ErrTournamentNeedsEntrants
+	}
+	if err != nil {
+		return nil, fmt.Errorf("plan bracket: %w", err)
 	}
 	if _, err := tx.Exec(ctx, `DELETE FROM tournament_matches WHERE tournament_id = $1::uuid`, tournament.ID); err != nil {
 		return nil, fmt.Errorf("clear bracket: %w", err)
@@ -165,9 +178,10 @@ func (r *PostgresRepository) GenerateBracket(ctx context.Context, slug string, u
 	for index := len(plan) - 1; index >= 0; index-- {
 		match := plan[index]
 		var entrants [2]*string
+		var seeds [2]*int
 		for slot, seed := range match.Seeds {
 			if seed > 0 {
-				entrants[slot] = &entries[seed-1].ID
+				entrants[slot], seeds[slot] = &entries[seed-1].ID, &match.Seeds[slot]
 			}
 		}
 		var next *string
@@ -178,10 +192,10 @@ func (r *PostgresRepository) GenerateBracket(ctx context.Context, slug string, u
 		}
 		var id string
 		if err := tx.QueryRow(ctx, `
-			INSERT INTO tournament_matches (tournament_id, round, position, entry1_id, entry2_id, next_match_id, next_slot)
-			VALUES ($1::uuid, $2, $3, $4::uuid, $5::uuid, $6::uuid, $7)
+			INSERT INTO tournament_matches (tournament_id, round, position, entry1_id, entry2_id, seed1, seed2, next_match_id, next_slot)
+			VALUES ($1::uuid, $2, $3, $4::uuid, $5::uuid, $6, $7, $8::uuid, $9)
 			RETURNING id::text
-		`, tournament.ID, match.Round, match.Position, entrants[0], entrants[1], next, nextSlot).Scan(&id); err != nil {
+		`, tournament.ID, match.Round, match.Position, entrants[0], entrants[1], seeds[0], seeds[1], next, nextSlot).Scan(&id); err != nil {
 			return nil, fmt.Errorf("insert match: %w", err)
 		}
 		ids[[2]int{match.Round, match.Position}] = id
@@ -214,16 +228,24 @@ func (r *PostgresRepository) ListMatches(ctx context.Context, slug string, userI
 	if err != nil {
 		return nil, fmt.Errorf("load tournament: %w", err)
 	}
-	return listMatches(ctx, r.pool, tournamentID)
+	// One snapshot, so a bracket regenerated mid-read is not half seen.
+	tx, err := r.pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.RepeatableRead, AccessMode: pgx.ReadOnly})
+	if err != nil {
+		return nil, fmt.Errorf("begin match read: %w", err)
+	}
+	defer tx.Rollback(ctx)
+	return listMatches(ctx, tx, tournamentID)
 }
 
-// bracketHasResult reports whether any match of the tournament has a result.
+// bracketHasResult reports whether any match of the tournament has a result,
+// a score, or has gone live.
 func bracketHasResult(ctx context.Context, tx pgx.Tx, tournamentID string) (bool, error) {
 	var locked bool
 	if err := tx.QueryRow(ctx, `
 		SELECT EXISTS (
 		    SELECT 1 FROM tournament_matches
-		    WHERE tournament_id = $1::uuid AND (winner_entry_id IS NOT NULL OR status = 'complete'))
+		    WHERE tournament_id = $1::uuid
+		      AND (status <> 'upcoming' OR winner_entry_id IS NOT NULL OR score1 IS NOT NULL OR score2 IS NOT NULL))
 	`, tournamentID).Scan(&locked); err != nil {
 		return false, fmt.Errorf("check bracket results: %w", err)
 	}
@@ -242,11 +264,11 @@ func listMatches(ctx context.Context, querier entryQuerier, tournamentID string)
 		byID[entry.ID] = entry
 	}
 	rows, err := querier.Query(ctx, `
-		SELECT id::text, round, position, entry1_id::text, entry2_id::text, status, scheduled_at,
+		SELECT id::text, round, position, entry1_id::text, entry2_id::text, seed1, seed2, status, scheduled_at,
 		       score1, score2, winner_entry_id::text, walkover, next_match_id::text
 		FROM tournament_matches
 		WHERE tournament_id = $1::uuid
-		ORDER BY bracket, round, position
+		ORDER BY CASE bracket WHEN 'upper' THEN 1 WHEN 'lower' THEN 2 ELSE 3 END, round, position
 	`, tournamentID)
 	if err != nil {
 		return nil, fmt.Errorf("list matches: %w", err)
@@ -256,14 +278,15 @@ func listMatches(ctx context.Context, querier entryQuerier, tournamentID string)
 	for rows.Next() {
 		var match TournamentMatch
 		var entry1, entry2, winner, next sql.NullString
-		var score1, score2 sql.NullInt32
-		if err := rows.Scan(&match.ID, &match.Round, &match.Position, &entry1, &entry2, &match.Status,
+		var seed1, seed2, score1, score2 sql.NullInt32
+		if err := rows.Scan(&match.ID, &match.Round, &match.Position, &entry1, &entry2, &seed1, &seed2, &match.Status,
 			&match.ScheduledAt, &score1, &score2, &winner, &match.Walkover, &next); err != nil {
 			return nil, fmt.Errorf("scan match: %w", err)
 		}
+		seeds := []sql.NullInt32{seed1, seed2}
 		for slot, id := range []sql.NullString{entry1, entry2} {
 			if entry, ok := byID[id.String]; id.Valid && ok {
-				match.Entrants[slot] = &MatchEntrant{EntryID: entry.ID, Seed: entry.Seed, Player: entry.Player, Team: entry.Team}
+				match.Entrants[slot] = &MatchEntrant{EntryID: entry.ID, Seed: int(seeds[slot].Int32), Player: entry.Player, Team: entry.Team}
 			}
 		}
 		if score1.Valid && score2.Valid {
