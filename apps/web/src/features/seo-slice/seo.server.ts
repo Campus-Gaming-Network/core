@@ -7,7 +7,6 @@ const sitemapEntrySchema = z.object({
   updated_at: z.iso.datetime({ offset: true }),
 });
 
-/** What `GET /sitemap` on the API returns: slugs and change times only. */
 export const sitemapDtoSchema = z.object({
   events: z.array(sitemapEntrySchema),
   schools: z.array(sitemapEntrySchema),

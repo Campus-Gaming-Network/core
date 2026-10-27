@@ -6,10 +6,8 @@ import {
   type GameFilterOption,
 } from "./contracts.js";
 
-/** How many catalog games a name search returns. */
 const gameFilterSearchLimit = 20;
 
-/** Searches the catalog's active games by name, best matches first. */
 async function searchCatalogGames(
   api: ApiClient,
   query: string,

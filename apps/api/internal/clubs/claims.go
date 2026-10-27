@@ -176,7 +176,6 @@ func (r *PostgresRepository) SubmitRequest(ctx context.Context, input RequestInp
 	return ClaimReceipt{Status: ClaimPending}, nil
 }
 
-// requireVerified refuses an account that has not verified its email.
 func (r *PostgresRepository) requireVerified(ctx context.Context, userID string) error {
 	var verified bool
 	err := r.pool.QueryRow(ctx, `
@@ -341,7 +340,6 @@ func (r *PostgresRepository) GetClaim(ctx context.Context, id string) (AdminClai
 	return claim, nil
 }
 
-// claimRecord is the part of a claim a review reads and changes.
 type claimRecord struct {
 	clubID          *string
 	schoolID        string

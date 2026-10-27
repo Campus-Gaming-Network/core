@@ -1,8 +1,4 @@
 @layer features {
-  /* Settings and account (reference sheets 06 "Profile settings" and 09
-     "Edit profile"): a vertical settings nav at the left, then the page's
-     heading and its white panels. On a phone the nav becomes one row of
-     links above. */
   .settings-layout {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
@@ -89,8 +85,6 @@
         }
       }
 
-      /* Delete account reads as destructive in the nav: red text and
-         icon. */
       &.settings-nav__danger,
       &.settings-nav__danger svg {
         color: var(--color-danger-dark);
@@ -101,8 +95,6 @@
       }
     }
   }
-
-  /* ==== Settings: profile form ==== */
 
   .more-social-links > summary {
     width: fit-content;
@@ -119,11 +111,7 @@
     margin-top: var(--space-4);
   }
 
-  /* ==== Account dashboard ==== */
-
   .account-page {
-    /* Sections reached from the in-page links stop a little below the
-       top. */
     .settings-body > [id] {
       scroll-margin-top: var(--space-5);
     }
@@ -154,7 +142,6 @@
     }
   }
 
-  /* The in-page links: a quiet row of links over a divider. */
   .account-nav {
     display: flex;
     flex-wrap: wrap;
@@ -202,10 +189,6 @@
     }
   }
 
-  /* ==== Settings: delete account ====
-     The danger zone: a heading over a white panel with a red left edge on
-     square corners, the consequences, the typed confirmation, and a red
-     button. */
   .danger-zone > h2 {
     margin: 0 0 var(--space-3);
     color: var(--color-danger-dark);
@@ -253,13 +236,11 @@
     }
   }
 
-  /* The email-and-password page: one card per form, stacked. */
   .security-forms {
     display: grid;
     gap: var(--space-5);
   }
 
-  /* "Your data": each correctable kind of data beside where to change it. */
   .data-corrections {
     display: grid;
     gap: var(--space-2);

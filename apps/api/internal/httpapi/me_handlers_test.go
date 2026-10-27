@@ -17,8 +17,6 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-// profileFakeUsers serves one account and records the update it is asked to
-// apply.
 type profileFakeUsers struct {
 	passV0ContractUsers
 	profile     users.Profile

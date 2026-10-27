@@ -15,14 +15,11 @@ import (
 // jpeg is the smallest byte sequence http.DetectContentType reads as a JPEG.
 var jpeg = []byte{0xFF, 0xD8, 0xFF, 0xE0}
 
-// fakeIGDB serves the token, game, and image endpoints from one test server.
 type fakeIGDB struct {
 	server *httptest.Server
 	// tokens counts issued tokens; each token is "token-<n>".
-	tokens int
-	// rejected is a token the game endpoint answers with 401.
-	rejected string
-	// gameStatus overrides the game endpoint's status when set.
+	tokens     int
+	rejected   string
 	gameStatus int
 	queries    []string
 	cover      []byte
@@ -108,7 +105,6 @@ func TestTokenIsReusedUntilItNearsExpiryOrIsRejected(t *testing.T) {
 		t.Fatalf("tokens issued near expiry = %d, want 2", fake.tokens)
 	}
 
-	// A token revoked early is replaced once and the query retried.
 	fake.rejected = "token-2"
 	if _, err := client.Game(t.Context(), 11198); err != nil {
 		t.Fatal(err)

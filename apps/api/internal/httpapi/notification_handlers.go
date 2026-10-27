@@ -10,7 +10,6 @@ import (
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/pagecursor"
 )
 
-// inbox is the signed-in person's notifications.
 type inbox interface {
 	List(ctx context.Context, userID string, after *pagecursor.Cursor, limit int) (notifications.Page, error)
 	UnreadCount(ctx context.Context, userID string) (int, error)
@@ -69,7 +68,6 @@ func (r *Router) handleNotifications(w http.ResponseWriter, req *http.Request) {
 	writeJSON(w, http.StatusOK, page)
 }
 
-// handleUnreadNotificationCount answers GET /me/notifications/unread-count.
 func (r *Router) handleUnreadNotificationCount(w http.ResponseWriter, req *http.Request) {
 	userID, ok := r.inboxUser(w, req)
 	if !ok {
@@ -83,7 +81,6 @@ func (r *Router) handleUnreadNotificationCount(w http.ResponseWriter, req *http.
 	writeJSON(w, http.StatusOK, map[string]int{"unread": count})
 }
 
-// handleReadNotification answers POST /me/notifications/{id}/read.
 func (r *Router) handleReadNotification(w http.ResponseWriter, req *http.Request) {
 	userID, ok := r.inboxUser(w, req)
 	if !ok {
@@ -102,7 +99,6 @@ func (r *Router) handleReadNotification(w http.ResponseWriter, req *http.Request
 	writeJSON(w, http.StatusOK, notification)
 }
 
-// handleReadAllNotifications answers POST /me/notifications/read-all.
 func (r *Router) handleReadAllNotifications(w http.ResponseWriter, req *http.Request) {
 	userID, ok := r.inboxUser(w, req)
 	if !ok {

@@ -26,13 +26,11 @@ const policyVersionSchema = z
   .trim()
   .regex(/^[0-9a-z][0-9a-z.-]{0,39}$/, "Reload the page and try again.");
 
-/** The Terms and Privacy versions in effect, as the Go API publishes them. */
 export const currentPoliciesDtoSchema = z.object({
   terms: z.object({ version: policyVersionSchema }),
   privacy: z.object({ version: policyVersionSchema }),
 });
 
-/** The exact versions a signup form shows and names in its submission. */
 export type SignupPolicies = { termsVersion: string; privacyVersion: string };
 
 const signupInputSchema = z.object({

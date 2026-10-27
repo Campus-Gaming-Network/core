@@ -124,8 +124,6 @@ func TestPostgresRepositoryTournamentBracket(t *testing.T) {
 		t.Fatalf("regenerating should replace the matches: generated %v, regenerated %v, listed %v", generated, regenerated, listed)
 	}
 
-	// Reseeding without regenerating leaves the bracket and its seeds as
-	// they were generated.
 	if _, err := repository.SetSeeds(ctx, slug, organizerID, []string{
 		entryIDs["Ana"], entryIDs["Ben"], entryIDs["Cal"], entryIDs["Dee"], entryIDs["Eli"],
 	}); err != nil {
@@ -139,8 +137,6 @@ func TestPostgresRepositoryTournamentBracket(t *testing.T) {
 		t.Fatalf("bracket after reseeding = %q, want %q", got, want)
 	}
 
-	// Once a match goes live, seeds and the bracket are fixed; once the
-	// event ends, they are fixed too.
 	if _, err := pool.Exec(ctx, `UPDATE tournament_matches SET status = 'live' WHERE id = $1::uuid`, listed[0].ID); err != nil {
 		t.Fatalf("start match: %v", err)
 	}
@@ -242,9 +238,6 @@ func TestPostgresRepositoryTournamentResults(t *testing.T) {
 		return status
 	}
 
-	// Results that cannot be entered: by an entrant, for a match still
-	// waiting on an entrant, for a winner who is not in the match, or with
-	// the winner on the lower score.
 	refused := []error{
 		record(playerID, "r1p2", "Ben", 2, 1),
 		record(organizerID, "r2p1", "Eli", 2, 1),
@@ -263,8 +256,6 @@ func TestPostgresRepositoryTournamentResults(t *testing.T) {
 		t.Fatalf("refused results = %v, want %v", got, want)
 	}
 
-	// Ben beats Ana and moves on to meet Eli; a correction gives the match to
-	// Ana, who takes Ben's place.
 	if err := record(organizerID, "r1p2", "Ben", 2, 1); err != nil {
 		t.Fatalf("record r1p2: %v", err)
 	}
@@ -273,8 +264,6 @@ func TestPostgresRepositoryTournamentResults(t *testing.T) {
 		t.Fatalf("correct r1p2: %v", err)
 	}
 	afterCorrection := describe()
-	// Cal does not show, so Dee advances on a walkover; Eli beats Ana, so the
-	// first match's result is now fixed.
 	if err := record(organizerID, "r2p2", "Dee"); err != nil {
 		t.Fatalf("walkover r2p2: %v", err)
 	}
@@ -283,8 +272,6 @@ func TestPostgresRepositoryTournamentResults(t *testing.T) {
 	}
 	lockedErr := record(organizerID, "r1p2", "Ben", 2, 1)
 	beforeFinal := []string{tournamentStatus()}
-	// The final completes the tournament and can still be corrected; the
-	// semifinal before it is then fixed.
 	if err := record(organizerID, "r3p1", "Dee", 1, 2); err != nil {
 		t.Fatalf("record final: %v", err)
 	}
@@ -317,8 +304,6 @@ func TestPostgresRepositoryTournamentResults(t *testing.T) {
 		t.Fatalf("results = %#v\nwant %#v", got, want)
 	}
 
-	// Every result and correction is in the log for editors, by seed, newest
-	// first; nobody else sees them.
 	editorLog, err := repository.Activity(ctx, event.ID, true, nil, MaximumActivityLimit)
 	if err != nil {
 		t.Fatalf("Activity(editor) error = %v", err)

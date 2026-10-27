@@ -76,7 +76,6 @@ export const gameSummaryDtoSchema = z.object({
   cover_url: z.string().optional(),
 });
 
-// An event's game also says whether the site serves its cover.
 const eventGameDtoSchema = gameSummaryDtoSchema.extend({
   has_cover: z.boolean(),
 });
@@ -447,10 +446,8 @@ export type GetEventDetailResult =
 /** The viewer's own name and id, for the header's account menu. Nothing else. */
 export type NavigationViewer = {
   id: string;
-  /** The ID in the viewer's profile URL. */
   publicId: string;
   name: string;
-  /** The viewer's home school, for the account menu's Your school link. */
   homeSchool?: { name: string; slug: string };
   /** Unread notifications for the header badge; absent when unknown. */
   unreadNotifications?: number;
@@ -468,7 +465,6 @@ export type EventViewerSessionResult =
       message: "We could not verify your session. Please try again.";
     };
 
-/** The viewer's home school, as the events directory's My school tab needs it. */
 export type EventsViewerHomeSchool = { name: string; slug: string };
 
 /**

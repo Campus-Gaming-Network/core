@@ -13,8 +13,6 @@ const bearerPattern = /\b(bearer|basic)\s+[A-Za-z0-9._~+/=-]+/gi;
 const sensitiveKeyPattern =
   /password|passwd|secret|token|authorization|cookie|api_?key|email|recipient|dsn|csrf/i;
 
-// Masks email addresses, credential-bearing query parameters, and bearer
-// credentials in text.
 export function scrubText(text: string): string {
   return text
     .replace(emailPattern, "[email]")
@@ -37,9 +35,6 @@ function scrubRecord(record: Record<string, unknown>): void {
   }
 }
 
-// Drops request, user, breadcrumb, and stack-frame variable data, and masks
-// the message, exception text, transaction, tags, extra data, and contexts.
-// A browser event keeps its page URL without the query string.
 export function scrubEvent(
   event: ErrorEvent,
   options: { keepUrl: boolean } = { keepUrl: false },

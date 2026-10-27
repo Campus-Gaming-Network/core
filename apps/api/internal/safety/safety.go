@@ -318,8 +318,6 @@ func (r *PostgresRepository) eventIDBySlug(ctx context.Context, slug string) (st
 	return eventID, nil
 }
 
-// activeUserID returns the internal ID of the active user whose public ID is
-// publicID, or ErrReportTargetNotFound.
 func (r *PostgresRepository) activeUserID(ctx context.Context, publicID string) (string, error) {
 	var id string
 	err := r.pool.QueryRow(ctx, `

@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 
-/** The tag tint for each event lifecycle. */
 const lifecycleTones: Record<string, Tone> = {
   upcoming: "info",
   happening_now: "success",

@@ -43,7 +43,6 @@
     }
   }
 
-  /* As wide as the side panel on a detail page. */
   .styleguide-side-panel {
     max-width: 21rem;
   }
@@ -128,7 +127,6 @@
     }
   }
 
-  /* The section index under the heading: a wrapping row of links. */
   .styleguide-toc ul {
     display: flex;
     flex-wrap: wrap;
@@ -141,8 +139,6 @@
     list-style: none;
     font-size: var(--text-sm);
   }
-
-  /* ==== Specimens, labels, and the sticky table of contents ==== */
 
   /* The section index stays in view on a wide screen. On a phone it would
      fill the screen once it wraps, so it scrolls with the page there. */
@@ -171,8 +167,6 @@
     scroll-margin-top: 6.5rem;
   }
 
-  /* Every specimen: a label (component name, then its source file), then
-     the piece itself. */
   .styleguide-specimen {
     display: grid;
     gap: var(--space-2);
@@ -250,7 +244,6 @@
     }
   }
 
-  /* ==== Reflow (WCAG 1.4.10) ==== */
   .styleguide-label__file,
   .styleguide-row {
     min-width: 0;
@@ -261,7 +254,6 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
-  /* Schools without a logo (Marks): each tile above its name. */
   .styleguide-tile-row {
     display: flex;
     flex-wrap: wrap;

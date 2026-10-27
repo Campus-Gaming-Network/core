@@ -122,7 +122,6 @@ function RootComponent() {
   );
 }
 
-/** The root's error view inside the site shell. */
 function RootError() {
   return (
     <SiteShell>

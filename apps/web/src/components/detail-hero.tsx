@@ -20,17 +20,13 @@ export function DetailHero({
   tile,
   tone,
 }: {
-  /** Controls at the right of the band, such as Follow. */
   actions?: ReactNode;
   children: ReactNode;
   /** A game's portrait cover, shown at its own 3:4 size when there are no actions. */
   coverURL?: string;
-  /** The letter in the tile when there is no logo or `tile`. */
   initial?: string;
   logoURL?: string;
-  /** Replaces the initial, such as a lock icon or a school's monogram. */
   tile?: ReactNode;
-  /** A school's tone (`schoolTone`) behind the tile when there is no logo. */
   tone?: number;
 }) {
   return (

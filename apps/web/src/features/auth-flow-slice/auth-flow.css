@@ -1,8 +1,4 @@
 @layer features {
-  /* Auth pages (reference sheets 02 and 06): one plain centered column about
-     30rem wide. The h1 and a short lede, the white form panel with labels
-     above fields and a full-width blue submit, then secondary links below.
-     Signup is a little wider because its form holds sections. */
   main.auth-page {
     display: grid;
     align-content: start;
@@ -31,7 +27,6 @@
       margin: 0;
     }
 
-    /* A status line outside a form panel reads like the in-form one. */
     > [role="status"] {
       border-left: 4px solid var(--color-success);
       padding: var(--space-3) var(--space-4);
@@ -45,8 +40,6 @@
       min-height: 2.75rem;
     }
 
-    /* A panel that holds its own form (resend verification) shows one
-       surface. */
     section.form-stack {
       h2 {
         margin: 0;

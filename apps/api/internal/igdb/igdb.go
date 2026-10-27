@@ -30,11 +30,10 @@ const (
 	// coverSize is about twice the largest size a cover is displayed at.
 	coverSize = "t_cover_big"
 	// thumbnailSize is the 90x128 cover shown beside a game search result.
-	thumbnailSize   = "t_cover_small"
-	searchLimit     = 20
-	maxResponseSize = 1 << 20
-	requestTimeout  = 10 * time.Second
-	// tokenRefreshMargin replaces a token shortly before Twitch expires it.
+	thumbnailSize      = "t_cover_small"
+	searchLimit        = 20
+	maxResponseSize    = 1 << 20
+	requestTimeout     = 10 * time.Second
 	tokenRefreshMargin = 5 * time.Minute
 )
 
@@ -47,7 +46,6 @@ var (
 	ErrCoverUnsupported = errors.New("igdb: cover is not a supported image")
 )
 
-// gameFields are the IGDB fields every game query reads.
 const gameFields = "name,slug,cover.image_id,first_release_date,themes.slug"
 
 // adultThemeSlug is IGDB's "Erotic" theme. Games that carry it are treated as
@@ -59,7 +57,6 @@ type theme struct {
 	Slug string `json:"slug"`
 }
 
-// quoteEscaper makes a value safe inside an Apicalypse double-quoted string.
 var quoteEscaper = strings.NewReplacer(`\`, `\\`, `"`, `\"`)
 
 var imageIDPattern = regexp.MustCompile(`^[a-z0-9_]{1,64}$`)
@@ -191,7 +188,6 @@ func (c *Client) Check(ctx context.Context) error {
 	return err
 }
 
-// first returns the first game a query matches, or ErrNotFound.
 func (c *Client) first(ctx context.Context, query string) (Game, error) {
 	games, err := c.games(ctx, query)
 	if err != nil {

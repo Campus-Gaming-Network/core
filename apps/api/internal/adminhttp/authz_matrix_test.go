@@ -30,8 +30,6 @@ func sessionRoutes() []routePolicy {
 	return result
 }
 
-// matrixRequest is a request from an active administrator with a session,
-// exact origin, matching CSRF token, and a recent identity confirmation.
 func matrixRequest(route routePolicy) *http.Request {
 	req := trustedRequest(route.Method, matrixPath(route))
 	req.Header.Set("Origin", "https://admin.example.test")
@@ -262,7 +260,6 @@ func TestEveryMutationRouteIsRateLimitedAtItsBudget(t *testing.T) {
 			for attempt := 0; attempt <= budget; attempt++ {
 				response := httptest.NewRecorder()
 				req := matrixRequest(route)
-				// Malformed: the wrong CSRF token, so the handler never runs.
 				req.Header.Set(CSRFHeader, "not-the-token")
 				handler.ServeHTTP(response, req)
 				statuses = append(statuses, response.Code)

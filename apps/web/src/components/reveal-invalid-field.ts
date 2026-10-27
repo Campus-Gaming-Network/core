@@ -1,4 +1,3 @@
-/** The parts of a form control this module reads and moves. */
 type Control = {
   willValidate?: boolean;
   validity?: { valid: boolean };

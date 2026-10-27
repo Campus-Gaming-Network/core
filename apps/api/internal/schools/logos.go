@@ -155,7 +155,6 @@ func (r *LogoRepository) discard(ctx context.Context, key string) {
 	}
 }
 
-// cleanup deletes one school's retired objects after a committed change.
 func (r *LogoRepository) cleanup(ctx context.Context, schoolID string) {
 	if _, err := r.sweep(ctx, `school_id=$1::uuid AND state='retired'`, schoolID); err != nil {
 		r.logger.Warn("school logo cleanup deferred to reconciliation", "error", err)

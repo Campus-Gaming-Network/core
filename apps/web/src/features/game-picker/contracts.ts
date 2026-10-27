@@ -22,7 +22,6 @@ export const gameSearchResponseSchema = z.object({
       igdb_id: z.number().int().positive(),
       name: z.string().max(500),
       release_year: z.number().int().optional(),
-      // Set when the catalog already holds this game.
       game_id: z.string().max(200).optional(),
       // A catalog game's cover is served by slug; the API sends these only for
       // games the catalog already holds.
@@ -42,7 +41,6 @@ export type GameSearchMatch = z.output<
   typeof gameSearchResponseSchema
 >["games"][number];
 
-/** Messages for the API's reasons a picked or typed game is refused. */
 export const gamePickerErrorMessages = {
   game_unavailable: "That game is not available. Choose another one.",
   igdb_game_not_found: "That game could not be found. Search again.",
@@ -53,7 +51,6 @@ export const gamePickerErrorMessages = {
   invalid_game_name: "Enter a game name using letters or numbers.",
 } as const;
 
-/** A catalog game as a directory's game filter shows it. */
 export const gameFilterOptionSchema = z.object({
   id: z.string().trim().min(1).max(200),
   name: z.string(),
@@ -67,7 +64,6 @@ export const gameFilterOptionsResponseSchema = z.object({
 
 export type GameFilterOption = z.output<typeof gameFilterOptionSchema>;
 
-/** What a directory needs for its game filter. */
 export type GameFilterChoices = {
   /** The game named by the `game` filter; absent when it cannot be found. */
   selectedGame?: GameFilterOption;

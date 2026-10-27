@@ -243,10 +243,8 @@ func TestAccountServiceEmailChangeLinkFailures(t *testing.T) {
 	if _, err := fixture.pool.Exec(ctx, `UPDATE email_change_tokens SET expires_at = NOW() - INTERVAL '1 minute'`); err != nil {
 		t.Fatalf("expire token: %v", err)
 	}
-	// A newer request retires the older link.
 	superseded := request("first@example.test")
 	request("second@example.test")
-	// The address is taken by another account after the request.
 	raced := request("raced@example.test")
 	if _, err := fixture.pool.Exec(ctx, `UPDATE users SET email = 'raced@example.test' WHERE email = $1`, fixture.takenEmail); err != nil {
 		t.Fatalf("take address: %v", err)

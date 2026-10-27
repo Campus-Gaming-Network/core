@@ -26,7 +26,6 @@ export const unreadCountDtoSchema = z.object({
 });
 export type NotificationDTO = z.output<typeof notificationDtoSchema>;
 
-/** One inbox entry as the page shows it, its time in the viewer's zone. */
 export type InboxEntry = NotificationDTO & { createdLabel: string };
 
 export type InboxResult =

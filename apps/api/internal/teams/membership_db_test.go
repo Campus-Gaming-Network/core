@@ -66,8 +66,6 @@ func TestPostgresRepositoryLeaveAndRemoveMember(t *testing.T) {
 		return names
 	}
 
-	// Refusals change nothing: the owner cannot leave, outsiders have no
-	// membership to end, only the owner removes, and never themselves.
 	refusals := []struct {
 		name string
 		call func() error
@@ -89,7 +87,6 @@ func TestPostgresRepositoryLeaveAndRemoveMember(t *testing.T) {
 		t.Fatalf("roster after refusals = %v, want %v", got, want)
 	}
 
-	// The captain leaves and the member is removed; both lose any captaincy.
 	left, err := repository.Leave(ctx, slug, captainID)
 	if err != nil {
 		t.Fatalf("Leave(captain) error = %v", err)
@@ -108,7 +105,6 @@ func TestPostgresRepositoryLeaveAndRemoveMember(t *testing.T) {
 		t.Fatalf("roster after leave and remove = %v, want %v", got, want)
 	}
 
-	// A former captain who rejoins starts as a member.
 	if _, err := repository.Join(ctx, slug, captainID); err != nil {
 		t.Fatalf("Join(former captain) error = %v", err)
 	}

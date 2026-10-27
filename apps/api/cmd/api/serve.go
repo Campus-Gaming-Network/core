@@ -30,7 +30,6 @@ func serve(ctx context.Context, server *http.Server, listener net.Listener, work
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	if err := server.Shutdown(shutdownCtx); err != nil {
-		// Drain ran out of time; cut the remaining connections.
 		_ = server.Close()
 		serveErr = errors.Join(serveErr, fmt.Errorf("shutdown: %w", err))
 	}

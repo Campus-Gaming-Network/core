@@ -50,26 +50,24 @@ type Club struct {
 	Claimed bool `json:"claimed"`
 	// MemberCount counts everyone in the club on CGN, owners and editors
 	// included, whether or not they show in people lists.
-	MemberCount     int        `json:"member_count"`
-	ConfirmedAt     *time.Time `json:"confirmed_at,omitempty"`
-	ConfirmedSource string     `json:"confirmed_source,omitempty"`
-	// NeedsConfirmation reports a confirmation older than ConfirmationWindow.
-	NeedsConfirmation bool `json:"needs_confirmation"`
+	MemberCount       int        `json:"member_count"`
+	ConfirmedAt       *time.Time `json:"confirmed_at,omitempty"`
+	ConfirmedSource   string     `json:"confirmed_source,omitempty"`
+	NeedsConfirmation bool       `json:"needs_confirmation"`
 	// Viewer is set for a signed-in viewer.
 	Viewer *Viewer `json:"viewer,omitempty"`
 }
 
 // ListItem is a club as a school page or the clubs directory lists it.
 type ListItem struct {
-	ID      string        `json:"id"`
-	Name    string        `json:"name"`
-	Slug    string        `json:"slug"`
-	Type    string        `json:"type"`
-	Summary string        `json:"summary"`
-	Games   []GameSummary `json:"games"`
-	Claimed bool          `json:"claimed"`
-	// NeedsConfirmation reports a confirmation older than ConfirmationWindow.
-	NeedsConfirmation bool `json:"needs_confirmation"`
+	ID                string        `json:"id"`
+	Name              string        `json:"name"`
+	Slug              string        `json:"slug"`
+	Type              string        `json:"type"`
+	Summary           string        `json:"summary"`
+	Games             []GameSummary `json:"games"`
+	Claimed           bool          `json:"claimed"`
+	NeedsConfirmation bool          `json:"needs_confirmation"`
 	// School is set in the directory, which lists clubs from every school.
 	School *SchoolSummary `json:"school,omitempty"`
 	// SortKey is the club's place in the directory's name order, for paging.
@@ -141,10 +139,8 @@ func NewPostgresRepository(pool *pgxpool.Pool) *PostgresRepository {
 // publishedClub is the condition every public read applies.
 const publishedClub = `c.deleted_at IS NULL AND c.status = 'published'`
 
-// claimedColumn reports whether club c has an owner, which makes it claimed.
 const claimedColumn = `EXISTS (SELECT 1 FROM club_members m WHERE m.club_id = c.id AND m.role = 'owner')`
 
-// gameColumns aggregates a club's visible games, ordered by name.
 const gameColumns = `
 	COALESCE(array_agg(g.id::text ORDER BY g.name, g.id) FILTER (WHERE g.id IS NOT NULL), ARRAY[]::text[]),
 	COALESCE(array_agg(g.name ORDER BY g.name, g.id) FILTER (WHERE g.id IS NOT NULL), ARRAY[]::text[]),

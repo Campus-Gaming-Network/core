@@ -7,13 +7,11 @@ import {
 import { eventWhen, previewImageUrl } from "../seo-slice/preview.js";
 import type { EventDTO, EventDetailDTO } from "./contracts.js";
 
-/** Shown for an event whose details must not leave the page. */
 export const privateEventPreview = {
   title: "Private event",
   description: "This event is private. Enter the password to view it.",
 } as const;
 
-/** Shown for an event meant for one campus or one group. */
 export const restrictedEventPreview = {
   title: "Event",
   description: `An event on ${siteName} for a specific campus or group. Open the link to see whether it is for you.`,

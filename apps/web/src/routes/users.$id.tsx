@@ -44,7 +44,6 @@ export type PublicProfileRouteData = {
   publicOrigin: string;
   viewer: ViewerRelationship;
   hasSessionCookie: boolean;
-  /** Server-rendered report key; see useIdempotencyKey. */
   idempotencyKey: string;
 };
 

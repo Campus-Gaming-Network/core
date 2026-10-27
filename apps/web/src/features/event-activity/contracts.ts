@@ -3,9 +3,7 @@ import * as z from "zod";
 const identifierSchema = z.string().trim().min(1).max(200);
 const cursorSchema = z.string().trim().min(1).max(512);
 
-/** How many entries the event page's Updates section shows. */
 export const eventUpdatesPreviewSize = 3;
-/** How many entries a page of the full log shows. */
 export const eventActivityPageSize = 20;
 
 export const eventActivityActions = [
@@ -65,7 +63,6 @@ export type EventActivityResult =
   | { status: "not_found" }
   | { status: "unavailable" };
 
-/** The full log's query string: the cursor of an older page. */
 export type EventActivitySearch = { after?: string };
 
 export function validateEventActivitySearch(

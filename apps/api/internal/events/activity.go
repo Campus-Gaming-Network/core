@@ -41,7 +41,6 @@ const (
 	ActivityEditors = "editors"
 )
 
-// activityField is one field an edit entry can list.
 type activityField struct {
 	name string
 	// public fields change whether or how someone attends, and show to
@@ -157,7 +156,6 @@ type activityQueryer interface {
 	QueryRow(ctx context.Context, sql string, arguments ...any) pgx.Row
 }
 
-// loadActivityState reads the fields an edit entry compares.
 func loadActivityState(ctx context.Context, queryer activityQueryer, eventID string) (map[string]json.RawMessage, error) {
 	var encoded []byte
 	if err := queryer.QueryRow(ctx, activityStateSQL, eventID).Scan(&encoded); err != nil {
@@ -258,8 +256,7 @@ type ActivityEntry struct {
 	Changes    []ActivityChange `json:"changes"`
 	// Actor is nil for an account deleted since. Only an editor's view
 	// carries it.
-	Actor *ActivityActor `json:"-"`
-	// editorView makes the entry include actor.
+	Actor      *ActivityActor `json:"-"`
 	editorView bool
 }
 
@@ -340,7 +337,6 @@ func (r *PostgresRepository) Activity(ctx context.Context, eventID string, edito
 	return page, nil
 }
 
-// fill sets the entry's visibility and the changes the viewer may see.
 func (e *ActivityEntry) fill(beforeJSON, afterJSON, editedJSON []byte, editor bool) error {
 	var before, after map[string]json.RawMessage
 	var edited []string

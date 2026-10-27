@@ -172,7 +172,6 @@ async function performAuthMutation(
   }
 }
 
-/** API errors about one form field, so the form can point at it. */
 const errorFields: Record<string, string> = {
   email_already_registered: "email",
   home_school_not_found: "home_school_id",

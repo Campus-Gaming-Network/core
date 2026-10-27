@@ -374,7 +374,6 @@ func (r *Router) handleTransferTeamOwnership(w http.ResponseWriter, req *http.Re
 	writeJSON(w, http.StatusOK, team)
 }
 
-// handleLeaveTeam ends the requester's own membership. It takes no body.
 func (r *Router) handleLeaveTeam(w http.ResponseWriter, req *http.Request, slug string) {
 	if r.teams == nil {
 		writeError(w, http.StatusServiceUnavailable, "database_unavailable")
@@ -393,7 +392,6 @@ func (r *Router) handleLeaveTeam(w http.ResponseWriter, req *http.Request, slug 
 	writeJSON(w, http.StatusOK, team)
 }
 
-// handleRemoveTeamMember lets the owner end another member's membership.
 func (r *Router) handleRemoveTeamMember(w http.ResponseWriter, req *http.Request, slug string) {
 	if r.teams == nil {
 		writeError(w, http.StatusServiceUnavailable, "database_unavailable")

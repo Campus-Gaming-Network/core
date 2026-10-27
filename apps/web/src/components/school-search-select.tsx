@@ -27,12 +27,9 @@ export type SchoolOption = Pick<
 >;
 
 type Props = {
-  /** The form field the select submits. */
   name: string;
   label: string;
-  /** Text of the option that clears the choice. */
   emptyLabel: string;
-  /** Which school property the select submits as its value. */
   valueField: "id" | "slug";
   defaultValue: string;
   /** Always offered as an option so the current choice stays visible. */
@@ -85,7 +82,6 @@ export function SchoolSearchSelect({
   const inputRef = useRef<HTMLInputElement>(null);
   const changeRef = useRef<HTMLButtonElement>(null);
 
-  // Where focus goes once the swap between search box and chosen card renders.
   const focusAfter = useRef<"input" | "change" | undefined>(undefined);
   const [status, setStatus] = useState<SearchFilterState>(
     initialSearchFailed

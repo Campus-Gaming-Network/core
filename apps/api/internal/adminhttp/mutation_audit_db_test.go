@@ -70,7 +70,6 @@ func (f catalogFixture) newSchool(t *testing.T, slug string) schools.AdminSchool
 	return school
 }
 
-// newClub creates a published club at the fixture school.
 func (f catalogFixture) newClub(t *testing.T, slug string) clubs.AdminClub {
 	t.Helper()
 	club, err := f.club.CreateAdmin(t.Context(), clubs.AdminCreate{
@@ -333,7 +332,6 @@ func TestEveryMutationRouteAuditsOnceAndRollsBackWithoutAnAuditRow(t *testing.T)
 			}
 			request := test.prepare(t, f)
 
-			// Without an audit row, the whole mutation rolls back.
 			before := f.domainDigest(t)
 			if _, err := f.pool.Exec(ctx, `INSERT INTO audit_failure_switch VALUES (TRUE)`); err != nil {
 				t.Fatal(err)
@@ -346,7 +344,6 @@ func TestEveryMutationRouteAuditsOnceAndRollsBackWithoutAnAuditRow(t *testing.T)
 				t.Fatalf("a failed audit left a change behind:\nbefore %v\nafter  %v", before, after)
 			}
 
-			// With it, the same request commits and leaves exactly one row.
 			if _, err := f.pool.Exec(ctx, `DELETE FROM audit_failure_switch`); err != nil {
 				t.Fatal(err)
 			}
@@ -385,7 +382,6 @@ func TestEveryMutationRouteAuditsOnceAndRollsBackWithoutAnAuditRow(t *testing.T)
 				if err := adminaudit.ValidateSafeDocuments([]byte(beforeJSON), []byte(afterJSON), []byte(metadata)); err != nil {
 					t.Fatalf("audit row holds unsafe data: %v", err)
 				}
-				// Bodies, tokens, and contact details never enter the audit row.
 				for _, forbidden := range []string{"credential-must-not-leak", f.credential.Token, f.credential.CSRFToken, "target@example.edu"} {
 					if strings.Contains(beforeJSON+afterJSON+metadata, forbidden) {
 						t.Fatalf("audit row contains %q", forbidden)

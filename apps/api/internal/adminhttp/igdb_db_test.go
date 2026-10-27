@@ -41,18 +41,13 @@ type fakeIGDBGame struct {
 // fakeIGDB is an in-process IGDB: the token, game, and image endpoints the
 // real client calls. Tests change games and images to model IGDB changing.
 type fakeIGDB struct {
-	client *igdb.Client
-	games  []fakeIGDBGame
-	images map[string][]byte
-	// downloads counts cover requests by image ID.
-	downloads map[string]int
-	// thumbnails counts search result thumbnail requests by image ID.
-	thumbnails map[string]int
-	// status overrides the game endpoint's status when set.
-	status int
-	// searches counts name searches that reached IGDB.
-	searches int
-	// imageStatus overrides the image endpoint's status by image ID.
+	client      *igdb.Client
+	games       []fakeIGDBGame
+	images      map[string][]byte
+	downloads   map[string]int
+	thumbnails  map[string]int
+	status      int
+	searches    int
 	imageStatus map[string]int
 }
 
@@ -109,7 +104,6 @@ func newFakeIGDB(t *testing.T) *fakeIGDB {
 		}
 		w.Write(fake.images[imageID])
 	})
-	// Search result thumbnails come from the same images, counted apart.
 	mux.HandleFunc("GET /images/t_cover_small/{file}", func(w http.ResponseWriter, req *http.Request) {
 		imageID := strings.TrimSuffix(req.PathValue("file"), ".jpg")
 		fake.thumbnails[imageID]++
@@ -138,7 +132,6 @@ func (fake *fakeIGDB) setCover(gameID int64, imageID string) {
 	}
 }
 
-// pickGame adds an IGDB game the way a user's event or team form does.
 func (f catalogFixture) pickGame(t *testing.T, igdbID int64) games.AdminGame {
 	t.Helper()
 	game, err := games.NewIGDBService(f.game, f.igdb.client).EnsureFromIGDB(t.Context(), igdbID)
@@ -148,7 +141,6 @@ func (f catalogFixture) pickGame(t *testing.T, igdbID int64) games.AdminGame {
 	return game
 }
 
-// hideGame hides a game from users the way an admin does.
 func (f catalogFixture) hideGame(t *testing.T, game games.AdminGame) games.AdminGame {
 	t.Helper()
 	return decodeCatalog[games.AdminGame](t, f.request(t, "PATCH", "/admin/v1/games/"+game.ID,
@@ -177,7 +169,6 @@ func TestAPickedGameIsStoredWithItsCoverUntilAnAdminHidesIt(t *testing.T) {
 		t.Fatalf("picked game = %+v, want %+v with a sync time", game, want)
 	}
 
-	// The Admin Console shows the stored cover from its own page.
 	type adminCover struct {
 		ContentType string `json:"content_type"`
 		Data        []byte `json:"data"`
@@ -201,7 +192,6 @@ func TestAPickedGameIsStoredWithItsCoverUntilAnAdminHidesIt(t *testing.T) {
 		t.Fatalf("revalidated cover = %+v, want %+v", revalidated, want)
 	}
 
-	// A hidden game's cover is no longer served.
 	f.hideGame(t, game)
 	if _, err := f.game.Cover(ctx, game.Slug, ""); !errors.Is(err, games.ErrCoverNotFound) {
 		t.Fatalf("public cover of a hidden game: error = %v, want %v", err, games.ErrCoverNotFound)
@@ -213,8 +203,6 @@ func TestAPickLinksAnUnlinkedGameInsteadOfCopyingIt(t *testing.T) {
 	manual := f.insertGame(t, "Rocket League (manual)", "rocket-league")
 	game := f.pickGame(t, fakeRocketLeagueID)
 	igdbID := int64(fakeRocketLeagueID)
-	// The stored game keeps its id, name, slug, and visibility and gains the
-	// IGDB link and cover.
 	want := games.AdminGame{
 		Game:     games.Game{ID: manual.ID, Name: "Rocket League (manual)", Slug: "rocket-league"},
 		IsActive: true, CreatedAt: manual.CreatedAt, UpdatedAt: game.UpdatedAt,
@@ -261,7 +249,6 @@ func TestAUserPickLinksAGameAUserTypedEarlier(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// The typed game becomes the regular, listed catalog game.
 	if picked.ID != typed.ID || !picked.IsActive || picked.UserSubmitted || picked.IGDBID == nil {
 		t.Fatalf("picked game = %+v, want the typed game %s linked and listed", picked, typed.ID)
 	}
@@ -309,7 +296,6 @@ func TestIGDBRefreshKeepsAdminEditsAndReplacesAChangedCover(t *testing.T) {
 		games.AdminEdit{Command: f.versioned(imported.UpdatedAt), Name: "RL (campus rules)", Slug: "rl-campus", IsActive: true}, 200))
 	path := "/admin/v1/games/" + imported.ID + "/refresh"
 
-	// IGDB renames the game but keeps its cover.
 	f.igdb.games[0].Name, f.igdb.games[0].Slug = "Rocket League Renamed", "rocket-league-renamed"
 	refreshed := decodeCatalog[games.AdminGame](t, f.request(t, "POST", path, f.versioned(edited.UpdatedAt), 200))
 	want := edited
@@ -318,7 +304,6 @@ func TestIGDBRefreshKeepsAdminEditsAndReplacesAChangedCover(t *testing.T) {
 		t.Fatalf("refreshed game = %+v, want %+v with later sync and version times", refreshed, want)
 	}
 
-	// A new IGDB image replaces the stored cover.
 	f.igdb.setCover(fakeRocketLeagueID, "co2")
 	refreshed = decodeCatalog[games.AdminGame](t, f.request(t, "POST", path, f.versioned(refreshed.UpdatedAt), 200))
 	cover, err := f.game.Cover(ctx, "rl-campus", "")
@@ -332,7 +317,6 @@ func TestIGDBRefreshKeepsAdminEditsAndReplacesAChangedCover(t *testing.T) {
 		t.Fatalf("cover downloads = %v, want %v", f.igdb.downloads, want)
 	}
 
-	// A stale version is refused with the current record.
 	stale := decodeCatalog[struct {
 		Error   string          `json:"error"`
 		Current games.AdminGame `json:"current"`
@@ -353,7 +337,6 @@ func TestIGDBSearchIsCachedForADay(t *testing.T) {
 	service := games.NewIGDBService(f.game, f.igdb.client)
 	want := []games.IGDBResult{{IGDBID: fakeRocketLeagueID, Name: "Rocket League", CoverImageID: "co1"}}
 
-	// The same search in another case and spacing is one IGDB call.
 	for _, query := range []string{"rocket", "  ROCKET ", "Rocket"} {
 		results, err := service.SearchForPicker(ctx, query)
 		if err != nil {
@@ -367,7 +350,6 @@ func TestIGDBSearchIsCachedForADay(t *testing.T) {
 		t.Fatalf("IGDB searches after three equal queries = %d, want 1", f.igdb.searches)
 	}
 
-	// A day-old row is refetched.
 	if _, err := f.pool.Exec(ctx, `UPDATE igdb_search_cache SET fetched_at = NOW() - INTERVAL '25 hours'`); err != nil {
 		t.Fatal(err)
 	}
@@ -405,7 +387,6 @@ func TestSearchResultCoversAreServedOnlyForRecentVisibleResults(t *testing.T) {
 	ctx := t.Context()
 	service := games.NewIGDBService(f.game, f.igdb.client)
 
-	// Nothing is served before a search returns the image.
 	if _, err := service.SearchResultCover(ctx, "co1", ""); !errors.Is(err, games.ErrCoverNotFound) {
 		t.Fatalf("cover before any search: error = %v, want %v", err, games.ErrCoverNotFound)
 	}
@@ -419,7 +400,6 @@ func TestSearchResultCoversAreServedOnlyForRecentVisibleResults(t *testing.T) {
 	if want := (games.Cover{ContentType: "image/jpeg", ETag: "co1", Bytes: fakeJPEG}); !reflect.DeepEqual(cover, want) {
 		t.Fatalf("cover = %+v, want %+v", cover, want)
 	}
-	// A caller holding the image revalidates without a trip to IGDB.
 	revalidated, err := service.SearchResultCover(ctx, "co1", "co1")
 	if err != nil {
 		t.Fatal(err)
@@ -428,7 +408,6 @@ func TestSearchResultCoversAreServedOnlyForRecentVisibleResults(t *testing.T) {
 		t.Fatalf("revalidated = %+v after %d downloads, want %+v after 1", revalidated, f.igdb.thumbnails["co1"], want)
 	}
 
-	// An image no search returned, or one IGDB cannot serve, is not found.
 	if _, err := service.SearchResultCover(ctx, "co2", ""); !errors.Is(err, games.ErrCoverNotFound) {
 		t.Fatalf("cover no search returned: error = %v, want %v", err, games.ErrCoverNotFound)
 	}
@@ -442,7 +421,6 @@ func TestSearchResultCoversAreServedOnlyForRecentVisibleResults(t *testing.T) {
 	}
 	f.igdb.imageStatus = nil
 
-	// A game an admin hid loses its cover, and so does a day-old search.
 	hidden := f.hideGame(t, f.pickGame(t, fakeRocketLeagueID))
 	if _, err := service.SearchResultCover(ctx, "co1", ""); !errors.Is(err, games.ErrCoverNotFound) {
 		t.Fatalf("cover of a hidden game: error = %v, want %v", err, games.ErrCoverNotFound)
@@ -464,7 +442,6 @@ func TestAUserCreatesAnEventAndATeamForGamesTheCatalogLacked(t *testing.T) {
 	ctx := t.Context()
 	service := games.NewIGDBService(f.game, f.igdb.client)
 
-	// A game picked from IGDB search is imported active, with its cover.
 	picked, err := service.EnsureFromIGDB(ctx, fakeRocketLeagueID)
 	if err != nil {
 		t.Fatal(err)
@@ -482,8 +459,6 @@ func TestAUserCreatesAnEventAndATeamForGamesTheCatalogLacked(t *testing.T) {
 		t.Fatalf("second pick = %+v, %v; want the same game", again, err)
 	}
 
-	// A typed name becomes an unlisted game, reused by the next person who
-	// types it.
 	typed, err := f.game.EnsureCustom(ctx, "  Campus   Trivia Night ")
 	if err != nil {
 		t.Fatal(err)
@@ -547,7 +522,6 @@ func TestHiddenAndDeletedGamesCannotBeAddedByUsers(t *testing.T) {
 	ctx := t.Context()
 	service := games.NewIGDBService(f.game, f.igdb.client)
 
-	// A game an admin hid cannot be added again, picked or typed.
 	f.hideGame(t, f.pickGame(t, fakeRocketLeagueID))
 	if _, err := service.EnsureFromIGDB(ctx, fakeRocketLeagueID); !errors.Is(err, games.ErrGameUnavailable) {
 		t.Fatalf("pick of a hidden game: error = %v, want %v", err, games.ErrGameUnavailable)
@@ -556,7 +530,6 @@ func TestHiddenAndDeletedGamesCannotBeAddedByUsers(t *testing.T) {
 		t.Fatalf("typed name of a hidden game: error = %v, want %v", err, games.ErrGameUnavailable)
 	}
 
-	// Deleting a typed game blocks that name.
 	typed, err := f.game.EnsureCustom(ctx, "Blocked Game")
 	if err != nil {
 		t.Fatal(err)
@@ -601,7 +574,6 @@ func TestStarterGamesAreImportedOnce(t *testing.T) {
 	// import links that game rather than adding a second Rocket League.
 	seeded := f.insertGame(t, "Rocket League", "rocket-league")
 
-	// The fake IGDB knows one of the starter slugs.
 	for _, want := range []int{1, 0} {
 		added, err := service.EnsureStarterGames(ctx)
 		if err != nil {

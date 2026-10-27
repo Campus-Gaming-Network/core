@@ -52,7 +52,6 @@ export function EventTypeTag({
   );
 }
 
-/** An event's audience as a neutral tag with its icon. */
 function EventAudienceTag({ audience }: { audience: EventAudience }) {
   const Icon = eventAudienceIcons[audience];
   return (

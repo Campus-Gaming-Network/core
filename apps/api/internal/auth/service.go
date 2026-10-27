@@ -33,13 +33,11 @@ type AccountService struct {
 	Schools interface {
 		ExistsActive(context.Context, string) (bool, error)
 	}
-	// Policies resolves the Terms and Privacy versions a signup accepts.
 	Policies interface {
 		Current(context.Context, time.Time) (policies.Current, error)
 	}
-	Sessions SessionManager
-	Tokens   TokenStore
-	// Changes stores password and email changes made while signed in.
+	Sessions        SessionManager
+	Tokens          TokenStore
 	Changes         AccountChangeStore
 	SessionTTL      time.Duration
 	VerificationTTL time.Duration

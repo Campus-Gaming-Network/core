@@ -38,7 +38,6 @@ export const schoolsResponseDtoSchema = z.object({
   has_more: z.boolean(),
 });
 
-/** A school as a directory's school filter shows it: name, place, logo. */
 export const schoolFilterOptionSchema = z.object({
   id: identifierSchema,
   name: z.string(),
@@ -59,7 +58,6 @@ export const schoolFilterInputSchema = z.object({
 
 export type SchoolFilterOption = z.output<typeof schoolFilterOptionSchema>;
 
-/** What a directory needs for its school filter. */
 export type SchoolFilterChoices = {
   /** The school named by the `school` filter; absent when it cannot be found. */
   selectedSchool?: SchoolFilterOption;
@@ -127,7 +125,6 @@ export type SchoolDTO = z.output<typeof schoolDtoSchema> & {
     source_url: string;
   };
 };
-/** A school summary once the BFF has added its bundled logo, if it has one. */
 export type WithSchoolLogo<T> = T & { logo_url?: string };
 type SchoolsResponseDTO = Omit<
   z.output<typeof schoolsResponseDtoSchema>,
@@ -140,7 +137,6 @@ export type SchoolFollowInput = z.output<typeof schoolFollowInputSchema>;
 
 export type HomeCatalogResult = {
   schools: SchoolDTO[];
-  /** True when `schools` is a ranking by popularity, not an alphabetical list. */
   schoolsPopular: boolean;
   schoolsUnavailable: boolean;
 };

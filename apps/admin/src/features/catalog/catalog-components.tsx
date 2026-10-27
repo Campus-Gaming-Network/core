@@ -70,7 +70,6 @@ export function CatalogFilters({
   label?: string;
   search: CatalogSearch;
   states: readonly string[];
-  /** Extra filter fields for lists that support them. */
   children?: ReactNode;
 }) {
   return (
@@ -244,7 +243,6 @@ function useCatalogSubmit(
     }
   }
 
-  // Move focus to the problem once the error is on screen.
   useEffect(() => {
     if (feedback.message) focusFormError(formRef.current);
   }, [feedback, formRef]);
@@ -518,7 +516,6 @@ export function ClubLinksForm({ club }: { club: AdminClub }) {
     club.updated_at,
   );
   const errors = feedback.fieldErrors;
-  // Every saved link plus one empty row, up to the limit.
   const rows = Math.min(maximumClubLinks, club.links.length + 1);
 
   return (

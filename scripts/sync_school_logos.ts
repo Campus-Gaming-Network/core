@@ -32,7 +32,6 @@ const manifest = JSON.parse(
 const pending = [...manifest.logos, ...manifest.athletics];
 const total = pending.length;
 
-// Runs the task over every logo, eight at a time, and tallies its answers.
 async function forEachLogo<Outcome extends string>(
   task: (logo: ManifestLogo) => Promise<Outcome>,
 ): Promise<Partial<Record<Outcome, number>>> {

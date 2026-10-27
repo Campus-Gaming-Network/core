@@ -43,7 +43,6 @@ export function QueueFilters({
   action: "/reports" | "/support-tickets";
   operators: Operator[];
   search: QueueSearch;
-  /** The name of the account a record-ID filter points at, when a row has it. */
   accountName?: string;
 }) {
   const userLabel = action === "/reports" ? "Reporter" : "Submitter";
@@ -252,7 +251,6 @@ export function QueueMutationForm({
     }
   }
 
-  // Move focus to the first invalid field, or to the message above the form.
   useEffect(() => {
     if (!feedback.message) return;
     if (formRef.current?.querySelector('[aria-invalid="true"]'))

@@ -6,7 +6,6 @@
 export type PolicyDocument = {
   type: "terms" | "privacy";
   version: string;
-  /** ISO 8601 instant the version took effect. */
   effectiveAt: string;
   heading: string;
   lede: string;

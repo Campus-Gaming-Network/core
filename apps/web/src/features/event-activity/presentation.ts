@@ -8,10 +8,8 @@ import {
 } from "../event-slice/presentation.js";
 import type { EventActivityChange, EventActivityEntry } from "./contracts.js";
 
-/** One log entry in words. */
 export type EventActivityLine = {
   summary: string;
-  /** One line per changed field, empty for anything but an edit. */
   details: string[];
   /** Who made the change, for an editor's view only. */
   author?: string;
@@ -31,7 +29,6 @@ const actionSummaries = {
   "event.match_result_corrected": "Match result corrected",
 } as const satisfies Record<EventActivityEntry["action"], string>;
 
-/** Fields the log records as changed only, in words. */
 const changedOnlyLines: Record<string, string> = {
   online_url: "Online link changed",
   payment_note: "Payment note changed",
@@ -174,13 +171,11 @@ function gameLine(subject: string, value: unknown): string[] {
   return names.length > 0 ? [`${subject}: ${names.join(", ")}`] : [];
 }
 
-/** A logged result's match: "Round 1, match 2". */
 function matchPlace(value: unknown): string {
   const result = loggedResult(value);
   return `Round ${result.round ?? "?"}, match ${result.position ?? "?"}`;
 }
 
-/** A logged result, winner's score first: "Seed 4 won 2–1". */
 function outcome(value: unknown): string {
   const result = loggedResult(value);
   const winner = `Seed ${result.winner_seed ?? "?"}`;
@@ -213,7 +208,6 @@ const visibilityLabel: Record<string, string> = {
   unlisted: eventVisibilityLabel("unlisted"),
 };
 
-/** A moment in the event's zone: "Mar 1, 2030, 7:00 PM UTC". */
 function formatInstant(value: string, timeZone: string): string {
   const instant = new Date(value);
   const local = new Intl.DateTimeFormat("en-US", {

@@ -18,7 +18,6 @@ type PlannedMatch struct {
 	NextSlot     int
 }
 
-// errTooFewEntrants reports a bracket planned for fewer than two entrants.
 var errTooFewEntrants = errors.New("a bracket needs two or more entrants")
 
 // PlanSingleElimination plans a single-elimination bracket for entrants

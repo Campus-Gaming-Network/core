@@ -227,10 +227,6 @@ function ClubPage() {
   );
 }
 
-/**
- * What a signed-in person in the club can do here: officers manage it, an
- * offered member answers the offer, and anyone in it can leave.
- */
 function ClubViewerActions({ club }: { club: ClubDTO }) {
   const role = club.viewer?.role;
   if (!role && !club.viewer?.ownership_offered) return null;
@@ -380,7 +376,6 @@ const roleLabels = {
   member: "a member",
 };
 
-/** The club's own process for becoming a member, written by the club or CGN. */
 function HowToJoin({ club }: { club: ClubDTO }) {
   return (
     <Surface

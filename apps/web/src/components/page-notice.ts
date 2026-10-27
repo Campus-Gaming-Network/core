@@ -8,7 +8,6 @@ export type PageNotice = {
   severity: "success" | "danger";
 };
 
-/** Returns the notice key for a query-string value the page defines. */
 export function pageNoticeKey<Key extends string>(
   notices: Readonly<Record<Key, PageNotice>>,
   value: unknown,

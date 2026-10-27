@@ -8,7 +8,6 @@ import {
 } from "./contracts";
 import { Surface } from "../../components/surface";
 
-/** The public profile's Games panel: each list that has games, in order. */
 export function ProfileGameLists({
   lists,
   self,

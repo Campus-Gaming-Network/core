@@ -24,14 +24,8 @@ import {
 } from "./contracts";
 import { Surface } from "../../components/surface";
 
-// A preview shows this many rows of each event list.
 const dashboardPreviewCount = 3;
 
-/**
- * One of the viewer's event lists (RSVPs, interested, followed schools) as
- * directory rows, used by the account dashboard and the Your events page.
- * Styles live in account.css.
- */
 export function AccountEventSection({
   heading,
   headingId,
@@ -48,11 +42,8 @@ export function AccountEventSection({
   sectionId: string;
   empty: ReactNode;
   events: DashboardEventDTO[];
-  /** Shown under the list, such as links to its other pages. */
   footer?: ReactNode;
-  /** Offer "See all your events" when the preview is cut short. */
   moreLink?: boolean;
-  /** List every event read, not a short preview. */
   showAll?: boolean;
   variant: "created" | "followed" | "interested" | "rsvp";
 }) {
@@ -149,7 +140,6 @@ export function AccountEventSection({
   );
 }
 
-/** The viewer's teams as directory rows, or a way to find one. */
 export function AccountTeamList({ teams }: { teams: AccountTeamDTO[] }) {
   return teams.length > 0 ? (
     <div className="list list--panel">

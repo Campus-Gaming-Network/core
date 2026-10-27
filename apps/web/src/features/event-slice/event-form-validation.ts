@@ -25,7 +25,6 @@ export function validateEventEnd(
     : null;
 }
 
-/** A local end time two hours after `startsAt`, or "" when it is incomplete. */
 export function suggestEventEnd(startsAt: string): string {
   const match = localDateTimePattern.exec(startsAt);
   if (!match) return "";
@@ -48,7 +47,6 @@ type RecurrenceMessages = {
   recurrence_until?: string;
 };
 
-/** The first and last date the "repeat until" field accepts, or "" if unknown. */
 export function recurrenceUntilBounds(
   startsAt: string,
   endsAt: string,

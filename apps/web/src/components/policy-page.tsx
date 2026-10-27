@@ -11,7 +11,6 @@ const effectiveDate = new Intl.DateTimeFormat("en", {
   timeZone: "UTC",
 });
 
-/** One published version of a policy, with the version a person can cite. */
 export function PolicyPage({ document }: { document: PolicyDocument }) {
   const sections = anchoredSections(document.sections ?? []);
   const hasContents = sections.length >= minimumSectionsForContents;

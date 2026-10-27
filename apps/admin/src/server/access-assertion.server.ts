@@ -28,7 +28,6 @@ const jwksSchema = z.object({
   ),
 });
 
-/** What a verified assertion vouches for. */
 export type AccessIdentity = { email: string; subject: string };
 
 export type AccessAssertionConfig = {
@@ -59,7 +58,6 @@ let keyCache: KeyCache | undefined;
 // could spend a signing-key fetch on every request by inventing key ids.
 const unknownKeyRefreshCooldownMilliseconds = 30_000;
 
-/** Forgets the cached signing keys. */
 export function clearAccessKeyCache(): void {
   keyCache = undefined;
 }

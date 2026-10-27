@@ -1,11 +1,4 @@
 @layer features {
-  /* The event page (header, RSVP, body) and the event form's own pieces. The
-     shared form-page layout and choice cards live in components.css. */
-
-  /* ==== Happening now ====
-     Above the title in the hero: the solid green label the directory tile
-     uses for a running event, at a size that leads the page, and when it
-     ends. */
   .event-now {
     display: flex;
     flex-wrap: wrap;
@@ -27,7 +20,6 @@
     letter-spacing: 0.02em;
     text-transform: uppercase;
 
-    /* A solid dot before the words, the "on air" mark. */
     &::before {
       width: 0.5rem;
       height: 0.5rem;
@@ -53,10 +45,6 @@
     }
   }
 
-  /* ==== Event header ====
-     Under the hero: the facts (when, where, online, going), each with its
-     action, at the left; the RSVP panel at the right (reference sheets 11
-     and 12). */
   .event-header {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(18rem, 22rem);
@@ -131,10 +119,6 @@
     }
   }
 
-  /* ==== RSVP ====
-     A decision panel: "Are you going?", then the three choices as one row of
-     large buttons. The chosen one is filled (Going green, Maybe blue, Can't
-     go gray) and carries aria-pressed. */
   .event-header__rsvp h2 {
     margin: 0;
     font-size: var(--text-lg);
@@ -227,8 +211,6 @@
   .interest-form {
     margin: 0;
 
-    /* A quiet toggle: outlined when off, soft blue with a filled star when
-       on. */
     .interest-toggle {
       width: 100%;
       border-color: var(--color-control-border);
@@ -255,7 +237,6 @@
     }
   }
 
-  /* ==== Event body ==== */
   .event-about h2,
   .layout-detail__main > section > h2 {
     margin: 0 0 var(--space-3);
@@ -280,9 +261,6 @@
     margin: 0 0 var(--space-1);
   }
 
-  /* The edit page's Organizers section: one row per organizer or pending
-     invitation, with its actions at the end; the actions wrap under the name
-     on a narrow screen. */
   .event-organizers {
     display: grid;
     gap: var(--space-3);
@@ -321,8 +299,6 @@
     margin-top: var(--space-4);
   }
 
-  /* A tournament's entrants in seed order: the number is the seed, and an
-     organizer's Remove button follows the name. */
   .tournament-entrants {
     display: grid;
     gap: var(--space-2);
@@ -340,8 +316,6 @@
     }
   }
 
-  /* Games in key information: each beside its portrait cover or a tile of
-     the same size. */
   .event-game-list {
     display: grid;
     gap: var(--space-2);
@@ -368,7 +342,6 @@
     object-fit: cover;
   }
 
-  /* "When and where": an icon beside each fact and its action link. */
   .detail-card-row {
     display: grid;
     grid-template-columns: 1.25rem minmax(0, 1fr);
@@ -407,8 +380,6 @@
     padding: var(--space-4);
   }
 
-  /* ==== Event form ==== */
-
   /* The private password is always present so native submissions can send
      it; it is highlighted while the Private card is selected. */
   .event-private-password {
@@ -437,15 +408,11 @@
     }
   }
 
-  /* The private event's unlock form. */
   .private-unlock-form {
     max-width: 32rem;
     margin-block: var(--space-5);
   }
 
-  /* ==== Activity log ====
-     The Updates section on the event page and the full log page: one entry
-     per row, newest first, with its changes and when it happened. */
   .activity-list {
     display: grid;
     gap: var(--space-4);
@@ -480,9 +447,6 @@
     font-size: var(--text-sm);
   }
 
-  /* ==== Tournament sections ====
-     The pages behind a tournament event's tabs: the entrants, the bracket, a
-     match, the rules, and the prizes. */
   .tournament-page {
     display: grid;
     gap: var(--space-5);
@@ -598,7 +562,6 @@
     font-weight: 700;
   }
 
-  /* A bye: the entrant waits for the second round without a match. */
   .bracket-bye {
     display: grid;
     margin: 0;
@@ -678,7 +641,6 @@
     }
   }
 
-  /* A match's page: each side with its score, the winner in bold. */
   .match-detail {
     display: grid;
     gap: var(--space-2);
@@ -728,7 +690,6 @@
     }
   }
 
-  /* Labels above their inputs, as in .form-stack, without its panel. */
   .match-result-form__scores {
     display: flex;
     flex-wrap: wrap;

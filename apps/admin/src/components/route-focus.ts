@@ -1,4 +1,3 @@
-/** The parts of a router "onRendered" event that decide whether to move focus. */
 export interface NavigationChange {
   fromPathname: string | undefined;
   toPathname: string;
@@ -21,7 +20,6 @@ export function shouldMoveFocus({
   return fromPathname !== toPathname;
 }
 
-/** The text a screen reader hears for the new page. */
 export function pageAnnouncement(title: string, heading: string): string {
   return title.trim() || heading.trim();
 }

@@ -214,7 +214,6 @@ func TestCommittedInvalidationCannotServeOldSnapshotAfterRefreshFailure(t *testi
 	}
 }
 
-// rankingSource ranks schools and counts how often it is asked.
 type rankingSource struct {
 	stubRepository
 	ranked []School
@@ -244,7 +243,6 @@ func TestPopularRankingIsReusedForItsTTLThenRecounted(t *testing.T) {
 	if _, err := cache.ListPopular(context.Background(), 3); err != nil || source.calls != 1 {
 		t.Fatalf("a read inside the TTL recounted: calls = %d, error = %v", source.calls, err)
 	}
-	// Another count is its own ranking.
 	if _, err := cache.ListPopular(context.Background(), 5); err != nil || source.calls != 2 {
 		t.Fatalf("a different limit shared a ranking: calls = %d, error = %v", source.calls, err)
 	}

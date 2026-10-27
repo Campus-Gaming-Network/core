@@ -50,8 +50,4 @@ function BreadcrumbAnchor({
   return <a {...props} />;
 }
 
-/**
- * A parent page in `Breadcrumbs`: a router link that takes the same `to`,
- * `params`, and `search` props as `Link`.
- */
 export const BreadcrumbLink = createLink(BreadcrumbAnchor);

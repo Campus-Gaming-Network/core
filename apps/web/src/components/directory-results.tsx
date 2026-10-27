@@ -12,7 +12,6 @@ import { shouldFocusSearchShortcut } from "./directory-results-keys";
 /** Fast responses finish inside this window, so they never show the pending state. */
 const pendingDelayMs = 200;
 
-/** The search fields the "/" shortcut can focus, in page order. */
 const searchFieldSelector =
   'form input[type="search"], form input[role="combobox"], form input[type="text"]';
 

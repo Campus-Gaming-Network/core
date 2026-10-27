@@ -1,6 +1,5 @@
 import * as z from "zod";
 
-// What each dependency the Admin API probes is used for.
 export const systemCheckLabels = {
   object_storage: "School logo storage",
   igdb: "IGDB game data",

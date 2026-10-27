@@ -213,7 +213,6 @@ export async function getEventsBrowseOperation(
   }
 }
 
-// How many public events each home page section previews.
 const homeEventsLimit = 6;
 
 const weekMilliseconds = 7 * 24 * 60 * 60 * 1000;
@@ -253,7 +252,6 @@ export async function homeEventsOperation({
   }
 }
 
-// How many upcoming events a team or club page lists.
 const hostedEventsLimit = 6;
 
 /**

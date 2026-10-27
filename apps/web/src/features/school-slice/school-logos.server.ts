@@ -67,7 +67,6 @@ export function withBundledSchoolLogo<T extends { slug: string }>(
   };
 }
 
-/** Adds the bundled logo to an event's host school. */
 export function withHostSchoolLogo<T extends { host_school: { slug: string } }>(
   event: T,
 ): T & { host_school: WithSchoolLogo<T["host_school"]> } {

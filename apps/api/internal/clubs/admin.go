@@ -37,23 +37,22 @@ type AdminFields struct {
 // IsActive is true for a published club, so the console's shared state badge
 // reads it like a school's.
 type AdminClub struct {
-	ID        string        `json:"id"`
-	Name      string        `json:"name"`
-	Slug      string        `json:"slug"`
-	Type      string        `json:"type"`
-	Summary   string        `json:"summary"`
-	HowToJoin string        `json:"how_to_join"`
-	School    SchoolSummary `json:"school"`
-	Games     []GameSummary `json:"games"`
-	Links     []Link        `json:"links"`
-	IsActive  bool          `json:"is_active"`
-	// Claimed reports whether the club has an owner.
-	Claimed         bool       `json:"claimed"`
-	ConfirmedAt     *time.Time `json:"confirmed_at"`
-	ConfirmedSource *string    `json:"confirmed_source"`
-	CreatedAt       time.Time  `json:"created_at"`
-	UpdatedAt       time.Time  `json:"updated_at"`
-	DeletedAt       *time.Time `json:"deleted_at"`
+	ID              string        `json:"id"`
+	Name            string        `json:"name"`
+	Slug            string        `json:"slug"`
+	Type            string        `json:"type"`
+	Summary         string        `json:"summary"`
+	HowToJoin       string        `json:"how_to_join"`
+	School          SchoolSummary `json:"school"`
+	Games           []GameSummary `json:"games"`
+	Links           []Link        `json:"links"`
+	IsActive        bool          `json:"is_active"`
+	Claimed         bool          `json:"claimed"`
+	ConfirmedAt     *time.Time    `json:"confirmed_at"`
+	ConfirmedSource *string       `json:"confirmed_source"`
+	CreatedAt       time.Time     `json:"created_at"`
+	UpdatedAt       time.Time     `json:"updated_at"`
+	DeletedAt       *time.Time    `json:"deleted_at"`
 	// Members is set on the detail only: everyone in the club, owners first.
 	Members []AdminMember `json:"members,omitempty"`
 }
@@ -149,7 +148,6 @@ type queryer interface {
 	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
 }
 
-// withDetails adds the club's games and links.
 func withDetails(ctx context.Context, db queryer, club AdminClub) (AdminClub, error) {
 	rows, err := db.Query(ctx, `
 		SELECT g.id::text, g.name, g.slug,

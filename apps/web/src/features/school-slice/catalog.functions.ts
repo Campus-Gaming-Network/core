@@ -32,14 +32,12 @@ export const getSchoolsCatalog = createServerFn({ method: "GET" })
     schoolsCatalogOperation(data, { api: goBFFForCurrentRequest() }),
   );
 
-/** The chosen game and `game_q` matches for a directory's game filter. */
 export const getGameFilterChoices = createServerFn({ method: "GET" })
   .validator(gameFilterInputSchema)
   .handler(async ({ data }) =>
     loadGameFilterChoices(goBFFForCurrentRequest(), data, defaultErrorReporter),
   );
 
-/** The chosen school and `school_q` matches for a directory's school filter. */
 export const getSchoolFilterChoices = createServerFn({ method: "GET" })
   .validator(schoolFilterInputSchema)
   .handler(async ({ data }) =>

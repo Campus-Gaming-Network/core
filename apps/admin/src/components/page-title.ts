@@ -1,4 +1,3 @@
-/** Separates the parts of an admin document title. */
 const titleSeparator = " · ";
 
 /**

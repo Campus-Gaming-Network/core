@@ -253,8 +253,6 @@ func (r *PostgresRepository) ListMatches(ctx context.Context, slug string, userI
 	return listMatches(ctx, tx, tournamentID)
 }
 
-// bracketHasResult reports whether any match of the tournament has a result,
-// a score, or has gone live.
 func bracketHasResult(ctx context.Context, tx pgx.Tx, tournamentID string) (bool, error) {
 	var locked bool
 	if err := tx.QueryRow(ctx, `
@@ -268,8 +266,6 @@ func bracketHasResult(ctx context.Context, tx pgx.Tx, tournamentID string) (bool
 	return locked, nil
 }
 
-// listMatches returns a tournament's matches by bracket, round, and position,
-// with each slot's entrant.
 func listMatches(ctx context.Context, querier entryQuerier, tournamentID string) ([]TournamentMatch, error) {
 	entries, err := listEntries(ctx, querier, tournamentID, "", EntryRegistered)
 	if err != nil {

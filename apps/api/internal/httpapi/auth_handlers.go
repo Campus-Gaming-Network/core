@@ -514,7 +514,6 @@ func (r *Router) handleUserPath(w http.ResponseWriter, req *http.Request) {
 	writeJSON(w, http.StatusOK, response)
 }
 
-// publicProfileResponse is a public profile with the games its owner lists.
 type publicProfileResponse struct {
 	users.PublicProfile
 	Games games.UserLists `json:"games"`
@@ -564,8 +563,6 @@ func (r *Router) clearSessionCookie(w http.ResponseWriter) {
 	})
 }
 
-// writeDecodeError answers 413 when the body exceeded the size limit and 400
-// for any other malformed JSON.
 func writeDecodeError(w http.ResponseWriter, err error) {
 	var tooLarge *http.MaxBytesError
 	if errors.As(err, &tooLarge) {
@@ -627,7 +624,6 @@ func (r *Router) handleCurrentPolicies(w http.ResponseWriter, req *http.Request)
 	writeJSON(w, http.StatusOK, current)
 }
 
-// handleMyPolicyAcceptances lists the versions the signed-in user accepted.
 func (r *Router) handleMyPolicyAcceptances(w http.ResponseWriter, req *http.Request) {
 	if r.policies == nil {
 		writeError(w, http.StatusServiceUnavailable, "database_unavailable")

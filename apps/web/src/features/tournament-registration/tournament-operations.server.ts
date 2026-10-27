@@ -27,7 +27,6 @@ function tournamentPath(slug: string): string {
   return `/events/${encodeURIComponent(slug)}/tournament`;
 }
 
-/** The event page, with a notice naming a registration outcome. */
 export function eventPageWithNotice(
   slug: string,
   notice: TournamentNotice,
@@ -35,10 +34,6 @@ export function eventPageWithNotice(
   return `/events/${encodeURIComponent(slug)}?tournament=${notice}#registration`;
 }
 
-/**
- * The tournament's registered entries in seed order, and its pending
- * requests when the viewer is an organizer.
- */
 export async function tournamentEntriesOperation(
   { slug }: { slug: string },
   {
@@ -67,7 +62,6 @@ export async function tournamentEntriesOperation(
   }
 }
 
-/** The teams the viewer owns or captains, for a team registration. */
 export async function registrationTeamsOperation(
   { slug }: { slug: string },
   { api, cookieHeader, reportError = defaultErrorReporter }: Dependencies,
@@ -86,7 +80,6 @@ export async function registrationTeamsOperation(
   }
 }
 
-/** Registers, or in an approval tournament sends a request. */
 export function registerOperation(
   { slug, team_slug, roster }: RegisterInput,
   dependencies: Dependencies,
@@ -103,7 +96,6 @@ export function registerOperation(
   });
 }
 
-/** An organizer's decision on a pending request. */
 export function decideEntryOperation(
   { slug, entry_id }: TournamentEntryInput,
   decision: "approved" | "declined",
@@ -120,7 +112,6 @@ export function decideEntryOperation(
   });
 }
 
-/** Withdraws the viewer's entry, or removes one for an organizer. */
 export function deleteEntryOperation(
   { slug, entry_id }: TournamentEntryInput,
   outcome: "withdrawn" | "removed",

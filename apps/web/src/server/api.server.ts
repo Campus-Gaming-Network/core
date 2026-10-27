@@ -29,7 +29,6 @@ export type ApiClientDependencies = {
   baseUrl: string;
   fetcher?: Fetcher;
   prepareHeaders?: (headers: Headers) => Headers;
-  /** Called when the API no longer accepts the session a request carried. */
   onSessionRejected?: () => void;
   /**
    * Called with each response that fails its contract, before it is thrown.

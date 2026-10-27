@@ -329,7 +329,6 @@ test("a failed, malformed, or oversized key fetch denies access and never uses s
     );
   }
 
-  // A network failure denies as well.
   await assert.rejects(
     validate(
       longLived,

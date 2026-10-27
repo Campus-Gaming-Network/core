@@ -34,7 +34,6 @@ export const getEventViewerSession = createServerFn({ method: "GET" }).handler(
   },
 );
 
-/** The strict viewer session plus the home school for the My school tab. */
 export const getEventsViewer = createServerFn({ method: "GET" }).handler(
   async () => {
     const request = currentSessionRequest();

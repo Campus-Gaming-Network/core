@@ -102,7 +102,6 @@ type Router struct {
 // Results are cached, so most of them never reach IGDB.
 const gameSearchRateLimit = 30
 
-// gameCovers reads stored game covers.
 type gameCovers interface {
 	Cover(ctx context.Context, slug, knownETag string) (games.Cover, error)
 }
@@ -326,7 +325,6 @@ func (r *Router) registerPublicRoutes() {
 	r.mux.HandleFunc("/users/", r.handleUserPath)
 }
 
-// handleRoot answers GET / with the service banner and 404s any other path.
 func (r *Router) handleRoot(w http.ResponseWriter, req *http.Request) {
 	if req.URL.Path != "/" {
 		http.NotFound(w, req)
@@ -389,8 +387,6 @@ func (r *Router) handleReady(w http.ResponseWriter, req *http.Request) {
 	})
 }
 
-// handleSchools answers GET /schools: the catalog list or, with sort, the
-// popular ranking.
 func (r *Router) handleSchools(w http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodGet {
 		methodNotAllowed(w, http.MethodGet)
@@ -444,8 +440,6 @@ func (r *Router) handleSchools(w http.ResponseWriter, req *http.Request) {
 	})
 }
 
-// handlePopularSchools answers GET /schools?sort=popular: the most active
-// schools, which takes only a limit.
 func (r *Router) handlePopularSchools(w http.ResponseWriter, req *http.Request) {
 	values := req.URL.Query()
 	if values.Get("sort") != "popular" || values.Has("q") || values.Has("state") || values.Has("offset") {
@@ -482,8 +476,6 @@ func (r *Router) handlePopularSchools(w http.ResponseWriter, req *http.Request) 
 	})
 }
 
-// handleSchoolPath routes /schools/{slug}, /schools/{id}/members, and
-// /schools/{id}/follow.
 func (r *Router) handleSchoolPath(w http.ResponseWriter, req *http.Request) {
 	path := strings.TrimPrefix(req.URL.Path, "/schools/")
 	path = strings.TrimSuffix(path, "/")
@@ -588,8 +580,6 @@ func (r *Router) handleSchoolPath(w http.ResponseWriter, req *http.Request) {
 	http.NotFound(w, req)
 }
 
-// handleMySchools answers GET /me/schools with the schools the signed-in
-// user follows.
 func (r *Router) handleMySchools(w http.ResponseWriter, req *http.Request) {
 	if req.URL.Path != "/me/schools" {
 		http.NotFound(w, req)
@@ -621,8 +611,6 @@ func (r *Router) handleMySchools(w http.ResponseWriter, req *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"schools": result})
 }
 
-// handleGames answers GET /games: the active catalog, or a search when q is
-// given.
 func (r *Router) handleGames(w http.ResponseWriter, req *http.Request) {
 	if r.games == nil {
 		writeError(w, http.StatusServiceUnavailable, "database_unavailable")
@@ -680,7 +668,6 @@ func (r *Router) handleGame(w http.ResponseWriter, req *http.Request) {
 	writeJSON(w, http.StatusOK, r.withSiteCoverURL(game))
 }
 
-// schoolStats counts each school's members, teams, and upcoming events.
 type schoolStats interface {
 	Stats(ctx context.Context, slugs []string, now time.Time) ([]schools.Stats, error)
 }
@@ -710,14 +697,10 @@ func (r *Router) handleSchoolStats(w http.ResponseWriter, req *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"stats": result})
 }
 
-// popularGames ranks catalog games by their upcoming public events.
 type popularGames interface {
 	Popular(ctx context.Context, schoolSlug string, now time.Time) ([]games.PopularGame, error)
 }
 
-// handlePopularGames answers GET /popular-games: the games most listed by
-// public events that have not ended, overall or, with school, for the events
-// that school hosts.
 func (r *Router) handlePopularGames(w http.ResponseWriter, req *http.Request) {
 	if r.popularGames == nil {
 		writeError(w, http.StatusServiceUnavailable, "database_unavailable")
@@ -734,8 +717,6 @@ func (r *Router) handlePopularGames(w http.ResponseWriter, req *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"games": result})
 }
 
-// withSiteCoverURL points a game with a stored cover at the site's cover
-// route, which serves it in place of the IGDB address.
 func (r *Router) withSiteCoverURL(game games.Game) games.Game {
 	if game.HasCover {
 		game.CoverURL = strings.TrimSuffix(r.cfg.SiteURL, "/") + "/api/games/" + url.PathEscape(game.Slug) + "/cover"
@@ -791,8 +772,6 @@ func (r *Router) handleGameCover(w http.ResponseWriter, req *http.Request) {
 	_, _ = w.Write(cover.Bytes)
 }
 
-// handleEvents answers GET /events with a cursor page of public events and
-// routes POST /events to event creation.
 func (r *Router) handleEvents(w http.ResponseWriter, req *http.Request) {
 	if req.URL.Path != "/events" {
 		http.NotFound(w, req)
@@ -883,7 +862,6 @@ func (r *Router) handleEvents(w http.ResponseWriter, req *http.Request) {
 	writeJSON(w, http.StatusOK, payload)
 }
 
-// maxEventQueryLength bounds the event list's title keyword.
 const maxEventQueryLength = 100
 
 // parseDateRange reads the optional from and to calendar dates (YYYY-MM-DD,
@@ -1018,7 +996,6 @@ func (r *Router) handleEventFallback(w http.ResponseWriter, req *http.Request) {
 	r.mux.ServeHTTP(w, retry)
 }
 
-// handleEvent answers GET, PATCH, and DELETE /events/{slug}.
 func (r *Router) handleEvent(w http.ResponseWriter, req *http.Request, slug string) {
 	if req.Method == http.MethodPatch {
 		r.handleUpdateEvent(w, req, slug)
@@ -1075,8 +1052,6 @@ func (r *Router) handleEvent(w http.ResponseWriter, req *http.Request, slug stri
 	writeJSON(w, http.StatusOK, event)
 }
 
-// canAccessPrivateEvent reports whether the viewer may edit the private event
-// or holds a valid unlock token for it.
 func (r *Router) canAccessPrivateEvent(req *http.Request, slug string) (bool, error) {
 	if userID, ok := auth.UserID(req.Context()); ok && looksLikeUUID(userID) {
 		access, err := r.events.Access(req.Context(), slug, userID)
@@ -1093,8 +1068,6 @@ func (r *Router) canAccessPrivateEvent(req *http.Request, slug string) (bool, er
 	return false, nil
 }
 
-// decorateEventForViewer fills the viewer-specific fields of an event for a
-// signed-in user. An anonymous request leaves the event unchanged.
 func (r *Router) decorateEventForViewer(req *http.Request, slug string, event *eventstore.Event) error {
 	userID, ok := auth.UserID(req.Context())
 	if !ok || !looksLikeUUID(userID) {
@@ -1133,7 +1106,6 @@ func (r *Router) decorateEventForViewer(req *http.Request, slug string, event *e
 	return nil
 }
 
-// writeJSON writes payload as a JSON response with the given status.
 func writeJSON(w http.ResponseWriter, status int, payload any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
@@ -1147,7 +1119,6 @@ func writeJSON(w http.ResponseWriter, status int, payload any) {
 // a hostile client cannot write arbitrarily long values into it.
 const maximumLoggedPathRunes = 200
 
-// statusRecorder remembers the status a handler wrote for the access log.
 type statusRecorder struct {
 	http.ResponseWriter
 	status int
@@ -1302,8 +1273,6 @@ func setPublicCatalogCache(w http.ResponseWriter) {
 	w.Header().Set("Cache-Control", catalogCacheControl)
 }
 
-// pathSlug unescapes one path segment. It writes a 400 response with the given
-// error code and reports false when the segment is not valid percent-encoding.
 func pathSlug(w http.ResponseWriter, segment, code string) (string, bool) {
 	slug, err := url.PathUnescape(segment)
 	if err != nil {
@@ -1320,8 +1289,6 @@ func (r *Router) maintenanceTokenValid(req *http.Request) bool {
 	return subtle.ConstantTimeCompare([]byte(provided), []byte(r.cfg.MaintenanceToken)) == 1
 }
 
-// requireMethod rejects any request whose method is not the given one with a
-// 405 and an Allow header.
 func requireMethod(method string, handler http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		if req.Method != method {
@@ -1336,13 +1303,11 @@ func requireMethod(method string, handler http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
-// methodNotAllowed writes a 405 whose Allow header lists the permitted methods.
 func methodNotAllowed(w http.ResponseWriter, methods string) {
 	w.Header().Set("Allow", methods)
 	writeError(w, http.StatusMethodNotAllowed, "method_not_allowed")
 }
 
-// writeError writes a JSON error body with a stable machine-readable code.
 func writeError(w http.ResponseWriter, status int, code string) {
 	writeJSON(w, status, map[string]string{"error": code})
 }

@@ -52,7 +52,6 @@ export async function getOperatorsOperation({
   }
 }
 
-/** Counts of waiting work for each queue the operator may read. */
 export async function getQueueCountsOperation(
   queues: { reports: boolean; support: boolean },
   { api, cookieHeader }: ReadDependencies,

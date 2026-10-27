@@ -28,7 +28,6 @@ export const tournamentStatusSchema = z.enum([
   "cancelled",
 ]);
 
-/** The tournament on a tournament-type event, as its page receives it. */
 export const tournamentDtoSchema = z.object({
   game: z.object({ id: z.string().min(1), name: z.string(), slug: slugSchema }),
   entry_type: z.enum(["solo", "team"]),
@@ -39,18 +38,15 @@ export const tournamentDtoSchema = z.object({
   format: z.string(),
   rules: z.string(),
   prizes: z.string(),
-  /** A bracket hosted on another site. */
   bracket_url: z.string().optional(),
   registration_mode: registrationModeSchema,
   status: tournamentStatusSchema,
   entry_count: nonNegativeIntegerSchema,
   /** Pending requests in an approval tournament; organizers only. */
   request_count: nonNegativeIntegerSchema.optional(),
-  /** The signed-in viewer's own entry, alone or with a team. */
   viewer_entry: z
     .object({
       id: z.uuid(),
-      /** Pending while an organizer has yet to approve the request. */
       status: entryStatusSchema,
       team: teamSummarySchema.optional(),
       /** The solo player, or the team's owner or a captain. */
@@ -81,7 +77,6 @@ export const tournamentEntriesResponseDtoSchema = z.object({
 });
 export type TournamentEntryDTO = z.output<typeof tournamentEntryDtoSchema>;
 
-/** A team the viewer owns or captains, with the members a roster may pick. */
 export const registrationTeamDtoSchema = z.object({
   id: z.string().min(1),
   name: z.string(),
@@ -99,7 +94,6 @@ export type TournamentListResult<T> =
   | { status: "ready"; items: T[] }
   | { status: "unavailable" };
 
-/** The entrant list, with the pending requests for organizers. */
 export type TournamentEntriesResult =
   | {
       status: "ready";
@@ -108,13 +102,11 @@ export type TournamentEntriesResult =
     }
   | { status: "unavailable" };
 
-/** Where a registration change returns, with a notice naming the outcome. */
 export type TournamentMutationResult = {
   status: "success";
   redirectTo: string;
 };
 
-/** The notices the event page's registration panel can receive. */
 export const tournamentNotices = {
   registered: { message: "You're registered.", severity: "success" },
   requested: {
@@ -176,7 +168,6 @@ export const tournamentNotices = {
 } as const satisfies Record<string, PageNotice>;
 export type TournamentNotice = keyof typeof tournamentNotices;
 
-/** The notice for an API error code from a registration change. */
 export const tournamentErrorNotices: Record<string, TournamentNotice> = {
   tournament_registration_closed: "closed",
   tournament_not_found: "closed",
@@ -191,7 +182,6 @@ export const tournamentErrorNotices: Record<string, TournamentNotice> = {
   tournament_entry_not_pending: "not-pending",
 };
 
-/** The event page's `tournament` search value, if it names a notice. */
 export function tournamentNoticeKey(
   value: unknown,
 ): TournamentNotice | undefined {
@@ -216,7 +206,6 @@ export type ValidatedTournamentInput<T> =
   | { valid: true; value: T }
   | { valid: false; slug?: string };
 
-/** A registration: the slug, and for a team its slug and roster picks. */
 export function validateRegisterInput(
   input: object | FormData,
 ): ValidatedTournamentInput<RegisterInput> {
@@ -228,7 +217,6 @@ export function validateRegisterInput(
   });
 }
 
-/** A withdrawal or removal of one entry. */
 export function validateEntryInput(
   input: object | FormData,
 ): ValidatedTournamentInput<TournamentEntryInput> {

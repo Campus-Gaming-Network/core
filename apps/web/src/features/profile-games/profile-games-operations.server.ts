@@ -25,10 +25,8 @@ const catalogResponseSchema = z.object({
   games: z.array(listedGameDtoSchema),
 });
 
-/** Where a change returns: the game lists on the profile settings page. */
 const updatedDestination = "/settings/profile?settings=games-updated#games";
 
-/** The viewer's game lists and the catalog the add forms offer. */
 export async function profileGamesPageOperation({
   api,
   cookieHeader,

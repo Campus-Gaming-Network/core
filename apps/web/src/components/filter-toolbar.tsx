@@ -127,7 +127,6 @@ export function ClearFiltersLink({
   );
 }
 
-/** A polite live region that announces the result count after a filter changes. */
 export function ResultsAnnouncement({ message }: { message: string }) {
   return (
     <p aria-live="polite" className="visually-hidden" role="status">
@@ -150,11 +149,8 @@ export function FilterToolbar({
   label,
   search,
 }: {
-  /** The filter buttons. */
   children?: ReactNode;
-  /** `ClearFiltersLink`, while any filter is applied. */
   clear?: ReactNode;
-  /** Names the group of filter buttons, such as "Event filters". */
   label: string;
   search?: ReactNode;
 }) {
@@ -185,7 +181,6 @@ export function FilterSelect({
   options,
   value,
 }: {
-  /** The text of the option that applies no filter. */
   anyLabel?: string;
   disabled?: boolean;
   label: string;
@@ -228,11 +223,6 @@ export function FilterSelect({
   );
 }
 
-/** A yes-or-no filter as a button with a checkbox, such as "Free only". */
-/**
- * A date filter as a compact native date field: the filter's name, then the
- * date. Highlighted while a date is set; clearing the date removes it.
- */
 export function FilterDate({
   label,
   max,
@@ -309,7 +299,6 @@ export function LockedFilter({
 }: {
   label: string;
   name: string;
-  /** Why it is locked, read after the value: "set by the Online tab". */
   reason: string;
   value: string;
   valueLabel: string;

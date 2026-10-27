@@ -111,7 +111,6 @@ func Event(event *sentry.Event) *sentry.Event {
 	return event
 }
 
-// scrubMap masks the values of a map in place, descending into nested values.
 func scrubMap(values map[string]any) {
 	for key, value := range values {
 		if SensitiveKey(key) {

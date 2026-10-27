@@ -26,8 +26,7 @@ type peopleFixture struct {
 	eventID    string
 	teamID     string
 	teamSlug   string
-	// ids maps a fixture name to its user ID.
-	ids map[string]string
+	ids        map[string]string
 }
 
 // Runs only when API_DATABASE_URL points at a migrated database.
@@ -345,7 +344,6 @@ func TestPostgresRepositoryPagesForwardAndBackwardByKeyCursor(t *testing.T) {
 			t.Fatalf("%s: forward pages = %v, want %v", name, fixture.names(forward), fixture.names(everyone))
 		}
 
-		// Reading back from the last person returns the rows before them, in order.
 		last := everyone[len(everyone)-1]
 		back, err := list(ListParams{Limit: 3, Before: &pagecursor.KeyCursor{Key: last.SortKey, ID: last.ID}})
 		if err != nil {

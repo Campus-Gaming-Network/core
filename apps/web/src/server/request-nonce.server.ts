@@ -13,7 +13,6 @@ export function withRequestNonce<T>(run: (nonce: string) => T): T {
   return requestNonce.run(nonce, () => run(nonce));
 }
 
-/** The nonce of the request being served, if any. */
 export function currentRequestNonce(): string | undefined {
   return requestNonce.getStore();
 }

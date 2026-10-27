@@ -61,7 +61,6 @@ export function verifyEmailCopy(search: VerifyEmailSearch): {
   };
 }
 
-/** The resend form's message for the status a no-JavaScript submit returns with. */
 export function resendVerificationMessage(status?: "sent" | "failed"): string {
   if (status === "sent") {
     return "If that account needs verification, another email is on the way.";

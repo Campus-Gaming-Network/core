@@ -3,7 +3,6 @@ import { SchoolMark } from "../../components/school-mark";
 import { schoolsResponseDtoSchema, type SchoolFilterOption } from "./contracts";
 import { schoolLocation } from "./presentation";
 
-/** A school as the directories' school filter lists it: logo, name, place. */
 export function schoolFilterOption(
   school: SchoolFilterOption,
 ): SearchFilterOption {
@@ -23,7 +22,6 @@ export function schoolFilterOption(
   };
 }
 
-/** Searches schools by name through the site, for the school filter. */
 export async function searchSchoolFilter(
   query: string,
   signal: AbortSignal,

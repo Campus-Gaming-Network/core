@@ -53,7 +53,6 @@ type OrganizerInvitePayload struct {
 	InviterName string `json:"inviter_name"`
 }
 
-// lockOwnedEvent locks the event and returns its ID when userID created it.
 func lockOwnedEvent(ctx context.Context, tx pgx.Tx, slug string, userID string) (string, error) {
 	var eventID, creatorID string
 	err := tx.QueryRow(ctx, `

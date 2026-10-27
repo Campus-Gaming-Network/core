@@ -91,7 +91,6 @@ export const Route = createFileRoute("/events/$slug_/tournament")({
   component: TournamentSettingsPage,
 });
 
-/** Why the form is not shown, or undefined when it is. */
 function denial(
   event: EventDTO,
 ): { heading: string; detail: string; edit?: boolean } | undefined {

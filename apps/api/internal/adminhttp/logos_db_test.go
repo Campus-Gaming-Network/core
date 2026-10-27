@@ -29,7 +29,6 @@ import (
 
 const logoAssetOrigin = "https://assets.example.test"
 
-// memoryObjects is an ObjectStore that can be made to fail.
 type memoryObjects struct {
 	mu         sync.Mutex
 	objects    map[string]string
@@ -192,7 +191,6 @@ func TestSchoolLogoHTTPReplacesRemovesAndCleansUp(t *testing.T) {
 		t.Fatalf("public logo = %q, want %q", got, first.LogoURL)
 	}
 
-	// A stale form keeps the stored logo and discards the new upload.
 	conflict := decodeCatalog[struct {
 		Error   string              `json:"error"`
 		Current schools.AdminSchool `json:"current"`
@@ -273,7 +271,6 @@ func TestSchoolLogoRejectionsStoreNothing(t *testing.T) {
 			}
 		})
 	}
-	// Exactly at the limit is accepted.
 	f.upload(t, file(paddedPNG(t, logoimage.MaxBytes)), 200)
 }
 

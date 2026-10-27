@@ -57,11 +57,9 @@ type Props = {
   hostClubs: EventHostClubDTO[];
   initialSchoolQuery: string;
   initialSchoolSearchFailed: boolean;
-  /** Server-rendered key for create mode; see useIdempotencyKey. */
   idempotencyKey?: string;
 };
 
-/** Says which of the place fields matter for each format. */
 const formatHints = {
   in_person:
     "People show up in person: add the place and address. An online link is not needed.",
@@ -847,7 +845,6 @@ export function EventForm({
   );
 }
 
-/** The form's sections, in order, for the page's in-page section nav. */
 export const eventFormSections = [
   { id: "event-basics", label: "Event basics" },
   { id: "event-when", label: "When" },

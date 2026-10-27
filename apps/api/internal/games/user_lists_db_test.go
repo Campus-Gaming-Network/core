@@ -73,8 +73,6 @@ func TestPostgresRepositoryUserListsAddMoveRemoveAndCapFavorites(t *testing.T) {
 	full := UserLists{Favorite: []Game{g[0], g[1], g[2], g[3], g[4]}, Like: []Game{g[5], g[6]}, WantToPlay: []Game{}}
 	check("five favorites", full)
 
-	// A sixth favorite is rejected, even one moving from another list, and a
-	// game already a favorite is left in place.
 	if err := add(ListFavorite, g[7]); !errors.Is(err, ErrFavoritesFull) {
 		t.Fatalf("sixth favorite error = %v, want ErrFavoritesFull", err)
 	}
@@ -86,7 +84,6 @@ func TestPostgresRepositoryUserListsAddMoveRemoveAndCapFavorites(t *testing.T) {
 	}
 	check("favorites full", full)
 
-	// Adding a game that is in another list moves it to the end of this one.
 	if err := add(ListWantToPlay, g[0]); err != nil {
 		t.Fatalf("move a favorite: %v", err)
 	}
@@ -115,7 +112,6 @@ func TestPostgresRepositoryUserListsAddMoveRemoveAndCapFavorites(t *testing.T) {
 	}
 	check("removed", UserLists{Favorite: []Game{g[5], g[2], g[4], g[1]}, Like: []Game{g[6]}, WantToPlay: []Game{g[0]}})
 
-	// A hidden game cannot be listed; a game a user typed in can.
 	if err := add(ListLike, typed, hidden); !errors.Is(err, ErrGameUnavailable) {
 		t.Fatalf("add a hidden game error = %v, want ErrGameUnavailable", err)
 	}
@@ -123,7 +119,6 @@ func TestPostgresRepositoryUserListsAddMoveRemoveAndCapFavorites(t *testing.T) {
 		t.Fatalf("add a typed game: %v", err)
 	}
 
-	// A deleted game leaves every list and frees its place.
 	if _, err := pool.Exec(ctx, `UPDATE games SET deleted_at = NOW() WHERE id = $1::uuid`, g[5].ID); err != nil {
 		t.Fatalf("delete game: %v", err)
 	}

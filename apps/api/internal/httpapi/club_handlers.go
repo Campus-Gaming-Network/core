@@ -9,7 +9,6 @@ import (
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/clubs"
 )
 
-// handleClub answers GET /clubs/{slug} with one published club.
 func (r *Router) handleClub(w http.ResponseWriter, req *http.Request) {
 	if r.clubs == nil {
 		writeError(w, http.StatusServiceUnavailable, "database_unavailable")
@@ -20,7 +19,6 @@ func (r *Router) handleClub(w http.ResponseWriter, req *http.Request) {
 		writeApplicationError(w, err, "club_unavailable")
 		return
 	}
-	// A signed-in viewer also learns their place in the club.
 	if userID, signedIn := auth.UserID(req.Context()); signedIn && r.clubOfficers != nil {
 		viewer, err := r.clubOfficers.Viewer(req.Context(), club.ID, userID)
 		if err != nil {
@@ -33,8 +31,6 @@ func (r *Router) handleClub(w http.ResponseWriter, req *http.Request) {
 	writeJSON(w, http.StatusOK, club)
 }
 
-// handleSchoolClubs answers GET /schools/{slug}/clubs with the school's
-// published clubs.
 func (r *Router) handleSchoolClubs(w http.ResponseWriter, req *http.Request, schoolSlug string) {
 	if req.Method != http.MethodGet {
 		methodNotAllowed(w, http.MethodGet)
@@ -52,8 +48,6 @@ func (r *Router) handleSchoolClubs(w http.ResponseWriter, req *http.Request, sch
 	writeJSON(w, http.StatusOK, map[string][]clubs.ListItem{"clubs": result})
 }
 
-// handleClubs answers GET /clubs: one page of published clubs across schools,
-// by name, narrowed by name search, school, type, and game.
 func (r *Router) handleClubs(w http.ResponseWriter, req *http.Request) {
 	if r.clubs == nil {
 		writeError(w, http.StatusServiceUnavailable, "database_unavailable")
@@ -121,8 +115,6 @@ type clubRequestRequest struct {
 	clubs.ClaimEvidence
 }
 
-// handleClubClaim answers POST /clubs/{slug}/claims: a signed-in officer
-// claims a published, unclaimed club for site admins to review.
 func (r *Router) handleClubClaim(w http.ResponseWriter, req *http.Request) {
 	userID, ok := r.clubClaimant(w, req)
 	if !ok {
@@ -142,8 +134,6 @@ func (r *Router) handleClubClaim(w http.ResponseWriter, req *http.Request) {
 	writeJSON(w, http.StatusCreated, receipt)
 }
 
-// handleClubRequest answers POST /schools/{slug}/club-requests: a signed-in
-// officer asks for a club the school does not list yet.
 func (r *Router) handleClubRequest(w http.ResponseWriter, req *http.Request, schoolSlug string) {
 	if req.Method != http.MethodPost {
 		methodNotAllowed(w, http.MethodPost)

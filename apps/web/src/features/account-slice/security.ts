@@ -89,7 +89,6 @@ export function validateConfirmEmailChangeInput(
 export type SecurityForm = "password" | "email";
 
 type SecurityNotice = PageNotice & {
-  /** The form an error belongs to and the field it points at. */
   form?: SecurityForm;
   field?: string;
 };
@@ -152,7 +151,6 @@ export const securityNotices = {
 
 export type SecurityNoticeKey = keyof typeof securityNotices;
 
-/** The notice for a failed change, from the API's error code. */
 export function securityFailureNotice(
   form: SecurityForm,
   code: string | undefined,
@@ -166,7 +164,6 @@ export function securityFailureNotice(
   return `${form}-failed`;
 }
 
-/** The notice for input the web server rejected before calling the API. */
 export function securityValidationNotice(
   form: SecurityForm,
   fieldErrors: FieldErrors,

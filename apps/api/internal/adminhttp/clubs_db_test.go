@@ -10,8 +10,6 @@ import (
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/clubs"
 )
 
-// publicSlug reads a club the way the public site does, returning the slug it
-// resolves to, or "" when the club is not public.
 func (f catalogFixture) publicSlug(t *testing.T, slug string) string {
 	t.Helper()
 	club, err := f.club.GetBySlug(t.Context(), slug)
@@ -43,7 +41,6 @@ func TestClubAdminLifecycleReachesThePublicSite(t *testing.T) {
 		t.Fatalf("public slug after create = %q", got)
 	}
 
-	// Links replace in order, and the public page shows them.
 	withLinks := decodeCatalog[clubs.AdminClub](t, f.request(t, "POST", "/admin/v1/clubs/"+created.ID+"/links", clubs.LinksEdit{
 		Command: f.versioned(created.UpdatedAt),
 		Links: []clubs.Link{
@@ -59,7 +56,6 @@ func TestClubAdminLifecycleReachesThePublicSite(t *testing.T) {
 		t.Fatalf("public links = %+v, want %+v", public.Links, withLinks.Links)
 	}
 
-	// A rename keeps the old slug working, and renaming back drops the redirect.
 	renamed := decodeCatalog[clubs.AdminClub](t, f.request(t, "PATCH", "/admin/v1/clubs/"+created.ID, clubs.AdminEdit{
 		Command:     f.versioned(withLinks.UpdatedAt),
 		AdminFields: clubs.AdminFields{Name: "Anteater Esports", Slug: "anteater-esports", Type: clubs.TypeUniversityProgram, HowToJoin: "Tryouts in October."},
@@ -71,12 +67,10 @@ func TestClubAdminLifecycleReachesThePublicSite(t *testing.T) {
 		t.Fatalf("renamed = %+v, want games cleared and How to join updated", renamed)
 	}
 
-	// Another club may take the old slug; the redirect then gives way.
 	other := f.newClub(t, "esports-program")
 	if got := f.publicSlug(t, "esports-program"); got != "esports-program" {
 		t.Fatalf("the old slug after another club took it resolves to %q", got)
 	}
-	// A live slug cannot be taken.
 	taken := f.request(t, "PATCH", "/admin/v1/clubs/"+other.ID, clubs.AdminEdit{
 		Command:     f.versioned(other.UpdatedAt),
 		AdminFields: clubs.AdminFields{Name: "Clash", Slug: "anteater-esports", Type: clubs.TypeStudentClub},
@@ -85,7 +79,6 @@ func TestClubAdminLifecycleReachesThePublicSite(t *testing.T) {
 		t.Fatalf("taking a live slug = %s", body)
 	}
 
-	// Hiding takes the club off the public site; unhiding brings it back.
 	hidden := decodeCatalog[clubs.AdminClub](t, f.request(t, "POST", "/admin/v1/clubs/"+renamed.ID+"/hide", f.versioned(renamed.UpdatedAt), http.StatusOK))
 	if got := []string{f.publicSlug(t, "anteater-esports"), f.publicSlug(t, "esports-program")}; !reflect.DeepEqual(got, []string{"", "esports-program"}) || hidden.IsActive {
 		t.Fatalf("after hide: public %v, active %v", got, hidden.IsActive)
@@ -96,13 +89,11 @@ func TestClubAdminLifecycleReachesThePublicSite(t *testing.T) {
 		t.Fatal("unhiding did not publish the club again")
 	}
 
-	// Mark as checked records CGN as the source.
 	checked := decodeCatalog[clubs.AdminClub](t, f.request(t, "POST", "/admin/v1/clubs/"+renamed.ID+"/mark-checked", f.versioned(unhidden.UpdatedAt), http.StatusOK))
 	if checked.ConfirmedAt == nil || checked.ConfirmedSource == nil || *checked.ConfirmedSource != clubs.ConfirmedByCGN {
 		t.Fatalf("checked = %+v, want a CGN confirmation", checked)
 	}
 
-	// A stale version is refused and returns the current record.
 	stale := f.request(t, "POST", "/admin/v1/clubs/"+renamed.ID+"/hide", f.versioned(unhidden.UpdatedAt), http.StatusConflict)
 	conflict := decodeCatalog[struct {
 		Error   string          `json:"error"`
@@ -112,7 +103,6 @@ func TestClubAdminLifecycleReachesThePublicSite(t *testing.T) {
 		t.Fatalf("stale write = %+v", conflict)
 	}
 
-	// The list finds clubs by name and by school.
 	listed := decodeCatalog[struct {
 		Clubs []clubs.AdminClub `json:"clubs"`
 	}](t, f.request(t, "GET", "/admin/v1/clubs?q=anteater&school="+catalogSchoolID, nil, http.StatusOK))

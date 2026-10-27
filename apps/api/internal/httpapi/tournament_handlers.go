@@ -12,7 +12,6 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-// eventTournaments manages the tournament settings and status on an event.
 type eventTournaments interface {
 	PutTournament(ctx context.Context, input eventstore.TournamentInput) (eventstore.Tournament, bool, error)
 	DeleteTournament(ctx context.Context, slug string, userID string) error
@@ -48,7 +47,6 @@ type tournamentStatusRequest struct {
 	Status string `json:"status"`
 }
 
-// tournamentStatuses are the statuses a request may name.
 var tournamentStatuses = []string{
 	eventstore.TournamentDraft,
 	eventstore.TournamentRegistrationOpen,
@@ -57,8 +55,6 @@ var tournamentStatuses = []string{
 	eventstore.TournamentCancelled,
 }
 
-// tournamentUser starts a tournament request: the store is wired and someone
-// is signed in.
 func (r *Router) tournamentUser(w http.ResponseWriter, req *http.Request) (string, bool) {
 	if r.tournaments == nil {
 		writeError(w, http.StatusServiceUnavailable, "database_unavailable")
@@ -117,7 +113,6 @@ func (r *Router) handleTournament(w http.ResponseWriter, req *http.Request, slug
 	writeJSON(w, status, tournament)
 }
 
-// handleTournamentStatus answers POST /events/{slug}/tournament/status.
 func (r *Router) handleTournamentStatus(w http.ResponseWriter, req *http.Request, slug string) {
 	userID, ok := r.tournamentUser(w, req)
 	if !ok {
@@ -243,8 +238,6 @@ func (r *Router) handleTournamentEntries(w http.ResponseWriter, req *http.Reques
 	writeJSON(w, http.StatusCreated, entry)
 }
 
-// handleTournamentEntry answers PATCH /events/{slug}/tournament/entries/{id},
-// a roster change, and DELETE, a withdrawal or removal.
 func (r *Router) handleTournamentEntry(w http.ResponseWriter, req *http.Request, slug string) {
 	userID, ok := r.tournamentUser(w, req)
 	if !ok {
@@ -275,9 +268,6 @@ func (r *Router) handleTournamentEntry(w http.ResponseWriter, req *http.Request,
 	writeJSON(w, http.StatusOK, entry)
 }
 
-// handleTournamentDecision answers POST
-// /events/{slug}/tournament/entries/{id}/approve and .../decline, an
-// organizer's decision on a pending request.
 func (r *Router) handleTournamentDecision(approve bool) func(http.ResponseWriter, *http.Request, string) {
 	return func(w http.ResponseWriter, req *http.Request, slug string) {
 		userID, ok := r.tournamentUser(w, req)
@@ -298,8 +288,6 @@ func (r *Router) handleTournamentDecision(approve bool) func(http.ResponseWriter
 	}
 }
 
-// handleTournamentTeams answers GET /events/{slug}/tournament/my-teams: the
-// teams the viewer owns or captains, with the members a roster may pick.
 func (r *Router) handleTournamentTeams(w http.ResponseWriter, req *http.Request, slug string) {
 	userID, ok := r.tournamentUser(w, req)
 	if !ok {
@@ -314,8 +302,6 @@ func (r *Router) handleTournamentTeams(w http.ResponseWriter, req *http.Request,
 	writeJSON(w, http.StatusOK, map[string]any{"teams": teams})
 }
 
-// handleTournamentSeeds answers PUT /events/{slug}/tournament/seeds, which
-// orders the registered entries from seed 1.
 func (r *Router) handleTournamentSeeds(w http.ResponseWriter, req *http.Request, slug string) {
 	userID, ok := r.tournamentUser(w, req)
 	if !ok {
@@ -333,8 +319,6 @@ func (r *Router) handleTournamentSeeds(w http.ResponseWriter, req *http.Request,
 	writeJSON(w, http.StatusOK, map[string]any{"entries": entries})
 }
 
-// handleTournamentBracket answers POST /events/{slug}/tournament/bracket,
-// which generates or regenerates the bracket.
 func (r *Router) handleTournamentBracket(w http.ResponseWriter, req *http.Request, slug string) {
 	userID, ok := r.tournamentUser(w, req)
 	if !ok {
@@ -377,9 +361,6 @@ func (r *Router) handleTournamentMatches(w http.ResponseWriter, req *http.Reques
 	writeJSON(w, http.StatusOK, map[string]any{"matches": matches})
 }
 
-// handleTournamentResult answers POST
-// /events/{slug}/tournament/matches/{id}/result, which enters or corrects a
-// match's result and returns the bracket.
 func (r *Router) handleTournamentResult(w http.ResponseWriter, req *http.Request, slug string) {
 	userID, ok := r.tournamentUser(w, req)
 	if !ok {

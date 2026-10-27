@@ -26,7 +26,6 @@ const clubLinkSchema = z.object({
     .refine((value) => /^https?:\/\//i.test(value), "Unsafe link."),
 });
 
-/** One published club as its page shows it. */
 export const clubDtoSchema = z.object({
   id: identifierSchema,
   name: z.string(),
@@ -49,7 +48,6 @@ export const clubDtoSchema = z.object({
   confirmed_source: z.enum(["club", "cgn"]).optional(),
   // The last confirmation is older than the API's confirmation window.
   needs_confirmation: z.boolean(),
-  // A signed-in viewer's place in the club.
   viewer: z
     .object({
       role: clubRoleSchema.optional(),
@@ -58,7 +56,6 @@ export const clubDtoSchema = z.object({
     .optional(),
 });
 
-/** A school's clubs as the school page lists them. */
 export const schoolClubsResponseDtoSchema = z.object({
   clubs: z.array(
     z.object({
@@ -74,7 +71,6 @@ export const schoolClubsResponseDtoSchema = z.object({
   ),
 });
 
-/** One page of the clubs directory, across schools, by name. */
 export const clubsResponseDtoSchema = z.object({
   clubs: z.array(
     z.object({
@@ -107,7 +103,6 @@ export const clubsPageSize = 25;
 const filterSchema = z.string().trim().max(200);
 const cursorSchema = z.string().trim().max(2048);
 
-/** What the clubs directory asks the API for, plus its filter searches. */
 export const clubsBrowsePageInputSchema = z.object({
   q: z.string().trim().max(100),
   school: filterSchema,
@@ -137,9 +132,7 @@ export type ClubsBrowsePageInput = z.output<typeof clubsBrowsePageInputSchema>;
 
 /** The clubs directory's query string. Defaults are left out. */
 export type ClubsSearch = {
-  /** Part of a club's name. */
   q?: string;
-  /** Slug of the school whose clubs are listed. */
   school?: string;
   type?: ClubType;
   game?: string;
@@ -159,7 +152,6 @@ export type ClubsBrowsePageResult = {
   has_previous: boolean;
   next_cursor?: string;
   previous_cursor?: string;
-  /** True when the list could not be read; the page says so. */
   clubsUnavailable: boolean;
 } & SchoolFilterChoices &
   GameFilterChoices;
@@ -171,7 +163,6 @@ export type ClubDetailResult =
 
 export type SchoolClubsResult = {
   clubs: SchoolClubDTO[];
-  /** True when the list could not be read; the school page says so. */
   unavailable: boolean;
 };
 
@@ -274,7 +265,6 @@ export const claimOutcomes = [
 ] as const;
 export type ClaimOutcome = (typeof claimOutcomes)[number];
 
-/** What each failed outcome tells the applicant. */
 export const claimFailureMessages: Record<
   Exclude<ClaimOutcome, "submitted">,
   string
@@ -301,7 +291,6 @@ export type Validated<T> =
   | { valid: true; value: T }
   | {
       valid: false;
-      /** Where a native post returns: the form's page, when it is known. */
       page: string;
       message: "Check the highlighted fields and try again.";
       fieldErrors: ClaimFieldErrors;
@@ -397,7 +386,6 @@ function inputValue(input: FormData | object, name: string): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
-/** What the Manage club page shows an owner or editor. */
 export const clubManagementDtoSchema = z.object({
   club: clubDtoSchema,
   role: z.enum(["owner", "editor"]),
@@ -512,7 +500,6 @@ const clubCommandSchema = z.discriminatedUnion("command", [
 export type ClubCommand = z.output<typeof clubCommandSchema>;
 export type ClubCommandName = ClubCommand["command"];
 
-/** Redirect notices after a club command, by name. */
 export const clubNotices = {
   saved: { message: "Club details saved.", severity: "success" },
   "links-saved": { message: "Links saved.", severity: "success" },
@@ -561,7 +548,6 @@ export const clubNotices = {
 >;
 export type ClubNotice = keyof typeof clubNotices;
 
-/** The notice each command shows when it succeeds. */
 export const clubCommandNotices: Record<ClubCommandName, ClubNotice> = {
   profile: "saved",
   links: "links-saved",
@@ -578,7 +564,6 @@ export const clubCommandNotices: Record<ClubCommandName, ClubNotice> = {
 
 export type ClubPage = "club" | "manage";
 
-/** The page a command returns to, with its notice. */
 export function clubCommandPage(
   slug: string,
   page: ClubPage,

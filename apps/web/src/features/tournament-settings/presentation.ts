@@ -8,7 +8,6 @@ export const tournamentStatusLabels = {
   cancelled: "Cancelled",
 } as const satisfies Record<TournamentDTO["status"], string>;
 
-/** A control on the status panel: a status move, or deleting a draft. */
 export type StatusAction =
   | {
       kind: "status";

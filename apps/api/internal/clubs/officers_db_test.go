@@ -63,7 +63,6 @@ func (f officerFixture) club(t *testing.T, slug string, roles ...[2]string) stri
 	return clubID
 }
 
-// roles reads the club's people as user ID to role.
 func (f officerFixture) roles(t *testing.T, clubID string) map[string]string {
 	t.Helper()
 	rows, err := f.pool.Query(context.Background(), `SELECT user_id::text, role FROM club_members WHERE club_id = $1::uuid`, clubID)
@@ -202,7 +201,6 @@ func TestAnOwnershipTransferWaitsForTheRecipient(t *testing.T) {
 		t.Fatalf("AcceptOwnership(not the recipient) error = %v", err)
 	}
 
-	// The recipient declines, and nothing changes.
 	if err := f.repository.CancelOwnershipOffer(ctx, "smash-club", member); err != nil {
 		t.Fatalf("CancelOwnershipOffer(recipient) error = %v", err)
 	}
@@ -213,8 +211,6 @@ func TestAnOwnershipTransferWaitsForTheRecipient(t *testing.T) {
 		t.Fatalf("roles after declining = %v, want them unchanged", got)
 	}
 
-	// Offered again and accepted, the recipient owns the club and the former
-	// owner edits it.
 	if err := f.repository.OfferOwnership(ctx, "smash-club", owner, member); err != nil {
 		t.Fatal(err)
 	}
@@ -265,8 +261,6 @@ func TestARemovedMemberLosesAccessAndTheClubStays(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// An editor removes a member but not another editor; an owner removes an
-	// editor.
 	if err := f.repository.RemoveMember(ctx, "smash-club", editor, other); !errors.Is(err, ErrNotClubOwner) {
 		t.Fatalf("RemoveMember(editor removes editor) error = %v, want ErrNotClubOwner", err)
 	}
@@ -313,7 +307,6 @@ func TestAVerifiedUserJoinsLeavesAndAfterRemovalJoinsAgain(t *testing.T) {
 	if err := f.repository.Join(ctx, "smash-club", student); err != nil {
 		t.Fatalf("Join() error = %v", err)
 	}
-	// Joining again changes nothing, and an officer who joins keeps their role.
 	if err := f.repository.Join(ctx, "smash-club", student); err != nil {
 		t.Fatalf("Join(again) error = %v", err)
 	}
@@ -334,8 +327,6 @@ func TestAVerifiedUserJoinsLeavesAndAfterRemovalJoinsAgain(t *testing.T) {
 	if err := f.repository.Join(ctx, "smash-club", student); err != nil {
 		t.Fatal(err)
 	}
-	// Someone outside the club removes no one; an editor removes the member,
-	// who may join again.
 	if err := f.repository.RemoveMember(ctx, "smash-club", outsider, student); !errors.Is(err, ErrNotClubOfficer) {
 		t.Fatalf("RemoveMember(outsider) error = %v, want ErrNotClubOfficer", err)
 	}

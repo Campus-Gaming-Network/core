@@ -22,7 +22,6 @@ type Options struct {
 	// MaxConnLifetime recycles connections so a failover or a proxy that
 	// drops long-lived sockets does not leave dead ones in the pool.
 	MaxConnLifetime time.Duration
-	// MaxConnIdleTime closes connections that sit unused.
 	MaxConnIdleTime time.Duration
 	// StatementTimeout makes Postgres cancel any statement that runs longer.
 	// Leave it zero for migrations and seeds, which run long statements.

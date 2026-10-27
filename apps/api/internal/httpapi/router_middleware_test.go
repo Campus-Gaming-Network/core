@@ -70,7 +70,6 @@ func TestSecurityHeadersAreDefaultsHandlersMayReplace(t *testing.T) {
 	}
 }
 
-// captureLogs runs fn with a JSON slog default and returns the decoded records.
 func captureLogs(t *testing.T, fn func()) []map[string]any {
 	t.Helper()
 	var output bytes.Buffer

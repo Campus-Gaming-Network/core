@@ -63,7 +63,6 @@ func (r *fakePeopleRepository) ListClubMembers(_ context.Context, clubID string,
 	return r.listed, r.err
 }
 
-// fakeSchoolDirectory resolves one school by slug, like the catalog does.
 type fakeSchoolDirectory struct {
 	fakeSchoolRepository
 	school schools.School
@@ -119,7 +118,6 @@ func newPeopleFixture(event eventstore.Event) *peopleFixture {
 	return fixture
 }
 
-// get sends a GET request. Signed-out requests carry no session cookie.
 func (f *peopleFixture) get(target string, signedIn bool) *httptest.ResponseRecorder {
 	request := httptest.NewRequest(http.MethodGet, target, nil)
 	if signedIn {
@@ -484,7 +482,6 @@ func TestPeopleListsPageByNameWithOpaqueCursors(t *testing.T) {
 		t.Fatalf("next cursor = %#v, %v; want the fifth person", next, err)
 	}
 
-	// Following the cursor resumes after the fifth person.
 	fixture.people.listed = all[5:]
 	second := decodePeoplePage(t, fixture.get(target+"?limit=5&after="+first.NextCursor, true))
 	if !reflect.DeepEqual(fixture.people.params, people.ListParams{Limit: 6, After: &next}) {

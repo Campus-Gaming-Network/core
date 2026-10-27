@@ -219,7 +219,6 @@ func (s *PostgresStore) MarkFailed(ctx context.Context, message Message, next ti
 	return nil
 }
 
-// maximumDetailBytes bounds the stored delivery error.
 const maximumDetailBytes = 2000
 
 // truncateDetail cuts detail to maximumDetailBytes on a rune boundary. A cut

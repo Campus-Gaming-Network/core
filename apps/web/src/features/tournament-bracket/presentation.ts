@@ -1,7 +1,6 @@
 import type { TournamentDTO } from "../tournament-registration/contracts.js";
 import type { MatchEntrantDTO, TournamentMatchDTO } from "./contracts.js";
 
-/** The sections of a tournament event, each its own page. */
 export type TournamentSection =
   | "overview"
   | "entrants"
@@ -36,14 +35,12 @@ export function tournamentSections(
   ];
 }
 
-/** Whether the tournament can have a bracket yet, so its matches are worth reading. */
 export function bracketMayExist(tournament: Pick<TournamentDTO, "status">) {
   return (
     tournament.status === "in_progress" || tournament.status === "completed"
   );
 }
 
-/** A round by its distance from the final: "Final", "Semifinals", "Round 1". */
 export function roundName(round: number, rounds: number): string {
   if (round === rounds) return "Final";
   if (round === rounds - 1) return "Semifinals";
@@ -56,16 +53,11 @@ export function entrantName(entrant: MatchEntrantDTO): string {
   return entrant.player?.name ?? entrant.team?.name ?? `Seed ${entrant.seed}`;
 }
 
-/** A match's name: "Final", or "Semifinals, match 2". */
 export function matchName(match: TournamentMatchDTO, rounds: number): string {
   const round = roundName(match.round, rounds);
   return match.round === rounds ? round : `${round}, match ${match.position}`;
 }
 
-/**
- * A match in one sentence, for its link and the round list: both sides with
- * their seeds and scores, then the outcome or the status.
- */
 export function matchSummary(
   match: TournamentMatchDTO,
   rounds: number,
@@ -88,10 +80,8 @@ export function matchSummary(
   return `${matchName(match, rounds)}: ${sides.join(" vs ")}. ${outcome}`;
 }
 
-/** A first-round bye: the entrant goes straight to the second round. */
 export type BracketBye = { entrant: MatchEntrantDTO; position: number };
 
-/** One round of a bracket laid out on the first round's rows. */
 export type BracketRound = {
   round: number;
   name: string;

@@ -139,7 +139,6 @@ export function DefaultError() {
 type NotFoundViewProps = {
   description: string;
   heading: string;
-  /** The tab title, without the site name. */
   title?: string;
   actions: ReactNode;
 };

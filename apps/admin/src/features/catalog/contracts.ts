@@ -32,7 +32,6 @@ export const adminSchoolSchema = z.object({
   deleted_at: timestampSchema.nullable(),
 });
 
-/** The school details response: the school plus its bundled logo, if any. */
 export const adminSchoolDetailSchema = adminSchoolSchema.extend({
   // Where the main site's bundled logo lives in the logo bucket. Present
   // whether or not the school has an upload.
@@ -178,8 +177,6 @@ export const catalogAuditEntrySchema = z
 // say nothing about what the admin changed.
 const bookkeepingFields = new Set(["updated_at", "retention_started_at"]);
 
-// changedFields lists the audited state fields that differ, then the edited
-// form fields the API recorded by name, without bookkeeping timestamps.
 export function changedFields(
   before: unknown,
   after: unknown,
@@ -203,7 +200,6 @@ function auditState(value: unknown): Record<string, unknown> {
     : {};
 }
 
-// Clubs: student clubs and university programs under one school.
 export const clubTypes = ["student_club", "university_program"] as const;
 export const clubTypeLabels: Record<(typeof clubTypes)[number], string> = {
   student_club: "Student club",
@@ -247,7 +243,6 @@ export const adminClubSchema = z.object({
   ),
   // True for a published club, so the shared state badge reads it.
   is_active: z.boolean(),
-  // True once an officer's claim made someone the club's owner.
   claimed: z.boolean(),
   // On the detail only: everyone in the club, owners first.
   members: z
@@ -276,7 +271,6 @@ export const clubClaimStatuses = ["pending", "approved", "rejected"] as const;
 
 const clubClaimSummarySchema = z.object({
   id: uuidSchema,
-  // A claim on a listed club, or a request for a new one.
   kind: z.enum(["claim", "request"]),
   club_id: uuidSchema.nullable(),
   // The club's current name, or the name a request asked for.
@@ -358,12 +352,10 @@ export const catalogListKinds = {
   users: ["active", "suspended", "deleted"],
   club_claims: clubClaimStatuses,
   "site-admins": ["active", "revoked"],
-  // A club is published (active) or hidden (inactive).
   clubs: ["active", "inactive"],
 } as const;
 export type CatalogListKind = keyof typeof catalogListKinds;
 
-/** Narrowing filters that only some lists accept. */
 export const userRoleFilters = ["site_admin", "school_admin"] as const;
 export const verificationFilters = [
   "basic",
@@ -374,11 +366,8 @@ export const verificationFilters = [
 export type CatalogSearch = {
   q?: string;
   state?: string;
-  /** Schools: a two-letter state or territory code. */
   region?: string;
-  /** Users: an admin role the account holds. */
   role?: (typeof userRoleFilters)[number];
-  /** Users: a verification level. */
   verification?: (typeof verificationFilters)[number];
   /** Clubs: the ID of the school whose clubs are listed. */
   school?: string;
@@ -473,8 +462,6 @@ export const catalogDetailInputSchema = z.object({
   audit_before: cursorSchema.optional(),
 });
 
-// The Admin API's reasons for rejecting a logo, and the redirect notice a
-// no-JavaScript upload shows for each.
 export const logoErrorMessages = {
   logo_too_large:
     "The file is larger than 5 MB. Export a smaller PNG or JPEG and try again.",
@@ -499,8 +486,6 @@ export const logoErrorNotices: Partial<
   rate_limited: "rate-limited",
 };
 
-// The Admin API's reasons an IGDB refresh fails, and the redirect notice a
-// no-JavaScript form shows for each.
 export const igdbErrorMessages = {
   game_not_from_igdb: "This game was not imported from IGDB.",
   igdb_not_configured:
@@ -657,8 +642,6 @@ export const catalogNotices = {
 >;
 export type CatalogNotice = keyof typeof catalogNotices;
 
-// School and game forms carry the complete editable record, a reason, and
-// the last-seen version when editing.
 const reasonSchema = z
   .string()
   .trim()

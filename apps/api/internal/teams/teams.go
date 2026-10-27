@@ -431,7 +431,6 @@ func (r *PostgresRepository) Join(ctx context.Context, slug string, userID strin
 	return r.teamForViewer(ctx, slug, userID)
 }
 
-// noticeRecipient is who a team notice goes to, and what it says.
 type noticeRecipient struct {
 	UserID string
 	// Email is empty when the recipient's account cannot receive email.

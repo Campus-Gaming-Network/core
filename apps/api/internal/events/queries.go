@@ -281,7 +281,6 @@ func likePattern(query string) string {
 	return strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(query)
 }
 
-// reverseEvents reverses events in place.
 func reverseEvents(events []Event) {
 	for left, right := 0, len(events)-1; left < right; left, right = left+1, right-1 {
 		events[left], events[right] = events[right], events[left]

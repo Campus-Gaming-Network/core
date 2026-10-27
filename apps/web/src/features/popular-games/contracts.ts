@@ -16,7 +16,6 @@ export const popularGamesResponseSchema = z.object({
 
 export type PopularGameDTO = z.output<typeof popularGameDtoSchema>;
 
-/** A school slug narrows the list to that school's events. */
 export const popularGamesInputSchema = z.object({
   school: z.string().trim().max(200).optional(),
 });

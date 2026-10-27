@@ -16,7 +16,6 @@ import (
 // may read them, and no response is cacheable: it depends on who is asking and,
 // for a private event, on what they have unlocked.
 
-// peopleListRequest is a validated request for one page of a people list.
 type peopleListRequest struct {
 	limit  int
 	params people.ListParams
@@ -133,8 +132,6 @@ func (r *Router) handleEventAttendees(w http.ResponseWriter, req *http.Request, 
 	writePeopleList(w, list, result)
 }
 
-// handleSchoolMembers answers GET /schools/{slug}/members with the people whose
-// home school it is.
 func (r *Router) handleSchoolMembers(w http.ResponseWriter, req *http.Request, slug string) {
 	list, ok := r.startPeopleList(w, req)
 	if !ok {

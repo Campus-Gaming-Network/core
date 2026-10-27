@@ -340,12 +340,10 @@ test("new-event page data enforces auth then loads default profile and catalogs"
   assert.deepEqual(ready.defaultSchool, school);
   assert.deepEqual(ready.games, [game]);
   assert.deepEqual(ready.schools, [school]);
-  // Only the teams the viewer owns or captains may host.
   assert.deepEqual(ready.hostTeams, [
     { id: "team-1", name: "Red Team", slug: "red-team" },
     { id: "team-2", name: "Blue Team", slug: "blue-team" },
   ]);
-  // Likewise only the clubs the viewer owns or edits.
   assert.deepEqual(ready.hostClubs, [
     {
       id: "club-1",
@@ -379,7 +377,6 @@ test("new-event page data enforces auth then loads default profile and catalogs"
   );
 });
 
-// The viewer's teams as /me/teams reports them, with their role in each.
 const myTeams = [
   { id: "team-1", name: "Red Team", slug: "red-team", viewer_role: "owner" },
   {
@@ -432,8 +429,6 @@ test("new-event catalogs keep school failure inline and make game failure fatal"
   if (schoolFailure.status !== "ready") assert.fail("school failure was fatal");
   assert.equal(schoolFailure.schoolSearchFailed, true);
   assert.deepEqual(schoolFailure.schools, []);
-  // A failed team or club read leaves the choice out instead of failing the
-  // page.
   assert.deepEqual(
     [schoolFailure.hostTeams, schoolFailure.hostClubs],
     [[], []],
@@ -554,7 +549,6 @@ test("edit page distinguishes missing, locked, cancelled, forbidden, ended, and 
     { id: "team-2", name: "Blue Team", slug: "blue-team" },
   ]);
 
-  // The same holds for a club.
   const oldClub = { id: "club-9", name: "Old Club", slug: "old-club" };
   const clubHosted = await editWith(
     Response.json({ ...event, host_club: oldClub }),

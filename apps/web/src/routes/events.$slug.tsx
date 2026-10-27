@@ -123,16 +123,13 @@ type EventRouteData = {
   authenticated: boolean;
   /** The first people going, read only for a signed-in viewer of a visible event. */
   attendees?: PeopleListResult;
-  /** A tournament's entrants, read for a visible event with a tournament. */
   entries?: TournamentEntriesResult;
   /** Whether the tournament has a generated bracket, which adds its tab. */
   hasBracket?: boolean;
-  /** Teams the viewer can register, read for an open team tournament. */
   registrationTeams?: TournamentListResult<RegistrationTeamDTO>;
   /** The latest log entries the viewer may see; empty when there are none or they could not be read. */
   updates: EventActivityEntry[];
   publicOrigin: string;
-  /** Server-rendered report key; see useIdempotencyKey. */
   idempotencyKey: string;
 };
 

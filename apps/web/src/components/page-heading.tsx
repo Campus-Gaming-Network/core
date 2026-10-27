@@ -45,12 +45,6 @@ export function PageHeading({
   );
 }
 
-/**
- * The header of a directory, form, settings, or static page: the page's `h1`,
- * an optional eyebrow above it and lede below it, any further intro content,
- * and the page's one action at the right on a wide screen. `directory` is the
- * directory pages' variant. Styles live in styles.css.
- */
 export function PageIntro({
   actions,
   children,

@@ -28,7 +28,6 @@ func (r *credentialFakeUsers) FindCredentialsByEmail(_ context.Context, email st
 	return users.Credentials{Profile: r.profile, PasswordHash: r.passwordHash}, nil
 }
 
-// fakeAccountChanges records what the handlers asked the store to change.
 type fakeAccountChanges struct {
 	calls []string
 }

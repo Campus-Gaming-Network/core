@@ -150,7 +150,6 @@ export async function clubsBrowsePageOperation(
 
 type SessionDependencies = PublicDependencies & { cookieHeader: string };
 
-/** Sends a claim on a listed club for site admins to review. */
 export async function submitClubClaimOperation(
   { slug, ...evidence }: ClubClaimInput,
   {
@@ -175,7 +174,6 @@ export async function submitClubClaimOperation(
   }
 }
 
-/** Sends a request for a club the school does not list yet. */
 export async function submitClubRequestOperation(
   { school_slug, ...request }: ClubRequestInput,
   {
@@ -268,7 +266,6 @@ export async function clubManagementOperation(
   }
 }
 
-/** Sends one club command and names the page and notice to return to. */
 export async function runClubCommandOperation(
   command: ClubCommand,
   page: ClubPage,
@@ -381,7 +378,6 @@ export async function runClubCommandOperation(
   }
 }
 
-/** Accepts an editor invite; the club's Manage page is where it leads. */
 export async function acceptEditorInviteOperation(
   { token }: { token: string },
   {

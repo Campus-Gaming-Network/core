@@ -188,7 +188,6 @@ func TestPostgresRepositoryListInterestedEventsListsUpcomingInterestsSoonestFirs
 	if err != nil {
 		t.Fatalf("list interested: %v", err)
 	}
-	// The creator organizes every event, so each is marked editable for them.
 	type row struct {
 		Slug       string
 		Interested bool
@@ -280,7 +279,6 @@ func TestPostgresRepositoryEventsNeedNoGames(t *testing.T) {
 		}
 		return updated.Games
 	}
-	// A game can be added later, and an edit that removes it leaves none.
 	if got := update([]string{gameID}); len(got) != 1 || got[0].ID != gameID {
 		t.Fatalf("games after adding one = %+v, want the game", got)
 	}

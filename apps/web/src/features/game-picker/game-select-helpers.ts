@@ -1,10 +1,8 @@
 import type { GameSearchMatch } from "./contracts.js";
 import { maximumPickedGames } from "./picker-helpers.js";
 
-/** A game already on Campus Gaming Network, as the game field offers it. */
 export type CatalogGame = { id: string; name: string; coverURL?: string };
 
-/** A game the person has added: from the catalog or from IGDB search. */
 export type ChosenGame =
   | { kind: "catalog"; game: CatalogGame }
   | { kind: "igdb"; match: GameSearchMatch };
@@ -62,7 +60,6 @@ export function chosenGameFields(game: ChosenGame): {
     : { name: "igdb_game_ids", value: String(game.match.igdb_id) };
 }
 
-/** The line under the game field: a hint, progress, or what was found. */
 export function gameSelectMessage({
   query,
   catalogCount,

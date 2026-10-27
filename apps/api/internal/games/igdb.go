@@ -31,7 +31,6 @@ var (
 	ErrGameNameInvalid = apperror.New(apperror.KindValidation, "invalid_game_name", "game name is not usable")
 )
 
-// searchCacheTTL is how long IGDB search results are reused.
 const searchCacheTTL = "24 hours"
 
 // StarterGameSlugs are the IGDB slugs the seed command imports so a new
@@ -80,7 +79,6 @@ type IGDBResult struct {
 	CoverImageID string `json:"cover_image_id,omitempty"`
 }
 
-// searchMatch is a search result with what only the search knows about it.
 type searchMatch struct {
 	result IGDBResult
 	// hidden reports a catalog game a site admin has hidden or deleted.
@@ -463,8 +461,6 @@ func baseSlug(source igdb.Game) string {
 	return base
 }
 
-// availableSlug returns base, or base with a numeric suffix when another game
-// holds it.
 func availableSlug(ctx context.Context, tx pgx.Tx, base string) (string, error) {
 	// Slugs hold no LIKE wildcards. Soft-deleted games keep their slugs.
 	rows, err := tx.Query(ctx, `SELECT slug FROM games WHERE slug=$1 OR slug LIKE $1 || '-%'`, base)

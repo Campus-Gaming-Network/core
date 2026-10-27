@@ -2,10 +2,6 @@ import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { Avatar } from "./avatar";
 
-/**
- * A person in a list: their avatar beside their name and a line of detail.
- * `profileId`, their public ID, makes the name a link to their public profile.
- */
 export function Person({
   detail,
   id,

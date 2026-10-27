@@ -20,7 +20,6 @@ import {
   type SchoolViewerState,
 } from "./contracts.js";
 
-// How many schools the home page advertises.
 const homeSchoolsLimit = 6;
 
 type CatalogDependencies = {
@@ -141,7 +140,6 @@ export async function schoolCatalogOperation(
   }
 }
 
-/** One school's counts for its page, or null when they cannot be read. */
 export async function schoolStatsOperation(
   { slug }: SchoolSlugInput,
   { api, reportError = defaultErrorReporter }: CatalogDependencies,

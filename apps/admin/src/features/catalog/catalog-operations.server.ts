@@ -132,7 +132,6 @@ export async function getClubDetailOperation(
   return { club: club.data, audit: audit.data };
 }
 
-/** One page of club claims, newest first, narrowed by status. */
 export async function listClubClaimsOperation(
   search: CatalogSearch,
   { api, cookieHeader }: ReadDependencies,
@@ -169,7 +168,6 @@ export async function getClubClaimDetailOperation(
   return { claim: claim.data, audit: audit.data };
 }
 
-/** The school a new club is created under, by its ID. */
 export async function getNewClubSchoolOperation(
   { id }: { id: string },
   { api, cookieHeader }: ReadDependencies,
@@ -549,7 +547,6 @@ function commandRequest(input: CatalogCommandInput): {
         request: {
           path: `${claim}/${input.command === "club_claim.approve" ? "approve" : "reject"}`,
           method: "POST",
-          // A request names the club its approval creates.
           body:
             input.command === "club_claim.approve" && input.club_slug
               ? {
@@ -697,7 +694,6 @@ function commandRequest(input: CatalogCommandInput): {
   }
 }
 
-// Messages for the stable Admin API error codes an operator can act on.
 const errorMessages: Record<string, string> = {
   ...logoErrorMessages,
   ...igdbErrorMessages,
@@ -721,7 +717,6 @@ const errorMessages: Record<string, string> = {
     catalogNotices["applicant-unavailable"].message,
 };
 
-// Claim refusals a no-JavaScript form reports by name.
 const claimErrorNotices = {
   club_already_claimed: "club-already-claimed",
   club_claim_applicant_unavailable: "applicant-unavailable",

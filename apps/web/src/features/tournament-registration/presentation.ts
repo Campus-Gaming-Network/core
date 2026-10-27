@@ -1,7 +1,6 @@
 import { zoneName } from "../event-slice/presentation.js";
 import type { TournamentDTO, TournamentEntryDTO } from "./contracts.js";
 
-/** What the registration panel shows the viewer. */
 export type RegistrationState =
   | "registered"
   | "requested"
@@ -91,7 +90,6 @@ export function tournamentFormatSummary(tournament: TournamentDTO): string {
     .join(" · ");
 }
 
-/** "Solo · 3 of 16 registered" or "Teams of 5, up to 1 substitute · …". */
 export function tournamentSummary(tournament: TournamentDTO): string {
   const entry = tournamentEntryLabel(tournament);
   const count =
@@ -101,7 +99,6 @@ export function tournamentSummary(tournament: TournamentDTO): string {
   return `${entry} · ${count}`;
 }
 
-/** When registration closes, in the event's time zone. */
 export function registrationClosesLabel(
   tournament: TournamentDTO,
   { startsAt, timeZone }: { startsAt: string; timeZone: string },
@@ -118,7 +115,6 @@ export function registrationClosesLabel(
   return `Registration closes ${`${local} ${zoneName(closes, timeZone)}`.trim()}.`;
 }
 
-/** Bracket sites named the way they name themselves. */
 const bracketHosts: Record<string, string> = {
   "start.gg": "start.gg",
   "challonge.com": "Challonge",
@@ -137,7 +133,6 @@ export function bracketHost(url: string): string {
   return known ? bracketHosts[known] : host;
 }
 
-/** The heading of the entrant list. */
 export function entrantsHeading(tournament: TournamentDTO): string {
   return `${tournament.entry_type === "solo" ? "Players" : "Teams"} (${tournament.entry_count})`;
 }

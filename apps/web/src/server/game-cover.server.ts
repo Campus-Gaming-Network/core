@@ -5,10 +5,8 @@ type GameCoverDependencies = {
   fetcher?: typeof fetch;
 };
 
-// Game slugs are lowercase letters, digits, and single hyphens.
 const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
-// IGDB image IDs are short lowercase letters, digits, and underscores.
 const imageIDPattern = /^[a-z0-9_]{1,64}$/;
 
 /**

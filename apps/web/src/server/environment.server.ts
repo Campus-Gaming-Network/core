@@ -274,10 +274,6 @@ function isRailwayPrivateHostname(value: string): boolean {
 const hostnamePattern =
   /^(?=.{1,253}$)[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$/;
 
-/**
- * The Plausible site this deployment reports to (server/analytics.server.ts),
- * or undefined when analytics are off.
- */
 export function plausibleDomain(
   environment: Environment = process.env,
 ): string | undefined {
@@ -285,7 +281,6 @@ export function plausibleDomain(
   return value ? value : undefined;
 }
 
-/** The configuration issue with PLAUSIBLE_DOMAIN, if any. */
 export function plausibleDomainIssue(
   environment: Environment,
 ): string | undefined {

@@ -61,7 +61,6 @@ export const exampleSchools: {
   },
 ];
 
-/** A signed-in viewer's directory sidebar: more follows than it lists. */
 export const exampleDirectorySidebar: DirectorySidebarResult = {
   status: "found",
   homeSchool: {
@@ -216,14 +215,12 @@ export const exampleCoverURL = svgImage(
 /** Decodes as nothing, so the image fires its error event and fails soft. */
 export const brokenImageURL = "data:image/png;base64,AAAA";
 
-/** Filters as a directory holds them when two are applied. */
 export const exampleFilters: AppliedFilter[] = [
   { key: "game", name: "Game", value: "valorant", label: "Valorant" },
   { key: "type", name: "Type", value: "tournament", label: "Tournament" },
 ];
 export const exampleFilterChips = activeFilterChips(exampleFilters);
 
-/** The sections of the long-form nav specimen. */
 export const exampleFormSections = [
   { id: "styleguide-form-basics", label: "Event basics" },
   { id: "styleguide-form-visibility", label: "Who can see it" },

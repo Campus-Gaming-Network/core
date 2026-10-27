@@ -14,7 +14,6 @@ export const Route = createFileRoute("/metrics")({
 type Day = Metrics["days"][number];
 type School = Metrics["schools"][number];
 
-/** What people created each day, in the order the page shows it. */
 const createdRecords = [
   { key: "signups", label: "New accounts" },
   { key: "club_joins", label: "Club joins" },

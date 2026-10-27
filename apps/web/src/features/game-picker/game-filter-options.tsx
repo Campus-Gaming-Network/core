@@ -5,7 +5,6 @@ import {
 } from "./contracts";
 import { GameTile } from "./game-tile";
 
-/** A game as the directories' game filter lists it: cover and name. */
 export function gameFilterOption(game: GameFilterOption): SearchFilterOption {
   return {
     value: game.slug,
@@ -14,7 +13,6 @@ export function gameFilterOption(game: GameFilterOption): SearchFilterOption {
   };
 }
 
-/** Searches the catalog's games by name through the site, for the game filter. */
 export async function searchGameFilter(
   query: string,
   signal: AbortSignal,
