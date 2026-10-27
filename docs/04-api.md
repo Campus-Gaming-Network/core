@@ -329,6 +329,8 @@ An event's `online_url` is sent only to a requester whose RSVP is `yes` or who o
 
 Each entry in an event's `games` is `{ "id", "name", "slug", "has_cover" }`. `has_cover` is true when the site serves the game's cover at `/api/games/:slug/cover`, so it is false for a game with no stored cover and for one a site admin has hidden since the event chose it.
 
+Every event response, lists included, carries `tournament_entries` when the event has a tournament past draft: `{ "entry_type", "entry_count", "entrant_cap" }`, where `entry_count` counts registered entries (not pending requests) and `entrant_cap` is left out when there is no limit. List rows show it in place of the RSVP count and `capacity`, which a tournament does not use.
+
 Discovery lists only `visibility = public`. Unlisted is link/slug only. Private: do not leak event details in HTML/JSON before unlock — blurred shell + password modal only. Capacity = count of RSVP `yes`; full → cannot RSVP yes (no waitlist). Paid events are allowed only as off-site-payment listings: no checkout, payment intent, refund, tax, payout, or ledger behavior in CGN.
 
 Recurring creation expands into independent event occurrences. The supported
