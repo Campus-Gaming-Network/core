@@ -45,7 +45,6 @@ const socialLinkSchema = z.union([
 
 export const accountProfileDtoSchema = z.object({
   id: identifierSchema,
-  /** The ID in the public profile's URL, `/users/{public_id}`. */
   public_id: identifierSchema,
   email: z.email(),
   email_verified_at: timestampSchema.optional(),
@@ -91,7 +90,6 @@ export const createdEventsDtoSchema = z.object({
   next_cursor: z.string().max(512),
 });
 
-/** One page of the events the viewer created, latest start first. */
 export type CreatedEventsResult =
   | { status: "found"; events: DashboardEventDTO[]; nextCursor: string }
   | { status: "unauthenticated" }
@@ -99,7 +97,6 @@ export type CreatedEventsResult =
 
 const createdCursorSchema = z.string().trim().min(1).max(512);
 
-/** The Your events page's search: `created` pages the Created list. */
 export function validateYourEventsSearch(search: Record<string, unknown>): {
   created?: string;
 } {
@@ -208,7 +205,6 @@ export type AccountDashboardResult =
   | { status: "unauthenticated" }
   | { status: "error"; message: "Account details are unavailable." };
 
-/** How many followed schools the directory sidebar lists before "See all". */
 export const sidebarFollowedSchoolLimit = 5;
 
 type SidebarSchool = WithSchoolLogo<z.output<typeof schoolSummarySchema>>;
@@ -223,9 +219,7 @@ export type DirectorySidebarResult =
   | {
       status: "found";
       homeSchool?: SidebarSchool;
-      /** The first followed schools, up to `sidebarFollowedSchoolLimit`. */
       followedSchools: SidebarSchool[];
-      /** The viewer follows more schools than the sidebar lists. */
       moreFollowedSchools: boolean;
     };
 

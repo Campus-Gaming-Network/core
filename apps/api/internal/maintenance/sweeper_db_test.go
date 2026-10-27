@@ -17,7 +17,6 @@ func TestSweeperDeletesOnlyAgedRows(t *testing.T) {
 	schoolID = dbtest.InsertSchool(t, pool, "Sweeper School", "sweeper-school")
 	userID = dbtest.InsertUser(t, pool, schoolID, "sweeper@example.test", "Sweeper")
 
-	// One session expired well past the grace window, one still valid.
 	if _, err := pool.Exec(ctx, `
 		INSERT INTO auth_sessions (user_id, token_hash, expires_at) VALUES
 			($1::uuid, '\x01'::bytea, NOW() - INTERVAL '10 days'),

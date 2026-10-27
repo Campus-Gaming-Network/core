@@ -1,4 +1,3 @@
-/** What the "/" shortcut needs to know about a keydown. */
 export type SearchShortcutEvent = {
   key: string;
   modified: boolean;
@@ -19,7 +18,6 @@ const nonTextInputTypes = new Set([
   "submit",
 ]);
 
-/** True for a bare "/" while focus is not in something the user types into. */
 export function shouldFocusSearchShortcut(event: SearchShortcutEvent): boolean {
   if (event.key !== "/" || event.modified || event.editable) return false;
   const tag = event.targetTag.toUpperCase();

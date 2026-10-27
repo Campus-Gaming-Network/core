@@ -12,30 +12,23 @@ import (
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/safety"
 )
 
-// maxPickedIGDBGames bounds how many IGDB games one request may import.
 const maxPickedIGDBGames = 5
 
-// gamePicker searches IGDB and imports the games users pick.
 type gamePicker interface {
 	SearchForPicker(ctx context.Context, query string) ([]games.IGDBResult, error)
 	EnsureFromIGDB(ctx context.Context, igdbID int64) (games.AdminGame, error)
 	SearchResultCover(ctx context.Context, imageID, knownETag string) (games.Cover, error)
 }
 
-// customGames stores games users type in.
 type customGames interface {
 	EnsureCustom(ctx context.Context, name string) (games.AdminGame, error)
 }
 
-// pickedGames are the games an event or team form names beyond catalog IDs.
 type pickedGames struct {
-	// IGDBGameIDs are IGDB search results the user chose.
 	IGDBGameIDs []int64 `json:"igdb_game_ids"`
-	// OtherGame is a name the user typed because no listed game fit.
-	OtherGame string `json:"other_game"`
+	OtherGame   string  `json:"other_game"`
 }
 
-// handleGameSearch lets a signed-in user search IGDB from a game picker.
 func (r *Router) handleGameSearch(w http.ResponseWriter, req *http.Request) {
 	userID, err := auth.RequireUser(req.Context())
 	if err != nil {
@@ -106,7 +99,6 @@ func (r *Router) handleSearchResultCover(w http.ResponseWriter, req *http.Reques
 // imported. Events need no stand-in, because their games are optional.
 const pendingGameID = "pending-picked-game"
 
-// pending reports whether the form named a game beyond its catalog IDs.
 func (picked pickedGames) pending() bool {
 	return len(picked.IGDBGameIDs) > 0 || strings.TrimSpace(picked.OtherGame) != ""
 }

@@ -7,7 +7,6 @@ import {
 const slugSchema = z.string().trim().min(1).max(200);
 const timestampSchema = z.iso.datetime({ offset: true });
 
-/** A pending invite, as the event's creator sees it. */
 export const organizerInviteDtoSchema = z.object({
   id: z.uuid(),
   email: z.string(),
@@ -27,10 +26,8 @@ export type OrganizerInvitesResult =
   | { status: "ready"; invites: OrganizerInviteDTO[] }
   | { status: "unavailable" };
 
-/** Where an organizer change returns, with a notice naming the outcome. */
 export type OrganizerMutationResult = { status: "success"; redirectTo: string };
 
-/** The notices the edit page's Organizers section can receive. */
 export const organizerNotices = {
   invited: {
     message: "Invitation sent. The link expires in seven days.",
@@ -59,7 +56,6 @@ export const organizerNotices = {
 } as const satisfies Record<string, PageNotice>;
 export type OrganizerNotice = keyof typeof organizerNotices;
 
-/** The edit page's `organizers` search value, if it names a notice. */
 export function validateOrganizerSearch(search: Record<string, unknown>): {
   organizers?: OrganizerNotice;
 } {
@@ -67,7 +63,6 @@ export function validateOrganizerSearch(search: Record<string, unknown>): {
   return organizers ? { organizers } : {};
 }
 
-/** The accept page's outcomes after a failed attempt. */
 export const acceptOrganizerInviteResults = [
   "invalid",
   "wrong-account",

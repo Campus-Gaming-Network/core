@@ -1,15 +1,12 @@
 export const siteName = "Campus Gaming Network";
 const localOrigin = "http://localhost:3000";
 
-/** The preview image every page without a better one shares: 1200 by 630. */
 const defaultPreviewImagePath = "/og-default.png";
 
 export type PageHeadOptions = {
   description: string;
-  /** The site-relative path; empty for the home page. */
   path: "" | `/${string}`;
   title: string;
-  /** Use the title as given, without the site name after it. */
   bareTitle?: boolean;
   /** Keep crawlers out. A noindex page has no canonical link or structured data. */
   noIndex?: boolean;
@@ -117,7 +114,6 @@ export function pageHead(
   };
 }
 
-/** schema.org BreadcrumbList for a trail of pages, outermost first. */
 function breadcrumbList(
   publicOrigin: string | undefined,
   trail: Array<{ name: string; path: "" | `/${string}` }>,
@@ -134,7 +130,6 @@ function breadcrumbList(
   };
 }
 
-/** Head for a page every visitor may open, with the shared options. */
 export function publicPageHead(
   publicOrigin: string | undefined,
   options: PageHeadOptions,
@@ -142,7 +137,6 @@ export function publicPageHead(
   return pageHead(publicOrigin, options);
 }
 
-/** A description cut to what a chat preview shows, at a word boundary. */
 export function previewText(value: string, limit = 200): string {
   const text = value.replace(/\s+/g, " ").trim();
   if (text.length <= limit) return text;

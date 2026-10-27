@@ -13,7 +13,6 @@ export function serverTextSize(value: string, multiline: boolean): number {
   return encoder.encode(submitted).length;
 }
 
-/** What the hint says: the static limit, the room left, or the overage. */
 export type CharacterCountMessage = {
   text: string;
   over: boolean;

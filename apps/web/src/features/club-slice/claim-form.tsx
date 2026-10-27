@@ -139,7 +139,6 @@ export function ClubClaimForm({
   );
 }
 
-/** Shown in place of the form once it has been sent. */
 export function ClaimSubmitted({ children }: { children: ReactNode }) {
   return (
     <div className="support-success" role="status">

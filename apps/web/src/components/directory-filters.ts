@@ -1,20 +1,13 @@
-/** One applied directory filter, as the page's search holds it. */
 export type AppliedFilter = {
-  /** The search parameter that carries the filter. */
   key: string;
-  /** The filter's name, such as "Game". */
   name: string;
-  /** The raw search value. */
   value: string;
-  /** The readable value, such as the game's name. */
   label: string;
 };
 
 export type FilterChip = {
   key: string;
-  /** The chip text, such as "Game: Valorant". */
   text: string;
-  /** The query that drops only this filter. */
   search: Record<string, string>;
 };
 
@@ -68,7 +61,6 @@ export function filterFormSearch(
   return search;
 }
 
-/** The sentence a live region announces after the results change. */
 export function resultsAnnouncement(
   count: number,
   noun: string,

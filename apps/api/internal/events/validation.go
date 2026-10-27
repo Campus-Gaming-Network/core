@@ -241,7 +241,6 @@ func validCost(value string) bool {
 	return value == CostFree || value == CostPaid || value == CostUnspecified
 }
 
-// normalizeCost stores a missing cost as unspecified.
 func normalizeCost(value string) string {
 	if value = strings.TrimSpace(value); value != "" {
 		return value

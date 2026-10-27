@@ -16,7 +16,6 @@ export function describeTimeZone(zone: string): string | undefined {
   }
 }
 
-/** The device's time zone, or undefined when the browser does not report one. */
 export function detectTimeZone(): string | undefined {
   try {
     const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;

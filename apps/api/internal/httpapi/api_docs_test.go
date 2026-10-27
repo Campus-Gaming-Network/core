@@ -264,7 +264,6 @@ func TestPublicAPIRoutesMatchTheAPIDoc(t *testing.T) {
 		}
 	}
 
-	// A method the router accepts on a documented path must be documented too.
 	for _, route := range documented {
 		for _, method := range probeMethods {
 			key := method + " " + route.Path
@@ -274,7 +273,6 @@ func TestPublicAPIRoutesMatchTheAPIDoc(t *testing.T) {
 		}
 	}
 
-	// A path the router registers must start with a documented segment.
 	for segment := range registeredTopLevelSegments(t) {
 		if segment != "admin" && !documentedSegments[segment] {
 			found["/"+segment] = "the router registers /" + segment + ", which docs/" + publicAPIDoc + " does not document"

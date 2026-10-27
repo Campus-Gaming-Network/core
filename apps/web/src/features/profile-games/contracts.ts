@@ -29,7 +29,6 @@ export const listedGameDtoSchema = z.object({
   cover_url: z.string().optional(),
 });
 
-/** A profile's game lists, as `/me/games` and `/users/:id` return them. */
 export const profileGameListsDtoSchema = z.object({
   favorite: z.array(listedGameDtoSchema),
   like: z.array(listedGameDtoSchema),
@@ -108,7 +107,6 @@ export type ProfileGamesMutationResult =
       status: "error";
       message: string;
       fieldErrors?: ProfileGamesFieldErrors;
-      /** The settings notice a native form post redirects to. */
       notice: "games-failed" | "favorite-add-failed";
     };
 

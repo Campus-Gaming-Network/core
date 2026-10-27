@@ -143,7 +143,6 @@ func TestEventActivityLogRecordsChangesAndFiltersThemByViewer(t *testing.T) {
 		t.Fatalf("Delete(club editor) error = %v", err)
 	}
 
-	// The full log pages two entries at a time, newest first.
 	var actions []string
 	var after *pagecursor.Cursor
 	for {
@@ -222,7 +221,6 @@ func TestEventActivityNeverRecordsSecrets(t *testing.T) {
 	}
 }
 
-// coOrganizerCreator returns the event's current creator, who sends invites.
 func coOrganizerCreator(t *testing.T, f organizerFixture, slug string) string {
 	t.Helper()
 	var creatorID string

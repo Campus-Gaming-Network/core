@@ -17,7 +17,6 @@ import (
 
 const listedGameID = "44444444-4444-4444-4444-444444444444"
 
-// fakeUserGames records each change and fails it with err when set.
 type fakeUserGames struct {
 	lists    games.UserLists
 	listsFor string

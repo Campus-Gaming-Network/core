@@ -3,7 +3,6 @@ import type { PolicySection } from "../policies/policy-document.js";
 /** Below this many sections a document is short enough to scan without a contents list. */
 export const minimumSectionsForContents = 3;
 
-/** An anchor made from a heading: lowercase words joined by hyphens. */
 function headingSlug(heading: string): string {
   return heading
     .normalize("NFKD")

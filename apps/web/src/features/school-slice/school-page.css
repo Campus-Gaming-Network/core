@@ -1,7 +1,4 @@
 @layer features {
-  /* The school hub (reference sheets 11 and 12): breadcrumbs, the generated
-     identity banner, section tabs, then events, teams, and people beside an
-     About card. */
   .school-page {
     .tabs {
       margin-bottom: var(--space-5);
@@ -22,7 +19,6 @@
     font-size: var(--text-sm);
   }
 
-  /* Event and team rows sit flush in their panel under a divider. */
   .school-page__rows {
     border-top: 1px solid var(--color-border);
   }
@@ -37,8 +33,6 @@
     }
   }
 
-  /* The people preview: plain rows inside the panel, two or three to a
-     line. */
   .school-page__people {
     .people-list {
       grid-template-columns: repeat(auto-fill, minmax(min(100%, 14rem), 1fr));

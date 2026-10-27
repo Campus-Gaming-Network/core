@@ -126,7 +126,6 @@ export const getSchoolClubs = createServerFn({ method: "GET" })
     schoolClubsOperation(data, { api: goBFFForCurrentRequest() }),
   );
 
-/** Whether someone is signed in, for the claim and request pages. */
 export const getClaimViewer = createServerFn({ method: "GET" }).handler(
   async () => {
     setPrivateNoStoreResponse();

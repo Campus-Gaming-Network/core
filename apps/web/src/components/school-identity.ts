@@ -3,7 +3,6 @@
 // only need to tell neighbouring tiles apart and stay the same everywhere a
 // school shows. The tones themselves are in styles.css (`data-school-tone`).
 
-/** How many tones the tile palette has. */
 export const schoolToneCount = 10;
 
 // Words that say what kind of school it is rather than which one, compared

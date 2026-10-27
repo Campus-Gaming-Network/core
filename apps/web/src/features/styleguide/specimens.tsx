@@ -6,10 +6,6 @@ import { eventRSVPLabel } from "../event-slice/presentation";
 
 const rsvpIcons = { maybe: CircleHelp, no: X, yes: Check } as const;
 
-/**
- * A labelled specimen: the component's name and source file in the
- * `styleguide-label` style, then the piece itself.
- */
 export function Specimen({
   children,
   file,
@@ -29,7 +25,6 @@ export function Specimen({
   );
 }
 
-/** What a specimen note says about a piece that cannot be rendered for real. */
 export function SpecimenNote({ children }: { children: ReactNode }) {
   return <p className="styleguide-note">{children}</p>;
 }

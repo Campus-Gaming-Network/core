@@ -81,8 +81,6 @@ func teamURL(siteURL string, slug string) string {
 	return strings.TrimRight(siteURL, "/") + "/teams/" + url.PathEscape(slug)
 }
 
-// sendMessage renders message through the shared layout, as HTML and as
-// plain text, and posts it to Resend.
 func (m *ResendMailer) sendMessage(ctx context.Context, recipient, subject string, message emaillayout.Message, label, idempotencyKey string) (string, error) {
 	htmlBody, err := emaillayout.HTML(message)
 	if err != nil {

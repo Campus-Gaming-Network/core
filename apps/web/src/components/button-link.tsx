@@ -10,9 +10,4 @@ function ButtonAnchor({
   return <a {...props} className={`button button--${variant}`} />;
 }
 
-/**
- * A router link drawn as a button. It takes the same `to`, `params`, and
- * `search` props as `Link`, checked against the route tree, plus a `variant`
- * for the `.button--primary` or `.button--secondary` treatment.
- */
 export const ButtonLink = createLink(ButtonAnchor);

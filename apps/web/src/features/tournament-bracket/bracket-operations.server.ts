@@ -21,7 +21,6 @@ function tournamentPath(slug: string): string {
   return `/events/${encodeURIComponent(slug)}/tournament`;
 }
 
-/** The bracket page, with a notice naming an outcome. */
 export function bracketPageWithNotice(
   slug: string,
   notice: BracketNotice,
@@ -29,7 +28,6 @@ export function bracketPageWithNotice(
   return `/events/${encodeURIComponent(slug)}/bracket?bracket=${notice}`;
 }
 
-/** A match's page, with a notice naming a result's outcome. */
 export function matchPageWithNotice(
   slug: string,
   matchID: string,
@@ -38,7 +36,6 @@ export function matchPageWithNotice(
   return `/events/${encodeURIComponent(slug)}/matches/${encodeURIComponent(matchID)}?bracket=${notice}`;
 }
 
-/** The tournament settings page, where the bracket is generated from. */
 export function settingsPageWithBracketNotice(
   slug: string,
   notice: BracketNotice,
@@ -46,7 +43,6 @@ export function settingsPageWithBracketNotice(
   return `/events/${encodeURIComponent(slug)}/tournament?bracket=${notice}`;
 }
 
-/** The bracket by round and position; empty until organizers generate it. */
 export async function tournamentMatchesOperation(
   { slug }: { slug: string },
   {
@@ -100,7 +96,6 @@ export async function generateBracketOperation(
   }
 }
 
-/** Enters or corrects a match's result, or records a walkover. */
 export async function recordResultOperation(
   input: ResultInput,
   { api, cookieHeader, reportError = defaultErrorReporter }: Dependencies,

@@ -129,8 +129,6 @@ func accountLink(siteURL string, path string, token string) string {
 	return strings.TrimRight(siteURL, "/") + path + "?token=" + url.QueryEscape(token)
 }
 
-// sendMessage renders message through the shared layout, as HTML and as
-// plain text, and sends it.
 func (m *ResendMailer) sendMessage(ctx context.Context, recipient, subject string, message emaillayout.Message, kind, idempotencyKey string) (string, error) {
 	body, err := emaillayout.HTML(message)
 	if err != nil {

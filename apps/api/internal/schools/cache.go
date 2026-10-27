@@ -201,7 +201,6 @@ func (c *CachedRepository) List(ctx context.Context, params ListParams) ([]Schoo
 	return matches, nil
 }
 
-// foldedSchool is a school's name and alias folded for searching.
 type foldedSchool struct{ name, alias string }
 
 func (f foldedSchool) matches(foldedQuery string) bool {

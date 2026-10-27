@@ -608,7 +608,6 @@ function DeviceTimeZone() {
   return <input name="timezone" type="hidden" value={zone} />;
 }
 
-/** Warns assistive technology that a link leaves the signup form. */
 function NewTabNote() {
   return <span className="visually-hidden"> (opens in a new tab)</span>;
 }

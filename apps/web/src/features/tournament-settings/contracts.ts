@@ -12,7 +12,6 @@ import {
 
 const slugSchema = z.string().trim().min(1).max(200);
 
-/** The notices the tournament settings page can receive. */
 export const settingsNotices = {
   saved: { message: "Tournament settings saved.", severity: "success" },
   deleted: { message: "Tournament settings deleted.", severity: "success" },
@@ -88,7 +87,6 @@ export const settingsNotices = {
 } as const satisfies Record<string, PageNotice>;
 export type SettingsNotice = keyof typeof settingsNotices;
 
-/** The notice for an API error code from a settings or status change. */
 export const settingsErrorNotices: Record<string, SettingsNotice> = {
   event_has_rsvps: "has-rsvps",
   tournament_event_type_required: "event-type",
@@ -103,12 +101,10 @@ export const settingsErrorNotices: Record<string, SettingsNotice> = {
   invalid_request: "invalid",
 };
 
-/** The settings page's `settings` search value, if it names a notice. */
 export function settingsNoticeKey(value: unknown): SettingsNotice | undefined {
   return pageNoticeKey(settingsNotices, value);
 }
 
-/** The settings as `PUT /events/:slug/tournament` takes them. */
 export type TournamentSettingsPayload = {
   game_id: string;
   entry_type: "solo" | "team";
@@ -232,7 +228,6 @@ export function validateSettingsInput(
   });
 }
 
-/** A status move. */
 export function validateStatusInput(
   input: object | FormData,
 ): ValidatedTournamentInput<StatusInput> {
@@ -242,7 +237,6 @@ export function validateStatusInput(
   });
 }
 
-/** Deleting a draft's settings. */
 export function validateSlugInput(
   input: object | FormData,
 ): ValidatedTournamentInput<SlugInput> {

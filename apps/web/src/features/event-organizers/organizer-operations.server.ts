@@ -29,7 +29,6 @@ function eventsPath(slug: string): string {
   return `/events/${encodeURIComponent(slug)}`;
 }
 
-/** The creator's pending invites for the edit page. */
 export async function organizerInvitesOperation(
   { slug }: { slug: string },
   { api, cookieHeader, reportError = defaultErrorReporter }: Dependencies,
@@ -87,7 +86,6 @@ export function revokeOrganizerInviteOperation(
   );
 }
 
-/** The creator removing a co-organizer. */
 export function removeOrganizerOperation(
   { slug, user_id }: OrganizerInput,
   dependencies: Dependencies,
@@ -101,7 +99,6 @@ export function removeOrganizerOperation(
   );
 }
 
-/** A co-organizer stepping down, who can no longer open the edit page. */
 export function leaveOrganizersOperation(
   { slug, user_id }: OrganizerInput,
   dependencies: Dependencies,

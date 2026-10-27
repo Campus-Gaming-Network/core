@@ -27,8 +27,6 @@
   :root {
     color-scheme: light;
 
-    /* Color. A neutral light canvas, white surfaces, near-black text, a dark
-       navy masthead, blue actions and links, and a yellow focus ring. */
     --color-canvas: #f8f8f8;
     --color-surface: #ffffff;
     --color-panel: #ffffff;
@@ -44,7 +42,6 @@
     /* Form control edges: 3:1 or better against white (WCAG 1.4.11). The
        handoff's #b1b4b6 separator gray is too light for that. */
     --color-control-border: #6f777b;
-    /* The masthead is the near-black navy of reference sheets 10-12. */
     --color-header: #0b1622;
     --color-header-raised: #16222f;
     --color-header-text: #ffffff;
@@ -67,19 +64,15 @@
     --color-danger: #d4351c;
     --color-danger-dark: #942514;
     --color-danger-soft: #fbe9e6;
-    /* A generated banner or tile when there is no artwork: flat navy. */
     --color-identity: #12326b;
     --color-identity-text: #ffffff;
 
-    /* Shape and elevation: softly rounded panels and controls, restrained
-       elevation. */
     --shadow-window: 0 8px 24px rgba(11, 12, 12, 0.14);
     --radius-small: 0.25rem;
     --radius-control: 0.375rem;
     --radius-panel: 0.5rem;
     --radius-media: 0.375rem;
 
-    /* Spacing on a 4px scale. */
     --space-1: 0.25rem;
     --space-2: 0.5rem;
     --space-3: 0.75rem;
@@ -88,8 +81,6 @@
     --space-6: 2rem;
     --space-7: 3rem;
 
-    /* Type. 16px body, 14px secondary, 19px section headings, 24-32px page
-       titles. */
     --text-xs: 0.75rem;
     --text-sm: 0.875rem;
     --text-md: 1rem;
@@ -97,7 +88,6 @@
     --text-xl: 1.5rem;
     --text-2xl: 2rem;
 
-    /* Layout. Every page shares one centered column and gutter. */
     --content-width: 80rem;
     --measure-width: 46rem;
     --gutter: clamp(1rem, 3vw, 1.5rem);
@@ -114,8 +104,6 @@
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
   }
-
-  /* ==== Base ==== */
 
   * {
     box-sizing: border-box;
@@ -287,8 +275,6 @@
     }
   }
 
-  /* ==== Application shell ==== */
-
   /* The header and footer bands span the viewport; their content sits in the
      centered column. The header paints its band on a ::before layer so the
      account menu and the phone menu can hang below it without being
@@ -359,8 +345,6 @@
     }
   }
 
-  /* Global links sit beside the brand; Log in and Sign up, or the account
-     menu, sit at the right edge. */
   .site-header nav {
     display: flex;
     flex: 1;
@@ -404,8 +388,6 @@
     gap: var(--space-3);
   }
 
-  /* Header links and buttons: white text, a blue underline for the current
-     page and on hover. */
   .site-header nav a:not(.button),
   .site-header nav button:not(.account-menu__item) {
     display: inline-flex;
@@ -482,8 +464,6 @@
     text-align: center;
   }
 
-  /* Account menu: an avatar and the first name, disclosing Account, Public
-     profile, and Log out in a panel under the trigger. */
   .site-header nav .account-menu {
     position: relative;
   }
@@ -771,9 +751,6 @@
     }
   }
 
-  /* ==== Page layouts ==== */
-
-  /* A page with a light navigation column on the left (the home page). */
   .layout-with-sidebar {
     display: grid;
     grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
@@ -789,8 +766,6 @@
     }
   }
 
-  /* A detail page: the main column and a side panel of facts on the
-     right. */
   .layout-detail {
     display: grid;
     grid-template-columns: minmax(0, 1fr) var(--aside-width);
@@ -822,10 +797,6 @@
     }
   }
 
-  /* ==== Page headings ==== */
-
-  /* A page's heading: the h1 and lede on the left and the page's one action
-     at the right (Create event, Create team). */
   .page-heading,
   .directory-heading {
     display: flex;
@@ -874,7 +845,6 @@
     line-height: 1.55;
   }
 
-  /* A section's heading with an optional "View all" link at the right. */
   .section-heading {
     display: flex;
     flex-wrap: wrap;
@@ -909,8 +879,6 @@
     color: var(--color-link);
     font-size: var(--text-sm);
   }
-
-  /* ==== Actions ==== */
 
   .actions {
     display: flex;
@@ -1008,8 +976,6 @@
     }
   }
 
-  /* A button that reads as a text link (Cancel beside a submit, Show
-     password). */
   .link {
     min-height: 0;
     border: 0;
@@ -1053,9 +1019,6 @@
     }
   }
 
-  /* ==== Panels, cards, and lists ==== */
-
-  /* The white bordered surface every grouped block sits on. */
   .panel,
   .empty-state,
   .action-panel {
@@ -1073,7 +1036,6 @@
     }
   }
 
-  /* A panel whose heading sits on a divider above its content. */
   .panel--flush {
     padding: 0;
   }
@@ -1130,8 +1092,6 @@
     margin-top: var(--space-4);
   }
 
-  /* A list of rows with a divider between them. In a directory, or anywhere
-     it is marked `.list--panel`, the rows sit on one white panel. */
   .list {
     display: grid;
   }
@@ -1196,8 +1156,6 @@
     }
   }
 
-  /* Facts in rows: the term on the left and the value on the right, a thin
-     divider between rows. */
   .detail-row {
     display: grid;
     grid-template-columns: minmax(7rem, 0.35fr) minmax(0, 1fr);
@@ -1221,7 +1179,6 @@
     font-weight: 400;
   }
 
-  /* A side-panel card: a heading on a divider, then rows or a body. */
   .detail-card {
     overflow: hidden;
     border: 1px solid var(--color-card-border);
@@ -1269,8 +1226,6 @@
     }
   }
 
-  /* Tags: small labels for facts and states. Neutral by default; tinted
-     variants for an event's type, success, warning, and danger. */
   .tag {
     display: inline-flex;
     width: fit-content;
@@ -1321,8 +1276,6 @@
     padding: 0;
     list-style: none;
   }
-
-  /* ==== Identity marks ==== */
 
   /* A school without a logo: its monogram on one of ten pale tones, chosen
      by `schoolTone` (school-identity.ts). They are not the school's colors,
@@ -1378,8 +1331,6 @@
     --school-tone-text: #6b3f1d;
   }
 
-  /* A school's logo on a white tile, or its monogram when there is no
-     logo. */
   .school-directory-mark {
     position: relative;
     display: inline-grid;
@@ -1493,9 +1444,6 @@
     }
   }
 
-  /* ==== Forms ==== */
-
-  /* A form's surface: a white panel with labeled fields stacked. */
   .form-stack,
   .inline-form {
     display: grid;
@@ -1506,7 +1454,6 @@
     background: var(--color-panel);
   }
 
-  /* Labels sit above their controls (handoff section 3). */
   .form-stack label,
   .inline-form label,
   .search-bar label {
@@ -1617,8 +1564,6 @@
     gap: var(--space-4);
   }
 
-  /* The submit row closes a form: Cancel (a secondary button or link) then
-     the primary action at the right. */
   .form-actions {
     display: flex;
     flex-wrap: wrap;
@@ -1716,8 +1661,6 @@
     font-weight: 600;
   }
 
-  /* An alert inside the page (not the PageNoticeView banner): a red-edged
-     block with a tinted fill. */
   [role="alert"]:not(.page-notice, .form-error) {
     margin: 0;
     border: 0;
@@ -1752,8 +1695,6 @@
     }
   }
 
-  /* The error summary at the top of a form: a red frame, a heading, and
-     links to each invalid field (GOV.UK pattern). */
   .form-error-summary {
     border: 3px solid var(--color-danger) !important;
     padding: var(--space-4) !important;
@@ -1822,7 +1763,6 @@
     }
   }
 
-  /* A count above results, with the sort or other note at the right. */
   .results-heading {
     display: flex;
     flex-wrap: wrap;
@@ -1845,8 +1785,6 @@
       font-size: var(--text-sm);
     }
   }
-
-  /* ==== Dialogs and route states ==== */
 
   .confirmation-dialog {
     width: min(32rem, calc(100% - 2rem));
@@ -1876,8 +1814,6 @@
   .route-state {
     margin-top: var(--space-6);
   }
-
-  /* ==== Text pages (About, FAQ, Terms) ==== */
 
   .about-section {
     max-width: var(--measure-width);
@@ -1923,8 +1859,6 @@
     }
   }
 }
-
-/* ==== Utilities ==== */
 
 @layer utilities {
   .visually-hidden {

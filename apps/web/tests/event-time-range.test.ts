@@ -73,8 +73,6 @@ for (const { name, event, want } of cases) {
   });
 }
 
-// A directory row's calendar tile shows the start date, so its text leaves
-// the start date out and keeps a later end date.
 test("eventTimeRange leaves the start date out for a row with a calendar tile", () => {
   const rows = [cases[0], cases[2], cases[3], cases[5]].map(({ event }) =>
     eventTimeRange(event, now, { startDate: false }),
@@ -87,8 +85,6 @@ test("eventTimeRange leaves the start date out for a row with a calendar tile", 
   ]);
 });
 
-// A running event's page says when it ends, with the end date only when the
-// event ends on a later day than it started.
 test("eventEndTime gives the end time and adds a later end date", () => {
   const ends = [cases[0], cases[2], cases[3]].map(({ event }) =>
     eventEndTime(event),

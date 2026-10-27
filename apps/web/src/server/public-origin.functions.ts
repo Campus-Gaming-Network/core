@@ -27,7 +27,6 @@ export const getPublicRuntimeConfig = createServerFn({ method: "GET" }).handler(
     });
 
     return {
-      // The Plausible site to report to, or null when analytics are off.
       analyticsDomain: plausibleDomain() ?? null,
       errorMonitoring: errorMonitoringConfig(),
       hasSessionCookie,

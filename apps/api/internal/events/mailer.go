@@ -138,8 +138,6 @@ func (m *ResendMailer) SendOrganizerInvite(ctx context.Context, recipient string
 		organizerInviteMessage(invite, link), "event organizer invite", idempotencyKey)
 }
 
-// sendMessage renders message through the shared layout, as HTML and as
-// plain text, and posts it to Resend.
 func (m *ResendMailer) sendMessage(ctx context.Context, recipient, subject string, message emaillayout.Message, label, idempotencyKey string) (string, error) {
 	htmlBody, err := emaillayout.HTML(message)
 	if err != nil {

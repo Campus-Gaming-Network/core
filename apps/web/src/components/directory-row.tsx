@@ -2,7 +2,6 @@ import { ArrowRight } from "lucide-react";
 import type { ReactNode } from "react";
 import { StatusLabel } from "./status-label";
 
-/** Classes for the router link that wraps a `DirectoryRow`. */
 export const directoryRowClassName = "list-item directory-row";
 
 /**
@@ -27,21 +26,16 @@ export function DirectoryRow({
   status,
   tags = [],
 }: {
-  /** The one action's label, such as "View event". */
   action: string;
   counts?: ReactNode;
-  /** A line under the name that only this kind of row has (an event's time). */
   detail?: string;
-  /** Tags with their own tint (an event's `EventFacts`), shown first. */
   facts?: ReactNode;
-  /** The tile before the name: a calendar date, team mark, or school logo. */
   identity: ReactNode;
   /** A decorative picture after the identity tile, hidden on phones. */
   media?: ReactNode;
   /** Host or school, then location; empty parts are left out. */
   meta: (string | undefined)[];
   name: string;
-  /** A tinted state tag (Happening now, Full), shown before the others. */
   status?: ReactNode;
   /** Plain facts as neutral tags; a repeated label shows once. */
   tags?: string[];

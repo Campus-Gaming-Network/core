@@ -90,7 +90,6 @@ export const gamesResponseDtoSchema = z.object({
   games: z.array(gameSummaryDtoSchema),
 });
 
-/** The team form's game list, which also carries each game's cover flag. */
 export const catalogGamesResponseDtoSchema = z.object({
   games: z.array(catalogGameDtoSchema),
 });
@@ -109,7 +108,6 @@ export const teamsBrowseInputSchema = z.object({
   before: cursorSchema,
 });
 
-/** The teams browse page also names the filtered school and searches schools. */
 export const teamsBrowsePageInputSchema = teamsBrowseInputSchema.extend({
   schoolQuery: schoolQuerySchema,
   gameQuery: z.string().trim().max(100),
@@ -205,7 +203,6 @@ export type NewTeamPageInput = z.output<typeof newTeamPageInputSchema>;
 
 export type TeamsSearch = {
   game?: string;
-  /** Slug of the school whose teams are listed. */
   school?: string;
   /** Searches schools for the no-JavaScript school selector. */
   school_q?: string;

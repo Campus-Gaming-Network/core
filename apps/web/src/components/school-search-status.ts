@@ -1,6 +1,5 @@
 import type { SearchFilterState } from "./search-filter-status.js";
 
-/** The line under the school search: a hint, progress, or the outcome. */
 export function schoolSearchMessage({
   state,
   query,

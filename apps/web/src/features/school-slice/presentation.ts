@@ -39,7 +39,6 @@ export function schoolLocation(
   return [school.city, school.state].filter(Boolean).join(", ") || fallback;
 }
 
-/** Which of a school's counts a phrase is, so a list can give it an icon. */
 export type SchoolActivityKind = "teams" | "upcoming_events" | "members";
 
 /**

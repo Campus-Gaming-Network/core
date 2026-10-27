@@ -11,7 +11,6 @@ import (
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/users"
 )
 
-// clubEditorInviteTTL is how long an invite link to edit a club stays usable.
 const clubEditorInviteTTL = 7 * 24 * time.Hour
 
 // clubOfficers runs the commands of a club's owners, editors, and members.
@@ -38,8 +37,6 @@ type clubUserRequest struct {
 	UserID string `json:"user_id"`
 }
 
-// registerClubOfficerRoutes adds the routes that change a club's profile and
-// people. Each needs a signed-in user.
 func (r *Router) registerClubOfficerRoutes() {
 	r.mux.HandleFunc("/me/clubs", requireMethod(http.MethodGet, r.handleMyClubs))
 	r.mux.HandleFunc("/clubs/{slug}/manage", requireMethod(http.MethodGet, r.handleManageClub))
@@ -57,7 +54,6 @@ func (r *Router) registerClubOfficerRoutes() {
 	r.mux.HandleFunc("/clubs/{slug}/ownership-offer/accept", requireMethod(http.MethodPost, r.handleAcceptClubOwnership))
 }
 
-// clubOfficer starts a request: the store is wired and someone is signed in.
 func (r *Router) clubOfficer(w http.ResponseWriter, req *http.Request) (string, bool) {
 	if r.clubOfficers == nil {
 		writeError(w, http.StatusServiceUnavailable, "database_unavailable")
@@ -71,8 +67,6 @@ func (r *Router) clubOfficer(w http.ResponseWriter, req *http.Request) (string, 
 	return userID, true
 }
 
-// handleMyClubs answers GET /me/clubs with the signed-in user's clubs and
-// their role in each.
 func (r *Router) handleMyClubs(w http.ResponseWriter, req *http.Request) {
 	userID, ok := r.clubOfficer(w, req)
 	if !ok {
@@ -87,7 +81,6 @@ func (r *Router) handleMyClubs(w http.ResponseWriter, req *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"clubs": result})
 }
 
-// handleManageClub answers GET /clubs/{slug}/manage for an owner or editor.
 func (r *Router) handleManageClub(w http.ResponseWriter, req *http.Request) {
 	userID, ok := r.clubOfficer(w, req)
 	if !ok {
@@ -135,8 +128,6 @@ func (r *Router) handleEditClubLinks(w http.ResponseWriter, req *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// handleConfirmClub answers POST /clubs/{slug}/confirm, an owner or editor
-// confirming the club's details are current.
 func (r *Router) handleConfirmClub(w http.ResponseWriter, req *http.Request) {
 	userID, ok := r.clubOfficer(w, req)
 	if !ok {
@@ -202,8 +193,6 @@ func (r *Router) handleRevokeClubEditorInvite(w http.ResponseWriter, req *http.R
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// handleAcceptClubEditorInvite answers POST /club-editor-invites/accept with
-// the slug of the club the signed-in user now edits.
 func (r *Router) handleAcceptClubEditorInvite(w http.ResponseWriter, req *http.Request) {
 	userID, ok := r.clubOfficer(w, req)
 	if !ok {

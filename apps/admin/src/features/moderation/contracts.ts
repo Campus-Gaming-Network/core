@@ -104,7 +104,6 @@ export const queueCountsSchema = z.object({
 });
 export type QueueCounts = z.output<typeof queueCountsSchema>;
 
-/** A site admin an item can be assigned to. */
 export type Operator = { id: string; name: string };
 
 export const queueBrowseInputSchema = z.object({

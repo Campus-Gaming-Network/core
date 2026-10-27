@@ -11,11 +11,8 @@ import (
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/users"
 )
 
-// organizerInviteTTL is how long an invite link to co-organize stays usable.
 const organizerInviteTTL = 7 * 24 * time.Hour
 
-// eventOrganizers manages an event's co-organizers and the invites that add
-// them.
 type eventOrganizers interface {
 	InviteOrganizer(ctx context.Context, params eventstore.OrganizerInviteParams) (eventstore.OrganizerInvite, error)
 	ListOrganizerInvites(ctx context.Context, slug string, creatorUserID string) ([]eventstore.OrganizerInvite, error)
@@ -33,8 +30,6 @@ type acceptOrganizerInviteRequest struct {
 	Token string `json:"token"`
 }
 
-// organizerUser starts an organizer request: the store is wired and someone
-// is signed in.
 func (r *Router) organizerUser(w http.ResponseWriter, req *http.Request) (string, bool) {
 	if r.organizers == nil {
 		writeError(w, http.StatusServiceUnavailable, "database_unavailable")
@@ -98,8 +93,6 @@ func (r *Router) handleOrganizerInvites(w http.ResponseWriter, req *http.Request
 	writeJSON(w, http.StatusCreated, invite)
 }
 
-// handleRevokeOrganizerInvite answers DELETE
-// /events/{slug}/organizer-invites/{id}.
 func (r *Router) handleRevokeOrganizerInvite(w http.ResponseWriter, req *http.Request, slug string, inviteID string) {
 	userID, ok := r.organizerUser(w, req)
 	if !ok {
@@ -134,8 +127,6 @@ func (r *Router) handleRemoveOrganizer(w http.ResponseWriter, req *http.Request,
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// handleTransferEventCreator answers POST
-// /events/{slug}/organizers/{user_id}/creator.
 func (r *Router) handleTransferEventCreator(w http.ResponseWriter, req *http.Request, slug string, organizerID string) {
 	userID, ok := r.organizerUser(w, req)
 	if !ok {
@@ -152,8 +143,6 @@ func (r *Router) handleTransferEventCreator(w http.ResponseWriter, req *http.Req
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// handleAcceptOrganizerInvite answers POST /organizer-invites/accept with the
-// slug of the event the signed-in account now organizes.
 func (r *Router) handleAcceptOrganizerInvite(w http.ResponseWriter, req *http.Request) {
 	userID, ok := r.organizerUser(w, req)
 	if !ok {

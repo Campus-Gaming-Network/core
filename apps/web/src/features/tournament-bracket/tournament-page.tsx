@@ -16,7 +16,6 @@ import {
 } from "./contracts";
 import type { TournamentSection } from "./presentation";
 
-/** What every tournament section page loads: the event and its bracket. */
 export type TournamentPageData = {
   event: EventDTO & { tournament: TournamentDTO };
   bracket: BracketResult;
@@ -45,7 +44,6 @@ export async function loadTournamentPage(
   return { event: { ...detail.event, tournament }, bracket, publicOrigin };
 }
 
-/** Whether a bracket has been generated, which shows the Bracket tab. */
 export function hasBracket(bracket: BracketResult | undefined): boolean {
   return bracket?.status === "ready" && bracket.matches.length > 0;
 }
@@ -69,7 +67,6 @@ export function tournamentPageHead(
   };
 }
 
-/** A section page: breadcrumbs, the event's title, the tabs, and a notice. */
 export function TournamentPage({
   children,
   current,

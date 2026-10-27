@@ -180,8 +180,6 @@ func ValidateTournamentInput(input TournamentInput) error {
 	return nil
 }
 
-// tournamentEvent is an event locked for a tournament change, with the
-// tournament's status when it has one.
 type tournamentEvent struct {
 	ID        string
 	EventType string
@@ -270,7 +268,6 @@ func (r *PostgresRepository) PutTournament(ctx context.Context, input Tournament
 
 	created := event.Status == ""
 	if !created {
-		// Entrants signed up for the entry type, team size, and format.
 		teamSize := 0
 		if input.TeamSize != nil {
 			teamSize = *input.TeamSize
@@ -431,8 +428,6 @@ type tournamentLoader interface {
 	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
 }
 
-// loadTournament returns the tournament on the event with eventID, or nil
-// when it has none.
 func loadTournament(ctx context.Context, loader tournamentLoader, eventID string) (*Tournament, error) {
 	var tournament Tournament
 	var teamSize, entrantCap sql.NullInt32

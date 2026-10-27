@@ -4,7 +4,6 @@ import {
   serverTextSize,
 } from "./character-count-logic.js";
 
-/** How long typing must pause before the live region announces the count. */
 const announceDelayMilliseconds = 1000;
 
 /**

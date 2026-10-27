@@ -798,7 +798,6 @@ func TestEveryGETRouteLeavesDomainDataUnchanged(t *testing.T) {
 	before := snapshot()
 	for _, route := range gets {
 		path := strings.NewReplacer("{id}", catalogSchoolID, "{grant_id}", catalogTargetID).Replace(route.Path)
-		// Both a plain read and one carrying mutation-shaped query parameters.
 		for _, query := range []string{"", "?state=deleted&delete=1&action=suspend&status=closed&reason=x&expected_updated_at=2000-01-01T00:00:00Z"} {
 			req := httptest.NewRequest(http.MethodGet, path+query, nil)
 			req.Header.Set(ProxySecretHeader, "proxy-secret")

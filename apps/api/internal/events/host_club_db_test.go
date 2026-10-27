@@ -154,7 +154,6 @@ func TestPostgresRepositoryHostClub(t *testing.T) {
 		t.Fatalf("ListPublic(smash-club) = %+v, want only %s", listed, event.Slug)
 	}
 
-	// A new editor of the club cancels the event.
 	if _, err := pool.Exec(ctx, `INSERT INTO club_members (club_id, user_id, role) VALUES ($1::uuid, $2::uuid, 'editor')`,
 		smashID, otherOfficer); err != nil {
 		t.Fatal(err)

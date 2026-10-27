@@ -17,7 +17,6 @@ import eventCSS from "../features/event-slice/events.css?url";
 type EventActivityRouteData = {
   event: { slug: string; title: string; timezone: string };
   activity: Exclude<EventActivityResult, { status: "not_found" }>;
-  /** Whether this is an older page, so the newest is a link away. */
   older: boolean;
   publicOrigin: string;
 };

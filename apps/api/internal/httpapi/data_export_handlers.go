@@ -9,7 +9,6 @@ import (
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/dataexport"
 )
 
-// dataExports reads one account's data for its holder.
 type dataExports interface {
 	Export(ctx context.Context, userID string) (dataexport.Export, error)
 }

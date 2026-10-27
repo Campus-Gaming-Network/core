@@ -549,7 +549,6 @@ async function collectAthletics(): Promise<void> {
     const name = value.replaceAll("_", " ").trim();
     return `File:${name[0].toUpperCase()}${name.slice(1)}`;
   };
-  // The infobox logo of each program's article.
   const articles = new Map<string, string>();
   for (const [id, mine] of programs) {
     const article = mine.find((binding) => binding.article)?.article?.value;

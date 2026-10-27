@@ -76,7 +76,6 @@ const listableSQL = `
 	AND u.show_in_lists
 `
 
-// listSpec describes one kind of list for the shared paged query.
 type listSpec struct {
 	// from names the table that holds the list's rows, joined to users as u.
 	from string

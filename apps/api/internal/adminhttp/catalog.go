@@ -445,8 +445,6 @@ func (handler *Handler) catalogRead(w http.ResponseWriter, req *http.Request, ac
 	writeJSON(w, 200, result)
 }
 
-// catalogListFilters names the narrowing filters each list accepts beyond the
-// shared search, state, and cursor parameters.
 var catalogListFilters = map[routeOperation][]string{
 	"schools.list": {"region"},
 	"users.list":   {"role", "verification"},

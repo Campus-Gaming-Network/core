@@ -91,7 +91,6 @@ func (r *PostgresRepository) Search(ctx context.Context, query string, limit int
 	return collectGames(rows)
 }
 
-// likeEscaper makes a search query match literally inside an ILIKE pattern.
 var likeEscaper = strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`)
 
 func collectGames(rows pgx.Rows) ([]Game, error) {

@@ -90,8 +90,6 @@ func TestPostgresRepositoryHostTeam(t *testing.T) {
 		t.Fatalf("Create(no team) error = %v", err)
 	}
 
-	// A plain member cannot host as the team, and neither can anyone name a
-	// team that does not exist.
 	for name, teamID := range map[string]string{"member": redID, "unknown": "not-a-team"} {
 		_, err := repository.Create(ctx, CreateParams{CreateInput: input("Rejected "+name, memberID, teamID)})
 		if !errors.Is(err, ErrHostTeamNotAllowed) {

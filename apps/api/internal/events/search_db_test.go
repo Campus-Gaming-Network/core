@@ -96,7 +96,6 @@ func TestPostgresRepositorySearchesByTitleAndLocalDate(t *testing.T) {
 		}
 	}
 
-	// Paging keeps the keyword: the second page continues after the first.
 	first, err := repository.ListPublic(ctx, NormalizeListParams(ListParams{Query: "smash", Limit: 1}))
 	if err != nil || len(first) != 1 {
 		t.Fatalf("first page = %d events, %v", len(first), err)

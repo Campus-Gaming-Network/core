@@ -1,7 +1,6 @@
 // What a stubbed fetch was called with, read the way the code under test
 // passed it, so assertions compare the exact text it sent.
 
-/** The request's URL: a string as given, a URL's href, or a Request's url. */
 export function requestURL(input: RequestInfo | URL): string {
   if (typeof input === "string") return input;
   return input instanceof URL ? input.href : input.url;

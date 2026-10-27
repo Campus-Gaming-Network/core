@@ -1313,7 +1313,6 @@
       break-after: avoid;
     }
 
-    /* Show where a link goes, except in-page and script links. */
     .detail-facts a[href^="http"]::after,
     .record-list a[href^="http"]::after,
     .stored-content a[href^="http"]::after {

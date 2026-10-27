@@ -43,7 +43,6 @@ export const tournamentMatchDtoSchema = z.object({
     .optional(),
   winner_entry_id: z.uuid().optional(),
   walkover: z.boolean().optional(),
-  /** Where the winner goes; the final has none. */
   next_match_id: z.uuid().optional(),
 });
 export const tournamentMatchesResponseDtoSchema = z.object({
@@ -57,7 +56,6 @@ export type BracketResult =
   | { status: "ready"; matches: TournamentMatchDTO[] }
   | { status: "unavailable" };
 
-/** The notices the bracket and match pages can receive. */
 export const bracketNotices = {
   generated: { message: "Bracket generated.", severity: "success" },
   saved: {
@@ -112,7 +110,6 @@ export const bracketNotices = {
 } as const satisfies Record<string, PageNotice>;
 export type BracketNotice = keyof typeof bracketNotices;
 
-/** The notice for an API error code from a bracket or result change. */
 export const bracketErrorNotices: Record<string, BracketNotice> = {
   invalid_request: "invalid",
   invalid_match_result: "invalid",
@@ -126,7 +123,6 @@ export const bracketErrorNotices: Record<string, BracketNotice> = {
   not_event_organizer: "forbidden",
 };
 
-/** The `bracket` search value of a tournament page, if it names a notice. */
 export function bracketNoticeKey(value: unknown): BracketNotice | undefined {
   return pageNoticeKey(bracketNotices, value);
 }
@@ -187,7 +183,6 @@ export function validateResultInput(
   };
 }
 
-/** Generating the bracket names only the event. */
 export function validateBracketInput(
   input: object | FormData,
 ): ValidatedTournamentInput<BracketInput> {

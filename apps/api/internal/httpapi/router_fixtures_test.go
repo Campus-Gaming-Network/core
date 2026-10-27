@@ -54,7 +54,6 @@ func (r *fakeSchoolRepository) List(_ context.Context, params schools.ListParams
 	return r.listed, r.err
 }
 
-// fakePopularSchoolRepository ranks schools as well as listing them.
 type fakePopularSchoolRepository struct {
 	fakeSchoolRepository
 	popular      []schools.School
@@ -920,7 +919,6 @@ func testTeamMembers() []teamstore.MemberSummary {
 
 const testIdempotencyKey = "5b0e7f5c-3f4d-4d8e-9a71-6c2b1e0f9d34"
 
-// withIdempotencyKey adds the header that create endpoints require.
 func withIdempotencyKey(request *http.Request) *http.Request {
 	request.Header.Set("Idempotency-Key", testIdempotencyKey)
 	return request

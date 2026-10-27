@@ -6,10 +6,6 @@ import {
 import { teamRoleLabel } from "../team-slice/presentation.js";
 import type { PersonDTO } from "./contracts.js";
 
-/**
- * The line under a person's name: their verification and any role indicators,
- * the way organizers are shown.
- */
 export function verificationDetail({
   role_indicators = [],
   verification_level,
@@ -22,10 +18,6 @@ export function verificationDetail({
   ].join(" · ");
 }
 
-/**
- * The line under a person in a list: their team or club role, else their
- * verification.
- */
 export function personDetail(person: PersonDTO): string {
   if (!person.role) return verificationDetail(person);
   return person.role === "editor" ? "Editor" : teamRoleLabel(person.role);
@@ -49,7 +41,6 @@ export function peopleHead({
   return pageHead(publicOrigin, { description, path, title, noIndex: true });
 }
 
-/** Head for a people page whose loader did not finish. */
 export function unavailablePeopleHead() {
   return {
     meta: [

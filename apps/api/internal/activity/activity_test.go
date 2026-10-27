@@ -71,7 +71,6 @@ func TestMiddlewareRecordsEachSignedInAccountOncePerUTCDay(t *testing.T) {
 	request("alice-token")
 	request("alice-token")
 	request("bob-token")
-	// A failed write does not fail the request and is tried again.
 	store.fail = true
 	now = now.Add(2 * time.Hour)
 	request("alice-token")

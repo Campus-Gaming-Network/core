@@ -111,7 +111,6 @@ export function PeopleResults({
   return <PersonList people={result.list.people} rows={rows} />;
 }
 
-/** Previous and Next links, each present only when there is a page that way. */
 export function PeoplePagination({
   label,
   next,

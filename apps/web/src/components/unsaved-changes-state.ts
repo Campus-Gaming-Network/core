@@ -20,7 +20,6 @@ export function snapshotForm(form: HTMLFormElement): FormSnapshot {
   return sortSnapshot(entries);
 }
 
-/** Orders entries by name, then value, without disturbing the input. */
 export function sortSnapshot(entries: FormSnapshot): FormSnapshot {
   return [...entries].sort(
     ([nameA, valueA], [nameB, valueB]) =>
@@ -28,7 +27,6 @@ export function sortSnapshot(entries: FormSnapshot): FormSnapshot {
   );
 }
 
-/** True when two snapshots differ in any name or value. */
 export function isDirty(initial: FormSnapshot, current: FormSnapshot): boolean {
   if (initial.length !== current.length) return true;
   return initial.some(

@@ -86,7 +86,6 @@ func TestAuditHistoryIsAppendOnlyForTheRuntimeRole(t *testing.T) {
 		"delete event":   outcome(`DELETE FROM admin_security_events`),
 		"truncate event": outcome(`TRUNCATE admin_security_events`),
 	}
-	// A role that can also rewrite history fails the startup check.
 	if _, err := pool.Exec(ctx, `GRANT UPDATE ON audit_logs TO `+role); err != nil {
 		t.Fatal(err)
 	}

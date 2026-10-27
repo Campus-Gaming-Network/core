@@ -95,7 +95,6 @@ export function eventRelativeDay(
   return undefined;
 }
 
-/** The short weekday of an event's start in its own time zone, e.g. "Fri". */
 export function eventWeekday(
   event: Pick<EventDTO, "starts_at" | "timezone">,
 ): string {
@@ -231,7 +230,6 @@ export const eventTypeLabels = {
   other: "Other",
 } as const satisfies Record<NonNullable<EventDTO["event_type"]>, string>;
 
-/** An RSVP answer in words: the choice buttons and the account's RSVP tags. */
 export function eventRSVPLabel(response: EventRSVP): string {
   const labels = { maybe: "Maybe", no: "Can't go", yes: "Going" } as const;
   return labels[response];

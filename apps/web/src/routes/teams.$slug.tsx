@@ -66,7 +66,6 @@ import { Surface } from "../components/surface";
 
 type TeamRouteData = {
   team: TeamDTO;
-  /** The public events the team hosts that have not ended. */
   events: Awaited<ReturnType<typeof getTeamEvents>>;
   viewer: TeamViewerState;
   ownerRoster?: TeamMemberDTO[];
@@ -266,7 +265,6 @@ function TeamPage() {
   );
 }
 
-/** The page header's primary action: join, log in to join, or your role. */
 function TeamActions({
   slug,
   viewer,
@@ -315,7 +313,6 @@ function TeamActions({
   );
 }
 
-/** Ends the viewer's own membership after they confirm. */
 function LeaveTeamForm({ slug }: { slug: string }) {
   const runLeaveTeam = useServerFn(leaveTeam);
   const router = useRouter();
@@ -570,7 +567,6 @@ function CaptainManagementRow({
   );
 }
 
-/** Lets the owner take a member off the roster after confirming. */
 function RemoveMemberForm({
   member,
   slug,

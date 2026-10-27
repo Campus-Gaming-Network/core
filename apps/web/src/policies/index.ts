@@ -14,7 +14,6 @@ const published: Record<PolicyDocument["type"], readonly PolicyDocument[]> = {
   privacy: [privacyDraft20261006],
 };
 
-/** The named version of a policy, or its latest when none is named. */
 export function policyDocument(
   type: PolicyDocument["type"],
   version?: string,

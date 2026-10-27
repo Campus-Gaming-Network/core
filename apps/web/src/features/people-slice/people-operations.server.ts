@@ -18,7 +18,6 @@ type Dependencies = {
 };
 
 type EventDependencies = Dependencies & {
-  /** Proves a private event was unlocked. */
   unlockHeaders?: HeadersInit;
 };
 

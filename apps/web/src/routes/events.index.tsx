@@ -491,7 +491,6 @@ const restrictiveOrder = [
   "cost",
 ];
 
-/** The filter each scope tab sets, which the form locks while it is open. */
 const scopeFilterKeys: Record<EventScope, string | undefined> = {
   all: undefined,
   "my-school": "school",

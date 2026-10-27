@@ -1,7 +1,4 @@
 @layer features {
-  /* The public profile (reference sheets 11 and 12): a header panel with the
-     large avatar, name, school, tags, and bio, and Edit profile at the right
-     for the owner; then the links beside an About card. */
   .public-profile__header {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto;
@@ -71,7 +68,6 @@
     margin-top: var(--space-5);
   }
 
-  /* Each link on its own row under the panel's divider. */
   .public-profile__links {
     margin: 0;
     padding: 0;
@@ -91,8 +87,6 @@
     }
   }
 
-  /* The home school in the About card: its logo tile beside the linked
-     name. */
   .public-profile__school-link {
     display: inline-flex;
     align-items: center;

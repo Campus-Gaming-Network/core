@@ -26,8 +26,7 @@ type Message struct {
 	Details    []Detail
 	Action     *Action
 	// Notes are smaller lines after the action, such as when a link expires.
-	Notes []string
-	// Reason says why the recipient got this email.
+	Notes  []string
 	Reason string
 }
 

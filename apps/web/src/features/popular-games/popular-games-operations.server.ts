@@ -6,7 +6,6 @@ import {
   type PopularGamesResult,
 } from "./contracts.js";
 
-/** The games most listed by upcoming public events, overall or at a school. */
 export async function popularGamesOperation(
   { school }: PopularGamesInput,
   {

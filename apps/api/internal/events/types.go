@@ -231,10 +231,8 @@ type GameSummary struct {
 type ListParams struct {
 	GameSlug   string
 	SchoolSlug string
-	// TeamSlug keeps the events that team hosts.
-	TeamSlug string
-	// ClubSlug keeps the events that club hosts.
-	ClubSlug string
+	TeamSlug   string
+	ClubSlug   string
 	// Query keeps events whose title contains it, ignoring case.
 	Query     string
 	Format    string

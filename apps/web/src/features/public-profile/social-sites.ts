@@ -18,7 +18,6 @@ const socialSiteHosts = {
 
 export type SocialSite = keyof typeof socialSiteHosts;
 
-/** The known site a link points at, or undefined for any other link. */
 export function socialSite(url: string): SocialSite | undefined {
   let host: string;
   try {

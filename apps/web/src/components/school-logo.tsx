@@ -15,9 +15,7 @@ export function SchoolLogo({
   logoURL?: string;
   alt?: string;
   size: number;
-  /** Sits on the text line, in front of the school's name. */
   inline?: boolean;
-  /** Above the fold: load now instead of waiting to scroll near. */
   eager?: boolean;
 }) {
   const { failed, onError, ref } = useImageFailure(logoURL);

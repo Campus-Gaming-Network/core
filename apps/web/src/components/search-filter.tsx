@@ -16,13 +16,10 @@ import {
 
 const searchDelayMilliseconds = 250;
 
-/** One choice in a search filter: what it submits and how it reads. */
 export type SearchFilterOption = {
   value: string;
   label: string;
-  /** A second line in the results, such as a school's city. */
   detail?: string;
-  /** A small logo, cover, or initial; decoration only. */
   mark: ReactNode;
 };
 
@@ -51,11 +48,8 @@ export function SearchFilter({
 }: {
   chosen?: SearchFilterOption;
   fallbackOptions: SearchFilterOption[];
-  /** The filter's name, such as "School". */
   label: string;
-  /** The shortest query worth searching. */
   minimumLength: number;
-  /** The submitted field. */
   name: string;
   /** Plural, for messages: "schools". */
   noun: string;

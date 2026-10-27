@@ -23,7 +23,6 @@ function tournamentPath(slug: string): string {
   return `/events/${encodeURIComponent(slug)}/tournament`;
 }
 
-/** The settings page, with a notice naming an outcome. */
 export function settingsPageWithNotice(
   slug: string,
   notice: SettingsNotice,
@@ -31,7 +30,6 @@ export function settingsPageWithNotice(
   return `/events/${encodeURIComponent(slug)}/tournament?settings=${notice}`;
 }
 
-/** Creates or replaces the settings. */
 export function saveSettingsOperation(
   { slug, settings }: SettingsInput,
   dependencies: Dependencies,
@@ -48,7 +46,6 @@ export function saveSettingsOperation(
   );
 }
 
-/** Deletes a draft's settings. */
 export function deleteSettingsOperation(
   { slug }: SlugInput,
   dependencies: Dependencies,
@@ -64,7 +61,6 @@ export function deleteSettingsOperation(
   );
 }
 
-/** Moves the status; the notice names the new status. */
 export function setStatusOperation(
   { slug, status }: StatusInput,
   dependencies: Dependencies,

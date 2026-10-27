@@ -20,8 +20,6 @@ const (
 
 var officerEvidence = clubs.ClaimEvidence{Text: "I am the club president.", URL: "https://fixture.example.edu/orgs/club"}
 
-// newClaim creates a published club and a pending claim on it by applicant,
-// returning the claim's ID and version.
 func (f catalogFixture) newClaim(t *testing.T, slug, applicant string) (string, time.Time) {
 	t.Helper()
 	f.newClub(t, slug)
@@ -31,8 +29,6 @@ func (f catalogFixture) newClaim(t *testing.T, slug, applicant string) (string, 
 	return f.pendingClaim(t, applicant, slug)
 }
 
-// pendingClaim finds applicant's pending claim on the club with slug, or
-// their pending request for a club named slug.
 func (f catalogFixture) pendingClaim(t *testing.T, applicant, slug string) (string, time.Time) {
 	t.Helper()
 	var id string
@@ -56,7 +52,6 @@ func (f catalogFixture) insertApplicant(t *testing.T, id, email string, verified
 	}
 }
 
-// outbox lists the queued emails as kind:recipient.
 func (f catalogFixture) outbox(t *testing.T) []string {
 	t.Helper()
 	rows, err := f.pool.Query(t.Context(), `SELECT kind || ':' || recipient FROM email_outbox WHERE kind LIKE 'club_claim_%' ORDER BY created_at, id`)
@@ -94,7 +89,6 @@ func TestClubClaimIsReviewedAndMakesTheApplicantTheOwner(t *testing.T) {
 	f.insertApplicant(t, unverifiedUserID, "unverified@example.edu", false)
 	claimID, version := f.newClaim(t, "smash-club", catalogTargetID)
 
-	// An unverified account and a second claim by the same person are refused.
 	if _, err := f.club.SubmitClaim(t.Context(), clubs.ClaimInput{UserID: unverifiedUserID, ClubSlug: "smash-club", ClaimEvidence: officerEvidence}); !errors.Is(err, clubs.ErrEmailUnverified) {
 		t.Fatalf("unverified claim error = %v, want ErrEmailUnverified", err)
 	}
@@ -102,7 +96,6 @@ func TestClubClaimIsReviewedAndMakesTheApplicantTheOwner(t *testing.T) {
 		t.Fatalf("repeated claim error = %v, want ErrClaimPending", err)
 	}
 
-	// A second person's claim shows alongside the first.
 	if _, err := f.club.SubmitClaim(t.Context(), clubs.ClaimInput{UserID: secondApplicantID, ClubSlug: "smash-club", ClaimEvidence: clubs.ClaimEvidence{Text: "I am the treasurer."}}); err != nil {
 		t.Fatal(err)
 	}
@@ -119,8 +112,6 @@ func TestClubClaimIsReviewedAndMakesTheApplicantTheOwner(t *testing.T) {
 		t.Fatalf("pending queue = %+v, want both claims, newest first", queue.Claims)
 	}
 
-	// Approval makes the applicant the owner, flips the public label, emails
-	// them, and audits the decision.
 	approved := decodeCatalog[clubs.AdminClaim](t, f.request(t, "POST", "/admin/v1/club-claims/"+claimID+"/approve",
 		clubs.ClaimApproval{Command: f.versioned(version)}, http.StatusOK))
 	if approved.Status != clubs.ClaimApproved || !approved.ClubClaimed || approved.ReviewerUserID == nil || *approved.ReviewerUserID != catalogActorID ||
@@ -148,8 +139,6 @@ func TestClubClaimIsReviewedAndMakesTheApplicantTheOwner(t *testing.T) {
 		t.Fatalf("claim audit = %v", got)
 	}
 
-	// The club is now claimed: a new claim is refused, the competing claim
-	// cannot be approved, and rejecting it needs a note.
 	if _, err := f.club.SubmitClaim(t.Context(), clubs.ClaimInput{UserID: secondApplicantID, ClubSlug: "smash-club", ClaimEvidence: officerEvidence}); !errors.Is(err, clubs.ErrClubClaimed) {
 		t.Fatalf("claim on a claimed club error = %v, want ErrClubClaimed", err)
 	}
@@ -247,7 +236,6 @@ func TestASiteAdminRemovesAMemberButNotAnOwner(t *testing.T) {
 	if len(removed.Members) != 1 || removed.Members[0].UserID != catalogTargetID {
 		t.Fatalf("members after removal = %+v, want only the owner", removed.Members)
 	}
-	// A removed member may join again.
 	if err := f.club.Join(t.Context(), "admin-member-club", secondApplicantID); err != nil {
 		t.Fatalf("Join(after removal) error = %v", err)
 	}

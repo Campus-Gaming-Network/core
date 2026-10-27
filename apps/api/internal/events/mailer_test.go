@@ -194,7 +194,6 @@ func TestResendMailerSendsRSVPConfirmationWithCalendarAttachment(t *testing.T) {
 	if payload.Subject != "You're going to Rocket League Finals" {
 		t.Fatalf("subject = %q, want RSVP confirmation subject", payload.Subject)
 	}
-	// The start is shown in the event's own time zone.
 	message := emaillayout.Message{
 		Preview:    "Your RSVP is confirmed.",
 		Heading:    "You're going to Rocket League Finals",

@@ -7,7 +7,6 @@ const cursorSchema = z.string().trim().min(1).max(2048);
 
 /** People on one full list page. A multiple of 2, 3, and 4 fills the grid. */
 export const peoplePageSize = 24;
-/** People on an entity page's preview card. */
 export const peoplePreviewSize = 8;
 
 /**

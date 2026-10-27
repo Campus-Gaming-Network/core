@@ -695,8 +695,6 @@ func grantAuditState(grant Grant) adminaudit.SiteRoleGrantState {
 	}
 }
 
-// scanGrant reads the grant columns, then any extra destinations a query
-// appends after them.
 func scanGrant(row pgx.Row, extra ...any) (Grant, error) {
 	var grant Grant
 	err := row.Scan(append([]any{

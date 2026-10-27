@@ -9,7 +9,6 @@ import (
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/games"
 )
 
-// userGameLists stores the games users list on their profiles.
 type userGameLists interface {
 	UserLists(ctx context.Context, userID string) (games.UserLists, error)
 	AddToList(ctx context.Context, userID string, list games.List, gameIDs []string) error
@@ -17,8 +16,6 @@ type userGameLists interface {
 	MoveInList(ctx context.Context, userID, gameID string, position int) error
 }
 
-// addUserGamesRequest names a list and the games to add to it, picked the
-// same way an event or team form picks its games.
 type addUserGamesRequest struct {
 	List    games.List `json:"list"`
 	GameIDs []string   `json:"game_ids"`
@@ -29,8 +26,6 @@ type moveUserGameRequest struct {
 	Position *int `json:"position"`
 }
 
-// handleMyGames answers GET /me/games with the viewer's lists and POST
-// /me/games by adding games to one of them.
 func (r *Router) handleMyGames(w http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodGet && req.Method != http.MethodPost {
 		methodNotAllowed(w, http.MethodGet+", "+http.MethodPost)
@@ -82,8 +77,6 @@ func (r *Router) handleMyGames(w http.ResponseWriter, req *http.Request) {
 	r.writeUserLists(w, req, userID)
 }
 
-// handleRemoveMyGame answers DELETE /me/games/{gameID} by taking the game off
-// whichever of the viewer's lists holds it.
 func (r *Router) handleRemoveMyGame(w http.ResponseWriter, req *http.Request) {
 	userID, ok := r.requireUserGames(w, req)
 	if !ok {
@@ -105,8 +98,6 @@ func (r *Router) handleRemoveMyGame(w http.ResponseWriter, req *http.Request) {
 	r.writeUserLists(w, req, userID)
 }
 
-// handleMoveMyGame answers POST /me/games/{gameID}/position by moving a
-// listed game to a position in its list.
 func (r *Router) handleMoveMyGame(w http.ResponseWriter, req *http.Request) {
 	userID, ok := r.requireUserGames(w, req)
 	if !ok {
@@ -136,8 +127,6 @@ func (r *Router) handleMoveMyGame(w http.ResponseWriter, req *http.Request) {
 	r.writeUserLists(w, req, userID)
 }
 
-// requireUserGames checks the lists are available and the request is signed
-// in. It writes the error response and reports false otherwise.
 func (r *Router) requireUserGames(w http.ResponseWriter, req *http.Request) (string, bool) {
 	if r.userGames == nil {
 		writeError(w, http.StatusServiceUnavailable, "database_unavailable")
@@ -161,7 +150,6 @@ func (r *Router) writeUserLists(w http.ResponseWriter, req *http.Request, userID
 	writeJSON(w, http.StatusOK, lists)
 }
 
-// userLists reads a user's lists with each stored cover served by the site.
 func (r *Router) userLists(ctx context.Context, userID string) (games.UserLists, error) {
 	lists, err := r.userGames.UserLists(ctx, userID)
 	if err != nil {

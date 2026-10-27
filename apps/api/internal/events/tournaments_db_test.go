@@ -76,7 +76,6 @@ func TestPostgresRepositoryTournamentSettingsAndStatus(t *testing.T) {
 		return input
 	}
 
-	// The organizer's own RSVP does not block settings; anyone else's does.
 	if _, err := repository.SetRSVP(ctx, RSVPInput{Slug: event.Slug, UserID: organizerID, Response: RSVPYes}); err != nil {
 		t.Fatalf("SetRSVP(organizer) error = %v", err)
 	}
@@ -134,7 +133,7 @@ func TestPostgresRepositoryTournamentSettingsAndStatus(t *testing.T) {
 	}
 	solo, isNew, err := repository.PutTournament(ctx, with(func(i *TournamentInput) {
 		i.GameID, i.EntryType, i.TeamSize, i.Substitutes, i.EntrantCap, i.RegistrationClosesAt = otherGameID, EntrySolo, nil, 0, nil, nil
-		i.BracketURL = "" // removes the link
+		i.BracketURL = ""
 	}))
 	if err != nil {
 		t.Fatalf("PutTournament(update) error = %v", err)
@@ -151,8 +150,6 @@ func TestPostgresRepositoryTournamentSettingsAndStatus(t *testing.T) {
 		t.Fatalf("PutTournament(update) = %+v, %t; want %+v, false", solo, isNew, wantSolo)
 	}
 
-	// While settings exist the event keeps its type and the tournament's game,
-	// and RSVPs give way to registration.
 	edit := UpdateInput{
 		Slug:         event.Slug,
 		EditorUserID: organizerID,
@@ -189,7 +186,6 @@ func TestPostgresRepositoryTournamentSettingsAndStatus(t *testing.T) {
 			statusErrors = append(statusErrors, err)
 		}
 	}
-	// Starting needs two entries.
 	move(TournamentCompleted, TournamentRegistrationOpen, TournamentRegistrationOpen,
 		TournamentDraft, TournamentRegistrationOpen, TournamentInProgress)
 	for _, player := range []string{playerID, secondPlayerID} {
@@ -227,8 +223,6 @@ func TestPostgresRepositoryTournamentSettingsAndStatus(t *testing.T) {
 		t.Fatalf("plain event tournament = %+v, %v; want none", plainPage.Tournament, err)
 	}
 
-	// A draft's settings can be deleted, and cancelling an event cancels its
-	// tournament.
 	if _, err := pool.Exec(ctx, `DELETE FROM event_rsvps WHERE event_id = $1::uuid`, rsvped.ID); err != nil {
 		t.Fatalf("clear rsvps: %v", err)
 	}

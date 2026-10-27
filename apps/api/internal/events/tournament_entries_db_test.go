@@ -104,7 +104,6 @@ func TestPostgresRepositoryTournamentRegistration(t *testing.T) {
 		return repository.Register(ctx, RegisterInput{Slug: slug, UserID: userID, TeamSlug: teamSlug, Roster: ids})
 	}
 
-	// Solo: register, refuse a second entry, withdraw, and register again.
 	memberEntry, err := register(solo, member, "")
 	if err != nil {
 		t.Fatalf("Register(member) error = %v", err)
@@ -131,8 +130,6 @@ func TestPostgresRepositoryTournamentRegistration(t *testing.T) {
 		t.Fatalf("solo errors = %v, want %v", got, want)
 	}
 
-	// An organizer removes an entry, the entrant is told, and the entrant
-	// cannot come back; someone else cannot withdraw it.
 	soloEntries, _, err := repository.ListEntries(ctx, solo, "")
 	if err != nil {
 		t.Fatalf("ListEntries(solo) error = %v", err)
@@ -169,8 +166,6 @@ func TestPostgresRepositoryTournamentRegistration(t *testing.T) {
 		t.Fatalf("solo entries = %+v, want %+v", soloEntries, want)
 	}
 
-	// Team: only the owner or a captain registers, with a roster of the
-	// team's members from the team size to the team size plus substitutes.
 	_, memberTeamErr := register(team, member, "knights", owner, member)
 	_, shortErr := register(team, owner, "knights", owner)
 	_, outsiderRosterErr := register(team, owner, "knights", owner, rival)
@@ -187,8 +182,6 @@ func TestPostgresRepositoryTournamentRegistration(t *testing.T) {
 		t.Fatalf("team errors = %v, want %v", got, want)
 	}
 
-	// The roster changes until the start, and a member who leaves the team
-	// leaves its roster, free to play for another.
 	if _, err := repository.UpdateRoster(ctx, team, member, knights.ID, []string{publicIDs[owner], publicIDs[member]}); err != ErrEntryManagerRequired {
 		t.Fatalf("UpdateRoster(member) error = %v, want %v", err, ErrEntryManagerRequired)
 	}
@@ -250,8 +243,6 @@ func TestPostgresRepositoryTournamentRegistration(t *testing.T) {
 		t.Fatalf("signed-out entry = %+v, want the team without its roster", signedOut)
 	}
 
-	// Entries freeze at the start, and entry type, team size, and format are
-	// fixed once anyone has registered.
 	_, _, settingsErr := repository.PutTournament(ctx, TournamentInput{
 		Slug: team, EditorUserID: organizerID, GameID: gameID, EntryType: EntrySolo,
 	})
@@ -267,7 +258,6 @@ func TestPostgresRepositoryTournamentRegistration(t *testing.T) {
 		t.Fatalf("closed errors = %v, want %v", got, want)
 	}
 
-	// Cancelling the event emails its entrants as it emails RSVPs.
 	if err := repository.Delete(ctx, solo, organizerID); err != nil {
 		t.Fatalf("Delete(solo) error = %v", err)
 	}
@@ -306,7 +296,6 @@ func TestPostgresRepositoryTournamentApproval(t *testing.T) {
 	`, ada, bo).Scan(&adaPublicID, &boPublicID); err != nil {
 		t.Fatalf("read public IDs: %v", err)
 	}
-	// Knights: Ada owns it and Bo plays for it.
 	if _, err := pool.Exec(ctx, `
 		WITH knights AS (
 		    INSERT INTO teams (owner_user_id, name, slug, password_hash)
@@ -351,7 +340,6 @@ func TestPostgresRepositoryTournamentApproval(t *testing.T) {
 		return [2]int{tournament.EntryCount, tournament.RequestCount}
 	}
 
-	// A request holds no spot and only organizers see it.
 	adaRequest, err := repository.Register(ctx, RegisterInput{Slug: solo, UserID: ada})
 	if err != nil {
 		t.Fatalf("Register(ada) error = %v", err)
@@ -379,7 +367,6 @@ func TestPostgresRepositoryTournamentApproval(t *testing.T) {
 		t.Fatalf("pending request = %+v, want %+v", got, want)
 	}
 
-	// A pending request keeps the tournament out of draft and in approval.
 	_, draftErr := repository.SetTournamentStatus(ctx, solo, organizerID, TournamentDraft)
 	_, _, openErr := repository.PutTournament(ctx, TournamentInput{
 		Slug: solo, EditorUserID: organizerID, GameID: gameID, EntryType: EntrySolo, EntrantCap: &soloCap,
@@ -390,8 +377,6 @@ func TestPostgresRepositoryTournamentApproval(t *testing.T) {
 		t.Fatalf("pending refusals = %v, want %v", got, want)
 	}
 
-	// Declined requesters may ask again; approval follows the cap and sets
-	// the seed order; removing a request blocks the requester.
 	if _, err := repository.DecideEntry(ctx, solo, organizerID, adaRequest.ID, false); err != nil {
 		t.Fatalf("decline ada: %v", err)
 	}
@@ -424,7 +409,6 @@ func TestPostgresRepositoryTournamentApproval(t *testing.T) {
 		t.Fatalf("decision refusals = %v, want %v", got, want)
 	}
 
-	// Starting declines the requests still pending, and decisions end.
 	if _, err := repository.SetTournamentStatus(ctx, solo, organizerID, TournamentInProgress); err != nil {
 		t.Fatalf("start solo: %v", err)
 	}
@@ -445,7 +429,6 @@ func TestPostgresRepositoryTournamentApproval(t *testing.T) {
 		t.Fatalf("after start = %v, want %v", got, want)
 	}
 
-	// A team requests with a roster, cancels, requests again, and is approved.
 	knights, err := repository.Register(ctx, RegisterInput{Slug: team, UserID: ada, TeamSlug: "knights", Roster: []string{adaPublicID, boPublicID}})
 	if err != nil {
 		t.Fatalf("Register(knights) error = %v", err)
@@ -469,7 +452,6 @@ func TestPostgresRepositoryTournamentApproval(t *testing.T) {
 		t.Fatalf("team approval = %+v, want %+v", got, want)
 	}
 
-	// Cancelling a tournament declines its pending requests too.
 	night := tournament("Invite Night", TournamentInput{EntryType: EntrySolo})
 	if _, err := repository.Register(ctx, RegisterInput{Slug: night, UserID: di}); err != nil {
 		t.Fatalf("Register(di, night) error = %v", err)
@@ -481,8 +463,6 @@ func TestPostgresRepositoryTournamentApproval(t *testing.T) {
 		t.Fatalf("ViewerEntry(di, night) = %+v, %v; want none", view, err)
 	}
 
-	// Each decision leaves the requester a notice, and each request one for
-	// the organizer.
 	rows, err := pool.Query(ctx, `
 		SELECT u.name || ' ' || n.type || ': ' || n.body
 		FROM notifications n JOIN users u ON u.id = n.user_id

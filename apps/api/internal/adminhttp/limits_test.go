@@ -75,7 +75,6 @@ func TestAdminReadsAreLimitedPerVerifiedAdmin(t *testing.T) {
 		t.Fatalf("security events = %#v, want %#v", got, wantEvents)
 	}
 
-	// A second operator keeps an independent budget.
 	activeGrant := fixture.grants.grant
 	fixture.sessions.principals["other"] = testPrincipal("other-user", "other-grant", "other-csrf")
 	fixture.grants.grant = adminaccess.Grant{ID: "other-grant", UserID: "other-user", Role: adminaccess.RoleSiteAdmin}
@@ -184,7 +183,6 @@ func TestExchangeFailuresLockOnlyTheFailingAccessIdentity(t *testing.T) {
 		}
 	}
 
-	// Gaining a grant does not lift the lockout early.
 	fixture.grants.err = nil
 	fixture.security.events = nil
 	now = now.Add(5 * time.Minute)

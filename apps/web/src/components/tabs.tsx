@@ -35,8 +35,4 @@ function TabAnchor({
   );
 }
 
-/**
- * One tab in `Tabs`: a router link that takes the same `to`, `params`, and
- * `search` props as `Link`, plus `current` for the tab being shown.
- */
 export const TabLink = createLink(TabAnchor);

@@ -13,8 +13,6 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-// lifecycleFixture is a school, a creator, and a game in a fresh schema, and
-// a repository whose clock the test sets.
 type lifecycleFixture struct {
 	repository *PostgresRepository
 	schoolID   string

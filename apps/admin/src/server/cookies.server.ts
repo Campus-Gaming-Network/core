@@ -145,7 +145,6 @@ function parseSetCookie(header: string): ParsedCookie | null {
   return parsed;
 }
 
-/** Serializes a cookie mutation for a raw Response's Set-Cookie header. */
 export function setCookieHeader(mutation: CookieMutation): string {
   if (mutation.kind === "delete") {
     return `${mutation.name}=; Path=/; Max-Age=0`;

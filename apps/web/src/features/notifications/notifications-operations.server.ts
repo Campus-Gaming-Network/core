@@ -21,7 +21,6 @@ type Dependencies = {
 const inboxPath = "/notifications";
 const markedResponseSchema = z.object({ marked: z.number().int() });
 
-/** One page of the inbox, with each time shown in the viewer's own zone. */
 export async function inboxOperation(
   { after }: { after?: string },
   {

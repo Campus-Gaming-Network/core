@@ -1,6 +1,4 @@
 @layer features {
-  /* The full people pages: breadcrumbs, a heading like the page they belong
-     to, then everyone on one white panel. */
   .people-page .breadcrumbs {
     margin-bottom: var(--space-5);
   }
@@ -9,7 +7,6 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
-  /* A school's members: its logo tile beside the heading. */
   .people-page__heading {
     display: flex;
     align-items: flex-start;

@@ -1,10 +1,6 @@
 import { Gamepad2 } from "lucide-react";
 import { useImageFailure } from "../../components/use-image-failure";
 
-/**
- * A game's portrait cover beside its name on the event page, or the controller
- * tile of the same size when there is no cover or it fails to load.
- */
 export function EventGameCover({
   hasCover,
   slug,

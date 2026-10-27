@@ -3,7 +3,6 @@ import { useServerFn } from "@tanstack/react-start";
 import { useState, type FormEvent } from "react";
 import { confirmEmailChange } from "./account.functions";
 
-/** The Confirm email button on the page a new address's link opens. */
 export function ConfirmEmailChangeForm({ token }: { token: string }) {
   const runConfirm = useServerFn(confirmEmailChange);
   const router = useRouter();

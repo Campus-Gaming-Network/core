@@ -206,8 +206,6 @@ func exifOrientation(tiff []byte) int {
 	return 1
 }
 
-// resize copies the decoded pixels into a fresh NRGBA canvas, scaling so the
-// longest side is at most OutputSide.
 func resize(source image.Image) *image.NRGBA {
 	bounds := source.Bounds()
 	width, height := bounds.Dx(), bounds.Dy()
@@ -223,7 +221,6 @@ func resize(source image.Image) *image.NRGBA {
 	return target
 }
 
-// orient applies an EXIF orientation (1-8) so the stored pixels are upright.
 func orient(source *image.NRGBA, orientation int) *image.NRGBA {
 	if orientation == 1 {
 		return source

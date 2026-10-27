@@ -3,7 +3,6 @@ import { socialSite } from "../features/public-profile/social-sites.js";
 
 type SocialAccount = { name: string; url: string };
 
-/** Campus Gaming Network's own accounts, linked from the site footer. */
 export const cgnSocialAccounts: readonly SocialAccount[] = [
   { name: "Discord", url: "https://discord.gg/cG2uTEt3tc" },
   { name: "Instagram", url: "https://www.instagram.com/campusgamingnetwork/" },
@@ -16,10 +15,6 @@ export const cgnSocialAccounts: readonly SocialAccount[] = [
   { name: "GitHub", url: "https://github.com/Campus-Gaming-Network" },
 ];
 
-/**
- * A row of icon links to the accounts, each named for screen readers since the
- * icon is decorative. Renders nothing for an empty list.
- */
 export function SiteSocialLinks({
   accounts = cgnSocialAccounts,
 }: {

@@ -56,7 +56,6 @@ export function previewImageUrl(
   }
 }
 
-/** The cover image of the first game that has one, as an absolute address. */
 export function firstGameCoverUrl(
   publicOrigin: string | undefined,
   games: ReadonlyArray<{ slug: string; has_cover?: boolean }>,

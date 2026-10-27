@@ -127,7 +127,6 @@ type RegisterInput struct {
 	Roster   []string
 }
 
-// entryTournament is a tournament locked for a registration change.
 type entryTournament struct {
 	EventID     string
 	ID          string
@@ -508,11 +507,9 @@ func (r *PostgresRepository) RegistrationTeams(ctx context.Context, slug string,
 	return teams, nil
 }
 
-// lockedEntry is an active entry locked for a change.
 type lockedEntry struct {
-	status string
-	teamID string
-	// manager is set for the solo player and the team's owner and captains.
+	status  string
+	teamID  string
 	manager bool
 }
 
@@ -681,14 +678,11 @@ func (e TournamentEntry) ForSignedOut() TournamentEntry {
 	return e
 }
 
-// entryCounts are a tournament's registered entries and pending requests.
 type entryCounts struct {
 	Registered int
 	Pending    int
 }
 
-// countEntries counts the registered entries and pending requests of the
-// tournament on the event.
 func countEntries(ctx context.Context, tx pgx.Tx, eventID string) (entryCounts, error) {
 	var counts entryCounts
 	if err := tx.QueryRow(ctx, `

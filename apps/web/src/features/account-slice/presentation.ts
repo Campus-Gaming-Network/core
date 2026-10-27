@@ -1,7 +1,6 @@
 import type { PageNotice } from "../../components/page-notice.js";
 import { pageHead } from "../../components/public-page-head.js";
 
-// The delete account page shows a failed deletion after a native form post.
 export const deleteAccountNotices = {
   "delete-failed": {
     message: "We could not delete your account. Please try again.",
@@ -9,7 +8,6 @@ export const deleteAccountNotices = {
   },
 } as const satisfies Record<string, PageNotice>;
 
-// The "Your data" page shows why a download did not start.
 export const dataExportNotices = {
   "wrong-password": {
     message: "That password is not correct, so nothing was downloaded.",
@@ -45,7 +43,6 @@ export const settingsNotices = {
   },
 } as const satisfies Record<string, PageNotice>;
 
-// Account deletion ends the session and redirects to the home page.
 export const homeAccountNotices = {
   deleted: { message: "Your account was deleted.", severity: "success" },
 } as const satisfies Record<string, PageNotice>;

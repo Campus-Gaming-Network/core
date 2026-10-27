@@ -277,7 +277,6 @@ func (r *TokenRepository) UseEmailChangeToken(ctx context.Context, tokenHash []b
 	return nil
 }
 
-// insertSelfAudit records a change a person made to their own account.
 func insertSelfAudit(ctx context.Context, tx pgx.Tx, userID string, action string) error {
 	if _, err := tx.Exec(ctx, `
 		INSERT INTO audit_logs (actor_user_id, action, entity_type, entity_id)

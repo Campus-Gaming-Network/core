@@ -1,6 +1,5 @@
 import type { GameSearchMatch } from "./contracts.js";
 
-/** The most searched games a form accepts; see pickedIGDBGameIDsSchema. */
 export const maximumPickedGames = 5;
 
 export function gameMatchTitle(

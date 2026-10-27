@@ -142,7 +142,6 @@ export async function accountDashboardOperation(
   };
 }
 
-/** A page of the events the viewer created, from `/me/created-events`. */
 export async function createdEventsOperation(
   { after }: { after?: string },
   { api, cookieHeader, reportError = defaultErrorReporter }: ReadDependencies,
@@ -302,7 +301,6 @@ async function safeSecondaryRead<T>(
 
 const defaultErrorReporter = apiErrorReporter("Account");
 
-/** A password or email change: where to go next, or the notice to show. */
 export type SecurityChangeResult =
   | { status: "success"; message: string; redirectTo: string }
   | {

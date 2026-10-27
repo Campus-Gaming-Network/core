@@ -54,9 +54,8 @@ var (
 // Viewer is a signed-in person's place in a club, for the club page.
 type Viewer struct {
 	// Role is owner, editor, or member, and empty for someone not in the club.
-	Role string `json:"role,omitempty"`
-	// OwnershipOffered is true when an owner has offered the viewer the club.
-	OwnershipOffered bool `json:"ownership_offered,omitempty"`
+	Role             string `json:"role,omitempty"`
+	OwnershipOffered bool   `json:"ownership_offered,omitempty"`
 }
 
 // Member is one person in a club as its officers see them.
@@ -128,12 +127,10 @@ type OwnershipOfferPayload struct {
 	OwnerName string `json:"owner_name"`
 }
 
-// clubRef is a locked, published club and the actor's role in it.
 type clubRef struct {
 	id, name, slug, role string
 }
 
-// lockClub locks the published club with slug and reads userID's role in it.
 func lockClub(ctx context.Context, tx pgx.Tx, slug, userID string) (clubRef, error) {
 	var ref clubRef
 	err := tx.QueryRow(ctx, `
@@ -154,8 +151,6 @@ func lockClub(ctx context.Context, tx pgx.Tx, slug, userID string) (clubRef, err
 
 func (ref clubRef) officer() bool { return ref.role == RoleOwner || ref.role == RoleEditor }
 
-// officerChange runs one officer or member command on the published club with slug
-// in a transaction, with the club locked and the actor's role read.
 func (r *PostgresRepository) officerChange(ctx context.Context, slug, userID string, apply func(pgx.Tx, clubRef) error) error {
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
@@ -576,7 +571,6 @@ func memberRole(ctx context.Context, tx pgx.Tx, clubID, userID string) (string, 
 	return role, nil
 }
 
-// removeMember deletes the role and any ownership offer to or from the person.
 func removeMember(ctx context.Context, tx pgx.Tx, clubID, userID string) error {
 	if _, err := tx.Exec(ctx, `
 		DELETE FROM club_ownership_offers WHERE club_id = $1::uuid AND (from_user_id = $2::uuid OR to_user_id = $2::uuid)
@@ -694,7 +688,6 @@ type UserClub struct {
 	ViewerRole string        `json:"viewer_role"`
 }
 
-// maximumUserClubs bounds the clubs ListForUser returns.
 const maximumUserClubs = 100
 
 // ListForUser returns the published clubs userID is in, owners' and editors'

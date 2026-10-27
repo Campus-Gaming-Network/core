@@ -1,7 +1,4 @@
 @layer features {
-  /* The home page (reference sheet 12): the sidebar, a welcome panel with
-     scope shortcuts, then this week's events and later ones beside popular
-     schools. */
   .home-main {
     display: grid;
     gap: var(--space-5);
@@ -37,7 +34,6 @@
     }
   }
 
-  /* Three ways into events: my school, online, nationwide. */
   .home-scopes {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));

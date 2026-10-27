@@ -231,7 +231,6 @@ test("event read presentation matches labels, notices, indexable head, and safe 
     location_name: undefined,
     address: undefined,
   };
-  // List rows name the place but leave the street address to the event page.
   assert.deepEqual(
     [
       eventPlace(browseEvent),

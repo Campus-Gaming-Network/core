@@ -39,8 +39,6 @@ func parseListCursors(values url.Values) (*pagecursor.Cursor, *pagecursor.Cursor
 	return parseCursorPair(values, pagecursor.Decode)
 }
 
-// parseKeyListCursors reads the after and before cursors of a list paged by a
-// text sort key rather than a timestamp.
 func parseKeyListCursors(values url.Values) (*pagecursor.KeyCursor, *pagecursor.KeyCursor, error) {
 	return parseCursorPair(values, pagecursor.DecodeKey)
 }
@@ -86,7 +84,6 @@ func makeCursorPage[T any](
 	})
 }
 
-// makeKeyCursorPage is makeCursorPage for a list paged by a text sort key.
 func makeKeyCursorPage[T any](
 	items []T,
 	limit int,

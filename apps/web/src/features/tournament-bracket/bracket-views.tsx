@@ -202,7 +202,6 @@ export function ResultForms({
   match,
   slug,
 }: {
-  /** Both sides, decided. */
   entrants: [MatchEntrantDTO, MatchEntrantDTO];
   match: TournamentMatchDTO;
   slug: string;

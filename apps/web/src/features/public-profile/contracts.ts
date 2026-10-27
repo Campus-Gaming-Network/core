@@ -43,7 +43,6 @@ const socialLinkSchema = z.union([
 /** Public allowlist for loader serialization. */
 export const publicProfileDtoSchema = z.object({
   id: identifierSchema,
-  /** The ID in the profile's URL, `/users/{public_id}`. */
   public_id: identifierSchema,
   name: z.string(),
   bio: z.string().optional(),

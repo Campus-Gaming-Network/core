@@ -13,7 +13,6 @@ export { plausibleDomain };
 
 const plausibleOrigin = "https://plausible.io";
 
-/** The script is kept this long before it is fetched again. */
 const scriptCacheMilliseconds = 6 * 60 * 60 * 1000;
 
 /** The largest event body forwarded; Plausible's are a few hundred bytes. */
@@ -29,7 +28,6 @@ type AnalyticsDependencies = {
 
 let cachedScript: { body: string; fetchedAt: number } | undefined;
 
-/** Plausible's script, from a copy kept a few hours. */
 export async function analyticsScriptResponse({
   environment = process.env,
   fetcher = fetch,
@@ -174,7 +172,6 @@ function visitorHeaders(incoming: Headers): Headers {
   return headers;
 }
 
-/** The event to forward, or undefined when the body is not one of ours. */
 export function cleanEvent(
   text: string,
   siteOrigin: string,
