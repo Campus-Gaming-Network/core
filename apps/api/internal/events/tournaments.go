@@ -81,6 +81,11 @@ type Tournament struct {
 	Rules                string     `json:"rules"`
 	Prizes               string     `json:"prizes"`
 	Status               string     `json:"status"`
+	// EntryCount counts the active entries.
+	EntryCount int `json:"entry_count"`
+	// ViewerEntry is the signed-in viewer's own entry, set by the event
+	// page's handler.
+	ViewerEntry *ViewerEntry `json:"viewer_entry,omitempty"`
 }
 
 // TournamentInput is the request to create or replace an event's tournament
@@ -231,6 +236,27 @@ func (r *PostgresRepository) PutTournament(ctx context.Context, input Tournament
 	}
 
 	created := event.Status == ""
+	if !created {
+		// Entrants signed up for the entry type, team size, and format.
+		teamSize := 0
+		if input.TeamSize != nil {
+			teamSize = *input.TeamSize
+		}
+		var changed bool
+		if err := tx.QueryRow(ctx, `
+			SELECT (entry_type, COALESCE(team_size, 0), format) IS DISTINCT FROM ($2, $3::int, $4)
+			FROM tournaments WHERE event_id = $1::uuid
+		`, event.ID, input.EntryType, teamSize, input.Format).Scan(&changed); err != nil {
+			return Tournament{}, false, fmt.Errorf("compare tournament settings: %w", err)
+		}
+		entries, err := countEntries(ctx, tx, event.ID)
+		if err != nil {
+			return Tournament{}, false, err
+		}
+		if changed && entries > 0 {
+			return Tournament{}, false, ErrTournamentHasEntries
+		}
+	}
 	if created {
 		// Registration replaces RSVP, so no one but an organizer may hold an
 		// RSVP that the tournament would set aside.
@@ -332,6 +358,16 @@ func (r *PostgresRepository) SetTournamentStatus(ctx context.Context, slug strin
 		if !r.now().Before(event.EndsAt) && status != TournamentCompleted {
 			return Tournament{}, ErrEventEnded
 		}
+		entries, err := countEntries(ctx, tx, event.ID)
+		if err != nil {
+			return Tournament{}, err
+		}
+		if status == TournamentDraft && entries > 0 {
+			return Tournament{}, ErrTournamentHasEntries
+		}
+		if status == TournamentInProgress && entries < 2 {
+			return Tournament{}, ErrTournamentNeedsEntrants
+		}
 		if _, err := tx.Exec(ctx, `
 			UPDATE tournaments SET status = $2 WHERE event_id = $1::uuid
 		`, event.ID, status); err != nil {
@@ -360,14 +396,15 @@ func loadTournament(ctx context.Context, loader tournamentLoader, eventID string
 	err := loader.QueryRow(ctx, `
 		SELECT g.id::text, g.name, g.slug, g.is_active AND EXISTS (SELECT 1 FROM game_covers gc WHERE gc.game_id = g.id),
 		       t.entry_type, t.team_size, t.substitutes, t.entrant_cap, t.registration_closes_at,
-		       t.format, t.rules, t.prizes, t.status
+		       t.format, t.rules, t.prizes, t.status,
+		       (SELECT COUNT(*) FROM tournament_entries te WHERE te.tournament_id = t.id AND te.status = 'registered')::int
 		FROM tournaments t
 		JOIN games g ON g.id = t.game_id
 		WHERE t.event_id = $1::uuid
 	`, eventID).Scan(
 		&tournament.Game.ID, &tournament.Game.Name, &tournament.Game.Slug, &tournament.Game.HasCover,
 		&tournament.EntryType, &teamSize, &tournament.Substitutes, &entrantCap, &tournament.RegistrationClosesAt,
-		&tournament.Format, &tournament.Rules, &tournament.Prizes, &tournament.Status)
+		&tournament.Format, &tournament.Rules, &tournament.Prizes, &tournament.Status, &tournament.EntryCount)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
 	}

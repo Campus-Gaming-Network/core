@@ -451,6 +451,23 @@ documents are updated and their contracts are implemented:
   submission remains valid.
 - "I'm interested" is a separate toggle under the choices.
 
+### Tournament registration
+
+- On an event with tournament settings, `RegistrationPanel`
+  (`apps/web/src/features/tournament-registration/registration-panel.tsx`)
+  takes the RSVP panel's place: a summary ("Solo · 3 of 16 registered"), then
+  one of not open yet (organizers only), open, full, closed, or registered,
+  and "I'm interested" under it.
+- Open solo registration is one Register button; open team registration is one
+  form per team the viewer owns or captains, with a checkbox for each member
+  and the roster size in its hint. Each form says that entering shows the
+  entrant's name to anyone signed in.
+- Registered shows the entry (and its team) with Withdraw for the solo player
+  or the team's owner and captains while registration is open.
+- `EntrantsCard` replaces "Who's going": entrants in seed order, team rosters
+  after the team's name, solo entrants as "Seed 3" for visitors, and Remove
+  for organizers until the tournament starts. Every control is a native form.
+
 ### People lists
 
 - Signed-in viewers see who is part of an event (Going, with Maybe on its own

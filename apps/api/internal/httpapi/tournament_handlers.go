@@ -2,12 +2,14 @@ package httpapi
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"slices"
 	"time"
 
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/auth"
 	eventstore "github.com/Campus-Gaming-Network/core/apps/api/internal/events"
+	"github.com/jackc/pgx/v5"
 )
 
 // eventTournaments manages the tournament settings and status on an event.
@@ -15,6 +17,12 @@ type eventTournaments interface {
 	PutTournament(ctx context.Context, input eventstore.TournamentInput) (eventstore.Tournament, bool, error)
 	DeleteTournament(ctx context.Context, slug string, userID string) error
 	SetTournamentStatus(ctx context.Context, slug string, userID string, status string) (eventstore.Tournament, error)
+	Register(ctx context.Context, input eventstore.RegisterInput) (eventstore.TournamentEntry, error)
+	UpdateRoster(ctx context.Context, slug string, userID string, entryID string, roster []string) (eventstore.TournamentEntry, error)
+	DeleteEntry(ctx context.Context, slug string, userID string, entryID string) error
+	ListEntries(ctx context.Context, slug string, userID string) ([]eventstore.TournamentEntry, error)
+	ViewerEntry(ctx context.Context, slug string, userID string) (*eventstore.ViewerEntry, error)
+	RegistrationTeams(ctx context.Context, slug string, userID string) ([]eventstore.RegistrationTeam, error)
 }
 
 type tournamentRequest struct {
@@ -120,4 +128,142 @@ func (r *Router) handleTournamentStatus(w http.ResponseWriter, req *http.Request
 		return
 	}
 	writeJSON(w, http.StatusOK, tournament)
+}
+
+type registerRequest struct {
+	TeamSlug string   `json:"team_slug"`
+	Roster   []string `json:"roster"`
+}
+
+type rosterRequest struct {
+	Roster []string `json:"roster"`
+}
+
+// tournamentEventVisible answers for an event that is missing, or private and
+// not unlocked by the viewer, and reports whether the request may go on.
+func (r *Router) tournamentEventVisible(w http.ResponseWriter, req *http.Request, slug string) bool {
+	event, err := r.events.GetBySlug(req.Context(), slug)
+	if errors.Is(err, pgx.ErrNoRows) {
+		writeError(w, http.StatusNotFound, "event_not_found")
+		return false
+	}
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "event_unavailable")
+		return false
+	}
+	if !event.IsPrivate() {
+		return true
+	}
+	allowed, err := r.canAccessPrivateEvent(req, slug)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "event_unavailable")
+		return false
+	}
+	if !allowed {
+		writeError(w, http.StatusForbidden, "private_event_locked")
+	}
+	return allowed
+}
+
+// handleTournamentEntries answers GET /events/{slug}/tournament/entries, the
+// entrant list, and POST, a registration. A signed-out viewer sees team
+// names and solo entrants by seed only.
+func (r *Router) handleTournamentEntries(w http.ResponseWriter, req *http.Request, slug string) {
+	if r.tournaments == nil {
+		writeError(w, http.StatusServiceUnavailable, "database_unavailable")
+		return
+	}
+	if req.Method == http.MethodGet {
+		if !r.tournamentEventVisible(w, req, slug) {
+			return
+		}
+		userID, signedIn := auth.UserID(req.Context())
+		if !signedIn || !looksLikeUUID(userID) {
+			userID, signedIn = "", false
+		}
+		entries, err := r.tournaments.ListEntries(req.Context(), slug, userID)
+		if err != nil {
+			writeApplicationError(w, err, "tournament_entries_unavailable")
+			return
+		}
+		if !signedIn {
+			for index, entry := range entries {
+				entries[index] = entry.ForSignedOut()
+			}
+		}
+		w.Header().Set("Cache-Control", "private, no-store")
+		w.Header().Set("Vary", "Cookie, Authorization, X-CGN-Event-Unlock")
+		writeJSON(w, http.StatusOK, map[string]any{"entries": entries})
+		return
+	}
+	userID, ok := r.tournamentUser(w, req)
+	if !ok {
+		return
+	}
+	var request registerRequest
+	if !decodeJSON(w, req, &request) {
+		return
+	}
+	if !r.tournamentEventVisible(w, req, slug) {
+		return
+	}
+	entry, err := r.tournaments.Register(req.Context(), eventstore.RegisterInput{
+		Slug:     slug,
+		UserID:   userID,
+		TeamSlug: request.TeamSlug,
+		Roster:   request.Roster,
+	})
+	if err != nil {
+		writeApplicationError(w, err, "tournament_registration_failed")
+		return
+	}
+	writeJSON(w, http.StatusCreated, entry)
+}
+
+// handleTournamentEntry answers PATCH /events/{slug}/tournament/entries/{id},
+// a roster change, and DELETE, a withdrawal or removal.
+func (r *Router) handleTournamentEntry(w http.ResponseWriter, req *http.Request, slug string) {
+	userID, ok := r.tournamentUser(w, req)
+	if !ok {
+		return
+	}
+	entryID := req.PathValue("id")
+	if !looksLikeUUID(entryID) {
+		writeError(w, http.StatusNotFound, "tournament_entry_not_found")
+		return
+	}
+	if req.Method == http.MethodDelete {
+		if err := r.tournaments.DeleteEntry(req.Context(), slug, userID, entryID); err != nil {
+			writeApplicationError(w, err, "tournament_entry_delete_failed")
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	var request rosterRequest
+	if !decodeJSON(w, req, &request) {
+		return
+	}
+	entry, err := r.tournaments.UpdateRoster(req.Context(), slug, userID, entryID, request.Roster)
+	if err != nil {
+		writeApplicationError(w, err, "tournament_roster_failed")
+		return
+	}
+	writeJSON(w, http.StatusOK, entry)
+}
+
+// handleTournamentTeams answers GET /events/{slug}/tournament/my-teams: the
+// teams the viewer owns or captains, with the members a roster may pick.
+func (r *Router) handleTournamentTeams(w http.ResponseWriter, req *http.Request, slug string) {
+	userID, ok := r.tournamentUser(w, req)
+	if !ok {
+		return
+	}
+	teams, err := r.tournaments.RegistrationTeams(req.Context(), slug, userID)
+	if err != nil {
+		writeApplicationError(w, err, "tournament_teams_unavailable")
+		return
+	}
+	w.Header().Set("Cache-Control", "private, no-store")
+	writeJSON(w, http.StatusOK, map[string]any{"teams": teams})
 }

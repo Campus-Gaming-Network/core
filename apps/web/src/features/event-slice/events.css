@@ -321,6 +321,25 @@
     margin-top: var(--space-4);
   }
 
+  /* A tournament's entrants in seed order: the number is the seed, and an
+     organizer's Remove button follows the name. */
+  .tournament-entrants {
+    display: grid;
+    gap: var(--space-2);
+    margin: 0;
+    padding-left: var(--space-6);
+
+    li {
+      overflow-wrap: anywhere;
+    }
+
+    /* Inline, so each row keeps its seed number. */
+    form {
+      display: inline-block;
+      margin-left: var(--space-2);
+    }
+  }
+
   /* Games in key information: each beside its portrait cover or a tile of
      the same size. */
   .event-game-list {

@@ -37,6 +37,40 @@ func (f *fakeEventTournaments) SetTournamentStatus(_ context.Context, slug strin
 	return eventstore.Tournament{Status: status}, nil
 }
 
+func (f *fakeEventTournaments) Register(_ context.Context, input eventstore.RegisterInput) (eventstore.TournamentEntry, error) {
+	f.calls = append(f.calls, fmt.Sprintf("register %s %s team=%q roster=%q", input.Slug, input.UserID, input.TeamSlug, input.Roster))
+	return eventstore.TournamentEntry{ID: "entry-1", Seed: 1}, nil
+}
+
+func (f *fakeEventTournaments) UpdateRoster(_ context.Context, slug string, userID string, entryID string, roster []string) (eventstore.TournamentEntry, error) {
+	f.calls = append(f.calls, fmt.Sprintf("roster %s %s %s %q", slug, userID, entryID, roster))
+	return eventstore.TournamentEntry{ID: entryID, Seed: 1}, nil
+}
+
+func (f *fakeEventTournaments) DeleteEntry(_ context.Context, slug string, userID string, entryID string) error {
+	f.calls = append(f.calls, "delete entry "+slug+" "+userID+" "+entryID)
+	return nil
+}
+
+func (f *fakeEventTournaments) ListEntries(_ context.Context, slug string, userID string) ([]eventstore.TournamentEntry, error) {
+	f.calls = append(f.calls, fmt.Sprintf("list %s %q", slug, userID))
+	return []eventstore.TournamentEntry{
+		{ID: "entry-1", Seed: 1, Player: &eventstore.EntryPlayer{PublicID: "p1", Name: "Ada"}},
+		{ID: "entry-2", Seed: 2, Team: &eventstore.TeamSummary{Name: "Knights", Slug: "knights"},
+			Roster: []eventstore.EntryPlayer{{PublicID: "p2", Name: "Bo"}}},
+	}, nil
+}
+
+func (f *fakeEventTournaments) ViewerEntry(_ context.Context, slug string, userID string) (*eventstore.ViewerEntry, error) {
+	f.calls = append(f.calls, "viewer "+slug+" "+userID)
+	return &eventstore.ViewerEntry{ID: "entry-1", CanManage: true}, nil
+}
+
+func (f *fakeEventTournaments) RegistrationTeams(_ context.Context, slug string, userID string) ([]eventstore.RegistrationTeam, error) {
+	f.calls = append(f.calls, "teams "+slug+" "+userID)
+	return []eventstore.RegistrationTeam{}, nil
+}
+
 func tournamentRouter(store *fakeEventTournaments, events *fakeEventRepository) http.Handler {
 	router := &Router{
 		cfg:         config.Config{SessionCookie: "session", SessionTTL: time.Hour},
@@ -80,11 +114,11 @@ func TestTournamentRoutesReachTheStoreAsTheSignedInUser(t *testing.T) {
 		got = append(got, result{response.Code, strings.TrimSpace(response.Body.String())})
 	}
 
-	draft := `{"game":{"id":"","name":"","slug":"","has_cover":false},"entry_type":"team","substitutes":0,"format":"","rules":"","prizes":"","status":"draft"}`
+	draft := `{"game":{"id":"","name":"","slug":"","has_cover":false},"entry_type":"team","substitutes":0,"format":"","rules":"","prizes":"","status":"draft","entry_count":0}`
 	want := []result{
 		{http.StatusCreated, draft},
 		{http.StatusOK, draft},
-		{http.StatusOK, `{"game":{"id":"","name":"","slug":"","has_cover":false},"entry_type":"","substitutes":0,"format":"","rules":"","prizes":"","status":"registration_open"}`},
+		{http.StatusOK, `{"game":{"id":"","name":"","slug":"","has_cover":false},"entry_type":"","substitutes":0,"format":"","rules":"","prizes":"","status":"registration_open","entry_count":0}`},
 		{http.StatusBadRequest, `{"error":"invalid_tournament_status"}`},
 		{http.StatusConflict, `{"error":"tournament_locked"}`},
 		{http.StatusBadRequest, `{"error":"invalid_json"}`},
@@ -142,5 +176,67 @@ func TestEventDetailShowsADraftTournamentToOrganizersOnly(t *testing.T) {
 	}
 	if !reflect.DeepEqual(visible, want) {
 		t.Fatalf("tournament shown = %v, want %v", visible, want)
+	}
+}
+
+func TestTournamentEntryRoutes(t *testing.T) {
+	const entryID = "22222222-2222-4222-8222-222222222222"
+	store := &fakeEventTournaments{}
+	public := &fakeEventRepository{detail: eventstore.Event{Slug: "spring-bracket", Visibility: eventstore.VisibilityPublic}}
+	private := &fakeEventRepository{detail: eventstore.Event{Slug: "spring-bracket", Visibility: eventstore.VisibilityPrivate}}
+	type result struct {
+		Status int
+		Body   string
+	}
+	var got []result
+	for _, request := range []struct {
+		method, target, body string
+		events               *fakeEventRepository
+		signedIn             bool
+	}{
+		{http.MethodGet, "/events/spring-bracket/tournament/entries", "", public, false},
+		{http.MethodGet, "/events/spring-bracket/tournament/entries", "", public, true},
+		{http.MethodPost, "/events/spring-bracket/tournament/entries", `{"team_slug":"knights","roster":["p1","p2"]}`, public, true},
+		{http.MethodPost, "/events/spring-bracket/tournament/entries", `{}`, private, true},
+		{http.MethodPatch, "/events/spring-bracket/tournament/entries/" + entryID, `{"roster":["p1"]}`, public, true},
+		{http.MethodDelete, "/events/spring-bracket/tournament/entries/" + entryID, "", public, true},
+		{http.MethodDelete, "/events/spring-bracket/tournament/entries/not-an-id", "", public, true},
+		{http.MethodGet, "/events/spring-bracket/tournament/my-teams", "", public, true},
+		{http.MethodPost, "/events/spring-bracket/tournament/entries", `{}`, public, false},
+	} {
+		req := httptest.NewRequest(request.method, request.target, strings.NewReader(request.body))
+		if request.signedIn {
+			req = authenticatedEventRequest(request.method, request.target, request.body)
+		}
+		response := httptest.NewRecorder()
+		tournamentRouter(store, request.events).ServeHTTP(response, req)
+		got = append(got, result{response.Code, strings.TrimSpace(response.Body.String())})
+	}
+
+	signedOut := `{"entries":[{"id":"entry-1","seed":1,"registered_at":"0001-01-01T00:00:00Z"},` +
+		`{"id":"entry-2","seed":2,"team":{"id":"","name":"Knights","slug":"knights"},"registered_at":"0001-01-01T00:00:00Z"}]}`
+	signedIn := `{"entries":[{"id":"entry-1","seed":1,"player":{"public_id":"p1","name":"Ada"},"registered_at":"0001-01-01T00:00:00Z"},` +
+		`{"id":"entry-2","seed":2,"team":{"id":"","name":"Knights","slug":"knights"},"roster":[{"public_id":"p2","name":"Bo"}],"registered_at":"0001-01-01T00:00:00Z"}]}`
+	want := []result{
+		{http.StatusOK, signedOut},
+		{http.StatusOK, signedIn},
+		{http.StatusCreated, `{"id":"entry-1","seed":1,"registered_at":"0001-01-01T00:00:00Z"}`},
+		{http.StatusForbidden, `{"error":"private_event_locked"}`},
+		{http.StatusOK, `{"id":"` + entryID + `","seed":1,"registered_at":"0001-01-01T00:00:00Z"}`},
+		{http.StatusNoContent, ""},
+		{http.StatusNotFound, `{"error":"tournament_entry_not_found"}`},
+		{http.StatusOK, `{"teams":[]}`},
+		{http.StatusUnauthorized, `{"error":"authentication_required"}`},
+	}
+	wantCalls := []string{
+		`list spring-bracket ""`,
+		`list spring-bracket "` + testUserID + `"`,
+		"register spring-bracket " + testUserID + ` team="knights" roster=["p1" "p2"]`,
+		"roster spring-bracket " + testUserID + " " + entryID + ` ["p1"]`,
+		"delete entry spring-bracket " + testUserID + " " + entryID,
+		"teams spring-bracket " + testUserID,
+	}
+	if !reflect.DeepEqual(got, want) || !reflect.DeepEqual(store.calls, wantCalls) {
+		t.Fatalf("results = %+v\ncalls = %q\nwant %+v\nand %q", got, store.calls, want, wantCalls)
 	}
 }

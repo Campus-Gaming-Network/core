@@ -21,7 +21,7 @@ PostgreSQL is the system of record. Conventions first; then core tables. Exact c
 
 Keep the first migration set scoped to shipped features. Create only the tables needed for auth/profile, home school and follows, schools seed, launch games, events, teams, reports/support tickets, and operational needs.
 
-Do **not** create first-pass tables for tournament entries and matches, user activity history, feature flags, site announcements, on-site payments, IGDB bulk-sync runs, or broader Admin Console-only workflows until those phases are actively being built. The operations foundation includes audit history and per-user notifications. Audit history is readable through capability-gated Admin Console API routes; notifications have no HTTP or UI surface yet.
+Do **not** create first-pass tables for tournament matches, user activity history, feature flags, site announcements, on-site payments, IGDB bulk-sync runs, or broader Admin Console-only workflows until those phases are actively being built. The operations foundation includes audit history and per-user notifications. Audit history is readable through capability-gated Admin Console API routes; notifications have no HTTP or UI surface yet.
 
 ## Core tables (logical)
 
@@ -278,8 +278,9 @@ event_private_unlocks
 
 ### Tournaments
 
-`tournaments` is migrated (`000045`); the other tables are planned, and the
-migration in each phase's issue sets their final columns.
+`tournaments` (`000045`), `tournament_entries`, and `tournament_entry_players`
+(`000046`) are migrated; `tournament_matches` is planned, and its phase's issue
+sets the final columns.
 [02 — Domain model](./02-domain-model.md#tournament) owns the fields and rules.
 
 ```text
@@ -296,10 +297,16 @@ tournaments
 
 tournament_entries
   id, tournament_id, user_id nullable, team_id nullable (exactly one set),
-  registered_by_user_id, status (registered|withdrawn|removed), seed nullable, ...
+  registered_by_user_id, status (registered|withdrawn|removed), seed nullable,
+  registered_at, created_at, updated_at
+  -- unique (tournament_id, user_id) and (tournament_id, team_id): one row per
+  -- entrant, reused when a withdrawn entrant registers again
 
 tournament_entry_players
-  entry_id, user_id  -- a team entry's roster
+  entry_id, tournament_id, user_id, created_at  -- an active team entry's roster
+  -- unique (tournament_id, user_id); rows are deleted when the entry is
+  -- withdrawn or removed, and a trigger deletes them when the player leaves
+  -- the team before the tournament starts
 
 tournament_matches
   id, tournament_id, bracket (upper|lower|grand_final), round, position,
@@ -465,7 +472,7 @@ Do not list `unlisted` or `private` events in discovery search. Unlisted is reac
 ## Migrations
 
 - Versioned SQL migrations live in `db/migrations` and are applied by the Go migrator
-- First migrations stay scoped to shipped features; defer schema for tournament entries and matches, feature flags, site announcements, on-site payments, IGDB sync, and Admin Console-only workflows.
+- First migrations stay scoped to shipped features; defer schema for tournament matches, feature flags, site announcements, on-site payments, IGDB sync, and Admin Console-only workflows.
 - In Railway production, run the Go migrator as a pre-deploy command or dedicated migration service/job before the API serves traffic
 - Never rely on manual prod SQL for schema changes
 - The migrator runs each file in one transaction, so `CREATE INDEX CONCURRENTLY` is not available; indexes build under a write lock, which is acceptable at current table sizes

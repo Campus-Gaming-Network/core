@@ -446,15 +446,24 @@ type cancellationRecipient struct {
 }
 
 func cancellationRecipients(ctx context.Context, tx pgx.Tx, eventID string) ([]cancellationRecipient, error) {
+	// People going or maybe, and every tournament entrant: solo players and
+	// roster players.
 	rows, err := tx.Query(ctx, `
 		SELECT u.id::text, u.email::text
-		FROM event_rsvps r
-		JOIN users u ON u.id = r.user_id
-		WHERE r.event_id = $1::uuid
-		  AND r.deleted_at IS NULL
-		  AND r.response IN ('yes', 'maybe')
-		  AND u.deleted_at IS NULL
+		FROM users u
+		WHERE u.deleted_at IS NULL
 		  AND u.account_status = 'active'
+		  AND u.id IN (
+		      SELECT r.user_id FROM event_rsvps r
+		      WHERE r.event_id = $1::uuid AND r.deleted_at IS NULL AND r.response IN ('yes', 'maybe')
+		      UNION
+		      SELECT te.user_id FROM tournament_entries te
+		      JOIN tournaments t ON t.id = te.tournament_id
+		      WHERE t.event_id = $1::uuid AND te.status = 'registered' AND te.user_id IS NOT NULL
+		      UNION
+		      SELECT p.user_id FROM tournament_entry_players p
+		      JOIN tournaments t ON t.id = p.tournament_id
+		      WHERE t.event_id = $1::uuid)
 		ORDER BY u.id
 	`, eventID)
 	if err != nil {

@@ -42,6 +42,7 @@ type Export struct {
 	EventsOrganized   json.RawMessage `json:"events_organized"`
 	RSVPs             json.RawMessage `json:"rsvps"`
 	InterestedEvents  json.RawMessage `json:"interested_events"`
+	TournamentEntries json.RawMessage `json:"tournament_entries"`
 	SupportTickets    json.RawMessage `json:"support_tickets"`
 	Reports           json.RawMessage `json:"reports"`
 	Notifications     json.RawMessage `json:"notifications"`
@@ -182,6 +183,20 @@ var sections = []section{
 			SELECT e.title AS event_title, e.slug AS event_slug, i.created_at AS marked_at
 			FROM event_interests i JOIN events e ON e.id = i.event_id
 			WHERE i.user_id = $1::uuid AND i.deleted_at IS NULL ORDER BY i.created_at, e.slug`),
+	},
+	{
+		name:   "tournament entries",
+		target: func(e *Export) *json.RawMessage { return &e.TournamentEntries },
+		query: list(`to_jsonb(entry)`, `
+			SELECT e.title AS event_title, e.slug AS event_slug, tm.name AS team_name,
+			       te.status, te.registered_at
+			FROM tournament_entries te
+			JOIN tournaments t ON t.id = te.tournament_id
+			JOIN events e ON e.id = t.event_id
+			LEFT JOIN teams tm ON tm.id = te.team_id
+			WHERE te.user_id = $1::uuid
+			   OR EXISTS (SELECT 1 FROM tournament_entry_players p WHERE p.entry_id = te.id AND p.user_id = $1::uuid)
+			ORDER BY te.registered_at, te.id`),
 	},
 	{
 		name:   "support tickets",

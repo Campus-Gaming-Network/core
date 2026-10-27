@@ -16,7 +16,8 @@ func TestPostgresRepositoryTournamentSettingsAndStatus(t *testing.T) {
 	pool := dbtest.NewMigratedSchemaPool(t, "events")
 	schoolID := dbtest.InsertSchool(t, pool, "Tournament School", "tournament-school")
 	organizerID := dbtest.InsertUser(t, pool, schoolID, "tournament-organizer@example.test", "Tournament Organizer")
-	playerID := dbtest.InsertUser(t, pool, schoolID, "tournament-player@example.test", "Tournament Player")
+	playerID := dbtest.InsertUser(t, pool, schoolID, "tournament-player@example.test", "Tournament Player", dbtest.VerifiedEmail())
+	secondPlayerID := dbtest.InsertUser(t, pool, schoolID, "tournament-second@example.test", "Second Player", dbtest.VerifiedEmail())
 	var gameID, otherGameID string
 	if err := pool.QueryRow(ctx, `
 		INSERT INTO games (name, slug) VALUES ('Bracket Game', 'bracket-game') RETURNING id::text
@@ -174,25 +175,34 @@ func TestPostgresRepositoryTournamentSettingsAndStatus(t *testing.T) {
 
 	var statuses []string
 	var statusErrors []error
-	for _, status := range []string{
-		TournamentCompleted, TournamentRegistrationOpen, TournamentRegistrationOpen,
-		TournamentDraft, TournamentRegistrationOpen, TournamentInProgress, TournamentDraft, TournamentCompleted,
-	} {
-		tournament, err := repository.SetTournamentStatus(ctx, event.Slug, organizerID, status)
-		statuses = append(statuses, tournament.Status)
-		statusErrors = append(statusErrors, err)
+	move := func(sequence ...string) {
+		for _, status := range sequence {
+			tournament, err := repository.SetTournamentStatus(ctx, event.Slug, organizerID, status)
+			statuses = append(statuses, tournament.Status)
+			statusErrors = append(statusErrors, err)
+		}
 	}
+	// Starting needs two entries.
+	move(TournamentCompleted, TournamentRegistrationOpen, TournamentRegistrationOpen,
+		TournamentDraft, TournamentRegistrationOpen, TournamentInProgress)
+	for _, player := range []string{playerID, secondPlayerID} {
+		if _, err := repository.Register(ctx, RegisterInput{Slug: event.Slug, UserID: player}); err != nil {
+			t.Fatalf("Register(%s) error = %v", player, err)
+		}
+	}
+	move(TournamentDraft, TournamentInProgress, TournamentDraft, TournamentCompleted)
 	_, outsiderErr := repository.SetTournamentStatus(ctx, event.Slug, playerID, TournamentCancelled)
 	_, _, lockedErr := repository.PutTournament(ctx, settings)
 	deleteErr := repository.DeleteTournament(ctx, event.Slug, organizerID)
 	if got, want := statuses, []string{
 		"", TournamentRegistrationOpen, TournamentRegistrationOpen, TournamentDraft,
-		TournamentRegistrationOpen, TournamentInProgress, "", TournamentCompleted,
+		TournamentRegistrationOpen, "", "", TournamentInProgress, "", TournamentCompleted,
 	}; !reflect.DeepEqual(got, want) {
 		t.Fatalf("statuses = %q, want %q", got, want)
 	}
 	if got, want := append(statusErrors, outsiderErr, lockedErr, deleteErr), []error{
-		ErrTournamentStatus, nil, nil, nil, nil, nil, ErrTournamentStatus, nil,
+		ErrTournamentStatus, nil, nil, nil, nil, ErrTournamentNeedsEntrants,
+		ErrTournamentHasEntries, nil, ErrTournamentStatus, nil,
 		ErrOrganizerRequired, ErrTournamentLocked, ErrTournamentLocked,
 	}; !reflect.DeepEqual(got, want) {
 		t.Fatalf("status errors = %v, want %v", got, want)

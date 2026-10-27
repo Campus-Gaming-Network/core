@@ -56,6 +56,15 @@ func TestExportHoldsEveryPartOfOneAccountAndNoOneElses(t *testing.T) {
 		 organizer AS (INSERT INTO event_organizers (event_id, user_id, role, created_at) SELECT id, $1::uuid, 'creator', $2 FROM event),
 		 rsvp AS (INSERT INTO event_rsvps (event_id, user_id, response, created_at, updated_at) SELECT id, $1::uuid, 'yes', $2, $2 FROM event)
 		 INSERT INTO event_interests (event_id, user_id, created_at) SELECT id, $1::uuid, $2 FROM event`,
+		`WITH tournament AS (
+		   INSERT INTO tournaments (event_id, game_id, entry_type, team_size, format)
+		   SELECT e.id, g.id, 'team', 2, 'single_elimination' FROM events e, games g WHERE e.slug = 'chess-night' AND g.slug = 'chess'
+		   RETURNING id),
+		 entry AS (
+		   INSERT INTO tournament_entries (tournament_id, team_id, registered_by_user_id, registered_at)
+		   SELECT tournament.id, teams.id, $1::uuid, $2 FROM tournament, teams WHERE teams.slug = 'knights'
+		   RETURNING id, tournament_id)
+		 INSERT INTO tournament_entry_players (entry_id, tournament_id, user_id) SELECT id, tournament_id, $1::uuid FROM entry`,
 		`INSERT INTO support_tickets (submitter_user_id, contact_email, name, subject, message, created_at) VALUES ($1::uuid, 'me@example.test', 'Me', 'Help', 'Please', $2)`,
 		`INSERT INTO reports (reporter_user_id, target_type, target_id, reason, created_at) SELECT $1::uuid, 'user', id, 'Spam', $2 FROM users WHERE email = 'other@example.test'`,
 		`INSERT INTO notifications (user_id, type, title, body, created_at) VALUES ($1::uuid, 'event.cancelled', 'Cancelled', 'Chess Night was cancelled', $2)`,
@@ -128,6 +137,7 @@ func TestExportHoldsEveryPartOfOneAccountAndNoOneElses(t *testing.T) {
 		}},
 		"rsvps":              []any{map[string]any{"event_title": "Chess Night", "event_slug": "chess-night", "response": "yes", "responded_at": at, "updated_at": at}},
 		"interested_events":  []any{map[string]any{"event_title": "Chess Night", "event_slug": "chess-night", "marked_at": at}},
+		"tournament_entries": []any{map[string]any{"event_title": "Chess Night", "event_slug": "chess-night", "team_name": "Knights", "status": "registered", "registered_at": at}},
 		"support_tickets":    []any{map[string]any{"subject": "Help", "message": "Please", "name": "Me", "contact_email": "me@example.test", "status": "open", "created_at": at}},
 		"reports":            []any{map[string]any{"target_type": "user", "target_id": otherID, "reason": "Spam", "status": "open", "created_at": at}},
 		"notifications":      []any{map[string]any{"type": "event.cancelled", "title": "Cancelled", "body": "Chess Night was cancelled", "read_at": nil, "created_at": at}},

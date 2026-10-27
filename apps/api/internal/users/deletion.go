@@ -311,6 +311,12 @@ func (r *PostgresRepository) DeleteAccount(ctx context.Context, userID string) e
 		`DELETE FROM user_school_follows WHERE user_id = $1::uuid`,
 		`DELETE FROM user_games WHERE user_id = $1::uuid`,
 		`DELETE FROM event_rsvps WHERE user_id = $1::uuid`,
+		// Solo entries withdraw before the tournament starts; the team
+		// memberships deleted above take the account off rosters.
+		`UPDATE tournament_entries e SET status = 'withdrawn'
+		 FROM tournaments t
+		 WHERE t.id = e.tournament_id AND e.user_id = $1::uuid AND e.status = 'registered'
+		   AND t.status IN ('draft', 'registration_open')`,
 		`DELETE FROM event_interests WHERE user_id = $1::uuid`,
 		`DELETE FROM notifications WHERE user_id = $1::uuid`,
 		`DELETE FROM user_activity_days WHERE user_id = $1::uuid`,

@@ -1,4 +1,5 @@
 import * as z from "zod";
+import { tournamentDtoSchema } from "../tournament-registration/contracts.js";
 import {
   otherGameSchema,
   pickedIGDBGameIDsSchema,
@@ -136,6 +137,8 @@ export const eventDtoSchema = z.object({
   cancelled_at: timestampSchema.optional(),
   /** Rises with every change its calendar file shows; the file's SEQUENCE. */
   revision: nonNegativeIntegerSchema,
+  /** The tournament on a tournament-type event; a draft only for organizers. */
+  tournament: tournamentDtoSchema.optional(),
   updated_at: timestampSchema,
 });
 

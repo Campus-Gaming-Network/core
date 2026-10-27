@@ -25,6 +25,7 @@ export const dataExportDtoSchema = z.object({
   events_organized: entries,
   rsvps: entries,
   interested_events: entries,
+  tournament_entries: entries,
   support_tickets: entries,
   reports: entries,
   notifications: entries,
