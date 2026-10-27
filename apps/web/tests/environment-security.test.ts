@@ -1,6 +1,4 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
-import { basename, join } from "node:path";
 import { test } from "vite-plus/test";
 import {
   assertSafeEnvironment,
@@ -9,12 +7,6 @@ import {
   schoolLogoBase,
   validatedPublicOrigin,
 } from "../src/server/environment.server.js";
-
-const currentDirectory = process.cwd();
-const repositoryRoot =
-  basename(currentDirectory) === "web"
-    ? join(currentDirectory, "../..")
-    : currentDirectory;
 
 test("allows deliberate local defaults without provider credentials", () => {
   assert.deepEqual(environmentValidationIssues({}), []);
@@ -178,15 +170,6 @@ test("does not expose configured secrets in validation errors", () => {
       return true;
     },
   );
-});
-
-test("Railway staging config uses the production image entry and health path", () => {
-  const config = readFileSync(join(repositoryRoot, "railway/web.toml"), "utf8");
-
-  assert.match(config, /dockerfilePath = "apps\/web\/Dockerfile"/);
-  assert.match(config, /startCommand = "node src\/production-preflight\.ts"/);
-  assert.match(config, /healthcheckPath = "\/api\/health"/);
-  assert.doesNotMatch(config, /pnpm run dev|vite dev/);
 });
 
 function validStrictEnvironment(

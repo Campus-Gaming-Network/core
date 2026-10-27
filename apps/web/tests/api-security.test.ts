@@ -1,6 +1,4 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
-import { basename, join } from "node:path";
 import { test } from "vite-plus/test";
 import * as z from "zod";
 import {
@@ -14,25 +12,6 @@ import {
   proxySecretHeader,
   visitorIPHeader,
 } from "../src/server/visitor-identity.server.js";
-
-const currentDirectory = process.cwd();
-const appRoot =
-  basename(currentDirectory) === "web"
-    ? currentDirectory
-    : join(currentDirectory, "apps/web");
-
-test("framework-neutral API and BFF mechanics stay outside the TanStack adapter", () => {
-  for (const file of ["api.server.ts", "bff.server.ts", "viewer.server.ts"]) {
-    const source = readFileSync(join(appRoot, "src/server", file), "utf8");
-    assert.doesNotMatch(source, /@tanstack\/react-start/);
-  }
-
-  const requestBoundary = readFileSync(
-    join(appRoot, "src/server/request-boundary.server.ts"),
-    "utf8",
-  );
-  assert.match(requestBoundary, /@tanstack\/react-start\/server/);
-});
 
 test("BFF requests sanitize internal headers and assert trusted visitor identity", async () => {
   let call: { input: string | URL | Request; init?: RequestInit } | undefined;

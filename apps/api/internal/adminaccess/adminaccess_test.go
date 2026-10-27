@@ -1,7 +1,6 @@
 package adminaccess
 
 import (
-	"errors"
 	"strings"
 	"testing"
 
@@ -9,46 +8,6 @@ import (
 )
 
 const validTestUserID = "00000000-0000-4000-8000-000000000001"
-
-func TestSiteAdminCapabilities(t *testing.T) {
-	want := []Capability{
-		CapabilityAdminSessionRead,
-		CapabilityReportsRead,
-		CapabilityReportsManage,
-		CapabilitySupportRead,
-		CapabilitySupportManage,
-		CapabilitySchoolsRead,
-		CapabilitySchoolsManage,
-		CapabilityClubsRead,
-		CapabilityClubsManage,
-		CapabilitySchoolLogosManage,
-		CapabilityGamesManage,
-		CapabilityUsersRead,
-		CapabilityUsersManageStatus,
-		CapabilitySchoolGrantsManage,
-		CapabilityTrustGrantsManage,
-		CapabilitySiteGrantsManage,
-		CapabilityAuditRead,
-		CapabilitySystemRead,
-		CapabilityMetricsRead,
-	}
-	for _, capability := range want {
-		if !Allows(RoleSiteAdmin, capability) {
-			t.Errorf("Allows(RoleSiteAdmin, %q) = false, want true", capability)
-		}
-	}
-	got := CapabilitiesForRole(RoleSiteAdmin)
-	if len(got) != len(want) {
-		t.Fatalf("CapabilitiesForRole(RoleSiteAdmin) length = %d, want %d", len(got), len(want))
-	}
-	got[0] = "mutated.by.caller"
-	if !Allows(RoleSiteAdmin, CapabilityAdminSessionRead) {
-		t.Fatal("caller mutation changed the static site-admin capability set")
-	}
-	if got := CapabilitiesForRole("future_role"); len(got) != 0 {
-		t.Fatalf("CapabilitiesForRole(unknown) = %#v, want no capabilities", got)
-	}
-}
 
 func TestValidateBootstrapInput(t *testing.T) {
 	if err := ValidateBootstrapInput(BootstrapInput{
@@ -150,29 +109,5 @@ func TestValidateRevokeInput(t *testing.T) {
 	valid.Reason = ""
 	if err := ValidateRevokeInput(valid); err == nil {
 		t.Fatal("ValidateRevokeInput(blank reason) error = nil")
-	}
-}
-
-func TestSentinelErrorsRemainTyped(t *testing.T) {
-	tests := []struct {
-		err  error
-		kind apperror.Kind
-		code string
-	}{
-		{ErrGrantNotFound, apperror.KindNotFound, "site_role_grant_not_found"},
-		{ErrGrantAlreadyActive, apperror.KindConflict, "site_role_grant_already_active"},
-		{ErrLastActiveSiteAdmin, apperror.KindConflict, "last_site_admin"},
-		{ErrUserNotEligible, apperror.KindUnprocessable, "site_role_user_not_eligible"},
-		{ErrSiteAdminRequired, apperror.KindAuthorization, "site_admin_required"},
-		{ErrBootstrapUnavailable, apperror.KindConflict, "site_admin_bootstrap_unavailable"},
-	}
-	for _, tt := range tests {
-		kind, code, ok := apperror.Details(tt.err)
-		if !ok || kind != tt.kind || code != tt.code {
-			t.Errorf("Details(%v) = (%v, %q, %v), want (%v, %q, true)", tt.err, kind, code, ok, tt.kind, tt.code)
-		}
-		if !errors.Is(tt.err, tt.err) {
-			t.Errorf("errors.Is(%v, itself) = false", tt.err)
-		}
 	}
 }

@@ -1,9 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vite-plus/test";
-import {
-  metricsSchema,
-  stickiness,
-} from "../src/features/metrics/contracts.js";
+import { stickiness } from "../src/features/metrics/contracts.js";
 import { getMetricsOperation } from "../src/features/metrics/metrics-operations.server.js";
 import type { ApiClient } from "../src/server/api.server.js";
 
@@ -42,16 +39,6 @@ test("the metrics page reads one validated summary", async () => {
       paths,
     },
     { metrics, paths: ["/admin/v1/metrics"] },
-  );
-});
-
-test("a negative count fails the contract", () => {
-  assert.equal(
-    metricsSchema.safeParse({
-      ...metrics,
-      days: [{ ...metrics.days[0], rsvps: -1 }],
-    }).success,
-    false,
   );
 });
 

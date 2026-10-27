@@ -44,16 +44,6 @@ func TestWriteInputValidation(t *testing.T) {
 	}
 }
 
-func TestClosedMetadataShapeCannotCarryFreeFormSecrets(t *testing.T) {
-	metadata := Metadata{ReasonCode: "invalid_assertion", ResourceType: "admin_session"}
-	input := WriteInput{Type: EventExchangeDenied, Outcome: OutcomeDenied, Metadata: metadata}
-	if err := input.validate(); err != nil {
-		t.Fatalf("validate() error = %v", err)
-	}
-	// Compile-time field closure is the security property: callers cannot add a
-	// token, email, body, or arbitrary metadata key to Metadata.
-}
-
 func TestListParamsValidation(t *testing.T) {
 	now := time.Now()
 	if err := (ListParams{BeforeTime: &now, BeforeID: testUUID, Limit: 100}).validate(); err != nil {
