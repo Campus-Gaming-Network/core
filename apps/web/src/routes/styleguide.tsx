@@ -751,7 +751,10 @@ function StyleguidePage() {
           </div>
         </Specimen>
         <Specimen file="src/components/event-counts.tsx" name="EventCounts">
-          <EventCounts going={1240} interested={86} />
+          <EventCounts event={{ rsvp_yes_count: 1240, interest_count: 86 }} />
+          <EventCounts
+            event={{ capacity: 32, rsvp_yes_count: 12, interest_count: 0 }}
+          />
         </Specimen>
 
         <h3 className="styleguide-sub">School rows</h3>

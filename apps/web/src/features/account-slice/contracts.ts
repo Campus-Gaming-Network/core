@@ -1,4 +1,5 @@
 import * as z from "zod";
+import { eventFillDtoSchema } from "../event-slice/contracts.js";
 import type { WithSchoolLogo } from "../school-slice/contracts.js";
 import { formString } from "../../components/form-string.js";
 
@@ -74,6 +75,7 @@ const dashboardEventDtoSchema = z.object({
   games: z.array(gameSummarySchema.pick({ name: true })),
   rsvp_yes_count: nonNegativeIntegerSchema,
   interest_count: nonNegativeIntegerSchema,
+  ...eventFillDtoSchema.shape,
   viewer_rsvp: z.enum(["yes", "maybe", "no"]).optional(),
 });
 

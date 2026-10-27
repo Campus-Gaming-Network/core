@@ -54,7 +54,6 @@ function registrationClosesAt(
   return closes < start ? closes : start;
 }
 
-/** "Solo", "Teams", or "Teams of 5, up to 1 substitute". */
 function tournamentEntryLabel(tournament: TournamentDTO): string {
   if (tournament.entry_type === "solo") return "Solo";
   const teams =
@@ -66,7 +65,6 @@ function tournamentEntryLabel(tournament: TournamentDTO): string {
     : teams;
 }
 
-/** The bracket formats by name, in the order they ship. */
 const tournamentFormatLabels: Record<string, string> = {
   single_elimination: "Single elimination",
   round_robin: "Round robin",
@@ -74,12 +72,7 @@ const tournamentFormatLabels: Record<string, string> = {
   double_elimination: "Double elimination",
 };
 
-/**
- * How a tournament is played, for the event page's facts: "Single elimination
- * · Teams of 5 · Valorant". The entrant count and cost have their own places
- * on the page, so they are left out, as is a format or game the tournament
- * does not state.
- */
+/** Leaves out the entrant count and cost, which the page shows elsewhere. */
 export function tournamentFormatSummary(tournament: TournamentDTO): string {
   return [
     tournamentFormatLabels[tournament.format],

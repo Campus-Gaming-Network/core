@@ -72,12 +72,7 @@ export function AccountEventSection({
               >
                 <DirectoryRow
                   action="View event"
-                  counts={
-                    <EventCounts
-                      going={event.rsvp_yes_count}
-                      interested={event.interest_count}
-                    />
-                  }
+                  counts={<EventCounts event={event} />}
                   // The calendar tile shows the date, so the text gives the time.
                   detail={eventTimeRange(event, renderedAt, {
                     startDate: false,
