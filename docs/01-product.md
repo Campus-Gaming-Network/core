@@ -298,7 +298,9 @@ club on CGN, which lists them as members here.
 
 ### Tournaments
 
-Not built yet. This section is the spec; the phases are listed at the end. An
+Tournament settings and status are built (#263); registration, brackets, and
+results are not built yet. This section is the spec; the phases are listed at
+the end. An
 event is something you attend and a tournament is something you enter, so a
 tournament adds entry, seeding, matches, and results to an event instead of
 repeating the event's own facts.

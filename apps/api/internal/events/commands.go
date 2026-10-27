@@ -94,6 +94,9 @@ func (r *PostgresRepository) Update(ctx context.Context, params UpdateParams) (E
 	`, eventID).Scan(&currentHostTeamID, &currentHostClubID); err != nil {
 		return Event{}, fmt.Errorf("load event hosts: %w", err)
 	}
+	if err := checkTournamentEdit(ctx, tx, eventID, params.EventType, params.GameIDs); err != nil {
+		return Event{}, err
+	}
 	if params.HostTeamID != "" && params.HostTeamID != currentHostTeamID {
 		if err := checkHostTeam(ctx, tx, params.HostTeamID, params.EditorUserID); err != nil {
 			return Event{}, err
@@ -295,6 +298,13 @@ func (r *PostgresRepository) Delete(ctx context.Context, slug string, userID str
 	`, eventID); err != nil {
 		return fmt.Errorf("delete event private unlocks: %w", err)
 	}
+	if _, err := tx.Exec(ctx, `
+		UPDATE tournaments
+		SET status = 'cancelled'
+		WHERE event_id = $1::uuid AND status <> 'completed'
+	`, eventID); err != nil {
+		return fmt.Errorf("cancel event tournament: %w", err)
+	}
 	if err := writeActivity(ctx, tx, eventID, userID, ActionCancelled, nil, nil, nil); err != nil {
 		return err
 	}
@@ -342,10 +352,12 @@ func (r *PostgresRepository) SetRSVP(ctx context.Context, input RSVPInput) (Even
 	var endsAt time.Time
 	var yesCount int
 	var currentResponse sql.NullString
+	var hasTournament bool
 	err = tx.QueryRow(ctx, `
 		SELECT e.id::text,
 		       e.capacity,
 		       e.ends_at,
+		       EXISTS (SELECT 1 FROM tournaments t WHERE t.event_id = e.id AND t.status <> 'cancelled'),
 		       COALESCE(yes_counts.yes_count, 0)::int,
 		       (
 		           SELECT r.response
@@ -365,7 +377,7 @@ func (r *PostgresRepository) SetRSVP(ctx context.Context, input RSVPInput) (Even
 		WHERE e.slug = $1
 		  AND e.deleted_at IS NULL
 		FOR UPDATE OF e
-	`, input.Slug, input.UserID).Scan(&eventID, &capacity, &endsAt, &yesCount, &currentResponse)
+	`, input.Slug, input.UserID).Scan(&eventID, &capacity, &endsAt, &hasTournament, &yesCount, &currentResponse)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Event{}, ErrEventNotFound
 	}
@@ -374,6 +386,12 @@ func (r *PostgresRepository) SetRSVP(ctx context.Context, input RSVPInput) (Even
 	}
 	if !r.now().Before(endsAt) {
 		return Event{}, ErrRSVPClosed
+	}
+	// Registration replaces RSVP on an event with a tournament that is not
+	// cancelled; anyone who RSVP'd before (only organizers can have) may
+	// still say no.
+	if hasTournament && input.Response != RSVPNo {
+		return Event{}, ErrTournamentRegistration
 	}
 	if input.Response == RSVPYes && capacity.Valid && yesCount >= int(capacity.Int64) &&
 		(!currentResponse.Valid || currentResponse.String != RSVPYes) {

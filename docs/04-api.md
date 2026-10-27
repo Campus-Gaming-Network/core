@@ -433,18 +433,17 @@ Response:
   used for captain management. It still lists every active member and is not
   affected by `show_in_lists`.
 
-### Tournaments (planned)
+### Tournaments
 
 A tournament lives under its event; there is no `/tournaments` resource. The
-event's detail response gains a `tournament` object once settings exist (a
-draft only for organizers). These routes are a sketch: each phase's issue
-fixes the request and response shapes.
+settings and status routes are built; the rest are a sketch, and each phase's
+issue fixes their request and response shapes.
 
 | Method | Path                                          | Notes                                                                           |
 | ------ | --------------------------------------------- | ------------------------------------------------------------------------------- |
-| PUT    | `/events/:slug/tournament`                    | **(planned)** Organizers; create or update the settings                         |
-| DELETE | `/events/:slug/tournament`                    | **(planned)** Organizers; draft only                                            |
-| POST   | `/events/:slug/tournament/status`             | **(planned)** Organizers; move the status; invalid moves `409`                  |
+| PUT    | `/events/:slug/tournament`                    | Organizers; create (`201`) or replace (`200`) the settings                      |
+| DELETE | `/events/:slug/tournament`                    | Organizers; draft only; `204`                                                   |
+| POST   | `/events/:slug/tournament/status`             | Organizers; move the status; invalid moves `409`                                |
 | GET    | `/events/:slug/tournament/entries`            | **(planned)** Entrant list; solo names for signed-in viewers only               |
 | POST   | `/events/:slug/tournament/entries`            | **(planned)** Register yourself, or a team with its roster (owner or captain)   |
 | PATCH  | `/events/:slug/tournament/entries/:id`        | **(planned)** Roster (team owner or captain) or seed (organizers), before start |
@@ -452,6 +451,60 @@ fixes the request and response shapes.
 | POST   | `/events/:slug/tournament/bracket`            | **(planned)** Organizers; generate or regenerate until the first result         |
 | GET    | `/events/:slug/tournament/matches`            | **(planned)** Bracket or rounds with results                                    |
 | POST   | `/events/:slug/tournament/matches/:id/result` | **(planned)** Organizers; enter or correct a result or a walkover               |
+
+`PUT /events/:slug/tournament` takes `game_id` (one of the event's games),
+`entry_type` (`solo` or `team`), `team_size` (2 to 20, team only),
+`substitutes` (0 to the team size, team only), `entrant_cap` (2 to 512 or
+omitted), `registration_closes_at` (no later than the event's start, or
+omitted for the start), `format` (`single_elimination`, the default), `rules`,
+and `prizes`. A new tournament starts in `draft`. Both routes answer with the
+tournament object below. Errors:
+
+- `400 invalid_request` for a value out of range
+- `403 not_event_organizer` for anyone who cannot edit the event
+- `404 event_not_found`, or `404 tournament_not_found` for a status change or
+  delete on an event without settings
+- `409 tournament_event_type_required` when the event's type is not
+  `tournament`
+- `409 event_has_rsvps` when someone other than an organizer has RSVP'd
+- `409 event_ended` for a change after the event ends (completing it is still
+  allowed)
+- `409 tournament_locked` for settings on a completed or cancelled tournament,
+  or a delete after draft
+- `422 tournament_game_not_on_event` for a game that is not one of the event's
+
+`POST /events/:slug/tournament/status` takes `{ "status": "..." }`. The moves are
+`draft` → `registration_open` or `cancelled`; `registration_open` → `draft`,
+`in_progress`, or `cancelled`; `in_progress` → `completed` or `cancelled`.
+Naming the current status changes nothing. Another move is
+`409 invalid_tournament_status`, and an unknown status is
+`400 invalid_tournament_status`.
+
+`GET /events/:slug` includes `tournament` once settings exist, except a draft,
+which only the event's organizers see:
+
+```text
+{
+  "game": { "id", "name", "slug", "has_cover" },
+  "entry_type": "team",
+  "team_size": 5,
+  "substitutes": 1,
+  "entrant_cap": 16,
+  "registration_closes_at": "2031-06-01T17:00:00Z",
+  "format": "single_elimination",
+  "rules": "",
+  "prizes": "",
+  "status": "draft"
+}
+```
+
+`team_size`, `entrant_cap`, and `registration_closes_at` are omitted when not
+set. While an event has settings, `PATCH /events/:slug` returns
+`409 tournament_event_type_required` for a change of type and
+`422 tournament_game_not_on_event` when it drops the tournament's game, and
+`POST /events/:slug/rsvp` returns `409 event_uses_registration` for any
+response but `no` unless the tournament is cancelled. Cancelling the event cancels a tournament that has not
+completed.
 
 ### Games
 
