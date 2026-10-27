@@ -436,9 +436,8 @@ Response:
 ### Tournaments
 
 A tournament lives under its event; there is no `/tournaments` resource. The
-settings, status, and registration routes are built; the bracket and match
-routes are a sketch, and each phase's issue fixes their request and response
-shapes.
+settings, status, registration, seeding, and bracket routes are built; the
+result route is a sketch that its issue (#267) fixes.
 
 | Method | Path                                           | Notes                                                                        |
 | ------ | ---------------------------------------------- | ---------------------------------------------------------------------------- |
@@ -452,8 +451,9 @@ shapes.
 | POST   | `/events/:slug/tournament/entries/:id/approve` | Organizers; approve a pending request, before start; returns the entry       |
 | POST   | `/events/:slug/tournament/entries/:id/decline` | Organizers; decline a pending request, before start; returns the entry       |
 | GET    | `/events/:slug/tournament/my-teams`            | Auth; teams the viewer owns or captains, with their members, for a roster    |
-| POST   | `/events/:slug/tournament/bracket`             | **(planned)** Organizers; generate or regenerate until the first result      |
-| GET    | `/events/:slug/tournament/matches`             | **(planned)** Bracket or rounds with results                                 |
+| PUT    | `/events/:slug/tournament/seeds`               | Organizers; order the registered entries from seed 1, until the first result |
+| POST   | `/events/:slug/tournament/bracket`             | Organizers; generate or regenerate once started, until the first result      |
+| GET    | `/events/:slug/tournament/matches`             | The bracket by round and position; empty until generated                     |
 | POST   | `/events/:slug/tournament/matches/:id/result`  | **(planned)** Organizers; enter or correct a result or a walkover            |
 
 `PUT /events/:slug/tournament` takes `game_id` (one of the event's games),
@@ -584,6 +584,37 @@ Starting or cancelling the tournament declines every pending request. Each reque
 the event's creator and co-organizers an in-app notice, and each decision
 leaves one for the solo player, or the roster and the team's owner and
 captains. Cancelling the event also emails pending requesters.
+
+**Seeds and the bracket.** `PUT .../seeds` takes
+`{ "entry_ids": ["<entry id>", ...] }`, every registered entry exactly once
+(`422 invalid_seed_order` otherwise), in seed order, and answers with
+`{ "entries": [...] }`. It works while registration is open or the tournament
+is in progress (`409 tournament_locked` otherwise). `POST .../bracket` builds
+a single-elimination bracket from the registered entries in seed order once
+the tournament is in progress (`409 tournament_not_started` before) and
+answers with `{ "matches": [...] }`; generating again replaces the bracket.
+Both are for organizers (`403 not_event_organizer`) and are refused with
+`409 tournament_bracket_locked` once any match has a result. The bracket is
+sized to the next power of two in the standard seed order (1 plays the
+lowest seed, and the top seeds meet as late as possible), so the byes go to
+the top seeds; a bye advances its entrant to the second round without a
+match. `GET .../matches` returns `{ "matches": [...] }` with
+`private, no-store`, following the event page's access as the entrant list
+does. A match is
+
+```text
+{ "id", "round", "position",
+  "entrants": [{ "entry_id", "seed", "player": { "public_id", "name" },
+                 "team": { "id", "name", "slug" } }, null],
+  "status": "upcoming", "scheduled_at", "scores": [2, 1],
+  "winner_entry_id", "walkover", "next_match_id" }
+```
+
+An entrant slot is `null` until an earlier match decides it. First-round
+positions with a bye have no match, so position numbers can skip.
+`scheduled_at`, `scores`, `winner_entry_id`, `walkover`, and
+`next_match_id` (none for the final) are omitted when not set, and
+signed-out viewers get no `player`.
 
 A member who leaves a team, or is removed from it, leaves its rosters for
 tournaments that have not started. An organizer's removal leaves an in-app

@@ -87,6 +87,30 @@ func (f *fakeEventTournaments) RegistrationTeams(_ context.Context, slug string,
 	return []eventstore.RegistrationTeam{}, nil
 }
 
+func (f *fakeEventTournaments) SetSeeds(_ context.Context, slug string, userID string, entryIDs []string) ([]eventstore.TournamentEntry, error) {
+	f.calls = append(f.calls, fmt.Sprintf("seeds %s %s %q", slug, userID, entryIDs))
+	if len(entryIDs) == 0 {
+		return nil, eventstore.ErrSeedOrder
+	}
+	return []eventstore.TournamentEntry{{ID: entryIDs[0], Status: eventstore.EntryRegistered, Seed: 1}}, nil
+}
+
+func (f *fakeEventTournaments) GenerateBracket(_ context.Context, slug string, userID string) ([]eventstore.TournamentMatch, error) {
+	f.calls = append(f.calls, "bracket "+slug+" "+userID)
+	return []eventstore.TournamentMatch{{ID: "match-1", Round: 1, Position: 1, Status: eventstore.MatchUpcoming}}, nil
+}
+
+func (f *fakeEventTournaments) ListMatches(_ context.Context, slug string, userID string) ([]eventstore.TournamentMatch, error) {
+	f.calls = append(f.calls, fmt.Sprintf("matches %s %q", slug, userID))
+	return []eventstore.TournamentMatch{{
+		ID: "match-1", Round: 1, Position: 1, Status: eventstore.MatchUpcoming,
+		Entrants: [2]*eventstore.MatchEntrant{
+			{EntryID: "entry-1", Seed: 1, Player: &eventstore.EntryPlayer{PublicID: "p1", Name: "Ada"}},
+			{EntryID: "entry-2", Seed: 2, Team: &eventstore.TeamSummary{Name: "Knights", Slug: "knights"}},
+		},
+	}}, nil
+}
+
 func tournamentRouter(store *fakeEventTournaments, events *fakeEventRepository) http.Handler {
 	router := &Router{
 		cfg:         config.Config{SessionCookie: "session", SessionTTL: time.Hour},
@@ -262,6 +286,57 @@ func TestTournamentEntryRoutes(t *testing.T) {
 		"teams spring-bracket " + testUserID,
 		"decide spring-bracket " + testUserID + " " + entryID + " approve=true",
 		"decide spring-bracket " + testUserID + " " + entryID + " approve=false",
+	}
+	if !reflect.DeepEqual(got, want) || !reflect.DeepEqual(store.calls, wantCalls) {
+		t.Fatalf("results = %+v\ncalls = %q\nwant %+v\nand %q", got, store.calls, want, wantCalls)
+	}
+}
+
+func TestTournamentBracketRoutes(t *testing.T) {
+	store := &fakeEventTournaments{}
+	public := &fakeEventRepository{detail: eventstore.Event{Slug: "spring-bracket", Visibility: eventstore.VisibilityPublic}}
+	type result struct {
+		Status int
+		Body   string
+	}
+	var got []result
+	for _, request := range []struct {
+		method, target, body string
+		signedIn             bool
+	}{
+		{http.MethodPut, "/events/spring-bracket/tournament/seeds", `{"entry_ids":["entry-2","entry-1"]}`, true},
+		{http.MethodPut, "/events/spring-bracket/tournament/seeds", `{"entry_ids":[]}`, true},
+		{http.MethodPost, "/events/spring-bracket/tournament/bracket", "", true},
+		{http.MethodPost, "/events/spring-bracket/tournament/bracket", "", false},
+		{http.MethodGet, "/events/spring-bracket/tournament/matches", "", false},
+		{http.MethodGet, "/events/spring-bracket/tournament/matches", "", true},
+	} {
+		req := httptest.NewRequest(request.method, request.target, strings.NewReader(request.body))
+		if request.signedIn {
+			req = authenticatedEventRequest(request.method, request.target, request.body)
+		}
+		response := httptest.NewRecorder()
+		tournamentRouter(store, public).ServeHTTP(response, req)
+		got = append(got, result{response.Code, strings.TrimSpace(response.Body.String())})
+	}
+	match := func(player string) string {
+		return `{"matches":[{"id":"match-1","round":1,"position":1,"entrants":[{"entry_id":"entry-1","seed":1` + player + `},` +
+			`{"entry_id":"entry-2","seed":2,"team":{"id":"","name":"Knights","slug":"knights"}}],"status":"upcoming"}]}`
+	}
+	want := []result{
+		{http.StatusOK, `{"entries":[{"id":"entry-2","status":"registered","seed":1,"registered_at":"0001-01-01T00:00:00Z"}]}`},
+		{http.StatusUnprocessableEntity, `{"error":"invalid_seed_order"}`},
+		{http.StatusOK, `{"matches":[{"id":"match-1","round":1,"position":1,"entrants":[null,null],"status":"upcoming"}]}`},
+		{http.StatusUnauthorized, `{"error":"authentication_required"}`},
+		{http.StatusOK, match("")},
+		{http.StatusOK, match(`,"player":{"public_id":"p1","name":"Ada"}`)},
+	}
+	wantCalls := []string{
+		"seeds spring-bracket " + testUserID + ` ["entry-2" "entry-1"]`,
+		"seeds spring-bracket " + testUserID + " []",
+		"bracket spring-bracket " + testUserID,
+		`matches spring-bracket ""`,
+		`matches spring-bracket "` + testUserID + `"`,
 	}
 	if !reflect.DeepEqual(got, want) || !reflect.DeepEqual(store.calls, wantCalls) {
 		t.Fatalf("results = %+v\ncalls = %q\nwant %+v\nand %q", got, store.calls, want, wantCalls)

@@ -278,9 +278,8 @@ event_private_unlocks
 
 ### Tournaments
 
-`tournaments` (`000045`), `tournament_entries`, and `tournament_entry_players`
-(`000046`) are migrated; `tournament_matches` is planned, and its phase's issue
-sets the final columns.
+`tournaments` (`000045`), `tournament_entries` and `tournament_entry_players`
+(`000046`), and `tournament_matches` (`000049`) are migrated.
 [02 — Domain model](./02-domain-model.md#tournament) owns the fields and rules.
 
 ```text
@@ -313,9 +312,14 @@ tournament_entry_players
   -- the team before the tournament starts
 
 tournament_matches
-  id, tournament_id, bracket (upper|lower|grand_final), round, position,
-  entry slots (nullable; a bye or not yet decided), next match for the
-  winner (and loser), scheduled_at nullable, status, scores, winner, walkover
+  id, tournament_id, bracket (upper|lower|grand_final, default upper),
+  round, position, entry1_id and entry2_id nullable (not yet decided),
+  next_match_id and next_slot (1|2) nullable together (none for the final),
+  scheduled_at nullable, status (upcoming|live|complete), score1 and score2
+  nullable, winner_entry_id nullable, walkover, created_at, updated_at
+  -- unique (tournament_id, bracket, round, position); a bye has no row, so
+  -- first-round positions can skip; regenerating deletes and rebuilds them
+  -- planned: where a loser drops, for double elimination
 ```
 
 ### Games

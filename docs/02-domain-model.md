@@ -336,7 +336,8 @@ Site admins see every entry in the Admin Console audit log.
 
 ### Tournament
 
-Settings and status (#263) and entries (#265) are built; matches are not built yet.
+Settings and status (#263), entries (#265), seeds, and single-elimination
+brackets (#266) are built; results are not built yet.
 [01 — Product](./01-product.md#tournaments) is the spec. A tournament belongs to exactly one event whose type is `tournament`, and an
 event has at most one tournament. Everything an event already has (title,
 slug, time, place, visibility, host, organizers, private access,
@@ -373,7 +374,7 @@ cancellation, activity log) stays on the event.
 | Field / concept | Notes                                                                                             |
 | --------------- | ------------------------------------------------------------------------------------------------- |
 | Place           | Round and position; double elimination also records upper, lower, or grand final                  |
-| Entrants        | Two slots, each an entry, a bye, or empty until an earlier match decides it                       |
+| Entrants        | Two slots, each an entry or empty until an earlier match decides it; a bye has no match           |
 | Next match      | Where the winner goes (and, in double elimination, where the loser drops)                         |
 | Scheduled time  | Optional                                                                                          |
 | Status          | `upcoming`, `live`, or `complete`                                                                 |
