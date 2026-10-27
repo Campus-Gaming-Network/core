@@ -35,6 +35,7 @@ type tournamentRequest struct {
 	Format               string     `json:"format"`
 	Rules                string     `json:"rules"`
 	Prizes               string     `json:"prizes"`
+	BracketURL           string     `json:"bracket_url"`
 }
 
 type tournamentStatusRequest struct {
@@ -96,6 +97,7 @@ func (r *Router) handleTournament(w http.ResponseWriter, req *http.Request, slug
 		Format:               request.Format,
 		Rules:                request.Rules,
 		Prizes:               request.Prizes,
+		BracketURL:           request.BracketURL,
 	})
 	if err != nil {
 		writeApplicationError(w, err, "tournament_update_failed")

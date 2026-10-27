@@ -59,7 +59,8 @@ Admin Console work continues under
   targets are recorded in [16 — Legal and data-lifecycle plan](./16-legal-and-data-lifecycle-plan.md)
   pending legal review.
 - Tournaments are being built: an organizer sets up a tournament-type event's
-  tournament and moves its status at `/events/:slug/tournament`, and
+  tournament (with an optional link to a bracket on another site) and moves
+  its status at `/events/:slug/tournament`, and
   players and teams register and withdraw on the event page; brackets and
   results are not built yet. The spec is in [01 — Product](./01-product.md#tournaments).
 - Product and technical questions that are intentionally unresolved are tracked

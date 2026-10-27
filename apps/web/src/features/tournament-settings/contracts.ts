@@ -4,6 +4,7 @@ import {
   type PageNotice,
 } from "../../components/page-notice.js";
 import { localDateTimeToInstant } from "../event-slice/event-time.js";
+import { safeExternalEventUrl } from "../event-slice/presentation.js";
 import {
   tournamentStatusSchema,
   type ValidatedTournamentInput,
@@ -72,7 +73,7 @@ export const settingsNotices = {
   },
   invalid: {
     message:
-      "Check the settings: team size is 2 to 20, substitutes up to the team size, the cap 2 to 512, and registration must close by the event's start.",
+      "Check the settings: team size is 2 to 20, substitutes up to the team size, the cap 2 to 512, registration must close by the event's start, and a bracket link must start with http:// or https://.",
     severity: "danger",
   },
   failed: {
@@ -112,6 +113,7 @@ export type TournamentSettingsPayload = {
   format: "single_elimination";
   rules: string;
   prizes: string;
+  bracket_url: string;
 };
 
 export type SettingsInput = {
@@ -134,6 +136,12 @@ const settingsFormSchema = z
     timezone: z.string().trim().min(1).max(64),
     rules: z.string().max(10000),
     prizes: z.string().max(2000),
+    bracket_url: z
+      .string()
+      .max(500)
+      .refine(
+        (value) => value === "" || safeExternalEventUrl(value) !== undefined,
+      ),
   })
   .transform((form, context): SettingsInput => {
     const fail = () => {
@@ -178,6 +186,7 @@ const settingsFormSchema = z
         format: "single_elimination",
         rules: form.rules.trim(),
         prizes: form.prizes.trim(),
+        bracket_url: form.bracket_url,
       },
     };
   });
@@ -209,6 +218,7 @@ export function validateSettingsInput(
     timezone: inputValue(input, "timezone"),
     rules: inputValue(input, "rules"),
     prizes: inputValue(input, "prizes"),
+    bracket_url: inputValue(input, "bracket_url").trim(),
   });
 }
 

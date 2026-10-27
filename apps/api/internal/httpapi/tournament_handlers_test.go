@@ -21,9 +21,9 @@ type fakeEventTournaments struct {
 }
 
 func (f *fakeEventTournaments) PutTournament(_ context.Context, input eventstore.TournamentInput) (eventstore.Tournament, bool, error) {
-	f.calls = append(f.calls, fmt.Sprintf("put %s %s %s %s size=%d subs=%d cap=%d closes=%s format=%q rules=%q",
+	f.calls = append(f.calls, fmt.Sprintf("put %s %s %s %s size=%d subs=%d cap=%d closes=%s format=%q rules=%q bracket=%q",
 		input.Slug, input.EditorUserID, input.GameID, input.EntryType, *input.TeamSize, input.Substitutes,
-		*input.EntrantCap, input.RegistrationClosesAt.UTC().Format(time.RFC3339), input.Format, input.Rules))
+		*input.EntrantCap, input.RegistrationClosesAt.UTC().Format(time.RFC3339), input.Format, input.Rules, input.BracketURL))
 	return eventstore.Tournament{EntryType: input.EntryType, Status: eventstore.TournamentDraft}, f.created, nil
 }
 
@@ -89,7 +89,7 @@ func TestTournamentRoutesReachTheStoreAsTheSignedInUser(t *testing.T) {
 		Body   string
 	}
 	settings := `{"game_id":"game-1","entry_type":"team","team_size":5,"substitutes":1,"entrant_cap":16,` +
-		`"registration_closes_at":"2031-06-01T17:00:00Z","rules":"Best of three"}`
+		`"registration_closes_at":"2031-06-01T17:00:00Z","rules":"Best of three","bracket_url":"https://challonge.com/spring"}`
 	var got []result
 	for _, request := range []struct {
 		method, target, body string
@@ -125,7 +125,7 @@ func TestTournamentRoutesReachTheStoreAsTheSignedInUser(t *testing.T) {
 		{http.StatusMethodNotAllowed, `{"error":"method_not_allowed"}`},
 		{http.StatusUnauthorized, `{"error":"authentication_required"}`},
 	}
-	put := "put spring-bracket " + testUserID + ` game-1 team size=5 subs=1 cap=16 closes=2031-06-01T17:00:00Z format="" rules="Best of three"`
+	put := "put spring-bracket " + testUserID + ` game-1 team size=5 subs=1 cap=16 closes=2031-06-01T17:00:00Z format="" rules="Best of three" bracket="https://challonge.com/spring"`
 	wantCalls := []string{
 		put,
 		put,

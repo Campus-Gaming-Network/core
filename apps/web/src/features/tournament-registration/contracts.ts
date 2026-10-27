@@ -36,6 +36,8 @@ export const tournamentDtoSchema = z.object({
   format: z.string(),
   rules: z.string(),
   prizes: z.string(),
+  /** A bracket hosted on another site. */
+  bracket_url: z.string().optional(),
   status: tournamentStatusSchema,
   entry_count: nonNegativeIntegerSchema,
   /** The signed-in viewer's own entry, alone or with a team. */

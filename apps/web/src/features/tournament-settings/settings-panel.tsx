@@ -380,6 +380,30 @@ export function SettingsForm({
       </FormSection>
 
       <FormSection
+        title="Bracket"
+        description="Running the bracket on start.gg, Challonge, Battlefy, or another site? Link it here."
+      >
+        <FormField
+          errorId="tournament-bracket-error"
+          label="Bracket link"
+          optional
+        >
+          <input
+            defaultValue={tournament?.bracket_url ?? ""}
+            maxLength={500}
+            name="bracket_url"
+            placeholder="https://"
+            type="url"
+          />
+        </FormField>
+        <p className="form-help">
+          The event page shows it as a link to an outside site. Leave it blank
+          to remove it. With an outside bracket, mark the tournament complete
+          here when it ends.
+        </p>
+      </FormSection>
+
+      <FormSection
         title="Rules and prizes"
         description="Shown on the event page. Plain text."
       >

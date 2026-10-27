@@ -37,6 +37,7 @@ const (
 	MaximumEntrantCap = 512
 	MaximumRulesBytes = 10000
 	MaximumPrizeBytes = 2000
+	MaximumBracketURL = 500
 )
 
 // Errors returned by tournament operations.
@@ -80,7 +81,9 @@ type Tournament struct {
 	Format               string     `json:"format"`
 	Rules                string     `json:"rules"`
 	Prizes               string     `json:"prizes"`
-	Status               string     `json:"status"`
+	// BracketURL links a bracket hosted on another site; empty is none.
+	BracketURL string `json:"bracket_url,omitempty"`
+	Status     string `json:"status"`
 	// EntryCount counts the active entries.
 	EntryCount int `json:"entry_count"`
 	// ViewerEntry is the signed-in viewer's own entry, set by the event
@@ -102,6 +105,7 @@ type TournamentInput struct {
 	Format               string
 	Rules                string
 	Prizes               string
+	BracketURL           string
 }
 
 // tournamentTransitions lists the statuses each status may move to.
@@ -148,7 +152,18 @@ func ValidateTournamentInput(input TournamentInput) error {
 	if len(input.Prizes) > MaximumPrizeBytes {
 		return apperror.Validation("prizes must be 2,000 characters or fewer")
 	}
-	return safety.ValidateCleanText("prizes", input.Prizes)
+	if err := safety.ValidateCleanText("prizes", input.Prizes); err != nil {
+		return err
+	}
+	if input.BracketURL != "" {
+		if len(input.BracketURL) > MaximumBracketURL {
+			return apperror.Validation("bracket URL must be 500 characters or fewer")
+		}
+		if err := validateHTTPURL(input.BracketURL); err != nil {
+			return apperror.Validation("bracket URL must be a valid HTTP or HTTPS URL")
+		}
+	}
+	return nil
 }
 
 // tournamentEvent is an event locked for a tournament change, with the
@@ -196,6 +211,7 @@ func lockTournamentEvent(ctx context.Context, tx pgx.Tx, slug string, userID str
 func (r *PostgresRepository) PutTournament(ctx context.Context, input TournamentInput) (Tournament, bool, error) {
 	input.Rules = strings.TrimSpace(input.Rules)
 	input.Prizes = strings.TrimSpace(input.Prizes)
+	input.BracketURL = strings.TrimSpace(input.BracketURL)
 	if input.Format == "" {
 		input.Format = FormatSingleElimination
 	}
@@ -279,8 +295,8 @@ func (r *PostgresRepository) PutTournament(ctx context.Context, input Tournament
 
 	if _, err := tx.Exec(ctx, `
 		INSERT INTO tournaments (event_id, game_id, entry_type, team_size, substitutes, entrant_cap,
-		                         registration_closes_at, format, rules, prizes)
-		VALUES ($1::uuid, $2::uuid, $3, $4, $5, $6, $7, $8, $9, $10)
+		                         registration_closes_at, format, rules, prizes, bracket_url)
+		VALUES ($1::uuid, $2::uuid, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 		ON CONFLICT (event_id) DO UPDATE
 		SET game_id = EXCLUDED.game_id,
 		    entry_type = EXCLUDED.entry_type,
@@ -290,10 +306,11 @@ func (r *PostgresRepository) PutTournament(ctx context.Context, input Tournament
 		    registration_closes_at = EXCLUDED.registration_closes_at,
 		    format = EXCLUDED.format,
 		    rules = EXCLUDED.rules,
-		    prizes = EXCLUDED.prizes
+		    prizes = EXCLUDED.prizes,
+		    bracket_url = EXCLUDED.bracket_url
 	`, event.ID, strings.TrimSpace(input.GameID), input.EntryType, nullableInt(input.TeamSize),
 		input.Substitutes, nullableInt(input.EntrantCap), input.RegistrationClosesAt, input.Format,
-		input.Rules, input.Prizes); err != nil {
+		input.Rules, input.Prizes, input.BracketURL); err != nil {
 		return Tournament{}, false, fmt.Errorf("put tournament: %w", err)
 	}
 	tournament, err := loadTournament(ctx, tx, event.ID)
@@ -396,7 +413,7 @@ func loadTournament(ctx context.Context, loader tournamentLoader, eventID string
 	err := loader.QueryRow(ctx, `
 		SELECT g.id::text, g.name, g.slug, g.is_active AND EXISTS (SELECT 1 FROM game_covers gc WHERE gc.game_id = g.id),
 		       t.entry_type, t.team_size, t.substitutes, t.entrant_cap, t.registration_closes_at,
-		       t.format, t.rules, t.prizes, t.status,
+		       t.format, t.rules, t.prizes, t.bracket_url, t.status,
 		       (SELECT COUNT(*) FROM tournament_entries te WHERE te.tournament_id = t.id AND te.status = 'registered')::int
 		FROM tournaments t
 		JOIN games g ON g.id = t.game_id
@@ -404,7 +421,7 @@ func loadTournament(ctx context.Context, loader tournamentLoader, eventID string
 	`, eventID).Scan(
 		&tournament.Game.ID, &tournament.Game.Name, &tournament.Game.Slug, &tournament.Game.HasCover,
 		&tournament.EntryType, &teamSize, &tournament.Substitutes, &entrantCap, &tournament.RegistrationClosesAt,
-		&tournament.Format, &tournament.Rules, &tournament.Prizes, &tournament.Status, &tournament.EntryCount)
+		&tournament.Format, &tournament.Rules, &tournament.Prizes, &tournament.BracketURL, &tournament.Status, &tournament.EntryCount)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
 	}

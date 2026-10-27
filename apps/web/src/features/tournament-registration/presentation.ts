@@ -83,6 +83,25 @@ export function registrationClosesLabel(
   return `Registration closes ${`${local} ${zoneName(closes, timeZone)}`.trim()}.`;
 }
 
+/** Bracket sites named the way they name themselves. */
+const bracketHosts: Record<string, string> = {
+  "start.gg": "start.gg",
+  "challonge.com": "Challonge",
+  "battlefy.com": "Battlefy",
+};
+
+/**
+ * The site an external bracket is on, for "Bracket on start.gg": a known
+ * bracket site by its name, anything else by its host without `www.`.
+ */
+export function bracketHost(url: string): string {
+  const host = new URL(url).hostname.replace(/^www\./, "");
+  const known = Object.keys(bracketHosts).find(
+    (site) => host === site || host.endsWith(`.${site}`),
+  );
+  return known ? bracketHosts[known] : host;
+}
+
 /** The heading of the entrant list. */
 export function entrantsHeading(tournament: TournamentDTO): string {
   return `${tournament.entry_type === "solo" ? "Players" : "Teams"} (${tournament.entry_count})`;

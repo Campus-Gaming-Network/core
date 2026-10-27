@@ -68,6 +68,7 @@ func TestPostgresRepositoryTournamentSettingsAndStatus(t *testing.T) {
 		EntrantCap:           &entrantCap,
 		RegistrationClosesAt: &closes,
 		Rules:                "  Best of three.  ",
+		BracketURL:           "  https://www.start.gg/tournament/spring-bracket  ",
 	}
 	with := func(change func(*TournamentInput)) TournamentInput {
 		input := settings
@@ -90,6 +91,7 @@ func TestPostgresRepositoryTournamentSettingsAndStatus(t *testing.T) {
 		"someone RSVP'd":     with(func(i *TournamentInput) { i.Slug = rsvped.Slug }),
 		"game not on event":  with(func(i *TournamentInput) { i.GameID = organizerID }),
 		"closes after start": with(func(i *TournamentInput) { later := startsAt.Add(time.Minute); i.RegistrationClosesAt = &later }),
+		"non-http bracket":   with(func(i *TournamentInput) { i.BracketURL = "javascript:alert(1)" }),
 	} {
 		_, _, err := repository.PutTournament(ctx, input)
 		putErrors[name] = fmt.Sprint(err)
@@ -100,6 +102,7 @@ func TestPostgresRepositoryTournamentSettingsAndStatus(t *testing.T) {
 		"someone RSVP'd":     ErrTournamentHasRSVPs.Error(),
 		"game not on event":  ErrTournamentGame.Error(),
 		"closes after start": "registration must close by the event's start",
+		"non-http bracket":   "bracket URL must be a valid HTTP or HTTPS URL",
 	}
 	if !reflect.DeepEqual(putErrors, wantPutErrors) {
 		t.Fatalf("PutTournament errors = %q, want %q", putErrors, wantPutErrors)
@@ -118,6 +121,7 @@ func TestPostgresRepositoryTournamentSettingsAndStatus(t *testing.T) {
 		RegistrationClosesAt: &closes,
 		Format:               FormatSingleElimination,
 		Rules:                "Best of three.",
+		BracketURL:           "https://www.start.gg/tournament/spring-bracket",
 		Status:               TournamentDraft,
 	}
 	if created.RegistrationClosesAt != nil {
@@ -129,6 +133,7 @@ func TestPostgresRepositoryTournamentSettingsAndStatus(t *testing.T) {
 	}
 	solo, isNew, err := repository.PutTournament(ctx, with(func(i *TournamentInput) {
 		i.GameID, i.EntryType, i.TeamSize, i.Substitutes, i.EntrantCap, i.RegistrationClosesAt = otherGameID, EntrySolo, nil, 0, nil, nil
+		i.BracketURL = "" // removes the link
 	}))
 	if err != nil {
 		t.Fatalf("PutTournament(update) error = %v", err)

@@ -484,11 +484,16 @@ documents are updated and their contracts are implemented:
   first once the page is interactive.
 - `SettingsForm` creates or replaces the settings: the game (one of the
   event's), solo or team entry with team size and substitutes, the cap, the
-  close time in the event's time zone, rules, and prizes. Once anyone has
+  close time in the event's time zone, a bracket link to another site, rules,
+  and prizes. Once anyone has
   registered, the entry type and team size are shown as text and sent
   unchanged. A refusal comes back as a notice in words.
 - The event form says why the type and the tournament's game can't change
   while settings exist.
+- A tournament with a bracket link gets a Bracket card in the event page's side
+  column: "Bracket on start.gg" (Challonge, Battlefy, or the site's host for
+  anything else), opening in a new tab and announced as an external site. It
+  is never embedded.
 
 ### People lists
 

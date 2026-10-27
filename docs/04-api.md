@@ -461,7 +461,9 @@ shapes.
 `substitutes` (0 to the team size, team only), `entrant_cap` (2 to 512 or
 omitted), `registration_closes_at` (no later than the event's start, or
 omitted for the start), `format` (`single_elimination`, the default), `rules`,
-and `prizes`. A new tournament starts in `draft`. Both routes answer with the
+`prizes`, and `bracket_url` (an `http` or `https` link of up to 500 characters
+to a bracket on another site, or empty for none; a `PUT` without it removes
+it). A new tournament starts in `draft`. Both routes answer with the
 tournament object below. Errors:
 
 - `400 invalid_request` for a value out of range
@@ -501,14 +503,15 @@ which only the event's organizers see:
   "format": "single_elimination",
   "rules": "",
   "prizes": "",
+  "bracket_url": "https://www.start.gg/tournament/spring-cup",
   "status": "draft",
   "entry_count": 3,
   "viewer_entry": { "id", "team": { "id", "name", "slug" }, "can_manage": true }
 }
 ```
 
-`team_size`, `entrant_cap`, and `registration_closes_at` are omitted when not
-set. `viewer_entry` is the signed-in viewer's own active entry: theirs alone,
+`team_size`, `entrant_cap`, `registration_closes_at`, and `bracket_url` are
+omitted when not set. `viewer_entry` is the signed-in viewer's own active entry: theirs alone,
 one whose roster they are on, or one for a team they own or captain;
 `can_manage` is set for the solo player and the team's owner and captains.
 

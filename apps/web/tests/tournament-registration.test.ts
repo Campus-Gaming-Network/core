@@ -9,7 +9,10 @@ import type {
   TournamentDTO,
   TournamentEntryDTO,
 } from "../src/features/tournament-registration/contracts.js";
-import { registrationState } from "../src/features/tournament-registration/presentation.js";
+import {
+  bracketHost,
+  registrationState,
+} from "../src/features/tournament-registration/presentation.js";
 import {
   getRegistrationTeams,
   getTournamentEntries,
@@ -154,6 +157,33 @@ test("the panel's state follows the status, the close time, the cap, and the vie
   );
 });
 
+test("an external bracket shows as a link out named for its site", async () => {
+  const markup = await renderEvent(
+    {
+      ...tournamentEvent,
+      tournament: {
+        ...openSolo,
+        bracket_url: "https://www.start.gg/tournament/spring-cup",
+      },
+    },
+    false,
+  );
+  assert.match(
+    markup,
+    /<a class="link with-arrow" href="https:\/\/www\.start\.gg\/tournament\/spring-cup" rel="noopener noreferrer" target="_blank">Bracket on start\.gg<svg[^]*?\(external site, opens in a new tab\)/,
+  );
+  assert.doesNotMatch(markup, /<iframe/);
+  assert.deepEqual(
+    [
+      "https://challonge.com/spring",
+      "https://spring.challonge.com/cup",
+      "https://battlefy.com/cgn/spring",
+      "https://www.brackets.example/spring",
+    ].map(bracketHost),
+    ["Challonge", "Challonge", "Battlefy", "brackets.example"],
+  );
+});
+
 test("a signed-out visitor sees the registration panel, not RSVPs, and solo entrants by seed", async () => {
   const markup = await renderEvent(tournamentEvent, false);
 
@@ -163,6 +193,7 @@ test("a signed-out visitor sees the registration panel, not RSVPs, and solo entr
   assert.doesNotMatch(markup, /Are you going\?/);
   assert.match(markup, /Players \(2\)/);
   assert.match(markup, /<li><span>Seed 1<\/span><\/li>/);
+  assert.doesNotMatch(markup, /Bracket on/);
   assert.match(markup, /href="\/users\/public-ada"[^>]*>Ada</);
   assert.deepEqual(
     {
