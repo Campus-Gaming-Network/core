@@ -430,8 +430,8 @@ to an event instead of repeating the event's own facts.
 - **Not in the first version:** check-in, entry fees on CGN (an event's cost
   and payment note still apply), self-reported results, match chat, streaming
   embeds, and tournament series or leagues across events
-- **Phases:** (1) settings and status (#263), registration (#265), and the
-  external bracket link (#264); (2) single-elimination brackets (#266),
+- **Phases:** (1) settings and status (#263), registration (#265),
+  organizer approval (#324), and the external bracket link (#264); (2) single-elimination brackets (#266),
   results (#267), and the tournament tabs and bracket view (#268); (3) round
   robin and Swiss (#269); (4) double elimination (#270)
 
