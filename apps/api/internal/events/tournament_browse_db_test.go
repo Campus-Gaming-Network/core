@@ -9,7 +9,7 @@ import (
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/dbtest"
 )
 
-func TestPostgresRepositoryListPublicTournamentEntries(t *testing.T) {
+func TestPostgresRepositoryListPublicTournamentEntriesAndLifecycle(t *testing.T) {
 	ctx := context.Background()
 	pool := dbtest.NewMigratedSchemaPool(t, "events")
 	schoolID := dbtest.InsertSchool(t, pool, "Browse School", "browse-school")
@@ -54,15 +54,19 @@ func TestPostgresRepositoryListPublicTournamentEntries(t *testing.T) {
 		return slug
 	}
 
-	soloCap, draftCap, teamSize := 8, 4, 2
+	soloCap, fullCap, draftCap, teamSize := 8, 2, 4, 2
 	create("Game Night", EventTypeMeeting)
 	tournament("Draft Cup", TournamentInput{EntryType: EntrySolo, EntrantCap: &draftCap}, false)
 	solo := tournament("Solo Cup", TournamentInput{EntryType: EntrySolo, EntrantCap: &soloCap}, true)
+	full := tournament("Full Cup", TournamentInput{EntryType: EntrySolo, EntrantCap: &fullCap}, true)
+	uncapped := tournament("Open Cup", TournamentInput{EntryType: EntrySolo}, true)
 	tournament("Team Cup", TournamentInput{EntryType: EntryTeam, TeamSize: &teamSize}, true)
 	approval := tournament("Approval Cup", TournamentInput{EntryType: EntrySolo, RegistrationMode: RegistrationApproval}, true)
-	for _, playerID := range players {
-		if _, err := repository.Register(ctx, RegisterInput{Slug: solo, UserID: playerID}); err != nil {
-			t.Fatalf("Register(solo) error = %v", err)
+	for _, slug := range []string{solo, full, uncapped} {
+		for _, playerID := range players {
+			if _, err := repository.Register(ctx, RegisterInput{Slug: slug, UserID: playerID}); err != nil {
+				t.Fatalf("Register(%s) error = %v", slug, err)
+			}
 		}
 	}
 	// A pending request is not an entry yet.
@@ -74,18 +78,26 @@ func TestPostgresRepositoryListPublicTournamentEntries(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListPublic() error = %v", err)
 	}
-	got := map[string]*TournamentEntries{}
-	for _, event := range events {
-		got[event.Title] = event.TournamentEntries
+	type listing struct {
+		Lifecycle string
+		Entries   *TournamentEntries
 	}
-	want := map[string]*TournamentEntries{
-		"Game Night":   nil,
-		"Draft Cup":    nil,
-		"Solo Cup":     {EntryType: EntrySolo, EntryCount: 2, EntrantCap: &soloCap},
-		"Team Cup":     {EntryType: EntryTeam, EntryCount: 0},
-		"Approval Cup": {EntryType: EntrySolo, EntryCount: 0},
+	got := map[string]listing{}
+	for _, event := range events {
+		got[event.Title] = listing{Lifecycle: event.Lifecycle, Entries: event.TournamentEntries}
+	}
+	// A tournament is full when its registered entries reach its entrant
+	// cap; one without a cap never is.
+	want := map[string]listing{
+		"Game Night":   {Lifecycle: LifecycleUpcoming},
+		"Draft Cup":    {Lifecycle: LifecycleUpcoming},
+		"Solo Cup":     {Lifecycle: LifecycleUpcoming, Entries: &TournamentEntries{EntryType: EntrySolo, EntryCount: 2, EntrantCap: &soloCap}},
+		"Full Cup":     {Lifecycle: LifecycleFull, Entries: &TournamentEntries{EntryType: EntrySolo, EntryCount: 2, EntrantCap: &fullCap}},
+		"Open Cup":     {Lifecycle: LifecycleUpcoming, Entries: &TournamentEntries{EntryType: EntrySolo, EntryCount: 2}},
+		"Team Cup":     {Lifecycle: LifecycleUpcoming, Entries: &TournamentEntries{EntryType: EntryTeam, EntryCount: 0}},
+		"Approval Cup": {Lifecycle: LifecycleUpcoming, Entries: &TournamentEntries{EntryType: EntrySolo, EntryCount: 0}},
 	}
 	if !reflect.DeepEqual(got, want) {
-		t.Fatalf("tournament entries = %+v, want %+v", got, want)
+		t.Fatalf("listings = %+v, want %+v", got, want)
 	}
 }
