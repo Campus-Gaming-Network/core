@@ -580,7 +580,7 @@ registered entry, at the end of the seed order; `.../decline` returns
 `409 tournament_full`, and either one on an entry that is not pending is
 `409 tournament_entry_not_pending`. A declined requester may request again,
 to the end of the queue; a removed one gets `409 tournament_entry_removed`.
-Starting the tournament declines every pending request. Each request leaves
+Starting or cancelling the tournament declines every pending request. Each request leaves
 the event's creator and co-organizers an in-app notice, and each decision
 leaves one for the solo player, or the roster and the team's owner and
 captains. Cancelling the event also emails pending requesters.

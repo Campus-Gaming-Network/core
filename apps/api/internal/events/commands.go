@@ -459,7 +459,7 @@ func cancellationRecipients(ctx context.Context, tx pgx.Tx, eventID string) ([]c
 		      UNION
 		      SELECT te.user_id FROM tournament_entries te
 		      JOIN tournaments t ON t.id = te.tournament_id
-		      WHERE t.event_id = $1::uuid AND te.status IN ('registered', 'pending') AND te.user_id IS NOT NULL
+		      WHERE t.event_id = $1::uuid AND `+activeEntry+` AND te.user_id IS NOT NULL
 		      UNION
 		      SELECT p.user_id FROM tournament_entry_players p
 		      JOIN tournaments t ON t.id = p.tournament_id

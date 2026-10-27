@@ -388,8 +388,8 @@ cancellation, activity log) stays on the event.
   entry counts as the entrant's one entry and blocks moving back to draft,
   but holds no spot: it is not listed, has no seed, and does not count toward
   the cap. Organizers approve or decline it until the start; approving stops
-  at the cap. A declined entrant may request again. Starting the tournament
-  declines every pending entry, and the mode goes back to `open` only while
+  at the cap. A declined entrant may request again. Starting or cancelling the
+  tournament declines every pending entry, and the mode goes back to `open` only while
   none is pending
 - Rosters freeze when the tournament starts
 - The bracket or pairings are generated from active entries in seed order and

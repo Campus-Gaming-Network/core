@@ -369,6 +369,21 @@ test("with settings, the page shows the status moves, fixes the entry type once 
   assert.doesNotMatch(markup, /type="radio" name="entry_type"/);
   assert.match(markup, />Save settings</);
 
+  const requested = await renderPage({
+    ...tournamentEvent,
+    tournament: {
+      ...draft,
+      status: "registration_open",
+      registration_mode: "approval",
+      request_count: 1,
+    },
+  });
+  assert.match(
+    requested,
+    /<input type="hidden" name="entry_type" value="team"\/>/,
+  );
+  assert.match(requested, /1 request is waiting\./);
+
   const ended = await renderPage({
     ...tournamentEvent,
     lifecycle: "ended",

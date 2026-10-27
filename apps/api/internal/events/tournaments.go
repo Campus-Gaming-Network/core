@@ -406,8 +406,8 @@ func (r *PostgresRepository) SetTournamentStatus(ctx context.Context, slug strin
 		if status == TournamentInProgress && entries.Registered < 2 {
 			return Tournament{}, ErrTournamentNeedsEntrants
 		}
-		if status == TournamentInProgress && entries.Pending > 0 {
-			if err := declineAtStart(ctx, tx, event.ID); err != nil {
+		if (status == TournamentInProgress || status == TournamentCancelled) && entries.Pending > 0 {
+			if err := declinePending(ctx, tx, event.ID, status); err != nil {
 				return Tournament{}, err
 			}
 		}
@@ -440,10 +440,13 @@ func loadTournament(ctx context.Context, loader tournamentLoader, eventID string
 		SELECT g.id::text, g.name, g.slug, g.is_active AND EXISTS (SELECT 1 FROM game_covers gc WHERE gc.game_id = g.id),
 		       t.entry_type, t.team_size, t.substitutes, t.entrant_cap, t.registration_closes_at,
 		       t.format, t.rules, t.prizes, t.bracket_url, t.registration_mode, t.status,
-		       (SELECT COUNT(*) FROM tournament_entries te WHERE te.tournament_id = t.id AND te.status = 'registered')::int,
-		       (SELECT COUNT(*) FROM tournament_entries te WHERE te.tournament_id = t.id AND te.status = 'pending')::int
+		       c.registered, c.pending
 		FROM tournaments t
 		JOIN games g ON g.id = t.game_id
+		CROSS JOIN LATERAL (
+		    SELECT COUNT(*) FILTER (WHERE te.status = 'registered')::int AS registered,
+		           COUNT(*) FILTER (WHERE te.status = 'pending')::int AS pending
+		    FROM tournament_entries te WHERE te.tournament_id = t.id) c
 		WHERE t.event_id = $1::uuid
 	`, eventID).Scan(
 		&tournament.Game.ID, &tournament.Game.Name, &tournament.Game.Slug, &tournament.Game.HasCover,
@@ -503,9 +506,9 @@ func (e *Event) HideDraftTournament() {
 	e.Tournament.RequestCount = 0
 }
 
-// declineAtStart declines the pending requests of the event's tournament as
-// it starts, and tells each requester.
-func declineAtStart(ctx context.Context, tx pgx.Tx, eventID string) error {
+// declinePending declines the pending requests of the event's tournament as
+// it starts or is cancelled, and tells each requester.
+func declinePending(ctx context.Context, tx pgx.Tx, eventID string, status string) error {
 	var tournamentID string
 	var pending []string
 	if err := tx.QueryRow(ctx, `
@@ -524,6 +527,10 @@ func declineAtStart(ctx context.Context, tx pgx.Tx, eventID string) error {
 	if err := declineEntries(ctx, tx, tournamentID, ""); err != nil {
 		return err
 	}
+	body := "%s started before your request to join was approved."
+	if status == TournamentCancelled {
+		body = "%s was cancelled, so your request to join was declined."
+	}
 	return notifyEntrants(ctx, tx, eventID, recipients, notifications.TypeTournamentEntryDeclined,
-		"Tournament request declined", "%s started before your request to join was approved.")
+		"Tournament request declined", body)
 }

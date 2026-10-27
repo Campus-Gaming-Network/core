@@ -213,7 +213,8 @@ export function SettingsForm({
     "We could not save the tournament settings. Please try again.",
   );
   const [entryType, setEntryType] = useState(tournament?.entry_type ?? "solo");
-  const fixed = (tournament?.entry_count ?? 0) > 0;
+  const fixed =
+    (tournament?.entry_count ?? 0) + (tournament?.request_count ?? 0) > 0;
   const gameID = tournament?.game.id ?? event.games[0]?.id ?? "";
   const startsAtLocal = instantToLocalDateTime(event.starts_at, event.timezone);
 
@@ -273,8 +274,8 @@ export function SettingsForm({
               {tournament.entry_type === "solo"
                 ? "Solo entry"
                 : `Teams of ${tournament.team_size ?? 0}`}
-              . Someone has registered, so the entry type and team size are
-              fixed.
+              . Someone has registered or asked to, so the entry type and team
+              size are fixed.
             </p>
           </>
         ) : (

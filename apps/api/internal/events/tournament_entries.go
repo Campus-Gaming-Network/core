@@ -399,13 +399,25 @@ func (r *PostgresRepository) ListEntries(ctx context.Context, slug string, userI
 	if err != nil {
 		return nil, nil, fmt.Errorf("load tournament: %w", err)
 	}
-	entries, err := listEntries(ctx, r.pool, tournamentID, "", EntryRegistered)
-	if err != nil || !organizer {
-		return entries, nil, err
+	status = EntryRegistered
+	if organizer {
+		status = ""
 	}
-	requests, err := listEntries(ctx, r.pool, tournamentID, "", EntryPending)
+	active, err := listEntries(ctx, r.pool, tournamentID, "", status)
 	if err != nil {
 		return nil, nil, err
+	}
+	entries := []TournamentEntry{}
+	var requests []TournamentEntry
+	if organizer {
+		requests = []TournamentEntry{}
+	}
+	for _, entry := range active {
+		if entry.Status == EntryPending {
+			requests = append(requests, entry)
+		} else {
+			entries = append(entries, entry)
+		}
 	}
 	return entries, requests, nil
 }
@@ -711,11 +723,21 @@ func (r *PostgresRepository) DecideEntry(ctx context.Context, slug string, userI
 	if tournament.Status != TournamentRegistrationOpen {
 		return TournamentEntry{}, ErrTournamentStarted
 	}
-	entry, err := lockEntry(ctx, tx, tournament.ID, entryID, userID)
-	if err != nil {
-		return TournamentEntry{}, err
+	// Any entry of the tournament is found, so deciding one that was already
+	// decided or withdrawn says so instead of reading as missing.
+	var status string
+	err = tx.QueryRow(ctx, `
+		SELECT status FROM tournament_entries
+		WHERE id::text = $2 AND tournament_id = $1::uuid
+		FOR UPDATE
+	`, tournament.ID, entryID).Scan(&status)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return TournamentEntry{}, ErrEntryNotFound
 	}
-	if entry.status != EntryPending {
+	if err != nil {
+		return TournamentEntry{}, fmt.Errorf("lock tournament request: %w", err)
+	}
+	if status != EntryPending {
 		return TournamentEntry{}, ErrEntryNotPending
 	}
 	recipients, err := entryRecipients(ctx, tx, entryID)
@@ -821,15 +843,16 @@ func notifyEntrants(ctx context.Context, tx pgx.Tx, eventID string, recipients [
 	return notifications.Insert(ctx, tx, inputs...)
 }
 
-// notifyOrganizersOfRequest tells the event's creator and co-organizers,
+// notifyOrganizersOfRequest tells the event's organizers (its creator,
+// co-organizers, and on a club-hosted event the club's owners and editors),
 // other than the requester, about a new request to join its tournament.
 func notifyOrganizersOfRequest(ctx context.Context, tx pgx.Tx, eventID string, requesterID string) error {
 	rows, err := tx.Query(ctx, `
-		SELECT o.user_id::text
-		FROM event_organizers o
-		JOIN users u ON u.id = o.user_id
-		WHERE o.event_id = $1::uuid AND o.deleted_at IS NULL AND o.user_id <> $2::uuid
-		  AND u.deleted_at IS NULL AND u.account_status = 'active'
+		SELECT u.id::text
+		FROM users u
+		JOIN events e ON e.id = $1::uuid
+		WHERE u.id <> $2::uuid AND u.deleted_at IS NULL AND u.account_status = 'active'
+		  AND `+editableBy("u.id::text")+`
 		ORDER BY 1
 	`, eventID, requesterID)
 	if err != nil {

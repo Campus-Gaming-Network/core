@@ -395,6 +395,9 @@ func TestPostgresRepositoryTournamentApproval(t *testing.T) {
 	if _, err := repository.DecideEntry(ctx, solo, organizerID, adaRequest.ID, false); err != nil {
 		t.Fatalf("decline ada: %v", err)
 	}
+	if _, err := repository.DecideEntry(ctx, solo, organizerID, adaRequest.ID, false); err != ErrEntryNotPending {
+		t.Fatalf("decline ada twice: error = %v, want %v", err, ErrEntryNotPending)
+	}
 	if _, err := repository.Register(ctx, RegisterInput{Slug: solo, UserID: ada}); err != nil {
 		t.Fatalf("Register(ada again) error = %v", err)
 	}
@@ -466,6 +469,18 @@ func TestPostgresRepositoryTournamentApproval(t *testing.T) {
 		t.Fatalf("team approval = %+v, want %+v", got, want)
 	}
 
+	// Cancelling a tournament declines its pending requests too.
+	night := tournament("Invite Night", TournamentInput{EntryType: EntrySolo})
+	if _, err := repository.Register(ctx, RegisterInput{Slug: night, UserID: di}); err != nil {
+		t.Fatalf("Register(di, night) error = %v", err)
+	}
+	if _, err := repository.SetTournamentStatus(ctx, night, organizerID, TournamentCancelled); err != nil {
+		t.Fatalf("cancel night: %v", err)
+	}
+	if view, err := repository.ViewerEntry(ctx, night, di); err != nil || view != nil {
+		t.Fatalf("ViewerEntry(di, night) = %+v, %v; want none", view, err)
+	}
+
 	// Each decision leaves the requester a notice, and each request one for
 	// the organizer.
 	rows, err := pool.Query(ctx, `
@@ -487,15 +502,17 @@ func TestPostgresRepositoryTournamentApproval(t *testing.T) {
 	}
 	request := "Organizer tournament.entry_requested: Someone asked to join %s. Approve or decline it in the tournament's settings."
 	if want := map[string]int{
-		fmt.Sprintf(request, "Invite Cup"):                                                           5,
-		fmt.Sprintf(request, "Invite Teams"):                                                         2,
-		"Ada tournament.entry_declined: An organizer declined your request to join Invite Cup.":      1,
-		"Ada tournament.entry_approved: You're in Invite Cup. An organizer approved your request.":   1,
-		"Bo tournament.entry_approved: You're in Invite Cup. An organizer approved your request.":    1,
-		"Di tournament.entry_removed: An organizer removed your entry from Invite Cup.":              1,
-		"Cy tournament.entry_declined: Invite Cup started before your request to join was approved.": 1,
-		"Ada tournament.entry_approved: You're in Invite Teams. An organizer approved your request.": 1,
-		"Bo tournament.entry_approved: You're in Invite Teams. An organizer approved your request.":  1,
+		fmt.Sprintf(request, "Invite Cup"):   5,
+		fmt.Sprintf(request, "Invite Teams"): 2,
+		fmt.Sprintf(request, "Invite Night"): 1,
+		"Di tournament.entry_declined: Invite Night was cancelled, so your request to join was declined.": 1,
+		"Ada tournament.entry_declined: An organizer declined your request to join Invite Cup.":           1,
+		"Ada tournament.entry_approved: You're in Invite Cup. An organizer approved your request.":        1,
+		"Bo tournament.entry_approved: You're in Invite Cup. An organizer approved your request.":         1,
+		"Di tournament.entry_removed: An organizer removed your entry from Invite Cup.":                   1,
+		"Cy tournament.entry_declined: Invite Cup started before your request to join was approved.":      1,
+		"Ada tournament.entry_approved: You're in Invite Teams. An organizer approved your request.":      1,
+		"Bo tournament.entry_approved: You're in Invite Teams. An organizer approved your request.":       1,
 	}; !reflect.DeepEqual(counted, want) {
 		t.Fatalf("notices = %v, want %v", counted, want)
 	}

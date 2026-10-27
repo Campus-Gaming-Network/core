@@ -60,7 +60,7 @@ export const settingsNotices = {
   },
   "has-entries": {
     message:
-      "Someone has registered, so the entry type, team size, and format are fixed and the tournament can't go back to draft.",
+      "Someone has registered or asked to, so the entry type, team size, and format are fixed and the tournament can't go back to draft.",
     severity: "danger",
   },
   "has-requests": {

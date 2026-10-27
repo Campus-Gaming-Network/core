@@ -138,7 +138,7 @@ export function RegistrationPanel({
             )}{" "}
             You hold no spot until they approve it.
           </p>
-          {entry.can_manage ? (
+          {entry.can_manage && tournament.status === "registration_open" ? (
             <EntryButton
               action={withdrawTournamentEntry}
               entryID={entry.id}

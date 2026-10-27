@@ -359,8 +359,8 @@ to an event instead of repeating the event's own facts.
   at the cap, and seeds follow approval order. The requester can cancel a
   pending request. A declined requester may ask again, which goes to the end
   of the queue; removing the request instead blocks them for good, as removing
-  an entry does. Starting the tournament declines every request still
-  pending. Registration goes back to Open only once no request is pending
+  an entry does. Starting or cancelling the tournament declines every
+  request still pending. Registration goes back to Open only once no request is pending
 - **Paid tournaments:** CGN still takes no money. When the event's cost is
   paid, the registration form shows its payment note and payment link, so in
   an approval tournament an entrant pays the organizer off-site and the
