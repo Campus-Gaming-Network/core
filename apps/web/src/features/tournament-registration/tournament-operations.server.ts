@@ -9,7 +9,6 @@ import {
   tournamentErrorNotices,
   type RegisterInput,
   type RegistrationTeamDTO,
-  type TournamentEntryDTO,
   type TournamentEntriesResult,
   type TournamentEntryInput,
   type TournamentListResult,
