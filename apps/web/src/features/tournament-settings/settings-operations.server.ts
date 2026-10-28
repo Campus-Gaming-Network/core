@@ -3,11 +3,13 @@ import { apiErrorReporter } from "../../server/api-error-reporter.server.js";
 import { emptyResponseDtoSchema } from "../event-slice/contracts.js";
 import {
   tournamentDtoSchema,
+  tournamentEntriesResponseDtoSchema,
   type TournamentMutationResult,
 } from "../tournament-registration/contracts.js";
 import {
   settingsErrorNotices,
   type SettingsInput,
+  type SeedsInput,
   type SettingsNotice,
   type SlugInput,
   type StatusInput,
@@ -73,6 +75,22 @@ export function setStatusOperation(
       cache: "no-store",
       body: { status },
       responseSchema: tournamentDtoSchema,
+    }),
+  );
+}
+
+export function setSeedsOperation(
+  { slug, entry_ids }: SeedsInput,
+  dependencies: Dependencies,
+): Promise<TournamentMutationResult> {
+  return change(slug, "seeded", dependencies, (api, cookieHeader) =>
+    api({
+      path: `${tournamentPath(slug)}/seeds`,
+      method: "PUT",
+      cookieHeader,
+      cache: "no-store",
+      body: { entry_ids },
+      responseSchema: tournamentEntriesResponseDtoSchema,
     }),
   );
 }

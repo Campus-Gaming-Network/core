@@ -3,12 +3,22 @@ import { beforeEach, test, vi } from "vite-plus/test";
 import { getEventViewerSession } from "../src/features/event-slice/auth.functions.js";
 import type { EventDTO } from "../src/features/event-slice/contracts.js";
 import { getEventDetail } from "../src/features/event-slice/event.functions.js";
-import type { TournamentDTO } from "../src/features/tournament-registration/contracts.js";
-import { validateSettingsInput } from "../src/features/tournament-settings/contracts.js";
+import { getTournamentMatches } from "../src/features/tournament-bracket/bracket.functions.js";
+import type { TournamentMatchDTO } from "../src/features/tournament-bracket/contracts.js";
+import type {
+  TournamentDTO,
+  TournamentEntryDTO,
+} from "../src/features/tournament-registration/contracts.js";
+import { getTournamentEntries } from "../src/features/tournament-registration/tournament.functions.js";
+import {
+  validateSeedsInput,
+  validateSettingsInput,
+} from "../src/features/tournament-settings/contracts.js";
 import { statusActions } from "../src/features/tournament-settings/presentation.js";
 import {
   deleteSettingsOperation,
   saveSettingsOperation,
+  setSeedsOperation,
   setStatusOperation,
 } from "../src/features/tournament-settings/settings-operations.server.js";
 import { Route } from "../src/routes/events.$slug_.tournament.js";
@@ -27,6 +37,16 @@ vi.mock("../src/features/tournament-settings/settings.functions.js", () => ({
   saveTournamentSettings: { url: "/test/save" },
   deleteTournamentSettings: { url: "/test/delete" },
   setTournamentStatus: { url: "/test/status" },
+  setTournamentSeeds: { url: "/test/seeds" },
+}));
+vi.mock(
+  "../src/features/tournament-registration/tournament.functions.js",
+  () => ({ getTournamentEntries: vi.fn() }),
+);
+vi.mock("../src/features/tournament-bracket/bracket.functions.js", () => ({
+  getTournamentMatches: vi.fn(),
+  generateBracket: { url: "/test/generate" },
+  recordMatchResult: { url: "/test/result" },
 }));
 
 beforeEach(() => vi.clearAllMocks());
@@ -55,7 +75,18 @@ const tournamentEvent: EventDTO = {
 async function renderPage(
   event: EventDTO,
   href = "/events/campus-night/tournament",
+  entries: TournamentEntryDTO[] = [],
+  matches: TournamentMatchDTO[] = [],
 ) {
+  vi.mocked(getTournamentEntries).mockResolvedValue({
+    status: "ready",
+    items: entries,
+    requests: [],
+  });
+  vi.mocked(getTournamentMatches).mockResolvedValue({
+    status: "ready",
+    matches,
+  });
   vi.mocked(getEventViewerSession).mockResolvedValue({
     status: "authenticated",
     authenticated: true,
@@ -391,4 +422,152 @@ test("with settings, the page shows the status moves, fixes the entry type once 
   });
   assert.match(ended, /value="completed"/);
   assert.doesNotMatch(ended, /action="\/test\/save"|value="cancelled"/);
+});
+
+const seedID = (n: number) =>
+  `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
+const seeded: TournamentEntryDTO[] = ["Ana", "Ben", "Cal"].map(
+  (name, index) => ({
+    id: seedID(index + 1),
+    status: "registered",
+    seed: index + 1,
+    player: { public_id: `public-${name.toLowerCase()}`, name },
+    registered_at: "2037-02-01T17:00:00Z",
+  }),
+);
+
+test("the seeding form becomes the entries in seed order, and refuses a repeated, missing, or out-of-range seed", () => {
+  const seeds = (...values: string[]) => {
+    const data = new FormData();
+    data.set("slug", "spring-cup");
+    for (const [index, value] of values.entries()) {
+      data.append("entry_id", seedID(index + 1));
+      data.append("seed", value);
+    }
+    return validateSeedsInput(data);
+  };
+  assert.deepEqual(
+    [
+      seeds("3", "1", "2"),
+      seeds("1", "1", "2"),
+      seeds("1", "", "2"),
+      seeds("1", "2", "4"),
+    ],
+    [
+      {
+        valid: true,
+        value: {
+          slug: "spring-cup",
+          entry_ids: [seedID(2), seedID(3), seedID(1)],
+        },
+      },
+      { valid: false, slug: "spring-cup" },
+      { valid: false, slug: "spring-cup" },
+      { valid: false, slug: "spring-cup" },
+    ],
+  );
+});
+
+function refusingAPI(code: string) {
+  return createApiClient({
+    baseUrl: "http://api:8080",
+    fetcher: async () =>
+      Response.json(
+        { error: code },
+        { status: code === "invalid_seed_order" ? 422 : 409 },
+      ),
+  });
+}
+
+test("saving seeds sends the order and maps a bad order or a locked bracket to a notice", async () => {
+  const requests: Array<{ url: string; method: string; body: unknown }> = [];
+  const api = createApiClient({
+    baseUrl: "http://api:8080",
+    fetcher: async (input, init) => {
+      requests.push({
+        url: requestURL(input),
+        method: init?.method ?? "GET",
+        body: init?.body ? JSON.parse(String(init.body)) : undefined,
+      });
+      return Response.json({ entries: seeded });
+    },
+  });
+  const dependencies = {
+    cookieHeader: "cgn_session=value",
+    reportError: () => {},
+  };
+  const input = { slug: "spring-cup", entry_ids: [seedID(2), seedID(1)] };
+  assert.deepEqual(
+    {
+      outcomes: [
+        await setSeedsOperation(input, { ...dependencies, api }),
+        await setSeedsOperation(input, {
+          ...dependencies,
+          api: refusingAPI("invalid_seed_order"),
+        }),
+        await setSeedsOperation(input, {
+          ...dependencies,
+          api: refusingAPI("tournament_bracket_locked"),
+        }),
+      ].map((result) => result.redirectTo),
+      requests,
+    },
+    {
+      outcomes: ["seeded", "seeds", "seeds-locked"].map(
+        (notice) => `/events/spring-cup/tournament?settings=${notice}`,
+      ),
+      requests: [
+        {
+          url: "http://api:8080/events/spring-cup/tournament/seeds",
+          method: "PUT",
+          body: { entry_ids: [seedID(2), seedID(1)] },
+        },
+      ],
+    },
+  );
+});
+
+test("organizers seed with a native form while registration is open or the tournament runs, until a match has a result", async () => {
+  const open = {
+    ...tournamentEvent,
+    tournament: {
+      ...draft,
+      status: "registration_open" as const,
+      entry_count: 3,
+    },
+  };
+  const editable = await renderPage(
+    open,
+    "/events/campus-night/tournament?settings=seeded",
+    seeded,
+  );
+  const locked = await renderPage(
+    { ...open, tournament: { ...open.tournament, status: "in_progress" } },
+    undefined,
+    seeded,
+    [
+      {
+        id: seedID(10),
+        round: 1,
+        position: 1,
+        entrants: [null, null],
+        status: "complete",
+        winner_entry_id: seedID(1),
+      },
+    ],
+  );
+  const drafting = await renderPage({ ...tournamentEvent, tournament: draft });
+
+  assert.match(
+    editable,
+    /<form class="seeds-form" action="\/test\/seeds" method="post">/,
+  );
+  assert.equal(
+    editable.match(/name="seed" value="\d"/g)?.join(" "),
+    'name="seed" value="1" name="seed" value="2" name="seed" value="3"',
+  );
+  assert.match(editable, /Seeds saved\./);
+  assert.match(locked, /A match has a result, so the seeds are fixed\./);
+  assert.doesNotMatch(locked, /seeds-form/);
+  assert.doesNotMatch(drafting, /Seeds</);
 });

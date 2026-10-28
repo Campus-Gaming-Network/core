@@ -705,4 +705,35 @@
       width: 8rem;
     }
   }
+
+  .seeds-form {
+    display: grid;
+    gap: var(--space-4);
+    margin-top: var(--space-4);
+
+    > button {
+      justify-self: start;
+    }
+  }
+
+  .seeds-form__list {
+    display: grid;
+    gap: var(--space-2);
+    max-width: 30rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-3);
+      overflow-wrap: anywhere;
+    }
+
+    input {
+      width: 5rem;
+    }
+  }
 }

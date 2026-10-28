@@ -65,7 +65,7 @@ Admin Console work continues under
   join when the organizers approve each entry. Organizers generate a
   single-elimination bracket from the tournament settings and enter results
   on each match's page; the event page has tournament tabs and a bracket
-  view. Seeding is through the API only. The spec is in [01 — Product](./01-product.md#tournaments).
+  view. Organizers set the seed order on the tournament settings page. The spec is in [01 — Product](./01-product.md#tournaments).
 - Product and technical questions that are intentionally unresolved are tracked
   in [08 — Open questions](./08-open-questions.md).
 

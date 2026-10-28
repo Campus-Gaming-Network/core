@@ -67,6 +67,20 @@ export const settingsNotices = {
       "Approve or decline the pending requests before switching registration back to open.",
     severity: "danger",
   },
+  seeded: {
+    message:
+      "Seeds saved. Generate the bracket again for it to use the new order.",
+    severity: "success",
+  },
+  seeds: {
+    message:
+      "Give every entrant a different seed from 1 to the number of entrants.",
+    severity: "danger",
+  },
+  "seeds-locked": {
+    message: "A match has a result, so the seeds are fixed.",
+    severity: "danger",
+  },
   "needs-entrants": {
     message: "Starting the tournament needs at least two entrants.",
     severity: "danger",
@@ -99,6 +113,8 @@ export const settingsErrorNotices: Record<string, SettingsNotice> = {
   tournament_has_requests: "has-requests",
   not_event_organizer: "forbidden",
   invalid_request: "invalid",
+  invalid_seed_order: "seeds",
+  tournament_bracket_locked: "seeds-locked",
 };
 
 export function settingsNoticeKey(value: unknown): SettingsNotice | undefined {
@@ -202,7 +218,13 @@ const statusInputSchema = z.object({
 });
 const slugInputSchema = z.object({ slug: slugSchema });
 
+const seedsInputSchema = z.object({
+  slug: slugSchema,
+  entry_ids: z.array(z.uuid()).min(1).max(512),
+});
+
 export type StatusInput = z.output<typeof statusInputSchema>;
+export type SeedsInput = z.output<typeof seedsInputSchema>;
 export type SlugInput = z.output<typeof slugInputSchema>;
 
 /**
@@ -237,6 +259,32 @@ export function validateStatusInput(
   });
 }
 
+/**
+ * The seeding form: one `entry_id` and one `seed` per entrant, in the same
+ * order. The seeds must be 1 to the number of entrants, each once; the result
+ * is the entries sorted by seed, as the API takes them.
+ */
+export function validateSeedsInput(
+  input: object | FormData,
+): ValidatedTournamentInput<SeedsInput> {
+  const entryIDs = inputValues(input, "entry_id");
+  const seeds = inputValues(input, "seed").map((seed) =>
+    /^\d{1,3}$/.test(seed.trim()) ? Number(seed) : Number.NaN,
+  );
+  const ordered: string[] = [];
+  for (const [index, seed] of seeds.entries()) {
+    if (seed >= 1 && seed <= seeds.length) ordered[seed - 1] = entryIDs[index];
+  }
+  const complete =
+    entryIDs.length === seeds.length &&
+    new Set(seeds).size === seeds.length &&
+    ordered.filter(Boolean).length === seeds.length;
+  return validated(seedsInputSchema, {
+    slug: inputValue(input, "slug"),
+    entry_ids: complete ? ordered : undefined,
+  });
+}
+
 export function validateSlugInput(
   input: object | FormData,
 ): ValidatedTournamentInput<SlugInput> {
@@ -251,6 +299,16 @@ function validated<T>(
   if (parsed.success) return { valid: true, value: parsed.data };
   const slug = slugSchema.safeParse(values.slug);
   return { valid: false, ...(slug.success ? { slug: slug.data } : {}) };
+}
+
+function inputValues(input: object | FormData, field: string): string[] {
+  const values =
+    input instanceof FormData
+      ? input.getAll(field)
+      : (input as Record<string, unknown>)[field];
+  return Array.isArray(values)
+    ? values.filter((value): value is string => typeof value === "string")
+    : [];
 }
 
 function inputValue(input: object | FormData, field: string): string {

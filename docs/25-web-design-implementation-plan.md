@@ -523,6 +523,10 @@ documents are updated and their contracts are implemented:
   there: the winner and both scores, or a walkover naming who advances. A
   result can be corrected until the winner's next match has one. The settings
   page has "Generate bracket" while the tournament is in progress.
+- The settings page's Seeds panel lists the entrants with a seed number each,
+  saved with a native form, while registration is open or the tournament is
+  in progress. The numbers must be 1 to the number of entrants, each once.
+  Once a match has a result, the order is shown as text instead.
 
 ### People lists
 

@@ -10,6 +10,8 @@ import type {
   ValidatedTournamentInput,
 } from "../tournament-registration/contracts.js";
 import {
+  type SettingsNotice,
+  validateSeedsInput,
   validateSettingsInput,
   validateSlugInput,
   validateStatusInput,
@@ -17,6 +19,7 @@ import {
 import {
   deleteSettingsOperation,
   saveSettingsOperation,
+  setSeedsOperation,
   setStatusOperation,
   settingsPageWithNotice,
 } from "./settings-operations.server.js";
@@ -42,6 +45,13 @@ export const setTournamentStatus = createServerFn({
   .validator((input: object | FormData) => validateStatusInput(input))
   .handler(({ data }) => runChange(data, setStatusOperation));
 
+export const setTournamentSeeds = createServerFn({
+  method: "POST",
+  strict: { input: false },
+})
+  .validator((input: object | FormData) => validateSeedsInput(input))
+  .handler(({ data }) => runChange(data, setSeedsOperation, "seeds"));
+
 // A native form post always redirects, with a notice naming the outcome; an
 // enhanced one returns the destination for the client to navigate to.
 async function runChange<T>(
@@ -50,6 +60,7 @@ async function runChange<T>(
     input: T,
     request: ReturnType<typeof currentSessionRequest>,
   ) => Promise<TournamentMutationResult>,
+  invalidNotice: SettingsNotice = "invalid",
 ): Promise<TournamentMutationResult> {
   setPrivateNoStoreResponse();
   const result: TournamentMutationResult = data.valid
@@ -57,7 +68,7 @@ async function runChange<T>(
     : {
         status: "success",
         redirectTo: data.slug
-          ? settingsPageWithNotice(data.slug, "invalid")
+          ? settingsPageWithNotice(data.slug, invalidNotice)
           : "/events?event=failed",
       };
   if (isNativeFormPost()) {
