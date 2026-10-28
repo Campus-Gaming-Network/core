@@ -3,6 +3,7 @@ import {
   pageNoticeKey,
   type PageNotice,
 } from "../../components/page-notice.js";
+import { localDateTimeToInstant } from "../event-slice/event-time.js";
 import type { ValidatedTournamentInput } from "../tournament-registration/contracts.js";
 
 const slugSchema = z.string().trim().min(1).max(200);
@@ -61,6 +62,17 @@ export const bracketNotices = {
   saved: {
     message: "Result saved. The winner has moved on.",
     severity: "success",
+  },
+  scheduled: { message: "Match time saved.", severity: "success" },
+  unscheduled: { message: "Match time cleared.", severity: "success" },
+  "time-invalid": {
+    message:
+      "Enter a date and time that exists in the event's time zone, within the event's start and end.",
+    severity: "danger",
+  },
+  "match-complete": {
+    message: "The match has a result, so its time can no longer change.",
+    severity: "danger",
   },
   invalid: {
     message:
@@ -121,6 +133,8 @@ export const bracketErrorNotices: Record<string, BracketNotice> = {
   tournament_needs_entrants: "needs-entrants",
   event_ended: "ended",
   not_event_organizer: "forbidden",
+  match_time_outside_event: "time-invalid",
+  tournament_match_complete: "match-complete",
 };
 
 export function bracketNoticeKey(value: unknown): BracketNotice | undefined {
@@ -151,7 +165,15 @@ const resultInputSchema = z.discriminatedUnion("walkover", [
 ]);
 const bracketInputSchema = z.object({ slug: slugSchema });
 
+const scheduleInputSchema = z.object({
+  slug: slugSchema,
+  match_id: z.uuid(),
+  /** Null clears the time. */
+  scheduled_at: z.iso.datetime({ offset: true }).nullable(),
+});
+
 export type ResultInput = z.output<typeof resultInputSchema>;
+export type ScheduleInput = z.output<typeof scheduleInputSchema>;
 export type BracketInput = z.output<typeof bracketInputSchema>;
 
 /**
@@ -173,6 +195,34 @@ export function validateResultInput(
       : { scores: [inputValue(input, "score1"), inputValue(input, "score2")] }),
   };
   const parsed = resultInputSchema.safeParse(values);
+  if (parsed.success) return { valid: true, value: parsed.data };
+  const slug = slugSchema.safeParse(values.slug);
+  const matchID = z.uuid().safeParse(values.match_id);
+  return {
+    valid: false,
+    ...(slug.success ? { slug: slug.data } : {}),
+    ...(matchID.success ? { matchID: matchID.data } : {}),
+  };
+}
+
+/**
+ * A blank time clears it. A local time the event's zone skips or repeats is
+ * invalid.
+ */
+export function validateScheduleInput(
+  input: object | FormData,
+): ValidatedTournamentInput<ScheduleInput> & { matchID?: string } {
+  const local = inputValue(input, "scheduled_at");
+  const instant = local
+    ? localDateTimeToInstant(local, inputValue(input, "timezone"))
+    : undefined;
+  const values = {
+    slug: inputValue(input, "slug"),
+    match_id: inputValue(input, "match_id"),
+    scheduled_at:
+      instant === undefined ? null : instant.success ? instant.instant : "",
+  };
+  const parsed = scheduleInputSchema.safeParse(values);
   if (parsed.success) return { valid: true, value: parsed.data };
   const slug = slugSchema.safeParse(values.slug);
   const matchID = z.uuid().safeParse(values.match_id);

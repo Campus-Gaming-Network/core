@@ -8,15 +8,18 @@ import { getTournamentMatches } from "../src/features/tournament-bracket/bracket
 import {
   generateBracketOperation,
   recordResultOperation,
+  scheduleMatchOperation,
   tournamentMatchesOperation,
 } from "../src/features/tournament-bracket/bracket-operations.server.js";
 import {
   validateResultInput,
+  validateScheduleInput,
   type TournamentMatchDTO,
 } from "../src/features/tournament-bracket/contracts.js";
 import {
   bracketRounds,
   matchSummary,
+  scheduleDays,
   tournamentSections,
 } from "../src/features/tournament-bracket/presentation.js";
 import type { TournamentDTO } from "../src/features/tournament-registration/contracts.js";
@@ -25,6 +28,7 @@ import { deleteEntryOperation } from "../src/features/tournament-registration/to
 import { Route as EventRoute } from "../src/routes/events.$slug.js";
 import { Route as EntrantsRoute } from "../src/routes/events.$slug_.entrants.js";
 import { Route as BracketRoute } from "../src/routes/events.$slug_.bracket.js";
+import { Route as ScheduleRoute } from "../src/routes/events.$slug_.schedule.js";
 import { Route as MatchRoute } from "../src/routes/events.$slug_.matches.$matchId.js";
 import { createApiClient, type Fetcher } from "../src/server/api.server.js";
 import { requestURL } from "./fetch-stub.js";
@@ -64,6 +68,7 @@ vi.mock("../src/features/tournament-bracket/bracket.functions.js", () => ({
   getTournamentMatches: vi.fn(),
   generateBracket: { url: "/test/generate" },
   recordMatchResult: { url: "/test/result" },
+  scheduleMatch: { url: "/test/schedule" },
 }));
 
 beforeEach(() => vi.clearAllMocks());
@@ -593,5 +598,165 @@ test("a removal made on the Players tab returns there with its notice", async ()
       "/events/spring-cup/entrants?tournament=started",
       "/events/spring-cup?tournament=withdrawn#registration",
     ],
+  );
+});
+
+// The semifinals on Saturday evening and the final just after midnight, in
+// the event's zone (Los Angeles, daylight time).
+const scheduled: TournamentMatchDTO[] = [
+  matches[0],
+  { ...matches[1], scheduled_at: "2037-06-07T02:30:00Z" },
+  { ...matches[2], scheduled_at: "2037-06-07T01:00:00Z" },
+  { ...matches[3], scheduled_at: "2037-06-07T07:15:00Z" },
+];
+
+test("the Schedule tab shows once a match has a time, and lists matches by day and time in the event's zone", async () => {
+  const timeZone = routeEvent.timezone;
+  assert.deepEqual(
+    {
+      tabs: tournamentSections(running, true, true).map((tab) => tab.label),
+      days: scheduleDays(scheduled, timeZone).map(
+        ({ day, matches: listed }) => ({
+          day,
+          ids: listed.map((match) => match.id),
+        }),
+      ),
+    },
+    {
+      tabs: ["Overview", "Players (5)", "Bracket", "Schedule", "Rules"],
+      days: [
+        { day: "Sat, Jun 6, 2037", ids: [id(22), id(21)] },
+        { day: "Sun, Jun 7, 2037", ids: [id(31)] },
+      ],
+    },
+  );
+
+  stubPage(tournamentEvent, scheduled);
+  const page = (
+    await loadRoute(
+      ScheduleRoute,
+      "/events/$slug/schedule",
+      "/events/campus-night/schedule",
+    )
+  ).render();
+  assert.deepEqual(
+    [
+      ...page.matchAll(
+        /<time dateTime="[^"]+">([^<]+)<\/time><a[^>]*>([^<]+)<\/a>/g,
+      ),
+    ].map((found) => `${found[1]} ${found[2]}`),
+    [
+      "6:00 PM PDT Semifinals, match 2",
+      "7:30 PM PDT Semifinals, match 1",
+      "12:15 AM PDT Final",
+    ],
+  );
+  assert.match(page, /aria-current="page">Schedule</);
+});
+
+test("an organizer sets a match time in the event's zone until the match has a result", async () => {
+  stubPage({ ...tournamentEvent, viewer_can_edit: true }, scheduled);
+  const upcoming = (
+    await loadRoute(
+      MatchRoute,
+      "/events/$slug/matches/$matchId",
+      `/events/campus-night/matches/${id(21)}`,
+    )
+  ).render();
+  const decided = (
+    await loadRoute(
+      MatchRoute,
+      "/events/$slug/matches/$matchId",
+      `/events/campus-night/matches/${id(22)}`,
+    )
+  ).render();
+  const data = (fields: Record<string, string>) => {
+    const values = new FormData();
+    for (const [name, value] of Object.entries({
+      slug: "spring-cup",
+      match_id: id(21),
+      timezone: "America/Los_Angeles",
+      ...fields,
+    })) {
+      values.set(name, value);
+    }
+    return values;
+  };
+
+  assert.match(
+    upcoming,
+    /type="datetime-local"[^>]*name="scheduled_at" value="2037-06-06T19:30"/,
+  );
+  assert.match(upcoming, />Clear time</);
+  assert.doesNotMatch(decided, /Match time</);
+  assert.deepEqual(
+    [
+      validateScheduleInput(data({ scheduled_at: "2037-06-06T19:30" })),
+      validateScheduleInput(data({ scheduled_at: "" })),
+      // Clocks skip 2:00 to 3:00 that morning in Los Angeles.
+      validateScheduleInput(data({ scheduled_at: "2037-03-08T02:30" })),
+    ],
+    [
+      {
+        valid: true,
+        value: {
+          slug: "spring-cup",
+          match_id: id(21),
+          scheduled_at: "2037-06-07T02:30:00.000Z",
+        },
+      },
+      {
+        valid: true,
+        value: { slug: "spring-cup", match_id: id(21), scheduled_at: null },
+      },
+      { valid: false, slug: "spring-cup", matchID: id(21) },
+    ],
+  );
+});
+
+test("scheduling sends the time or null and maps a time outside the event to a notice", async () => {
+  const bodies: unknown[] = [];
+  const api = client(async (_input, init) => {
+    bodies.push(init?.body ? JSON.parse(String(init.body)) : undefined);
+    return Response.json({ matches: scheduled });
+  });
+  const outside = client(async () =>
+    Response.json({ error: "match_time_outside_event" }, { status: 422 }),
+  );
+  const dependencies = {
+    cookieHeader: "cgn_session=value",
+    reportError: () => {},
+  };
+  const input = { slug: "spring-cup", match_id: id(21) };
+  const matchPage = `/events/spring-cup/matches/${id(21)}?bracket=`;
+  assert.deepEqual(
+    {
+      outcomes: [
+        await scheduleMatchOperation(
+          { ...input, scheduled_at: "2037-06-07T02:30:00.000Z" },
+          { ...dependencies, api },
+        ),
+        await scheduleMatchOperation(
+          { ...input, scheduled_at: null },
+          { ...dependencies, api },
+        ),
+        await scheduleMatchOperation(
+          { ...input, scheduled_at: "2037-06-07T02:30:00.000Z" },
+          { ...dependencies, api: outside },
+        ),
+      ].map((result) => result.redirectTo),
+      bodies,
+    },
+    {
+      outcomes: [
+        `${matchPage}scheduled`,
+        `${matchPage}unscheduled`,
+        `${matchPage}time-invalid`,
+      ],
+      bodies: [
+        { scheduled_at: "2037-06-07T02:30:00.000Z" },
+        { scheduled_at: null },
+      ],
+    },
   );
 });

@@ -48,6 +48,14 @@ export function hasBracket(bracket: BracketResult | undefined): boolean {
   return bracket?.status === "ready" && bracket.matches.length > 0;
 }
 
+/** Whether any match has a time, which shows the Schedule tab. */
+export function hasSchedule(bracket: BracketResult | undefined): boolean {
+  return (
+    bracket?.status === "ready" &&
+    bracket.matches.some((match) => match.scheduled_at !== undefined)
+  );
+}
+
 /** A section page's head: never indexed, like the event's other subpages. */
 export function tournamentPageHead(
   loaderData: TournamentPageData | undefined,
@@ -93,6 +101,7 @@ export function TournamentPage({
       <TournamentTabs
         current={current}
         hasBracket={hasBracket(data.bracket)}
+        hasSchedule={hasSchedule(data.bracket)}
         slug={event.slug}
         tournament={event.tournament}
       />

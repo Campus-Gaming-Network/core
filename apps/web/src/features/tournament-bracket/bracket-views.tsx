@@ -10,7 +10,12 @@ import { FormField } from "../../components/form-field";
 import { Surface } from "../../components/surface";
 import { TabLink, Tabs } from "../../components/tabs";
 import type { TournamentDTO } from "../tournament-registration/contracts";
-import { generateBracket, recordMatchResult } from "./bracket.functions";
+import { instantToLocalDateTime } from "../event-slice/event-time";
+import {
+  generateBracket,
+  recordMatchResult,
+  scheduleMatch,
+} from "./bracket.functions";
 import {
   maximumMatchScore,
   type MatchEntrantDTO,
@@ -28,6 +33,7 @@ const sectionPaths = {
   overview: "/events/$slug",
   entrants: "/events/$slug/entrants",
   bracket: "/events/$slug/bracket",
+  schedule: "/events/$slug/schedule",
   rules: "/events/$slug/rules",
   prizes: "/events/$slug/prizes",
 } as const satisfies Record<TournamentSection, string>;
@@ -39,26 +45,30 @@ const sectionPaths = {
 export function TournamentTabs({
   current,
   hasBracket,
+  hasSchedule = false,
   slug,
   tournament,
 }: {
   current: TournamentSection;
   hasBracket: boolean;
+  hasSchedule?: boolean;
   slug: string;
   tournament: TournamentDTO;
 }) {
   return (
     <Tabs label="Tournament sections">
-      {tournamentSections(tournament, hasBracket).map(({ section, label }) => (
-        <TabLink
-          current={section === current}
-          key={section}
-          params={{ slug }}
-          to={sectionPaths[section]}
-        >
-          {label}
-        </TabLink>
-      ))}
+      {tournamentSections(tournament, hasBracket, hasSchedule).map(
+        ({ section, label }) => (
+          <TabLink
+            current={section === current}
+            key={section}
+            params={{ slug }}
+            to={sectionPaths[section]}
+          >
+            {label}
+          </TabLink>
+        ),
+      )}
     </Tabs>
   );
 }
@@ -344,6 +354,83 @@ export function GenerateBracketForm({ slug }: { slug: string }) {
           </Link>
         </div>
       </form>
+    </Surface>
+  );
+}
+
+export function ScheduleForm({
+  match,
+  slug,
+  timeZone,
+}: {
+  match: TournamentMatchDTO;
+  slug: string;
+  timeZone: string;
+}) {
+  const mutation = useEnhancedMutation(
+    "We could not save the match time. Please try again.",
+  );
+  const schedule = useServerFn(scheduleMatch);
+  async function submit(formEvent: FormEvent<HTMLFormElement>) {
+    formEvent.preventDefault();
+    const data = new FormData(formEvent.currentTarget);
+    await mutation.execute(() => schedule({ data }));
+  }
+  const hidden = (
+    <>
+      <input name="slug" type="hidden" value={slug} />
+      <input name="match_id" type="hidden" value={match.id} />
+      <input name="timezone" type="hidden" value={timeZone} />
+    </>
+  );
+  return (
+    <Surface variant="panel" aria-labelledby="match-schedule-heading">
+      <h2 id="match-schedule-heading">Match time</h2>
+      <p className="form-help">
+        {`In the event's time zone (${timeZone}), within the event's start and end. Scheduled matches show on the Schedule tab.`}
+      </p>
+      <FormErrorSummary
+        fieldErrors={mutation.fieldErrors}
+        message={mutation.message}
+        summaryRef={mutation.errorSummaryRef}
+      />
+      <form
+        action={scheduleMatch.url}
+        className="match-result-form"
+        method="post"
+        onSubmit={submit}
+      >
+        {hidden}
+        <FormField errorId="match-time-error" label="Date and time">
+          <input
+            defaultValue={
+              match.scheduled_at
+                ? instantToLocalDateTime(match.scheduled_at, timeZone)
+                : ""
+            }
+            name="scheduled_at"
+            required
+            type="datetime-local"
+          />
+        </FormField>
+        <Button disabled={mutation.pending} type="submit" variant="primary">
+          Save time
+        </Button>
+      </form>
+      {match.scheduled_at ? (
+        <form
+          action={scheduleMatch.url}
+          className="match-result-form"
+          method="post"
+          onSubmit={submit}
+        >
+          {hidden}
+          <input name="scheduled_at" type="hidden" value="" />
+          <Button disabled={mutation.pending} type="submit" variant="secondary">
+            Clear time
+          </Button>
+        </form>
+      ) : null}
     </Surface>
   );
 }

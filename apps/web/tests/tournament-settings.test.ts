@@ -47,6 +47,7 @@ vi.mock("../src/features/tournament-bracket/bracket.functions.js", () => ({
   getTournamentMatches: vi.fn(),
   generateBracket: { url: "/test/generate" },
   recordMatchResult: { url: "/test/result" },
+  scheduleMatch: { url: "/test/schedule" },
 }));
 
 beforeEach(() => vi.clearAllMocks());

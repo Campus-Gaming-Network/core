@@ -126,6 +126,8 @@ type EventRouteData = {
   entries?: TournamentEntriesResult;
   /** Whether the tournament has a generated bracket, which adds its tab. */
   hasBracket?: boolean;
+  /** Whether any match has a time, which adds the Schedule tab. */
+  hasSchedule?: boolean;
   registrationTeams?: TournamentListResult<RegistrationTeamDTO>;
   /** The latest log entries the viewer may see; empty when there are none or they could not be read. */
   updates: EventActivityEntry[];
@@ -209,6 +211,9 @@ export const Route = createFileRoute("/events/$slug")({
       ...(attendees ? { attendees } : {}),
       ...(entries ? { entries } : {}),
       hasBracket: bracket?.status === "ready" && bracket.matches.length > 0,
+      hasSchedule:
+        bracket?.status === "ready" &&
+        bracket.matches.some((match) => match.scheduled_at !== undefined),
       ...(registrationTeams ? { registrationTeams } : {}),
       updates: activity?.status === "found" ? activity.page.entries : [],
       publicOrigin: context.publicOrigin,
@@ -247,6 +252,7 @@ function EventPage() {
     event,
     authenticated,
     hasBracket,
+    hasSchedule,
     publicOrigin,
     registrationTeams,
     updates,
@@ -271,6 +277,7 @@ function EventPage() {
       event={event}
       authenticated={authenticated}
       hasBracket={Boolean(hasBracket)}
+      hasSchedule={Boolean(hasSchedule)}
       notice={search.event}
       publicOrigin={publicOrigin}
       registrationTeams={registrationTeams}
@@ -328,6 +335,7 @@ function VisibleEventView({
   event,
   authenticated,
   hasBracket,
+  hasSchedule,
   notice,
   publicOrigin,
   registrationTeams,
@@ -339,6 +347,7 @@ function VisibleEventView({
   event: EventDTO;
   authenticated: boolean;
   hasBracket: boolean;
+  hasSchedule: boolean;
   notice?: EventSearch["event"];
   publicOrigin: string;
   registrationTeams?: TournamentListResult<RegistrationTeamDTO>;
@@ -599,6 +608,7 @@ function VisibleEventView({
         <TournamentTabs
           current="overview"
           hasBracket={hasBracket}
+          hasSchedule={hasSchedule}
           slug={event.slug}
           tournament={tournament}
         />

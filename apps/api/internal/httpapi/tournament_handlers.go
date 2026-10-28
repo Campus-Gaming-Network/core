@@ -27,6 +27,7 @@ type eventTournaments interface {
 	GenerateBracket(ctx context.Context, slug string, userID string) ([]eventstore.TournamentMatch, error)
 	ListMatches(ctx context.Context, slug string, userID string) ([]eventstore.TournamentMatch, error)
 	RecordResult(ctx context.Context, input eventstore.ResultInput) ([]eventstore.TournamentMatch, error)
+	ScheduleMatch(ctx context.Context, slug string, userID string, matchID string, scheduledAt *time.Time) ([]eventstore.TournamentMatch, error)
 }
 
 type tournamentRequest struct {
@@ -145,6 +146,11 @@ type rosterRequest struct {
 
 type seedsRequest struct {
 	EntryIDs []string `json:"entry_ids"`
+}
+
+type scheduleRequest struct {
+	// ScheduledAt is null to clear the time.
+	ScheduledAt *time.Time `json:"scheduled_at"`
 }
 
 type resultRequest struct {
@@ -381,6 +387,28 @@ func (r *Router) handleTournamentResult(w http.ResponseWriter, req *http.Request
 	})
 	if err != nil {
 		writeApplicationError(w, err, "tournament_result_failed")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"matches": matches})
+}
+
+func (r *Router) handleTournamentSchedule(w http.ResponseWriter, req *http.Request, slug string) {
+	userID, ok := r.tournamentUser(w, req)
+	if !ok {
+		return
+	}
+	matchID := req.PathValue("id")
+	if !looksLikeUUID(matchID) {
+		writeError(w, http.StatusNotFound, "tournament_match_not_found")
+		return
+	}
+	var request scheduleRequest
+	if !decodeJSON(w, req, &request) {
+		return
+	}
+	matches, err := r.tournaments.ScheduleMatch(req.Context(), slug, userID, matchID, request.ScheduledAt)
+	if err != nil {
+		writeApplicationError(w, err, "tournament_schedule_failed")
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"matches": matches})

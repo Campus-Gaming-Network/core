@@ -1,7 +1,10 @@
 import { Link, createFileRoute, notFound } from "@tanstack/react-router";
 import { RouteErrorView, RoutePending } from "../components/route-boundaries";
 import { Surface } from "../components/surface";
-import { ResultForms } from "../features/tournament-bracket/bracket-views";
+import {
+  ResultForms,
+  ScheduleForm,
+} from "../features/tournament-bracket/bracket-views";
 import {
   bracketNoticeKey,
   type BracketNotice,
@@ -182,6 +185,15 @@ function MatchPage() {
           </Link>
         </div>
       </Surface>
+      {event.viewer_can_edit &&
+      event.tournament.status === "in_progress" &&
+      !match.winner_entry_id ? (
+        <ScheduleForm
+          match={match}
+          slug={event.slug}
+          timeZone={event.timezone}
+        />
+      ) : null}
       {event.viewer_can_edit && tournamentOpen ? (
         first && second ? (
           fixed ? (

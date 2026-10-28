@@ -8,6 +8,7 @@ import {
   type BracketNotice,
   type BracketResult,
   type ResultInput,
+  type ScheduleInput,
 } from "./contracts.js";
 
 type Dependencies = {
@@ -114,6 +115,40 @@ export async function recordResultOperation(
     return {
       status: "success",
       redirectTo: matchPageWithNotice(input.slug, input.match_id, "saved"),
+    };
+  } catch (error) {
+    reportError(error);
+    return {
+      status: "success",
+      redirectTo: matchPageWithNotice(
+        input.slug,
+        input.match_id,
+        refusal(error),
+      ),
+    };
+  }
+}
+
+export async function scheduleMatchOperation(
+  input: ScheduleInput,
+  { api, cookieHeader, reportError = defaultErrorReporter }: Dependencies,
+): Promise<TournamentMutationResult> {
+  try {
+    await api({
+      path: `${tournamentPath(input.slug)}/matches/${encodeURIComponent(input.match_id)}/schedule`,
+      method: "PUT",
+      cookieHeader,
+      cache: "no-store",
+      body: { scheduled_at: input.scheduled_at },
+      responseSchema: tournamentMatchesResponseDtoSchema,
+    });
+    return {
+      status: "success",
+      redirectTo: matchPageWithNotice(
+        input.slug,
+        input.match_id,
+        input.scheduled_at ? "scheduled" : "unscheduled",
+      ),
     };
   } catch (error) {
     reportError(error);
