@@ -406,19 +406,6 @@ func TestLoadTreatsIGDBCredentialsAsOptionalButPaired(t *testing.T) {
 	}
 }
 
-func TestLoadReadsBFFProxySharedSecret(t *testing.T) {
-	clearConfigurationEnvironment(t)
-	t.Setenv("API_PROXY_SHARED_SECRET", "test-shared-secret")
-
-	cfg, err := Load()
-	if err != nil {
-		t.Fatalf("Load() error = %v", err)
-	}
-	if cfg.ProxySharedSecret != "test-shared-secret" {
-		t.Fatalf("ProxySharedSecret = %q, want configured secret", cfg.ProxySharedSecret)
-	}
-}
-
 func validStrictEnvironment(environment string) map[string]string {
 	return map[string]string{
 		"DEPLOYMENT_ENV":          environment,

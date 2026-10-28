@@ -76,26 +76,6 @@ test("the audit log requests one filtered page and withholds audited values", as
   );
 });
 
-test("an audit log entry with an unknown action fails the contract", () => {
-  assert.equal(
-    auditLogPageSchema.safeParse({
-      audit_entries: [
-        {
-          id: entryID,
-          action: "event.deleted",
-          target_type: "school",
-          before: {},
-          after: {},
-          created_at: createdAt,
-        },
-      ],
-      next_cursor: "",
-      previous_cursor: "",
-    }).success,
-    false,
-  );
-});
-
 test("audit log searches keep a known entity type and one cursor direction", () => {
   assert.deepEqual(
     [

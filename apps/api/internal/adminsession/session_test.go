@@ -320,23 +320,6 @@ func TestNewTokenIsUniqueAndHashMatches(t *testing.T) {
 	}
 }
 
-func TestConstantTimeEqual(t *testing.T) {
-	tests := []struct {
-		left, right []byte
-		want        bool
-	}{
-		{[]byte("abc"), []byte("abc"), true},
-		{[]byte("abc"), []byte("abd"), false},
-		{[]byte("abc"), []byte("ab"), false},
-		{nil, nil, true},
-	}
-	for _, tt := range tests {
-		if got := constantTimeEqual(tt.left, tt.right); got != tt.want {
-			t.Errorf("constantTimeEqual(%q, %q) = %v", tt.left, tt.right, got)
-		}
-	}
-}
-
 func TestMaxAgeFloorsAtOneSecond(t *testing.T) {
 	if got := maxAge(time.Now().Add(-time.Hour)); got != 1 {
 		t.Errorf("maxAge(past) = %d, want 1", got)

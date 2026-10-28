@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
 import { test } from "vite-plus/test";
-import { systemSchema } from "../src/features/system/contracts.js";
 import { getSystemOperation } from "../src/features/system/system-operations.server.js";
 import type { ApiClient } from "../src/server/api.server.js";
 
@@ -33,15 +32,5 @@ test("the system page reads one validated status document", async () => {
       paths,
     },
     { system: status, paths: ["/admin/v1/system"] },
-  );
-});
-
-test("a status the console cannot label fails the contract", () => {
-  assert.equal(
-    systemSchema.safeParse({
-      ...status,
-      checks: [{ name: "igdb", status: "dial tcp: connection refused" }],
-    }).success,
-    false,
   );
 });

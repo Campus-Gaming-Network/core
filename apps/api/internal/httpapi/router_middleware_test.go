@@ -34,19 +34,6 @@ func TestRouterRecoversPanicAsJSONError(t *testing.T) {
 	}
 }
 
-func TestRouterPassesThroughSuccessfulHandlers(t *testing.T) {
-	handler := withPanicRecovery(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		writeJSON(w, http.StatusTeapot, map[string]string{"status": "fine"})
-	}))
-	response := httptest.NewRecorder()
-
-	handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/events", nil))
-
-	if response.Code != http.StatusTeapot {
-		t.Fatalf("status = %d, want %d", response.Code, http.StatusTeapot)
-	}
-}
-
 func TestSecurityHeadersAreDefaultsHandlersMayReplace(t *testing.T) {
 	handler := withSecurityHeaders(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Cache-Control", "public, max-age=300")

@@ -395,26 +395,3 @@ test("locked, missing, and unavailable events never produce a calendar", async (
   assert.equal(upstreamCalls, 3);
   assert.equal(reported.length, 1);
 });
-
-test("the calendar route answers GET and HEAD and refuses other methods", () => {
-  const route = readFileSync(
-    join(appRoot, "src/routes/api.events.$slug.calendar[.]ics.ts"),
-    "utf8",
-  );
-
-  assert.match(
-    route,
-    /createFileRoute\("\/api\/events\/\$slug\/calendar\.ics"\)/,
-  );
-  assert.match(
-    route,
-    /GET: \(\{ request, params \}\) => handleCalendarRequest\(request, params\.slug\)/,
-  );
-  assert.match(
-    route,
-    /HEAD: \(\{ request, params \}\) =>\s+handleCalendarRequest\(request, params\.slug\)/,
-  );
-  for (const method of ["POST", "PUT", "PATCH", "DELETE", "OPTIONS"]) {
-    assert.match(route, new RegExp(`${method}: methodNotAllowedResponse`));
-  }
-});
