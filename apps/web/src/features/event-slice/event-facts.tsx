@@ -24,7 +24,7 @@ const eventTypeIcons: Partial<Record<EventType, LucideIcon>> = {
 };
 
 // Every audience has an icon, so the eye can tell who may come at a glance.
-const eventAudienceIcons: Record<EventAudience, LucideIcon> = {
+export const eventAudienceIcons: Record<EventAudience, LucideIcon> = {
   open: Globe,
   collegiate: GraduationCap,
   campus: School,

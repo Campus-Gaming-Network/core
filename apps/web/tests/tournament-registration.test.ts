@@ -220,15 +220,15 @@ test("the event page says how a tournament is played, leaving out what it does n
     },
   ];
   assert.deepEqual(tournaments.map(tournamentFormatSummary), [
-    "Single elimination · Solo · Chess",
-    "Round robin · Teams of 5, up to 1 substitute · Chess",
+    "Single elimination · Solo",
+    "Round robin · Teams of 5, up to 1 substitute",
     "Teams",
   ]);
 
   const tournamentMarkup = await renderEvent(tournamentEvent, false);
   assert.match(
     tournamentMarkup,
-    /<li><svg[^>]*lucide-trophy[^>]*>[^]*?<\/svg><div><strong>Single elimination · Solo · Chess<\/strong><\/div><\/li>/,
+    /<li><svg[^>]*lucide-trophy[^>]*>[^]*?<\/svg><div><strong>Single elimination · Solo<\/strong><\/div><\/li>/,
   );
   const plainMarkup = await renderEvent(
     { ...routeEvent, visibility: "public" },
@@ -241,7 +241,7 @@ test("a signed-out visitor sees the registration panel, not RSVPs, and solo entr
   const markup = await renderEvent(tournamentEvent, false);
 
   assert.match(markup, /Log in to register/);
-  assert.match(markup, /Solo · 2 of 8 registered/);
+  assert.match(markup, /<strong>2 of 8 registered<\/strong>/);
   assert.match(markup, /Registration closes when the event starts\./);
   assert.doesNotMatch(markup, /Are you going\?/);
   assert.match(markup, /Players \(2\)/);
@@ -277,7 +277,10 @@ test("a signed-in player registers with a native form, and a team registers with
     },
     true,
   );
-  assert.match(team, /Teams of 2, up to 1 substitute · 2 of 8 registered/);
+  assert.match(
+    team,
+    /<strong>Single elimination · Teams of 2, up to 1 substitute<\/strong>/,
+  );
   assert.match(
     team,
     /<input type="hidden" name="team_slug" value="knights"\/>/,
@@ -347,7 +350,7 @@ test("in an approval tournament a player requests to join, sees the payment note
   assert.match(open, /The organizers approve each entry\./);
   assert.match(
     open,
-    /Entry is \$10\.(<!-- -->)? <a href="https:\/\/pay\.example\/spring" rel="noopener noreferrer" target="_blank">Payment link/,
+    /<strong>Paid<\/strong><small>Entry is \$10\.<\/small><a class="text-action" href="https:\/\/pay\.example\/spring" rel="noopener noreferrer" target="_blank">Open payment link/,
   );
   assert.match(open, /<button type="submit">Request to join<\/button>/);
 

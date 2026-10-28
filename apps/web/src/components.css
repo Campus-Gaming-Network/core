@@ -1617,7 +1617,7 @@
     .results-heading .button,
     .directory-sidebar,
     .directory-row__action,
-    .event-header__rsvp,
+    .event-summary__action,
     .rsvp-help,
     .event-manage,
     .safety-details,
@@ -1741,8 +1741,7 @@
     }
 
     .layout-detail,
-    .layout-with-sidebar,
-    .event-header {
+    .layout-with-sidebar {
       display: block !important;
     }
 
@@ -1753,10 +1752,13 @@
     }
 
     .layout-detail__aside {
+      position: static !important;
+      max-height: none !important;
+      overflow: visible !important;
       margin-top: 12pt;
     }
 
-    .event-facts {
+    .event-summary__facts {
       padding: 0;
       margin: 8pt 0;
       border: 0 !important;
@@ -1786,12 +1788,6 @@
       small {
         display: block !important;
       }
-    }
-
-    /* The share card holds only the copy control, so nothing is left to
-       print. */
-    .detail-card:has(.copy-link) {
-      display: none !important;
     }
 
     .organizer-list,
@@ -2370,7 +2366,7 @@
     white-space: nowrap;
   }
 
-  .event-facts .calendar-action {
+  .event-summary__facts .calendar-action {
     display: inline-flex;
     gap: var(--space-2);
     align-items: center;
@@ -3658,7 +3654,7 @@
   .key-information dd,
   .detail-heading__title,
   .detail-heading__supporting,
-  .event-facts li > div {
+  .event-summary__facts li > div {
     overflow-wrap: anywhere;
   }
 
@@ -3677,10 +3673,6 @@
   .detail-hero__meta,
   .detail-hero__actions {
     overflow-wrap: anywhere;
-  }
-
-  .event-facts {
-    grid-template-columns: repeat(auto-fit, minmax(min(15rem, 100%), 1fr));
   }
 
   .button,
@@ -3702,7 +3694,7 @@
   }
 
   /* Reflow, continued: the header, filter fields, and school card wrap
-     rather than overflow; times in the event facts may break at small
+     rather than overflow; times in the event summary may break at small
      widths. */
   .site-header {
     flex-wrap: wrap;
@@ -3723,7 +3715,7 @@
   }
 
   @media (max-width: 30rem) {
-    .event-facts .nowrap {
+    .event-summary__facts .nowrap {
       white-space: normal;
     }
   }

@@ -45,33 +45,69 @@
     }
   }
 
-  .event-header {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(18rem, 22rem);
-    gap: var(--space-5) var(--space-6);
-    align-items: start;
-    margin-bottom: var(--space-5);
+  .event-layout {
+    grid-template-columns: minmax(0, 1fr) 22rem;
+    gap: var(--space-5);
+
+    > .layout-detail__aside {
+      position: sticky;
+      top: var(--space-5);
+      grid-column: 2;
+      grid-row: 1;
+      /* A long registration form scrolls inside the column instead of
+         running off the bottom of the screen. */
+      max-height: calc(100dvh - 2 * var(--space-5));
+      overflow-y: auto;
+    }
+
+    > .layout-detail__main {
+      grid-column: 1;
+      grid-row: 1;
+      gap: var(--space-5);
+    }
   }
 
-  .event-facts {
+  @media (max-width: 64rem) {
+    .event-layout {
+      grid-template-columns: minmax(0, 1fr);
+
+      > .layout-detail__aside {
+        position: static;
+        grid-column: 1;
+        grid-row: auto;
+        max-height: none;
+        overflow: visible;
+      }
+
+      > .layout-detail__main {
+        grid-row: auto;
+      }
+    }
+  }
+
+  .event-summary {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(15rem, 100%), 1fr));
     gap: var(--space-5);
-    margin: 0;
     border: 1px solid var(--color-card-border);
     border-radius: var(--radius-panel);
-    padding: var(--space-5);
+    padding: var(--space-4);
     background: var(--color-surface);
+  }
+
+  .event-summary__facts {
+    display: grid;
+    gap: var(--space-4);
+    margin: 0;
+    padding: 0;
     list-style: none;
 
     li {
-      display: flex;
-      align-items: flex-start;
+      display: grid;
+      grid-template-columns: 1.25rem minmax(0, 1fr);
       gap: var(--space-3);
-      min-width: 0;
+      align-items: start;
 
       > svg {
-        flex: none;
         margin-top: 0.125rem;
         color: var(--color-muted);
       }
@@ -79,8 +115,16 @@
       > div {
         display: grid;
         gap: 0.125rem;
+        justify-items: start;
         min-width: 0;
       }
+    }
+
+    .event-game-cover {
+      width: 1.25rem;
+      height: 1.6667rem;
+      margin-top: 0.125rem;
+      border-radius: 2px;
     }
 
     small {
@@ -89,10 +133,16 @@
     }
 
     .text-action,
+    .link,
     .calendar-action {
-      width: fit-content;
-      margin-top: var(--space-2);
+      margin-top: var(--space-1);
       font-size: var(--text-sm);
+    }
+
+    .text-action {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.375rem;
     }
 
     .online-url {
@@ -100,28 +150,20 @@
     }
   }
 
-  .event-header__rsvp {
+  .event-summary__action {
     display: grid;
     gap: var(--space-3);
-    border: 1px solid var(--color-card-border);
-    border-radius: var(--radius-panel);
-    padding: var(--space-4);
-    background: var(--color-surface);
+    border-top: 1px solid var(--color-border);
+    padding-top: var(--space-4);
+
+    h2 {
+      margin: 0;
+      font-size: var(--text-md);
+    }
 
     > .button {
       width: 100%;
     }
-  }
-
-  @media (max-width: 56rem) {
-    .event-header {
-      grid-template-columns: minmax(0, 1fr);
-    }
-  }
-
-  .event-header__rsvp h2 {
-    margin: 0;
-    font-size: var(--text-lg);
   }
 
   .rsvp-form {
@@ -237,11 +279,6 @@
     }
   }
 
-  .event-about h2,
-  .layout-detail__main > section > h2 {
-    margin: 0 0 var(--space-3);
-  }
-
   .event-about p {
     max-width: var(--measure-width);
     margin: 0;
@@ -313,20 +350,6 @@
     form {
       display: inline-block;
       margin-left: var(--space-2);
-    }
-  }
-
-  .event-game-list {
-    display: grid;
-    gap: var(--space-2);
-    margin: 0;
-    padding: 0;
-    list-style: none;
-
-    li {
-      display: flex;
-      align-items: center;
-      gap: var(--space-3);
     }
   }
 

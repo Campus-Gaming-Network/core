@@ -72,12 +72,11 @@ const tournamentFormatLabels: Record<string, string> = {
   double_elimination: "Double elimination",
 };
 
-/** Leaves out the entrant count and cost, which the page shows elsewhere. */
+/** Leaves out the game, entrant count, and cost, which the page shows elsewhere. */
 export function tournamentFormatSummary(tournament: TournamentDTO): string {
   return [
     tournamentFormatLabels[tournament.format],
     tournamentEntryLabel(tournament),
-    tournament.game.name,
   ]
     .filter(Boolean)
     .join(" · ");

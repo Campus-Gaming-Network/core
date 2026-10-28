@@ -85,17 +85,25 @@ drawn as placeholders: see #61, #62, #246-#272, and #215-#216.
   (a navy band with the logo or initial, the page's one h1 and its supporting
   lines, and at the right either the primary game's portrait cover at its own
   size or the page's actions). Each fact is said once. The event hero holds
-  the host and tags; below it a facts block (date with "Add to calendar",
-  place with "Get directions", the online link or a note that it is shared
-  with people who are going, and going and interested counts) sits beside
-  the RSVP panel, and the side card is "Details" (games, repeats). The team
-  hero holds the school, location, and games, with the membership panel in
-  the side column. The school hero holds the location, website, and Follow. Section `Tabs` link
-  to existing pages only (Overview and Going on events; Overview and Members
-  on teams; Overview, Events, and Teams on schools). The body is
-  `.layout-detail`: a main column of sections and `.panel`s, and a 20rem side
-  column of `.detail-card`s led by `KeyInformation`. Below 64rem it is one
-  column.
+  the status, the title, and one line with the event type, host, and school,
+  with Edit event and Tournament settings as actions for organizers. Below it,
+  a tournament has its section `Tabs`; a regular event has none. The body is
+  `.layout-detail.event-layout`: the summary card (`EventSummary`: when with
+  the zone's full name and "Add to calendar", place with "Get directions",
+  the online link or a note that it is shared with people who are going,
+  each game with its cover as the icon, cost with the payment note and link,
+  audience, tournament format and external bracket, going or registered
+  counts, then the RSVP or registration controls and the event link) comes
+  first in the page, so a phone shows it under the hero, and sits sticky in
+  a 22rem side column on wide screens. The main column holds About, Who's
+  going or the entrants, requests, Organizers, Updates, Cancel this event
+  (organizers), and Report. The team hero holds the school, location, and
+  games, with the membership panel in the side column. The school hero holds
+  the location, website, and Follow. Section `Tabs` link to existing pages
+  only (Overview and Members on teams; Overview, Events, and Teams on
+  schools). Other detail bodies are `.layout-detail`: a main column of
+  sections and `.panel`s, and a 20rem side column of `.detail-card`s led by
+  `KeyInformation`. Below 64rem it is one column.
 - **Home**: for a signed-in viewer, a left column (`DirectorySidebar`: "Your
   school" and "Schools you follow", long names ending in an ellipsis; no
   section links, since the header is the one global navigation), then a
@@ -214,9 +222,9 @@ drawn as placeholders: see #61, #62, #246-#272, and #215-#216.
   The start and end labels name the chosen time zone.
 - **Event page actions**: on devices with the Web Share API, Share opens the
   native sheet; Copy link stays as the fallback with a visible, announced
-  confirmation. "Add to calendar (.ics)" is a secondary button under the
+  confirmation. "Add to calendar" is a text link under the
   time. Times break only between whole pieces (date, each time, zone). An
-  online or hybrid event's "When and where" card shows the meeting link and
+  online or hybrid event's summary card shows the meeting link and
   a "Join online" button to people going and to organizers (the API sends
   the link to no one else); others see that the link is shared with people
   who are going. Place text never depends on whether the link is present.

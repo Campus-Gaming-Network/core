@@ -108,7 +108,7 @@ Signup also requires confirming **age 18+**. Alumni can participate. Faculty who
   answer 404 and expose nothing
 - A visible event page lists the event's games, each with its cover when the
   catalog stores one
-- A visible event page has a **Share** card with the event's public link as
+- A visible event page's summary card ends with the event's public link as
   selectable text and a **Copy link** button (the button needs JavaScript; the
   link text does not). Sharing a private event's link reveals nothing without
   its password

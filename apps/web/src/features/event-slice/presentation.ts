@@ -119,9 +119,13 @@ function calendarDay(
   return { year: part("year"), month: part("month"), day: part("day") };
 }
 
-export function zoneName(value: Date, timeZone: string): string {
+export function zoneName(
+  value: Date,
+  timeZone: string,
+  style: "short" | "long" = "short",
+): string {
   return (
-    new Intl.DateTimeFormat("en-US", { timeZoneName: "short", timeZone })
+    new Intl.DateTimeFormat("en-US", { timeZoneName: style, timeZone })
       .formatToParts(value)
       .find((part) => part.type === "timeZoneName")?.value ?? ""
   );
