@@ -93,3 +93,24 @@
 - Do not create small helper methods that are referenced only once.
 - Do not add tests for values that are statically defined.
 - Do not add negative tests for logic that was removed.
+
+## Test value
+
+- Every test must fail if the behavior it names broke. Ask what change to
+  the code would turn it red; if the answer is "only editing the same
+  constant or list in both places", delete it.
+- Do not test what the type system or a schema definition already
+  guarantees: a Zod schema rejecting a value its own definition rules out, a
+  Go struct that cannot hold a field, or a sentinel error's fixed kind and
+  code.
+- Do not test configuration by comparing it to itself: static lists,
+  constants, timeouts, or a config file's text.
+- Do not read source files and regex-match their text in place of running
+  the code. The exception is a check that enforces a documented security or
+  repository rule (`static-safety`, stylesheet layers, policy hashes); name
+  the rule in the test.
+- Do not test one-line wrappers, pass-throughs, or library behavior.
+- Do not repeat a check another test already makes.
+- Mock only the boundary the code crosses (the API, the database, the
+  clock). A test whose only assertion is that a mock received what the test
+  passed in proves nothing.

@@ -92,6 +92,8 @@ Run the checks for the area you changed.
 - The checks for each changed area pass.
 - New tests are deterministic: no sleeps, wall-clock timing, or dependence on
   execution order.
+- Each new test would fail if the behavior it names broke (AGENTS.md, "Test
+  value").
 - A changed endpoint, field, permission, or rule is updated in the doc that
   owns it.
 - No secrets, credentials, or real personal data in code, fixtures, or logs.
