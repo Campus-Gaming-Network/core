@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { ArrowRight } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import type { FormEvent, ReactNode } from "react";
 import { ButtonLink } from "../../components/button-link";
@@ -362,6 +363,7 @@ function EntryButton({
   entryID,
   label,
   pending,
+  returnTo,
   run,
   slug,
   variant = "secondary",
@@ -370,6 +372,7 @@ function EntryButton({
   entryID: string;
   label: string;
   pending: boolean;
+  returnTo?: "entrants";
   run: Run;
   slug: string;
   variant?: "primary" | "secondary";
@@ -384,6 +387,9 @@ function EntryButton({
     <form action={action.url} method="post" onSubmit={submit}>
       <input name="slug" type="hidden" value={slug} />
       <input name="entry_id" type="hidden" value={entryID} />
+      {returnTo ? (
+        <input name="return_to" type="hidden" value={returnTo} />
+      ) : null}
       <Button disabled={pending} size="small" type="submit" variant={variant}>
         {label}
       </Button>
@@ -393,20 +399,30 @@ function EntryButton({
 
 /**
  * The tournament's entrants in seed order. Signed-in viewers see every name;
- * signed-out viewers see team names and solo entrants by seed. Organizers can
- * remove an entry until the tournament starts.
+ * signed-out viewers see team names and solo entrants by seed. The event's
+ * Overview shows the first few and links to the Players or Teams tab, which
+ * lists everyone; there organizers can remove an entry until the start.
  */
 export function EntrantsCard({
-  canRemove,
+  canRemove = false,
   entries,
+  preview,
   slug,
   tournament,
 }: {
-  canRemove: boolean;
+  canRemove?: boolean;
   entries: TournamentEntriesResult;
+  /** How many to show before the link to the full list, on Overview. */
+  preview?: number;
   slug: string;
   tournament: TournamentDTO;
 }) {
+  const shown =
+    entries.status === "ready" && preview !== undefined
+      ? entries.items.slice(0, preview)
+      : entries.status === "ready"
+        ? entries.items
+        : [];
   const mutation = useEnhancedMutation(
     "We could not remove that entry. Please try again.",
   );
@@ -426,7 +442,7 @@ export function EntrantsCard({
           <p>No one has registered yet.</p>
         ) : (
           <ol className="tournament-entrants">
-            {entries.items.map((entry) => (
+            {shown.map((entry) => (
               <li key={entry.id}>
                 <span>
                   {entry.player ? (
@@ -456,6 +472,7 @@ export function EntrantsCard({
                     entryID={entry.id}
                     label={`Remove ${entrantName(entry)}`}
                     pending={mutation.pending}
+                    returnTo="entrants"
                     run={run}
                     slug={slug}
                   />
@@ -464,6 +481,18 @@ export function EntrantsCard({
             ))}
           </ol>
         )}
+        {preview !== undefined &&
+        entries.status === "ready" &&
+        entries.items.length > preview ? (
+          <Link
+            className="link with-arrow"
+            params={{ slug }}
+            to="/events/$slug/entrants"
+          >
+            {`See all ${tournament.entry_type === "team" ? "teams" : "players"}`}
+            <ArrowRight aria-hidden="true" size={14} strokeWidth={2.25} />
+          </Link>
+        ) : null}
       </div>
     </Surface>
   );

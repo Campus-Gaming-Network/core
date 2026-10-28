@@ -503,8 +503,10 @@ documents are updated and their contracts are implemented:
   anything else), opening in a new tab and announced as an external site. It
   is never embedded.
 - A tournament event replaces the Overview and Going tabs with its own
-  (`apps/web/src/features/tournament-bracket/`): Overview, Players or Teams
-  (`/events/:slug/entrants`), Bracket (`/events/:slug/bracket`, once
+  (`apps/web/src/features/tournament-bracket/`): Overview, which previews the
+  first 8 entrants in seed order with "See all" when there are more, Players or
+  Teams (`/events/:slug/entrants`), the full list, where organizers remove an
+  entry until the start and land back on the tab, Bracket (`/events/:slug/bracket`, once
   generated), Rules and Prizes (`/events/:slug/rules` and `/prizes`, when
   written). A tab shows only when its section has content, and each is a plain
   link. There is no Schedule tab yet, because nothing sets a match's time.

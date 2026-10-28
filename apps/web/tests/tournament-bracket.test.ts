@@ -21,7 +21,9 @@ import {
 } from "../src/features/tournament-bracket/presentation.js";
 import type { TournamentDTO } from "../src/features/tournament-registration/contracts.js";
 import { getTournamentEntries } from "../src/features/tournament-registration/tournament.functions.js";
+import { deleteEntryOperation } from "../src/features/tournament-registration/tournament-operations.server.js";
 import { Route as EventRoute } from "../src/routes/events.$slug.js";
+import { Route as EntrantsRoute } from "../src/routes/events.$slug_.entrants.js";
 import { Route as BracketRoute } from "../src/routes/events.$slug_.bracket.js";
 import { Route as MatchRoute } from "../src/routes/events.$slug_.matches.$matchId.js";
 import { createApiClient, type Fetcher } from "../src/server/api.server.js";
@@ -502,5 +504,94 @@ test("bracket operations read the matches, generate the bracket, and post result
       ],
       reported: 3,
     },
+  );
+});
+
+test("Overview previews the first eight entrants and links to the tab, which lists everyone and lets organizers remove one", async () => {
+  const players = Array.from({ length: 10 }, (_, index) => ({
+    id: id(200 + index),
+    status: "registered" as const,
+    seed: index + 1,
+    player: { public_id: `public-p${index + 1}`, name: `Player ${index + 1}` },
+    registered_at: "2037-02-01T17:00:00Z",
+  }));
+  const registering = {
+    ...tournamentEvent,
+    viewer_can_edit: true,
+    tournament: {
+      ...running,
+      status: "registration_open" as const,
+      entry_count: 10,
+    },
+  };
+  stubPage(registering, []);
+  vi.mocked(getTournamentEntries).mockResolvedValue({
+    status: "ready",
+    items: players,
+    requests: [],
+  });
+  const overview = (
+    await loadRoute(EventRoute, "/events/$slug", "/events/campus-night")
+  ).render();
+  const tab = (
+    await loadRoute(
+      EntrantsRoute,
+      "/events/$slug/entrants",
+      "/events/campus-night/entrants?tournament=removed",
+    )
+  ).render();
+  assert.deepEqual(
+    [overview, tab].map((markup) =>
+      [
+        ...markup.matchAll(/href="\/users\/public-p\d+"[^>]*>(Player \d+)</g),
+      ].map((found) => found[1]),
+    ),
+    [
+      players.slice(0, 8).map((player) => player.player.name),
+      players.map((player) => player.player.name),
+    ],
+  );
+  assert.match(
+    overview,
+    /href="\/events\/campus-night\/entrants"[^>]*>See all players/,
+  );
+  assert.doesNotMatch(overview, /Remove Player/);
+  assert.equal(
+    tab.match(/<input type="hidden" name="return_to" value="entrants"\/>/g)
+      ?.length,
+    10,
+  );
+  assert.match(tab, /Entry removed\./);
+});
+
+test("a removal made on the Players tab returns there with its notice", async () => {
+  const api = client(async () => new Response(null, { status: 204 }));
+  const refusing = client(async () =>
+    Response.json({ error: "tournament_started" }, { status: 409 }),
+  );
+  const dependencies = {
+    cookieHeader: "cgn_session=value",
+    reportError: () => {},
+  };
+  const entry = { slug: "spring-cup", entry_id: id(201) };
+  assert.deepEqual(
+    [
+      await deleteEntryOperation(
+        { ...entry, return_to: "entrants" },
+        "removed",
+        { ...dependencies, api },
+      ),
+      await deleteEntryOperation(
+        { ...entry, return_to: "entrants" },
+        "removed",
+        { ...dependencies, api: refusing },
+      ),
+      await deleteEntryOperation(entry, "withdrawn", { ...dependencies, api }),
+    ].map((result) => result.redirectTo),
+    [
+      "/events/spring-cup/entrants?tournament=removed",
+      "/events/spring-cup/entrants?tournament=started",
+      "/events/spring-cup?tournament=withdrawn#registration",
+    ],
   );
 });

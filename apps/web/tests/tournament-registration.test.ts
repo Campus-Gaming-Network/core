@@ -292,7 +292,7 @@ test("a signed-in player registers with a native form, and a team registers with
   ]);
 });
 
-test("a registered entrant can withdraw, an organizer can remove entries, and a notice shows", async () => {
+test("a registered entrant can withdraw, and a notice shows", async () => {
   const registered = await renderEvent(
     {
       ...tournamentEvent,
@@ -313,7 +313,6 @@ test("a registered entrant can withdraw, an organizer can remove entries, and a 
       `<form action="/test/withdraw" method="post"><input type="hidden" name="slug" value="campus-night"/><input type="hidden" name="entry_id" value="${entryID}"/>`,
     ),
   );
-  assert.match(registered, /action="\/test\/remove"[^]*Remove Ada/);
   assert.match(registered, /This tournament is full\./);
   assert.match(
     registered,

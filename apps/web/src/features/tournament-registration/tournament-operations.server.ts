@@ -34,6 +34,13 @@ export function eventPageWithNotice(
   return `/events/${encodeURIComponent(slug)}?tournament=${notice}#registration`;
 }
 
+export function entrantsPageWithNotice(
+  slug: string,
+  notice: TournamentNotice,
+): string {
+  return `/events/${encodeURIComponent(slug)}/entrants?tournament=${notice}`;
+}
+
 export async function tournamentEntriesOperation(
   { slug }: { slug: string },
   {
@@ -113,19 +120,26 @@ export function decideEntryOperation(
 }
 
 export function deleteEntryOperation(
-  { slug, entry_id }: TournamentEntryInput,
+  { slug, entry_id, return_to }: TournamentEntryInput,
   outcome: "withdrawn" | "removed",
   dependencies: Dependencies,
 ): Promise<TournamentMutationResult> {
-  return change(slug, outcome, dependencies, async (api, headers) => {
-    await api({
-      path: `${tournamentPath(slug)}/entries/${encodeURIComponent(entry_id)}`,
-      method: "DELETE",
-      ...headers,
-      responseSchema: emptyResponseDtoSchema,
-    });
-    return undefined;
-  });
+  const destination = return_to ? entrantsPageWithNotice : eventPageWithNotice;
+  return change(
+    slug,
+    outcome,
+    dependencies,
+    async (api, headers) => {
+      await api({
+        path: `${tournamentPath(slug)}/entries/${encodeURIComponent(entry_id)}`,
+        method: "DELETE",
+        ...headers,
+        responseSchema: emptyResponseDtoSchema,
+      });
+      return undefined;
+    },
+    destination,
+  );
 }
 
 async function change(
@@ -145,6 +159,10 @@ async function change(
       cache: "no-store";
     },
   ) => Promise<TournamentNotice | undefined>,
+  destination: (
+    slug: string,
+    notice: TournamentNotice,
+  ) => string = eventPageWithNotice,
 ): Promise<TournamentMutationResult> {
   try {
     const notice = await request(api, {
@@ -154,7 +172,7 @@ async function change(
     });
     return {
       status: "success",
-      redirectTo: eventPageWithNotice(slug, notice ?? success),
+      redirectTo: destination(slug, notice ?? success),
     };
   } catch (error) {
     reportError(error);
@@ -164,7 +182,7 @@ async function change(
         : undefined;
     return {
       status: "success",
-      redirectTo: eventPageWithNotice(slug, notice ?? "failed"),
+      redirectTo: destination(slug, notice ?? "failed"),
     };
   }
 }
