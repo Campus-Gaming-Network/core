@@ -332,11 +332,15 @@ must preserve the existing native form fallback.
 ### Surfaces
 
 Panels and detail cards use `--color-card` (white) with a
-`--color-card-border` hairline on the light-gray canvas. The footer and form
-controls are white, and the header is navy. Form control edges use
+`--color-card-border` hairline on the light-gray canvas. A detail card has no
+rule under its heading, and a form in a detail card drops its own box, so
+nothing bordered sits inside it. A card with a heading and a list
+(`.panel--flush`, such as "Events this week") has no rule between the heading
+and the items or between items; spacing sets them apart. The footer and
+form controls are white, and the header is navy. Form control edges use
 `--color-control-border` (`#6f777b`), because the handoff's `#b1b4b6`
-separator gray is below 3:1 against white. A `Callout` is light blue with a
-blue left edge.
+separator gray is below 3:1 against white. A `Callout` is a light blue tint
+with rounded corners and no edge bar.
 
 ### Where shared styles live
 

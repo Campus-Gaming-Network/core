@@ -126,10 +126,6 @@
     min-width: 0;
   }
 
-  .home-events {
-    border-top: 1px solid var(--color-border);
-  }
-
   .home-aside .panel {
     h2 {
       margin-bottom: var(--space-2);
@@ -143,12 +139,7 @@
   .home-schools {
     margin: 0;
     padding: 0;
-    border-top: 1px solid var(--color-border);
     list-style: none;
-
-    li + li {
-      border-top: 1px solid var(--color-border);
-    }
   }
 
   .home-school {

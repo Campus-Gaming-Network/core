@@ -18,7 +18,7 @@ export function ProfileGameLists({
   const shown = profileGameLists.filter((list) => lists?.[list].length);
 
   return (
-    <Surface aria-labelledby="profile-games" variant="panel">
+    <Surface aria-labelledby="profile-games" variant="flush">
       <div className="panel__header">
         <h2 id="profile-games">Games</h2>
       </div>
