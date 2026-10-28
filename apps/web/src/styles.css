@@ -1040,6 +1040,15 @@
     padding: 0;
   }
 
+  /* A card with a heading sets its items apart with space, not rules. */
+  .panel--flush :is(.list-item, .profile-game-list) {
+    border: 0;
+  }
+
+  :is(.layout-detail__aside, .home-aside) .panel:not(.panel--flush) {
+    padding: var(--space-4);
+  }
+
   .panel__header {
     display: flex;
     flex-wrap: wrap;
@@ -1187,8 +1196,7 @@
 
     > h2 {
       margin: 0;
-      padding: var(--space-3) var(--space-4);
-      border-bottom: 1px solid var(--color-border);
+      padding: var(--space-4) var(--space-4) var(--space-1);
       font-size: var(--text-md);
     }
 
@@ -1452,6 +1460,17 @@
     border: 1px solid var(--color-card-border);
     border-radius: var(--radius-panel);
     background: var(--color-panel);
+  }
+
+  /* A form in a sidebar card is the card's content, not a second box. */
+  .detail-card .form-stack {
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+  }
+
+  .detail-card-body.form-stack {
+    padding: var(--space-4);
   }
 
   .form-stack label,

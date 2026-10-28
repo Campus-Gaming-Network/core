@@ -71,7 +71,6 @@
   .public-profile__links {
     margin: 0;
     padding: 0;
-    border-top: 1px solid var(--color-border);
     list-style: none;
 
     li {
@@ -80,10 +79,6 @@
       align-items: center;
       padding: var(--space-2) var(--space-4);
       overflow-wrap: anywhere;
-    }
-
-    li + li {
-      border-top: 1px solid var(--color-border);
     }
   }
 

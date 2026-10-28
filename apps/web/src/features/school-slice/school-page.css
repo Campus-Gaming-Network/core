@@ -19,10 +19,6 @@
     font-size: var(--text-sm);
   }
 
-  .school-page__rows {
-    border-top: 1px solid var(--color-border);
-  }
-
   .school-page__empty {
     display: grid;
     gap: var(--space-2);
@@ -38,7 +34,6 @@
       grid-template-columns: repeat(auto-fill, minmax(min(100%, 14rem), 1fr));
       gap: 0 var(--space-5);
       border: 0;
-      border-top: 1px solid var(--color-border);
       border-radius: 0;
       padding: var(--space-2) var(--space-4);
 
