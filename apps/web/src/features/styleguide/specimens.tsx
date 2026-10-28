@@ -53,7 +53,7 @@ export function RsvpPanel({
   const yesBlocked = full && chosen !== "yes";
 
   return (
-    <section className="event-header__rsvp">
+    <section className="event-summary">
       <h3>Are you going?</h3>
       {signedOut ? (
         <Link className="button button--primary" to="/login">

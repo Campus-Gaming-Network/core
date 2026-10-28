@@ -11,7 +11,6 @@ import {
 import { PageNoticeView } from "../../components/page-notice-view";
 import { Surface } from "../../components/surface";
 import type { EventDTO } from "../event-slice/contracts";
-import { safeExternalEventUrl } from "../event-slice/presentation";
 import {
   tournamentNotices,
   type RegistrationTeamDTO,
@@ -27,7 +26,6 @@ import {
   entrantsHeading,
   registrationClosesLabel,
   registrationState,
-  tournamentSummary,
 } from "./presentation";
 import {
   approveTournamentEntry,
@@ -41,7 +39,8 @@ type Run = (request: () => Promise<TournamentMutationResult>) => Promise<void>;
 
 /**
  * Where an event with a tournament puts its RSVP buttons: register alone or
- * with a team, or see why registration is not open. Every control is a
+ * with a team, or see why registration is not open. The event summary card
+ * around it states the format, count, and cost. Every control is a
  * native form, so it works without JavaScript. `children` (the Interested
  * button) stays for spectators.
  */
@@ -73,11 +72,10 @@ export function RegistrationPanel({
   });
   const entry = tournament.viewer_entry;
   const approval = tournament.registration_mode === "approval";
-  const paymentURL = safeExternalEventUrl(event.payment_url);
 
   return (
     <section
-      className="event-header__rsvp"
+      className="event-summary__action"
       aria-labelledby="event-registration-heading"
       id="registration"
     >
@@ -90,7 +88,6 @@ export function RegistrationPanel({
               ? "Request to join"
               : "Register"}
       </h2>
-      <p className="rsvp-note">{tournamentSummary(tournament)}</p>
       <PageNoticeView notice={notice ? tournamentNotices[notice] : undefined} />
       <FormErrorSummary
         fieldErrors={mutation.fieldErrors}
@@ -170,38 +167,12 @@ export function RegistrationPanel({
         >
           Log in to register
         </ButtonLink>
-      ) : (
-        <>
-          {approval ? (
-            <p className="form-help">
-              The organizers approve each entry. Sending a request holds no spot
-              until they do.
-            </p>
-          ) : null}
-          {event.cost === "paid" ? (
-            <p className="form-help">
-              {event.payment_note || "This tournament has an entry fee."}
-              {paymentURL ? (
-                <>
-                  {" "}
-                  <a
-                    href={paymentURL}
-                    rel="noopener noreferrer"
-                    target="_blank"
-                  >
-                    Payment link
-                    <span className="visually-hidden">
-                      {" "}
-                      (opens in a new tab)
-                    </span>
-                  </a>
-                </>
-              ) : null}{" "}
-              Payment happens off CGN.
-            </p>
-          ) : null}
-        </>
-      )}
+      ) : approval ? (
+        <p className="form-help">
+          The organizers approve each entry. Sending a request holds no spot
+          until they do.
+        </p>
+      ) : null}
       {state !== "open" ? null : tournament.entry_type === "solo" ? (
         <SoloRegistration
           approval={approval}
