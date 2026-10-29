@@ -315,26 +315,15 @@ function TeamActions({
 
 function LeaveTeamForm({ slug }: { slug: string }) {
   const runLeaveTeam = useServerFn(leaveTeam);
-  const router = useRouter();
-  const triggerRef = useRef<HTMLButtonElement>(null);
-  const [confirming, setConfirming] = useState(false);
-  const [pending, setPending] = useState(false);
+  const mutation = useConfirmedTeamMutation(slug, "leave-failed");
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!confirming) {
-      setConfirming(true);
+    if (!mutation.dialog.open) {
+      mutation.confirm();
       return;
     }
-    setPending(true);
-    let result: TeamMutationResult | undefined;
-    try {
-      result = await runLeaveTeam({ data: { slug } });
-    } catch {
-      result = undefined;
-    }
-    await finishTeamMutation(router, result, slug, "leave-failed");
-    setPending(false);
+    await mutation.run(() => runLeaveTeam({ data: { slug } }));
   }
 
   return (
@@ -342,20 +331,17 @@ function LeaveTeamForm({ slug }: { slug: string }) {
       <input name="slug" type="hidden" value={slug} />
       <Button
         variant="secondary"
-        disabled={pending}
-        ref={triggerRef}
+        disabled={mutation.dialog.pending}
+        ref={mutation.dialog.returnFocusRef}
         type="submit"
       >
-        {pending ? "Leaving…" : "Leave team"}
+        {mutation.dialog.pending ? "Leaving…" : "Leave team"}
       </Button>
       <ConfirmDialog
         cancelLabel="Stay on the team"
         confirmLabel="Leave team"
         heading="Leave this team?"
-        onClose={() => setConfirming(false)}
-        open={confirming}
-        pending={pending}
-        returnFocusRef={triggerRef}
+        {...mutation.dialog}
       >
         <p>
           You will come off the roster and lose any captain role. You can rejoin
@@ -488,33 +474,24 @@ function CaptainManagementRow({
   slug: string;
 }) {
   const runSetTeamCaptain = useServerFn(setTeamCaptain);
-  const router = useRouter();
-  const triggerRef = useRef<HTMLButtonElement>(null);
-  const [confirming, setConfirming] = useState(false);
-  const [pending, setPending] = useState(false);
+  const mutation = useConfirmedTeamMutation(slug, "manage-failed");
   const isCaptain = member.role === "captain";
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (isCaptain && !confirming) {
-      setConfirming(true);
+    if (isCaptain && !mutation.dialog.open) {
+      mutation.confirm();
       return;
     }
-    setPending(true);
-    let result: TeamMutationResult | undefined;
-    try {
-      result = await runSetTeamCaptain({
+    await mutation.run(() =>
+      runSetTeamCaptain({
         data: {
           slug,
           user_id: member.user_id,
           captain: !isCaptain,
         },
-      });
-    } catch {
-      result = undefined;
-    }
-    await finishTeamMutation(router, result, slug, "manage-failed");
-    setPending(false);
+      }),
+    );
   }
 
   return (
@@ -537,11 +514,11 @@ function CaptainManagementRow({
             aria-label={`${isCaptain ? "Remove captain" : "Make captain"} ${member.name}`}
             variant="secondary"
             size="small"
-            disabled={pending}
-            ref={triggerRef}
+            disabled={mutation.dialog.pending}
+            ref={mutation.dialog.returnFocusRef}
             type="submit"
           >
-            {pending
+            {mutation.dialog.pending
               ? "Updating…"
               : isCaptain
                 ? "Remove captain"
@@ -551,10 +528,7 @@ function CaptainManagementRow({
             cancelLabel="Keep captain"
             confirmLabel="Remove captain"
             heading={`Remove ${member.name} as captain?`}
-            onClose={() => setConfirming(false)}
-            open={confirming}
-            pending={pending}
-            returnFocusRef={triggerRef}
+            {...mutation.dialog}
           >
             <p>
               They will remain a team member but will lose captain permissions.
@@ -575,28 +549,17 @@ function RemoveMemberForm({
   slug: string;
 }) {
   const runRemoveTeamMember = useServerFn(removeTeamMember);
-  const router = useRouter();
-  const triggerRef = useRef<HTMLButtonElement>(null);
-  const [confirming, setConfirming] = useState(false);
-  const [pending, setPending] = useState(false);
+  const mutation = useConfirmedTeamMutation(slug, "manage-failed");
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!confirming) {
-      setConfirming(true);
+    if (!mutation.dialog.open) {
+      mutation.confirm();
       return;
     }
-    setPending(true);
-    let result: TeamMutationResult | undefined;
-    try {
-      result = await runRemoveTeamMember({
-        data: { slug, user_id: member.user_id },
-      });
-    } catch {
-      result = undefined;
-    }
-    await finishTeamMutation(router, result, slug, "manage-failed");
-    setPending(false);
+    await mutation.run(() =>
+      runRemoveTeamMember({ data: { slug, user_id: member.user_id } }),
+    );
   }
 
   return (
@@ -607,20 +570,17 @@ function RemoveMemberForm({
         aria-label={`Remove ${member.name} from the team`}
         variant="secondary"
         size="small"
-        disabled={pending}
-        ref={triggerRef}
+        disabled={mutation.dialog.pending}
+        ref={mutation.dialog.returnFocusRef}
         type="submit"
       >
-        {pending ? "Removing…" : "Remove"}
+        {mutation.dialog.pending ? "Removing…" : "Remove"}
       </Button>
       <ConfirmDialog
         cancelLabel="Keep member"
         confirmLabel="Remove member"
         heading={`Remove ${member.name} from the team?`}
-        onClose={() => setConfirming(false)}
-        open={confirming}
-        pending={pending}
-        returnFocusRef={triggerRef}
+        {...mutation.dialog}
       >
         <p>
           They will come off the roster and lose any captain role. They can
@@ -639,38 +599,29 @@ function TransferOwnershipForm({
   slug: string;
 }) {
   const runTransferTeamOwnership = useServerFn(transferTeamOwnership);
-  const router = useRouter();
-  const triggerRef = useRef<HTMLButtonElement>(null);
-  const [confirming, setConfirming] = useState(false);
+  const mutation = useConfirmedTeamMutation(slug, "manage-failed");
   const [selectedOwnerName, setSelectedOwnerName] = useState("");
-  const [pending, setPending] = useState(false);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
-    if (!confirming) {
+    if (!mutation.dialog.open) {
       const selectedID = formString(form, "new_owner_user_id");
       setSelectedOwnerName(
         members.find((member) => member.user_id === selectedID)?.name ??
           "this member",
       );
-      setConfirming(true);
+      mutation.confirm();
       return;
     }
-    setPending(true);
-    let result: TeamMutationResult | undefined;
-    try {
-      result = await runTransferTeamOwnership({
+    await mutation.run(() =>
+      runTransferTeamOwnership({
         data: {
           slug,
           new_owner_user_id: formString(form, "new_owner_user_id"),
         },
-      });
-    } catch {
-      result = undefined;
-    }
-    await finishTeamMutation(router, result, slug, "manage-failed");
-    setPending(false);
+      }),
+    );
   }
 
   return (
@@ -701,8 +652,8 @@ function TransferOwnershipForm({
       </p>
       <Button
         variant="destructive"
-        disabled={pending}
-        ref={triggerRef}
+        disabled={mutation.dialog.pending}
+        ref={mutation.dialog.returnFocusRef}
         type="submit"
       >
         Transfer ownership
@@ -711,10 +662,7 @@ function TransferOwnershipForm({
         cancelLabel="Keep ownership"
         confirmLabel="Yes, transfer ownership"
         heading={`Transfer ownership to ${selectedOwnerName}?`}
-        onClose={() => setConfirming(false)}
-        open={confirming}
-        pending={pending}
-        returnFocusRef={triggerRef}
+        {...mutation.dialog}
       >
         <p>
           The transfer is immediate. You will remain a member, but the new owner
@@ -725,20 +673,49 @@ function TransferOwnershipForm({
   );
 }
 
-async function finishTeamMutation(
-  router: ReturnType<typeof useRouter>,
-  result: TeamMutationResult | undefined,
+// The first submit only opens the dialog; its confirm button submits the
+// same form again, which is when the action runs.
+function useConfirmedTeamMutation(
   slug: string,
   failure: "manage-failed" | "leave-failed",
 ) {
-  await router.invalidate();
-  await router.navigate({
-    href:
-      result?.status === "success"
-        ? result.redirectTo
-        : `/teams/${encodeURIComponent(slug)}?team=${failure}`,
-    replace: true,
-  });
+  const router = useRouter();
+  const returnFocusRef = useRef<HTMLButtonElement>(null);
+  const [open, setOpen] = useState(false);
+  const [pending, setPending] = useState(false);
+
+  async function run(request: () => Promise<TeamMutationResult>) {
+    setPending(true);
+    try {
+      let result: TeamMutationResult | undefined;
+      try {
+        result = await request();
+      } catch {
+        result = undefined;
+      }
+      await router.invalidate();
+      await router.navigate({
+        href:
+          result?.status === "success"
+            ? result.redirectTo
+            : `/teams/${encodeURIComponent(slug)}?team=${failure}`,
+        replace: true,
+      });
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return {
+    confirm: () => setOpen(true),
+    dialog: {
+      onClose: () => setOpen(false),
+      open,
+      pending,
+      returnFocusRef,
+    },
+    run,
+  };
 }
 
 function TeamPending() {
