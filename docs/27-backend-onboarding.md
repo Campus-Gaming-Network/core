@@ -73,7 +73,7 @@ sequenceDiagram
     H->>H: allowAccount("team-join:"+slug) → 429 if over limit
     H->>H: decodeJSON → 400 if malformed
     H->>Repo: PasswordHash, then Join(ctx, slug, userID)
-    Repo->>PG: BEGIN; lock team; upsert member; insert notice; enqueue email; COMMIT
+    Repo->>PG: BEGIN, lock team, upsert member, insert notice, enqueue email, COMMIT
     Repo-->>H: Team or apperror (team_not_found, ...)
     H-->>BFF: 200 JSON, or { "error": "<code>" } via writeApplicationError
 ```
