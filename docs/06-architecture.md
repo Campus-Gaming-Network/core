@@ -60,7 +60,7 @@ See [14 — Architecture diagrams](./14-architecture-diagrams.md) for Mermaid vi
 | Avatars          | Boring Avatars Beam drawn by the web app (`/api/avatars/:id`) | No avatar service is contacted; custom avatars later                                                         |
 | Maps             | Google Maps embed (mini)                                      | Later nicety; address text first                                                                             |
 | Games data       | IGDB import when a user picks a game                          | Not user-editable; covers stored in Postgres                                                                 |
-| Analytics        | Non-GA tool (TBD)                                             | No Google Analytics (perf)                                                                                   |
+| Analytics        | Plausible, proxied through the web origin                     | No Google Analytics; no cookies; see [13](./13-deployment-plan.md)                                           |
 | Client data libs | TanStack where justified                                      | Main site uses Start/Router; Query/Table remain optional                                                     |
 
 ## Frontend guidelines
@@ -174,7 +174,7 @@ Each layer sets its headers once, as defaults a route can replace.
 - Parameterized SQL; never string-concatenate user input
 - Soft deletes via `deleted_at`
 - Structured **system logs** for operations
-- Later shared **audit log** for entity changes, kept separate from system logs
+- Shared **audit log** (`audit_logs`) for entity changes, kept separate from system logs
 - Health check endpoints
 - Rate limiting (global + signups/resend by IP and email, event creation, reports, private-event unlock, support tickets)
 - Profanity filter on user-generated text fields
@@ -220,10 +220,10 @@ The school and game catalogs are effectively static — roughly 6,200 schools gr
 | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Errors         | App/system logs; the API (`internal/errormonitor`) and the web and admin apps (`src/server/error-monitor.server.ts`, `src/error-monitor.ts` in each) also report to Sentry |
 | Health         | Dedicated health checks                                                                                                                                                    |
-| Audit          | Later polymorphic `audit_logs` (who changed what on which entity)                                                                                                          |
+| Audit          | Polymorphic `audit_logs` (who changed what on which entity), written in the same transaction as administrative changes and read in the Admin Console                       |
 | System logs    | App/ops logging (distinct from audit)                                                                                                                                      |
 | User activity  | Later user-visible activity history                                                                                                                                        |
-| Entity history | Later school, team, and event change history                                                                                                                               |
+| Entity history | Event activity log (`GET /events/:slug/activity`); school and team change history later                                                                                    |
 
 ### Logging and redaction policy
 
@@ -263,7 +263,7 @@ Logs and error reports never carry personal data or credentials.
 | From address                            | Use for                                                                     |
 | --------------------------------------- | --------------------------------------------------------------------------- |
 | `events@campusgamingnetwork.com`        | Any email related to an event RSVP (confirmation, ICS, future RSVP updates) |
-| `notifications@campusgamingnetwork.com` | Later basic notification emails                                             |
+| `notifications@campusgamingnetwork.com` | Team and club notices (member joined, ownership, editor invites, claims)    |
 | `support@campusgamingnetwork.com`       | Later support and report workflow email                                     |
 | `account@campusgamingnetwork.com`       | Account emails (verification, password reset, etc.)                         |
 

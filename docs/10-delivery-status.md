@@ -14,7 +14,7 @@ Work is grouped **Now** (building toward the first public release), **Next** (pl
 2. Lightweight moderation and operations: reports/support queue, deactivation tools, audit history, and notifications.
 3. Expand trust and safety beyond the first role and content-filtering pass.
 4. Production-readiness hardening: monitoring, legal content, performance, and launch checks.
-5. Clubs: the core shipped; seeding clubs from the research list (#120) and recruiting posts (#125) remain ([05 — Phase 6a](./05-roadmap.md#phase-6a--clubs)); tournaments after the event loop has been validated with real users.
+5. Clubs: the core shipped; seeding clubs from the research list (#120) and recruiting posts (#125) remain ([05 — Phase 6a](./05-roadmap.md#phase-6a--clubs)). Tournaments: single elimination is built; round robin and Swiss (#269) and double elimination (#270) remain ([05 — Phase 6b](./05-roadmap.md#phase-6b--tournaments)).
 
 **First release slice:** auth → home school on signup → schools search/follow → events + games → teams → dashboard.
 
@@ -37,7 +37,7 @@ No blocking decisions left for media/slugs/email. Optional later: exact default 
 | Images          | Admin logo uploads accept **PNG or JPG only**, max **5 MB**; bundled institutional assets also include SVG.                                    |
 | Event banners   | Default placeholder image/background — **no user uploads yet**                                                                                 |
 | School logos    | Admin uploads take precedence over validated bundled logos, then initials; see [coverage and sources](./09-school-data.md#institutional-logos) |
-| Email From      | Now: `events@` / `account@`; later workflows: `notifications@` / `support@campusgamingnetwork.com`                                             |
+| Email From      | `events@`, `account@`, and `notifications@`; later: `support@campusgamingnetwork.com`                                                          |
 | Paid events     | Off-site-payment listings only; no CGN checkout/payments                                                                                       |
 | Deploy path     | Railway hosts TanStack Start, Go API, and PostgreSQL; Cloudflare manages DNS/protection                                                        |
 

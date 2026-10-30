@@ -1,6 +1,6 @@
 # 14 — Architecture diagrams
 
-These diagrams reflect the current first release and its Railway deployment plan. In the system overview, dashed components are explicitly later.
+These diagrams reflect the current first release and its Railway deployment plan. In the system overview, dashed components run on staging and are release-gated for production.
 
 ## 1. Frontend architecture overview
 
@@ -49,91 +49,72 @@ Key boundary: the browser talks to TanStack Start, while the Start server acts a
 
 ```mermaid
 flowchart TB
-    Request["TanStack Start BFF request"]
+    Request["Web BFF request"]
+    AdminRequest["Admin BFF request<br/>/admin/v1"]
 
     subgraph Runtime["Go API runtime — cmd/api"]
-        Config["Environment configuration"]
-        Logging["Structured request logging"]
-        Session["Opaque-session middleware"]
-        Router["HTTP router<br/>health + domain routes"]
-        RateLimit["In-memory rate-limit checks"]
+        Middleware["Request logging, security headers,<br/>panic recovery, body limit"]
+        Session["Opaque-session middleware<br/>+ activity days"]
+        Router["Public router — internal/httpapi"]
+        AdminEdge["Admin API — internal/adminhttp<br/>route policy: capability, CSRF, audit"]
+        RateLimit["In-process rate limits"]
 
-        subgraph Handlers["HTTP handlers"]
-            AuthHandlers["Auth and account"]
-            CatalogHandlers["Users, schools, games"]
-            EventHandlers["Events, RSVP, interest"]
-            TeamHandlers["Teams and membership"]
-            SafetyHandlers["Reports and support"]
+        subgraph Domains["Domain packages — repositories and rules"]
+            Accounts["auth, users, policies, dataexport"]
+            Catalog["schools, games, people"]
+            Events["events: RSVP, organizers,<br/>activity log, tournaments"]
+            Teams["teams"]
+            Clubs["clubs: claims, officers"]
+            Safety["safety: reports, support"]
+            Inbox["notifications"]
+            AdminDomains["adminaccess, adminsession,<br/>adminaudit, operations, metrics"]
         end
 
-        AccountService["Account service<br/>validation, passwords, tokens"]
-
-        subgraph Repositories["Postgres repositories"]
-            UserRepo["Users and profiles"]
-            AuthRepos["Sessions and auth tokens"]
-            CatalogRepos["Schools, follows, games"]
-            EventRepo["Events and attendance"]
-            TeamRepo["Teams and members"]
-            SafetyRepo["Reports and support tickets"]
-        end
-
-        AccountMailer["Account mailer"]
-        EventMailer["RSVP + ICS mailer"]
+        Outbox["emailoutbox worker"]
+        Background["Maintenance sweeper,<br/>club reminders, catalog refresh"]
     end
 
-    subgraph Operations["One-shot operational commands"]
+    subgraph Operations["One-shot commands"]
         MigrateCmd["cmd/migrate"]
-        MigrationRunner["Versioned migration runner"]
         SeedCmd["cmd/seed"]
-        SchoolImporter["Guarded school CSV importer"]
+        AdminCLI["cmd/cgn-admin"]
     end
 
     MigrationFiles["db/migrations/*.up.sql"]
     SchoolCSV["data/schools_seed.csv"]
     Postgres[("PostgreSQL")]
-    Resend["Resend transactional email"]
+    Resend["Resend"]
+    IGDB["IGDB"]
+    R2["Cloudflare R2<br/>school logos"]
 
-    Config --> Router
-    Request --> Logging --> Session --> Router
-    Router --> AuthHandlers
-    Router --> CatalogHandlers
-    Router --> EventHandlers
-    Router --> TeamHandlers
-    Router --> SafetyHandlers
-    RateLimit -.-> AuthHandlers
-    RateLimit -.-> EventHandlers
-    RateLimit -.-> TeamHandlers
-    RateLimit -.-> SafetyHandlers
+    Request --> Middleware --> Session --> Router
+    AdminRequest --> Middleware --> AdminEdge
+    RateLimit -.-> Router
+    Router --> Accounts
+    Router --> Catalog
+    Router --> Events
+    Router --> Teams
+    Router --> Clubs
+    Router --> Safety
+    Router --> Inbox
+    AdminEdge --> AdminDomains
+    AdminEdge --> Catalog
+    AdminEdge --> Clubs
+    AdminEdge --> Safety
 
-    AuthHandlers --> AccountService
-    AccountService --> UserRepo
-    AccountService --> AuthRepos
-    AccountService --> CatalogRepos
-    AccountService --> AccountMailer
-    CatalogHandlers --> UserRepo
-    CatalogHandlers --> CatalogRepos
-    EventHandlers --> EventRepo
-    EventHandlers --> EventMailer
-    TeamHandlers --> TeamRepo
-    SafetyHandlers --> SafetyRepo
+    Domains -->|"parameterized SQL, transactions,<br/>outbox rows written in the same transaction"| Postgres
+    Outbox --> Postgres
+    Outbox --> Resend
+    Background --> Postgres
+    Catalog --> IGDB
+    AdminEdge --> R2
 
-    UserRepo --> Postgres
-    AuthRepos --> Postgres
-    CatalogRepos --> Postgres
-    EventRepo --> Postgres
-    TeamRepo --> Postgres
-    SafetyRepo --> Postgres
-    Router -.->|"readiness ping"| Postgres
-    AccountMailer --> Resend
-    EventMailer --> Resend
-
-    MigrateCmd --> MigrationRunner
-    MigrationFiles --> MigrationRunner --> Postgres
-    SeedCmd --> SchoolImporter
-    SchoolCSV --> SchoolImporter --> Postgres
+    MigrationFiles --> MigrateCmd --> Postgres
+    SchoolCSV --> SeedCmd --> Postgres
+    AdminCLI --> Postgres
 ```
 
-The Go layer owns authorization, validation, domain rules, transactional writes, rate limits, mail triggers, and persistence. SQL is parameterized, user-facing records use soft deletes where applicable, and `/ready` verifies Postgres connectivity.
+The Go layer owns authorization, validation, domain rules, transactional writes, rate limits, notifications and queued email, and persistence. Email is never sent inside a request: a repository writes an `email_outbox` row in its transaction and the worker delivers it. SQL is parameterized, user-facing records use soft deletes where applicable, and `/ready` verifies Postgres connectivity.
 
 ## 3. Entire system overview
 
@@ -144,7 +125,7 @@ flowchart LR
     GitHub["GitHub repository"]
     CI["GitHub Actions<br/>lint, typecheck, tests, build"]
     Cloudflare["Cloudflare<br/>DNS + edge protection"]
-    Resend["Resend<br/>account + event email"]
+    Resend["Resend<br/>account, event, and notification email"]
 
     subgraph Railway["Railway environment — staging or production"]
         Web["Public web service<br/>TanStack Start BFF"]
@@ -162,7 +143,7 @@ flowchart LR
     end
 
     Admin["Admin Console (release-gated)<br/>TanStack Start"]
-    R2["Later Cloudflare R2<br/>school logos"]
+    R2["Cloudflare R2 (release-gated)<br/>school logos"]
     IGDB["IGDB<br/>game search, import, covers"]
     Sentry["Sentry<br/>error monitoring"]
 
@@ -178,13 +159,13 @@ flowchart LR
 
     Admin -.->|"shared admin API"| API
     Admin -.-> R2
-        API -->|"user search and import, admin refresh"| IGDB
+    API -->|"user search and import, admin refresh"| IGDB
     Web -->|"errors"| Sentry
     API -->|"errors"| Sentry
     Admin -.->|"errors"| Sentry
 
     classDef deferred stroke-dasharray: 6 4,fill:#f7f7f8,color:#52525b;
-        class Admin,R2 deferred;
+    class Admin,R2 deferred;
 ```
 
 Production exposes only the TanStack Start web service. The Go API and PostgreSQL remain on Railway private networking. Migrations run before a new API deployment is activated, the national school seed runs once per fresh environment, and database backups are a launch gate.

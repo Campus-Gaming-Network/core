@@ -6,7 +6,7 @@ Phased delivery for a single developer. Each phase should be shippable. Do not p
 
 **Infra:** Railway (TanStack Start web, Go API, PostgreSQL) · Cloudflare DNS/protection · Resend email (`events@` / `account@`) · game catalog imported from IGDB. `notifications@` and `support@` workflows, plus Cloudflare R2 for Admin Console logo uploads, are later.
 
-**Not yet scheduled:** tournaments, on-site payments, waitlists, team invite links, feature flags, near-you, custom event banner uploads. Admin Console v1 is in progress and release-gated: it runs on staging and is not deployed to production.
+**Not yet scheduled:** on-site payments, waitlists, team invite links, feature flags, near-you, custom event banner uploads. Admin Console v1 is in progress and release-gated: it runs on staging and is not deployed to production.
 
 **School seed:** import all 6,243 operating schools (4,943 main · 1,300 branch) as `is_active=true`; branch campuses use the same UI/UX; review later in the Admin Console.
 
@@ -157,15 +157,16 @@ Later: assigning teams to clubs (Varsity, JV), join approval, co-hosted events.
 
 **Exit:** A club on a school page that students can join, run by its officers.
 
-## Phase 6b — Tournaments (later)
+## Phase 6b — Tournaments
 
 **Goal:** Competitive layer. The spec is [01 — Product](./01-product.md#tournaments):
 a tournament is part of one tournament-type event and shows on its page.
 
-1. Settings and status (#263), solo and team registration (#265), an
-   external bracket link (#264), and organizer approval (#324)
-2. Single-elimination brackets (#266), organizer-entered results (#267), and
-   the tournament tabs and bracket view (#268)
+1. **Done:** settings and status (#263), solo and team registration (#265),
+   an external bracket link (#264), and organizer approval (#324)
+2. **Done:** single-elimination brackets (#266), organizer-entered results
+   (#267), the tournament tabs and bracket view (#268), the seeding page
+   (#333), and match times with the Schedule tab (#334)
 3. Round robin and Swiss (#269)
 4. Double elimination (#270)
 
@@ -195,7 +196,6 @@ bracket to a result.
 
 ## Later (not yet scheduled)
 
-- Tournaments
 - On-site payments
 - Waitlists
 - Team invite-link tokens
