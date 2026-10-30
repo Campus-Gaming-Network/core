@@ -33,6 +33,7 @@ These docs are the source of truth for product intent, domain rules, architectur
 | [24 — Admin Console security review](./24-admin-console-security-review.md)         | The AC-014 review record: findings, decisions on open items, dependency and secret review, and what is still owed        |
 | [25 — Web design implementation plan](./25-web-design-implementation-plan.md)       | Approved visual direction, reusable component inventory, route/state mapping, and phased web delivery plan               |
 | [26 — Frontend onboarding](./26-frontend-onboarding.md)                             | How web data flows, page and form patterns, security, and where to start on a new page                                   |
+| [27 — Backend onboarding](./27-backend-onboarding.md)                               | How a Go API request flows, errors, permissions, migrations, and where to start on a new endpoint                        |
 | [Go style](./go-style.md)                                                           | Go conventions for the API                                                                                               |
 
 Completed plans and evidence records (the Phase 1 plan, Pass v0 checklist, and
