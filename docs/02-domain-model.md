@@ -15,12 +15,12 @@ School ── logo, slug, admins
 Club   ── games, links, members (owner, editors, members), claims
 Team   ── games, members (URL + password), owner, captains
 Event ── games, organizers, RSVPs, interests, location, capacity, visibility, slug
-Tournament ── exactly one Event, one game, solo | team, entrants, matches (not built yet)
+Tournament ── exactly one Event, one game, solo | team, entrants, matches (single elimination built; other formats planned)
 Game ── added from IGDB when a user picks it (corrected and hidden by site admins, not editable by end users)
 
 Report ── target: Event | User | …
-Notification ── User                                      (later)
-AuditLog ── polymorphic (school, event, team, club, …)    (later)
+Notification ── User
+AuditLog ── polymorphic (school, event, team, club, …)
 FeatureFlag ── targets: user | school | event | team    (later)
 SiteAnnouncement ── global banner                        (later)
 ```
@@ -65,22 +65,22 @@ SiteAnnouncement ── global banner                        (later)
 
 ### School
 
-| Field / concept | Notes                                                                           |
-| --------------- | ------------------------------------------------------------------------------- |
-| Name            | Not required to be unique                                                       |
-| Slug            | URL identity; on collision append auto-increment (`-2`, `-3`, …)                |
-| UNITID          | Optional (set on Scorecard-seeded rows; Admin Console-created schools may omit) |
-| Logo            | Later Admin Console upload only (PNG/JPG ≤5 MB); placeholder until set          |
-| Location        | City, state, zip, lat/lng (from seed or Admin Console)                          |
-| Admins          | Many; a user may admin many schools                                             |
-| Clubs           | Listed on the school page                                                       |
-| Popularity      | Derived (e.g. event volume)                                                     |
+| Field / concept | Notes                                                                                         |
+| --------------- | --------------------------------------------------------------------------------------------- |
+| Name            | Not required to be unique                                                                     |
+| Slug            | URL identity; on collision append auto-increment (`-2`, `-3`, …)                              |
+| UNITID          | Optional (set on Scorecard-seeded rows; Admin Console-created schools may omit)               |
+| Logo            | Admin Console upload only (PNG/JPG ≤5 MB) or a bundled institutional logo; monogram until set |
+| Location        | City, state, zip, lat/lng (from seed or Admin Console)                                        |
+| Admins          | Many; a user may admin many schools                                                           |
+| Clubs           | Listed on the school page                                                                     |
+| Popularity      | Derived (e.g. event volume)                                                                   |
 
 **Rules**
 
 - National catalog **bootstrapped once** from College Scorecard (`data/schools_seed.csv`) — see [09 — School data](./09-school-data.md)
-- Import **all** seed schools (main + branch), `is_active=true`; branch campuses use the same UI/UX as other schools; review/deactivate later in the Admin Console
-- After bootstrap, the **later Admin Console** owns create / edit / soft-delete (users cannot create schools)
+- Import **all** seed schools (main + branch), `is_active=true`; branch campuses use the same UI/UX as other schools; review/deactivate in the Admin Console
+- After bootstrap, the **Admin Console** owns create / edit / soft-delete (users cannot create schools)
 - Anyone (including logged-out) can **search and browse** schools
 - School admins edit school details and the clubs at their school, and assign school teams
 - School admins **cannot** remove other school admins

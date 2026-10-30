@@ -31,8 +31,7 @@ Rules:
   version is a new migration (see `000019`).
 - `TestSchemaInvariants` requires every foreign key to be led by an index (see
   `000028`).
-- Do not add tournament match tables, feature flags, site announcements, on-site
-  payment tables, IGDB bulk-sync tables, or Admin Console-only workflow tables
+- Do not add feature flags, site announcements, on-site payment tables, IGDB bulk-sync tables, or Admin Console-only workflow tables
   until those phases are active.
 
 In the table, "Deploy order" says when to apply a migration relative to the API

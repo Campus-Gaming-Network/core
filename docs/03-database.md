@@ -12,7 +12,7 @@ PostgreSQL is the system of record. Conventions first; then core tables. Exact c
 | Time storage    | Store instants in UTC (`timestamptz`); display in user timezone in app layer                                                                                                                                                                    |
 | Money           | May list paid/off-site-payment events, but CGN does not process payment. Store only lightweight display fields such as `cost`, `payment_note`, and an optional `payment_url`; use integer cents + currency only if on-site payments ship later. |
 | Slugs           | Unique URL keys: `schools.slug`; `events.slug` — events use `slugify(title)-` + **8** Base64URL chars of SHA-256(creatorId\|date\|title)                                                                                                        |
-| Images          | Event banners use default placeholder for now; school `logo_url` comes later via Admin Console upload (PNG/JPG only; max 5 MB)                                                                                                                  |
+| Images          | Event banners use default placeholder for now; school `logo_url` is set by Admin Console upload (PNG/JPG only; max 5 MB)                                                                                                                        |
 | Idempotency     | `events`, `teams`, `reports`, and `support_tickets` have a nullable, unique `idempotency_key` UUID. A create request that repeats a key returns the existing row. Recurring occurrences leave it null; only the series root carries the key.    |
 | Audit vs system | `audit_logs` holds domain change history and remains separate from system/ops logs.                                                                                                                                                             |
 | Nightly backups | Required in production                                                                                                                                                                                                                          |
@@ -21,7 +21,7 @@ PostgreSQL is the system of record. Conventions first; then core tables. Exact c
 
 Keep the first migration set scoped to shipped features. Create only the tables needed for auth/profile, home school and follows, schools seed, launch games, events, teams, reports/support tickets, and operational needs.
 
-Do **not** create first-pass tables for tournament matches, user activity history, feature flags, site announcements, on-site payments, IGDB bulk-sync runs, or broader Admin Console-only workflows until those phases are actively being built. The operations foundation includes audit history and per-user notifications. Audit history is readable through capability-gated Admin Console API routes; notifications have no HTTP or UI surface yet.
+Do **not** create first-pass tables for user-visible activity history, feature flags, site announcements, on-site payments, IGDB bulk-sync runs, or broader Admin Console-only workflows until those phases are actively being built. The operations foundation includes audit history and per-user notifications. Audit history is readable through capability-gated Admin Console API routes; notifications are read through `GET /me/notifications` and shown in the web inbox.
 
 ## Core tables (logical)
 
@@ -131,7 +131,7 @@ email_change_tokens
 ```text
 schools
   id, unitid nullable (unique when present; College Scorecard/IPEDS),
-  name, alias, short_name, slug (unique), logo_url,  -- later Admin Console upload (PNG/JPG ≤5 MB); placeholder until set
+  name, alias, short_name, slug (unique), logo_url,  -- Admin Console upload (PNG/JPG ≤5 MB); monogram until set
   city, state, zip, website_url,
   latitude, longitude,
   is_main_campus, num_branches, is_active,
@@ -140,7 +140,7 @@ schools
   -- catalog bootstrapped once from data/schools_seed.csv; Admin Console owns create/edit/delete after that
   -- unitid optional/unique when present; Admin Console-created schools may omit
   -- one-time seed imports ALL rows as is_active=true (main + branch); branch campuses use same UI/UX
-  -- logo_url is later Admin Console-only (PNG/JPG ≤5 MB), not Scorecard; not uploadable from main site
+  -- logo_url is Admin Console-only (PNG/JPG ≤5 MB), not Scorecard; not uploadable from main site
 
 clubs
   id, school_id (required), name, slug (unique),
@@ -374,7 +374,7 @@ support_tickets
 notifications
   id, user_id, type, title, body,
   entity_type nullable, entity_id nullable, payload jsonb, read_at, created_at
-  -- repository primitives exist; authenticated HTTP/UI surfaces are later
+  -- read by the account's own GET /me/notifications; shown in the web inbox
 
 feature_flags  (later)
   id, key, description, enabled_globally, ...
@@ -481,7 +481,7 @@ Do not list `unlisted` or `private` events in discovery search. Unlisted is reac
 ## Migrations
 
 - Versioned SQL migrations live in `db/migrations` and are applied by the Go migrator
-- First migrations stay scoped to shipped features; defer schema for tournament matches, feature flags, site announcements, on-site payments, IGDB sync, and Admin Console-only workflows.
+- First migrations stay scoped to shipped features; defer schema for feature flags, site announcements, on-site payments, IGDB sync, and Admin Console-only workflows.
 - In Railway production, run the Go migrator as a pre-deploy command or dedicated migration service/job before the API serves traffic
 - Never rely on manual prod SQL for schema changes
 - The migrator runs each file in one transaction, so `CREATE INDEX CONCURRENTLY` is not available; indexes build under a write lock, which is acceptable at current table sizes
