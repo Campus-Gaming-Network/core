@@ -1,6 +1,6 @@
 import { useHydrated } from "@tanstack/react-router";
 import { Eye, EyeOff } from "lucide-react";
-import { useState, type InputHTMLAttributes } from "react";
+import { useState, type ComponentProps } from "react";
 
 /**
  * A password input with a button that shows what was typed. Use it for the
@@ -10,9 +10,7 @@ import { useState, type InputHTMLAttributes } from "react";
  * to do before then. Toggling changes the type of the same input, so the
  * value and focus stay where they were.
  */
-export function PasswordInput(
-  props: Omit<InputHTMLAttributes<HTMLInputElement>, "type">,
-) {
+export function PasswordInput(props: Omit<ComponentProps<"input">, "type">) {
   const interactive = useHydrated();
   const [revealed, setRevealed] = useState(false);
   const Icon = revealed ? EyeOff : Eye;
