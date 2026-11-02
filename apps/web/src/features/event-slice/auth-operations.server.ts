@@ -119,6 +119,7 @@ export async function getEventsViewerOperation({
     return {
       status: "authenticated",
       authenticated: true,
+      timeZone: profile.timezone,
       ...(profile.home_school
         ? {
             homeSchool: {

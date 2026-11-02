@@ -827,6 +827,7 @@ func (r *Router) handleEvents(w http.ResponseWriter, req *http.Request) {
 		Audience:     req.URL.Query().Get("audience"),
 		EventType:    req.URL.Query().Get("type"),
 		Cost:         req.URL.Query().Get("cost"),
+		HideRepeats:  req.URL.Query().Get("repeats") == "hide",
 		StartsAfter:  startsAfter,
 		StartsBefore: startsBefore,
 		Limit:        limit + 1,

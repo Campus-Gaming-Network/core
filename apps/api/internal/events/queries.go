@@ -191,7 +191,8 @@ func (r *PostgresRepository) listSoonestForUser(ctx context.Context, userID stri
 
 // ListPublic returns public events that have not ended, soonest first,
 // optionally filtered by game, school, host team, title keyword, format,
-// audience, event type, cost, local start date, and start window (StartsAfter and StartsBefore). After and Before page forward
+// audience, event type, cost, local start date, start window (StartsAfter and
+// StartsBefore), and whether the event repeats. After and Before page forward
 // and backward from a cursor; setting both is an invalid cursor. A previous
 // page is returned in the same soonest-first order.
 func (r *PostgresRepository) ListPublic(ctx context.Context, params ListParams) ([]Event, error) {
@@ -231,6 +232,9 @@ func (r *PostgresRepository) ListPublic(ctx context.Context, params ListParams) 
 	// Ended events leave the list. A previous page reads backward from its
 	// cursor and is reversed afterward.
 	whereClause += " AND e.ends_at > $7"
+	if params.HideRepeats {
+		whereClause += " AND e.recurrence_rule IS NULL AND e.recurrence_parent_id IS NULL"
+	}
 	if params.StartsAfter != nil {
 		whereClause += fmt.Sprintf(" AND e.starts_at >= $%d", len(arguments)+1)
 		arguments = append(arguments, *params.StartsAfter)

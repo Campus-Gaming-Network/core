@@ -19,7 +19,7 @@ func TestHandleEventsReturnsPublicEventsWithFilters(t *testing.T) {
 		testEvent(eventstore.VisibilityPublic),
 	}}
 	router := &Router{events: repository}
-	request := httptest.NewRequest(http.MethodGet, "/events?game=rocket-league&school=example-university&format=online&audience=open&type=lan&cost=free&limit=5", nil)
+	request := httptest.NewRequest(http.MethodGet, "/events?game=rocket-league&school=example-university&format=online&audience=open&type=lan&cost=free&repeats=hide&limit=5", nil)
 	response := httptest.NewRecorder()
 
 	router.handleEvents(response, request)
@@ -44,6 +44,9 @@ func TestHandleEventsReturnsPublicEventsWithFilters(t *testing.T) {
 	}
 	if repository.listParams.Cost != eventstore.CostFree {
 		t.Fatalf("cost = %q, want %q", repository.listParams.Cost, eventstore.CostFree)
+	}
+	if !repository.listParams.HideRepeats {
+		t.Fatal("HideRepeats = false, want true for repeats=hide")
 	}
 	if repository.listParams.Limit != 6 || repository.listParams.After != nil || repository.listParams.Before != nil {
 		t.Fatalf("list params = %#v, want a six-row first-page fetch", repository.listParams)
