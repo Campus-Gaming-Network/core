@@ -239,6 +239,9 @@ type ListParams struct {
 	Audience  string
 	EventType string
 	Cost      string
+	// HideRepeats leaves out every event of a recurring series, the root
+	// and its occurrences, so one-off events are easier to find.
+	HideRepeats bool
 	// StartsAfter keeps events starting at or after it; StartsBefore keeps
 	// events starting before it. Either may be nil.
 	StartsAfter  *time.Time

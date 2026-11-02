@@ -222,6 +222,7 @@ export const eventsBrowseInputSchema = z.object({
   audience: eventAudienceSchema.optional(),
   type: eventTypeSchema.optional(),
   cost: z.literal("free").optional(),
+  repeats: z.literal("hide").optional(),
   q: eventKeywordSchema.optional(),
   // Calendar days (inclusive) in each event's own time zone.
   from: eventDateSchema.optional(),
@@ -493,6 +494,7 @@ export type EventsViewerResult =
       status: "authenticated";
       authenticated: true;
       homeSchool?: EventsViewerHomeSchool;
+      timeZone: string;
     }
   | Exclude<EventViewerSessionResult, { status: "authenticated" }>;
 
@@ -635,6 +637,7 @@ export function validateEventsSearch(
     ...(audience.success ? { audience: audience.data } : {}),
     ...(type.success ? { type: type.data } : {}),
     ...(search.cost === "free" ? { cost: "free" as const } : {}),
+    ...(search.repeats === "hide" ? { repeats: "hide" as const } : {}),
     ...(keyword ? { q: keyword } : {}),
     ...(from ? { from } : {}),
     ...(to ? { to } : {}),
@@ -653,6 +656,7 @@ export function eventsBrowseInput(search: EventsSearch): EventsBrowseInput {
     ...(search.audience ? { audience: search.audience } : {}),
     ...(search.type ? { type: search.type } : {}),
     ...(search.cost ? { cost: search.cost } : {}),
+    ...(search.repeats ? { repeats: search.repeats } : {}),
     ...(search.q ? { q: search.q } : {}),
     ...(search.from ? { from: search.from } : {}),
     ...(search.to ? { to: search.to } : {}),

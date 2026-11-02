@@ -67,6 +67,11 @@ import {
   eventsHead,
   eventTypeLabels,
 } from "../features/event-slice/presentation";
+import {
+  eventDatePresets,
+  fallbackPresetTimeZone,
+  localToday,
+} from "../features/event-slice/event-date-presets";
 import { PageIntro } from "../components/page-heading";
 import { Surface } from "../components/surface";
 
@@ -106,6 +111,12 @@ export const Route = createFileRoute("/events/")({
         session.status === "authenticated" ? session.homeSchool : undefined,
       hasSessionCookie: session.hasSessionCookie,
       publicOrigin: context.publicOrigin,
+      today: localToday(
+        new Date(),
+        session.status === "authenticated"
+          ? session.timeZone
+          : fallbackPresetTimeZone,
+      ),
     };
   },
   staleTime: 0,
@@ -123,7 +134,7 @@ export const Route = createFileRoute("/events/")({
 
 function EventsPage() {
   const { busy, onPaginate, resultsRef } = useDirectoryResults();
-  const { authenticated, browse, gameFilter, homeSchool, schoolFilter } =
+  const { authenticated, browse, gameFilter, homeSchool, schoolFilter, today } =
     Route.useLoaderData();
   const search = Route.useSearch();
   const previousSearch =
@@ -205,6 +216,7 @@ function EventsPage() {
           type: search.type,
           audience: search.audience,
           cost: search.cost,
+          repeats: search.repeats,
           q: search.q,
           from: search.from,
           to: search.to,
@@ -346,6 +358,12 @@ function EventsPage() {
             name="cost"
             value="free"
           />
+          <FilterToggle
+            checked={search.repeats === "hide"}
+            label="Hide repeats"
+            name="repeats"
+            value="hide"
+          />
           {/* Dates read in each event's own time zone, as its page shows. */}
           <FilterDate
             label="From"
@@ -359,6 +377,32 @@ function EventsPage() {
             name="to"
             value={search.to}
           />
+          <span
+            aria-label="Date shortcuts"
+            className="filter-shortcuts"
+            role="group"
+          >
+            {eventDatePresets(today).map((preset) => {
+              const current =
+                search.from === preset.from && search.to === preset.to;
+              return (
+                <Link
+                  aria-current={current ? "true" : undefined}
+                  className="filter-pill filter-pill--shortcut"
+                  data-active={current ? "" : undefined}
+                  key={preset.label}
+                  search={{
+                    ...paginationSearch(search, {}),
+                    from: preset.from,
+                    to: preset.to,
+                  }}
+                  to="/events"
+                >
+                  {preset.label}
+                </Link>
+              );
+            })}
+          </span>
         </FilterToolbar>
       </FilterForm>
 
@@ -456,6 +500,7 @@ function paginationSearch(
     ...(search.audience ? { audience: search.audience } : {}),
     ...(search.type ? { type: search.type } : {}),
     ...(search.cost ? { cost: search.cost } : {}),
+    ...(search.repeats ? { repeats: search.repeats } : {}),
     ...(search.q ? { q: search.q } : {}),
     ...(search.from ? { from: search.from } : {}),
     ...(search.to ? { to: search.to } : {}),
@@ -489,6 +534,7 @@ const restrictiveOrder = [
   "audience",
   "format",
   "cost",
+  "repeats",
 ];
 
 const scopeFilterKeys: Record<EventScope, string | undefined> = {
@@ -557,6 +603,13 @@ function appliedEventFilters(
       name: "Cost",
       value: search.cost,
       label: "Free",
+    });
+  if (search.repeats)
+    filters.push({
+      key: "repeats",
+      name: "Repeats",
+      value: search.repeats,
+      label: "Hidden",
     });
   if (search.q)
     filters.push({

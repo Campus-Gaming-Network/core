@@ -150,7 +150,7 @@ test("strict event viewer session distinguishes logged out, authenticated, and 4
   assert.equal(calls, 1);
 });
 
-test("events viewer carries only the home school's name and slug, and omits one it cannot read", async () => {
+test("events viewer carries the profile time zone and only the home school's name and slug, and omits one it cannot read", async () => {
   const read = (body: unknown) =>
     getEventsViewerOperation({
       api: client(async () => Response.json(body)),
@@ -175,11 +175,13 @@ test("events viewer carries only the home school's name and slug, and omits one 
   assert.deepEqual(withSchool, {
     status: "authenticated",
     authenticated: true,
+    timeZone: profile.timezone,
     homeSchool: { name: "Summit Ridge University", slug: "summit-ridge" },
   });
   assert.deepEqual(withoutSchool, {
     status: "authenticated",
     authenticated: true,
+    timeZone: profile.timezone,
   });
   assert.deepEqual(malformedSchool, withoutSchool);
 });
