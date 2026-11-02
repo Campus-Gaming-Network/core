@@ -96,6 +96,7 @@ function MatchPage() {
   return (
     <TournamentPage
       current="bracket"
+      currentMatchID={match.id}
       data={data}
       heading={name}
       notice={search.bracket}

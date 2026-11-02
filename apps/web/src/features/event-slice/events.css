@@ -470,6 +470,53 @@
     font-size: var(--text-sm);
   }
 
+  /* The viewer's own match. The page grid spaces it on a tournament tab, and
+     the margin spaces it under the tabs on the event page. */
+  .viewer-match.action-panel {
+    display: grid;
+    gap: var(--space-2);
+    margin-block: var(--space-4) 0;
+    padding: var(--space-4) var(--space-5);
+
+    h2 {
+      margin: 0;
+      font-size: var(--text-lg);
+    }
+
+    p {
+      margin: 0;
+    }
+
+    &[data-status="live"] {
+      border-color: var(--color-success);
+    }
+  }
+
+  .tournament-page > .viewer-match.action-panel {
+    margin-block: 0;
+  }
+
+  .viewer-match__when {
+    color: var(--color-muted);
+  }
+
+  .viewer-match__live {
+    border-radius: var(--radius-small);
+    padding: 0.125rem 0.5rem;
+    color: var(--color-identity-text);
+    background: var(--color-success);
+    font-size: var(--text-sm);
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+
+  @media (forced-colors: active) {
+    .viewer-match__live {
+      border: 2px solid CanvasText;
+    }
+  }
+
   .tournament-page {
     display: grid;
     gap: var(--space-5);
