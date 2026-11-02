@@ -22,6 +22,7 @@ import {
   scheduleDays,
   tournamentSections,
 } from "../src/features/tournament-bracket/presentation.js";
+import { viewerMatch } from "../src/features/tournament-bracket/viewer-match.js";
 import type { TournamentDTO } from "../src/features/tournament-registration/contracts.js";
 import { getTournamentEntries } from "../src/features/tournament-registration/tournament.functions.js";
 import { deleteEntryOperation } from "../src/features/tournament-registration/tournament-operations.server.js";
@@ -758,5 +759,109 @@ test("scheduling sends the time or null and maps a time outside the event to a n
         { scheduled_at: null },
       ],
     },
+  );
+});
+
+test("a player's own match is the earliest one left, a bye starts in round two, and a loss or a final win ends it", () => {
+  const finalWon = matches.map((match) =>
+    match.id === id(31)
+      ? {
+          ...match,
+          entrants: [eli, dee] as TournamentMatchDTO["entrants"],
+          status: "complete" as const,
+          scores: [0, 2] as [number, number],
+          winner_entry_id: dee.entry_id,
+        }
+      : match,
+  );
+  assert.deepEqual(
+    [
+      viewerMatch(matches, eli.entry_id),
+      viewerMatch(matches, dee.entry_id),
+      viewerMatch(matches, ana.entry_id),
+      viewerMatch(matches, cal.entry_id),
+      viewerMatch(finalWon, dee.entry_id),
+      viewerMatch(matches, id(999)),
+    ],
+    [
+      {
+        kind: "next",
+        match: matches[1],
+        name: "Semifinals, match 1",
+        opponent: ben,
+      },
+      {
+        kind: "next",
+        match: matches[3],
+        name: "Final",
+        waitingOn: "Semifinals, match 1",
+      },
+      { kind: "out", match: matches[0], name: "Quarterfinals, match 2" },
+      { kind: "out", match: matches[2], name: "Semifinals, match 2" },
+      { kind: "won" },
+      undefined,
+    ],
+  );
+});
+
+/** The viewer match card's text, or undefined when the page has none. */
+function viewerMatchCardText(markup: string) {
+  return /<section[^>]*class="action-panel viewer-match"[^>]*>(.*?)<\/section>/
+    .exec(markup)?.[1]
+    ?.replace(/<\/(h2|p)>/g, " ")
+    .replace(/<[^>]+>/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+test("a registered entrant sees their next match on the overview and tabs, but not on that match's own page", async () => {
+  const entered: EventDTO = {
+    ...tournamentEvent,
+    tournament: {
+      ...running,
+      viewer_entry: {
+        id: dee.entry_id,
+        status: "registered",
+        can_manage: true,
+      },
+    },
+  };
+  stubPage(entered, matches);
+  const overview = (
+    await loadRoute(EventRoute, "/events/$slug", "/events/campus-night")
+  ).render();
+  const bracket = (
+    await loadRoute(
+      BracketRoute,
+      "/events/$slug/bracket",
+      "/events/campus-night/bracket",
+    )
+  ).render();
+  const finalPage = (
+    await loadRoute(
+      MatchRoute,
+      "/events/$slug/matches/$matchId",
+      `/events/campus-night/matches/${id(31)}`,
+    )
+  ).render();
+  stubPage(
+    {
+      ...entered,
+      tournament: {
+        ...running,
+        viewer_entry: { id: dee.entry_id, status: "pending", can_manage: true },
+      },
+    },
+    matches,
+  );
+  const pending = (
+    await loadRoute(EventRoute, "/events/$slug", "/events/campus-night")
+  ).render();
+
+  const expected =
+    "Your next match Final vs the winner of Semifinals, match 1 No time set yet · View match";
+  assert.deepEqual(
+    [overview, bracket, finalPage, pending].map(viewerMatchCardText),
+    [expected, expected, undefined, undefined],
   );
 });

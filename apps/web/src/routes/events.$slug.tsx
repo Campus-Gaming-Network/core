@@ -88,9 +88,14 @@ import {
   getRegistrationTeams,
   getTournamentEntries,
 } from "../features/tournament-registration/tournament.functions";
-import { TournamentTabs } from "../features/tournament-bracket/bracket-views";
+import {
+  TournamentTabs,
+  ViewerMatchCard,
+} from "../features/tournament-bracket/bracket-views";
 import { getTournamentMatches } from "../features/tournament-bracket/bracket.functions";
 import { bracketMayExist } from "../features/tournament-bracket/presentation";
+import { viewerBracketMatch } from "../features/tournament-bracket/tournament-page";
+import type { ViewerMatch } from "../features/tournament-bracket/viewer-match";
 
 type EventRouteData = {
   event: EventDetailDTO;
@@ -102,6 +107,8 @@ type EventRouteData = {
   hasBracket?: boolean;
   /** Whether any match has a time, which adds the Schedule tab. */
   hasSchedule?: boolean;
+  /** The signed-in entrant's next match or result, once there is a bracket. */
+  viewerMatch?: ViewerMatch;
   registrationTeams?: TournamentListResult<RegistrationTeamDTO>;
   /** The latest log entries the viewer may see; empty when there are none or they could not be read. */
   updates: EventActivityEntry[];
@@ -154,6 +161,9 @@ export const Route = createFileRoute("/events/$slug")({
       tournament && bracketMayExist(tournament)
         ? await getTournamentMatches({ data: { slug: params.slug } })
         : undefined;
+    const viewerMatch = tournament
+      ? viewerBracketMatch(tournament, bracket)
+      : undefined;
     const registrationTeams =
       session.authenticated &&
       tournament?.entry_type === "team" &&
@@ -188,6 +198,7 @@ export const Route = createFileRoute("/events/$slug")({
       hasSchedule:
         bracket?.status === "ready" &&
         bracket.matches.some((match) => match.scheduled_at !== undefined),
+      ...(viewerMatch ? { viewerMatch } : {}),
       ...(registrationTeams ? { registrationTeams } : {}),
       updates: activity?.status === "found" ? activity.page.entries : [],
       publicOrigin: context.publicOrigin,
@@ -230,6 +241,7 @@ function EventPage() {
     publicOrigin,
     registrationTeams,
     updates,
+    viewerMatch,
   } = Route.useLoaderData();
   const search = Route.useSearch();
 
@@ -256,6 +268,7 @@ function EventPage() {
       publicOrigin={publicOrigin}
       registrationTeams={registrationTeams}
       tournamentNotice={search.tournament}
+      viewerMatch={viewerMatch}
     />
   );
 }
@@ -314,6 +327,7 @@ function VisibleEventView({
   publicOrigin,
   registrationTeams,
   tournamentNotice,
+  viewerMatch,
 }: {
   attendees?: PeopleListResult;
   entries?: TournamentEntriesResult;
@@ -326,6 +340,7 @@ function VisibleEventView({
   publicOrigin: string;
   registrationTeams?: TournamentListResult<RegistrationTeamDTO>;
   tournamentNotice?: TournamentNotice;
+  viewerMatch?: ViewerMatch;
 }) {
   const renderedAt = useRenderedAt();
   const organizer = event.organizers?.[0];
@@ -454,6 +469,14 @@ function VisibleEventView({
           hasSchedule={hasSchedule}
           slug={event.slug}
           tournament={tournament}
+        />
+      ) : null}
+      {tournament && !cancelled && viewerMatch ? (
+        <ViewerMatchCard
+          result={viewerMatch}
+          slug={event.slug}
+          team={tournament.entry_type === "team"}
+          timeZone={event.timezone}
         />
       ) : null}
 

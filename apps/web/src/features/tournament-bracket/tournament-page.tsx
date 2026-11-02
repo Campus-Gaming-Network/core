@@ -7,7 +7,7 @@ import type { EventDTO } from "../event-slice/contracts";
 import { getEventDetail } from "../event-slice/event.functions";
 import eventCSS from "../event-slice/events.css?url";
 import type { TournamentDTO } from "../tournament-registration/contracts";
-import { TournamentTabs } from "./bracket-views";
+import { TournamentTabs, ViewerMatchCard } from "./bracket-views";
 import { getTournamentMatches } from "./bracket.functions";
 import {
   bracketNotices,
@@ -15,6 +15,7 @@ import {
   type BracketResult,
 } from "./contracts";
 import type { TournamentSection } from "./presentation";
+import { viewerMatch, type ViewerMatch } from "./viewer-match";
 
 export type TournamentPageData = {
   event: EventDTO & { tournament: TournamentDTO };
@@ -56,6 +57,21 @@ export function hasSchedule(bracket: BracketResult | undefined): boolean {
   );
 }
 
+/**
+ * The viewer's place in the bracket when they have a registered entry in it.
+ * A pending request has no seed, so it never has a match.
+ */
+export function viewerBracketMatch(
+  tournament: TournamentDTO,
+  bracket: BracketResult | undefined,
+): ViewerMatch | undefined {
+  const entry = tournament.viewer_entry;
+  if (!entry || entry.status !== "registered" || bracket?.status !== "ready") {
+    return undefined;
+  }
+  return viewerMatch(bracket.matches, entry.id);
+}
+
 /** A section page's head: never indexed, like the event's other subpages. */
 export function tournamentPageHead(
   loaderData: TournamentPageData | undefined,
@@ -78,17 +94,21 @@ export function tournamentPageHead(
 export function TournamentPage({
   children,
   current,
+  currentMatchID,
   data,
   heading,
   notice,
 }: {
   children: ReactNode;
   current: TournamentSection;
+  /** The match a match page shows, whose own page needs no card for it. */
+  currentMatchID?: string;
   data: TournamentPageData;
   heading: string;
   notice?: BracketNotice;
 }) {
   const { event } = data;
+  const own = viewerBracketMatch(event.tournament, data.bracket);
   return (
     <main className="tournament-page">
       <Breadcrumbs current={heading}>
@@ -106,6 +126,14 @@ export function TournamentPage({
         tournament={event.tournament}
       />
       <PageNoticeView notice={notice ? bracketNotices[notice] : undefined} />
+      {own && !(own.kind !== "won" && own.match.id === currentMatchID) ? (
+        <ViewerMatchCard
+          result={own}
+          slug={event.slug}
+          team={event.tournament.entry_type === "team"}
+          timeZone={event.timezone}
+        />
+      ) : null}
       {children}
     </main>
   );

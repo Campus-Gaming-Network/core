@@ -423,6 +423,13 @@ to an event instead of repeating the event's own facts.
   written), and Prizes (when written). The tabs are links that work without
   JavaScript. On a phone the bracket is a list of matches round by round, not
   a shrunken bracket
+- **Your next match:** once there is a bracket, a signed-in viewer with a
+  registered entry sees a card under the tabs on the event page and every
+  tournament tab: the next match they have to play, the opponent (or which
+  match decides the opponent), and the time or "Live now", with a link to the
+  match. Once they lose it says where their run ended, and after winning the
+  final it says they won. A match's own page leaves the card out for that
+  match
 - **Notices:** entrants get an in-app notice when an organizer removes their
   entry, when the tournament starts, and when it is cancelled; cancelling the
   event also emails them (pending requesters included), as it emails RSVPs.

@@ -186,3 +186,16 @@ export function matchTime(value: string, timeZone: string): string {
     timeZone,
   }).format(new Date(value));
 }
+
+/** A match's day and time in the event's zone: "Sat, Nov 7, 7:30 PM PST". */
+export function matchStart(value: string, timeZone: string): string {
+  return new Intl.DateTimeFormat("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZoneName: "short",
+    timeZone,
+  }).format(new Date(value));
+}

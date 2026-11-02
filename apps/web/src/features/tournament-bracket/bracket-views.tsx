@@ -24,10 +24,12 @@ import {
 import {
   bracketRounds,
   entrantName,
+  matchStart,
   matchSummary,
   tournamentSections,
   type TournamentSection,
 } from "./presentation";
+import type { ViewerMatch } from "./viewer-match";
 
 const sectionPaths = {
   overview: "/events/$slug",
@@ -70,6 +72,93 @@ export function TournamentTabs({
         ),
       )}
     </Tabs>
+  );
+}
+
+/**
+ * The viewer's own place in the bracket, above every tournament section so a
+ * player at the venue sees who and when they play next without reading the
+ * whole bracket. A team entry reads "Your team".
+ */
+export function ViewerMatchCard({
+  result,
+  slug,
+  team,
+  timeZone,
+}: {
+  result: ViewerMatch;
+  slug: string;
+  team: boolean;
+  timeZone: string;
+}) {
+  const you = team ? "Your team" : "You";
+  if (result.kind === "won") {
+    return (
+      <Surface
+        aria-label="Your result"
+        className="viewer-match"
+        variant="action"
+      >
+        <p className="viewer-match__line">
+          <strong>{you} won the tournament.</strong>
+        </p>
+      </Surface>
+    );
+  }
+  const matchLink = (
+    <Link
+      params={{ slug, matchId: result.match.id }}
+      to="/events/$slug/matches/$matchId"
+    >
+      View match
+    </Link>
+  );
+  if (result.kind === "out") {
+    return (
+      <Surface
+        aria-label="Your result"
+        className="viewer-match"
+        variant="action"
+      >
+        <p className="viewer-match__line">
+          {team ? "Your team's" : "Your"} run ended in {result.name}.{" "}
+          {matchLink}
+        </p>
+      </Surface>
+    );
+  }
+  const { match, name, opponent, waitingOn } = result;
+  return (
+    <Surface
+      aria-labelledby="viewer-match-heading"
+      className="viewer-match"
+      data-status={match.status}
+      variant="action"
+    >
+      <h2 id="viewer-match-heading">
+        {team ? "Your team's next match" : "Your next match"}
+      </h2>
+      <p className="viewer-match__line">
+        <strong>{name}</strong> vs{" "}
+        {opponent
+          ? entrantName(opponent)
+          : waitingOn
+            ? `the winner of ${waitingOn}`
+            : "an opponent to be decided"}
+      </p>
+      <p className="viewer-match__when">
+        {match.status === "live" ? (
+          <span className="viewer-match__live">Live now</span>
+        ) : match.scheduled_at ? (
+          <time dateTime={match.scheduled_at}>
+            {matchStart(match.scheduled_at, timeZone)}
+          </time>
+        ) : (
+          "No time set yet"
+        )}{" "}
+        · {matchLink}
+      </p>
+    </Surface>
   );
 }
 
