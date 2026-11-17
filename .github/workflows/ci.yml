@@ -95,10 +95,6 @@ jobs:
           runtime: node@24
           cache: true
           install: false
-      - name: Validate application containers
-        run: pnpm run check:apps-compose
-      - name: Production container gate
-        run: node scripts/web_docker_gate.ts
       - name: Install
         run: pnpm install --frozen-lockfile
       - name: Format check
@@ -136,6 +132,23 @@ jobs:
       - name: Documentation browser tests
         working-directory: apps/docs
         run: pnpm run test:e2e
+
+  web-container:
+    # The image build and container probe take about 30s and use nothing the
+    # web job installs, so they run beside it instead of inside it.
+    name: Web production container
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/setup@c9883cc79df532ad1a7b81bf9ab944ceb090d65c # v2.0.0
+        with:
+          runtime: node@24
+          install: false
+      - name: Validate application containers
+        run: pnpm run check:apps-compose
+      - name: Production container gate
+        run: node scripts/web_docker_gate.ts
 
   web-browser:
     # The browser suite runs one test at a time against a shared fake API, so
