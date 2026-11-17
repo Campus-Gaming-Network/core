@@ -7,16 +7,12 @@ import (
 
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/dbtest"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/emailoutbox"
-	"github.com/Campus-Gaming-Network/core/apps/api/internal/migrate"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/notifications"
 )
 
 func TestPostgresRepositoryNotifiesTheOwnerOfJoinsAndTheNewOwnerOfATransfer(t *testing.T) {
 	ctx := context.Background()
-	pool := dbtest.NewSchemaPool(t, "team_notices")
-	if err := migrate.Run(ctx, pool, "../../../../db/migrations"); err != nil {
-		t.Fatalf("migrate schema: %v", err)
-	}
+	pool := dbtest.NewMigratedPool(t, "team_notices")
 
 	var schoolID string
 	if err := pool.QueryRow(ctx, `

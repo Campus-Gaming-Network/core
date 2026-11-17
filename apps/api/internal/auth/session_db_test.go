@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/dbtest"
-	"github.com/Campus-Gaming-Network/core/apps/api/internal/migrate"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -77,10 +76,7 @@ func TestSessionRepositoryFindSessionDoesNotWrite(t *testing.T) {
 // suspended or deleted account no longer authenticates.
 func TestSessionRepositoryFindSessionRefusesInactiveAccounts(t *testing.T) {
 	ctx := context.Background()
-	pool := dbtest.NewSchemaPool(t, "sessions")
-	if err := migrate.Run(ctx, pool, "../../../../db/migrations"); err != nil {
-		t.Fatalf("migrate schema: %v", err)
-	}
+	pool := dbtest.NewMigratedPool(t, "sessions")
 	var schoolID string
 	schoolID = dbtest.InsertSchool(t, pool, "Status School", "status-school")
 	repository := NewSessionRepository(pool)

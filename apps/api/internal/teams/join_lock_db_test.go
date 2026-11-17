@@ -7,16 +7,12 @@ import (
 	"time"
 
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/dbtest"
-	"github.com/Campus-Gaming-Network/core/apps/api/internal/migrate"
 )
 
 func TestJoinFindsNoTeamWhenItIsDeletedDuringTheJoin(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	pool := dbtest.NewSchemaPool(t, "teams")
-	if err := migrate.Run(ctx, pool, "../../../../db/migrations"); err != nil {
-		t.Fatalf("migrate schema: %v", err)
-	}
+	pool := dbtest.NewMigratedPool(t, "teams")
 	insert := func(query string, args ...any) string {
 		t.Helper()
 		var id string

@@ -10,7 +10,7 @@ import (
 // Runs only when API_DATABASE_URL points at a migrated database. The sweeper is
 // pure SQL, so unit tests with fakes would assert nothing about the statements.
 func TestSweeperDeletesOnlyAgedRows(t *testing.T) {
-	pool := dbtest.NewMigratedSchemaPool(t, "sweeper")
+	pool := dbtest.NewMigratedPool(t, "sweeper")
 	ctx := context.Background()
 
 	var schoolID, userID string

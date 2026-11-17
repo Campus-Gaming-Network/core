@@ -11,7 +11,7 @@ import (
 
 func TestPostgresRepositoryPopularCountsUpcomingPublicEventsPerGame(t *testing.T) {
 	ctx := context.Background()
-	pool := dbtest.NewMigratedSchemaPool(t, "popular_games")
+	pool := dbtest.NewMigratedPool(t, "popular_games")
 	now := time.Date(2026, time.October, 17, 12, 0, 0, 0, time.UTC)
 
 	var userID, homeID, otherID string

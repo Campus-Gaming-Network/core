@@ -12,8 +12,9 @@ import (
 )
 
 func TestPostgresRepositoryTournamentRegistration(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
-	pool := dbtest.NewMigratedSchemaPool(t, "events")
+	pool := dbtest.NewMigratedPool(t, "events")
 	schoolID := dbtest.InsertSchool(t, pool, "Entry School", "entry-school")
 	user := func(email, name string) string {
 		return dbtest.InsertUser(t, pool, schoolID, email, name, dbtest.VerifiedEmail())
@@ -273,8 +274,9 @@ func TestPostgresRepositoryTournamentRegistration(t *testing.T) {
 }
 
 func TestPostgresRepositoryTournamentApproval(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
-	pool := dbtest.NewMigratedSchemaPool(t, "events")
+	pool := dbtest.NewMigratedPool(t, "events")
 	schoolID := dbtest.InsertSchool(t, pool, "Approval School", "approval-school")
 	user := func(email, name string) string {
 		return dbtest.InsertUser(t, pool, schoolID, email, name, dbtest.VerifiedEmail())

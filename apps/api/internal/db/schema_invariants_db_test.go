@@ -20,7 +20,7 @@ var allowedTimestampWithoutTimeZone = map[string]bool{}
 // its own and checks structural rules that every migration must keep.
 func TestSchemaInvariants(t *testing.T) {
 	ctx := context.Background()
-	pool := dbtest.NewMigratedSchemaPool(t, "invariants")
+	pool := dbtest.NewMigratedPool(t, "invariants")
 
 	// Postgres does not index referencing columns, so a foreign key with no
 	// index leading with its columns forces a sequential scan on every

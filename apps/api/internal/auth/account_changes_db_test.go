@@ -9,7 +9,6 @@ import (
 
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/dbtest"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/emailoutbox"
-	"github.com/Campus-Gaming-Network/core/apps/api/internal/migrate"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/schools"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/users"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -30,10 +29,7 @@ type accountChangeFixture struct {
 func newAccountChangeFixture(t *testing.T) accountChangeFixture {
 	t.Helper()
 	ctx := context.Background()
-	pool := dbtest.NewSchemaPool(t, "auth")
-	if err := migrate.Run(ctx, pool, "../../../../db/migrations"); err != nil {
-		t.Fatalf("migrate schema: %v", err)
-	}
+	pool := dbtest.NewMigratedPool(t, "auth")
 	var schoolID string
 	schoolID = dbtest.InsertSchool(t, pool, "Account School", "account-school")
 	passwordHash, err := HashPassword("OldPassword1")

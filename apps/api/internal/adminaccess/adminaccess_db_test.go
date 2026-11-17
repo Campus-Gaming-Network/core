@@ -30,7 +30,7 @@ type adminAccessFixture struct {
 // exists, so these tests cannot share the grants already in the local database.
 func newAdminAccessFixture(t *testing.T) adminAccessFixture {
 	t.Helper()
-	pool := dbtest.NewMigratedSchemaPool(t, "adminaccess")
+	pool := dbtest.NewMigratedPool(t, "adminaccess")
 	ctx := context.Background()
 
 	suffix := fmt.Sprint(time.Now().UnixNano())

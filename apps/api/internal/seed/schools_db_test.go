@@ -25,7 +25,7 @@ func TestImportSchoolsSkipsPopulatedCatalog(t *testing.T) {
 	ctx := context.Background()
 	// The test counts every row in schools, so it runs in a schema of its own
 	// where no other package can insert or delete one.
-	pool := dbtest.NewMigratedSchemaPool(t, "seed")
+	pool := dbtest.NewMigratedPool(t, "seed")
 
 	// Guarantees a populated catalog whose row count does not match the CSV,
 	// which is the case that used to fail.

@@ -15,7 +15,7 @@ import (
 // The clock is the now the caller passes, so the expiry boundary is exact.
 func TestTokensAreSingleUseAndExpireAtTheirDeadline(t *testing.T) {
 	ctx := context.Background()
-	pool := dbtest.NewMigratedSchemaPool(t, "auth_tokens")
+	pool := dbtest.NewMigratedPool(t, "auth_tokens")
 	var schoolID, userID string
 	schoolID = dbtest.InsertSchool(t, pool, "Token School", "token-school")
 	if err := pool.QueryRow(ctx, `

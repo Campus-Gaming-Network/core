@@ -9,7 +9,7 @@ import (
 )
 
 func TestBacklogCountsUndeliveredAndRecentlyFailedMessages(t *testing.T) {
-	pool := dbtest.NewMigratedSchemaPool(t, "outbox_backlog")
+	pool := dbtest.NewMigratedPool(t, "outbox_backlog")
 	ctx := t.Context()
 	// Delivered mail and a failure older than the window are left out.
 	if _, err := pool.Exec(ctx, `

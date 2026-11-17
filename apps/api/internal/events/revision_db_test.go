@@ -11,6 +11,7 @@ import (
 // file shows and with cancelling, and not with a save that changes nothing
 // the file shows.
 func TestEventRevisionRisesOnlyWithCalendarChanges(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	f := newOrganizerFixture(t)
 	creator := f.user(t, "Creator")

@@ -7,16 +7,13 @@ import (
 	"time"
 
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/dbtest"
-	"github.com/Campus-Gaming-Network/core/apps/api/internal/migrate"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/pagecursor"
 )
 
 func TestPostgresRepositorySearchesByTitleAndLocalDate(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
-	pool := dbtest.NewSchemaPool(t, "events")
-	if err := migrate.Run(ctx, pool, "../../../../db/migrations"); err != nil {
-		t.Fatalf("migrate schema: %v", err)
-	}
+	pool := dbtest.NewMigratedPool(t, "events")
 	var schoolID, userID string
 	schoolID = dbtest.InsertSchool(t, pool, "Search School", "search-school")
 	userID = dbtest.InsertUser(t, pool, schoolID, "search@example.test", "Searcher")

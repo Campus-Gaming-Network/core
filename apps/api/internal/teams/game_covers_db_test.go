@@ -10,7 +10,7 @@ import (
 
 func TestPostgresRepositoryTeamGamesReportServedCovers(t *testing.T) {
 	ctx := context.Background()
-	pool := dbtest.NewMigratedSchemaPool(t, "team_covers")
+	pool := dbtest.NewMigratedPool(t, "team_covers")
 
 	var ownerID, teamID string
 	if err := pool.QueryRow(ctx, `

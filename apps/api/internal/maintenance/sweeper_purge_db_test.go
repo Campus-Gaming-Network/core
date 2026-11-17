@@ -13,7 +13,7 @@ import (
 // Fixed-clock coverage for the admin session and email outbox purges, checked
 // at the exact cutoffs and including the rows that must survive.
 func TestSweeperPurgesAdminSessionsAndEmailOutbox(t *testing.T) {
-	pool := dbtest.NewMigratedSchemaPool(t, "purge")
+	pool := dbtest.NewMigratedPool(t, "purge")
 	ctx := context.Background()
 
 	now := time.Date(2030, 1, 15, 12, 0, 0, 0, time.UTC)

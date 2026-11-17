@@ -164,6 +164,7 @@ func (f catalogFixture) logoRows(t *testing.T) map[string]string {
 }
 
 func TestSchoolLogoHTTPReplacesRemovesAndCleansUp(t *testing.T) {
+	t.Parallel()
 	f, objects, _ := newLogoFixture(t)
 	school, err := f.school.GetAdmin(t.Context(), catalogSchoolID)
 	if err != nil {
@@ -240,6 +241,7 @@ func TestSchoolLogoHTTPReplacesRemovesAndCleansUp(t *testing.T) {
 }
 
 func TestSchoolLogoRejectionsStoreNothing(t *testing.T) {
+	t.Parallel()
 	f, objects, _ := newLogoFixture(t)
 	school, err := f.school.GetAdmin(t.Context(), catalogSchoolID)
 	if err != nil {
@@ -275,6 +277,7 @@ func TestSchoolLogoRejectionsStoreNothing(t *testing.T) {
 }
 
 func TestSchoolLogoUploadsAreRateLimitedBeforeReading(t *testing.T) {
+	t.Parallel()
 	f, objects, _ := newLogoFixture(t)
 	svg := logoParts(time.Now(), logoPart{name: "file", body: []byte("<svg/>")})
 	for range logoUploadLimit {
@@ -292,6 +295,7 @@ func TestSchoolLogoUploadsAreRateLimitedBeforeReading(t *testing.T) {
 }
 
 func TestSchoolLogoFailuresNeverLeaveAReferencedOrOrphanedObject(t *testing.T) {
+	t.Parallel()
 	f, objects, logos := newLogoFixture(t)
 	ctx := t.Context()
 	school, err := f.school.GetAdmin(ctx, catalogSchoolID)

@@ -9,7 +9,6 @@ import (
 
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/auth"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/dbtest"
-	"github.com/Campus-Gaming-Network/core/apps/api/internal/migrate"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -21,10 +20,7 @@ type officerFixture struct {
 
 func newOfficerFixture(t *testing.T) officerFixture {
 	t.Helper()
-	pool := dbtest.NewSchemaPool(t, "club_officers")
-	if err := migrate.Run(context.Background(), pool, "../../../../db/migrations"); err != nil {
-		t.Fatalf("migrate schema: %v", err)
-	}
+	pool := dbtest.NewMigratedPool(t, "club_officers")
 	f := officerFixture{pool: pool, repository: NewPostgresRepository(pool)}
 	f.schoolID = f.insert(t, `INSERT INTO schools (name, slug) VALUES ('Officer University', 'officer-university')`)
 	return f

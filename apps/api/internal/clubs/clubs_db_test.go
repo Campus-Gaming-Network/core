@@ -8,16 +8,12 @@ import (
 	"time"
 
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/dbtest"
-	"github.com/Campus-Gaming-Network/core/apps/api/internal/migrate"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/pagecursor"
 )
 
 func TestPostgresRepositoryReadsPublishedClubs(t *testing.T) {
 	ctx := context.Background()
-	pool := dbtest.NewSchemaPool(t, "clubs")
-	if err := migrate.Run(ctx, pool, "../../../../db/migrations"); err != nil {
-		t.Fatalf("migrate schema: %v", err)
-	}
+	pool := dbtest.NewMigratedPool(t, "clubs")
 	insert := func(query string, args ...any) string {
 		t.Helper()
 		var id string
@@ -118,10 +114,7 @@ func TestPostgresRepositoryReadsPublishedClubs(t *testing.T) {
 
 func TestClubLinksAcceptOnlyHTTPURLs(t *testing.T) {
 	ctx := context.Background()
-	pool := dbtest.NewSchemaPool(t, "clubs")
-	if err := migrate.Run(ctx, pool, "../../../../db/migrations"); err != nil {
-		t.Fatalf("migrate schema: %v", err)
-	}
+	pool := dbtest.NewMigratedPool(t, "clubs")
 	var clubID string
 	if err := pool.QueryRow(ctx, `
 		WITH school AS (INSERT INTO schools (name, slug) VALUES ('Link School', 'link-school') RETURNING id)
@@ -147,10 +140,7 @@ func TestClubLinksAcceptOnlyHTTPURLs(t *testing.T) {
 
 func TestPostgresRepositoryListsTheClubsDirectory(t *testing.T) {
 	ctx := context.Background()
-	pool := dbtest.NewSchemaPool(t, "clubs_directory")
-	if err := migrate.Run(ctx, pool, "../../../../db/migrations"); err != nil {
-		t.Fatalf("migrate schema: %v", err)
-	}
+	pool := dbtest.NewMigratedPool(t, "clubs_directory")
 	insert := func(query string, args ...any) string {
 		t.Helper()
 		var id string

@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/dbtest"
-	"github.com/Campus-Gaming-Network/core/apps/api/internal/migrate"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/pagecursor"
 	"github.com/jackc/pgx/v5"
 )
@@ -23,10 +22,7 @@ type lifecycleFixture struct {
 func newLifecycleFixture(t *testing.T, schema string) lifecycleFixture {
 	t.Helper()
 	ctx := context.Background()
-	pool := dbtest.NewSchemaPool(t, schema)
-	if err := migrate.Run(ctx, pool, "../../../../db/migrations"); err != nil {
-		t.Fatalf("migrate schema: %v", err)
-	}
+	pool := dbtest.NewMigratedPool(t, schema)
 	var fixture lifecycleFixture
 	fixture.schoolID = dbtest.InsertSchool(t, pool, "Lifecycle School", "lifecycle-school")
 	fixture.creatorID = dbtest.InsertUser(t, pool, fixture.schoolID, "creator@example.test", "Creator")
@@ -65,6 +61,7 @@ func (f lifecycleFixture) create(t *testing.T, title string, startsAt time.Time)
 }
 
 func TestPostgresRepositoryKeepsACancelledEventPageForADay(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	fixture := newLifecycleFixture(t, "cancelled_event_page")
 	repository := fixture.repository
@@ -106,6 +103,7 @@ func TestPostgresRepositoryKeepsACancelledEventPageForADay(t *testing.T) {
 }
 
 func TestPostgresRepositoryRefusesToEditOrCancelAnEndedEvent(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	fixture := newLifecycleFixture(t, "ended_event_rules")
 	repository := fixture.repository
@@ -141,6 +139,7 @@ func TestPostgresRepositoryRefusesToEditOrCancelAnEndedEvent(t *testing.T) {
 }
 
 func TestPostgresRepositoryListsEveryEventACreatorMade(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	fixture := newLifecycleFixture(t, "created_events")
 	repository := fixture.repository

@@ -7,15 +7,11 @@ import (
 	"testing"
 
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/dbtest"
-	"github.com/Campus-Gaming-Network/core/apps/api/internal/migrate"
 )
 
 func TestPostgresRepositoryLeaveAndRemoveMember(t *testing.T) {
 	ctx := context.Background()
-	pool := dbtest.NewSchemaPool(t, "teams")
-	if err := migrate.Run(ctx, pool, "../../../../db/migrations"); err != nil {
-		t.Fatalf("migrate schema: %v", err)
-	}
+	pool := dbtest.NewMigratedPool(t, "teams")
 
 	var schoolID string
 	schoolID = dbtest.InsertSchool(t, pool, "Roster School", "roster-school")

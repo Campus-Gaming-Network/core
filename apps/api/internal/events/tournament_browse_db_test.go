@@ -10,8 +10,9 @@ import (
 )
 
 func TestPostgresRepositoryListPublicTournamentEntriesAndLifecycle(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
-	pool := dbtest.NewMigratedSchemaPool(t, "events")
+	pool := dbtest.NewMigratedPool(t, "events")
 	schoolID := dbtest.InsertSchool(t, pool, "Browse School", "browse-school")
 	organizerID := dbtest.InsertUser(t, pool, schoolID, "browse-organizer@example.test", "Organizer", dbtest.VerifiedEmail())
 	players := []string{

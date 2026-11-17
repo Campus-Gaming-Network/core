@@ -10,7 +10,7 @@ import (
 )
 
 func TestMetricsCountsActiveAccountsAndCreatedRecordsByUTCDay(t *testing.T) {
-	pool := dbtest.NewMigratedSchemaPool(t, "metrics")
+	pool := dbtest.NewMigratedPool(t, "metrics")
 	ctx := context.Background()
 
 	var homeID, awayID string

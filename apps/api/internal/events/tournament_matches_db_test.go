@@ -13,8 +13,9 @@ import (
 )
 
 func TestPostgresRepositoryTournamentBracket(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
-	pool := dbtest.NewMigratedSchemaPool(t, "events")
+	pool := dbtest.NewMigratedPool(t, "events")
 	schoolID := dbtest.InsertSchool(t, pool, "Bracket School", "bracket-school")
 	organizerID := dbtest.InsertUser(t, pool, schoolID, "bracket-organizer@example.test", "Organizer")
 	var gameID string
@@ -152,8 +153,9 @@ func TestPostgresRepositoryTournamentBracket(t *testing.T) {
 }
 
 func TestPostgresRepositoryTournamentResults(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
-	pool := dbtest.NewMigratedSchemaPool(t, "events")
+	pool := dbtest.NewMigratedPool(t, "events")
 	schoolID := dbtest.InsertSchool(t, pool, "Results School", "results-school")
 	organizerID := dbtest.InsertUser(t, pool, schoolID, "results-organizer@example.test", "Organizer")
 	var gameID string

@@ -18,7 +18,7 @@ import (
 // needs a real school.
 func TestTextBoundConstraints(t *testing.T) {
 	ctx := context.Background()
-	pool := dbtest.NewMigratedSchemaPool(t, "textbounds")
+	pool := dbtest.NewMigratedPool(t, "textbounds")
 	if _, err := pool.Exec(ctx, `INSERT INTO schools (name, slug) VALUES ('Fixture University', 'fixture-university')`); err != nil {
 		t.Fatalf("insert school: %v", err)
 	}
