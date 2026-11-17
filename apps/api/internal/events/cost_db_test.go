@@ -13,11 +13,9 @@ import (
 )
 
 func TestPostgresRepositoryStoresAndFiltersCost(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
-	pool := dbtest.NewSchemaPool(t, "events")
-	if err := migrate.Run(ctx, pool, "../../../../db/migrations"); err != nil {
-		t.Fatalf("migrate schema: %v", err)
-	}
+	pool := dbtest.NewMigratedPool(t, "events")
 
 	const schoolSlug = "cost-school"
 	var schoolID string

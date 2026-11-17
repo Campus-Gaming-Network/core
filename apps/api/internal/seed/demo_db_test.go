@@ -15,7 +15,7 @@ func TestEnsureDemoDataIsIdempotentAndResettable(t *testing.T) {
 	ctx := context.Background()
 	// The seed picks schools and games from the whole catalog, so it runs in a
 	// schema of its own where no other package can delete a row it picked.
-	pool := dbtest.NewMigratedSchemaPool(t, "seed")
+	pool := dbtest.NewMigratedPool(t, "seed")
 
 	if _, err := pool.Exec(ctx, `
 		INSERT INTO schools (name, slug) VALUES ('Demo Guard School', 'demo-guard-school')`); err != nil {

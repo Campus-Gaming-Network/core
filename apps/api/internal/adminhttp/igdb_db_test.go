@@ -155,6 +155,7 @@ func (f catalogFixture) errorCode(t *testing.T, method, path string, input any, 
 }
 
 func TestAPickedGameIsStoredWithItsCoverUntilAnAdminHidesIt(t *testing.T) {
+	t.Parallel()
 	f := newCatalogFixture(t)
 	ctx := t.Context()
 
@@ -199,6 +200,7 @@ func TestAPickedGameIsStoredWithItsCoverUntilAnAdminHidesIt(t *testing.T) {
 }
 
 func TestAPickLinksAnUnlinkedGameInsteadOfCopyingIt(t *testing.T) {
+	t.Parallel()
 	f := newCatalogFixture(t)
 	manual := f.insertGame(t, "Rocket League (manual)", "rocket-league")
 	game := f.pickGame(t, fakeRocketLeagueID)
@@ -221,6 +223,7 @@ func TestAPickLinksAnUnlinkedGameInsteadOfCopyingIt(t *testing.T) {
 }
 
 func TestAPickDerivesAFreeSlugAndAllowsNoCover(t *testing.T) {
+	t.Parallel()
 	f := newCatalogFixture(t)
 	ctx := t.Context()
 	// A deleted game keeps its slug, so a pick beside it takes the next one.
@@ -239,6 +242,7 @@ func TestAPickDerivesAFreeSlugAndAllowsNoCover(t *testing.T) {
 }
 
 func TestAUserPickLinksAGameAUserTypedEarlier(t *testing.T) {
+	t.Parallel()
 	f := newCatalogFixture(t)
 	ctx := t.Context()
 	typed, err := f.game.EnsureCustom(ctx, "Rocket League")
@@ -255,6 +259,7 @@ func TestAUserPickLinksAGameAUserTypedEarlier(t *testing.T) {
 }
 
 func TestIGDBFailuresStoreNothing(t *testing.T) {
+	t.Parallel()
 	f := newCatalogFixture(t)
 	ctx := t.Context()
 	service := games.NewIGDBService(f.game, f.igdb.client)
@@ -289,6 +294,7 @@ func TestIGDBFailuresStoreNothing(t *testing.T) {
 }
 
 func TestIGDBRefreshKeepsAdminEditsAndReplacesAChangedCover(t *testing.T) {
+	t.Parallel()
 	f := newCatalogFixture(t)
 	ctx := t.Context()
 	imported := f.pickGame(t, fakeRocketLeagueID)
@@ -332,6 +338,7 @@ func TestIGDBRefreshKeepsAdminEditsAndReplacesAChangedCover(t *testing.T) {
 }
 
 func TestIGDBSearchIsCachedForADay(t *testing.T) {
+	t.Parallel()
 	f := newCatalogFixture(t)
 	ctx := t.Context()
 	service := games.NewIGDBService(f.game, f.igdb.client)
@@ -383,6 +390,7 @@ func TestIGDBSearchIsCachedForADay(t *testing.T) {
 }
 
 func TestSearchResultCoversAreServedOnlyForRecentVisibleResults(t *testing.T) {
+	t.Parallel()
 	f := newCatalogFixture(t)
 	ctx := t.Context()
 	service := games.NewIGDBService(f.game, f.igdb.client)
@@ -438,6 +446,7 @@ func TestSearchResultCoversAreServedOnlyForRecentVisibleResults(t *testing.T) {
 }
 
 func TestAUserCreatesAnEventAndATeamForGamesTheCatalogLacked(t *testing.T) {
+	t.Parallel()
 	f := newCatalogFixture(t)
 	ctx := t.Context()
 	service := games.NewIGDBService(f.game, f.igdb.client)
@@ -518,6 +527,7 @@ func TestAUserCreatesAnEventAndATeamForGamesTheCatalogLacked(t *testing.T) {
 }
 
 func TestHiddenAndDeletedGamesCannotBeAddedByUsers(t *testing.T) {
+	t.Parallel()
 	f := newCatalogFixture(t)
 	ctx := t.Context()
 	service := games.NewIGDBService(f.game, f.igdb.client)
@@ -567,6 +577,7 @@ func TestHiddenAndDeletedGamesCannotBeAddedByUsers(t *testing.T) {
 }
 
 func TestStarterGamesAreImportedOnce(t *testing.T) {
+	t.Parallel()
 	f := newCatalogFixture(t)
 	ctx := t.Context()
 	service := games.NewIGDBService(f.game, f.igdb.client)

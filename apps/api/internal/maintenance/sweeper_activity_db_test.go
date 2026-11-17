@@ -13,7 +13,7 @@ import (
 // Activity days are kept for 13 months, counted in UTC dates up to and
 // including the cutoff day.
 func TestSweeperPurgesActivityDaysOlderThanThirteenMonths(t *testing.T) {
-	pool := dbtest.NewMigratedSchemaPool(t, "activity")
+	pool := dbtest.NewMigratedPool(t, "activity")
 	ctx := context.Background()
 
 	var userID string

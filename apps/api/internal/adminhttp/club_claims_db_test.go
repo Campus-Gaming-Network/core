@@ -84,6 +84,7 @@ func (f catalogFixture) auditActions(t *testing.T, entity adminaudit.EntityType,
 }
 
 func TestClubClaimIsReviewedAndMakesTheApplicantTheOwner(t *testing.T) {
+	t.Parallel()
 	f := newCatalogFixture(t)
 	f.insertApplicant(t, secondApplicantID, "second@example.edu", true)
 	f.insertApplicant(t, unverifiedUserID, "unverified@example.edu", false)
@@ -160,6 +161,7 @@ func TestClubClaimIsReviewedAndMakesTheApplicantTheOwner(t *testing.T) {
 }
 
 func TestClubRequestApprovalCreatesTheClub(t *testing.T) {
+	t.Parallel()
 	f := newCatalogFixture(t)
 	f.insertApplicant(t, unverifiedUserID, "unverified@example.edu", false)
 	f.newClub(t, "listed-club")
@@ -210,6 +212,7 @@ func TestClubRequestApprovalCreatesTheClub(t *testing.T) {
 }
 
 func TestASiteAdminRemovesAMemberButNotAnOwner(t *testing.T) {
+	t.Parallel()
 	f := newCatalogFixture(t)
 	claimID, version := f.newClaim(t, "admin-member-club", catalogTargetID)
 	approved := decodeCatalog[clubs.AdminClaim](t, f.request(t, "POST", "/admin/v1/club-claims/"+claimID+"/approve",

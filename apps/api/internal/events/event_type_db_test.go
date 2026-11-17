@@ -7,15 +7,12 @@ import (
 	"time"
 
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/dbtest"
-	"github.com/Campus-Gaming-Network/core/apps/api/internal/migrate"
 )
 
 func TestPostgresRepositoryStoresAndFiltersEventType(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
-	pool := dbtest.NewSchemaPool(t, "events")
-	if err := migrate.Run(ctx, pool, "../../../../db/migrations"); err != nil {
-		t.Fatalf("migrate schema: %v", err)
-	}
+	pool := dbtest.NewMigratedPool(t, "events")
 
 	const schoolSlug = "event-type-school"
 	var schoolID string

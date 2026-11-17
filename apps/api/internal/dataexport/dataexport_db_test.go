@@ -14,7 +14,7 @@ import (
 
 func TestExportHoldsEveryPartOfOneAccountAndNoOneElses(t *testing.T) {
 	ctx := context.Background()
-	pool := dbtest.NewMigratedSchemaPool(t, "data_export")
+	pool := dbtest.NewMigratedPool(t, "data_export")
 	at := "2026-10-01T12:00:00+00:00"
 
 	var userID, otherID string

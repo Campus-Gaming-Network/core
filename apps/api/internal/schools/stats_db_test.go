@@ -11,7 +11,7 @@ import (
 
 func TestPostgresRepositoryStatsCountsMembersTeamsAndUpcomingPublicEvents(t *testing.T) {
 	ctx := context.Background()
-	pool := dbtest.NewMigratedSchemaPool(t, "school_stats")
+	pool := dbtest.NewMigratedPool(t, "school_stats")
 	now := time.Date(2026, time.October, 17, 12, 0, 0, 0, time.UTC)
 
 	insertSchool := func(slug string, active bool) string {

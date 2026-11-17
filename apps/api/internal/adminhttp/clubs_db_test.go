@@ -23,6 +23,7 @@ func (f catalogFixture) publicSlug(t *testing.T, slug string) string {
 }
 
 func TestClubAdminLifecycleReachesThePublicSite(t *testing.T) {
+	t.Parallel()
 	f := newCatalogFixture(t)
 	game := f.insertGame(t, "Club Game", "club-game")
 
@@ -112,6 +113,7 @@ func TestClubAdminLifecycleReachesThePublicSite(t *testing.T) {
 }
 
 func TestClubAdminRejectsInvalidInput(t *testing.T) {
+	t.Parallel()
 	f := newCatalogFixture(t)
 	club := f.newClub(t, "valid-club")
 	tooManyGames := make([]string, 21)
@@ -144,6 +146,7 @@ func TestClubAdminRejectsInvalidInput(t *testing.T) {
 }
 
 func TestASchoolWithClubsCannotBeDeleted(t *testing.T) {
+	t.Parallel()
 	f := newCatalogFixture(t)
 	school := f.newSchool(t, "club-school")
 	if _, err := f.club.CreateAdmin(t.Context(), clubs.AdminCreate{

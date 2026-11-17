@@ -17,14 +17,14 @@ import (
 // update them.
 func TestAuditHistoryIsAppendOnlyForTheRuntimeRole(t *testing.T) {
 	ctx := context.Background()
-	pool := dbtest.NewMigratedSchemaPool(t, "privileges")
-	var schema string
-	if err := pool.QueryRow(ctx, `SELECT current_schema()`).Scan(&schema); err != nil {
+	pool := dbtest.NewMigratedPool(t, "privileges")
+	var schema, database string
+	if err := pool.QueryRow(ctx, `SELECT current_schema(), current_database()`).Scan(&schema, &database); err != nil {
 		t.Fatal(err)
 	}
-	// Roles are cluster-wide, so the role is named after the schema, which is
-	// unique to this test run.
-	role := pgx.Identifier{"runtime_" + schema}.Sanitize()
+	// Roles are cluster-wide, so the role is named after the database, which
+	// is unique to this test run.
+	role := pgx.Identifier{"runtime_" + database}.Sanitize()
 	for _, statement := range []string{
 		`CREATE ROLE ` + role + ` NOLOGIN`,
 		`GRANT USAGE ON SCHEMA ` + pgx.Identifier{schema}.Sanitize() + ` TO ` + role,

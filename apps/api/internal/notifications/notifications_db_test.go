@@ -13,7 +13,7 @@ import (
 
 func TestInboxPagesMarksAndKeepsEachPersonToTheirOwn(t *testing.T) {
 	ctx := context.Background()
-	pool := dbtest.NewMigratedSchemaPool(t, "notifications")
+	pool := dbtest.NewMigratedPool(t, "notifications")
 	var userID, otherID, liveEventID, cancelledEventID string
 	if err := pool.QueryRow(ctx, `
 		WITH school AS (INSERT INTO schools (name, slug) VALUES ('Home', 'home') RETURNING id),

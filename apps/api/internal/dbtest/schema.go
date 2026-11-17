@@ -7,7 +7,6 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/Campus-Gaming-Network/core/apps/api/internal/migrate"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -56,15 +55,5 @@ func NewSchemaPool(t *testing.T, prefix string) *pgxpool.Pool {
 		t.Fatalf("connect to schema: %v", err)
 	}
 	t.Cleanup(pool.Close)
-	return pool
-}
-
-// NewMigratedSchemaPool is NewSchemaPool with every migration applied.
-func NewMigratedSchemaPool(t *testing.T, prefix string) *pgxpool.Pool {
-	t.Helper()
-	pool := NewSchemaPool(t, prefix)
-	if err := migrate.Run(context.Background(), pool, migrationsDir); err != nil {
-		t.Fatalf("migrate schema: %v", err)
-	}
 	return pool
 }

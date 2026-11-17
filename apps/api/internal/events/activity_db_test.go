@@ -14,6 +14,7 @@ import (
 )
 
 func TestEventActivityLogRecordsChangesAndFiltersThemByViewer(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	f := newOrganizerFixture(t)
 	creator, coOrganizer, clubEditor, outsider, helper := f.user(t, "Creator"), f.user(t, "Co Organizer"),
@@ -186,6 +187,7 @@ func TestEventActivityLogRecordsChangesAndFiltersThemByViewer(t *testing.T) {
 }
 
 func TestEventActivityNeverRecordsSecrets(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	f := newOrganizerFixture(t)
 	creator := f.user(t, "Creator")

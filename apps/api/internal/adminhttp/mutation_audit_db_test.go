@@ -313,8 +313,10 @@ func (f catalogFixture) domainDigest(t *testing.T) map[string]string {
 }
 
 func TestEveryMutationRouteAuditsOnceAndRollsBackWithoutAnAuditRow(t *testing.T) {
+	t.Parallel()
 	for operation, test := range mutationCases {
 		t.Run(string(operation), func(t *testing.T) {
+			t.Parallel()
 			f := newCatalogFixture(t)
 			ctx := t.Context()
 			// A switch that makes every audit insert fail while it holds a row.
@@ -430,6 +432,7 @@ func TestNoAuditRouteCanChangeAnAuditRecord(t *testing.T) {
 // Ending sessions is itself audited: who, which account, why, and how many
 // sessions, never a token.
 func TestRevokingAGrantAuditsTheSessionsItEndedWithoutTokenMaterial(t *testing.T) {
+	t.Parallel()
 	f := newCatalogFixture(t)
 	ctx := t.Context()
 	user, err := f.user.GetAdmin(ctx, catalogTargetID)

@@ -12,8 +12,9 @@ import (
 )
 
 func TestPostgresRepositoryTournamentSettingsAndStatus(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
-	pool := dbtest.NewMigratedSchemaPool(t, "events")
+	pool := dbtest.NewMigratedPool(t, "events")
 	schoolID := dbtest.InsertSchool(t, pool, "Tournament School", "tournament-school")
 	organizerID := dbtest.InsertUser(t, pool, schoolID, "tournament-organizer@example.test", "Tournament Organizer")
 	playerID := dbtest.InsertUser(t, pool, schoolID, "tournament-player@example.test", "Tournament Player", dbtest.VerifiedEmail())

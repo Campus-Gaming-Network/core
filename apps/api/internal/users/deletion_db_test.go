@@ -19,7 +19,7 @@ import (
 // database; local runs without one skip while CI provisions PostgreSQL.
 func newDeletionFixture(t *testing.T) (*pgxpool.Pool, string) {
 	t.Helper()
-	pool := dbtest.NewMigratedSchemaPool(t, "users")
+	pool := dbtest.NewMigratedPool(t, "users")
 
 	var schoolID string
 	if err := pool.QueryRow(context.Background(), `

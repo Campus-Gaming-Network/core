@@ -23,7 +23,7 @@ type organizerFixture struct {
 func newOrganizerFixture(t *testing.T) organizerFixture {
 	t.Helper()
 	ctx := context.Background()
-	pool := dbtest.NewMigratedSchemaPool(t, "event_organizers")
+	pool := dbtest.NewMigratedPool(t, "event_organizers")
 	fixture := organizerFixture{pool: pool, repository: NewPostgresRepository(pool)}
 	fixture.schoolID = dbtest.InsertSchool(t, pool, "Host", "host")
 	if err := pool.QueryRow(ctx, `INSERT INTO games (name, slug) VALUES ('Chess', 'chess') RETURNING id::text`).Scan(&fixture.gameID); err != nil {
@@ -85,6 +85,7 @@ func (f organizerFixture) invite(t *testing.T, slug, creatorID, email, token str
 }
 
 func TestOrganizerInviteAddsACoOrganizerWhoCanEditButNotCancel(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	f := newOrganizerFixture(t)
 	creatorID := f.user(t, "Creator")
@@ -219,6 +220,7 @@ func TestOrganizerInviteAddsACoOrganizerWhoCanEditButNotCancel(t *testing.T) {
 }
 
 func TestOrganizerInvitesKeepAPrivateTitleOutOfTheEmailAndStopAtTheLimit(t *testing.T) {
+	t.Parallel()
 	ctx := context.Background()
 	f := newOrganizerFixture(t)
 	creatorID := f.user(t, "Creator")

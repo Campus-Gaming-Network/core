@@ -9,10 +9,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"os"
 	"reflect"
 	"strings"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -23,10 +21,10 @@ import (
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/adminsession"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/auth"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/clubs"
+	"github.com/Campus-Gaming-Network/core/apps/api/internal/dbtest"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/emailoutbox"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/games"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/metrics"
-	"github.com/Campus-Gaming-Network/core/apps/api/internal/migrate"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/operations"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/pagecursor"
 	"github.com/Campus-Gaming-Network/core/apps/api/internal/schools"
@@ -38,8 +36,6 @@ import (
 const catalogActorID = "10000000-0000-4000-8000-000000000001"
 const catalogTargetID = "10000000-0000-4000-8000-000000000002"
 const catalogSchoolID = "10000000-0000-4000-8000-000000000003"
-
-var catalogSchemaSequence atomic.Uint64
 
 type catalogFixture struct {
 	pool       *pgxpool.Pool
@@ -59,40 +55,9 @@ type catalogFixture struct {
 
 func newCatalogFixture(t *testing.T) catalogFixture {
 	t.Helper()
-	dsn := os.Getenv("API_DATABASE_URL")
-	if dsn == "" {
-		t.Skip("API_DATABASE_URL not set")
-	}
 	ctx := context.Background()
-	owner, err := pgxpool.New(ctx, dsn)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(owner.Close)
-	// Each test has its own schema: no shared catalog rows, grant counts or
-	// bootstrap fixture ordering, including when packages execute concurrently.
-	schema := fmt.Sprintf("ac009_%d_%d", os.Getpid(), catalogSchemaSequence.Add(1))
-	if _, err := owner.Exec(ctx, `CREATE SCHEMA `+pgx.Identifier{schema}.Sanitize()); err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() {
-		if _, err := owner.Exec(context.Background(), `DROP SCHEMA `+pgx.Identifier{schema}.Sanitize()+` CASCADE`); err != nil {
-			t.Error(err)
-		}
-	})
-	config, err := pgxpool.ParseConfig(dsn)
-	if err != nil {
-		t.Fatal(err)
-	}
-	config.ConnConfig.RuntimeParams["search_path"] = schema + ",public"
-	pool, err := pgxpool.NewWithConfig(ctx, config)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(pool.Close)
-	if err := migrate.Run(ctx, pool, "../../../../db/migrations"); err != nil {
-		t.Fatal(err)
-	}
+	pool := dbtest.NewMigratedPool(t, "adminhttp")
+	var err error
 	if _, err := pool.Exec(ctx, `INSERT INTO schools(id,name,slug) VALUES($1,'Fixture School','fixture-school')`, catalogSchoolID); err != nil {
 		t.Fatal(err)
 	}
@@ -172,6 +137,7 @@ func decodeCatalog[T any](t *testing.T, response *httptest.ResponseRecorder) T {
 }
 
 func TestCatalogHTTPCommandsRefreshCacheAndProtectVersions(t *testing.T) {
+	t.Parallel()
 	f := newCatalogFixture(t)
 	ctx := t.Context()
 	fields := schools.AdminFields{Name: "New <script>School</script>", ShortName: "NSS", Slug: "new-school", City: "Portland", State: "OR", WebsiteURL: "https://example.test", IsMainCampus: true}
@@ -247,6 +213,7 @@ func TestCatalogHTTPCommandsRefreshCacheAndProtectVersions(t *testing.T) {
 }
 
 func TestSchoolGrantHTTPPreservesHistoryAndScopesGrantIDs(t *testing.T) {
+	t.Parallel()
 	f := newCatalogFixture(t)
 	ctx := t.Context()
 	input := schools.GrantAdminInput{Command: f.command, UserID: catalogTargetID}
@@ -277,6 +244,7 @@ func TestSchoolGrantHTTPPreservesHistoryAndScopesGrantIDs(t *testing.T) {
 }
 
 func TestAuditLogListsEveryChangeWithItsRecord(t *testing.T) {
+	t.Parallel()
 	f := newCatalogFixture(t)
 	school := f.newSchool(t, "audit-log")
 	if _, err := f.school.GrantAdmin(t.Context(), catalogSchoolID, schools.GrantAdminInput{Command: f.command, UserID: catalogTargetID}); err != nil {
@@ -336,6 +304,7 @@ func TestAuditLogListsEveryChangeWithItsRecord(t *testing.T) {
 }
 
 func TestCatalogUpdatesAuditTheNamesOfTheEditedFields(t *testing.T) {
+	t.Parallel()
 	f := newCatalogFixture(t)
 	school := f.newSchool(t, "short-name-edit")
 	schoolEdit := schools.AdminEdit{Command: f.versioned(school.UpdatedAt), AdminFields: school.AdminFields}
@@ -371,6 +340,7 @@ func TestCatalogUpdatesAuditTheNamesOfTheEditedFields(t *testing.T) {
 }
 
 func TestUserStatusTrustAndSiteGrantHTTP(t *testing.T) {
+	t.Parallel()
 	f := newCatalogFixture(t)
 	ctx := t.Context()
 	u, err := f.user.GetAdmin(ctx, catalogTargetID)
@@ -465,6 +435,7 @@ func TestUserStatusTrustAndSiteGrantHTTP(t *testing.T) {
 }
 
 func TestCatalogRejectsUnknownFieldsAndUnsupportedTransitions(t *testing.T) {
+	t.Parallel()
 	f := newCatalogFixture(t)
 	user, err := f.user.GetAdmin(t.Context(), catalogTargetID)
 	if err != nil {
@@ -497,6 +468,7 @@ func TestCatalogRejectsUnknownFieldsAndUnsupportedTransitions(t *testing.T) {
 }
 
 func TestCatalogPaginationAndLiteralSearch(t *testing.T) {
+	t.Parallel()
 	f := newCatalogFixture(t)
 	ctx := t.Context()
 	for index := 0; index < 4; index++ {
@@ -571,6 +543,7 @@ func TestCatalogPaginationAndLiteralSearch(t *testing.T) {
 }
 
 func TestCatalogAuditFailuresRollBackDomainAndSessionChanges(t *testing.T) {
+	t.Parallel()
 	f := newCatalogFixture(t)
 	ctx := t.Context()
 	game := f.insertGame(t, "Rollback", "rollback")
@@ -637,6 +610,7 @@ func TestCatalogAuditFailuresRollBackDomainAndSessionChanges(t *testing.T) {
 }
 
 func TestConcurrentCatalogUpdatesAndLastAdministratorChanges(t *testing.T) {
+	t.Parallel()
 	f := newCatalogFixture(t)
 	ctx := t.Context()
 	game := f.insertGame(t, "Concurrent", "concurrent")
@@ -690,6 +664,7 @@ func TestConcurrentCatalogUpdatesAndLastAdministratorChanges(t *testing.T) {
 }
 
 func TestGameDependenciesAndDeletedCatalogReferences(t *testing.T) {
+	t.Parallel()
 	f := newCatalogFixture(t)
 	ctx := t.Context()
 	game := f.insertGame(t, "Team Game", "team-game")
@@ -717,6 +692,7 @@ func TestGameDependenciesAndDeletedCatalogReferences(t *testing.T) {
 }
 
 func TestCatalogDeleteWaitsForConcurrentReferenceThenRejectsIt(t *testing.T) {
+	t.Parallel()
 	f := newCatalogFixture(t)
 	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
 	defer cancel()
@@ -769,6 +745,7 @@ func TestCatalogDeleteWaitsForConcurrentReferenceThenRejectsIt(t *testing.T) {
 // and every authenticated request touches its own session; neither is domain
 // data, so neither is compared.
 func TestEveryGETRouteLeavesDomainDataUnchanged(t *testing.T) {
+	t.Parallel()
 	f := newCatalogFixture(t)
 	ctx := t.Context()
 	domainTables := []string{"schools", "games", "users", "reports", "support_tickets", "audit_logs", "site_role_grants", "school_admins", "user_school_follows"}
@@ -817,6 +794,7 @@ func TestEveryGETRouteLeavesDomainDataUnchanged(t *testing.T) {
 }
 
 func TestSchoolDetailReportsOnlyABundledSchoolsLogo(t *testing.T) {
+	t.Parallel()
 	f := newCatalogFixture(t)
 	f.handler.dependencies.Catalog.AssetOrigin = "https://assets.example.test"
 	unitID := int64(100654)

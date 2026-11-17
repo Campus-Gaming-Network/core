@@ -10,7 +10,7 @@ import (
 )
 
 func TestPostgresStoreRecordsActiveAccountsOncePerDay(t *testing.T) {
-	pool := dbtest.NewMigratedSchemaPool(t, "activity")
+	pool := dbtest.NewMigratedPool(t, "activity")
 	ctx := context.Background()
 
 	var activeID, suspendedID, deletedID string

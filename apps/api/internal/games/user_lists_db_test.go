@@ -11,7 +11,7 @@ import (
 
 func TestPostgresRepositoryUserListsAddMoveRemoveAndCapFavorites(t *testing.T) {
 	ctx := context.Background()
-	pool := dbtest.NewMigratedSchemaPool(t, "user_games")
+	pool := dbtest.NewMigratedPool(t, "user_games")
 
 	var userID string
 	if err := pool.QueryRow(ctx, `

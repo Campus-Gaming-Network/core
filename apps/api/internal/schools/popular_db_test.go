@@ -13,7 +13,7 @@ import (
 // hosts. It runs in a migrated schema of its own so that no other school's
 // activity can outrank or crowd out the fixtures under MaximumPopularLimit.
 func TestListPopularRanksByMembersPlusPublicEvents(t *testing.T) {
-	pool := dbtest.NewMigratedSchemaPool(t, "popular")
+	pool := dbtest.NewMigratedPool(t, "popular")
 	ctx := context.Background()
 
 	school := func(label string, active bool) string {

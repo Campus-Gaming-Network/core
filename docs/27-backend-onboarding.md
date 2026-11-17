@@ -306,9 +306,11 @@ neighboring tests for the area:
   Assert the status, the error code, and the decoded body as a whole value.
   Cover the anonymous case, the rate limit, malformed input, and each error
   kind the repository can return.
-- **Database tests** (`*_db_test.go`) get a private, migrated schema with
-  `dbtest.NewMigratedSchemaPool(t, "prefix")`, insert their own fixtures, and
-  exercise the real SQL. They prove what fakes cannot: locks, upserts,
+- **Database tests** (`*_db_test.go`) get a private, migrated database with
+  `dbtest.NewMigratedPool(t, "prefix")`, insert their own fixtures, and
+  exercise the real SQL. The database is a copy of a template migrated once
+  per set of migration files, so a test that uses it can call `t.Parallel()`.
+  They prove what fakes cannot: locks, upserts,
   constraints, soft-delete filtering, and that a side effect was written in
   the same transaction. They skip unless `API_DATABASE_URL` is set; with the
   Compose stack up, use
