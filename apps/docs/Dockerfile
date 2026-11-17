@@ -4,7 +4,7 @@ FROM ${NODE_IMAGE}
 USER root
 WORKDIR /app
 ENV NODE_ENV=development
-RUN npm install --global pnpm@12.6.0
+RUN npm install --global pnpm@12.22.0
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/admin/package.json ./apps/admin/package.json
