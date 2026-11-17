@@ -15,3 +15,11 @@ peerDependencyRules:
     - vite
   allowedVersions:
     vite: "*"
+auditConfig:
+  # Each entry has no patched release, ships in no runtime image, and has an
+  # open issue to remove it (docs/11-implementation-decisions.md).
+  ignoreGhsas:
+    # picomatch <=4.0.7 ReDoS. Only TanStack Start's build tooling matches
+    # globs with it, on patterns from this repository; neither app's .output
+    # contains it. Remove once picomatch publishes a fix (#370).
+    - GHSA-fc5q-39xc-vjpf
