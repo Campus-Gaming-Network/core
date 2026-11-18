@@ -1,5 +1,6 @@
 import type { PolicyDocument } from "./policy-document.js";
 import { privacyDraft20261006 } from "./privacy-draft-2026-10-06.js";
+import { privacyDraft20261117 } from "./privacy-draft-2026-11-17.js";
 import { termsDraft20261006 } from "./terms-draft-2026-10-06.js";
 
 export type { PolicyDocument, PolicySection } from "./policy-document.js";
@@ -11,7 +12,7 @@ export type { PolicyDocument, PolicySection } from "./policy-document.js";
  */
 const published: Record<PolicyDocument["type"], readonly PolicyDocument[]> = {
   terms: [termsDraft20261006],
-  privacy: [privacyDraft20261006],
+  privacy: [privacyDraft20261006, privacyDraft20261117],
 };
 
 export function policyDocument(

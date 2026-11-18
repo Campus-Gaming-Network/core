@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import { test } from "vite-plus/test";
 import { policyDocument, validatePolicySearch } from "../src/policies/index.js";
@@ -12,10 +12,11 @@ const repositoryRoot =
     : currentDirectory;
 
 test("each published policy file still has the hash its migration recorded", () => {
-  const migration = readFileSync(
-    join(repositoryRoot, "db/migrations/000019_policy_acceptance.up.sql"),
-    "utf8",
-  );
+  const migrationDirectory = join(repositoryRoot, "db/migrations");
+  const migration = readdirSync(migrationDirectory)
+    .filter((name) => name.endsWith(".up.sql"))
+    .map((name) => readFileSync(join(migrationDirectory, name), "utf8"))
+    .join("\n");
   const recorded = [
     ...migration.matchAll(
       /\('(terms|privacy)', '([^']+)', '[^']+',\s+'([0-9a-f]{64})',\s+'([^']+)'\)/g,
@@ -45,7 +46,7 @@ test("each published policy file still has the hash its migration recorded", () 
       served: version,
     })),
   );
-  assert.equal(recorded.length, 2);
+  assert.equal(recorded.length, 3);
 });
 
 test("a policy page serves its latest version, a named published one, and nothing else", () => {
