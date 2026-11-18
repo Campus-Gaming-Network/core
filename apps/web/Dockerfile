@@ -1,7 +1,7 @@
 FROM node:24-alpine AS base
 
 WORKDIR /app
-RUN npm install --global pnpm@12.6.0
+RUN npm install --global pnpm@12.22.0
 
 FROM base AS deps
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
